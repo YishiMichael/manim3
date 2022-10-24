@@ -5,7 +5,7 @@
 
 
 ## Introduction
-*An animation engine inspired from ![manim](https://github.com/3b1b/manim) and ![three.js](https://github.com/mrdoob/three.js)*
+*An animation engine inspired from [manim](https://github.com/3b1b/manim) and [three.js](https://github.com/mrdoob/three.js)*
 
 
 ## Requirements
