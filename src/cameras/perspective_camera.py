@@ -1,58 +1,39 @@
-from __future__ import annotations
+from dataclasses import dataclass
+from typing import Self
 
-import math
+import numpy as np
 
 from cameras.camera import Camera
 from utils.arrays import Mat4
 
 
+@dataclass
 class PerspectiveCamera(Camera):
-    def __init__(
-        self,
-        fov: float = 50.0,
-        aspect: float = 1.0,
-        near: float = 0.1,
-        far: float = 2000.0
-    ):
-        super().__init__(near, far)
-        #self._matrixWorldInverse: Mat4 = Mat4() # ~self.projectionMatrix
+    fov: float = 50.0
+    aspect: float = 1.0
+    near: float = 0.1
+    far: float = 2000.0
 
-        self.fov: float = fov
-        self.aspect: float = aspect  # width / height
-
-        self.zoom: float = 1.0
-
-        #self.focus: float = 10.0
-
-
-        self.filmGauge: float = 540.0    # width of the film (default in millimeters)
-        self.filmOffset: float = 0.0
-
-        self.update_projection_matrix()
-
-    def update_projection_matrix(self):
-        DEGREES = math.pi / 180.0
+    def calculate_projection_matrix(self: Self) -> Mat4:
+        DEGREES = np.pi / 180.0
         near = self.near
-        top = near * math.tan(0.5 * self.fov * DEGREES) / self.zoom
+        top = near * np.tan(0.5 * self.fov * DEGREES) / self.zoom
         height = 2 * top
         width = self.aspect * height
         left = - 0.5 * width + self.filmOffset / self.filmGauge
-        matrix = self.get_perspective_matrix(left, left + width, top, top - height, near, self.far)
-        self._projection_matrix = matrix
-        #self._matrixWorldInverse = ~matrix
-        return self
+        return self.calculate_perspective_matrix(left, left + width, top, top - height, near, self.far)
 
     @staticmethod
-    def get_perspective_matrix(left: float, right: float, top: float, bottom: float, near: float, far: float) -> Mat4:
+    def calculate_perspective_matrix(left: float, right: float, top: float, bottom: float, near: float, far: float) -> Mat4:
         x = 2 * near / (right - left)
         y = 2 * near / (top - bottom)
         a = (right + left) / (right - left)
         b = (top + bottom) / (top - bottom)
         c = - (far + near) / (far - near)
         d = - 2 * far * near / (far - near)
-        return Mat4(
-              x, 0.0, 0.0,  0.0,
-            0.0,   y, 0.0,  0.0,
-              a,   b,   c, -1.0,
-            0.0, 0.0,   d,  0.0
-        )
+        return np.array([
+            [x, 0, 0, 0],
+            [0, y, 0, 0],
+            [a, b, c, -1],
+            [0, 0, d, 0]
+        ])

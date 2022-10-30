@@ -1,15 +1,22 @@
-from __future__ import annotations
+from abc import ABC, abstractmethod
+from typing import Self
 
-from mobject import Mobject
+import numpy as np
+
 from utils.arrays import Mat4
 
 
-class Camera(Mobject):
-    def __init__(self, near: float, far: float):
-        super().__init__()
-        self.near: float = near
-        self.far: float = far
-        self.projection_matrix: Mat4 = Mat4()  # TODO
+class Camera(ABC):
+    def __init__(self):
+        self.__projection_matrix: Mat4 = np.eye(4)  # TODO
 
-    def update_projection_matrix(self):
+    def get_projection_matrix(self: Self) -> Mat4:
+        return self.__projection_matrix
+
+    def update_projection_matrix(self: Self) -> Self:
+        self.__projection_matrix = self.calculate_projection_matrix()
+        return self
+
+    @abstractmethod
+    def calculate_projection_matrix(self: Self) -> Mat4:
         raise NotImplementedError
