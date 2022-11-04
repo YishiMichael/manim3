@@ -1,39 +1,39 @@
-import itertools as it
-import struct
-from typing import Self
+#import struct
 
 import moderngl
-import numpy as np
 
 from cameras.camera import Camera
 from cameras.perspective_camera import PerspectiveCamera
-from mobjects.mobject import Mobject, ShaderData
-from utils.arrays import Mat3, Mat4, Vec2, Vec3, Vec4
+from mobjects.mobject import Mobject
+from shader_utils import ContextWrapper
+from utils.typing import *
 
 
 class Scene(Mobject):
-    def __init__(self: Self):
+    def __init__(self: Self, ctx: moderngl.Context):
         super().__init__()
         self.camera: Camera = PerspectiveCamera()
 
-        ctx = moderngl.create_context(standalone=True)
-        ctx.enable(moderngl.DEPTH_TEST)
+        #ctx = moderngl.create_context(standalone=True)
+        self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
+        #ctx.enable(moderngl.DEPTH_TEST)
         #ctx.enable(moderngl.BLEND)
-        fbo = ctx.simple_framebuffer((960, 540))
-        fbo.use()
-        fbo.clear(0.0, 0.0, 0.0, 1.0)  # background color
-        self.ctx: moderngl.Context = ctx
-        self.fbo: moderngl.Framebuffer = fbo
+        #fbo = ctx.simple_framebuffer((960, 540))
+        #fbo.use()
+        #fbo.clear(0.0, 0.0, 0.0, 1.0)  # background color
+        #self.ctx: moderngl.Context = ctx
+        #self.fbo: moderngl.Framebuffer = fbo
 
     def render(self: Self) -> Self:
-        for mobject in self.iter_descendents():
+        for mobject in self.get_descendents():
             try:
                 shader_data = mobject.setup_shader_data(self.camera)
             except NotImplementedError:
                 continue
-            self.render_shader(shader_data)
+            self.context_wrapper.render(shader_data)
         return self
 
+    """
     def render_shader(self: Self, shader_data: ShaderData) -> Self:
         ctx = self.ctx
         program = ctx.program(
@@ -77,3 +77,4 @@ class Scene(Mobject):
         )
         vao.render(shader_data.render_primitive)
         return self
+    """

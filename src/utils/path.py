@@ -2,7 +2,8 @@ import copy
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
-from typing import Generator, Self
+from typing import Generator, Any
+Self = Any
 
 from mapbox_earcut import triangulate_float32
 import numpy as np

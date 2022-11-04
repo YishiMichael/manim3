@@ -1,3 +1,4 @@
+"""
 from __future__ import annotations
 
 import numpy as np
@@ -67,7 +68,7 @@ def from_rotate(rotation: Rotation) -> Mat4:
     result = np.eye(4)
     result[:3, :3] = rotation.as_matrix()
     return result
-
+"""
 
 """
 class Array(np.ndarray):

@@ -1,50 +1,20 @@
-from dataclasses import dataclass
-from typing import Generator, Iterable, Iterator, Self, TypeVar, Union
+from typing import Generator, Iterable, Iterator, TypeVar
 
 from cameras.camera import Camera
-from utils.arrays import Mat3, Mat4, Vec2, Vec3, Vec4
+from shader_utils import ShaderData
+from utils.typing import *
 
 
-__all__ = [
-    "Mobject"
-]
+__all__ = ["Mobject"]
 
 
 T = TypeVar("T")
-Uniform = Union[
-    float,
-    int,
-    Mat3,
-    Mat4,
-    Vec2,
-    Vec3,
-    Vec4
-]
-Attribute = Union[
-    list[float],
-    list[int],
-    list[Mat3],
-    list[Mat4],
-    list[Vec2],
-    list[Vec3],
-    list[Vec4]
-]
-
-
-@dataclass
-class ShaderData:
-    vertex_shader: str
-    fragment_shader: str
-    uniforms: dict[str, Uniform]
-    vertex_indices: list[int]
-    vertex_attributes: dict[str, Attribute]
-    render_primitive: int
 
 
 class Mobject:
     def __init__(self: Self) -> None:
-        self.__parents: list[Self] = []
-        self.__children: list[Self] = []
+        self.parents: list[Self] = []
+        self.children: list[Self] = []
 
     def __iter__(self: Self) -> Iterator[Self]:
         return iter(self.get_children())
@@ -52,24 +22,24 @@ class Mobject:
     # family
 
     def get_parents(self: Self) -> list[Self]:
-        return self.__parents
+        return self.parents
 
     def get_children(self: Self) -> list[Self]:
-        return self.__children
+        return self.children
 
     def _bind_child(self: Self, node: Self, index: int | None = None) -> Self:
         if node.includes(self):
             raise ValueError(f"'{node}' has already included '{self}'")
         if index is not None:
-            self.__children.insert(index, node)
+            self.children.insert(index, node)
         else:
-            self.__children.append(node)
-        node.__parents.append(self)
+            self.children.append(node)
+        node.parents.append(self)
         return self
 
     def _unbind_child(self: Self, node: Self) -> Self:
-        self.__children.remove(node)
-        node.__parents.remove(self)
+        self.children.remove(node)
+        node.parents.remove(self)
         return self
 
     @staticmethod
