@@ -13,9 +13,9 @@ class Material(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_uniforms(self: Self, camera: Camera) -> dict[str, UniformType]:
+    def get_attributes_r(self: Self, camera: Camera) -> AttributesItemType:
         raise NotImplementedError
 
     @abstractmethod
-    def get_texture_arrays(self: Self) -> list[TextureArrayType]:
+    def get_texture_dict(self: Self) -> dict[int, TextureArrayType | None]:
         raise NotImplementedError

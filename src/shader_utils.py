@@ -8,15 +8,15 @@ from utils.typing import *
 
 @dataclass
 class ShaderData:
-    shader_filename: str
-    define_macros: list[str]
-    uniforms: dict[str, UniformType]
-    texture_arrays: list[TextureArrayType]
-    vertex_attributes: AttributesType
-    vertex_indices: VertexIndicesType
-    render_primitive: int
     enable_depth_test: bool
     enable_blend: bool
+    shader_filename: str
+    define_macros: list[str]
+    #uniforms: dict[str, UniformType]
+    texture_dict: dict[int, TextureArrayType | None]
+    attributes_dict: AttributesDictType
+    vertex_indices: VertexIndicesType
+    render_primitive: int
 
 
 class ContextWrapper:
@@ -80,20 +80,23 @@ class ContextWrapper:
         cls,
         ctx: moderngl.Context,
         program: moderngl.Program,
-        uniforms: dict[str, UniformType],
-        texture_arrays: list[TextureArrayType],
-        vertex_attributes: AttributesType,
-        vertex_indices: VertexIndicesType
+        #uniforms: dict[str, UniformType],
+        texture_dict: dict[int, TextureArrayType | None],
+        attributes_dict: AttributesDictType,
+        vertex_indices: VertexIndicesType,
+        render_primitive: int
     ) -> moderngl.VertexArray:
-        for uniform_name, uniform_val in uniforms.items():
-            uniform = program[uniform_name]
-            if not isinstance(uniform, moderngl.Uniform):
-                continue
-            if not isinstance(uniform_val, (int, float)):
-                uniform_val = tuple(uniform_val.flatten())
-            uniform.__setattr__("value", uniform_val)
+        #for uniform_name, uniform_val in uniforms.items():
+        #    uniform = program[uniform_name]
+        #    if not isinstance(uniform, moderngl.Uniform):
+        #        continue
+        #    if not isinstance(uniform_val, (int, float)):
+        #        uniform_val = tuple(uniform_val.flatten())
+        #    uniform.__setattr__("value", uniform_val)
 
-        for i, texture_array in enumerate(texture_arrays):
+        for i, texture_array in texture_dict.items():
+            if texture_array is None:
+                continue
             shape = texture_array.shape
             texture = ctx.texture(
                 size=shape[:2],
@@ -102,55 +105,64 @@ class ContextWrapper:
             )
             texture.use(location=i)
 
-        vertex_attribute_names = vertex_attributes.dtype.names
-        assert vertex_attribute_names is not None
-        #content = [
-        #    (
-        #        ctx.buffer(vertex_attributes[attribute_name].tobytes()),
-        #        moderngl.detect_format(program, [attribute_name]),
-        #        attribute_name
-        #    )
-        #    for attribute_name in vertex_attribute_names
-        #]
+        content = []
+        for usage, array in attributes_dict.items():
+            names = array.dtype.names
+            assert names is not None
+            format_str = f"{moderngl.detect_format(program, names)} /{usage.name.lower()}"
+            content.append((
+                ctx.buffer(array.tobytes()),
+                format_str,
+                *names
+            ))
 
+        ibo = ctx.buffer(vertex_indices.tobytes())
         vao = ctx.vertex_array(
-            program,
-            ctx.buffer(vertex_attributes.tobytes()),
-            *vertex_attribute_names,
-            index_buffer=ctx.buffer(vertex_indices.tobytes()),
-            #index_element_size=4,
+            program=program,
+            content=content,
+            index_buffer=ibo,
+            index_element_size=4,
+            mode=render_primitive
         )
         return vao
 
     @classmethod
-    def _render(
+    def _configure_context(
         cls,
         ctx: moderngl.Context,
-        shader_data: ShaderData
+        enable_depth_test: bool,
+        enable_blend: bool
     ) -> None:
-        program = cls._get_program(
+        if enable_depth_test:
+            ctx.enable(moderngl.DEPTH_TEST)
+        else:
+            ctx.disable(moderngl.DEPTH_TEST)
+        if enable_blend:
+            ctx.enable(moderngl.BLEND)
+        else:
+            ctx.disable(moderngl.BLEND)
+        #ctx.cull_face = "front_and_back"  # TODO
+        #ctx.wireframe = True  # TODO
+
+    def render(self: Self, shader_data: ShaderData) -> None:
+        ctx = self._ctx
+        self._configure_context(
+            ctx,
+            shader_data.enable_depth_test,
+            shader_data.enable_blend
+        )
+        program = self._get_program(
             ctx,
             shader_data.shader_filename,
             shader_data.define_macros
         )
-        vao = cls._get_vao(
+        vao = self._get_vao(
             ctx,
             program,
-            shader_data.uniforms,
-            shader_data.texture_arrays,
-            shader_data.vertex_attributes,
-            shader_data.vertex_indices
+            #shader_data.uniforms,
+            shader_data.texture_dict,
+            shader_data.attributes_dict,
+            shader_data.vertex_indices,
+            shader_data.render_primitive
         )
-        if shader_data.enable_depth_test:
-            ctx.enable(moderngl.DEPTH_TEST)
-        else:
-            ctx.disable(moderngl.DEPTH_TEST)
-        if shader_data.enable_blend:
-            ctx.enable(moderngl.BLEND)
-        else:
-            ctx.disable(moderngl.BLEND)
-        ctx.cull_face = "front_and_back"  # TODO
-        vao.render(shader_data.render_primitive)
-
-    def render(self: Self, shader_data: ShaderData) -> None:
-        self._render(self._ctx, shader_data)
+        vao.render()

@@ -20,36 +20,28 @@ class ParametrizedSurfaceGeometry(Geometry):
         self.u_samples: FloatArrayType = u_samples
         self.v_samples: FloatArrayType = v_samples
 
-    def get_indices(self: Self) -> VertexIndicesType:
+    def get_vertex_indices(self: Self) -> VertexIndicesType:
         u_len = len(self.u_samples)
         v_len = len(self.v_samples)
-        uv_grid = np.mgrid[0:u_len, 0:v_len]
-        a = uv_grid[:, :-1, :-1]
-        b = uv_grid[:, +1:, :-1]
-        c = uv_grid[:, :-1, +1:]
-        d = uv_grid[:, +1:, +1:]
+        index_grid = np.mgrid[0:u_len, 0:v_len]
+        ne = index_grid[:, +1:, +1:]
+        nw = index_grid[:, :-1, +1:]
+        sw = index_grid[:, :-1, :-1]
+        se = index_grid[:, +1:, :-1]
         return np.ravel_multi_index(
-            np.stack((b, a, d, a, c, d), axis=-1),
+            tuple(np.stack((se, sw, ne, sw, nw, ne), axis=-1)),
             (u_len, v_len)
-        ).flatten()#.astype(np.uint32)  # TODO: convert type
+        ).flatten().astype(np.int32)
 
-    def get_vertex_attributes(self: Self) -> AttributesType:
-        func = self.func
-        vertices = np.array([
-            func(u, v)
-            for v in self.v_samples
-            for u in self.u_samples
-        ])
-        #x, y = np.meshgrid(
-        #    np.linspace(-1.0, 1.0, self.x_segments + 1),
-        #    np.linspace(-1.0, 1.0, self.y_segments + 1)
-        #)
-        #vertices = np.stack(
-        #    (x, y, np.zeros_like(x)),
-        #    axis=-1
-        #).reshape((-1, 3))
-        result = np.zeros(len(vertices), dtype=[
-            ("in_position", np.float32, (3,))  # TODO: convert type
-        ])
-        result["in_position"] = vertices
-        return result
+    def get_attributes_v(self: Self) -> AttributesItemType:
+        uv_grid = np.meshgrid(self.u_samples, self.v_samples, indexing="ij")
+        return np.fromiter((
+            (
+                self.func(u, v),
+                np.array([u, v])
+                # derivatives for normal vectors...
+            ) for u, v in np.nditer(uv_grid)
+        ), dtype=np.dtype([
+            ("in_position", np.float32, (3,)),
+            ("in_uv", np.float32, (2,))
+        ]))

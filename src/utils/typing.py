@@ -1,28 +1,36 @@
+from enum import Enum
 from typing import Any, Literal, Union
 
 import numpy as np
 
 
 __all__ = [
-	"Vector2Type",
-	"Vector3Type",
-	"Vector4Type",
-	"Matrix33Type",
-	"Matrix44Type",
-	"IntArrayType",
-	"FloatArrayType",
-	"Vector2ArrayType",
-	"Vector3ArrayType",
-	"Vector4ArrayType",
-	"Matrix33ArrayType",
-	"Matrix44ArrayType",
-	"ColorArrayType",
-	"UniformType",
-	"TextureArrayType",
-	"AttributesType",
-	"VertexIndicesType",
-	"Self"
+    "AttributeUsage",
+    "Vector2Type",
+    "Vector3Type",
+    "Vector4Type",
+    "Matrix33Type",
+    "Matrix44Type",
+    "IntArrayType",
+    "FloatArrayType",
+    "Vector2ArrayType",
+    "Vector3ArrayType",
+    "Vector4ArrayType",
+    "Matrix33ArrayType",
+    "Matrix44ArrayType",
+    "ColorArrayType",
+    "TextureArrayType",
+    "AttributesItemType",
+    "AttributesDictType",
+    "VertexIndicesType",
+    "Self"
 ]
+
+
+class AttributeUsage(Enum):
+    V = 0  # per vertex
+    I = 1  # per instance
+    R = 2  # per render
 
 
 Vector2Type = np.ndarray[tuple[Literal[2]], np.dtype[np.float64]]
@@ -40,9 +48,11 @@ Matrix33ArrayType = np.ndarray[tuple[int, Literal[3], Literal[3]], np.dtype[np.f
 Matrix44ArrayType = np.ndarray[tuple[int, Literal[4], Literal[4]], np.dtype[np.float64]]
 
 ColorArrayType = Vector4Type
-UniformType = Union[int, float, np.ndarray[tuple[int, ...], np.dtype[np.float64]]]
+#UniformType = Union[int, float, np.ndarray[tuple[int, ...], np.dtype[np.float64]]]
 TextureArrayType = np.ndarray[tuple[int, int, Literal[4]], np.dtype[np.uint8]]
-AttributesType = np.ndarray[tuple[int], np.dtype[Any]]
-VertexIndicesType = np.ndarray[tuple[int], np.dtype[np.uint32]]
+#AttributesType = np.ndarray[tuple[int], np.dtype[Any]]
+AttributesItemType = np.ndarray[tuple[int], np.dtype[Any]]
+AttributesDictType = dict[AttributeUsage, AttributesItemType]
+VertexIndicesType = IntArrayType
 
 Self = Any  # This shall be removed when advanced to py 3.11

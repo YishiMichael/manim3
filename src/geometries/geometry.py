@@ -8,9 +8,9 @@ __all__ = ["Geometry"]
 
 class Geometry(ABC):
     @abstractmethod
-    def get_indices(self: Self) -> VertexIndicesType:
+    def get_vertex_indices(self: Self) -> VertexIndicesType:
         raise NotImplementedError
 
     @abstractmethod
-    def get_vertex_attributes(self: Self) -> AttributesType:
+    def get_attributes_v(self: Self) -> AttributesItemType:
         raise NotImplementedError
