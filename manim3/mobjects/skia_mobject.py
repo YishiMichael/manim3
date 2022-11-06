@@ -1,8 +1,8 @@
 import numpy as np
 import skia
 
-from ..constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
 from ..mobjects.planar_mobject import PlanarMobject
+from ..constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
 from ..typing import *
 
 

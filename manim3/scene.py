@@ -4,9 +4,9 @@ from moderngl_window.context.pyglet.window import Window as PygletWindow
 
 from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
-from .constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
 from .mobjects.mobject import Mobject
 from .shader_utils import ContextWrapper
+from .constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
 from .typing import *
 
 
