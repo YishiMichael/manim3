@@ -1,7 +1,7 @@
 import pyrr
 
-from cameras.camera import Camera
-from utils.typing import *
+from ..cameras.camera import Camera
+from ..typing import *
 
 
 __all__ = ["PerspectiveCamera"]

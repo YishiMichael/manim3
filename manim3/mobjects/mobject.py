@@ -1,8 +1,8 @@
 from typing import Generator, Iterable, Iterator, TypeVar
 
-from cameras.camera import Camera
-from shader_utils import ShaderData
-from utils.typing import *
+from ..cameras.camera import Camera
+from ..shader_utils import ShaderData
+from ..typing import *
 
 
 __all__ = ["Mobject"]

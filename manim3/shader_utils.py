@@ -1,20 +1,24 @@
 from dataclasses import dataclass
 import re
+import os
 
 import moderngl
 
-from utils.typing import *
+from .constants import MANIM3_PATH
+from .typing import *
 
 
 @dataclass
 class ShaderData:
     enable_depth_test: bool
     enable_blend: bool
+    cull_face: str
+    wireframe: bool
     shader_filename: str
     define_macros: list[str]
-    #uniforms: dict[str, UniformType]
-    texture_dict: dict[int, TextureArrayType | None]
-    attributes_dict: AttributesDictType
+    textures_dict: dict[str, tuple[TextureArrayType, int]]
+    #uniforms_dict: dict[str, UniformType]
+    attributes_dict: dict[str, tuple[AttributeType, str]]
     vertex_indices: VertexIndicesType
     render_primitive: int
 
@@ -29,7 +33,7 @@ class ContextWrapper:
     def _read_glsl_file(cls, filename: str) -> str:
         if filename in cls._GLSL_FILE_CACHE:
             return cls._GLSL_FILE_CACHE[filename]
-        with open(f"E:\\ManimKindergarten\\manim3\\src\\shaders\\{filename}.glsl") as f:  # TODO
+        with open(os.path.join(MANIM3_PATH, "shaders", f"{filename}.glsl")) as f:
             result = f.read()
         cls._GLSL_FILE_CACHE[filename] = result
         return result
@@ -80,13 +84,13 @@ class ContextWrapper:
         cls,
         ctx: moderngl.Context,
         program: moderngl.Program,
-        #uniforms: dict[str, UniformType],
-        texture_dict: dict[int, TextureArrayType | None],
-        attributes_dict: AttributesDictType,
+        textures_dict: dict[str, tuple[TextureArrayType, int]],
+        #uniforms_dict: dict[str, UniformType],
+        attributes_dict: dict[str, tuple[AttributeType, str]],
         vertex_indices: VertexIndicesType,
         render_primitive: int
     ) -> moderngl.VertexArray:
-        #for uniform_name, uniform_val in uniforms.items():
+        #for uniform_name, uniform_val in uniforms_dict.items():
         #    uniform = program[uniform_name]
         #    if not isinstance(uniform, moderngl.Uniform):
         #        continue
@@ -94,28 +98,23 @@ class ContextWrapper:
         #        uniform_val = tuple(uniform_val.flatten())
         #    uniform.__setattr__("value", uniform_val)
 
-        for i, texture_array in texture_dict.items():
-            if texture_array is None:
+        for name, (texture_array, location) in textures_dict.items():
+            uniform = program[name]
+            if not isinstance(uniform, moderngl.Uniform):
                 continue
+            uniform.__setattr__("value", location)
             shape = texture_array.shape
             texture = ctx.texture(
                 size=shape[:2],
                 components=shape[2],
                 data=texture_array.tobytes(),
             )
-            texture.use(location=i)
+            texture.use(location=location)
 
-        content = []
-        for usage, array in attributes_dict.items():
-            names = array.dtype.names
-            assert names is not None
-            format_str = f"{moderngl.detect_format(program, names)} /{usage.name.lower()}"
-            content.append((
-                ctx.buffer(array.tobytes()),
-                format_str,
-                *names
-            ))
-
+        content = [
+            (ctx.buffer(array.tobytes()), buffer_format, name)
+            for name, (array, buffer_format) in attributes_dict.items()
+        ]
         ibo = ctx.buffer(vertex_indices.tobytes())
         vao = ctx.vertex_array(
             program=program,
@@ -131,7 +130,9 @@ class ContextWrapper:
         cls,
         ctx: moderngl.Context,
         enable_depth_test: bool,
-        enable_blend: bool
+        enable_blend: bool,
+        cull_face: str,
+        wireframe: bool
     ) -> None:
         if enable_depth_test:
             ctx.enable(moderngl.DEPTH_TEST)
@@ -141,15 +142,17 @@ class ContextWrapper:
             ctx.enable(moderngl.BLEND)
         else:
             ctx.disable(moderngl.BLEND)
-        #ctx.cull_face = "front_and_back"  # TODO
-        #ctx.wireframe = True  # TODO
+        ctx.cull_face = cull_face
+        ctx.wireframe = wireframe
 
     def render(self: Self, shader_data: ShaderData) -> None:
         ctx = self._ctx
         self._configure_context(
             ctx,
             shader_data.enable_depth_test,
-            shader_data.enable_blend
+            shader_data.enable_blend,
+            shader_data.cull_face,
+            shader_data.wireframe
         )
         program = self._get_program(
             ctx,
@@ -159,8 +162,8 @@ class ContextWrapper:
         vao = self._get_vao(
             ctx,
             program,
-            #shader_data.uniforms,
-            shader_data.texture_dict,
+            shader_data.textures_dict,
+            #shader_data.uniforms_dict,
             shader_data.attributes_dict,
             shader_data.vertex_indices,
             shader_data.render_primitive

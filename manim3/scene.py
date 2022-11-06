@@ -1,21 +1,32 @@
-#import struct
+import time
 
-import moderngl
+from moderngl_window.context.pyglet.window import Window as PygletWindow
 
-from cameras.camera import Camera
-from cameras.perspective_camera import PerspectiveCamera
-from mobjects.mobject import Mobject
-from shader_utils import ContextWrapper
-from utils.typing import *
+from .cameras.camera import Camera
+from .cameras.perspective_camera import PerspectiveCamera
+from .mobjects.mobject import Mobject
+from .shader_utils import ContextWrapper
+from .typing import *
 
 
 class Scene(Mobject):
-    def __init__(self: Self, ctx: moderngl.Context):
+    def __init__(self: Self):
         super().__init__()
+        WIDTH, HEIGHT = 640, 480
+        window = PygletWindow(
+            size=(WIDTH, HEIGHT),
+            fullscreen=False,
+            resizable=True,
+            gl_version=(3, 3),
+            vsync=True,
+            cursor=True
+        )
+        self.window: PygletWindow = window
+        self.context_wrapper: ContextWrapper = ContextWrapper(window.ctx)
         self.camera: Camera = PerspectiveCamera()
 
         #ctx = moderngl.create_context(standalone=True)
-        self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
+        #self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
         #ctx.enable(moderngl.DEPTH_TEST)
         #ctx.enable(moderngl.BLEND)
         #fbo = ctx.simple_framebuffer((960, 540))
@@ -31,6 +42,16 @@ class Scene(Mobject):
             except NotImplementedError:
                 continue
             self.context_wrapper.render(shader_data)
+        return self
+
+    def run(self: Self) -> Self:
+        window = self.window
+        FPS = 10.0
+        while not window.is_closing:
+            time.sleep(1.0 / FPS)
+            window.clear()
+            self.render()
+            window.swap_buffers()
         return self
 
     """
