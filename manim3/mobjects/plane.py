@@ -16,8 +16,8 @@ class Plane(ParametricSurface):
     ):
         super().__init__(
             lambda x, y: np.array((x, y, 0.0)),
-            (-0.5, 0.5),
-            (-0.5, 0.5),
+            (-1.0, 1.0),
+            (-1.0, 1.0),
             resolution=(x_segments, y_segments),
             **kwargs
         )

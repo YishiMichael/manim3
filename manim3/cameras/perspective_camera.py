@@ -1,6 +1,10 @@
+import numpy as np
 import pyrr
 
 from ..cameras.camera import Camera
+from ..constants import ASPECT_RATIO, FRAME_Y_RADIUS
+from ..constants import CAMERA_ALTITUDE, CAMERA_FAR, CAMERA_NEAR
+from ..constants import DEGREES
 from ..typing import *
 
 
@@ -10,10 +14,10 @@ __all__ = ["PerspectiveCamera"]
 class PerspectiveCamera(Camera):
     def __init__(
         self: Self,
-        fovy: float = 50.0,
-        aspect: float = 1.0,
-        near: float = 0.1,
-        far: float = 100.0
+        fovy: float = 2.0 * np.arctan(FRAME_Y_RADIUS / CAMERA_ALTITUDE) / DEGREES,
+        aspect: float = ASPECT_RATIO,
+        near: float = CAMERA_NEAR,
+        far: float = CAMERA_FAR
     ):
         super().__init__()
         self.fovy: float = fovy

@@ -26,25 +26,39 @@ class GeometryAttributes:
 
 @dataclass
 class MeshMaterialAttributes:
-    color: ColorArrayType = np.ones(4)
-    color_map: TextureArrayType | None = None
-    enable_depth_test: bool = True
-    enable_blend: bool = True
-    cull_face: str = "back"
-    wireframe: bool = False
+    color: ColorArrayType
+    color_map: TextureArrayType | None
+    enable_depth_test: bool
+    enable_blend: bool
+    cull_face: str
+    wireframe: bool
 
 
 class MeshMobject(Mobject):
-    def __init__(self: Self, **kwargs):
+    def __init__(
+        self: Self,
+        color: ColorArrayType | None = None,
+        color_map: TextureArrayType | None = None,
+        enable_depth_test: bool = True,
+        enable_blend: bool = True,
+        cull_face: str = "back",
+        wireframe: bool = False
+    ):
         super().__init__()
         self.geometry: GeometryAttributes = self.init_geometry_attributes()
-        self.material: MeshMaterialAttributes = self.init_mesh_material_attributes(kwargs)
+        if color is None:
+            color = np.ones(4)
+        self.material: MeshMaterialAttributes = MeshMaterialAttributes(
+            color=color,
+            color_map=color_map,
+            enable_depth_test=enable_depth_test,
+            enable_blend=enable_blend,
+            cull_face=cull_face,
+            wireframe=wireframe
+        )
 
     def init_geometry_attributes(self: Self) -> GeometryAttributes:
         raise NotImplementedError
-
-    def init_mesh_material_attributes(self: Self, kwargs: dict[str, Any]) -> MeshMaterialAttributes:
-        return MeshMaterialAttributes(**kwargs)
 
     def setup_shader_data(self: Self, camera: Camera) -> ShaderData:
         geometry = self.geometry

@@ -1,6 +1,8 @@
 import pyrr
 
 from ..cameras.camera import Camera
+from ..constants import CAMERA_FAR, CAMERA_NEAR
+from ..constants import FRAME_X_RADIUS, FRAME_Y_RADIUS
 from ..typing import *
 
 
@@ -10,12 +12,12 @@ __all__ = ["OrthographicCamera"]
 class OrthographicCamera(Camera):
     def __init__(
         self: Self,
-        left: float = -1.0,
-        right: float = 1.0,
-        top: float = 1.0,
-        bottom: float = -1.0,
-        near: float = 0.1,
-        far: float = 100.0
+        left: float = -FRAME_X_RADIUS,
+        right: float = FRAME_X_RADIUS,
+        top: float = FRAME_Y_RADIUS,
+        bottom: float = -FRAME_Y_RADIUS,
+        near: float = CAMERA_NEAR,
+        far: float = CAMERA_FAR
     ):
         super().__init__()
         self.left: float = left

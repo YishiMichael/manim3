@@ -17,10 +17,7 @@ __all__ = [
     "Matrix44ArrayType",
     "ColorArrayType",
     "TextureArrayType",
-    #"UniformType",
     "AttributeType",
-    #"AttributesItemType",
-    #"AttributesDictType",
     "VertexIndicesType",
     "Self"
 ]
@@ -45,16 +42,7 @@ Matrix33ArrayType = np.ndarray[tuple[_ND, _3D, _3D], np.dtype[np.float64]]
 Matrix44ArrayType = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float64]]
 
 ColorArrayType = Vector4Type
-TextureArrayType = np.ndarray[tuple[_ND, _ND, _3D | _4D], np.dtype[np.uint8]]
-#UniformType = Union[
-#    int,
-#    float,
-#    Vector2Type,
-#    Vector3Type,
-#    Vector4Type,
-#    Matrix33Type,
-#    Matrix44Type
-#]
+TextureArrayType = np.ndarray[tuple[_ND, _ND, _4D], np.dtype[np.uint8]]
 AttributeType = Union[
     FloatArrayType,
     Vector2ArrayType,
@@ -63,9 +51,6 @@ AttributeType = Union[
     Matrix33ArrayType,
     Matrix44ArrayType
 ]
-#AttributesType = np.ndarray[tuple[int], np.dtype[Any]]
-#AttributesItemType = np.ndarray[tuple[int], np.dtype[Any]]
-#AttributesDictType = dict[AttributeUsage, AttributesItemType]
 VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.int32]]
 
 Self = Any  # This shall be removed when advanced to py 3.11

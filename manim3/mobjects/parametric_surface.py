@@ -43,15 +43,16 @@ class ParametricSurface(MeshMobject):
             np.linspace(0.0, 1.0, u_len),
             np.linspace(0.0, 1.0, v_len),
             indexing="ij"
-        ), 2)
-        samples_grid = np.stack(np.meshgrid(
+        ), 2).reshape((-1, 2))
+        samples = np.stack(np.meshgrid(
             np.linspace(u_start, u_stop, u_len),
             np.linspace(v_start, v_stop, v_len),
             indexing="ij"
-        ), 2)
-        position = np.apply_along_axis(lambda p: self.func(*p), 2, samples_grid)
+        ), 2).reshape((-1, 2))
+        position = np.apply_along_axis(lambda p: self.func(*p), 1, samples)
         return GeometryAttributes(
             index=index,
             position=position,
             uv=uv
         )
+        # TODO: normals using `from scipy.misc import derivative`

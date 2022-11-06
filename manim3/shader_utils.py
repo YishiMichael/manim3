@@ -103,10 +103,10 @@ class ContextWrapper:
             if not isinstance(uniform, moderngl.Uniform):
                 continue
             uniform.__setattr__("value", location)
-            shape = texture_array.shape
+            height, width, depth = texture_array.shape
             texture = ctx.texture(
-                size=shape[:2],
-                components=shape[2],
+                size=(width, height),
+                components=depth,
                 data=texture_array.tobytes(),
             )
             texture.use(location=location)

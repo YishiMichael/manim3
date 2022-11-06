@@ -4,6 +4,7 @@ from moderngl_window.context.pyglet.window import Window as PygletWindow
 
 from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
+from .constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
 from .mobjects.mobject import Mobject
 from .shader_utils import ContextWrapper
 from .typing import *
@@ -12,9 +13,8 @@ from .typing import *
 class Scene(Mobject):
     def __init__(self: Self):
         super().__init__()
-        WIDTH, HEIGHT = 640, 480
         window = PygletWindow(
-            size=(WIDTH, HEIGHT),
+            size=(DEFAULT_PIXEL_WIDTH // 2, DEFAULT_PIXEL_HEIGHT // 2),  # TODO
             fullscreen=False,
             resizable=True,
             gl_version=(3, 3),
