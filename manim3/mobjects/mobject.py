@@ -9,12 +9,14 @@ from scipy.spatial.transform import Rotation
 
 from ..cameras.camera import Camera
 from ..shader_utils import ShaderData
+from ..constants import ORIGIN
 from ..typing import *
 
 
 __all__ = [
     "BoundingBox3D",
-    "Mobject"
+    "Mobject",
+    "Group"
 ]
 
 
@@ -87,12 +89,12 @@ class Mobject(ABC):
         for child in self.get_children():
             yield from child._iter_descendents()
 
-    def get_ancestors(self: Self, broadcast: bool = True) -> list[Self]:  # TODO: order
+    def get_ancestors(self: Self, *, broadcast: bool = True) -> list[Self]:  # TODO: order
         if not broadcast:
             return [self]
         return self.remove_redundancies(self._iter_ancestors())
 
-    def get_descendents(self: Self, broadcast: bool = True) -> list[Self]:
+    def get_descendents(self: Self, *, broadcast: bool = True) -> list[Self]:
         if not broadcast:
             return [self]
         return self.remove_redundancies(self._iter_descendents())
@@ -183,19 +185,27 @@ class Mobject(ABC):
     def apply_matrix(
         self: Self,
         matrix: pyrr.Matrix44,
+        *,
         about_point: Vector3Type | None = None,
+        about_edge: Vector3Type | None = None,
         **kwargs
     ) -> Self:
+        if about_point is None:
+            if about_edge is None:
+                about_edge = ORIGIN
+            about_point = self.get_boundary_point(about_edge)
+        elif about_edge is not None:
+            raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
+
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
-        if about_point is not None:
-            matrix = reduce(pyrr.Matrix44.__matmul__, (
-                self.matrix_from_translation(-about_point),
-                matrix,
-                self.matrix_from_translation(about_point)
-            ))
+        matrix = reduce(pyrr.Matrix44.__matmul__, (
+            self.matrix_from_translation(-about_point),
+            matrix,
+            self.matrix_from_translation(about_point)
+        ))
         for mobject in self.get_descendents(**kwargs):
-            mobject.matrix = matrix @ mobject.matrix
+            mobject.matrix = mobject.matrix @ matrix
         return self
 
     def shift(self: Self, vector: Vector3Type, **kwargs) -> Self:
@@ -223,3 +233,9 @@ class Mobject(ABC):
     def setup_shader_data(self: Self, camera: Camera) -> ShaderData | None:
         # To be implemented in subclasses
         return None
+
+
+class Group(Mobject):
+    def __init__(self: Self, *mobjects: Mobject):
+        super().__init__()
+        self.add(*mobjects)

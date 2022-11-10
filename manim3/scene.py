@@ -6,7 +6,7 @@ from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
 from .mobjects.mobject import Mobject
 from .shader_utils import ContextWrapper
-from .constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
+from .constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from .typing import *
 
 
@@ -14,7 +14,7 @@ class Scene(Mobject):
     def __init__(self: Self):
         super().__init__()
         window = PygletWindow(
-            size=(DEFAULT_PIXEL_WIDTH // 2, DEFAULT_PIXEL_HEIGHT // 2),  # TODO
+            size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
             fullscreen=False,
             resizable=True,
             gl_version=(3, 3),

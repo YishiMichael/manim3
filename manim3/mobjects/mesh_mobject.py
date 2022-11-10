@@ -57,7 +57,7 @@ class MeshMobject(Mobject):
         material = self.material
         color_map = self.load_color_map()
         if color_map is not None:
-            material.color_map = color_map[::-1]
+            material.color_map = np.flipud(color_map)  # flip y
 
         defines = []
         if material.color_map is not None:

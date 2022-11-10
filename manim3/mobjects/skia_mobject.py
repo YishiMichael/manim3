@@ -7,14 +7,14 @@ import skia
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..constants import PIXEL_PER_UNIT
-#from ..constants import DEFAULT_PIXEL_HEIGHT, DEFAULT_PIXEL_WIDTH
+from ..constants import FRAME_HEIGHT, FRAME_WIDTH, PIXEL_PER_UNIT
+#from ..constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from ..typing import *
 
 
 __all__ = [
     "BoundingBox2D",
-    "SkiaBaseMobject"
+    "SkiaMobject"
 ]
 
 
@@ -24,24 +24,57 @@ class BoundingBox2D:
     radius: Vector2Type
 
 
-class SkiaBaseMobject(MeshMobject):
+class SkiaMobject(MeshMobject):
     def __init__(
         self: Self,
+        *,
         #draw_range: BoundingBox2D,
-        resolution: tuple[int, int],
+        frame_size: Vector2Type | None = None,
         frame: BoundingBox2D | None = None,
+        resolution: tuple[int, int] | None = None,
         #canvas_matrix: Matrix33Type,
         #geometry: Geometry | None = None,
         #rectangle: BoundingBox2D,
-        #resolution: tuple[int, int] = (DEFAULT_PIXEL_WIDTH, DEFAULT_PIXEL_HEIGHT)
+        #resolution: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
     ):
         if frame is None:
+            if frame_size is None:
+                if resolution is None:
+                    resolution_arr = np.array((FRAME_WIDTH, FRAME_HEIGHT))
+                else:
+                    resolution_arr = np.array(resolution)
+                frame_size = resolution_arr / PIXEL_PER_UNIT
             frame = BoundingBox2D(
                 origin=np.array((0.0, 0.0)),
-                radius=np.array(resolution) / PIXEL_PER_UNIT / 2.0
+                radius=frame_size / 2.0
             )
+        elif frame_size is not None:
+            raise AttributeError("Cannot specify both parameters `frame_size` and `frame`")
+
+        if resolution is None:
+            resolution_arr = abs(2.0 * PIXEL_PER_UNIT * frame.radius)
+            resolution = (int(resolution_arr[0]), int(resolution_arr[1]))
+            mode = "frame"
+        else:
+            mode = "resolution"
+
+        #if frame is None:
+        #    if resolution is None:
+        #        resolution = (PIXEL_WIDTH, PIXEL_HEIGHT)
+        #    frame = BoundingBox2D(
+        #        origin=np.array((0.0, 0.0)),
+        #        radius=np.array(resolution) / PIXEL_PER_UNIT / 2.0
+        #    )
+        #    mode = "resolution"
+        #else:
+        #    if resolution is None:
+        #        arr = abs(2.0 * PIXEL_PER_UNIT * frame.radius)
+        #        resolution = (int(arr[0]), int(arr[1]))
+        #    mode = "frame"
+
         self.frame: BoundingBox2D = frame
         self.resolution: tuple[int, int] = resolution
+        self.mode: str = mode
         super().__init__()
         #self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
         self.enable_depth_test = False
@@ -104,7 +137,17 @@ class SkiaBaseMobject(MeshMobject):
         ))
 
     def get_canvas_matrix(self: Self) -> pyrr.Matrix33 | None:
-        return None
+        if self.mode == "resolution":
+            return None
+
+        width, height = self.resolution
+        return self.rect_to_rect_matrix(
+            self.frame,
+            BoundingBox2D(
+                origin=np.array((width, height)) / 2.0,
+                radius=np.array((width, -height)) / 2.0  # flip y
+            )
+        )
 
     def draw(self: Self, canvas: skia.Canvas) -> None:
         pass
