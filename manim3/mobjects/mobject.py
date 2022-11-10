@@ -1,20 +1,47 @@
+from abc import ABC
+from dataclasses import dataclass
+from functools import reduce
+import pyrr
 from typing import Generator, Iterable, Iterator, TypeVar
+
+import numpy as np
+from scipy.spatial.transform import Rotation
 
 from ..cameras.camera import Camera
 from ..shader_utils import ShaderData
 from ..typing import *
 
 
-__all__ = ["Mobject"]
+__all__ = [
+    "BoundingBox3D",
+    "Mobject"
+]
 
 
 T = TypeVar("T")
 
 
-class Mobject:
+@dataclass
+class BoundingBox3D:
+    origin: Vector3Type
+    radius: Vector3Type
+
+
+class Mobject(ABC):
     def __init__(self: Self) -> None:
         self.parents: list[Self] = []
         self.children: list[Self] = []
+
+        self.matrix: pyrr.Matrix44 = self.init_matrix()
+
+        # shader context settings
+        self.enable_depth_test: bool = True
+        self.enable_blend: bool = True
+        self.cull_face: str = "back"
+        self.wireframe: bool = False
+
+    def init_matrix(self: Self) -> pyrr.Matrix44:
+        return pyrr.Matrix44.identity()
 
     def __iter__(self: Self) -> Iterator[Self]:
         return iter(self.get_children())
@@ -60,10 +87,14 @@ class Mobject:
         for child in self.get_children():
             yield from child._iter_descendents()
 
-    def get_ancestors(self: Self) -> list[Self]:  # TODO: order
+    def get_ancestors(self: Self, broadcast: bool = True) -> list[Self]:  # TODO: order
+        if not broadcast:
+            return [self]
         return self.remove_redundancies(self._iter_ancestors())
 
-    def get_descendents(self: Self) -> list[Self]:
+    def get_descendents(self: Self, broadcast: bool = True) -> list[Self]:
+        if not broadcast:
+            return [self]
         return self.remove_redundancies(self._iter_descendents())
 
     def includes(self: Self, node: Self) -> bool:
@@ -113,7 +144,82 @@ class Mobject:
             parent._unbind_child(self)
         return self
 
+    # matrix & transform
+
+    @staticmethod
+    def matrix_from_translation(vector: Vector3Type) -> pyrr.Matrix44:
+        return pyrr.Matrix44.from_translation(vector)
+
+    @staticmethod
+    def matrix_from_scale(factor_vector: Vector3Type) -> pyrr.Matrix44:
+        return pyrr.Matrix44.from_scale(factor_vector)
+
+    @staticmethod
+    def matrix_from_rotation(rotation: Rotation) -> pyrr.Matrix44:
+        return pyrr.Matrix44.from_matrix33(rotation.as_matrix())
+
+    def get_local_sample_points(self: Self) -> Vector3ArrayType:
+        # Implemented in subclasses
+        return np.zeros((0, 3))
+
+    def get_aabb(self: Self, **kwargs) -> BoundingBox3D:
+        points = [
+            pyrr.matrix44.apply_to_vector(
+                mobject.matrix, point
+            )
+            for mobject in self.get_descendents(**kwargs)
+            for point in mobject.get_local_sample_points()
+        ]
+        minimum, maximum = pyrr.aabb.create_from_points(points)
+        return BoundingBox3D(
+            origin=(maximum + minimum) / 2.0,
+            radius=(maximum - minimum) / 2.0
+        )
+
+    def get_boundary_point(self: Self, direction: Vector3Type, **kwargs) -> Vector3Type:
+        aabb = self.get_aabb(**kwargs)
+        return aabb.origin + direction * aabb.radius
+
+    def apply_matrix(
+        self: Self,
+        matrix: pyrr.Matrix44,
+        about_point: Vector3Type | None = None,
+        **kwargs
+    ) -> Self:
+        #if np.isclose(np.linalg.det(matrix), 0.0):
+        #    warnings.warn("Applying a singular matrix transform")
+        if about_point is not None:
+            matrix = reduce(pyrr.Matrix44.__matmul__, (
+                self.matrix_from_translation(-about_point),
+                matrix,
+                self.matrix_from_translation(about_point)
+            ))
+        for mobject in self.get_descendents(**kwargs):
+            mobject.matrix = matrix @ mobject.matrix
+        return self
+
+    def shift(self: Self, vector: Vector3Type, **kwargs) -> Self:
+        matrix = self.matrix_from_translation(vector)
+        self.apply_matrix(matrix, **kwargs)
+        return self
+
+    def scale(self: Self, factor: Real | Vector3Type, **kwargs) -> Self:
+        if isinstance(factor, Real):
+            factor_vector = pyrr.Vector3()
+            factor_vector.fill(factor)
+        else:
+            factor_vector = pyrr.Vector3(factor)
+        matrix = self.matrix_from_scale(factor_vector)
+        self.apply_matrix(matrix, **kwargs)
+        return self
+
+    def rotate(self: Self, rotation: Rotation, **kwargs) -> Self:
+        matrix = self.matrix_from_rotation(rotation)
+        self.apply_matrix(matrix, **kwargs)
+        return self
+
     # shader
 
-    def setup_shader_data(self: Self, camera: Camera) -> ShaderData:
-        raise NotImplementedError
+    def setup_shader_data(self: Self, camera: Camera) -> ShaderData | None:
+        # To be implemented in subclasses
+        return None

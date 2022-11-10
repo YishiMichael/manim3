@@ -37,9 +37,8 @@ class Scene(Mobject):
 
     def render(self: Self) -> Self:
         for mobject in self.get_descendents():
-            try:
-                shader_data = mobject.setup_shader_data(self.camera)
-            except NotImplementedError:
+            shader_data = mobject.setup_shader_data(self.camera)
+            if shader_data is None:
                 continue
             self.context_wrapper.render(shader_data)
         return self

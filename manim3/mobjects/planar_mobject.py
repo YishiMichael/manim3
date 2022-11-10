@@ -1,28 +1,24 @@
-import numpy as np
-
-from ..mobjects.mesh_mobject import MeshMaterialAttributes
-from ..mobjects.plane import Plane
-from ..typing import *
-
-
-__all__ = ["PlanarMobject"]
-
-
-class PlanarMobject(Plane):
-    def __init__(
-        self: Self,
-        enable_depth_test: bool = False,
-        enable_blend: bool = False,
-        cull_face: str = "back",
-        wireframe: bool = False
-    ):
-        super().__init__(
-            color_map=self.init_color_map(),
-            enable_depth_test=enable_depth_test,
-            enable_blend=enable_blend,
-            cull_face=cull_face,
-            wireframe=wireframe
-        )
-
-    def init_color_map(self: Self) -> TextureArrayType:
-        raise NotImplementedError
+#import numpy as np
+#
+#from ..mobjects.plane import Plane
+#from ..typing import *
+#
+#
+#__all__ = ["PlanarMobject"]
+#
+#
+#class PlanarMobject(Plane):
+#    def __init__(self: Self, width: Real, height: Real):
+#        #self.rectangle: BoundingBox2D = rectangle
+#        self.width: float = float(width)
+#        self.height: float = float(height)
+#        super().__init__(width, height, color_map=self.init_color_map())
+#        self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+#        self.enable_depth_test = False
+#        # The object is of square shape at [-1, 1] x [-1, 1].
+#        # Scale and shift as specified by `rectangle`.
+#        #self.scale(np.array((*rectangle.radius, 1.0)))
+#        #self.shift(np.array((*rectangle.origin, 0.0)))
+#
+#    def init_color_map(self: Self) -> TextureArrayType:
+#        raise NotImplementedError

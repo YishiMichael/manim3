@@ -4,6 +4,7 @@ import numpy as np
 
 
 __all__ = [
+    "Real",
     "Vector2Type",
     "Vector3Type",
     "Vector4Type",
@@ -22,6 +23,8 @@ __all__ = [
     "Self"
 ]
 
+
+Real = float | int
 
 _ND = int
 _2D = Literal[2]

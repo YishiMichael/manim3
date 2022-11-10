@@ -4,7 +4,7 @@ import os
 
 import moderngl
 
-from .constants import MANIM3_PATH
+from .constants import SHADERS_PATH
 from .typing import *
 
 
@@ -33,7 +33,7 @@ class ContextWrapper:
     def _read_glsl_file(cls, filename: str) -> str:
         if filename in cls._GLSL_FILE_CACHE:
             return cls._GLSL_FILE_CACHE[filename]
-        with open(os.path.join(MANIM3_PATH, "shaders", f"{filename}.glsl")) as f:
+        with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as f:
             result = f.read()
         cls._GLSL_FILE_CACHE[filename] = result
         return result

@@ -14,16 +14,16 @@ __all__ = ["PerspectiveCamera"]
 class PerspectiveCamera(Camera):
     def __init__(
         self: Self,
-        fovy: float = 2.0 * np.arctan(FRAME_Y_RADIUS / CAMERA_ALTITUDE) / DEGREES,
-        aspect: float = ASPECT_RATIO,
-        near: float = CAMERA_NEAR,
-        far: float = CAMERA_FAR
+        fovy: Real = 2.0 * np.arctan(FRAME_Y_RADIUS / CAMERA_ALTITUDE) / DEGREES,
+        aspect: Real = ASPECT_RATIO,
+        near: Real = CAMERA_NEAR,
+        far: Real = CAMERA_FAR
     ):
         super().__init__()
-        self.fovy: float = fovy
-        self.aspect: float = aspect
-        self.near: float = near
-        self.far: float = far
+        self.fovy: float = float(fovy)
+        self.aspect: float = float(aspect)
+        self.near: float = float(near)
+        self.far: float = float(far)
 
     def get_projection_matrix(self: Self) -> pyrr.Matrix44:
         return pyrr.Matrix44.perspective_projection(
