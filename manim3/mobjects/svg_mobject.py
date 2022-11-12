@@ -4,41 +4,11 @@ import warnings
 
 from ..mobjects.mobject import Group
 from ..mobjects.skia_mobject import SkiaMobject
+from ..mobjects.skia_path_mobject import SkiaPathMobject
 from ..typing import *
 
 
-__all__ = [
-    "SkiaPathMobject",
-    "SVGMobject"
-]
-
-
-class SkiaPathMobject(SkiaMobject):
-    def __init__(
-        self: Self,
-        path: skia.Path,
-        transform_matrix: skia.Matrix,
-        frame_buff: tuple[Real, Real] = (0.5, 0.5),
-    ):
-        inverse_matrix = skia.Matrix()
-        transform_matrix.invert(inverse_matrix)
-        tight_path_bbox = path.computeTightBounds()
-        path_frame = transform_matrix.mapRect(tight_path_bbox).makeOutset(*frame_buff)
-        path_bbox = inverse_matrix.mapRect(path_frame)
-        resolution = self.calculate_resolution_by_frame(path_frame)
-        path.transform(skia.Matrix.MakeRectToRect(
-            path_bbox, skia.Rect.MakeWH(*resolution), skia.Matrix.kFill_ScaleToFit
-        ))
-        super().__init__(frame=path_frame, resolution=resolution)
-        self.path: skia.Path = path
-        self.fill_paint: skia.Paint | None = None
-        self.stroke_paint: skia.Paint | None = None
-
-    def draw(self: Self, canvas: skia.Canvas) -> None:
-        if self.fill_paint is not None:
-            canvas.drawPath(self.path, self.fill_paint)
-        if self.stroke_paint is not None:
-            canvas.drawPath(self.path, self.stroke_paint)
+__all__ = ["SVGMobject"]
 
 
 class SVGMobject(Group):
@@ -50,6 +20,16 @@ class SVGMobject(Group):
         height: Real | None = None
     ):
         svg = se.SVG.parse(file_path)
+        mobjects = self.get_mobjects_from(svg, width, height)
+        super().__init__(*mobjects)
+
+    @classmethod
+    def get_mobjects_from(
+        cls,
+        svg: se.SVG,
+        width: Real | None,
+        height: Real | None
+    ) -> list[SkiaPathMobject]:
         # TODO: bbox() may return None
         svg_bbox = skia.Rect.MakeXYWH(*svg.bbox())
         svg_frame = SkiaMobject.calculate_frame_by_aspect_ratio(
@@ -61,18 +41,16 @@ class SVGMobject(Group):
 
         mobjects = []
         for shape in svg.elements():
-            path = self.shape_to_path(shape)
+            path = cls.shape_to_path(shape)
             if path is None:
                 continue
             if isinstance(shape, se.Transformable) and shape.apply:
-                self.apply_transform(path, shape.transform)
-            mobject = SkiaPathMobject(
-                path=path,
-                transform_matrix=transform_matrix
-            )
-            self.apply_style_to_mobject(mobject, shape)
+                path.transform(cls.convert_transform(shape.transform))
+            path.transform(transform_matrix)
+            mobject = SkiaPathMobject(path=path)
+            cls.apply_style_to_mobject(mobject, shape)
             mobjects.append(mobject)
-        super().__init__(*mobjects)
+        return mobjects
 
     @classmethod
     def shape_to_path(cls, shape: se.Shape) -> skia.Path | None:
@@ -102,8 +80,8 @@ class SVGMobject(Group):
         return None
 
     @classmethod
-    def apply_transform(cls, path: skia.Path, matrix: se.Matrix) -> skia.Path:
-        skia_matrix = skia.Matrix.MakeAll(
+    def convert_transform(cls, matrix: se.Matrix) -> skia.Matrix:
+        return skia.Matrix.MakeAll(
             scaleX=matrix.a,
             skewX=matrix.c,
             transX=matrix.e,
@@ -114,22 +92,6 @@ class SVGMobject(Group):
             pers1=0.0,
             pers2=1.0
         )
-        path.transform(skia_matrix)
-        return path
-        #transform_matrix = pyrr.Matrix44.identity()
-        #transform_matrix[[0, 1, 3]][:, [0, 1, 3]] = np.array((
-        #    (matrix.a, matrix.b, 0.0),
-        #    (matrix.c, matrix.d, 0.0),
-        #    (matrix.e, matrix.f, 1.0)
-        #))
-        #mobject.apply_matrix(transform_matrix, about_point=ORIGIN)
-        #mat = np.array([
-        #    [matrix.a, matrix.c],
-        #    [matrix.b, matrix.d]
-        #])
-        #vec = np.array([matrix.e, matrix.f, 0.0])
-        #mob.apply_matrix(mat)
-        #mob.shift(vec)
 
     @classmethod
     def apply_style_to_mobject(cls, mobject: SkiaPathMobject, shape: se.GraphicObject) -> SkiaPathMobject:
