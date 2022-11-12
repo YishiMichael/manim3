@@ -10,14 +10,9 @@ from .geometries.sphere_geometry import *
 from .mobjects.image_mobject import *
 from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
-#from .mobjects.parametric_surface import *
 from .mobjects.path_mobject import *
-#from .mobjects.planar_mobject import *
-#from .mobjects.plane import *
-#from .mobjects.skia_mobject import *
 from .mobjects.skia_mobject import *
-#from .mobjects.skia_canvas_mobject import *
-#from .mobjects.sphere import *
+from .mobjects.svg_mobject import *
 from .mobjects.textured_mobject import *
 
 from .constants import *

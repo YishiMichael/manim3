@@ -34,16 +34,13 @@ class Mobject(ABC):
         self.parents: list[Self] = []
         self.children: list[Self] = []
 
-        self.matrix: pyrr.Matrix44 = self.init_matrix()
+        self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
 
         # shader context settings
         self.enable_depth_test: bool = True
         self.enable_blend: bool = True
         self.cull_face: str = "back"
         self.wireframe: bool = False
-
-    def init_matrix(self: Self) -> pyrr.Matrix44:
-        return pyrr.Matrix44.identity()
 
     def __iter__(self: Self) -> Iterator[Self]:
         return iter(self.get_children())

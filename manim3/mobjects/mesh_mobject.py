@@ -24,19 +24,13 @@ class MeshMaterialAttributes:
 
 
 class MeshMobject(Mobject):
-    def __init__(
-        self: Self,
-        color: ColorArrayType | None = None
-    ):
+    def __init__(self: Self):
         super().__init__()
-        if color is None:
-            color = np.ones(4)
         self.geometry: Geometry | None = self.init_geometry()
         self.material: MeshMaterialAttributes = MeshMaterialAttributes(
-            color=color,
+            color=np.ones(4),
             color_map=None
         )
-        self.init_matrix()
 
     def init_geometry(self: Self) -> Geometry | None:
         return None
@@ -46,9 +40,8 @@ class MeshMobject(Mobject):
             return np.zeros((0, 3))
         return self.geometry.position
 
-    @abstractmethod
     def load_color_map(self: Self) -> TextureArrayType | None:
-        raise NotImplementedError
+        return None
 
     def setup_shader_data(self: Self, camera: Camera) -> ShaderData | None:
         geometry = self.geometry

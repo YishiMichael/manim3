@@ -1,28 +1,24 @@
+#from functools import reduce
 import numpy as np
+#import pyrr
 import skia
 
-from ..mobjects.skia_mobject import BoundingBox2D, SkiaMobject
+from ..mobjects.svg_mobject import SkiaPathMobject
+from ..constants import ORIGIN
 from ..typing import *
 
 
 __all__ = ["PathMobject"]
 
 
-class PathMobject(SkiaMobject):
+class PathMobject(SkiaPathMobject):
     def __init__(
         self: Self,
         path: skia.Path,
-        paint: skia.Paint | None = None,
-        frame_buff: float = 0.5
+        transform_matrix: skia.Matrix | None = None,
+        frame_buff: tuple[Real, Real] = (0.5, 0.5),
     ):
-        self.path: skia.Path = path
-        self.paint: skia.Paint | None = paint
-        rect = path.computeTightBounds().makeOutset(frame_buff, frame_buff)
-        frame = BoundingBox2D(
-            origin=np.array((rect.centerX(), rect.centerY())),
-            radius=np.array((rect.width(), rect.height())) / 2.0
-        )
-        super().__init__(frame=frame)
-
-    def draw(self: Self, canvas: skia.Canvas) -> None:
-        canvas.drawPath(self.path, self.paint)
+        if transform_matrix is None:
+            transform_matrix = skia.Matrix.I()
+        super().__init__(path=path, transform_matrix=transform_matrix, frame_buff=frame_buff)
+        self.scale(np.array((1.0, -1.0, 1.0)), about_point=ORIGIN)  # flip y
