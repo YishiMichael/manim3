@@ -3,8 +3,8 @@ import svgelements as se
 import warnings
 
 from ..mobjects.mobject import Group
+from ..mobjects.path_mobject import PathMobject
 from ..mobjects.skia_mobject import SkiaMobject
-from ..mobjects.skia_path_mobject import SkiaPathMobject
 from ..typing import *
 
 
@@ -29,7 +29,7 @@ class SVGMobject(Group):
         svg: se.SVG,
         width: Real | None,
         height: Real | None
-    ) -> list[SkiaPathMobject]:
+    ) -> list[PathMobject]:
         # TODO: bbox() may return None
         svg_bbox = skia.Rect.MakeXYWH(*svg.bbox())
         svg_frame = SkiaMobject.calculate_frame_by_aspect_ratio(
@@ -41,13 +41,15 @@ class SVGMobject(Group):
 
         mobjects = []
         for shape in svg.elements():
+            if not isinstance(shape, se.Shape):
+                continue
             path = cls.shape_to_path(shape)
             if path is None:
                 continue
             if isinstance(shape, se.Transformable) and shape.apply:
                 path.transform(cls.convert_transform(shape.transform))
             path.transform(transform_matrix)
-            mobject = SkiaPathMobject(path=path)
+            mobject = PathMobject(path=path, flip_y=False)
             cls.apply_style_to_mobject(mobject, shape)
             mobjects.append(mobject)
         return mobjects
@@ -94,7 +96,7 @@ class SVGMobject(Group):
         )
 
     @classmethod
-    def apply_style_to_mobject(cls, mobject: SkiaPathMobject, shape: se.GraphicObject) -> SkiaPathMobject:
+    def apply_style_to_mobject(cls, mobject: PathMobject, shape: se.GraphicObject) -> PathMobject:
         if shape.fill is not None and shape.fill.argb is not None:
             mobject.fill_paint = skia.Paint(
                 Style=skia.Paint.kFill_Style,

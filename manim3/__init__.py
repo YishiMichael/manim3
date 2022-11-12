@@ -12,7 +12,6 @@ from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.path_mobject import *
 from .mobjects.skia_mobject import *
-from .mobjects.skia_path_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.textured_mobject import *
 
