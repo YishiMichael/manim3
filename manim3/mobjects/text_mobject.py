@@ -508,9 +508,11 @@ class Code(MarkupText):
     def __init__(
         self,
         code: str,
+        *,
         language: str = "python",
         # Visit https://pygments.org/demo/ to have a preview of more styles.
         code_style: str = "monokai",
+        font_size: Real = 24,
         **kwargs
     ):
         #digest_config(self, kwargs)
@@ -521,7 +523,7 @@ class Code(MarkupText):
         )
         markup = pygments.highlight(code, lexer, formatter)
         markup = re.sub(r"</?tt>", "", markup)
-        super().__init__(markup, **kwargs)
+        super().__init__(markup, font_size=font_size, **kwargs)
 
 
 #@contextmanager

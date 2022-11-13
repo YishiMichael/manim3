@@ -201,7 +201,8 @@ class PathMobject(SkiaMobject):
             anti_alias=True,
             style=skia.Paint.kFill_Style,
             color=Color("black"),
-            opacity=0.0
+            opacity=0.0,
+            image_filter=skia.ImageFilters.Dilate(0.01, 0.01)
         )
         self.stroke_paint: Paint = Paint(
             anti_alias=True,

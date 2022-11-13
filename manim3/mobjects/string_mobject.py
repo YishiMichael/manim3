@@ -2,7 +2,7 @@ from abc import abstractmethod
 from colour import Color
 import itertools as it
 import re
-from typing import Any, Callable, Iterable, Union
+from typing import Any, Callable, Iterable
 import warnings
 
 from scipy.optimize import linear_sum_assignment
@@ -87,12 +87,14 @@ class StringMobject(SVGMobject):
             Callable[[int, int, dict[str, str]], str]
         ], str] = reconstruct_string
         original_content = self.get_content(is_labelled=False)
+        file_path = self.get_file_path_by_content(original_content)
         super().__init__(
-            file_path=self.get_file_path_by_content(original_content),
+            file_path=file_path,
             paint_settings={
                 "fill_color": Color("white"),
                 "fill_opacity": 1.0,
-                "stroke_width": 0.0
+                "stroke_width": 0.0,
+                "stroke_opacity": 0.0
             },
             **kwargs
         )
@@ -113,7 +115,15 @@ class StringMobject(SVGMobject):
 
         labelled_content = self.get_content(is_labelled=True)
         file_path = self.get_file_path_by_content(labelled_content)
-        labelled_svg = SVGMobject(file_path)
+        labelled_svg = SVGMobject(
+            file_path=file_path,
+            paint_settings={
+                "fill_color": Color("white"),
+                "fill_opacity": 1.0,
+                "stroke_width": 0.0,
+                "stroke_opacity": 0.0
+            }
+        )
         if len(self.children) != len(labelled_svg.children):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."
