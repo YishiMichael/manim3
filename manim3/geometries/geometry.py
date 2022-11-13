@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = [

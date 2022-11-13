@@ -5,7 +5,7 @@ from ..cameras.camera import Camera
 from ..constants import ASPECT_RATIO, FRAME_Y_RADIUS
 from ..constants import CAMERA_ALTITUDE, CAMERA_FAR, CAMERA_NEAR
 from ..constants import DEGREES
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = ["PerspectiveCamera"]

@@ -3,7 +3,7 @@ import pyrr
 from ..cameras.camera import Camera
 from ..constants import CAMERA_FAR, CAMERA_NEAR
 from ..constants import FRAME_X_RADIUS, FRAME_Y_RADIUS
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = ["OrthographicCamera"]

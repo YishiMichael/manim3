@@ -2,7 +2,7 @@ import numpy as np
 
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from ..constants import PI, TAU
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = [

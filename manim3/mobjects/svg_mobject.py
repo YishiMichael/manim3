@@ -1,26 +1,29 @@
-import skia
-import svgelements as se
+from typing import Any
 import warnings
 
-from ..mobjects.mobject import Group
+import skia
+import svgelements as se
+
+from ..mobjects.path_mobject import PathGroup
 from ..mobjects.path_mobject import PathMobject
-from ..mobjects.skia_mobject import SkiaMobject
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = ["SVGMobject"]
 
 
-class SVGMobject(Group):
+class SVGMobject(PathGroup):
     def __init__(
         self: Self,
         file_path: str,
         *,
         width: Real | None = None,
-        height: Real | None = None
+        height: Real | None = None,
+        frame_scale: Real | None = None,
+        paint_settings: dict[str, Any] | None = None
     ):
         svg = se.SVG.parse(file_path)
-        mobjects = self.get_mobjects_from(svg, width, height)
+        mobjects = self.get_mobjects_from(svg, width, height, frame_scale, paint_settings)
         super().__init__(*mobjects)
 
     @classmethod
@@ -28,13 +31,19 @@ class SVGMobject(Group):
         cls,
         svg: se.SVG,
         width: Real | None,
-        height: Real | None
+        height: Real | None,
+        frame_scale: Real | None,
+        paint_settings: dict[str, Any] | None
     ) -> list[PathMobject]:
         # TODO: bbox() may return None
         svg_bbox = skia.Rect.MakeXYWH(*svg.bbox())
-        svg_frame = SkiaMobject.calculate_frame_by_aspect_ratio(
-            width, height, svg_bbox.width() / svg_bbox.height()
-        )  # TODO: handle this staticmethod
+        svg_frame = cls.calculate_frame(
+            svg_bbox.width(),
+            svg_bbox.height(),
+            width,
+            height,
+            frame_scale
+        )
         transform_matrix = skia.Matrix.MakeRectToRect(
             svg_bbox, svg_frame, skia.Matrix.kFill_ScaleToFit
         )
@@ -50,7 +59,9 @@ class SVGMobject(Group):
                 path.transform(cls.convert_transform(shape.transform))
             path.transform(transform_matrix)
             mobject = PathMobject(path=path, flip_y=False)
-            cls.apply_style_to_mobject(mobject, shape)
+            if paint_settings is not None:
+                mobject.set_paint(**paint_settings)
+            mobject.set_paint(**cls.get_paint_settings_from_shape(shape))
             mobjects.append(mobject)
         return mobjects
 
@@ -96,19 +107,34 @@ class SVGMobject(Group):
         )
 
     @classmethod
-    def apply_style_to_mobject(cls, mobject: PathMobject, shape: se.GraphicObject) -> PathMobject:
-        if shape.fill is not None and shape.fill.argb is not None:
-            mobject.fill_paint = skia.Paint(
-                Style=skia.Paint.kFill_Style,
-                Color=shape.fill.argb
-            )
-        if shape.stroke is not None and shape.stroke.argb is not None and shape.stroke_width is not None:
-            mobject.stroke_paint = skia.Paint(
-                Style=skia.Paint.kStroke_Style,
-                StrokeWidth=shape.stroke_width,
-                Color=shape.stroke.argb
-            )
-        return mobject
+    def get_paint_settings_from_shape(cls, shape: se.GraphicObject) -> dict[str, Any]:
+        return {
+            "fill_color": None if shape.fill is None else shape.fill.hexrgb,
+            "fill_opacity": None if shape.fill is None else shape.fill.opacity,
+            "stroke_color": None if shape.stroke is None else shape.stroke.hexrgb,
+            "stroke_opacity": None if shape.stroke is None else shape.stroke.opacity,
+            # Don't know why, svgelements may parse stroke_width out of nothing...
+            #"stroke_width": shape.stroke_width
+        }
+        #if shape.fill is not None:
+        #    mobject.set_paint(
+        #        fill_color=shape.fill.hexrgb,
+        #        fill_opacity=shape.fill.opacity
+        #    )
+        #    #mobject.fill_color = shape.fill.argb
+        #    #mobject.fill_paint = skia.Paint(
+        #    #    Style=skia.Paint.kFill_Style,
+        #    #    Color=shape.fill.argb
+        #    #)
+        #if shape.stroke is not None:
+        #    mobject.fill_color = shape.stroke.argb
+        #    #mobject.stroke_paint = skia.Paint(
+        #    #    Style=skia.Paint.kStroke_Style,
+        #    #    StrokeWidth=shape.stroke_width,
+        #    #    Color=shape.stroke.argb
+        #    #)
+        #if shape.stroke_width is not None:
+        #    mobject.stroke_width = shape.stroke_width
         #mob.set_style(
         #    stroke_width=shape.stroke_width,
         #    stroke_color=shape.stroke.hexrgb,

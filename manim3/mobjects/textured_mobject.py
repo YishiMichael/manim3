@@ -1,7 +1,7 @@
 import skia
 
 from ..mobjects.mesh_mobject import MeshMobject
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = ["TexturedMobject"]

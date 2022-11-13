@@ -1,4 +1,6 @@
-from typing import Any, Literal, Union
+from colour import Color
+import re
+from typing import Any, Iterable, Literal, Union
 
 import numpy as np
 
@@ -20,6 +22,9 @@ __all__ = [
     "TextureArrayType",
     "AttributeType",
     "VertexIndicesType",
+    "ColorType",
+    "Span",
+    "Selector",
     "Self"
 ]
 
@@ -55,5 +60,18 @@ AttributeType = Union[
     Matrix44ArrayType
 ]
 VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.int32]]
+
+ColorType = Color | str
+Span = tuple[int, int]
+Selector = Union[
+    str,
+    re.Pattern,
+    tuple[Union[int, None], Union[int, None]],
+    Iterable[Union[
+        str,
+        re.Pattern,
+        tuple[Union[int, None], Union[int, None]]
+    ]]
+]
 
 Self = Any  # This shall be removed when advanced to py 3.11

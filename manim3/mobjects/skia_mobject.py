@@ -4,7 +4,7 @@ import skia
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = ["SkiaMobject"]
@@ -26,17 +26,36 @@ class SkiaMobject(MeshMobject):
         self.shift(np.array((frame.centerX(), -frame.centerY(), 0.0)))
 
     @staticmethod
-    def calculate_frame_by_aspect_ratio(
-        width: Real | None,
-        height: Real | None,
-        aspect_ratio: Real
+    def calculate_frame(
+        original_width: Real,
+        original_height: Real,
+        specified_width: Real | None,
+        specified_height: Real | None,
+        specified_frame_scale: Real | None
     ) -> skia.Rect:
-        if width is None:
-            if height is None:
-                height = 4.0
-            width = height * aspect_ratio
-        elif height is None:
-            height = width / aspect_ratio
+        if specified_width is None and specified_height is None:
+            width = original_width
+            height = original_height
+            if specified_frame_scale is not None:
+                width *= specified_frame_scale
+                height *= specified_frame_scale
+        elif specified_width is not None and specified_height is None:
+            width = specified_width
+            height = specified_width / original_width * original_height
+        elif specified_width is None and specified_height is not None:
+            width = specified_height / original_height * original_width
+            height = specified_height
+        elif specified_width is not None and specified_height is not None:
+            width = specified_width
+            height = specified_height
+        else:
+            raise  # never
+        #    if specified_height is not None:
+
+        #        height = 4.0
+        #    width = height * aspect_ratio
+        #elif height is None:
+        #    height = width / aspect_ratio
         rx = width / 2.0
         ry = height / 2.0
         return skia.Rect(-rx, -ry, rx, ry)

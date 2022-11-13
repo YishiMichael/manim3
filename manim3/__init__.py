@@ -12,10 +12,14 @@ from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.path_mobject import *
 from .mobjects.skia_mobject import *
+from .mobjects.string_mobject import *
 from .mobjects.svg_mobject import *
+from .mobjects.tex_mobject import *
+from .mobjects.text_mobject import *
 from .mobjects.textured_mobject import *
 
 from .constants import *
+from .custom_colors import *
+from .custom_typing import *
 from .scene import *
 from .shader_utils import *
-from .typing import *

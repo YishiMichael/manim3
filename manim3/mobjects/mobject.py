@@ -3,14 +3,15 @@ from dataclasses import dataclass
 from functools import reduce
 import pyrr
 from typing import Generator, Iterable, Iterator, TypeVar
+import warnings
 
 import numpy as np
 from scipy.spatial.transform import Rotation
 
 from ..cameras.camera import Camera
 from ..shader_utils import ShaderData
-from ..constants import ORIGIN
-from ..typing import *
+from ..constants import ORIGIN, RIGHT
+from ..custom_typing import *
 
 
 __all__ = [
@@ -134,13 +135,18 @@ class Mobject(ABC):
         return node
 
     def clear(self: Self) -> Self:
-        for child in self.children:
+        for child in self.children[:]:
             self._unbind_child(child)
         return self
 
     def clear_parents(self: Self) -> Self:
         for parent in self.parent:
             parent._unbind_child(self)
+        return self
+
+    def set_children(self: Self, children: Iterable[Self]) -> Self:
+        self.clear()
+        self.add(*children)
         return self
 
     # matrix & transform
@@ -161,7 +167,7 @@ class Mobject(ABC):
         # Implemented in subclasses
         return np.zeros((0, 3))
 
-    def get_aabb(self: Self, **kwargs) -> BoundingBox3D:
+    def get_bounding_box(self: Self, **kwargs) -> BoundingBox3D:
         points = [
             pyrr.matrix44.apply_to_vector(
                 mobject.matrix, point
@@ -169,15 +175,28 @@ class Mobject(ABC):
             for mobject in self.get_descendents(**kwargs)
             for point in mobject.get_local_sample_points()
         ]
-        minimum, maximum = pyrr.aabb.create_from_points(points)
+        if not points:
+            warnings.warn("Trying to calculate the bounding box of some mobject with no points")
+            origin = ORIGIN
+            radius = ORIGIN
+        else:
+            minimum, maximum = pyrr.aabb.create_from_points(points)
+            origin = (maximum + minimum) / 2.0
+            radius = (maximum - minimum) / 2.0
+        # For zero-width dimensions of radius, thicken a little bit to avoid zero division
+        radius[np.isclose(radius, 0.0)] = 1e-8
         return BoundingBox3D(
-            origin=(maximum + minimum) / 2.0,
-            radius=(maximum - minimum) / 2.0
+            origin=origin,
+            radius=radius
         )
 
-    def get_boundary_point(self: Self, direction: Vector3Type, **kwargs) -> Vector3Type:
-        aabb = self.get_aabb(**kwargs)
+    def get_bounding_box_point(self: Self, direction: Vector3Type, **kwargs) -> Vector3Type:
+        aabb = self.get_bounding_box(**kwargs)
         return aabb.origin + direction * aabb.radius
+
+    def get_center(self: Self, **kwargs) -> Vector3Type:
+        #print(self.get_bounding_box_point(ORIGIN, **kwargs))
+        return self.get_bounding_box_point(ORIGIN, **kwargs)
 
     def apply_matrix(
         self: Self,
@@ -190,7 +209,7 @@ class Mobject(ABC):
         if about_point is None:
             if about_edge is None:
                 about_edge = ORIGIN
-            about_point = self.get_boundary_point(about_edge)
+            about_point = self.get_bounding_box_point(about_edge)
         elif about_edge is not None:
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
@@ -205,12 +224,23 @@ class Mobject(ABC):
             mobject.matrix = mobject.matrix @ matrix
         return self
 
-    def shift(self: Self, vector: Vector3Type, **kwargs) -> Self:
+    def shift(
+        self: Self,
+        vector: Vector3Type,
+        coor_mask: Vector3Type | None = None,
+        **kwargs
+    ) -> Self:
+        if coor_mask is not None:
+            vector *= coor_mask
         matrix = self.matrix_from_translation(vector)
         self.apply_matrix(matrix, **kwargs)
         return self
 
-    def scale(self: Self, factor: Real | Vector3Type, **kwargs) -> Self:
+    def scale(
+        self: Self,
+        factor: Real | Vector3Type,
+        **kwargs
+    ) -> Self:
         if isinstance(factor, Real):
             factor_vector = pyrr.Vector3()
             factor_vector.fill(factor)
@@ -220,9 +250,44 @@ class Mobject(ABC):
         self.apply_matrix(matrix, **kwargs)
         return self
 
-    def rotate(self: Self, rotation: Rotation, **kwargs) -> Self:
+    def rotate(
+        self: Self,
+        rotation: Rotation,
+        **kwargs
+    ) -> Self:
         matrix = self.matrix_from_rotation(rotation)
         self.apply_matrix(matrix, **kwargs)
+        return self
+
+    def move_to(
+        self: Self,
+        mobject_or_point: Self | Vector3Type,
+        aligned_edge: Vector3Type = ORIGIN,
+        coor_mask: Vector3Type | None = None
+    ) -> Self:
+        if isinstance(mobject_or_point, Mobject):
+            target_point = mobject_or_point.get_bounding_box_point(aligned_edge)
+        else:
+            target_point = mobject_or_point
+        point_to_align = self.get_bounding_box_point(aligned_edge)
+        vector = target_point - point_to_align
+        self.shift(vector, coor_mask=coor_mask)
+        return self
+
+    def next_to(
+        self,
+        mobject_or_point: Self | Vector3Type,
+        direction: Vector3Type = RIGHT,
+        buff: float = 0.25,
+        coor_mask: Vector3Type | None = None
+    ) -> Self:
+        if isinstance(mobject_or_point, Mobject):
+            target_point = mobject_or_point.get_bounding_box_point(direction)
+        else:
+            target_point = mobject_or_point
+        point_to_align = self.get_bounding_box_point(-direction)
+        vector = target_point - point_to_align + buff * direction
+        self.shift(vector, coor_mask=coor_mask)
         return self
 
     # shader
@@ -235,4 +300,8 @@ class Mobject(ABC):
 class Group(Mobject):
     def __init__(self: Self, *mobjects: Mobject):
         super().__init__()
+        assert all(
+            isinstance(mobject, Mobject)
+            for mobject in mobjects
+        )
         self.add(*mobjects)

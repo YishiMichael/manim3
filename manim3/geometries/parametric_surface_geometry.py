@@ -2,7 +2,7 @@ import numpy as np
 from typing import Callable
 
 from ..geometries.geometry import Geometry, GeometryAttributes
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = [

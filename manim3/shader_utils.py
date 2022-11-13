@@ -5,7 +5,7 @@ import os
 import moderngl
 
 from .constants import SHADERS_PATH
-from .typing import *
+from .custom_typing import *
 
 
 @dataclass

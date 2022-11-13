@@ -1,7 +1,7 @@
 import numpy as np
 import os
 
-from .typing import *
+from .custom_typing import *
 
 
 __all__ = [

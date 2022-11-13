@@ -1,8 +1,8 @@
-import numpy as np
 import skia
 
 from ..mobjects.skia_mobject import SkiaMobject
-from ..typing import *
+from ..constants import PIXEL_PER_UNIT
+from ..custom_typing import *
 
 
 __all__ = ["ImageMobject"]
@@ -12,12 +12,11 @@ class ImageMobject(SkiaMobject):
     def __init__(
         self: Self,
         image_path: str,
-        #width: Real | None = None,
-        #height: Real | None = 4.0,
         paint: skia.Paint | None = None,
         *,
         width: Real | None = None,
-        height: Real | None = None
+        height: Real | None = None,
+        frame_scale: Real | None = None
     ):
         image = skia.Image.open(image_path).convert(
             colorType=skia.kRGBA_8888_ColorType,
@@ -26,18 +25,13 @@ class ImageMobject(SkiaMobject):
 
         px_width = image.width()
         px_height = image.height()
-        frame = self.calculate_frame_by_aspect_ratio(
-            width, height, px_width / px_height
+        frame = self.calculate_frame(
+            px_width / PIXEL_PER_UNIT,
+            px_height / PIXEL_PER_UNIT,
+            width,
+            height,
+            frame_scale
         )
-        #aspect_ratio = px_width / px_height
-        #if width is None and height is None:
-        #    frame_size = None
-        #else:
-        #    if height is not None:
-        #        width = height * aspect_ratio
-        #    elif width is not None:
-        #        height = width / aspect_ratio
-        #    frame_size = np.array((width, height))
         super().__init__(
             frame=frame,
             resolution=(px_width, px_height)

@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from dataclasses import dataclass
 
 import moderngl
@@ -8,7 +7,7 @@ from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
 from ..shader_utils import ShaderData
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = [

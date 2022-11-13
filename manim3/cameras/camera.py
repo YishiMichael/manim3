@@ -4,7 +4,7 @@ import pyrr
 
 from ..constants import CAMERA_ALTITUDE
 from ..constants import ORIGIN, OUT, UP
-from ..typing import *
+from ..custom_typing import *
 
 
 __all__ = ["Camera"]
