@@ -11,12 +11,16 @@ from .mobjects.image_mobject import *
 from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.path_mobject import *
+from .mobjects.scene_mobject import *
 from .mobjects.skia_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 from .mobjects.textured_mobject import *
+
+from .utils.paint import *
+from .utils.path import *
 
 from .constants import *
 from .custom_colors import *

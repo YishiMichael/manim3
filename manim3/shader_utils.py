@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import lru_cache
 import re
 import os
 
@@ -24,38 +25,41 @@ class ShaderData:
 
 
 class ContextWrapper:
-    _GLSL_FILE_CACHE: dict[str, str] = {}
+    #_GLSL_FILE_CACHE: dict[str, str] = {}
+    #_GLSL_PROGRAM_CACHE
 
     def __init__(self: Self, ctx: moderngl.Context):
-        self._ctx = ctx
+        self.ctx: moderngl.Context = ctx
 
     @classmethod
+    @lru_cache(maxsize=8, typed=True)
     def _read_glsl_file(cls, filename: str) -> str:
-        if filename in cls._GLSL_FILE_CACHE:
-            return cls._GLSL_FILE_CACHE[filename]
+        #if filename in cls._GLSL_FILE_CACHE:
+        #    return cls._GLSL_FILE_CACHE[filename]
         with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as f:
             result = f.read()
-        cls._GLSL_FILE_CACHE[filename] = result
+        #cls._GLSL_FILE_CACHE[filename] = result
         return result
 
     @classmethod
-    def _insert_defines(cls, content: str, define_macros: list[str]):
+    def _insert_defines(cls, content: str, define_macros: tuple[str, ...]):
         version_str, rest = content.split("\n", 1)
         return "\n".join([
             version_str,
-            *[
+            *(
                 f"#define {define_macro}"
                 for define_macro in define_macros
-            ],
+            ),
             rest
         ])
 
     @classmethod
+    @lru_cache(maxsize=8, typed=True)
     def _get_program(
         cls,
         ctx: moderngl.Context,
         shader_filename: str,
-        define_macros: list[str]
+        define_macros: tuple[str, ...]
     ) -> moderngl.Program:
         content = cls._insert_defines(cls._read_glsl_file(shader_filename), define_macros)
         shaders_dict = dict.fromkeys((
@@ -146,7 +150,10 @@ class ContextWrapper:
         ctx.wireframe = wireframe
 
     def render(self: Self, shader_data: ShaderData) -> None:
-        ctx = self._ctx
+        import time
+        t = time.time()
+        #print(time.time()-t)
+        ctx = self.ctx
         self._configure_context(
             ctx,
             shader_data.enable_depth_test,
@@ -154,11 +161,13 @@ class ContextWrapper:
             shader_data.cull_face,
             shader_data.wireframe
         )
+        #print(time.time()-t)
         program = self._get_program(
             ctx,
             shader_data.shader_filename,
-            shader_data.define_macros
+            tuple(shader_data.define_macros)  # to hashable
         )
+        #print(time.time()-t)
         vao = self._get_vao(
             ctx,
             program,
@@ -168,4 +177,6 @@ class ContextWrapper:
             shader_data.vertex_indices,
             shader_data.render_primitive
         )
+        #print(time.time()-t)
         vao.render()
+        #print(time.time()-t)

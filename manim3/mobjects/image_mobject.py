@@ -1,6 +1,7 @@
 import skia
 
 from ..mobjects.skia_mobject import SkiaMobject
+from ..utils.paint import Paint
 from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import *
 
@@ -12,7 +13,7 @@ class ImageMobject(SkiaMobject):
     def __init__(
         self: Self,
         image_path: str,
-        paint: skia.Paint | None = None,
+        paint: Paint | None = None,
         *,
         width: Real | None = None,
         height: Real | None = None,
@@ -37,7 +38,7 @@ class ImageMobject(SkiaMobject):
             resolution=(px_width, px_height)
         )
         self.image: skia.Image = image
-        self.paint: skia.Paint | None = paint
+        self.paint: Paint | None = paint
 
     def draw(self: Self, canvas: skia.Canvas) -> None:
         canvas.drawImage(self.image, 0.0, 0.0, self.paint)

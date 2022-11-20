@@ -2,7 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from functools import reduce
 import pyrr
-from typing import Generator, Iterable, Iterator, TypeVar
+from typing import Callable, Generator, Iterable, Iterator, TypeVar
 import warnings
 
 import numpy as np
@@ -36,6 +36,8 @@ class Mobject(ABC):
         self.children: list[Self] = []
 
         self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
+
+        self.updaters: list[Callable[[Mobject, Real], None]] = []
 
         # shader context settings
         self.enable_depth_test: bool = True
@@ -288,6 +290,13 @@ class Mobject(ABC):
         point_to_align = self.get_bounding_box_point(-direction)
         vector = target_point - point_to_align + buff * direction
         self.shift(vector, coor_mask=coor_mask)
+        return self
+
+    # updaters
+
+    def update(self: Self, dt: Real) -> Self:
+        for updater in self.updaters:
+            updater(self, dt)
         return self
 
     # shader

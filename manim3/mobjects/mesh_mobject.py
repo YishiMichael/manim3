@@ -25,7 +25,7 @@ class MeshMaterialAttributes:
 class MeshMobject(Mobject):
     def __init__(self: Self):
         super().__init__()
-        self.geometry: Geometry | None = self.init_geometry()
+        self.geometry: Geometry | None = self.init_geometry()  # TODO: consider using trimesh
         self.material: MeshMaterialAttributes = MeshMaterialAttributes(
             color=np.ones(4),
             color_map=None

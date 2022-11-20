@@ -1,28 +1,70 @@
 import time
 
+import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
+#import skia
 
 from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
 from .mobjects.mobject import Mobject
+#from ..mobjects.scene_mobject import SceneMobject
+#from .constants import FRAME_X_RADIUS, FRAME_Y_RADIUS
 from .constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from .custom_typing import *
 from .shader_utils import ContextWrapper
 
 
 class Scene(Mobject):
-    def __init__(self: Self):
+    def __init__(self: Self, has_window: bool = True):
         super().__init__()
-        window = PygletWindow(
-            size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
-            fullscreen=False,
-            resizable=True,
-            gl_version=(3, 3),
-            vsync=True,
-            cursor=True
-        )
-        self.window: PygletWindow = window
-        self.context_wrapper: ContextWrapper = ContextWrapper(window.ctx)
+        #self.scene_mobject: SceneMobject = SceneMobject(
+        #    camera=PerspectiveCamera(),
+        #    frame=skia.Rect(-FRAME_X_RADIUS, -FRAME_Y_RADIUS, FRAME_X_RADIUS, FRAME_Y_RADIUS),
+        #    resolution=(PIXEL_WIDTH, PIXEL_HEIGHT),
+        #    window=PygletWindow(
+        #        size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
+        #        fullscreen=False,
+        #        resizable=True,
+        #        gl_version=(3, 3),
+        #        vsync=True,
+        #        cursor=True
+        #    )
+        #)
+        if has_window:
+            window = PygletWindow(
+                size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
+                fullscreen=False,
+                resizable=True,
+                gl_version=(3, 3),
+                vsync=True,
+                cursor=True
+            )
+            ctx = window.ctx
+            fbo = ctx.detect_framebuffer()
+            fbo.use()
+        else:
+            window = None
+            ctx = moderngl.create_context(standalone=True)
+            #fbo = ctx.framebuffer(
+            #    color_attachments=(ctx.texture(
+            #        (PIXEL_WIDTH, PIXEL_HEIGHT),
+            #        components=4,
+            #        samples=0,
+            #    ),),
+            #    depth_attachment=ctx.depth_renderbuffer(
+            #        (PIXEL_WIDTH, PIXEL_HEIGHT),
+            #        samples=0
+            #    )
+            #)
+            fbo = ctx.simple_framebuffer(
+                size=(PIXEL_WIDTH, PIXEL_HEIGHT)
+            )
+            #fbo = ctx.detect_framebuffer()
+            fbo.use()
+        #fbo.use()
+        self.window: PygletWindow | None = window
+        self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
+        self.fbo: moderngl.Framebuffer = fbo
         self.camera: Camera = PerspectiveCamera()
 
         #ctx = moderngl.create_context(standalone=True)
@@ -36,65 +78,44 @@ class Scene(Mobject):
         #self.fbo: moderngl.Framebuffer = fbo
 
     def render(self: Self) -> Self:
+        #shader_data = self.scene_mobject.setup_shader_data(self.scene_mobject.camera)
+        #self.scene_mobject.context_wrapper.render(shader_data)
+        #return self
+        #print()
+        #print("Before")
+        #print(len(self.fbo.read().lstrip(b"\x00")))
+        #print()
+        #print(len(self.get_descendents()))
+        #print()
+        #t = time.time()
         for mobject in self.get_descendents():
+            mobject.update()
             shader_data = mobject.setup_shader_data(self.camera)
             if shader_data is None:
                 continue
             self.context_wrapper.render(shader_data)
+        #print(time.time()-t)
+        #print("After")
+        #print(len(self.fbo.read().lstrip(b"\x00")))
         return self
 
     def run(self: Self) -> Self:
         window = self.window
-        FPS = 10.0
-        while not window.is_closing:
-            time.sleep(1.0 / FPS)
-            window.clear()
+        if window is not None:
+            FPS = 10.0
+            while not window.is_closing:
+                time.sleep(1.0 / FPS)
+                window.clear()
+                #print()
+                #print(len(self.fbo.read().lstrip(b"\x00")))
+                self.render()
+                #print(len(self.fbo.read().lstrip(b"\x00")))
+                window.swap_buffers()
+        else:  # TODO
+            #print()
+            #self.fbo.clear()
+            #print(123)
+            #print(len(self.fbo.read().lstrip(b"\x00")))
             self.render()
-            window.swap_buffers()
+            #print(len(self.fbo.read().lstrip(b"\x00")))
         return self
-
-    """
-    def render_shader(self: Self, shader_data: ShaderData) -> Self:
-        ctx = self.ctx
-        program = ctx.program(
-            vertex_shader=shader_data.vertex_shader,
-            fragment_shader=shader_data.fragment_shader
-        )
-
-        for uniform_name, uniform in shader_data.uniforms.items():
-            if isinstance(uniform, (int, float)):
-                program[uniform_name] = uniform
-            elif isinstance(uniform, (Mat3, Mat4, Vec2, Vec3, Vec4)):
-                program[uniform_name] = tuple(uniform)
-            else:
-                raise TypeError(f"Cannot handle uniform type '{type(uniform)}'")
-
-        content = []
-        for attribute_name, attribute in shader_data.vertex_attributes.items():
-            attr = attribute[0]
-            if isinstance(attr, (float, int)):
-                vert_format = "f"
-                attrs = list(attribute)
-            elif isinstance(attr, (Mat3, Mat4, Vec2, Vec3, Vec4)):
-                vert_format = f"{len(attr)}f"
-                attrs = list(it.chain(*attribute))
-            else:
-                raise ValueError(f"Unsupported attribute type '{type(attr)}'")
-
-            #print(vert_format, attrs)
-            content.append((
-                ctx.buffer(struct.pack(f"{len(attrs)}f", *attrs)),
-                vert_format,
-                attribute_name
-            ))
-
-        #vbo = ctx.buffer(vertex_attribute_items.astype('f4').tobytes())
-        ibo = ctx.buffer(np.array(shader_data.vertex_indices).astype("i4").tobytes())
-        vao = ctx.vertex_array(
-            program=program,
-            content=content,
-            index_buffer=ibo,
-        )
-        vao.render(shader_data.render_primitive)
-        return self
-    """
