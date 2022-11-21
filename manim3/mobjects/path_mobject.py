@@ -4,6 +4,7 @@ import skia
 
 from ..mobjects.skia_mobject import SkiaMobject
 from ..utils.paint import Paint
+from ..utils.path import Path
 from ..constants import ORIGIN
 from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import *
@@ -18,22 +19,26 @@ __all__ = [
 class PathMobject(SkiaMobject):
     def __init__(
         self: Self,
-        path: skia.Path,
+        path: Path | None = None,
         frame_buff: tuple[Real, Real] = (0.25, 0.25),
         flip_y: bool = True
     ):
-        frame = path.computeTightBounds().makeOutset(*frame_buff)
+        #frame = path.computeTightBounds().makeOutset(*frame_buff)
         super().__init__(
-            frame=frame,
-            resolution=(
-                int(frame.width() * PIXEL_PER_UNIT),
-                int(frame.height() * PIXEL_PER_UNIT)
-            )
+            #frame=frame,
+            #resolution=(
+            #    int(frame.width() * PIXEL_PER_UNIT),
+            #    int(frame.height() * PIXEL_PER_UNIT)
+            #)
         )
+        self.frame_buff: tuple[Real, Real] = frame_buff
         if flip_y:
             self.scale(np.array((1.0, -1.0, 1.0)), about_point=ORIGIN)
 
-        self.path: skia.Path = path
+        #print(type(path))
+        if path is None:
+            path = Path()
+        self.path: Path = path
 
         #self.fill_color: Color = Color("black")
         #self.fill_opacity: Real = 0.0
@@ -56,6 +61,23 @@ class PathMobject(SkiaMobject):
         )
         self.draw_stroke_behind_fill: bool = False
 
+    @property
+    def frame(self: Self) -> skia.Rect:
+        return self.path.skia_path.computeTightBounds().makeOutset(*self.frame_buff)
+        ##self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
+        #self.stretch_to_fit_width(frame.width())
+        #self.stretch_to_fit_height(frame.height())
+        #self.shift(np.array((frame.centerX(), -frame.centerY(), 0.0)))
+        #return self
+
+    @property
+    def resolution(self: Self) -> tuple[int, int]:
+        frame = self.frame
+        return (
+            int(frame.width() * PIXEL_PER_UNIT),
+            int(frame.height() * PIXEL_PER_UNIT)
+        )
+
     def draw(self: Self, canvas: skia.Canvas) -> None:
         #if self.fill_opacity > 0.0:
         #    paints.append(skia.Paint(
@@ -76,7 +98,11 @@ class PathMobject(SkiaMobject):
             self.frame, skia.Rect.MakeWH(*self.resolution), skia.Matrix.kFill_ScaleToFit
         ))
         for paint in paints:
-            canvas.drawPath(self.path, paint)
+            canvas.drawPath(self.path.skia_path, paint)
+
+    def set_path(self: Self, path: Path) -> Self:
+        self.path = path
+        return self
 
     def set_fill(
         self: Self,
@@ -137,9 +163,10 @@ class PathMobject(SkiaMobject):
 
 class PathGroup(PathMobject):
     def __init__(self: Self, *mobjects: PathMobject):
-        super().__init__(skia.Path())
-        assert all(
-            isinstance(mobject, PathMobject)
-            for mobject in mobjects
-        )
+        super().__init__()
         self.add(*mobjects)
+
+    # TODO
+    def _bind_child(self: Self, node: Self, index: int | None = None) -> Self:
+        assert isinstance(node, PathMobject)
+        super()._bind_child(node, index=index)

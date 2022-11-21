@@ -77,7 +77,7 @@ class Scene(Mobject):
         #self.ctx: moderngl.Context = ctx
         #self.fbo: moderngl.Framebuffer = fbo
 
-    def render(self: Self) -> Self:
+    def render(self: Self, dt: float) -> Self:
         #shader_data = self.scene_mobject.setup_shader_data(self.scene_mobject.camera)
         #self.scene_mobject.context_wrapper.render(shader_data)
         #return self
@@ -89,7 +89,7 @@ class Scene(Mobject):
         #print()
         #t = time.time()
         for mobject in self.get_descendents():
-            mobject.update()
+            mobject.update(dt)
             shader_data = mobject.setup_shader_data(self.camera)
             if shader_data is None:
                 continue
@@ -99,16 +99,23 @@ class Scene(Mobject):
         #print(len(self.fbo.read().lstrip(b"\x00")))
         return self
 
-    def run(self: Self) -> Self:
+    def wait(self: Self, t: Real) -> Self:
         window = self.window
+        FPS = 10.0
+        dt = 1.0 / FPS
+        elapsed_time = 0.0
+        timestamp = time.time()
         if window is not None:
-            FPS = 10.0
-            while not window.is_closing:
-                time.sleep(1.0 / FPS)
+            while not window.is_closing and elapsed_time < t:
+                elapsed_time += dt
+                delta_t = time.time() - timestamp
+                if dt > delta_t:
+                    time.sleep(dt - delta_t)
+                timestamp = time.time()
                 window.clear()
                 #print()
                 #print(len(self.fbo.read().lstrip(b"\x00")))
-                self.render()
+                self.render(dt)
                 #print(len(self.fbo.read().lstrip(b"\x00")))
                 window.swap_buffers()
         else:  # TODO
@@ -116,6 +123,6 @@ class Scene(Mobject):
             #self.fbo.clear()
             #print(123)
             #print(len(self.fbo.read().lstrip(b"\x00")))
-            self.render()
+            self.render(dt)
             #print(len(self.fbo.read().lstrip(b"\x00")))
         return self

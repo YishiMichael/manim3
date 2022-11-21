@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 import numpy as np
+import skia
 
 from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
@@ -19,7 +20,7 @@ __all__ = [
 @dataclass
 class MeshMaterialAttributes:
     color: ColorArrayType
-    color_map: TextureArrayType | None
+    color_map: skia.Pixmap | None
 
 
 class MeshMobject(Mobject):
@@ -39,7 +40,7 @@ class MeshMobject(Mobject):
             return np.zeros((0, 3))
         return self.geometry.position
 
-    def load_color_map(self: Self) -> TextureArrayType | None:
+    def load_color_map(self: Self) -> skia.Pixmap | None:
         return None
 
     def setup_shader_data(self: Self, camera: Camera) -> ShaderData | None:
@@ -47,9 +48,9 @@ class MeshMobject(Mobject):
         if geometry is None:
             return None
         material = self.material
-        color_map = self.load_color_map()
-        if color_map is not None:
-            material.color_map = np.flipud(color_map)  # flip y
+        material.color_map = self.load_color_map()
+        #if color_map is not None:
+        #    material.color_map = np.flipud(color_map)  # flip y  # TODO
 
         defines = []
         if material.color_map is not None:

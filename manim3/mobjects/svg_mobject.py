@@ -6,6 +6,7 @@ import svgelements as se
 
 from ..mobjects.path_mobject import PathGroup
 from ..mobjects.path_mobject import PathMobject
+from ..utils.path import Path
 from ..custom_typing import *
 
 
@@ -23,21 +24,8 @@ class SVGMobject(PathGroup):
         paint_settings: dict[str, Any] | None = None
     ):
         svg = se.SVG.parse(file_path)
-        mobjects = self.get_mobjects_from(svg, width, height, frame_scale, paint_settings)
-        super().__init__(*mobjects)
-
-    @classmethod
-    def get_mobjects_from(
-        cls,
-        svg: se.SVG,
-        width: Real | None,
-        height: Real | None,
-        frame_scale: Real | None,
-        paint_settings: dict[str, Any] | None
-    ) -> list[PathMobject]:
-        # TODO: bbox() may return None
         svg_bbox = skia.Rect.MakeXYWH(*svg.bbox())
-        svg_frame = cls.calculate_frame(
+        svg_frame = self.calculate_frame(
             svg_bbox.width(),
             svg_bbox.height(),
             width,
@@ -52,25 +40,25 @@ class SVGMobject(PathGroup):
         for shape in svg.elements():
             if not isinstance(shape, se.Shape):
                 continue
-            path = cls.shape_to_path(shape)
+            path = self.shape_to_skia_path(shape)
             if path is None:
                 continue
             if isinstance(shape, se.Transformable) and shape.apply:
-                path.transform(cls.convert_transform(shape.transform))
+                path.transform(self.convert_transform(shape.transform))
             path.transform(transform_matrix)
-            mobject = PathMobject(path=path, flip_y=False)
+            mobject = PathMobject(path=Path(path), flip_y=False)
             if paint_settings is not None:
                 mobject.set_paint(**paint_settings)
-            mobject.set_paint(**cls.get_paint_settings_from_shape(shape))
+            mobject.set_paint(**self.get_paint_settings_from_shape(shape))
             mobjects.append(mobject)
-        return mobjects
+        super().__init__(*mobjects)
 
     @classmethod
-    def shape_to_path(cls, shape: se.Shape) -> skia.Path | None:
+    def shape_to_skia_path(cls, shape: se.Shape) -> skia.Path | None:
         if isinstance(shape, (se.Group, se.Use)):
             return None
         if isinstance(shape, se.Path):
-            return cls.path_to_path(shape)
+            return cls.path_to_skia_path(shape)
             #mob = self.path_to_mobject(shape)
         if isinstance(shape, se.SimpleLine):
             return None
@@ -114,7 +102,7 @@ class SVGMobject(PathGroup):
             "stroke_color": None if shape.stroke is None else shape.stroke.hexrgb,
             "stroke_opacity": None if shape.stroke is None else shape.stroke.opacity,
             # Don't know why, svgelements may parse stroke_width out of nothing...
-            #"stroke_width": shape.stroke_width
+            "stroke_width": shape.stroke_width
         }
         #if shape.fill is not None:
         #    mobject.set_paint(
@@ -145,7 +133,7 @@ class SVGMobject(PathGroup):
         #return mob
 
     @classmethod
-    def path_to_path(cls, path_shape: se.Path) -> skia.Path:
+    def path_to_skia_path(cls, path_shape: se.Path) -> skia.Path:
         path_shape.approximate_arcs_with_cubics()
         path = skia.Path()
         for segment in path_shape.segments():

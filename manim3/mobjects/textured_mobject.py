@@ -22,7 +22,11 @@ class TexturedMobject(MeshMobject):
             image = None
         self.image: skia.Image | None = image
 
-    def load_color_map(self: Self) -> TextureArrayType | None:
-        if self.image is not None:
-            return self.image.toarray()
+    def load_color_map(self: Self) -> skia.Pixmap | None:
+        image = self.image
+        if image is not None:
+            info = image.imageInfo()
+            pixmap = skia.Pixmap(info, None, info.width() * info.bytesPerPixel())
+            image.readPixels(pixmap)  # TODO: test (try using ctx)
+            return pixmap
         return None

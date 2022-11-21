@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from functools import lru_cache
-import re
 import os
+import re
+import skia
 
 import moderngl
 
@@ -17,7 +18,7 @@ class ShaderData:
     wireframe: bool
     shader_filename: str
     define_macros: list[str]
-    textures_dict: dict[str, tuple[TextureArrayType, int]]
+    textures_dict: dict[str, tuple[skia.Pixmap, int]]
     #uniforms_dict: dict[str, UniformType]
     attributes_dict: dict[str, tuple[AttributeType, str]]
     vertex_indices: VertexIndicesType
@@ -88,7 +89,7 @@ class ContextWrapper:
         cls,
         ctx: moderngl.Context,
         program: moderngl.Program,
-        textures_dict: dict[str, tuple[TextureArrayType, int]],
+        textures_dict: dict[str, tuple[skia.Pixmap, int]],
         #uniforms_dict: dict[str, UniformType],
         attributes_dict: dict[str, tuple[AttributeType, str]],
         vertex_indices: VertexIndicesType,
@@ -102,16 +103,15 @@ class ContextWrapper:
         #        uniform_val = tuple(uniform_val.flatten())
         #    uniform.__setattr__("value", uniform_val)
 
-        for name, (texture_array, location) in textures_dict.items():
+        for name, (pixmap, location) in textures_dict.items():
             uniform = program[name]
             if not isinstance(uniform, moderngl.Uniform):
                 continue
             uniform.__setattr__("value", location)
-            height, width, depth = texture_array.shape
             texture = ctx.texture(
-                size=(width, height),
-                components=depth,
-                data=texture_array.tobytes(),
+                size=(pixmap.width(), pixmap.height()),
+                components=pixmap.info().bytesPerPixel(),
+                data=pixmap,
             )
             texture.use(location=location)
 
@@ -150,8 +150,8 @@ class ContextWrapper:
         ctx.wireframe = wireframe
 
     def render(self: Self, shader_data: ShaderData) -> None:
-        import time
-        t = time.time()
+        #import time
+        #t = time.time()
         #print(time.time()-t)
         ctx = self.ctx
         self._configure_context(
