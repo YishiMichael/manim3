@@ -20,7 +20,7 @@ __all__ = [
 @dataclass
 class MeshMaterialAttributes:
     color: ColorArrayType
-    color_map: skia.Pixmap | None
+    color_map: skia.Image | None
 
 
 class MeshMobject(Mobject):
@@ -40,7 +40,7 @@ class MeshMobject(Mobject):
             return np.zeros((0, 3))
         return self.geometry.position
 
-    def load_color_map(self: Self) -> skia.Pixmap | None:
+    def load_color_map(self: Self) -> skia.Image | None:
         return None
 
     def setup_shader_data(self: Self, camera: Camera) -> ShaderData | None:

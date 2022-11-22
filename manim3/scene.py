@@ -2,7 +2,7 @@ import time
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
-#import skia
+import skia
 
 from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera

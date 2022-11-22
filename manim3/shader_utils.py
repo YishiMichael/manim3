@@ -18,7 +18,7 @@ class ShaderData:
     wireframe: bool
     shader_filename: str
     define_macros: list[str]
-    textures_dict: dict[str, tuple[skia.Pixmap, int]]
+    textures_dict: dict[str, tuple[skia.Image, int]]
     #uniforms_dict: dict[str, UniformType]
     attributes_dict: dict[str, tuple[AttributeType, str]]
     vertex_indices: VertexIndicesType
@@ -89,7 +89,7 @@ class ContextWrapper:
         cls,
         ctx: moderngl.Context,
         program: moderngl.Program,
-        textures_dict: dict[str, tuple[skia.Pixmap, int]],
+        textures_dict: dict[str, tuple[skia.Image, int]],
         #uniforms_dict: dict[str, UniformType],
         attributes_dict: dict[str, tuple[AttributeType, str]],
         vertex_indices: VertexIndicesType,
@@ -103,15 +103,15 @@ class ContextWrapper:
         #        uniform_val = tuple(uniform_val.flatten())
         #    uniform.__setattr__("value", uniform_val)
 
-        for name, (pixmap, location) in textures_dict.items():
+        for name, (image, location) in textures_dict.items():
             uniform = program[name]
             if not isinstance(uniform, moderngl.Uniform):
                 continue
             uniform.__setattr__("value", location)
             texture = ctx.texture(
-                size=(pixmap.width(), pixmap.height()),
-                components=pixmap.info().bytesPerPixel(),
-                data=pixmap,
+                size=(image.width(), image.height()),
+                components=image.imageInfo().bytesPerPixel(),
+                data=image.tobytes(),
             )
             texture.use(location=location)
 

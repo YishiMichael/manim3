@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from functools import reduce
 
+import moderngl
 import numpy as np
 import pyrr
 import skia
@@ -34,11 +35,11 @@ class SkiaMobject(MeshMobject):
     def init_geometry(self: Self) -> Geometry:
         return PlaneGeometry()
 
-    def load_color_map(self: Self) -> skia.Pixmap:
+    def load_color_map(self: Self) -> skia.Image:
         frame = self.frame
 
         new_canvas_matrix = reduce(pyrr.Matrix44.__matmul__, (
-            self.matrix_from_scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0))),
+            self.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
             self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
         ))
         self.preapply_raw_matrix(
@@ -54,18 +55,28 @@ class SkiaMobject(MeshMobject):
         px_width, px_height = self.resolution
         #array = np.zeros((px_height, px_width, 4), dtype=np.uint8)
 
-        context = skia.GrDirectContext.MakeGL()
-        surface = skia.Surface.MakeRenderTarget(
-            context=context,
-            budgeted=skia.Budgeted.kNo,
-            imageInfo=skia.ImageInfo.MakeN32Premul(width=px_width, height=px_height)
-        )
-        assert surface is not None
+        # TODO: try using GPU rendering?
+        #context = skia.GrDirectContext.MakeGL()
+        #context.resetContext()
+        #print(type(context))
+        #surface = skia.Surface.MakeRenderTarget(
+        #    context=skia_context,
+        #    budgeted=skia.Budgeted.kYes,
+        #    imageInfo=skia.ImageInfo.MakeN32Premul(width=px_width, height=px_height)
+        #)
 
         # According to the documentation at `https://kyamagu.github.io/skia-python/tutorial`,
         # the default value of parameter `colorType` should be `skia.kRGBA_8888_ColorType`,
         # but it strangely defaults to `skia.kBGRA_8888_ColorType` in practice.
         # Passing in the parameter explicitly fixes this issue for now.
+        surface = skia.Surface.MakeRaster(imageInfo=skia.ImageInfo.Make(
+            width=px_width,
+            height=px_height,
+            ct=skia.kRGBA_8888_ColorType,
+            at=skia.kUnpremul_AlphaType
+        ))
+        assert surface is not None
+
         #with skia.Surface(
         #    array=array,
         #    colorType=skia.kRGBA_8888_ColorType,
@@ -74,18 +85,24 @@ class SkiaMobject(MeshMobject):
         with surface as canvas:
             self.draw(canvas)
 
-        info = surface.imageInfo()
-        row_bytes = px_width * info.bytesPerPixel()
-        buffer = bytearray(row_bytes * px_height)
-        pixmap = skia.Pixmap(info=info, data=buffer, rowBytes=row_bytes)
-        surface.readPixels(pixmap)
+        #info = surface.imageInfo()
+        #row_bytes = px_width * info.bytesPerPixel()
+        #buffer = bytearray(row_bytes * px_height)
+        #pixmap = skia.Pixmap(info=info, data=buffer, rowBytes=row_bytes)
+        #surface.readPixels(pixmap)
+
+        #surface.flushAndSubmit()
         #print(len(bytes(pixmap).strip(b"\x00")))
         #print(surface.readPixels(pixmap))
         #print(pixmap.info().bytesPerPixel())
         #print(pixmap.width())
         #print(pixmap.height())
         #print(pixmap.rowBytes())
-        return pixmap
+
+        #image = skia.Image.MakeFromRaster(pixmap)
+        #assert image is not None
+        #image.save('skia_output.png', skia.kPNG)
+        return surface.makeImageSnapshot()
 
     @staticmethod
     def calculate_frame(
