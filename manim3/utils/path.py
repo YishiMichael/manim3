@@ -1,10 +1,12 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Callable, Generic, TypeVar
 
 import numpy as np
+import scipy.integrate
 import scipy.interpolate
 import skia
 
+from ..utils.lazy import expire_properties, LazyMeta, lazy_property
 from ..custom_typing import *
 
 
@@ -23,13 +25,13 @@ def interp1d(x: FloatArrayType, y: FloatArrayType, tol: Real = 1e-6, **kwargs) -
     return scipy.interpolate.interp1d(new_x, new_y, **kwargs)
 
 
-class CurveInterpolantBase(ABC):
-    @property
+class CurveInterpolantBase(metaclass=LazyMeta):
+    @lazy_property
     @abstractmethod
     def a_final(self: Self) -> float:
         raise NotImplementedError
 
-    @property
+    @lazy_property
     @abstractmethod
     def l_final(self: Self) -> float:
         raise NotImplementedError
@@ -87,83 +89,76 @@ class CurveInterpolant(CurveInterpolantBase, Generic[T]):
         if children is None:
             children = []
         self._children: list[T] = children
-        a_knots = np.zeros(1)
-        l_knots = np.zeros(1)
-        self._a_knots: FloatArrayType = a_knots
-        self._l_knots: FloatArrayType = l_knots
-        self._a_interpolator: Callable[[Real], tuple[int, float]] = self.integer_interpolator(a_knots)
-        self._l_interpolator: Callable[[Real], tuple[int, float]] = self.integer_interpolator(l_knots)
-        self._a_final: float = a_knots[-1]
-        self._l_final: float = l_knots[-1]
-        self.data_require_updating: bool = True
-        self.update_data()
+        #a_knots = np.zeros(1)
+        #l_knots = np.zeros(1)
+        #self._a_knots: FloatArrayType = a_knots
+        #self._l_knots: FloatArrayType = l_knots
+        #self._a_interpolator: Callable[[Real], tuple[int, float]] = self.integer_interpolator(a_knots)
+        #self._l_interpolator: Callable[[Real], tuple[int, float]] = self.integer_interpolator(l_knots)
+        #self._a_final: float = a_knots[-1]
+        #self._l_final: float = l_knots[-1]
+        #self.data_require_updating: bool = True
+        #self.update_data()
 
-    def update_data(self: Self) -> Self:
-        if self.data_require_updating:
-            #children = self.get_updated_children()
-            #self._children = children
-            children = self._children
-            a_knots = np.insert(np.cumsum([child.a_final for child in children]), 0, 0.0)
-            l_knots = np.insert(np.cumsum([child.l_final for child in children]), 0, 0.0)
-            self._a_knots = a_knots
-            self._l_knots = l_knots
-            self._a_interpolator = self.integer_interpolator(a_knots)
-            self._l_interpolator = self.integer_interpolator(l_knots)
-            self._a_final = a_knots[-1]
-            self._l_final = l_knots[-1]
-            self.data_require_updating = False
-        return self
+    #def update_data(self: Self) -> Self:
+    #    if self.data_require_updating:
+    #        #children = self.get_updated_children()
+    #        #self._children = children
+    #        children = self._children
+    #        a_knots = np.insert(np.cumsum([child.a_final for child in children]), 0, 0.0)
+    #        l_knots = np.insert(np.cumsum([child.l_final for child in children]), 0, 0.0)
+    #        self._a_knots = a_knots
+    #        self._l_knots = l_knots
+    #        self._a_interpolator = self.integer_interpolator(a_knots)
+    #        self._l_interpolator = self.integer_interpolator(l_knots)
+    #        self._a_final = a_knots[-1]
+    #        self._l_final = l_knots[-1]
+    #        self.data_require_updating = False
+    #    return self
 
     #def get_updated_children(self: Self) -> list[T]:
     #    return self._children
 
-    @property
+    @lazy_property
     def children(self: Self) -> list[T]:
-        self.update_data()
+        #self.update_data()
         return self._children
 
-    @property
+    @lazy_property
     def a_knots(self: Self) -> FloatArrayType:
-        self.update_data()
-        return self._a_knots
+        #self.update_data()
+        return np.insert(np.cumsum([child.a_final for child in self.children]), 0, 0.0)
 
-    @property
+    @lazy_property
     def l_knots(self: Self) -> FloatArrayType:
-        self.update_data()
-        return self._l_knots
+        #self.update_data()
+        return np.insert(np.cumsum([child.l_final for child in self.children]), 0, 0.0)
+
+    @lazy_property
+    def a_final(self: Self) -> float:
+        #self.update_data()
+        return self.a_knots[-1]
+
+    @lazy_property
+    def l_final(self: Self) -> float:
+        #self.update_data()
+        return self.l_knots[-1]
+
+    @lazy_property
+    def a_interpolator(self: Self) -> Callable[[Real], tuple[int, float]]:
+        return self.integer_interpolator(self.a_knots)
+
+    @lazy_property
+    def l_interpolator(self: Self) -> Callable[[Real], tuple[int, float]]:
+        return self.integer_interpolator(self.l_knots)
 
     def a_interpolate(self: Self, a: Real) -> tuple[int, float]:
-        self.update_data()
-        return self._a_interpolator(a)
+        #self.update_data()
+        return self.a_interpolator(a)
 
     def l_interpolate(self: Self, l: Real) -> tuple[int, float]:
-        self.update_data()
-        return self._l_interpolator(l)
-
-    @property
-    def a_final(self: Self) -> float:
-        self.update_data()
-        return self._a_final
-
-    @property
-    def l_final(self: Self) -> float:
-        self.update_data()
-        return self._l_final
-
-    @staticmethod
-    def integer_interpolator(array: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
-        def wrapped(target: Real) -> tuple[int, float]:
-            """
-            Assumed that `array` is already sorted, and that `array[0] <= target <= array[-1]`
-            If `target == array[0]`, returns `(0, 0.0)`.
-            Otherwise, returns `(i, target - array[i])` such that
-            `0 <= i < len(array) - 1` and `array[i] < target <= array[i + 1]`.
-            """
-            index = int(interp1d(array, np.array(range(len(array))) - 1.0, kind="next")(target))
-            if index == -1:
-                return 0, 0.0
-            return index, target - array[index]
-        return wrapped
+        #self.update_data()
+        return self.l_interpolator(l)
 
     def a_to_p(self: Self, a: Real) -> Vector2Type:
         i, a_remainder = self.a_interpolate(a)
@@ -191,43 +186,76 @@ class CurveInterpolant(CurveInterpolantBase, Generic[T]):
             children.append(self.children[i].partial_by_a(a_remainder))
         return self.__class__(children=children)
 
+    @staticmethod
+    def integer_interpolator(array: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        def wrapped(target: Real) -> tuple[int, float]:
+            """
+            Assumed that `array` is already sorted, and that `array[0] <= target <= array[-1]`
+            If `target == array[0]`, returns `(0, 0.0)`.
+            Otherwise, returns `(i, target - array[i])` such that
+            `0 <= i < len(array) - 1` and `array[i] < target <= array[i + 1]`.
+            """
+            index = int(interp1d(array, np.array(range(len(array))) - 1.0, kind="next")(target))
+            if index == -1:
+                return 0, 0.0
+            return index, target - array[index]
+        return wrapped
+
 
 class BezierCurve(CurveInterpolantBase):
     """
     Bezier curves defined on domain [0, 1].
     """
-    def __init__(self: Self, *points: Vector2Type):
-        order = len(points) - 1
-        assert order >= 0
-        points_array = np.array(points)
-        self.order: int = order
-        self.points: Vector2ArrayType = points_array
-        self.func: scipy.interpolate.BSpline = scipy.interpolate.BSpline(
+    def __init__(self: Self, points: Vector2ArrayType):
+        self._points: Vector2ArrayType = points
+        super().__init__()
+
+    @lazy_property
+    def points(self: Self) -> Vector2ArrayType:
+        return self._points
+
+    @lazy_property
+    def order(self: Self) -> int:
+        return len(self.points) - 1
+
+    @lazy_property
+    def gamma(self: Self) -> scipy.interpolate.BSpline:
+        order = self.order
+        return scipy.interpolate.BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
-            c=points_array,
+            c=self.points,
             k=order
         )
 
+    @lazy_property
+    def a_samples(self: Self) -> FloatArrayType:
         segments = 16 if self.order > 1 else 1
-        a_samples = np.linspace(0.0, 1.0, segments + 1)
-        p_samples = self.func(a_samples)
-        segment_lengths = np.linalg.norm(p_samples[1:] - p_samples[:-1], axis=1)
-        l_samples = np.insert(np.cumsum(segment_lengths), 0, 0.0)
-        self.curve_length: float = l_samples[-1]
-        self.a_l_interp: scipy.interpolate.interp1d = interp1d(a_samples, l_samples)
-        self.l_a_interp: scipy.interpolate.interp1d = interp1d(l_samples, a_samples)
-        super().__init__()
+        return np.linspace(0.0, 1.0, segments + 1)
 
-    @property
+    @lazy_property
+    def l_samples(self: Self) -> FloatArrayType:
+        p_samples = self.gamma(self.a_samples)
+        segment_lengths = np.linalg.norm(p_samples[1:] - p_samples[:-1], axis=1)
+        return np.insert(np.cumsum(segment_lengths), 0, 0.0)
+
+    @lazy_property
+    def a_l_interp(self: Self) -> scipy.interpolate.interp1d:
+        return interp1d(self.a_samples, self.l_samples)
+
+    @lazy_property
+    def l_a_interp(self: Self) -> Callable[[Real], Real]:
+        return interp1d(self.l_samples, self.a_samples)
+
+    @lazy_property
     def a_final(self: Self) -> float:
         return 1.0
 
-    @property
+    @lazy_property
     def l_final(self: Self) -> float:
-        return self.curve_length
+        return self.a_l_interp(self.a_final)
 
     def a_to_p(self: Self, a: Real) -> Vector2Type:
-        return self.func(a)
+        return self.gamma(a)
 
     def a_to_l(self: Self, a: Real) -> float:
         return self.a_l_interp(a)
@@ -236,10 +264,10 @@ class BezierCurve(CurveInterpolantBase):
         return self.l_a_interp(l)
 
     def partial_by_a(self: Self, a: Real) -> Self:
-        return BezierCurve(*(
-            BezierCurve(*self.points[:n]).a_to_p(a)
+        return BezierCurve(np.array([
+            BezierCurve(self.points[:n]).a_to_p(a)
             for n in range(1, self.order + 2)
-        ))
+        ]))
 
     def rise_order_to(self: Self, new_order: int) -> Self:
         new_points = self.points
@@ -248,7 +276,7 @@ class BezierCurve(CurveInterpolantBase):
             mat[(np.arange(n), np.arange(n))] = np.arange(n, 0, -1) / n
             mat[(np.arange(n) + 1, np.arange(n))] = np.arange(1, n + 1) / n
             new_points = mat @ new_points
-        return BezierCurve(*new_points)
+        return BezierCurve(new_points)
 
 
 class Contour(CurveInterpolant[BezierCurve]):
@@ -265,7 +293,7 @@ class Contours(CurveInterpolant[Contour]):
     pass
 
 
-class Path:
+class Path(metaclass=LazyMeta):
     """
     A list of contours, either open or closed
     """
@@ -284,15 +312,24 @@ class Path:
             raise ValueError(f"Unsupported path type: {type(path)}")
 
         self.skia_path: skia.Path = skia_path
-        self._contours: Contours = Contours()
-        self.contours_require_updating: bool = True
+        #self._contours: Contours = Contours()
+        #self.contours_require_updating: bool = True
 
-    @property
+    @lazy_property
+    def _skia_path(self: Self) -> skia.Path:
+        return self.skia_path
+
+    @_skia_path.setter
+    def _skia_path(self: Self, arg: skia.Path) -> None:
+        pass
+
+    @lazy_property
     def contours(self: Self) -> Contours:
-        if self.contours_require_updating:
-            self._contours = self.get_contours_by_skia_path(self.skia_path)
-            self.contours_require_updating = False
-        return self._contours
+        return self.get_contours_by_skia_path(self._skia_path)
+        #if self.contours_require_updating:
+        #    self._contours = self.get_contours_by_skia_path(self.skia_path)
+        #    self.contours_require_updating = False
+        #return self._contours
 
     #def get_updated_children(self: Self) -> list[Contour]:
     #    return self.get_contours_by_skia_path(self.skia_path)
@@ -311,16 +348,16 @@ class Path:
                 skia.Path.Verb.kQuad_Verb,
                 skia.Path.Verb.kCubic_Verb
             ):
-                contour.append(BezierCurve(*(
+                contour.append(BezierCurve(np.array([
                     np.array(list(point)) for point in points
-                )))
+                ])))
             elif verb == skia.Path.Verb.kConic_Verb:
                 # Approximate per conic curve with 8 quads
                 quad_points = skia.Path.ConvertConicToQuads(*points, iterator.conicWeight(), 3)
                 for i in range(0, len(quad_points), 2):
-                    contour.append(BezierCurve(*(
+                    contour.append(BezierCurve(np.array([
                         np.array(list(point)) for point in quad_points[i:i + 3]
-                    )))
+                    ])))
             elif verb == skia.Path.Verb.kClose_Verb:
                 if contour:
                     contours.append(Contour(contour))
@@ -351,41 +388,53 @@ class Path:
             path.close()
         return path
 
+    @expire_properties("_skia_path")
     def move_to(self: Self, point: Vector2Type) -> Self:
-        self.contours_require_updating = True
+        #self.contours_require_updating = True
         self.skia_path.moveTo(skia.Point(*point))
+        #self._skia_path = self.skia_path
         return self
 
+    @expire_properties("_skia_path")
     def line_to(self: Self, point: Vector2Type) -> Self:
-        self.contours_require_updating = True
+        #self.contours_require_updating = True
         self.skia_path.lineTo(skia.Point(*point))
+        #self._skia_path = self.skia_path
         return self
 
+    @expire_properties("_skia_path")
     def quad_to(self: Self, control_point: Vector2Type, point: Vector2Type) -> Self:
-        self.contours_require_updating = True
+        #self.contours_require_updating = True
         self.skia_path.quadTo(skia.Point(*control_point), skia.Point(*point))
+        #self._skia_path = self.skia_path
         return self
 
+    @expire_properties("_skia_path")
     def cubic_to(self: Self, control_point_0: Vector2Type, control_point_1: Vector2Type, point: Vector2Type) -> Self:
-        self.contours_require_updating = True
+        #self.contours_require_updating = True
         self.skia_path.cubicTo(skia.Point(*control_point_0), skia.Point(*control_point_1), skia.Point(*point))
+        #self._skia_path = self.skia_path
         return self
 
+    @expire_properties("_skia_path")
     def conic_to(self: Self, control_point: Vector2Type, point: Vector2Type, weight: Real) -> Self:
-        self.contours_require_updating = True
+        #self.contours_require_updating = True
         self.skia_path.conicTo(skia.Point(*control_point), skia.Point(*point), weight)
+        #self._skia_path = self.skia_path
         return self
 
+    @expire_properties("_skia_path")
     def close_path(self: Self) -> Self:
-        self.contours_require_updating = True
+        #self.contours_require_updating = True
         self.skia_path.close()
+        #self._skia_path = self.skia_path
         return self
 
-    @property
+    @lazy_property
     def a_final(self: Self) -> float:
         return self.contours.a_final
 
-    @property
+    @lazy_property
     def l_final(self: Self) -> float:
         return self.contours.l_final
 

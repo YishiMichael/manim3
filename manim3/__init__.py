@@ -21,11 +21,12 @@ from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 from .mobjects.textured_mobject import *
 
+from .utils.lazy import *
 from .utils.paint import *
 from .utils.path import *
+from .utils.renderable import *
 
 from .constants import *
 from .custom_colors import *
 from .custom_typing import *
 from .scene import *
-from .shader_utils import *

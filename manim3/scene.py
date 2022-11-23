@@ -2,16 +2,14 @@ import time
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
-import skia
 
 from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
 from .mobjects.mobject import Mobject
 #from ..mobjects.scene_mobject import SceneMobject
-#from .constants import FRAME_X_RADIUS, FRAME_Y_RADIUS
+from .utils.renderable import ContextSingleton
 from .constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from .custom_typing import *
-from .shader_utils import ContextWrapper
 
 
 class Scene(Mobject):
@@ -61,9 +59,12 @@ class Scene(Mobject):
             )
             #fbo = ctx.detect_framebuffer()
             fbo.use()
+
+        ContextSingleton._instance = ctx
         #fbo.use()
         self.window: PygletWindow | None = window
-        self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
+        #self.ctx: moderngl.Context = ctx
+        #self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
         self.fbo: moderngl.Framebuffer = fbo
         self.camera: Camera = PerspectiveCamera()
 
@@ -77,7 +78,7 @@ class Scene(Mobject):
         #self.ctx: moderngl.Context = ctx
         #self.fbo: moderngl.Framebuffer = fbo
 
-    def render(self: Self, dt: float) -> Self:
+    def render_scene(self: Self, dt: float) -> Self:
         #shader_data = self.scene_mobject.setup_shader_data(self.scene_mobject.camera)
         #self.scene_mobject.context_wrapper.render(shader_data)
         #return self
@@ -90,10 +91,12 @@ class Scene(Mobject):
         #t = time.time()
         for mobject in self.get_descendents():
             mobject.update(dt)
-            shader_data = mobject.setup_shader_data(self.camera)
-            if shader_data is None:
-                continue
-            self.context_wrapper.render(shader_data)
+            mobject._camera = self.camera
+            #shader_data = mobject.setup_shader_data()
+            mobject.render()
+            #if mobject.shader_data is None:
+            #    continue
+            #self.context_wrapper.render(shader_data)
         #print(time.time()-t)
         #print("After")
         #print(len(self.fbo.read().lstrip(b"\x00")))
@@ -115,7 +118,7 @@ class Scene(Mobject):
                 window.clear()
                 #print()
                 #print(len(self.fbo.read().lstrip(b"\x00")))
-                self.render(dt)
+                self.render_scene(dt)
                 #print(len(self.fbo.read().lstrip(b"\x00")))
                 window.swap_buffers()
         else:  # TODO
@@ -123,6 +126,6 @@ class Scene(Mobject):
             #self.fbo.clear()
             #print(123)
             #print(len(self.fbo.read().lstrip(b"\x00")))
-            self.render(dt)
+            self.render_scene(dt)
             #print(len(self.fbo.read().lstrip(b"\x00")))
         return self

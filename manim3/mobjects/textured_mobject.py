@@ -1,6 +1,7 @@
 import skia
 
 from ..mobjects.mesh_mobject import MeshMobject
+from ..utils.lazy import lazy_property
 from ..custom_typing import *
 
 
@@ -22,7 +23,8 @@ class TexturedMobject(MeshMobject):
             image = None
         self.image: skia.Image | None = image
 
-    def load_color_map(self: Self) -> skia.Image | None:
+    @lazy_property
+    def _color_map(self: Self) -> skia.Image | None:
         return self.image
         #image = self.image
         #if image is not None:

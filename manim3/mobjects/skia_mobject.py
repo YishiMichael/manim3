@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from functools import reduce
+from typing import Callable
 
-import moderngl
 import numpy as np
 import pyrr
 import skia
@@ -9,6 +9,7 @@ import skia
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
+from ..utils.lazy import lazy_property
 from ..custom_typing import *
 
 
@@ -32,10 +33,12 @@ class SkiaMobject(MeshMobject):
         #self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
         #self.shift(np.array((frame.centerX(), -frame.centerY(), 0.0)))
 
-    def init_geometry(self: Self) -> Geometry:
+    @lazy_property
+    def _geometry(self: Self) -> Geometry:
         return PlaneGeometry()
 
-    def load_color_map(self: Self) -> skia.Image:
+    @lazy_property
+    def _color_map(self: Self) -> skia.Image:
         frame = self.frame
 
         new_canvas_matrix = reduce(pyrr.Matrix44.__matmul__, (
@@ -140,16 +143,17 @@ class SkiaMobject(MeshMobject):
         ry = height / 2.0
         return skia.Rect(l=-rx, t=-ry, r=rx, b=ry)
 
-    @property
+    @lazy_property
     @abstractmethod
     def frame(self: Self) -> skia.Rect:
         raise NotImplementedError
 
-    @property
+    @lazy_property
     @abstractmethod
     def resolution(self: Self) -> tuple[int, int]:
         raise NotImplementedError
 
+    @lazy_property
     @abstractmethod
-    def draw(self: Self, canvas: skia.Canvas) -> None:
+    def draw(self: Self) -> Callable[[skia.Canvas], None]:
         raise NotImplementedError

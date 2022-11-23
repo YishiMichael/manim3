@@ -1,19 +1,18 @@
-from abc import ABC
 import copy
 from dataclasses import dataclass
 from functools import reduce
 from typing import Generator, Iterable, Iterator, TypeVar
 import warnings
 
-#import moderngl
 import numpy as np
 import pyrr
 from scipy.spatial.transform import Rotation
-import skia
 
 #from ..animations.animation import Animation
 from ..cameras.camera import Camera
-from ..shader_utils import ShaderData
+from ..cameras.perspective_camera import PerspectiveCamera
+from ..utils.lazy import expire_properties, lazy_property
+from ..utils.renderable import Renderable
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
 
@@ -34,20 +33,14 @@ class BoundingBox3D:
     radius: Vector3Type
 
 
-class Mobject(ABC):
+class Mobject(Renderable):
     def __init__(self: Self) -> None:
         self.parents: list[Self] = []
         self.children: list[Self] = []
 
         self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
-
         self.animations: list["Animation"] = []  # TODO: circular typing
-
-        # shader context settings
-        self.enable_depth_test: bool = True
-        self.enable_blend: bool = True
-        self.cull_face: str = "back"
-        self.wireframe: bool = False
+        super().__init__()
 
     def __iter__(self: Self) -> Iterator[Self]:
         return iter(self.get_children())
@@ -165,6 +158,19 @@ class Mobject(ABC):
 
     # matrix & transform
 
+    @lazy_property
+    def _matrix(self: Self) -> pyrr.Matrix44:
+        return self.matrix
+
+    @_matrix.setter
+    def _matrix(self: Self, arg: pyrr.Matrix44) -> None:
+        pass
+
+    @expire_properties("_matrix")
+    def set_matrix(self: Self, matrix: pyrr.Matrix44) -> Self:
+        self.matrix = matrix
+        return self
+
     @staticmethod
     def matrix_from_translation(vector: Vector3Type) -> pyrr.Matrix44:
         return pyrr.Matrix44.from_translation(vector)
@@ -241,7 +247,7 @@ class Mobject(ABC):
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
         for mobject in self.get_descendents(broadcast=broadcast):
-            mobject.matrix = mobject.matrix @ matrix
+            mobject.set_matrix(mobject.matrix @ matrix)
         return self
 
     def preapply_raw_matrix(
@@ -253,7 +259,7 @@ class Mobject(ABC):
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
         for mobject in self.get_descendents(broadcast=broadcast):
-            mobject.matrix = matrix @ mobject.matrix
+            mobject.set_matrix(matrix @ mobject.matrix)
         return self
 
     def apply_matrix(
@@ -484,9 +490,18 @@ class Mobject(ABC):
 
     # shader
 
-    def setup_shader_data(self: Self, camera: Camera) -> ShaderData | None:
-        # To be implemented in subclasses
-        return None
+    @lazy_property
+    def _camera(self: Self) -> Camera:
+        return PerspectiveCamera()
+
+    @_camera.setter
+    def _camera(self: Self, arg: Camera) -> None:
+        pass
+
+    #@lazy_property
+    #def _shader_data(self: Self) -> ShaderData | None:
+    #    # To be implemented in subclasses
+    #    return None
 
 
 class Group(Mobject):
