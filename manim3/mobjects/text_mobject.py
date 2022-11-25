@@ -125,7 +125,7 @@ class MarkupText(StringMobject):
     }
 
     def __init__(
-        self: Self,
+        self,
         string: str,
         *,
         font_size: Real = 48,
@@ -218,7 +218,7 @@ class MarkupText(StringMobject):
     #        self.disable_ligatures
     #    )
 
-    #def full2short(self: Self, config: dict) -> None:
+    #def full2short(self, config: dict) -> None:
     #    conversion_dict = {
     #        "line_spacing_height": "lsh",
     #        "text2color": "t2c",
@@ -232,7 +232,7 @@ class MarkupText(StringMobject):
     #            if long_name in kwargs:
     #                kwargs[short_name] = kwargs.pop(long_name)
 
-    def get_file_path_by_content(self: Self, content: str) -> str:
+    def get_file_path_by_content(self, content: str) -> str:
         hash_content = str((
             content,
             self.justify,
@@ -247,7 +247,7 @@ class MarkupText(StringMobject):
             self.markup_to_svg(content, svg_file)
         return svg_file
 
-    def markup_to_svg(self: Self, markup_str: str, file_name: str) -> str:
+    def markup_to_svg(self, markup_str: str, file_name: str) -> str:
         self.validate_markup_string(markup_str)
 
         # `manimpango` is under construction,
@@ -396,7 +396,7 @@ class MarkupText(StringMobject):
         ])
         return f"<span {attrs_str}>"
 
-    def get_configured_items(self: Self) -> list[tuple[Span, dict[str, str]]]:
+    def get_configured_items(self) -> list[tuple[Span, dict[str, str]]]:
         return [
             #*(
             #    (span, {key: val})
@@ -417,7 +417,7 @@ class MarkupText(StringMobject):
         ]
 
     def get_content_prefix_and_suffix(
-        self: Self, is_labelled: bool
+        self, is_labelled: bool
     ) -> tuple[str, str]:
         global_attr_dict = {
             "foreground": self.base_color.hex_l,

@@ -15,7 +15,7 @@ __all__ = ["SVGMobject"]
 
 class SVGMobject(PathGroup):
     def __init__(
-        self: Self,
+        self,
         file_path: str,
         *,
         width: Real | None = None,

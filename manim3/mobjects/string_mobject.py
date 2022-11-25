@@ -63,7 +63,7 @@ class StringMobject(SVGMobject):
     #}
 
     def __init__(
-        self: Self,
+        self,
         string: str,
         *,
         isolate: Selector = (),
@@ -105,10 +105,10 @@ class StringMobject(SVGMobject):
     #    return self.get_file_path_by_content(original_content)
 
     @abstractmethod
-    def get_file_path_by_content(self: Self, content: str) -> str:
+    def get_file_path_by_content(self, content: str) -> str:
         raise NotImplementedError
 
-    def get_labels(self: Self) -> list[int]:
+    def get_labels(self) -> list[int]:
         labels_count = len(self.labelled_spans)
         if labels_count == 1:
             return [0] * len(self.children)
@@ -134,7 +134,7 @@ class StringMobject(SVGMobject):
         unrecognizable_colors = []
         labels = []
         for child in labelled_svg.children:
-            label = self.color_to_int(child.fill_paint.color)
+            label = self.color_to_int(child._fill_paint_.color)
             if label >= labels_count:
                 unrecognizable_colors.append(label)
                 label = 0
@@ -152,7 +152,7 @@ class StringMobject(SVGMobject):
         return labels
 
     def rearrange_children_by_positions(
-        self: Self, labelled_svg: SVGMobject
+        self, labelled_svg: SVGMobject
     ) -> None:
         # Rearrange children of `labelled_svg` so that
         # each child is labelled by the nearest one of `labelled_svg`.
@@ -423,7 +423,7 @@ class StringMobject(SVGMobject):
         #    Callable[[int, int, dict[str, str]], str]
         #], str] = reconstruct_string
 
-    def get_content(self: Self, is_labelled: bool) -> str:
+    def get_content(self, is_labelled: bool) -> str:
         content = self.reconstruct_string(
             (0, 1), (0, -1),
             self.replace_for_content,
@@ -473,19 +473,19 @@ class StringMobject(SVGMobject):
         raise NotImplementedError
 
     @abstractmethod
-    def get_configured_items(self: Self) -> list[tuple[Span, dict[str, str]]]:
+    def get_configured_items(self) -> list[tuple[Span, dict[str, str]]]:
         raise NotImplementedError
 
     @abstractmethod
     def get_content_prefix_and_suffix(
-        self: Self, is_labelled: bool
+        self, is_labelled: bool
     ) -> tuple[str, str]:
         raise NotImplementedError
 
     # Selector
 
     def get_child_indices_list_by_span(
-        self: Self, arbitrary_span: Span
+        self, arbitrary_span: Span
     ) -> list[int]:
         return [
             child_index
@@ -493,7 +493,7 @@ class StringMobject(SVGMobject):
             if self.span_contains(arbitrary_span, self.labelled_spans[label])
         ]
 
-    def get_specified_part_items(self: Self) -> list[tuple[str, list[int]]]:
+    def get_specified_part_items(self) -> list[tuple[str, list[int]]]:
         return [
             (
                 self.string[slice(*span)],
@@ -502,7 +502,7 @@ class StringMobject(SVGMobject):
             for span in self.labelled_spans[1:]
         ]
 
-    def get_group_part_items(self: Self) -> list[tuple[str, list[int]]]:
+    def get_group_part_items(self) -> list[tuple[str, list[int]]]:
         if not self.labels:
             return []
 
@@ -548,7 +548,7 @@ class StringMobject(SVGMobject):
         return list(zip(group_substrs, child_indices_lists))
 
     def get_child_indices_lists_by_selector(
-        self: Self, selector: Selector
+        self, selector: Selector
     ) -> list[list[int]]:
         return list(filter(
             lambda indices_list: indices_list,
@@ -559,7 +559,7 @@ class StringMobject(SVGMobject):
         ))
 
     def build_parts_from_indices_lists(
-        self: Self, indices_lists: list[list[int]]
+        self, indices_lists: list[list[int]]
     ) -> PathGroup:
         return PathGroup(*(
             PathGroup(*(
@@ -569,28 +569,28 @@ class StringMobject(SVGMobject):
             for indices_list in indices_lists
         ))
 
-    def build_groups(self: Self) -> PathGroup:
+    def build_groups(self) -> PathGroup:
         return self.build_parts_from_indices_lists([
             indices_list
             for _, indices_list in self.get_group_part_items()
         ])
 
-    def select_parts(self: Self, selector: Selector) -> PathGroup:
+    def select_parts(self, selector: Selector) -> PathGroup:
         return self.build_parts_from_indices_lists(
             self.get_child_indices_lists_by_selector(selector)
         )
 
-    def select_part(self: Self, selector: Selector, index: int = 0) -> PathGroup:
+    def select_part(self, selector: Selector, index: int = 0) -> PathGroup:
         return self.select_parts(selector)[index]
 
-    def set_parts_color(self: Self, selector: Selector, color: ColorType):
+    def set_parts_color(self, selector: Selector, color: ColorType):
         self.select_parts(selector).set_fill(color=color)
         return self
 
-    #def set_parts_color_by_dict(self: Self, color_map: dict[Selector, ColorType]):
+    #def set_parts_color_by_dict(self, color_map: dict[Selector, ColorType]):
     #    for selector, color in color_map.items():
     #        self.set_parts_color(selector, color)
     #    return self
 
-    def get_string(self: Self) -> str:
+    def get_string(self) -> str:
         return self.string

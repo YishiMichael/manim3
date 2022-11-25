@@ -9,7 +9,7 @@ import skia
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..utils.lazy import lazy_property
+from ..utils.lazy import lazy_property, lazy_property_initializer
 from ..custom_typing import *
 
 
@@ -18,44 +18,40 @@ __all__ = ["SkiaMobject"]
 
 class SkiaMobject(MeshMobject):
     def __init__(
-        self: Self
+        self
         #frame: skia.Rect,
         #resolution: tuple[int, int]
     ):
         super().__init__()
-        self.canvas_matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
+        #self.canvas_matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
 
-        self.enable_depth_test = False
-        self.cull_face = "front_and_back"
+        self._enable_depth_test_ = False
+        self._cull_face_ = "front_and_back"
         #self.frame: skia.Rect = frame
         #self.resolution: tuple[int, int] = resolution
 
         #self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
         #self.shift(np.array((frame.centerX(), -frame.centerY(), 0.0)))
 
-    @lazy_property
-    def _geometry(self: Self) -> Geometry:
+    @lazy_property_initializer
+    def _geometry_() -> Geometry:
         return PlaneGeometry()
 
+    @lazy_property_initializer
+    def _canvas_matrix_() -> pyrr.Matrix44:
+        return pyrr.Matrix44.identity()
+
+    #@_canvas_matrix.setter
+    #def _canvas_matrix(self, arg: pyrr.Matrix44) -> None:
+    #    pass
+
     @lazy_property
-    def _color_map(self: Self) -> skia.Image:
-        frame = self.frame
+    def _color_map_(
+        resolution: tuple[int, int],
+        draw: Callable[[skia.Canvas], None]
+    ) -> skia.Image:
 
-        new_canvas_matrix = reduce(pyrr.Matrix44.__matmul__, (
-            self.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
-            self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
-        ))
-        self.preapply_raw_matrix(
-            ~self.canvas_matrix,
-            broadcast=False
-        )
-        self.preapply_raw_matrix(
-            new_canvas_matrix,
-            broadcast=False
-        )
-        self.canvas_matrix = new_canvas_matrix
-
-        px_width, px_height = self.resolution
+        px_width, px_height = resolution
         #array = np.zeros((px_height, px_width, 4), dtype=np.uint8)
 
         # TODO: try using GPU rendering?
@@ -86,7 +82,7 @@ class SkiaMobject(MeshMobject):
         #    alphaType=skia.kUnpremul_AlphaType
         #) as canvas:
         with surface as canvas:
-            self.draw(canvas)
+            draw(canvas)
 
         #info = surface.imageInfo()
         #row_bytes = px_width * info.bytesPerPixel()
@@ -106,6 +102,23 @@ class SkiaMobject(MeshMobject):
         #assert image is not None
         #image.save('skia_output.png', skia.kPNG)
         return surface.makeImageSnapshot()
+
+    def render(self) -> None:
+        frame = self._frame_
+        new_canvas_matrix = reduce(pyrr.Matrix44.__matmul__, (
+            self.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
+            self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
+        ))
+        self.preapply_raw_matrix(
+            ~self._canvas_matrix_,
+            broadcast=False
+        )
+        self.preapply_raw_matrix(
+            new_canvas_matrix,
+            broadcast=False
+        )
+        self._canvas_matrix_ = new_canvas_matrix
+        super().render()
 
     @staticmethod
     def calculate_frame(
@@ -143,17 +156,17 @@ class SkiaMobject(MeshMobject):
         ry = height / 2.0
         return skia.Rect(l=-rx, t=-ry, r=rx, b=ry)
 
-    @lazy_property
+    @lazy_property_initializer
     @abstractmethod
-    def frame(self: Self) -> skia.Rect:
+    def _frame_() -> skia.Rect:
         raise NotImplementedError
 
-    @lazy_property
+    @lazy_property_initializer
     @abstractmethod
-    def resolution(self: Self) -> tuple[int, int]:
+    def _resolution_() -> tuple[int, int]:
         raise NotImplementedError
 
-    @lazy_property
+    @lazy_property_initializer
     @abstractmethod
-    def draw(self: Self) -> Callable[[skia.Canvas], None]:
+    def _draw_() -> Callable[[skia.Canvas], None]:
         raise NotImplementedError

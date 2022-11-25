@@ -123,7 +123,7 @@ def create_tex_svg(full_tex: str, svg_file: str, compiler: str) -> None:
         program = "xelatex -no-pdf"
         dvi_ext = ".xdv"
     else:
-        raise NotImplementedError(
+        raise ValueError(
             f"Compiler '{compiler}' is not implemented"
         )
 
@@ -203,7 +203,7 @@ class TexText(StringMobject):
     #}
 
     def __init__(
-        self: Self,
+        self,
         string: str,
         *,
         #font_size: Real = 48,
@@ -251,7 +251,7 @@ class TexText(StringMobject):
     #        self.additional_preamble
     #    )
 
-    def get_file_path_by_content(self: Self, content: str) -> str:
+    def get_file_path_by_content(self, content: str) -> str:
         with display_during_execution(f"Writing \"{self.string}\""):
             file_path = tex_content_to_svg_file(
                 content, self.template, self.additional_preamble
@@ -341,7 +341,7 @@ class TexText(StringMobject):
             return "}}"
         return "{{" + cls.get_color_command(label)
 
-    def get_configured_items(self: Self) -> list[tuple[Span, dict[str, str]]]:
+    def get_configured_items(self) -> list[tuple[Span, dict[str, str]]]:
         return [
             (span, {})
             for selector in self.tex_to_color_map
@@ -349,7 +349,7 @@ class TexText(StringMobject):
         ]
 
     def get_content_prefix_and_suffix(
-        self: Self, is_labelled: bool
+        self, is_labelled: bool
     ) -> tuple[str, str]:
         prefix_lines = []
         suffix_lines = []
@@ -389,7 +389,7 @@ class TexText(StringMobject):
 
 class Tex(TexText):
     def __init__(
-        self: Self,
+        self,
         string: str,
         tex_environment: str | None = "align*",
         **kwargs

@@ -10,7 +10,7 @@ __all__ = ["TexturedMobject"]
 
 class TexturedMobject(MeshMobject):
     def __init__(
-        self: Self,
+        self,
         image_path: str | None = None
     ):
         super().__init__()
@@ -21,11 +21,11 @@ class TexturedMobject(MeshMobject):
             )
         else:
             image = None
-        self.image: skia.Image | None = image
+        self._color_map_ = image
 
     @lazy_property
-    def _color_map(self: Self) -> skia.Image | None:
-        return self.image
+    def _color_map_() -> skia.Image | None:
+        raise NotImplementedError
         #image = self.image
         #if image is not None:
         #    info = image.imageInfo()

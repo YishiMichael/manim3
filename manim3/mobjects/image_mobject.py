@@ -1,6 +1,9 @@
+from abc import abstractmethod
 import skia
+from typing import Callable
 
 from ..mobjects.skia_mobject import SkiaMobject
+from ..utils.lazy import lazy_property, lazy_property_initializer
 from ..utils.paint import Paint
 from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import *
@@ -11,7 +14,7 @@ __all__ = ["ImageMobject"]
 
 class ImageMobject(SkiaMobject):
     def __init__(
-        self: Self,
+        self,
         image_path: str,
         paint: Paint | None = None,
         *,
@@ -19,23 +22,22 @@ class ImageMobject(SkiaMobject):
         height: Real | None = None,
         frame_scale: Real | None = None
     ):
-        super().__init__(
-            #frame=frame,
-            #resolution=(px_width, px_height)
-        )
         image = skia.Image.open(image_path).convert(
             colorType=skia.kRGBA_8888_ColorType,
             alphaType=skia.kUnpremul_AlphaType
         )
-        self.image: skia.Image = image
-        self.paint: Paint | None = paint
-
-        self._frame: skia.Rect = self.calculate_frame_size(
+        self._image_ = image
+        self._paint_ = paint
+        self._frame_ = self.calculate_frame(
             image.width() / PIXEL_PER_UNIT,
             image.height() / PIXEL_PER_UNIT,
             width,
             height,
             frame_scale
+        )
+        super().__init__(
+            #frame=frame,
+            #resolution=(px_width, px_height)
         )
         #px_width = image.width()
         #px_height = image.height()
@@ -54,14 +56,30 @@ class ImageMobject(SkiaMobject):
         #    frame_scale
         #)
 
-    @property
-    def frame(self: Self) -> skia.Rect:
-        return self._frame
+    @lazy_property_initializer
+    @abstractmethod
+    def _image_() -> skia.Image:
+        raise NotImplementedError
 
-    @property
-    def resolution(self: Self) -> tuple[int, int]:
-        image = self.image
+    @lazy_property_initializer
+    @abstractmethod
+    def _paint_() -> Paint | None:
+        raise NotImplementedError
+
+    @lazy_property_initializer
+    @abstractmethod
+    def _frame_() -> skia.Rect:
+        raise NotImplementedError
+
+    @lazy_property
+    def _resolution_(image: skia.Image) -> tuple[int, int]:
         return (image.width(), image.height())
 
-    def draw(self: Self, canvas: skia.Canvas) -> None:
-        canvas.drawImage(self.image, 0.0, 0.0, self.paint)
+    @lazy_property
+    def _draw_(
+        image: skia.Image,
+        paint: Paint | None
+    ) -> Callable[[skia.Canvas], None]:
+        def draw(canvas: skia.Canvas) -> None:
+            canvas.drawImage(image, 0.0, 0.0, paint)
+        return draw

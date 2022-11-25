@@ -15,7 +15,7 @@ __all__ = ["SceneMobject"]
 
 class SceneMobject(SkiaMobject):
     def __init__(
-        self: Self,
+        self,
         #camera: Camera,
         scene: Scene,
         frame: skia.Rect,
@@ -37,7 +37,7 @@ class SceneMobject(SkiaMobject):
         )
         self.scene: Scene = scene
 
-    def draw(self: Self, canvas: skia.Canvas) -> None:
+    def draw(self, canvas: skia.Canvas) -> None:
         scene = self.scene
         fbo = scene.fbo
         #print(bool(fbo.read().lstrip(b"\x00")))

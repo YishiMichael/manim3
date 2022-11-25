@@ -6,14 +6,14 @@ import scipy.integrate
 import scipy.interpolate
 import skia
 
-from ..utils.lazy import expire_properties, LazyMeta, lazy_property
+from ..utils.lazy import LazyMeta, lazy_property, lazy_property_initializer
 from ..custom_typing import *
 
 
 __all__ = ["Path"]
 
 
-T = TypeVar("T", bound="CurveInterpolantBase")
+_T = TypeVar("_T", bound="CurveInterpolantBase")
 
 
 def interp1d(x: FloatArrayType, y: FloatArrayType, tol: Real = 1e-6, **kwargs) -> scipy.interpolate.interp1d:
@@ -28,56 +28,56 @@ def interp1d(x: FloatArrayType, y: FloatArrayType, tol: Real = 1e-6, **kwargs) -
 class CurveInterpolantBase(metaclass=LazyMeta):
     @lazy_property
     @abstractmethod
-    def a_final(self: Self) -> float:
+    def a_final() -> float:
         raise NotImplementedError
 
     @lazy_property
     @abstractmethod
-    def l_final(self: Self) -> float:
+    def l_final() -> float:
         raise NotImplementedError
 
     @abstractmethod
-    def a_to_p(self: Self, a: Real) -> Vector2Type:
+    def a_to_p(self, a: Real) -> Vector2Type:
         raise NotImplementedError
 
     @abstractmethod
-    def a_to_l(self: Self, a: Real) -> float:
+    def a_to_l(self, a: Real) -> float:
         raise NotImplementedError
 
     @abstractmethod
-    def l_to_a(self: Self, l: Real) -> float:
+    def l_to_a(self, l: Real) -> float:
         raise NotImplementedError
 
-    def a_ratio_to_p(self: Self, a_ratio: Real) -> Vector2Type:
+    def a_ratio_to_p(self, a_ratio: Real) -> Vector2Type:
         return self.a_to_p(a_ratio * self.a_final)
 
-    def a_ratio_to_l_ratio(self: Self, a_ratio: Real) -> float:
+    def a_ratio_to_l_ratio(self, a_ratio: Real) -> float:
         try:
             return self.a_to_l(a_ratio * self.a_final) / self.l_final
         except ZeroDivisionError:
             return 0.0
 
-    def l_ratio_to_a_ratio(self: Self, l_ratio: Real) -> float:
+    def l_ratio_to_a_ratio(self, l_ratio: Real) -> float:
         try:
             return self.l_to_a(l_ratio * self.l_final) / self.a_final
         except ZeroDivisionError:
             return 0.0
 
     @abstractmethod
-    def partial_by_a(self: Self, a: Real) -> Self:
+    def partial_by_a(self, a: Real):
         raise NotImplementedError
 
-    def partial_by_l(self: Self, l: Real) -> Self:
+    def partial_by_l(self, l: Real):
         return self.partial_by_a(self.l_to_a(l))
 
-    def partial_by_a_ratio(self: Self, a_ratio: Real) -> Self:
+    def partial_by_a_ratio(self, a_ratio: Real):
         return self.partial_by_a(a_ratio * self.a_final)
 
-    def partial_by_l_ratio(self: Self, l_ratio: Real) -> Self:
+    def partial_by_l_ratio(self, l_ratio: Real):
         return self.partial_by_l(l_ratio * self.l_final)
 
 
-class CurveInterpolant(CurveInterpolantBase, Generic[T]):
+class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
     """
     A general tree-structured curve interpolant.
 
@@ -85,10 +85,10 @@ class CurveInterpolant(CurveInterpolantBase, Generic[T]):
     and a length parametrization (`l`, defoned on [0, `l_final`]).
     A bunch of translation methods are defined.
     """
-    def __init__(self: Self, children: list[T] | None = None):
+    def __init__(self, children: list[_T] | None = None):
         if children is None:
             children = []
-        self._children: list[T] = children
+        self._children_.extend(children)
         #a_knots = np.zeros(1)
         #l_knots = np.zeros(1)
         #self._a_knots: FloatArrayType = a_knots
@@ -100,7 +100,7 @@ class CurveInterpolant(CurveInterpolantBase, Generic[T]):
         #self.data_require_updating: bool = True
         #self.update_data()
 
-    #def update_data(self: Self) -> Self:
+    #def update_data(self):
     #    if self.data_require_updating:
     #        #children = self.get_updated_children()
     #        #self._children = children
@@ -116,74 +116,75 @@ class CurveInterpolant(CurveInterpolantBase, Generic[T]):
     #        self.data_require_updating = False
     #    return self
 
-    #def get_updated_children(self: Self) -> list[T]:
+    #def get_updated_children(self) -> list[_T]:
     #    return self._children
 
-    @lazy_property
-    def children(self: Self) -> list[T]:
+    @lazy_property_initializer
+    def _children_() -> list[_T]:
+        return []
         #self.update_data()
-        return self._children
-
-    @lazy_property
-    def a_knots(self: Self) -> FloatArrayType:
-        #self.update_data()
-        return np.insert(np.cumsum([child.a_final for child in self.children]), 0, 0.0)
+        #return self._children
 
     @lazy_property
-    def l_knots(self: Self) -> FloatArrayType:
+    def _a_knots_(children: list[_T]) -> FloatArrayType:
         #self.update_data()
-        return np.insert(np.cumsum([child.l_final for child in self.children]), 0, 0.0)
+        return np.insert(np.cumsum([child.a_final for child in children]), 0, 0.0)
 
     @lazy_property
-    def a_final(self: Self) -> float:
+    def _l_knots_(children: list[_T]) -> FloatArrayType:
         #self.update_data()
-        return self.a_knots[-1]
+        return np.insert(np.cumsum([child.l_final for child in children]), 0, 0.0)
 
     @lazy_property
-    def l_final(self: Self) -> float:
+    def _a_final_(a_knots: FloatArrayType) -> float:
         #self.update_data()
-        return self.l_knots[-1]
+        return a_knots[-1]
 
     @lazy_property
-    def a_interpolator(self: Self) -> Callable[[Real], tuple[int, float]]:
-        return self.integer_interpolator(self.a_knots)
+    def l_final(l_knots: FloatArrayType) -> float:
+        #self.update_data()
+        return l_knots[-1]
 
     @lazy_property
-    def l_interpolator(self: Self) -> Callable[[Real], tuple[int, float]]:
-        return self.integer_interpolator(self.l_knots)
+    def _a_interpolator_(a_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        return CurveInterpolant.integer_interpolator(a_knots)
 
-    def a_interpolate(self: Self, a: Real) -> tuple[int, float]:
+    @lazy_property
+    def _l_interpolator_(l_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        return CurveInterpolant.integer_interpolator(l_knots)
+
+    def a_interpolate(self, a: Real) -> tuple[int, float]:
         #self.update_data()
-        return self.a_interpolator(a)
+        return self._a_interpolator_(a)
 
-    def l_interpolate(self: Self, l: Real) -> tuple[int, float]:
+    def l_interpolate(self, l: Real) -> tuple[int, float]:
         #self.update_data()
-        return self.l_interpolator(l)
+        return self._l_interpolator_(l)
 
-    def a_to_p(self: Self, a: Real) -> Vector2Type:
+    def a_to_p(self, a: Real) -> Vector2Type:
         i, a_remainder = self.a_interpolate(a)
         assert a_remainder
-        return self.children[i].a_to_p(a_remainder)
+        return self._children_[i].a_to_p(a_remainder)
 
-    def a_to_l(self: Self, a: Real) -> float:
+    def a_to_l(self, a: Real) -> float:
         i, a_remainder = self.a_interpolate(a)
-        l = self.l_knots[i]
+        l = self._l_knots_[i]
         if a_remainder:
-            l += self.children[i].a_to_l(a_remainder)
+            l += self._children_[i].a_to_l(a_remainder)
         return l
 
-    def l_to_a(self: Self, l: Real) -> float:
+    def l_to_a(self, l: Real) -> float:
         i, l_remainder = self.l_interpolate(l)
-        a = self.a_knots[i]
+        a = self._a_knots_[i]
         if l_remainder:
-            a += self.children[i].l_to_a(l_remainder)
+            a += self._children_[i].l_to_a(l_remainder)
         return a
 
-    def partial_by_a(self: Self, a: Real) -> Self:
+    def partial_by_a(self, a: Real):
         i, a_remainder = self.a_interpolate(a)
-        children = self.children[:i]
+        children = self._children_[:i]
         if a_remainder:
-            children.append(self.children[i].partial_by_a(a_remainder))
+            children.append(self._children_[i].partial_by_a(a_remainder))
         return self.__class__(children=children)
 
     @staticmethod
@@ -206,72 +207,71 @@ class BezierCurve(CurveInterpolantBase):
     """
     Bezier curves defined on domain [0, 1].
     """
-    def __init__(self: Self, points: Vector2ArrayType):
-        self._points: Vector2ArrayType = points
+    def __init__(self, points: Vector2ArrayType):
+        self._points_ = points
         super().__init__()
 
-    @lazy_property
-    def points(self: Self) -> Vector2ArrayType:
-        return self._points
+    @lazy_property_initializer
+    def _points_() -> Vector2ArrayType:
+        return np.array(())
 
     @lazy_property
-    def order(self: Self) -> int:
-        return len(self.points) - 1
+    def _order_(points: Vector2ArrayType) -> int:
+        return len(points) - 1
 
     @lazy_property
-    def gamma(self: Self) -> scipy.interpolate.BSpline:
-        order = self.order
+    def _gamma_(order: int, points: Vector2ArrayType) -> scipy.interpolate.BSpline:
         return scipy.interpolate.BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
-            c=self.points,
+            c=points,
             k=order
         )
 
     @lazy_property
-    def a_samples(self: Self) -> FloatArrayType:
-        segments = 16 if self.order > 1 else 1
+    def _a_samples_(order: int) -> FloatArrayType:
+        segments = 16 if order > 1 else 1
         return np.linspace(0.0, 1.0, segments + 1)
 
     @lazy_property
-    def l_samples(self: Self) -> FloatArrayType:
-        p_samples = self.gamma(self.a_samples)
+    def _l_samples_(gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
+        p_samples = gamma(a_samples)
         segment_lengths = np.linalg.norm(p_samples[1:] - p_samples[:-1], axis=1)
         return np.insert(np.cumsum(segment_lengths), 0, 0.0)
 
     @lazy_property
-    def a_l_interp(self: Self) -> scipy.interpolate.interp1d:
-        return interp1d(self.a_samples, self.l_samples)
+    def _a_l_interp_(a_samples: FloatArrayType, l_samples: FloatArrayType) -> scipy.interpolate.interp1d:
+        return interp1d(a_samples, l_samples)
 
     @lazy_property
-    def l_a_interp(self: Self) -> Callable[[Real], Real]:
-        return interp1d(self.l_samples, self.a_samples)
+    def _l_a_interp_(l_samples: FloatArrayType, a_samples: FloatArrayType) -> Callable[[Real], Real]:
+        return interp1d(l_samples, a_samples)
 
     @lazy_property
-    def a_final(self: Self) -> float:
+    def _a_final_() -> float:
         return 1.0
 
     @lazy_property
-    def l_final(self: Self) -> float:
-        return self.a_l_interp(self.a_final)
+    def _l_final_(a_l_interp: scipy.interpolate.interp1d, a_final: float) -> float:
+        return a_l_interp(a_final)
 
-    def a_to_p(self: Self, a: Real) -> Vector2Type:
-        return self.gamma(a)
+    def a_to_p(self, a: Real) -> Vector2Type:
+        return self._gamma_(a)
 
-    def a_to_l(self: Self, a: Real) -> float:
-        return self.a_l_interp(a)
+    def a_to_l(self, a: Real) -> float:
+        return self._a_l_interp_(a)
 
-    def l_to_a(self: Self, l: Real) -> float:
-        return self.l_a_interp(l)
+    def l_to_a(self, l: Real) -> float:
+        return self._l_a_interp_(l)
 
-    def partial_by_a(self: Self, a: Real) -> Self:
+    def partial_by_a(self, a: Real):
         return BezierCurve(np.array([
-            BezierCurve(self.points[:n]).a_to_p(a)
-            for n in range(1, self.order + 2)
+            BezierCurve(self._points_[:n]).a_to_p(a)
+            for n in range(1, self._order_ + 2)
         ]))
 
-    def rise_order_to(self: Self, new_order: int) -> Self:
-        new_points = self.points
-        for n in range(self.order + 1, new_order + 1):
+    def rise_order_to(self, new_order: int):
+        new_points = self._points_
+        for n in range(self._order_ + 1, new_order + 1):
             mat = np.zeros((n + 1, n))
             mat[(np.arange(n), np.arange(n))] = np.arange(n, 0, -1) / n
             mat[(np.arange(n) + 1, np.arange(n))] = np.arange(1, n + 1) / n
@@ -298,44 +298,25 @@ class Path(metaclass=LazyMeta):
     A list of contours, either open or closed
     """
     def __init__(
-        self: Self,
+        self,
         path: skia.Path | Contours | None = None
         #children: list[Contour] | None = None
     ):
         if isinstance(path, skia.Path):
-            skia_path = path
+            self._skia_path_ = path
         elif isinstance(path, Contours):
-            skia_path = self.get_skia_path_by_contours(path)
+            self._skia_path_ = Path._get_skia_path_by_contours(path)
         elif path is None:
-            skia_path = skia.Path()
+            pass
         else:
             raise ValueError(f"Unsupported path type: {type(path)}")
 
-        self.skia_path: skia.Path = skia_path
+        #self._skia_path_ = skia_path
         #self._contours: Contours = Contours()
         #self.contours_require_updating: bool = True
 
-    @lazy_property
-    def _skia_path(self: Self) -> skia.Path:
-        return self.skia_path
-
-    @_skia_path.setter
-    def _skia_path(self: Self, arg: skia.Path) -> None:
-        pass
-
-    @lazy_property
-    def contours(self: Self) -> Contours:
-        return self.get_contours_by_skia_path(self._skia_path)
-        #if self.contours_require_updating:
-        #    self._contours = self.get_contours_by_skia_path(self.skia_path)
-        #    self.contours_require_updating = False
-        #return self._contours
-
-    #def get_updated_children(self: Self) -> list[Contour]:
-    #    return self.get_contours_by_skia_path(self.skia_path)
-
     @staticmethod
-    def get_contours_by_skia_path(path: skia.Path) -> Contours:
+    def _get_contours_by_skia_path(path: skia.Path) -> Contours:
         contours = []
         contour = []
         iterator = iter(path)
@@ -370,12 +351,12 @@ class Path(metaclass=LazyMeta):
         return Contours(contours)
 
     @staticmethod
-    def get_skia_path_by_contours(contours: Contours) -> skia.Path:
+    def _get_skia_path_by_contours(contours: Contours) -> skia.Path:
         path = skia.Path()
-        for contour in contours.children:
-            path.moveTo(*contour.children[0].points[0])
-            for curve in contour.children:
-                points = curve.points
+        for contour in contours._children_:
+            path.moveTo(*contour._children_[0]._points_[0])
+            for curve in contour._children_:
+                points = curve._points_
                 len_points = len(points)
                 if len_points == 2:
                     path.lineTo(*points[1])
@@ -388,82 +369,101 @@ class Path(metaclass=LazyMeta):
             path.close()
         return path
 
-    @expire_properties("_skia_path")
-    def move_to(self: Self, point: Vector2Type) -> Self:
+    @lazy_property_initializer
+    def _skia_path_() -> skia.Path:
+        return skia.Path()
+
+    #@_skia_path.setter
+    #def _skia_path(self, arg: skia.Path) -> None:
+    #    pass
+
+    @lazy_property
+    def _contours_(skia_path: skia.Path) -> Contours:
+        return Path._get_contours_by_skia_path(skia_path)
+        #if self.contours_require_updating:
+        #    self._contours = self._get_contours_by_skia_path(self._skia_path_)
+        #    self.contours_require_updating = False
+        #return self._contours
+
+    #def get_updated_children(self) -> list[Contour]:
+    #    return self._get_contours_by_skia_path(self.skia_path)
+
+    @_skia_path_.updater
+    def move_to(self, point: Vector2Type):
         #self.contours_require_updating = True
-        self.skia_path.moveTo(skia.Point(*point))
-        #self._skia_path = self.skia_path
+        self._skia_path_.moveTo(skia.Point(*point))
+        #self._skia_path = self._skia_path_
         return self
 
-    @expire_properties("_skia_path")
-    def line_to(self: Self, point: Vector2Type) -> Self:
+    @_skia_path_.updater
+    def line_to(self, point: Vector2Type):
         #self.contours_require_updating = True
-        self.skia_path.lineTo(skia.Point(*point))
-        #self._skia_path = self.skia_path
+        self._skia_path_.lineTo(skia.Point(*point))
+        #self._skia_path = self._skia_path_
         return self
 
-    @expire_properties("_skia_path")
-    def quad_to(self: Self, control_point: Vector2Type, point: Vector2Type) -> Self:
+    @_skia_path_.updater
+    def quad_to(self, control_point: Vector2Type, point: Vector2Type):
         #self.contours_require_updating = True
-        self.skia_path.quadTo(skia.Point(*control_point), skia.Point(*point))
-        #self._skia_path = self.skia_path
+        self._skia_path_.quadTo(skia.Point(*control_point), skia.Point(*point))
+        #self._skia_path = self._skia_path_
         return self
 
-    @expire_properties("_skia_path")
-    def cubic_to(self: Self, control_point_0: Vector2Type, control_point_1: Vector2Type, point: Vector2Type) -> Self:
+    @_skia_path_.updater
+    def cubic_to(self, control_point_0: Vector2Type, control_point_1: Vector2Type, point: Vector2Type):
         #self.contours_require_updating = True
-        self.skia_path.cubicTo(skia.Point(*control_point_0), skia.Point(*control_point_1), skia.Point(*point))
-        #self._skia_path = self.skia_path
+        self._skia_path_.cubicTo(skia.Point(*control_point_0), skia.Point(*control_point_1), skia.Point(*point))
+        #self._skia_path = self._skia_path_
         return self
 
-    @expire_properties("_skia_path")
-    def conic_to(self: Self, control_point: Vector2Type, point: Vector2Type, weight: Real) -> Self:
+    @_skia_path_.updater
+    def conic_to(self, control_point: Vector2Type, point: Vector2Type, weight: Real):
         #self.contours_require_updating = True
-        self.skia_path.conicTo(skia.Point(*control_point), skia.Point(*point), weight)
-        #self._skia_path = self.skia_path
+        self._skia_path_.conicTo(skia.Point(*control_point), skia.Point(*point), weight)
+        #self._skia_path = self._skia_path_
         return self
 
-    @expire_properties("_skia_path")
-    def close_path(self: Self) -> Self:
+    @_skia_path_.updater
+    def close_path(self):
         #self.contours_require_updating = True
-        self.skia_path.close()
-        #self._skia_path = self.skia_path
+        self._skia_path_.close()
+        #self._skia_path = self._skia_path_
         return self
 
     @lazy_property
-    def a_final(self: Self) -> float:
-        return self.contours.a_final
+    def a_final(contours: Contours) -> float:
+        return contours._a_final_
 
     @lazy_property
-    def l_final(self: Self) -> float:
-        return self.contours.l_final
+    def l_final(contours: Contours) -> float:
+        return contours._l_final_
 
-    def a_to_p(self: Self, a: Real) -> Vector2Type:
-        return self.contours.a_to_p(a)
+    def a_to_p(self, a: Real) -> Vector2Type:
+        return self._contours_.a_to_p(a)
 
-    def a_to_l(self: Self, a: Real) -> float:
-        return self.contours.a_to_l(a)
+    def a_to_l(self, a: Real) -> float:
+        return self._contours_.a_to_l(a)
 
-    def l_to_a(self: Self, l: Real) -> float:
-        return self.contours.l_to_a(l)
+    def l_to_a(self, l: Real) -> float:
+        return self._contours_.l_to_a(l)
 
-    def a_ratio_to_p(self: Self, a_ratio: Real) -> Vector2Type:
-        return self.contours.a_ratio_to_p(a_ratio)
+    def a_ratio_to_p(self, a_ratio: Real) -> Vector2Type:
+        return self._contours_.a_ratio_to_p(a_ratio)
 
-    def a_ratio_to_l_ratio(self: Self, a_ratio: Real) -> float:
-        return self.contours.a_ratio_to_l_ratio(a_ratio)
+    def a_ratio_to_l_ratio(self, a_ratio: Real) -> float:
+        return self._contours_.a_ratio_to_l_ratio(a_ratio)
 
-    def l_ratio_to_a_ratio(self: Self, l_ratio: Real) -> float:
-        return self.contours.l_ratio_to_a_ratio(l_ratio)
+    def l_ratio_to_a_ratio(self, l_ratio: Real) -> float:
+        return self._contours_.l_ratio_to_a_ratio(l_ratio)
 
-    def partial_by_a(self: Self, a: Real) -> Self:
-        return Path(self.contours.partial_by_a(a))
+    def partial_by_a(self, a: Real):
+        return Path(self._contours_.partial_by_a(a))
 
-    def partial_by_l(self: Self, l: Real) -> Self:
-        return Path(self.contours.partial_by_l(l))
+    def partial_by_l(self, l: Real):
+        return Path(self._contours_.partial_by_l(l))
 
-    def partial_by_a_ratio(self: Self, a_ratio: Real) -> Self:
-        return Path(self.contours.partial_by_a_ratio(a_ratio))
+    def partial_by_a_ratio(self, a_ratio: Real):
+        return Path(self._contours_.partial_by_a_ratio(a_ratio))
 
-    def partial_by_l_ratio(self: Self, l_ratio: Real) -> Self:
-        return Path(self.contours.partial_by_l_ratio(l_ratio))
+    def partial_by_l_ratio(self, l_ratio: Real):
+        return Path(self._contours_.partial_by_l_ratio(l_ratio))

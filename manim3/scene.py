@@ -13,7 +13,7 @@ from .custom_typing import *
 
 
 class Scene(Mobject):
-    def __init__(self: Self, has_window: bool = True):
+    def __init__(self, has_window: bool = True):
         super().__init__()
         #self.scene_mobject: SceneMobject = SceneMobject(
         #    camera=PerspectiveCamera(),
@@ -78,7 +78,7 @@ class Scene(Mobject):
         #self.ctx: moderngl.Context = ctx
         #self.fbo: moderngl.Framebuffer = fbo
 
-    def render_scene(self: Self, dt: float) -> Self:
+    def render_scene(self, dt: float):
         #shader_data = self.scene_mobject.setup_shader_data(self.scene_mobject.camera)
         #self.scene_mobject.context_wrapper.render(shader_data)
         #return self
@@ -90,7 +90,7 @@ class Scene(Mobject):
         #print()
         #t = time.time()
         for mobject in self.get_descendents():
-            mobject.update(dt)
+            mobject.update_dt(dt)
             mobject._camera = self.camera
             #shader_data = mobject.setup_shader_data()
             mobject.render()
@@ -102,9 +102,9 @@ class Scene(Mobject):
         #print(len(self.fbo.read().lstrip(b"\x00")))
         return self
 
-    def wait(self: Self, t: Real) -> Self:
+    def wait(self, t: Real):
         window = self.window
-        FPS = 10.0
+        FPS = 30.0
         dt = 1.0 / FPS
         elapsed_time = 0.0
         timestamp = time.time()

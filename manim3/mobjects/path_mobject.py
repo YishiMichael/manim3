@@ -5,7 +5,7 @@ import numpy as np
 import skia
 
 from ..mobjects.skia_mobject import SkiaMobject
-from ..utils.lazy import expire_properties, lazy_property
+from ..utils.lazy import lazy_property, lazy_property_initializer
 from ..utils.paint import Paint
 from ..utils.path import Path
 from ..constants import ORIGIN
@@ -21,9 +21,9 @@ __all__ = [
 
 class PathMobject(SkiaMobject):
     def __init__(
-        self: Self,
+        self,
         path: Path | None = None,
-        frame_buff: tuple[Real, Real] = (0.25, 0.25),
+        #frame_buff: tuple[Real, Real] = (0.25, 0.25),
         flip_y: bool = True
     ):
         #frame = path.computeTightBounds().makeOutset(*frame_buff)
@@ -34,14 +34,13 @@ class PathMobject(SkiaMobject):
             #    int(frame.height() * PIXEL_PER_UNIT)
             #)
         )
-        self.frame_buff: tuple[Real, Real] = frame_buff
+        #self.frame_buff: tuple[Real, Real] = frame_buff
         if flip_y:
             self.scale(np.array((1.0, -1.0, 1.0)), about_point=ORIGIN)
 
         #print(type(path))
-        if path is None:
-            path = Path()
-        self.path: Path = path
+        if path is not None:
+            self.set_path(path)
 
         #self.fill_color: Color = Color("black")
         #self.fill_opacity: Real = 0.0
@@ -49,14 +48,50 @@ class PathMobject(SkiaMobject):
         #self.stroke_opacity: Real = 1.0
         #self.stroke_width: Real = 0.05
         #self.draw_stroke_behind_fill: bool = False
-        self.fill_paint: Paint | None = Paint(
+        #self.fill_paint: Paint | None = Paint(
+        #    anti_alias=True,
+        #    style=skia.Paint.kFill_Style,
+        #    color=Color("black"),
+        #    opacity=0.0,
+        #    image_filter=skia.ImageFilters.Dilate(0.01, 0.01)
+        #)
+        #self.stroke_paint: Paint | None = Paint(
+        #    anti_alias=True,
+        #    style=skia.Paint.kStroke_Style,
+        #    color=Color("white"),
+        #    opacity=1.0,
+        #    stroke_width=0.05
+        #)
+
+    @lazy_property_initializer
+    def _path_() -> Path:
+        return Path()
+
+    #@_path.setter
+    #def _path(self, arg: Path) -> None:
+    #    pass
+
+    @lazy_property_initializer
+    def _draw_stroke_behind_fill_() -> bool:
+        return False
+
+    @lazy_property_initializer
+    def _fill_paint_() -> Paint | None:
+        return Paint(
             anti_alias=True,
             style=skia.Paint.kFill_Style,
             color=Color("black"),
             opacity=0.0,
             image_filter=skia.ImageFilters.Dilate(0.01, 0.01)
         )
-        self.stroke_paint: Paint | None = Paint(
+
+    #@_fill_paint.setter
+    #def _fill_paint(self, arg: Paint | None) -> None:
+    #    pass
+
+    @lazy_property_initializer
+    def _stroke_paint_() -> Paint | None:
+        return Paint(
             anti_alias=True,
             style=skia.Paint.kStroke_Style,
             color=Color("white"),
@@ -64,41 +99,28 @@ class PathMobject(SkiaMobject):
             stroke_width=0.05
         )
 
-    @lazy_property
-    def _path(self: Self) -> Path:
-        return self.path
+    @lazy_property_initializer
+    def _frame_buff_() -> tuple[float, float]:
+        return (0.25, 0.25)
 
-    @_path.setter
-    def _path(self: Self, arg: Path) -> None:
-        pass
+    #@_stroke_paint.setter
+    #def _stroke_paint(self, arg: Paint | None) -> None:
+    #    pass
 
-    @lazy_property
-    def _fill_paint(self: Self) -> Paint | None:
-        return self.fill_paint
+    #@lazy_property
+    #def draw_stroke_behind_fill(self) -> bool:
+    #    return False
 
-    @_fill_paint.setter
-    def _fill_paint(self: Self, arg: Paint | None) -> None:
-        pass
-
-    @lazy_property
-    def _stroke_paint(self: Self) -> Paint | None:
-        return self.stroke_paint
-
-    @_stroke_paint.setter
-    def _stroke_paint(self: Self, arg: Paint | None) -> None:
-        pass
+    #@draw_stroke_behind_fill.setter
+    #def draw_stroke_behind_fill(self, arg: bool) -> None:
+    #    pass
 
     @lazy_property
-    def draw_stroke_behind_fill(self: Self) -> bool:
-        return False
-
-    @draw_stroke_behind_fill.setter
-    def draw_stroke_behind_fill(self: Self, arg: bool) -> None:
-        pass
-
-    @lazy_property
-    def frame(self: Self) -> skia.Rect:
-        return self._path.skia_path.computeTightBounds().makeOutset(*self.frame_buff)
+    def _frame_(
+        path: Path,
+        frame_buff: tuple[float, float]
+    ) -> skia.Rect:
+        return path._skia_path_.computeTightBounds().makeOutset(*frame_buff)
         ##self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
         #self.stretch_to_fit_width(frame.width())
         #self.stretch_to_fit_height(frame.height())
@@ -106,16 +128,22 @@ class PathMobject(SkiaMobject):
         #return self
 
     @lazy_property
-    def resolution(self: Self) -> tuple[int, int]:
-        frame = self.frame
+    def _resolution_(frame: skia.Rect) -> tuple[int, int]:
         return (
             int(frame.width() * PIXEL_PER_UNIT),
             int(frame.height() * PIXEL_PER_UNIT)
         )
 
     @lazy_property
-    def draw(self: Self) -> Callable[[skia.Canvas], None]:
-        def wrapped(canvas: skia.Canvas) -> None:
+    def _draw_(
+        fill_paint: Paint | None,
+        stroke_paint: Paint | None,
+        draw_stroke_behind_fill: bool,
+        frame: skia.Rect,
+        resolution: tuple[int, int],
+        path: Path
+    ) -> Callable[[skia.Canvas], None]:
+        def draw(canvas: skia.Canvas) -> None:
             #if self.fill_opacity > 0.0:
             #    paints.append(skia.Paint(
             #        Style=skia.Paint.kFill_Style,
@@ -127,57 +155,63 @@ class PathMobject(SkiaMobject):
             #        Color=self.to_argb_int(self.stroke_color, self.stroke_opacity),
             #        StrokeWidth=self.stroke_width
             #    ))
-            paints = [self._fill_paint, self._stroke_paint]
-            if self.draw_stroke_behind_fill:
+            paints = [fill_paint, stroke_paint]
+            if draw_stroke_behind_fill:
                 paints.reverse()
 
             canvas.concat(skia.Matrix.MakeRectToRect(
-                self.frame, skia.Rect.MakeWH(*self.resolution), skia.Matrix.kFill_ScaleToFit
+                frame, skia.Rect.MakeWH(*resolution), skia.Matrix.kFill_ScaleToFit
             ))
             for paint in paints:
                 if paint is not None:
-                    canvas.drawPath(self._path.skia_path, paint)
-        return wrapped
+                    canvas.drawPath(path._skia_path_, paint)
+        return draw
 
-    @expire_properties("_path")
-    def set_path(self: Self, path: Path) -> Self:
-        self.path = path
+    @_path_.updater
+    def set_path(self, path: Path):
+        self._path_ = path
         return self
 
-    @expire_properties("_fill_paint")
-    def _set_fill(self: Self, **kwargs) -> Self:
-        if self.fill_paint is None:
-            self.fill_paint = Paint()
-        self.fill_paint.set(**kwargs)
+    @_fill_paint_.updater
+    def set_local_fill(self, **kwargs):
+        if self._fill_paint_ is None:
+            self._fill_paint_ = Paint()
+        self._fill_paint_.set(**kwargs)
+        return self
 
     def set_fill(
-        self: Self,
+        self,
         *,
         broadcast: bool = True,
         **kwargs
-    ) -> Self:
+    ):
         for mobject in self.get_descendents(broadcast=broadcast):
-            mobject._set_fill(**kwargs)
+            if not isinstance(mobject, PathMobject):
+                continue
+            mobject.set_local_fill(**kwargs)
         return self
 
-    @expire_properties("_stroke_paint")
-    def _set_stroke(self: Self, **kwargs) -> Self:
-        if self.stroke_paint is None:
-            self.stroke_paint = Paint()
-        self.stroke_paint.set(**kwargs)
+    @_stroke_paint_.updater
+    def set_local_stroke(self, **kwargs):
+        if self._stroke_paint_ is None:
+            self._stroke_paint_ = Paint()
+        self._stroke_paint_.set(**kwargs)
+        return self
 
     def set_stroke(
-        self: Self,
+        self,
         *,
         broadcast: bool = True,
         **kwargs
-    ) -> Self:
+    ):
         for mobject in self.get_descendents(broadcast=broadcast):
-            mobject._set_stroke(**kwargs)
+            if not isinstance(mobject, PathMobject):
+                continue
+            mobject.set_local_stroke(**kwargs)
         return self
 
     def set_paint(
-        self: Self,
+        self,
         *,
         draw_stroke_behind_fill: bool | None = None,
         fill_color: ColorType | None = None,
@@ -186,8 +220,10 @@ class PathMobject(SkiaMobject):
         stroke_opacity: Real | None = None,
         broadcast: bool = True,
         **kwargs
-    ) -> Self:
+    ):
         for mobject in self.get_descendents(broadcast=broadcast):
+            if not isinstance(mobject, PathMobject):
+                continue
             if draw_stroke_behind_fill is not None:
                 mobject.draw_stroke_behind_fill = draw_stroke_behind_fill
             if fill_color is not None:
@@ -214,11 +250,11 @@ class PathMobject(SkiaMobject):
 
 
 class PathGroup(PathMobject):
-    def __init__(self: Self, *mobjects: PathMobject):
+    def __init__(self, *mobjects: PathMobject):
         super().__init__()
         self.add(*mobjects)
 
     # TODO
-    def _bind_child(self: Self, node: Self, index: int | None = None) -> Self:
+    def _bind_child(self, node, index: int | None = None):
         assert isinstance(node, PathMobject)
         super()._bind_child(node, index=index)

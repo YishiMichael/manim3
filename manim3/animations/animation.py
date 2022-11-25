@@ -13,39 +13,39 @@ MobjectType = TypeVar("MobjectType", bound="Mobject")
 
 class Animation(Generic[MobjectType]):
     #def __init__(
-    #    self: Self,
+    #    self,
     #    #run_time: Real = 1.0
     #):
     #    #self.run_time: Real = 1.0
     #    self.elapsed_time: Real = 0.0
 
-    def update_dt(self: Self, mobject: MobjectType, dt: Real) -> None:
+    def update_dt(self, mobject: MobjectType, dt: Real) -> None:
         self.elapsed_time += dt
         self.update(mobject, self.elapsed_time)
 
-    def start(self: Self, initial_mobject: MobjectType) -> None:
+    def start(self, initial_mobject: MobjectType) -> None:
         self.elapsed_time: Real = 0.0  # TODO: outside __init__
         #self.initial_mobject = mobject.copy()  # TODO: outside __init__
 
-    def update(self: Self, mobject: MobjectType, t: Real) -> None:
+    def update(self, mobject: MobjectType, t: Real) -> None:
         pass
 
-    def expired(self: Self) -> bool:
+    def expired(self) -> bool:
         return False
 
 
 class DrawPath(Animation[PathMobject]):
-    def start(self: Self, initial_mobject: PathMobject) -> None:
+    def start(self, initial_mobject: PathMobject) -> None:
         super().start(initial_mobject)
         #import copy
-        self.initial_path = initial_mobject._path
+        self.initial_path = initial_mobject._path_
 
-    def update(self: Self, mobject: PathMobject, t: Real) -> None:
+    def update(self, mobject: PathMobject, t: Real) -> None:
         if t > 3.0:
-            t = 3.0
+            return
         #self.initial_mobject.path.partial_by_l_ratio(t / 3).skia_path.dump()
         #self.initial_path.skia_path.dump()
         mobject.set_path(self.initial_path.partial_by_l_ratio(t / 3.0))
 
-    def expired(self: Self) -> bool:
+    def expired(self) -> bool:
         return self.elapsed_time > 3.0

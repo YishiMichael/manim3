@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 #from ..animations.animation import Animation
 from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
-from ..utils.lazy import expire_properties, lazy_property
+from ..utils.lazy import lazy_property, lazy_property_initializer
 from ..utils.renderable import Renderable
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
@@ -34,31 +34,31 @@ class BoundingBox3D:
 
 
 class Mobject(Renderable):
-    def __init__(self: Self) -> None:
-        self.parents: list[Self] = []
-        self.children: list[Self] = []
+    def __init__(self) -> None:
+        self.parents: list["Mobject"] = []
+        self.children: list["Mobject"] = []
 
-        self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
+        #self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
         self.animations: list["Animation"] = []  # TODO: circular typing
         super().__init__()
 
-    def __iter__(self: Self) -> Iterator[Self]:
+    def __iter__(self) -> Iterator["Mobject"]:
         return iter(self.get_children())
 
-    def __getitem__(self: Self, i: int | slice) -> Self:
+    def __getitem__(self, i: int | slice):
         if isinstance(i, int):
             return self.children.__getitem__(i)
         return Group(*self.children.__getitem__(i))
 
     # family
 
-    def get_parents(self: Self) -> list[Self]:
+    def get_parents(self) -> list["Mobject"]:
         return self.parents
 
-    def get_children(self: Self) -> list[Self]:
+    def get_children(self) -> list["Mobject"]:
         return self.children
 
-    def _bind_child(self: Self, node: Self, index: int | None = None) -> Self:
+    def _bind_child(self, node, index: int | None = None):
         if node.includes(self):
             raise ValueError(f"'{node}' has already included '{self}'")
         if index is not None:
@@ -68,7 +68,7 @@ class Mobject(Renderable):
         node.parents.append(self)
         return self
 
-    def _unbind_child(self: Self, node: Self) -> Self:
+    def _unbind_child(self, node):
         self.children.remove(node)
         node.parents.remove(self)
         return self
@@ -81,27 +81,27 @@ class Mobject(Renderable):
         """
         return list(dict.fromkeys(l))
 
-    def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
+    def _iter_ancestors(self) -> Generator["Mobject", None, None]:
         yield self
         for parent in self.get_parents():
             yield from parent._iter_ancestors()
 
-    def _iter_descendents(self: Self) -> Generator[Self, None, None]:
+    def _iter_descendents(self) -> Generator["Mobject", None, None]:
         yield self
         for child in self.get_children():
             yield from child._iter_descendents()
 
-    def get_ancestors(self: Self, *, broadcast: bool = True) -> list[Self]:  # TODO: order
+    def get_ancestors(self, *, broadcast: bool = True) -> list["Mobject"]:  # TODO: order
         if not broadcast:
             return [self]
         return self.remove_redundancies(self._iter_ancestors())
 
-    def get_descendents(self: Self, *, broadcast: bool = True) -> list[Self]:
+    def get_descendents(self, *, broadcast: bool = True) -> list["Mobject"]:
         if not broadcast:
             return [self]
         return self.remove_redundancies(self._iter_descendents())
 
-    def includes(self: Self, node: Self) -> bool:
+    def includes(self, node) -> bool:
         return node in self._iter_descendents()
 
     #def clear_bindings(self) -> None:
@@ -115,60 +115,60 @@ class Mobject(Renderable):
     #    self.parent.clear()
     #    self.children.clear()
 
-    def index(self: Self, node: Self) -> int:
+    def index(self, node) -> int:
         return self.get_children().index(node)
 
-    def insert(self: Self, index: int, *nodes: Self) -> Self:
+    def insert(self, index: int, *nodes):
         for i, node in enumerate(nodes, start=index):
             self._bind_child(node, index=i)
         return self
 
-    def add(self: Self, *nodes: Self) -> Self:
+    def add(self, *nodes):
         for node in nodes:
             self._bind_child(node)
         return self
 
-    def remove(self: Self, *nodes: Self) -> Self:
+    def remove(self, *nodes):
         for node in nodes:
             self._unbind_child(node)
         return self
 
-    def pop(self: Self, index: int = -1) -> Self:
+    def pop(self, index: int = -1):
         node = self.children[index]
         self._unbind_child(node)
         return node
 
-    def clear(self: Self) -> Self:
+    def clear(self):
         for child in self.children[:]:
             self._unbind_child(child)
         return self
 
-    def clear_parents(self: Self) -> Self:
+    def clear_parents(self):
         for parent in self.parent:
             parent._unbind_child(self)
         return self
 
-    def set_children(self: Self, children: Iterable[Self]) -> Self:
+    def set_children(self, children: Iterable["Mobject"]):
         self.clear()
         self.add(*children)
         return self
 
-    def copy(self: Self) -> Self:
+    def copy(self):
         return copy.copy(self)  # TODO
 
     # matrix & transform
 
-    @lazy_property
-    def _matrix(self: Self) -> pyrr.Matrix44:
-        return self.matrix
+    @lazy_property_initializer
+    def _matrix_() -> pyrr.Matrix44:
+        return pyrr.Matrix44.identity()
 
-    @_matrix.setter
-    def _matrix(self: Self, arg: pyrr.Matrix44) -> None:
-        pass
+    #@_matrix.setter
+    #def _matrix(self, arg: pyrr.Matrix44) -> None:
+    #    pass
 
-    @expire_properties("_matrix")
-    def set_matrix(self: Self, matrix: pyrr.Matrix44) -> Self:
-        self.matrix = matrix
+    @_matrix_.updater
+    def set_local_matrix(self, matrix: pyrr.Matrix44):
+        self._matrix_ = matrix
         return self
 
     @staticmethod
@@ -183,21 +183,25 @@ class Mobject(Renderable):
     def matrix_from_rotation(rotation: Rotation) -> pyrr.Matrix44:
         return pyrr.Matrix44.from_matrix33(rotation.as_matrix())
 
-    def get_local_sample_points(self: Self) -> Vector3ArrayType:
+    @lazy_property
+    def _local_sample_points_() -> Vector3ArrayType:
         # Implemented in subclasses
         return np.zeros((0, 3))
+        #raise NotImplementedError
+
+    # TODO: lazify bounding boxes
 
     def get_bounding_box(
-        self: Self,
+        self,
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
         points = [
             pyrr.matrix44.apply_to_vector(
-                mobject.matrix, point
+                mobject._matrix_, point
             )
             for mobject in self.get_descendents(broadcast=broadcast)
-            for point in mobject.get_local_sample_points()
+            for point in mobject._local_sample_points_
         ]
         if not points:
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
@@ -215,7 +219,7 @@ class Mobject(Renderable):
         )
 
     def get_bounding_box_size(
-        self: Self,
+        self,
         *,
         broadcast: bool = True
     ) -> Vector3Type:
@@ -223,7 +227,7 @@ class Mobject(Renderable):
         return aabb.radius * 2.0
 
     def get_bounding_box_point(
-        self: Self,
+        self,
         direction: Vector3Type,
         *,
         broadcast: bool = True
@@ -232,44 +236,44 @@ class Mobject(Renderable):
         return aabb.origin + direction * aabb.radius
 
     def get_center(
-        self: Self,
+        self,
         *,
         broadcast: bool = True
     ) -> Vector3Type:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
     def apply_raw_matrix(
-        self: Self,
+        self,
         matrix: pyrr.Matrix44,
         *,
         broadcast: bool = True
-    ) -> Self:
+    ):
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
         for mobject in self.get_descendents(broadcast=broadcast):
-            mobject.set_matrix(mobject.matrix @ matrix)
+            mobject.set_local_matrix(mobject._matrix_ @ matrix)
         return self
 
     def preapply_raw_matrix(
-        self: Self,
+        self,
         matrix: pyrr.Matrix44,
         *,
         broadcast: bool = True
-    ) -> Self:
+    ):
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
         for mobject in self.get_descendents(broadcast=broadcast):
-            mobject.set_matrix(matrix @ mobject.matrix)
+            mobject.set_local_matrix(matrix @ mobject._matrix_)
         return self
 
     def apply_matrix(
-        self: Self,
+        self,
         matrix: pyrr.Matrix44,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         if about_point is None:
             if about_edge is None:
                 about_edge = ORIGIN
@@ -289,12 +293,12 @@ class Mobject(Renderable):
         return self
 
     def shift(
-        self: Self,
+        self,
         vector: Vector3Type,
         *,
         coor_mask: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         if coor_mask is not None:
             vector *= coor_mask
         matrix = self.matrix_from_translation(vector)
@@ -306,13 +310,13 @@ class Mobject(Renderable):
         return self
 
     def scale(
-        self: Self,
+        self,
         factor: Real | Vector3Type,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         if isinstance(factor, Real):
             factor_vector = pyrr.Vector3()
             factor_vector.fill(factor)
@@ -328,13 +332,13 @@ class Mobject(Renderable):
         return self
 
     def rotate(
-        self: Self,
+        self,
         rotation: Rotation,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         matrix = self.matrix_from_rotation(rotation)
         self.apply_matrix(
             matrix,
@@ -345,13 +349,13 @@ class Mobject(Renderable):
         return self
 
     def move_to(
-        self: Self,
-        mobject_or_point: Self | Vector3Type,
+        self,
+        mobject_or_point: "Mobject | Vector3Type",
         aligned_edge: Vector3Type = ORIGIN,
         *,
         coor_mask: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         if isinstance(mobject_or_point, Mobject):
             target_point = mobject_or_point.get_bounding_box_point(aligned_edge, broadcast=broadcast)
         else:
@@ -366,14 +370,14 @@ class Mobject(Renderable):
         return self
 
     def next_to(
-        self: Self,
-        mobject_or_point: Self | Vector3Type,
+        self,
+        mobject_or_point: "Mobject | Vector3Type",
         direction: Vector3Type = RIGHT,
         buff: float = 0.25,
         *,
         coor_mask: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         if isinstance(mobject_or_point, Mobject):
             target_point = mobject_or_point.get_bounding_box_point(direction, broadcast=broadcast)
         else:
@@ -388,13 +392,13 @@ class Mobject(Renderable):
         return self
 
     def stretch_to_fit_size(
-        self: Self,
+        self,
         target_size: Vector3Type,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         factor_vector = target_size / self.get_bounding_box_size(broadcast=broadcast)
         self.scale(
             factor_vector,
@@ -405,14 +409,14 @@ class Mobject(Renderable):
         return self
 
     def stretch_to_fit_dim(
-        self: Self,
+        self,
         target_length: Real,
         dim: int,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         factor_vector = np.ones(3)
         factor_vector[dim] = target_length / self.get_bounding_box_size(broadcast=broadcast)[dim]
         self.scale(
@@ -424,13 +428,13 @@ class Mobject(Renderable):
         return self
 
     def stretch_to_fit_width(
-        self: Self,
+        self,
         target_length: Real,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         self.stretch_to_fit_dim(
             target_length,
             0,
@@ -441,13 +445,13 @@ class Mobject(Renderable):
         return self
 
     def stretch_to_fit_height(
-        self: Self,
+        self,
         target_length: Real,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         self.stretch_to_fit_dim(
             target_length,
             1,
@@ -458,13 +462,13 @@ class Mobject(Renderable):
         return self
 
     def stretch_to_fit_depth(
-        self: Self,
+        self,
         target_length: Real,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
-    ) -> Self:
+    ):
         self.stretch_to_fit_dim(
             target_length,
             2,
@@ -476,12 +480,12 @@ class Mobject(Renderable):
 
     # animations
 
-    def animate(self: Self, animation: "Animation") -> Self:
+    def animate(self, animation: "Animation"):
         self.animations.append(animation)
         animation.start(self)
         return self
 
-    def update(self: Self, dt: Real) -> Self:
+    def update_dt(self, dt: Real):
         for animation in self.animations[:]:
             animation.update_dt(self, dt)
             if animation.expired():
@@ -490,26 +494,26 @@ class Mobject(Renderable):
 
     # shader
 
-    @lazy_property
-    def _camera(self: Self) -> Camera:
+    @lazy_property_initializer
+    def _camera_() -> Camera:
         return PerspectiveCamera()
 
-    @_camera.setter
-    def _camera(self: Self, arg: Camera) -> None:
-        pass
+    #@_camera.setter
+    #def _camera(self, camera: Camera) -> None:
+    #    pass
 
     #@lazy_property
-    #def _shader_data(self: Self) -> ShaderData | None:
+    #def _shader_data(self) -> ShaderData | None:
     #    # To be implemented in subclasses
     #    return None
 
 
 class Group(Mobject):
-    def __init__(self: Self, *mobjects: Mobject):
+    def __init__(self, *mobjects: Mobject):
         super().__init__()
         self.add(*mobjects)
 
     # TODO
-    def _bind_child(self: Self, node: Self, index: int | None = None) -> Self:
+    def _bind_child(self, node, index: int | None = None):
         assert isinstance(node, Mobject)
         super()._bind_child(node, index=index)

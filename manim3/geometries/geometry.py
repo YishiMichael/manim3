@@ -18,12 +18,12 @@ class GeometryAttributes:
 
 
 class Geometry(ABC):
-    def __init__(self: Self):
+    def __init__(self):
         attributes = self.init_geometry_attributes()
         self.index: VertexIndicesType = attributes.index
         self.position: Vector3ArrayType = attributes.position
         self.uv: Vector2ArrayType = attributes.uv
 
     @abstractmethod
-    def init_geometry_attributes(self: Self) -> GeometryAttributes:
+    def init_geometry_attributes(self) -> GeometryAttributes:
         raise NotImplementedError

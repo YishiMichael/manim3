@@ -11,7 +11,7 @@ __all__ = ["OrthographicCamera"]
 
 class OrthographicCamera(Camera):
     def __init__(
-        self: Self,
+        self,
         left: Real = -FRAME_X_RADIUS,
         right: Real = FRAME_X_RADIUS,
         top: Real = FRAME_Y_RADIUS,
@@ -27,7 +27,7 @@ class OrthographicCamera(Camera):
         self.near: float = float(near)
         self.far: float = float(far)
 
-    def get_projection_matrix(self: Self) -> pyrr.Matrix44:
+    def get_projection_matrix(self) -> pyrr.Matrix44:
         return pyrr.Matrix44.orthogonal_projection(
             self.left,
             self.right,

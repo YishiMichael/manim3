@@ -23,8 +23,7 @@ __all__ = [
     "VertexIndicesType",
     "ColorType",
     "Span",
-    "Selector",
-    "Self"
+    "Selector"
 ]
 
 
@@ -71,5 +70,3 @@ Selector = Union[
         tuple[Union[int, None], Union[int, None]]
     ]]
 ]
-
-Self = Any  # This shall be removed when advanced to py 3.11

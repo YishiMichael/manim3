@@ -11,7 +11,7 @@ __all__ = [
 
 class PlaneGeometry(ParametricSurfaceGeometry):
     def __init__(
-        self: Self,
+        self,
         width_segments: int = 1,
         height_segments: int = 1
     ):

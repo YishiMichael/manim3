@@ -12,7 +12,7 @@ __all__ = [
 
 class SphereGeometry(ParametricSurfaceGeometry):
     def __init__(
-        self: Self,
+        self,
         theta_start: Real = 0.0,
         theta_sweep: Real = TAU,
         phi_start: Real = 0.0,

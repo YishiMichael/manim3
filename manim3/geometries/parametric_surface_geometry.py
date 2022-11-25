@@ -12,7 +12,7 @@ __all__ = [
 
 class ParametricSurfaceGeometry(Geometry):
     def __init__(
-        self: Self,
+        self,
         func: Callable[[float, float], Vector3Type],
         u_range: tuple[Real, Real],
         v_range: tuple[Real, Real],
@@ -24,7 +24,7 @@ class ParametricSurfaceGeometry(Geometry):
         self.resolution: tuple[int, int] = resolution
         super().__init__()
 
-    def init_geometry_attributes(self: Self) -> GeometryAttributes:
+    def init_geometry_attributes(self) -> GeometryAttributes:
         u_start, u_stop = self.u_range
         v_start, v_stop = self.v_range
         u_len = self.resolution[0] + 1
