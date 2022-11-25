@@ -29,14 +29,14 @@ class ContextSingleton:
 #    define_macros: list[str]
 #    textures_dict: dict[str, tuple[skia.Image, int]]
 #    #uniforms_dict: dict[str, UniformType]
-#    attributes_dict: dict[str, tuple[AttributeType, str]]
+#    buffers_dict: dict[str, tuple[AttributeType, str]]
 #    vertex_indices: VertexIndicesType
 #    render_primitive: int
 
 
 class Renderable(metaclass=LazyMeta):
     def __init__(self):
-        self.abandon_render: bool = True
+        self.invisible: bool = True
         #self.enable_depth_test: bool = True
         #self.enable_blend: bool = True
         #self.cull_face: str = "back"
@@ -70,12 +70,12 @@ class Renderable(metaclass=LazyMeta):
 
     @lazy_property_initializer
     @abstractmethod
-    def _textures_dict_() -> dict[str, tuple[skia.Image, int]]:
+    def _textures_dict_() -> dict[str, tuple[moderngl.Texture, int]]:
         raise NotImplementedError
 
     @lazy_property_initializer
     @abstractmethod
-    def _attributes_dict_() -> dict[str, tuple[AttributeType, str]]:
+    def _buffers_dict_() -> dict[str, tuple[moderngl.Buffer, str]]:
         raise NotImplementedError
 
     @lazy_property_initializer
@@ -88,15 +88,27 @@ class Renderable(metaclass=LazyMeta):
     def _render_primitive_() -> int:
         raise NotImplementedError
 
-    @staticmethod
+    @classmethod
+    def _make_texture(cls, image: skia.Image) -> moderngl.Texture:
+        return ContextSingleton().texture(
+            size=(image.width(), image.height()),
+            components=image.imageInfo().bytesPerPixel(),
+            data=image.tobytes(),
+        )
+
+    @classmethod
+    def _make_buffer(cls, array: AttributeType) -> moderngl.Buffer:
+        return ContextSingleton().buffer(array.tobytes())
+
+    @classmethod
     @lru_cache(maxsize=8, typed=True)
-    def _read_glsl_file(filename: str) -> str:
+    def _read_glsl_file(cls, filename: str) -> str:
         with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as f:
             result = f.read()
         return result
 
-    @staticmethod
-    def _insert_defines(content: str, define_macros: list[str]):
+    @classmethod
+    def _insert_defines(cls, content: str, define_macros: list[str]):
         version_str, rest = content.split("\n", 1)
         return "\n".join([
             version_str,
@@ -107,14 +119,15 @@ class Renderable(metaclass=LazyMeta):
             rest
         ])
 
-    @staticmethod
+    @classmethod
     @lru_cache(maxsize=8, typed=True)
     def _get_program(
+        cls,
         shader_filename: str,
         define_macros: tuple[str, ...]
     ) -> moderngl.Program:
-        content = Renderable._insert_defines(
-            Renderable._read_glsl_file(shader_filename),
+        content = cls._insert_defines(
+            cls._read_glsl_file(shader_filename),
             list(define_macros)
         )
         shaders_dict = dict.fromkeys((
@@ -126,7 +139,7 @@ class Renderable(metaclass=LazyMeta):
         ))
         for shader_type in shaders_dict:
             if re.search(f"\\b{shader_type}\\b", content):
-                shaders_dict[shader_type] = Renderable._insert_defines(content, [shader_type])
+                shaders_dict[shader_type] = cls._insert_defines(content, [shader_type])
         if shaders_dict["VERTEX_SHADER"] is None:
             raise
         return ContextSingleton().program(
@@ -139,10 +152,11 @@ class Renderable(metaclass=LazyMeta):
 
     @lazy_property
     def _program_(
+        cls,
         shader_filename: str,
         define_macros: list[str]
     ) -> moderngl.Program:
-        return Renderable._get_program(
+        return cls._get_program(
             shader_filename,
             tuple(define_macros)
         )
@@ -177,7 +191,7 @@ class Renderable(metaclass=LazyMeta):
     #    program: moderngl.Program,
     #    textures_dict: dict[str, tuple[skia.Image, int]],
     #    #uniforms_dict: dict[str, UniformType],
-    #    attributes_dict: dict[str, tuple[AttributeType, str]],
+    #    buffers_dict: dict[str, tuple[AttributeType, str]],
     #    vertex_indices: VertexIndicesType,
     #    render_primitive: int
     #) -> moderngl.VertexArray:
@@ -203,7 +217,7 @@ class Renderable(metaclass=LazyMeta):
 
         #content = [
         #    (ctx.buffer(array.tobytes()), buffer_format, name)
-        #    for name, (array, buffer_format) in self._attributes_dict.items()
+        #    for name, (array, buffer_format) in self._buffers_dict.items()
         #]
         ##ibo = ctx.buffer(vertex_indices.tobytes())
         #return ctx.vertex_array(
@@ -215,34 +229,36 @@ class Renderable(metaclass=LazyMeta):
         #)
         #return vao
 
-    @lazy_property
-    def _textures_(
-        textures_dict: dict[str, tuple[skia.Image, int]],
-        program: moderngl.Context
-    ) -> list[moderngl.Texture]:
-        textures = []
-        for name, (image, location) in textures_dict.items():
-            uniform = program[name]
-            if not isinstance(uniform, moderngl.Uniform):
-                continue
-            uniform.__setattr__("value", location)
-            texture = ContextSingleton().texture(
-                size=(image.width(), image.height()),
-                components=image.imageInfo().bytesPerPixel(),
-                data=image.tobytes(),
-            )
-            texture.use(location=location)
-            textures.append(texture)
-        return textures
+    #@lazy_property
+    #def _raw_textures_dict_(
+    #    textures_dict: dict[str, tuple[skia.Image, int]],
+    #    program: moderngl.Context
+    #) -> dict[int, moderngl.Texture]:
+    #    raw_textures = {}
+    #    for name, (image, location) in textures_dict.items():
+    #        uniform = program.__getitem__(name)
+    #        if not isinstance(uniform, moderngl.Uniform):
+    #            continue
+    #        uniform.__setattr__("value", location)
+    #        texture = ContextSingleton().texture(
+    #            size=(image.width(), image.height()),
+    #            components=image.imageInfo().bytesPerPixel(),
+    #            data=image.tobytes(),
+    #        )
+    #        raw_textures[location] = texture
+    #        #texture.use(location=location)
+    #        #textures.append(texture)
+    #    return raw_textures
 
     @lazy_property
-    def _ibo_(vertex_indices: VertexIndicesType) -> moderngl.Buffer:
+    def _ibo_(cls, vertex_indices: VertexIndicesType) -> moderngl.Buffer:
         return ContextSingleton().buffer(vertex_indices.tobytes())
 
     @lazy_property
     def _vao_(
-        attributes_dict: dict[str, tuple[AttributeType, str]],
-        program,
+        cls,
+        buffers_dict: dict[str, tuple[moderngl.Buffer, str]],
+        program: moderngl.Program,
         ibo: moderngl.Buffer,
         render_primitive: int
     ) -> moderngl.VertexArray:
@@ -251,14 +267,13 @@ class Renderable(metaclass=LazyMeta):
         #    self._shader_filename,
         #    tuple(self._define_macros)  # to hashable
         #)
-        content = [
-            (ContextSingleton().buffer(array.tobytes()), buffer_format, name)
-            for name, (array, buffer_format) in attributes_dict.items()  # TODO: lazify each buffer
-        ]
         #ibo = ctx.buffer(vertex_indices.tobytes())
         return ContextSingleton().vertex_array(
             program=program,
-            content=content,
+            content=[
+                (buffer, buffer_format, name)
+                for name, (buffer, buffer_format) in buffers_dict.items()  # TODO: lazify each buffer
+            ],
             index_buffer=ibo,
             index_element_size=4,
             mode=render_primitive
@@ -268,13 +283,13 @@ class Renderable(metaclass=LazyMeta):
         #    program,
         #    self._textures_dict,
         #    #shader_data.uniforms_dict,
-        #    self._attributes_dict,
+        #    self._buffers_dict,
         #    self._vertex_indices,
         #    self._render_primitive
         #)
 
     def render(self) -> None:
-        if self.abandon_render:
+        if self.invisible:
             return
 
         ctx = ContextSingleton()
@@ -288,6 +303,20 @@ class Renderable(metaclass=LazyMeta):
             ctx.disable(moderngl.BLEND)
         ctx.cull_face = self._cull_face_
         ctx.wireframe = self._wireframe_
-        textures = self._textures_  # Just updating
+
+        for name, (texture, location) in self._textures_dict_.items():
+            uniform = self._program_.__getitem__(name)
+            if not isinstance(uniform, moderngl.Uniform):
+                continue
+            uniform.__setattr__("value", location)
+            #texture = ContextSingleton().texture(
+            #    size=(image.width(), image.height()),
+            #    components=image.imageInfo().bytesPerPixel(),
+            #    data=image.tobytes(),
+            #)
+            texture.use(location=location)
+            #raw_textures[location] = texture
+            #texture.use(location=location)
+            #textures.append(texture)
         vao = self._vao_
         vao.render()

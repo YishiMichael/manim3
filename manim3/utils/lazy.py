@@ -1,11 +1,10 @@
 from abc import ABCMeta
-from typing import Any, Callable, Type
+from typing import Any, Callable
 
 
 __all__ = [
     "lazy_property",
     "lazy_property_initializer",
-    "lazy_property_type_initializer",
     "LazyMeta"
 ]
 
@@ -20,24 +19,20 @@ __all__ = [
 
 
 class lazy_property(property):
-    def __init__(self, static_method: Callable):
-        self._static_method_: Callable = static_method
+    def __init__(self, class_method: Callable):
+        self._class_method_: Callable = class_method
         super().__init__()
 
 
-class lazy_property_initializer(lazy_property):
+class lazy_property_initializer(property):
     def __init__(self, static_method: Callable[[], Any]):
+        self._static_method_: Callable[[], Any] = static_method
         self._update_method_names_: list[str] = []
-        super().__init__(static_method)
+        super().__init__()
 
     def updater(self, update_method: Callable) -> Callable:
         self._update_method_names_.append(update_method.__name__)
         return update_method
-
-
-class lazy_property_type_initializer(lazy_property_initializer):
-    def __init__(self, static_method: Callable[[], Type]):
-        super().__init__(static_method)
 
 
 class LazyMeta(ABCMeta):
@@ -62,10 +57,10 @@ class LazyMeta(ABCMeta):
         }
         cls_parameters_dict: dict[str, list[str]] = {}
         for name, leaf_property in leaf_lazy_properties.items():
-            code = leaf_property._static_method_.__code__
+            code = leaf_property._class_method_.__code__
             cls_parameters_dict[name] = [
                 f"_{varname}_"
-                for varname in code.co_varnames[:code.co_argcount]
+                for varname in code.co_varnames[1:code.co_argcount]  # ignore cls
             ]
         #for name, attr in namespace.items():
         #    if not isinstance(attr, lazy_property):
@@ -90,14 +85,17 @@ class LazyMeta(ABCMeta):
         initializers_dict.update(cls_initializers_dict)
         parameters_dict.update(cls_parameters_dict)
 
-        parameters_affecting_dict: dict[str, set[str]] = {}
-        for name in initializers_dict:
-            parameters_affecting_dict[name] = set()
-        for name in parameters_dict:
-            parameters_affecting_dict[name] = set()
-        for name, varnames in parameters_dict.items():
-            for varname in varnames:
-                parameters_affecting_dict[varname].add(name)
+        parameters_affecting_dict: dict[str, set[str]] = {
+            name: cls.search_for_affected_parameters(parameters_dict, name)
+            for name in initializers_dict
+        }
+        #for name in initializers_dict:
+        #    parameters_affecting_dict[name] = set()
+        #for name in parameters_dict:
+        #    parameters_affecting_dict[name] = set()
+        #for name, varnames in parameters_dict.items():
+        #    for varname in varnames:
+        #        parameters_affecting_dict[varname].add(name)
 
         for name, root_property in root_lazy_properties.items():
 
@@ -119,7 +117,7 @@ class LazyMeta(ABCMeta):
             #varnames = parameters_dict[name]
 
             namespace[name] = cls.setup_leaf_property(
-                name, leaf_property._static_method_, parameters_dict[name]
+                name, leaf_property._class_method_, parameters_dict[name]
             )
 
         init_requires_update = {}
@@ -250,8 +248,8 @@ class LazyMeta(ABCMeta):
     #        raise NotImplementedError
     #    return new_fdel
 
-    @staticmethod
-    def get_mro_by_bases(bases: tuple[type, ...]) -> tuple[type, ...]:
+    @classmethod
+    def get_mro_by_bases(cls, bases: tuple[type, ...]) -> tuple[type, ...]:
         if not bases:
             return (object,)
         result = []
@@ -276,8 +274,22 @@ class LazyMeta(ABCMeta):
             raise TypeError
         return tuple(result)
 
-    @staticmethod
-    def setup_root_property(name):
+    @classmethod
+    def search_for_affected_parameters(cls, parameters_dict: dict[str, list[str]], name: str) -> set[str]:
+        result = set()
+        extended = {name}
+        while result != extended:
+            result = extended
+            extended = result.union(
+                set(
+                    param for param, args in parameters_dict.items()
+                    if any(arg in args for arg in result)
+                )
+            )
+        return result
+
+    @classmethod
+    def setup_root_property(cls, name):
         #@wraps
         def f_get(self):
             return self._lazy_properties_[name]
@@ -286,8 +298,8 @@ class LazyMeta(ABCMeta):
             self._lazy_properties_[name] = value
         return property(f_get, f_set)
 
-    @staticmethod
-    def setup_root_property_updater(name, update_method, parameters_affecting_dict):
+    @classmethod
+    def setup_root_property_updater(cls, name, update_method, parameters_affecting_dict):
         #@wraps
         def f_update(self, *args, **kwargs):
             #result = update_method(self, *args, **kwargs)
@@ -297,13 +309,13 @@ class LazyMeta(ABCMeta):
             return update_method(self, *args, **kwargs)
         return f_update
 
-    @staticmethod
-    def setup_leaf_property(name, static_method, varnames):
+    @classmethod
+    def setup_leaf_property(cls, name, class_method, varnames):
         #@wraps
         def f_get(self):
             if not self._requires_update_[name]:
                 return self._lazy_properties_[name]
-            value = static_method(*(
+            value = class_method(self.__class__, *(
                 self.__getattribute__(varname)
                 for varname in varnames
             ))
@@ -312,15 +324,15 @@ class LazyMeta(ABCMeta):
             return value
         return property(f_get)
 
-    @staticmethod
-    def setup_instance_new(parent_cls, initializers_dict, init_requires_update):
+    @classmethod
+    def setup_instance_new(cls, parent_cls, initializers_dict, init_requires_update):
         if parent_cls is object:
-            __new__ = lambda cls, *args, **kwargs: object.__new__(cls)
+            __new__ = lambda kls, *args, **kwargs: object.__new__(kls)
         else:
-            __new__ = lambda cls, *args, **kwargs: parent_cls.__new__(cls, *args, **kwargs)
+            __new__ = lambda kls, *args, **kwargs: parent_cls.__new__(kls, *args, **kwargs)
 
-        def instance_new(cls, *args, **kwargs):
-            result = __new__(cls, *args, **kwargs)
+        def instance_new(kls, *args, **kwargs):
+            result = __new__(kls, *args, **kwargs)
             lazy_properties = {}
             for name, initializer in initializers_dict.items():
                 try:

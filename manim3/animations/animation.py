@@ -37,14 +37,16 @@ class Animation(Generic[MobjectType]):
 class DrawPath(Animation[PathMobject]):
     def start(self, initial_mobject: PathMobject) -> None:
         super().start(initial_mobject)
-        #import copy
-        self.initial_path = initial_mobject._path_
+        import copy
+        self.initial_path = copy.deepcopy(initial_mobject._path_)
 
     def update(self, mobject: PathMobject, t: Real) -> None:
         if t > 3.0:
             return
         #self.initial_mobject.path.partial_by_l_ratio(t / 3).skia_path.dump()
         #self.initial_path.skia_path.dump()
+        #print(t)
+        #print(mobject._path_._l_final_)
         mobject.set_path(self.initial_path.partial_by_l_ratio(t / 3.0))
 
     def expired(self) -> bool:

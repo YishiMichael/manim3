@@ -1,6 +1,5 @@
-from abc import abstractmethod
+import moderngl
 import skia
-from typing import Callable
 
 from ..mobjects.skia_mobject import SkiaMobject
 from ..utils.lazy import lazy_property, lazy_property_initializer
@@ -28,7 +27,7 @@ class ImageMobject(SkiaMobject):
         )
         self._image_ = image
         self._paint_ = paint
-        self._frame_ = self.calculate_frame(
+        self._frame_ = self._calculate_frame(
             image.width() / PIXEL_PER_UNIT,
             image.height() / PIXEL_PER_UNIT,
             width,
@@ -57,29 +56,39 @@ class ImageMobject(SkiaMobject):
         #)
 
     @lazy_property_initializer
-    @abstractmethod
     def _image_() -> skia.Image:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property_initializer
-    @abstractmethod
     def _paint_() -> Paint | None:
-        raise NotImplementedError
+        return None
 
     @lazy_property_initializer
-    @abstractmethod
     def _frame_() -> skia.Rect:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property
-    def _resolution_(image: skia.Image) -> tuple[int, int]:
-        return (image.width(), image.height())
-
-    @lazy_property
-    def _draw_(
+    def _color_map_(
+        cls,
         image: skia.Image,
         paint: Paint | None
-    ) -> Callable[[skia.Canvas], None]:
-        def draw(canvas: skia.Canvas) -> None:
-            canvas.drawImage(image, 0.0, 0.0, paint)
-        return draw
+    ) -> moderngl.Texture:
+        surface = cls._make_surface(image.width(), image.height())
+        with surface as canvas:
+            canvas.drawImage(
+                image=image, left=0.0, top=0.0, paint=paint
+            )
+        return cls._make_texture(surface.makeImageSnapshot())
+
+    #@lazy_property
+    #def _resolution_(image: skia.Image) -> tuple[int, int]:
+    #    return (image.width(), image.height())
+
+    #@lazy_property
+    #def _draw_(
+    #    image: skia.Image,
+    #    paint: Paint | None
+    #) -> Callable[[skia.Canvas], None]:
+    #    def draw(canvas: skia.Canvas) -> None:
+    #        canvas.drawImage(image, 0.0, 0.0, paint)
+    #    return draw

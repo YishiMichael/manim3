@@ -1,6 +1,5 @@
 from abc import abstractmethod
 from functools import reduce
-from typing import Callable
 
 import numpy as np
 import pyrr
@@ -9,7 +8,7 @@ import skia
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..utils.lazy import lazy_property, lazy_property_initializer
+from ..utils.lazy import lazy_property_initializer
 from ..custom_typing import *
 
 
@@ -23,7 +22,6 @@ class SkiaMobject(MeshMobject):
         #resolution: tuple[int, int]
     ):
         super().__init__()
-        #self.canvas_matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
 
         self._enable_depth_test_ = False
         self._cull_face_ = "front_and_back"
@@ -38,90 +36,85 @@ class SkiaMobject(MeshMobject):
         return PlaneGeometry()
 
     @lazy_property_initializer
-    def _canvas_matrix_() -> pyrr.Matrix44:
-        return pyrr.Matrix44.identity()
+    def _prev_frame_() -> skia.Rect:
+        return skia.Rect(l=-1.0, t=1.0, r=1.0, b=-1.0)
 
-    #@_canvas_matrix.setter
-    #def _canvas_matrix(self, arg: pyrr.Matrix44) -> None:
+    #@_prev_frame.setter
+    #def _prev_frame(self, arg: pyrr.Matrix44) -> None:
     #    pass
 
-    @lazy_property
-    def _color_map_(
-        resolution: tuple[int, int],
-        draw: Callable[[skia.Canvas], None]
-    ) -> skia.Image:
+    #@lazy_property
+    #def _color_map_(
+    #    resolution: tuple[int, int],
+    #    draw: Callable[[skia.Canvas], None]
+    #) -> skia.Image:
 
-        px_width, px_height = resolution
-        #array = np.zeros((px_height, px_width, 4), dtype=np.uint8)
+    #    px_width, px_height = resolution
+    #    #array = np.zeros((px_height, px_width, 4), dtype=np.uint8)
 
-        # TODO: try using GPU rendering?
-        #context = skia.GrDirectContext.MakeGL()
-        #context.resetContext()
-        #print(type(context))
-        #surface = skia.Surface.MakeRenderTarget(
-        #    context=skia_context,
-        #    budgeted=skia.Budgeted.kYes,
-        #    imageInfo=skia.ImageInfo.MakeN32Premul(width=px_width, height=px_height)
-        #)
+    #    # TODO: try using GPU rendering?
+    #    #context = skia.GrDirectContext.MakeGL()
+    #    #context.resetContext()
+    #    #print(type(context))
+    #    #surface = skia.Surface.MakeRenderTarget(
+    #    #    context=skia_context,
+    #    #    budgeted=skia.Budgeted.kYes,
+    #    #    imageInfo=skia.ImageInfo.MakeN32Premul(width=px_width, height=px_height)
+    #    #)
 
-        # According to the documentation at `https://kyamagu.github.io/skia-python/tutorial`,
-        # the default value of parameter `colorType` should be `skia.kRGBA_8888_ColorType`,
-        # but it strangely defaults to `skia.kBGRA_8888_ColorType` in practice.
-        # Passing in the parameter explicitly fixes this issue for now.
-        surface = skia.Surface.MakeRaster(imageInfo=skia.ImageInfo.Make(
-            width=px_width,
-            height=px_height,
-            ct=skia.kRGBA_8888_ColorType,
-            at=skia.kUnpremul_AlphaType
-        ))
-        assert surface is not None
+    #    #with skia.Surface(
+    #    #    array=array,
+    #    #    colorType=skia.kRGBA_8888_ColorType,
+    #    #    alphaType=skia.kUnpremul_AlphaType
+    #    #) as canvas:
+    #    with surface as canvas:
+    #        draw(canvas)
 
-        #with skia.Surface(
-        #    array=array,
-        #    colorType=skia.kRGBA_8888_ColorType,
-        #    alphaType=skia.kUnpremul_AlphaType
-        #) as canvas:
-        with surface as canvas:
-            draw(canvas)
+    #    #info = surface.imageInfo()
+    #    #row_bytes = px_width * info.bytesPerPixel()
+    #    #buffer = bytearray(row_bytes * px_height)
+    #    #pixmap = skia.Pixmap(info=info, data=buffer, rowBytes=row_bytes)
+    #    #surface.readPixels(pixmap)
 
-        #info = surface.imageInfo()
-        #row_bytes = px_width * info.bytesPerPixel()
-        #buffer = bytearray(row_bytes * px_height)
-        #pixmap = skia.Pixmap(info=info, data=buffer, rowBytes=row_bytes)
-        #surface.readPixels(pixmap)
+    #    #surface.flushAndSubmit()
+    #    #print(len(bytes(pixmap).strip(b"\x00")))
+    #    #print(surface.readPixels(pixmap))
+    #    #print(pixmap.info().bytesPerPixel())
+    #    #print(pixmap.width())
+    #    #print(pixmap.height())
+    #    #print(pixmap.rowBytes())
 
-        #surface.flushAndSubmit()
-        #print(len(bytes(pixmap).strip(b"\x00")))
-        #print(surface.readPixels(pixmap))
-        #print(pixmap.info().bytesPerPixel())
-        #print(pixmap.width())
-        #print(pixmap.height())
-        #print(pixmap.rowBytes())
-
-        #image = skia.Image.MakeFromRaster(pixmap)
-        #assert image is not None
-        #image.save('skia_output.png', skia.kPNG)
-        return surface.makeImageSnapshot()
+    #    #image = skia.Image.MakeFromRaster(pixmap)
+    #    #assert image is not None
+    #    #image.save('skia_output.png', skia.kPNG)
+    #    return surface.makeImageSnapshot()
 
     def render(self) -> None:
+        # Calculate the matrix inverse could be expensive, so use the explicit formula
+        prev_frame = self._prev_frame_
+        prev_frame_matrix_inv = reduce(pyrr.Matrix44.__matmul__, (
+            self.matrix_from_translation(np.array((-prev_frame.centerX(), prev_frame.centerY(), 0.0))),
+            self.matrix_from_scale(np.array((2.0 / prev_frame.width(), -2.0 / prev_frame.height(), 1.0)))
+        ))
         frame = self._frame_
-        new_canvas_matrix = reduce(pyrr.Matrix44.__matmul__, (
+        frame_matrix = reduce(pyrr.Matrix44.__matmul__, (
             self.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
             self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
         ))
         self.preapply_raw_matrix(
-            ~self._canvas_matrix_,
+            prev_frame_matrix_inv,
             broadcast=False
         )
         self.preapply_raw_matrix(
-            new_canvas_matrix,
+            frame_matrix,
             broadcast=False
         )
-        self._canvas_matrix_ = new_canvas_matrix
+        self._prev_frame_ = frame
         super().render()
 
-    @staticmethod
-    def calculate_frame(
+    @classmethod
+    def _calculate_frame(
+        cls,
         original_width: Real,
         original_height: Real,
         specified_width: Real | None,
@@ -156,17 +149,32 @@ class SkiaMobject(MeshMobject):
         ry = height / 2.0
         return skia.Rect(l=-rx, t=-ry, r=rx, b=ry)
 
+    @classmethod
+    def _make_surface(cls, px_width: int, px_height: int) -> skia.Surface:
+        # According to the documentation at `https://kyamagu.github.io/skia-python/tutorial`,
+        # the default value of parameter `colorType` should be `skia.kRGBA_8888_ColorType`,
+        # but it strangely defaults to `skia.kBGRA_8888_ColorType` in practice.
+        # Passing in the parameter explicitly fixes this issue for now.
+        surface = skia.Surface.MakeRaster(imageInfo=skia.ImageInfo.Make(
+            width=px_width,
+            height=px_height,
+            ct=skia.kRGBA_8888_ColorType,
+            at=skia.kUnpremul_AlphaType
+        ))
+        assert surface is not None
+        return surface
+
     @lazy_property_initializer
     @abstractmethod
     def _frame_() -> skia.Rect:
         raise NotImplementedError
 
-    @lazy_property_initializer
-    @abstractmethod
-    def _resolution_() -> tuple[int, int]:
-        raise NotImplementedError
+    #@lazy_property_initializer
+    #@abstractmethod
+    #def _resolution_() -> tuple[int, int]:
+    #    raise NotImplementedError
 
-    @lazy_property_initializer
-    @abstractmethod
-    def _draw_() -> Callable[[skia.Canvas], None]:
-        raise NotImplementedError
+    #@lazy_property_initializer
+    #@abstractmethod
+    #def _draw_() -> Callable[[skia.Canvas], None]:
+    #    raise NotImplementedError

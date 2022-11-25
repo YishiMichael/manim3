@@ -25,7 +25,7 @@ class SVGMobject(PathGroup):
     ):
         svg = se.SVG.parse(file_path)
         svg_bbox = skia.Rect.MakeXYWH(*svg.bbox())
-        svg_frame = self.calculate_frame(
+        svg_frame = self._calculate_frame(
             svg_bbox.width(),
             svg_bbox.height(),
             width,
@@ -33,7 +33,9 @@ class SVGMobject(PathGroup):
             frame_scale
         )
         transform_matrix = skia.Matrix.MakeRectToRect(
-            svg_bbox, svg_frame, skia.Matrix.kFill_ScaleToFit
+            src=svg_bbox,
+            dst=svg_frame,
+            stf=skia.Matrix.kFill_ScaleToFit
         )
 
         mobjects = []

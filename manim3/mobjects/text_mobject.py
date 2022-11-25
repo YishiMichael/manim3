@@ -278,8 +278,8 @@ class MarkupText(StringMobject):
             pango_width=pango_width
         )
 
-    @staticmethod
-    def validate_markup_string(markup_str: str) -> None:
+    @classmethod
+    def validate_markup_string(cls, markup_str: str) -> None:
         validate_error = manimpango.MarkupUtils.validate(markup_str)
         if not validate_error:
             return
@@ -290,12 +290,12 @@ class MarkupText(StringMobject):
 
     # Toolkits
 
-    @staticmethod
-    def escape_markup_char(substr: str) -> str:
+    @classmethod
+    def escape_markup_char(cls, substr: str) -> str:
         return MarkupText.MARKUP_ENTITY_DICT.get(substr, substr)
 
-    @staticmethod
-    def unescape_markup_char(substr: str) -> str:
+    @classmethod
+    def unescape_markup_char(cls, substr: str) -> str:
         return {
             v: k
             for k, v in MarkupText.MARKUP_ENTITY_DICT.items()
@@ -303,8 +303,8 @@ class MarkupText(StringMobject):
 
     # Parsing
 
-    @staticmethod
-    def get_command_matches(string: str) -> list[re.Match]:
+    @classmethod
+    def get_command_matches(cls, string: str) -> list[re.Match]:
         pattern = re.compile(r"""
             (?P<tag>
                 <
@@ -322,8 +322,8 @@ class MarkupText(StringMobject):
         """, flags=re.X | re.S)
         return list(pattern.finditer(string))
 
-    @staticmethod
-    def get_command_flag(match_obj: re.Match) -> int:
+    @classmethod
+    def get_command_flag(cls, match_obj: re.Match) -> int:
         if match_obj.group("tag"):
             if match_obj.group("close_slash"):
                 return -1
@@ -331,16 +331,16 @@ class MarkupText(StringMobject):
                 return 1
         return 0
 
-    @staticmethod
-    def replace_for_content(match_obj: re.Match) -> str:
+    @classmethod
+    def replace_for_content(cls, match_obj: re.Match) -> str:
         if match_obj.group("tag"):
             return ""
         if match_obj.group("char"):
             return MarkupText.escape_markup_char(match_obj.group("char"))
         return match_obj.group()
 
-    @staticmethod
-    def replace_for_matching(match_obj: re.Match) -> str:
+    @classmethod
+    def replace_for_matching(cls, match_obj: re.Match) -> str:
         if match_obj.group("tag") or match_obj.group("passthrough"):
             return ""
         if match_obj.group("entity"):
@@ -352,9 +352,9 @@ class MarkupText(StringMobject):
             return MarkupText.unescape_markup_char(match_obj.group("entity"))
         return match_obj.group()
 
-    @staticmethod
+    @classmethod
     def get_attr_dict_from_command_pair(
-        open_command: re.Match, close_command: re.Match
+        cls, open_command: re.Match, close_command: re.Match
     ) -> dict[str, str] | None:
         pattern = r"""
             (?P<attr_name>\w+)
@@ -371,9 +371,9 @@ class MarkupText(StringMobject):
             }
         return MarkupText.MARKUP_TAGS.get(tag_name, {})
 
-    @staticmethod
+    @classmethod
     def get_command_string(
-        attr_dict: dict[str, str], is_end: bool, label: int | None
+        cls, attr_dict: dict[str, str], is_end: bool, label: int | None
     ) -> str:
         if is_end:
             return "</span>"
@@ -412,7 +412,7 @@ class MarkupText(StringMobject):
             #*(
             (span, local_config)
             for selector, local_config in self.local_configs.items()
-            for span in self.find_spans_by_selector(selector)
+            for span in self.find_spans_by_selector(selector, self.string)
             #)
         ]
 
@@ -477,21 +477,21 @@ class Text(MarkupText):
     #    "isolate": (re.compile(r"\w+", re.U), re.compile(r"\S+", re.U)),
     #}
 
-    @staticmethod
-    def get_command_matches(string: str) -> list[re.Match]:
+    @classmethod
+    def get_command_matches(cls, string: str) -> list[re.Match]:
         pattern = re.compile(r"""[<>&"']""")
         return list(pattern.finditer(string))
 
-    @staticmethod
-    def get_command_flag(match_obj: re.Match) -> int:
+    @classmethod
+    def get_command_flag(cls, match_obj: re.Match) -> int:
         return 0
 
-    @staticmethod
-    def replace_for_content(match_obj: re.Match) -> str:
+    @classmethod
+    def replace_for_content(cls, match_obj: re.Match) -> str:
         return Text.escape_markup_char(match_obj.group())
 
-    @staticmethod
-    def replace_for_matching(match_obj: re.Match) -> str:
+    @classmethod
+    def replace_for_matching(cls, match_obj: re.Match) -> str:
         return match_obj.group()
 
 

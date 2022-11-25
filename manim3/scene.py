@@ -91,7 +91,7 @@ class Scene(Mobject):
         #t = time.time()
         for mobject in self.get_descendents():
             mobject.update_dt(dt)
-            mobject._camera = self.camera
+            mobject._camera_ = self.camera
             #shader_data = mobject.setup_shader_data()
             mobject.render()
             #if mobject.shader_data is None:

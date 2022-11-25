@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 #from ..animations.animation import Animation
 from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
-from ..utils.lazy import lazy_property, lazy_property_initializer
+from ..utils.lazy import lazy_property_initializer
 from ..utils.renderable import Renderable
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
@@ -73,8 +73,8 @@ class Mobject(Renderable):
         node.parents.remove(self)
         return self
 
-    @staticmethod
-    def remove_redundancies(l: Iterable[T]) -> list[T]:
+    @classmethod
+    def remove_redundancies(cls, l: Iterable[T]) -> list[T]:
         """
         Used instead of list(set(l)) to maintain order
         Keeps the first occurrence of each element
@@ -171,19 +171,19 @@ class Mobject(Renderable):
         self._matrix_ = matrix
         return self
 
-    @staticmethod
-    def matrix_from_translation(vector: Vector3Type) -> pyrr.Matrix44:
+    @classmethod
+    def matrix_from_translation(cls, vector: Vector3Type) -> pyrr.Matrix44:
         return pyrr.Matrix44.from_translation(vector)
 
-    @staticmethod
-    def matrix_from_scale(factor_vector: Vector3Type) -> pyrr.Matrix44:
+    @classmethod
+    def matrix_from_scale(cls, factor_vector: Vector3Type) -> pyrr.Matrix44:
         return pyrr.Matrix44.from_scale(factor_vector)
 
-    @staticmethod
-    def matrix_from_rotation(rotation: Rotation) -> pyrr.Matrix44:
+    @classmethod
+    def matrix_from_rotation(cls, rotation: Rotation) -> pyrr.Matrix44:
         return pyrr.Matrix44.from_matrix33(rotation.as_matrix())
 
-    @lazy_property
+    @lazy_property_initializer
     def _local_sample_points_() -> Vector3ArrayType:
         # Implemented in subclasses
         return np.zeros((0, 3))
@@ -517,3 +517,4 @@ class Group(Mobject):
     def _bind_child(self, node, index: int | None = None):
         assert isinstance(node, Mobject)
         super()._bind_child(node, index=index)
+        return self

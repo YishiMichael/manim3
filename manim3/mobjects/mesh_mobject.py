@@ -5,7 +5,6 @@ from abc import abstractmethod
 import moderngl
 import numpy as np
 import pyrr
-import skia
 
 from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
@@ -21,13 +20,13 @@ __all__ = ["MeshMobject"]
 #@dataclass
 #class MeshMaterialAttributes:
 #    color: ColorArrayType
-#    color_map: skia.Image | None
+#    color_map: moderngl.Texture | None
 
 
 class MeshMobject(Mobject):
     def __init__(self):
         super().__init__()
-        self.abandon_render = False
+        self.invisible = False
         #self.geometry: Geometry | None = self.init_geometry()  # TODO: consider using trimesh
         #self.material: MeshMaterialAttributes = MeshMaterialAttributes(
         #    color=np.ones(4),
@@ -40,21 +39,60 @@ class MeshMobject(Mobject):
         raise NotImplementedError
 
     @lazy_property
-    def _local_sample_points_(geometry: Geometry) -> Vector3ArrayType:
+    def _local_sample_points_(cls, geometry: Geometry) -> Vector3ArrayType:
         if geometry is None:
             return np.zeros((0, 3))
-        return geometry.position
-
-    @lazy_property
-    def _color_map_() -> skia.Image | None:
-        return None
+        return geometry.positions
 
     @lazy_property_initializer
-    def _shader_filename_() -> str:
+    def _color_map_() -> moderngl.Texture | None:
+        return None
+
+    @lazy_property
+    def _buffers_from_camera_(
+        cls,
+        camera: Camera
+    ) -> dict[str, tuple[moderngl.Buffer, str]]:
+        return {
+            "in_projection_matrix": (cls._make_buffer(camera.get_projection_matrix()), "16f8 /r"),
+            "in_view_matrix": (cls._make_buffer(camera.get_view_matrix()), "16f8 /r")
+        }
+
+    @lazy_property
+    def _buffers_from_geometry_(
+        cls,
+        geometry: Geometry,
+        define_macros: list[str]
+    ) -> dict[str, tuple[moderngl.Buffer, str]]:
+        result = {
+            "in_position": (cls._make_buffer(geometry.positions), "3f8 /v")
+        }
+        if "USE_UV" in define_macros:
+            result["in_uv"] = (cls._make_buffer(geometry.uvs), "2f8 /v")
+        return result
+
+    @lazy_property
+    def _buffers_from_matrix_(
+        cls,
+        matrix: pyrr.Matrix44
+    ) -> dict[str, tuple[moderngl.Buffer, str]]:
+        return {
+            "in_model_matrix": (cls._make_buffer(matrix), "16f8 /r")
+        }
+
+    @lazy_property
+    def _buffers_from_material_(cls) -> dict[str, tuple[moderngl.Buffer, str]]:  # TODO
+        color = np.ones(4)
+        return {
+            "in_color": (cls._make_buffer(color), "4f8 /r")
+        }
+
+    @lazy_property
+    def _shader_filename_(cls) -> str:
         return "mesh"
 
     @lazy_property
-    def _define_macros_(color_map: skia.Image | None) -> list[str]:
+    def _define_macros_(cls, color_map: moderngl.Texture | None) -> list[str]:
         defines = []
         if color_map is not None:
             defines.append("USE_UV")
@@ -63,38 +101,37 @@ class MeshMobject(Mobject):
 
     @lazy_property
     def _textures_dict_(
+        cls,
         define_macros: list[str],
-        color_map: skia.Image | None
-    ) -> dict[str, tuple[skia.Image, int]]:
+        color_map: moderngl.Texture | None
+    ) -> dict[str, tuple[moderngl.Texture, int]]:
         textures = {}
         if "USE_COLOR_MAP" in define_macros:
             textures["uniform_color_map"] = (color_map, 0)
         return textures
 
     @lazy_property
-    def _attributes_dict_(
-        camera: Camera,
-        matrix: pyrr.Matrix44,
-        geometry: Geometry,
-        define_macros: list[str]
-    ) -> dict[str, tuple[AttributeType, str]]:
-        color = np.ones(4)
-        attrs = {}
-        attrs["in_projection_matrix"] = (camera.get_projection_matrix(), "16f8 /r")
-        attrs["in_view_matrix"] = (camera.get_view_matrix(), "16f8 /r")
-        attrs["in_model_matrix"] = (matrix, "16f8 /r")
-        attrs["in_position"] = (geometry.position, "3f8 /v")
-        attrs["in_color"] = (color, "4f8 /r")
-        if "USE_UV" in define_macros:
-            attrs["in_uv"] = (geometry.uv, "2f8 /v")
-        return attrs
+    def _buffers_dict_(
+        cls,
+        buffers_from_camera: dict[str, tuple[moderngl.Buffer, str]],
+        buffers_from_geometry: dict[str, tuple[moderngl.Buffer, str]],
+        buffers_from_matrix: dict[str, tuple[moderngl.Buffer, str]],
+        buffers_from_material: dict[str, tuple[moderngl.Buffer, str]],
+    ) -> dict[str, tuple[moderngl.Buffer, str]]:
+        # Update distributively as making buffers is expensive
+        return {
+            **buffers_from_camera,
+            **buffers_from_geometry,
+            **buffers_from_matrix,
+            **buffers_from_material,
+        }
 
     @lazy_property
-    def _vertex_indices_(geometry: Geometry) -> VertexIndicesType:
-        return geometry.index
+    def _vertex_indices_(cls, geometry: Geometry) -> VertexIndicesType:
+        return geometry.indices
 
     @lazy_property
-    def _render_primitive_() -> int:
+    def _render_primitive_(cls) -> int:
         return moderngl.TRIANGLES
 
     #@lazy_property

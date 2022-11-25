@@ -12,17 +12,17 @@ __all__ = [
 
 @dataclass
 class GeometryAttributes:
-    index: VertexIndicesType
-    position: Vector3ArrayType
-    uv: Vector2ArrayType
+    indices: VertexIndicesType
+    positions: Vector3ArrayType
+    uvs: Vector2ArrayType
 
 
 class Geometry(ABC):
     def __init__(self):
         attributes = self.init_geometry_attributes()
-        self.index: VertexIndicesType = attributes.index
-        self.position: Vector3ArrayType = attributes.position
-        self.uv: Vector2ArrayType = attributes.uv
+        self.indices: VertexIndicesType = attributes.indices
+        self.positions: Vector3ArrayType = attributes.positions
+        self.uvs: Vector2ArrayType = attributes.uvs
 
     @abstractmethod
     def init_geometry_attributes(self) -> GeometryAttributes:

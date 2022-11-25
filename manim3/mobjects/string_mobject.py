@@ -178,8 +178,8 @@ class StringMobject(SVGMobject):
 
     # Toolkits
 
-    @staticmethod
-    def find_spans_by_selector(selector: Selector, string: str) -> list[Span]:
+    @classmethod
+    def find_spans_by_selector(cls, selector: Selector, string: str) -> list[Span]:
         def clamp_index(index: int, l: int) -> int:
             return min(index, l) if index >= 0 else max(index + l, 0)
 
@@ -217,12 +217,12 @@ class StringMobject(SVGMobject):
                 result.extend(spans)
         return list(filter(lambda span: span[0] <= span[1], result))
 
-    @staticmethod
-    def span_contains(span_0: Span, span_1: Span) -> bool:
+    @classmethod
+    def span_contains(cls, span_0: Span, span_1: Span) -> bool:
         return span_0[0] <= span_1[0] and span_0[1] >= span_1[1]
 
-    @staticmethod
-    def color_to_int(color: Color) -> int:
+    @classmethod
+    def color_to_int(cls, color: Color) -> int:
         return int(color.hex_l[1:], 16)
 
     #@staticmethod

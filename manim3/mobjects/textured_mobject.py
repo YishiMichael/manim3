@@ -1,7 +1,8 @@
+import moderngl
 import skia
 
 from ..mobjects.mesh_mobject import MeshMobject
-from ..utils.lazy import lazy_property
+from ..utils.lazy import lazy_property_initializer
 from ..custom_typing import *
 
 
@@ -15,16 +16,18 @@ class TexturedMobject(MeshMobject):
     ):
         super().__init__()
         if image_path is not None:
-            image = skia.Image.open(image_path).convert(
-                colorType=skia.kRGBA_8888_ColorType,
-                alphaType=skia.kUnpremul_AlphaType
+            color_map = self._make_texture(
+                skia.Image.open(image_path).convert(
+                    colorType=skia.kRGBA_8888_ColorType,
+                    alphaType=skia.kUnpremul_AlphaType
+                )
             )
         else:
-            image = None
-        self._color_map_ = image
+            color_map = None
+        self._color_map_ = color_map
 
-    @lazy_property
-    def _color_map_() -> skia.Image | None:
+    @lazy_property_initializer
+    def _color_map_() -> moderngl.Texture | None:
         raise NotImplementedError
         #image = self.image
         #if image is not None:

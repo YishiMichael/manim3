@@ -26,14 +26,14 @@ def interp1d(x: FloatArrayType, y: FloatArrayType, tol: Real = 1e-6, **kwargs) -
 
 
 class CurveInterpolantBase(metaclass=LazyMeta):
-    @lazy_property
+    @lazy_property_initializer
     @abstractmethod
-    def a_final() -> float:
+    def _a_final_() -> float:
         raise NotImplementedError
 
-    @lazy_property
+    @lazy_property_initializer
     @abstractmethod
-    def l_final() -> float:
+    def _l_final_() -> float:
         raise NotImplementedError
 
     @abstractmethod
@@ -49,17 +49,17 @@ class CurveInterpolantBase(metaclass=LazyMeta):
         raise NotImplementedError
 
     def a_ratio_to_p(self, a_ratio: Real) -> Vector2Type:
-        return self.a_to_p(a_ratio * self.a_final)
+        return self.a_to_p(a_ratio * self._a_final_)
 
     def a_ratio_to_l_ratio(self, a_ratio: Real) -> float:
         try:
-            return self.a_to_l(a_ratio * self.a_final) / self.l_final
+            return self.a_to_l(a_ratio * self._a_final_) / self._l_final_
         except ZeroDivisionError:
             return 0.0
 
     def l_ratio_to_a_ratio(self, l_ratio: Real) -> float:
         try:
-            return self.l_to_a(l_ratio * self.l_final) / self.a_final
+            return self.l_to_a(l_ratio * self._l_final_) / self._a_final_
         except ZeroDivisionError:
             return 0.0
 
@@ -71,10 +71,10 @@ class CurveInterpolantBase(metaclass=LazyMeta):
         return self.partial_by_a(self.l_to_a(l))
 
     def partial_by_a_ratio(self, a_ratio: Real):
-        return self.partial_by_a(a_ratio * self.a_final)
+        return self.partial_by_a(a_ratio * self._a_final_)
 
     def partial_by_l_ratio(self, l_ratio: Real):
-        return self.partial_by_l(l_ratio * self.l_final)
+        return self.partial_by_l(l_ratio * self._l_final_)
 
 
 class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
@@ -126,32 +126,32 @@ class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
         #return self._children
 
     @lazy_property
-    def _a_knots_(children: list[_T]) -> FloatArrayType:
+    def _a_knots_(cls, children: list[_T]) -> FloatArrayType:
         #self.update_data()
-        return np.insert(np.cumsum([child.a_final for child in children]), 0, 0.0)
+        return np.insert(np.cumsum([child._a_final_ for child in children]), 0, 0.0)
 
     @lazy_property
-    def _l_knots_(children: list[_T]) -> FloatArrayType:
+    def _l_knots_(cls, children: list[_T]) -> FloatArrayType:
         #self.update_data()
-        return np.insert(np.cumsum([child.l_final for child in children]), 0, 0.0)
+        return np.insert(np.cumsum([child._l_final_ for child in children]), 0, 0.0)
 
     @lazy_property
-    def _a_final_(a_knots: FloatArrayType) -> float:
+    def _a_final_(cls, a_knots: FloatArrayType) -> float:
         #self.update_data()
         return a_knots[-1]
 
     @lazy_property
-    def l_final(l_knots: FloatArrayType) -> float:
+    def _l_final_(cls, l_knots: FloatArrayType) -> float:
         #self.update_data()
         return l_knots[-1]
 
     @lazy_property
-    def _a_interpolator_(a_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
-        return CurveInterpolant.integer_interpolator(a_knots)
+    def _a_interpolator_(cls, a_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        return cls.integer_interpolator(a_knots)
 
     @lazy_property
-    def _l_interpolator_(l_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
-        return CurveInterpolant.integer_interpolator(l_knots)
+    def _l_interpolator_(cls, l_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        return cls.integer_interpolator(l_knots)
 
     def a_interpolate(self, a: Real) -> tuple[int, float]:
         #self.update_data()
@@ -187,8 +187,8 @@ class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
             children.append(self._children_[i].partial_by_a(a_remainder))
         return self.__class__(children=children)
 
-    @staticmethod
-    def integer_interpolator(array: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+    @classmethod
+    def integer_interpolator(cls, array: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
         def wrapped(target: Real) -> tuple[int, float]:
             """
             Assumed that `array` is already sorted, and that `array[0] <= target <= array[-1]`
@@ -216,11 +216,11 @@ class BezierCurve(CurveInterpolantBase):
         return np.array(())
 
     @lazy_property
-    def _order_(points: Vector2ArrayType) -> int:
+    def _order_(cls, points: Vector2ArrayType) -> int:
         return len(points) - 1
 
     @lazy_property
-    def _gamma_(order: int, points: Vector2ArrayType) -> scipy.interpolate.BSpline:
+    def _gamma_(cls, order: int, points: Vector2ArrayType) -> scipy.interpolate.BSpline:
         return scipy.interpolate.BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
             c=points,
@@ -228,30 +228,30 @@ class BezierCurve(CurveInterpolantBase):
         )
 
     @lazy_property
-    def _a_samples_(order: int) -> FloatArrayType:
+    def _a_samples_(cls, order: int) -> FloatArrayType:
         segments = 16 if order > 1 else 1
         return np.linspace(0.0, 1.0, segments + 1)
 
     @lazy_property
-    def _l_samples_(gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
+    def _l_samples_(cls, gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
         p_samples = gamma(a_samples)
         segment_lengths = np.linalg.norm(p_samples[1:] - p_samples[:-1], axis=1)
         return np.insert(np.cumsum(segment_lengths), 0, 0.0)
 
     @lazy_property
-    def _a_l_interp_(a_samples: FloatArrayType, l_samples: FloatArrayType) -> scipy.interpolate.interp1d:
+    def _a_l_interp_(cls, a_samples: FloatArrayType, l_samples: FloatArrayType) -> scipy.interpolate.interp1d:
         return interp1d(a_samples, l_samples)
 
     @lazy_property
-    def _l_a_interp_(l_samples: FloatArrayType, a_samples: FloatArrayType) -> Callable[[Real], Real]:
+    def _l_a_interp_(cls, l_samples: FloatArrayType, a_samples: FloatArrayType) -> Callable[[Real], Real]:
         return interp1d(l_samples, a_samples)
 
     @lazy_property
-    def _a_final_() -> float:
+    def _a_final_(cls) -> float:
         return 1.0
 
     @lazy_property
-    def _l_final_(a_l_interp: scipy.interpolate.interp1d, a_final: float) -> float:
+    def _l_final_(cls, a_l_interp: scipy.interpolate.interp1d, a_final: float) -> float:
         return a_l_interp(a_final)
 
     def a_to_p(self, a: Real) -> Vector2Type:
@@ -315,8 +315,11 @@ class Path(metaclass=LazyMeta):
         #self._contours: Contours = Contours()
         #self.contours_require_updating: bool = True
 
-    @staticmethod
-    def _get_contours_by_skia_path(path: skia.Path) -> Contours:
+    def __deepcopy__(self, memo=None):
+        return Path(skia.Path(self._skia_path_))
+
+    @classmethod
+    def _get_contours_by_skia_path(cls, path: skia.Path) -> Contours:
         contours = []
         contour = []
         iterator = iter(path)
@@ -350,8 +353,8 @@ class Path(metaclass=LazyMeta):
             contours.append(Contour(contour))
         return Contours(contours)
 
-    @staticmethod
-    def _get_skia_path_by_contours(contours: Contours) -> skia.Path:
+    @classmethod
+    def _get_skia_path_by_contours(cls, contours: Contours) -> skia.Path:
         path = skia.Path()
         for contour in contours._children_:
             path.moveTo(*contour._children_[0]._points_[0])
@@ -378,7 +381,7 @@ class Path(metaclass=LazyMeta):
     #    pass
 
     @lazy_property
-    def _contours_(skia_path: skia.Path) -> Contours:
+    def _contours_(cls, skia_path: skia.Path) -> Contours:
         return Path._get_contours_by_skia_path(skia_path)
         #if self.contours_require_updating:
         #    self._contours = self._get_contours_by_skia_path(self._skia_path_)
@@ -431,11 +434,11 @@ class Path(metaclass=LazyMeta):
         return self
 
     @lazy_property
-    def a_final(contours: Contours) -> float:
+    def _a_final_(cls, contours: Contours) -> float:
         return contours._a_final_
 
     @lazy_property
-    def l_final(contours: Contours) -> float:
+    def _l_final_(cls, contours: Contours) -> float:
         return contours._l_final_
 
     def a_to_p(self, a: Real) -> Vector2Type:

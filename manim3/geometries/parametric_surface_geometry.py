@@ -34,12 +34,12 @@ class ParametricSurfaceGeometry(Geometry):
         nw = index_grid[:, :-1, +1:]
         sw = index_grid[:, :-1, :-1]
         se = index_grid[:, +1:, :-1]
-        index = np.ravel_multi_index(
+        indices = np.ravel_multi_index(
             tuple(np.stack((se, sw, ne, sw, nw, ne), axis=3)),
             (u_len, v_len)
         ).flatten().astype(np.int32)
 
-        uv = np.stack(np.meshgrid(
+        uvs = np.stack(np.meshgrid(
             np.linspace(0.0, 1.0, u_len),
             np.linspace(0.0, 1.0, v_len),
             indexing="ij"
@@ -49,10 +49,10 @@ class ParametricSurfaceGeometry(Geometry):
             np.linspace(v_start, v_stop, v_len),
             indexing="ij"
         ), 2).reshape((-1, 2))
-        position = np.apply_along_axis(lambda p: self.func(*p), 1, samples)
+        positions = np.apply_along_axis(lambda p: self.func(*p), 1, samples)
         return GeometryAttributes(
-            index=index,
-            position=position,
-            uv=uv
+            indices=indices,
+            positions=positions,
+            uvs=uvs
         )
         # TODO: normals using `from scipy.misc import derivative`
