@@ -5,9 +5,7 @@ from ..geometries.geometry import Geometry, GeometryAttributes
 from ..custom_typing import *
 
 
-__all__ = [
-    "ParametricSurfaceGeometry"
-]
+__all__ = ["ParametricSurfaceGeometry"]
 
 
 class ParametricSurfaceGeometry(Geometry):

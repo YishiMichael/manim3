@@ -89,60 +89,25 @@ class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
         if children is None:
             children = []
         self._children_.extend(children)
-        #a_knots = np.zeros(1)
-        #l_knots = np.zeros(1)
-        #self._a_knots: FloatArrayType = a_knots
-        #self._l_knots: FloatArrayType = l_knots
-        #self._a_interpolator: Callable[[Real], tuple[int, float]] = self.integer_interpolator(a_knots)
-        #self._l_interpolator: Callable[[Real], tuple[int, float]] = self.integer_interpolator(l_knots)
-        #self._a_final: float = a_knots[-1]
-        #self._l_final: float = l_knots[-1]
-        #self.data_require_updating: bool = True
-        #self.update_data()
-
-    #def update_data(self):
-    #    if self.data_require_updating:
-    #        #children = self.get_updated_children()
-    #        #self._children = children
-    #        children = self._children
-    #        a_knots = np.insert(np.cumsum([child.a_final for child in children]), 0, 0.0)
-    #        l_knots = np.insert(np.cumsum([child.l_final for child in children]), 0, 0.0)
-    #        self._a_knots = a_knots
-    #        self._l_knots = l_knots
-    #        self._a_interpolator = self.integer_interpolator(a_knots)
-    #        self._l_interpolator = self.integer_interpolator(l_knots)
-    #        self._a_final = a_knots[-1]
-    #        self._l_final = l_knots[-1]
-    #        self.data_require_updating = False
-    #    return self
-
-    #def get_updated_children(self) -> list[_T]:
-    #    return self._children
 
     @lazy_property_initializer
     def _children_() -> list[_T]:
         return []
-        #self.update_data()
-        #return self._children
 
     @lazy_property
     def _a_knots_(cls, children: list[_T]) -> FloatArrayType:
-        #self.update_data()
         return np.insert(np.cumsum([child._a_final_ for child in children]), 0, 0.0)
 
     @lazy_property
     def _l_knots_(cls, children: list[_T]) -> FloatArrayType:
-        #self.update_data()
         return np.insert(np.cumsum([child._l_final_ for child in children]), 0, 0.0)
 
     @lazy_property
     def _a_final_(cls, a_knots: FloatArrayType) -> float:
-        #self.update_data()
         return a_knots[-1]
 
     @lazy_property
     def _l_final_(cls, l_knots: FloatArrayType) -> float:
-        #self.update_data()
         return l_knots[-1]
 
     @lazy_property
@@ -154,11 +119,9 @@ class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
         return cls.integer_interpolator(l_knots)
 
     def a_interpolate(self, a: Real) -> tuple[int, float]:
-        #self.update_data()
         return self._a_interpolator_(a)
 
     def l_interpolate(self, l: Real) -> tuple[int, float]:
-        #self.update_data()
         return self._l_interpolator_(l)
 
     def a_to_p(self, a: Real) -> Vector2Type:
@@ -229,8 +192,8 @@ class BezierCurve(CurveInterpolantBase):
 
     @lazy_property
     def _a_samples_(cls, order: int) -> FloatArrayType:
-        segments = 16 if order > 1 else 1
-        return np.linspace(0.0, 1.0, segments + 1)
+        num_samples = 9 if order > 1 else 2
+        return np.linspace(0.0, 1.0, num_samples)
 
     @lazy_property
     def _l_samples_(cls, gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
@@ -300,7 +263,6 @@ class Path(metaclass=LazyMeta):
     def __init__(
         self,
         path: skia.Path | Contours | None = None
-        #children: list[Contour] | None = None
     ):
         if isinstance(path, skia.Path):
             self._skia_path_ = path
@@ -311,11 +273,7 @@ class Path(metaclass=LazyMeta):
         else:
             raise ValueError(f"Unsupported path type: {type(path)}")
 
-        #self._skia_path_ = skia_path
-        #self._contours: Contours = Contours()
-        #self.contours_require_updating: bool = True
-
-    def __deepcopy__(self, memo=None):
+    def __deepcopy__(self, memo=None):  # TODO
         return Path(skia.Path(self._skia_path_))
 
     @classmethod
@@ -376,61 +334,38 @@ class Path(metaclass=LazyMeta):
     def _skia_path_() -> skia.Path:
         return skia.Path()
 
-    #@_skia_path.setter
-    #def _skia_path(self, arg: skia.Path) -> None:
-    #    pass
-
     @lazy_property
     def _contours_(cls, skia_path: skia.Path) -> Contours:
         return Path._get_contours_by_skia_path(skia_path)
-        #if self.contours_require_updating:
-        #    self._contours = self._get_contours_by_skia_path(self._skia_path_)
-        #    self.contours_require_updating = False
-        #return self._contours
-
-    #def get_updated_children(self) -> list[Contour]:
-    #    return self._get_contours_by_skia_path(self.skia_path)
 
     @_skia_path_.updater
     def move_to(self, point: Vector2Type):
-        #self.contours_require_updating = True
         self._skia_path_.moveTo(skia.Point(*point))
-        #self._skia_path = self._skia_path_
         return self
 
     @_skia_path_.updater
     def line_to(self, point: Vector2Type):
-        #self.contours_require_updating = True
         self._skia_path_.lineTo(skia.Point(*point))
-        #self._skia_path = self._skia_path_
         return self
 
     @_skia_path_.updater
     def quad_to(self, control_point: Vector2Type, point: Vector2Type):
-        #self.contours_require_updating = True
         self._skia_path_.quadTo(skia.Point(*control_point), skia.Point(*point))
-        #self._skia_path = self._skia_path_
         return self
 
     @_skia_path_.updater
     def cubic_to(self, control_point_0: Vector2Type, control_point_1: Vector2Type, point: Vector2Type):
-        #self.contours_require_updating = True
         self._skia_path_.cubicTo(skia.Point(*control_point_0), skia.Point(*control_point_1), skia.Point(*point))
-        #self._skia_path = self._skia_path_
         return self
 
     @_skia_path_.updater
     def conic_to(self, control_point: Vector2Type, point: Vector2Type, weight: Real):
-        #self.contours_require_updating = True
         self._skia_path_.conicTo(skia.Point(*control_point), skia.Point(*point), weight)
-        #self._skia_path = self._skia_path_
         return self
 
     @_skia_path_.updater
     def close_path(self):
-        #self.contours_require_updating = True
         self._skia_path_.close()
-        #self._skia_path = self._skia_path_
         return self
 
     @lazy_property

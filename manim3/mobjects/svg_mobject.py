@@ -1,14 +1,12 @@
 from typing import Any
 import warnings
 
-import numpy as np
 import skia
 import svgelements as se
 
 from ..mobjects.path_mobject import PathGroup
 from ..mobjects.path_mobject import PathMobject
 from ..utils.path import Path
-from ..constants import ORIGIN
 from ..custom_typing import *
 
 
@@ -39,9 +37,6 @@ class SVGMobject(PathGroup):
             dst=svg_frame,
             stf=skia.Matrix.kFill_ScaleToFit
         )
-        #svg_bbox.dump()
-        #svg_frame.dump()
-        #transform_matrix.dump()
 
         mobjects = []
         for shape in svg.elements():
@@ -54,14 +49,11 @@ class SVGMobject(PathGroup):
                 path.transform(self.convert_transform(shape.transform))
             path.transform(transform_matrix)
             mobject = PathMobject(path=Path(path), flip_y=False)
-            #mobject.scale(np.array((1.0, -1.0, 1.0)))
-            #print(mobject._frame_.width(), mobject._frame_.height())
             if paint_settings is not None:
                 mobject.set_paint(**paint_settings)
             mobject.set_paint(**self.get_paint_settings_from_shape(shape))
             mobjects.append(mobject)
         super().__init__(*mobjects)
-        #self.scale(np.array((1.0, -1.0, 1.0)))
 
     @classmethod
     def shape_to_skia_path(cls, shape: se.Shape) -> skia.Path | None:
@@ -112,35 +104,8 @@ class SVGMobject(PathGroup):
             "stroke_color": None if shape.stroke is None else shape.stroke.hexrgb,
             "stroke_opacity": None if shape.stroke is None else shape.stroke.opacity,
             # Don't know why, svgelements may parse stroke_width out of nothing...
-            #"stroke_width": shape.stroke_width
+            "stroke_width": shape.stroke_width
         }
-        #if shape.fill is not None:
-        #    mobject.set_paint(
-        #        fill_color=shape.fill.hexrgb,
-        #        fill_opacity=shape.fill.opacity
-        #    )
-        #    #mobject.fill_color = shape.fill.argb
-        #    #mobject.fill_paint = skia.Paint(
-        #    #    Style=skia.Paint.kFill_Style,
-        #    #    Color=shape.fill.argb
-        #    #)
-        #if shape.stroke is not None:
-        #    mobject.fill_color = shape.stroke.argb
-        #    #mobject.stroke_paint = skia.Paint(
-        #    #    Style=skia.Paint.kStroke_Style,
-        #    #    StrokeWidth=shape.stroke_width,
-        #    #    Color=shape.stroke.argb
-        #    #)
-        #if shape.stroke_width is not None:
-        #    mobject.stroke_width = shape.stroke_width
-        #mob.set_style(
-        #    stroke_width=shape.stroke_width,
-        #    stroke_color=shape.stroke.hexrgb,
-        #    stroke_opacity=shape.stroke.opacity,
-        #    fill_color=shape.fill.hexrgb,
-        #    fill_opacity=shape.fill.opacity
-        #)
-        #return mob
 
     @classmethod
     def path_to_skia_path(cls, path_shape: se.Path) -> skia.Path:

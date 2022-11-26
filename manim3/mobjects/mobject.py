@@ -144,7 +144,7 @@ class Mobject(Renderable):
         return self
 
     def clear_parents(self):
-        for parent in self.parent:
+        for parent in self.parents:
             parent._unbind_child(self)
         return self
 
@@ -253,18 +253,6 @@ class Mobject(Renderable):
         for mobject in self.get_descendents(broadcast=broadcast):
             mobject.set_local_matrix(mobject._matrix_ @ matrix)
         return self
-
-    #def preapply_raw_matrix(
-    #    self,
-    #    matrix: pyrr.Matrix44,
-    #    *,
-    #    broadcast: bool = True
-    #):
-    #    #if np.isclose(np.linalg.det(matrix), 0.0):
-    #    #    warnings.warn("Applying a singular matrix transform")
-    #    for mobject in self.get_descendents(broadcast=broadcast):
-    #        mobject.set_local_matrix(matrix @ mobject._matrix_)
-    #    return self
 
     def apply_matrix(
         self,
@@ -501,11 +489,6 @@ class Mobject(Renderable):
     #@_camera.setter
     #def _camera(self, camera: Camera) -> None:
     #    pass
-
-    #@lazy_property
-    #def _shader_data(self) -> ShaderData | None:
-    #    # To be implemented in subclasses
-    #    return None
 
 
 class Group(Mobject):

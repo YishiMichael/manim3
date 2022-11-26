@@ -12,12 +12,6 @@ __all__ = [
 # TODO: typing disaster
 
 
-#class LazyPropertyData:
-#    def __init__(self, value):
-#        self.value = value
-#        self.requires_update: bool = False
-
-
 class lazy_property(property):
     def __init__(self, class_method: Callable):
         self._class_method_: Callable = class_method
@@ -38,7 +32,6 @@ class lazy_property_initializer(property):
 class LazyMeta(ABCMeta):
     _PROPERTY_INITIALIZERS_DICTS_: dict[str, dict[str, Callable[[], Any]]] = {}
     _PROPERTY_PARAMETERS_DICTS_: dict[str, dict[str, list[str]]] = {}
-    #_SUPPORTING_DICTS_: dict[type, dict[str, list[str]]] = {}
 
     def __new__(cls, cls_name: str, bases: tuple[type, ...], namespace: dict[str, Any]):
         root_lazy_properties: dict[str, lazy_property_initializer] = {}
@@ -62,14 +55,6 @@ class LazyMeta(ABCMeta):
                 f"_{varname}_"
                 for varname in code.co_varnames[1:code.co_argcount]  # ignore cls
             ]
-        #for name, attr in namespace.items():
-        #    if not isinstance(attr, lazy_property):
-        #        continue
-        #    static_method = attr._static_method_
-        #    if isinstance(attr, lazy_property_initializer):
-        #        initializers_dict[name] = static_method()
-        #    else:
-        #        parameters_dict[name] = list(static_method.__code__.co_varnames)
 
         cls._PROPERTY_INITIALIZERS_DICTS_[cls_name] = cls_initializers_dict
         cls._PROPERTY_PARAMETERS_DICTS_[cls_name] = cls_parameters_dict
@@ -89,33 +74,16 @@ class LazyMeta(ABCMeta):
             name: cls.search_for_affected_parameters(parameters_dict, name)
             for name in initializers_dict
         }
-        #for name in initializers_dict:
-        #    parameters_affecting_dict[name] = set()
-        #for name in parameters_dict:
-        #    parameters_affecting_dict[name] = set()
-        #for name, varnames in parameters_dict.items():
-        #    for varname in varnames:
-        #        parameters_affecting_dict[varname].add(name)
 
         for name, root_property in root_lazy_properties.items():
-
-            #@wraps
-            #def f_get(name, self):
-            #    return self._lazy_properties_[name]
-
             namespace[name] = cls.setup_root_property(name)
 
             for update_method_name in root_property._update_method_names_:
-                #update_method = namespace[update_method_name]
-
                 namespace[update_method_name] = cls.setup_root_property_updater(
                     name, namespace[update_method_name], parameters_affecting_dict
                 )
 
         for name, leaf_property in leaf_lazy_properties.items():
-            #static_method = leaf_property._static_method_
-            #varnames = parameters_dict[name]
-
             namespace[name] = cls.setup_leaf_property(
                 name, leaf_property._class_method_, parameters_dict[name]
             )
@@ -126,127 +94,9 @@ class LazyMeta(ABCMeta):
         for name in parameters_dict:
             init_requires_update[name] = True
 
-        #if mro[0] is object:
-        #    new = lambda kls, *args, **kwargs: object.__new__()
-        #else:
-
-        #new = namespace.get("__new__", None)
-        #if new is None:
-        #    for base in mro:
-        #        new = base.__dict__.get("__new__", None)
-        #        if new is not None:
-        #            break
-        #    else:
-        #        raise  # never, as `object` always has __new__
-
         namespace["__new__"] = cls.setup_instance_new(mro[0], initializers_dict, init_requires_update)
 
         return super().__new__(cls, cls_name, bases, namespace)
-
-
-
-        #lazy_property_names: set[str] = set()
-
-
-        #for name in namespace:
-        #    attr = namespace[name]
-        #    if not isinstance(attr, lazy_property):
-        #        continue
-
-        #    #lazy_property_names.add(name)
-
-        #    static_method = attr._static_method_
-
-        #    if isinstance(attr, lazy_property_initializer):
-        #        initializers_dict[name] = static_method()
-
-        #        def f_get(self):
-        #            return self._lazy_properties_[name]
-
-        #        for update_method_name in attr._update_method_names_:
-        #            update_method = namespace[update_method_name]
-
-        #            def f_update(self, *args, **kwargs):
-        #                result = update_method(self, *args, **kwargs)
-        #                self._lazy_properties_[name] = result
-        #                for supported_name in self.__class__._supporting_dict_[name]:
-        #                    self._requires_update_[supported_name] = True
-        #                return result
-
-        #            namespace[update_method_name] = f_update
-
-        #    else:
-        #        varnames = static_method.__code__.co_varnames
-        #        depending_dict[name] = varnames
-
-        #        def f_get(self):
-        #            if not self._requires_update_[name]:
-        #                return self._lazy_properties_[name]
-        #            value = static_method(*(
-        #                self.__getattribute__(varname)
-        #                for varname in varnames
-        #            ))
-        #            self._lazy_properties_[name] = value
-        #            self._requires_update_[name] = False
-        #            return value
-
-        #    namespace[name] = property(f_get)
-
-
-        #for base in bases:
-        #    if isinstance(base, LazyMeta):
-        #        lazy_property_names.update(base.__getattribute__("_supporting_dict_"))
-
-        #namespace["_depending_dict_"] = depending_dict
-        #namespace["_initializers_dict_"] = initializers_dict
-        #namespace["_supporting_dict_"] = supporting_dict
-
-        #namespace["_currently_initializing_"] = []
-        #namespace["_depending_dict_"] = {
-        #    name: set() for name in lazy_property_names
-        #}
-
-    #@classmethod
-    #def setup_lazy_getter(cls, name, fget):
-    #    def new_fget(self):
-    #        if self.__class__._currently_initializing_:
-    #            self.__class__._supporting_dict_[name].update(self.__class__._currently_initializing_)
-    #        if name not in self._lazy_properties_:
-    #            self.__class__._currently_initializing_.append(name)
-    #            value = fget(self)
-    #            self.__class__._currently_initializing_.remove(name)
-    #            self._lazy_properties_[name] = value
-    #        else:
-    #            #print(self.__class__, self._requires_update_)
-    #            if self._requires_update_[name]:
-    #                value = fget(self)
-    #                self._lazy_properties_[name] = value
-    #                self._requires_update_[name] = False
-    #            else:
-    #                value = self._lazy_properties_[name]
-    #        return value
-    #    return new_fget
-
-    #@classmethod
-    #def setup_lazy_setter(cls, name):
-    #    def new_fset(self, value):
-    #        self._lazy_properties_[name] = value
-    #        for expired_name in self.__class__._supporting_dict_[name]:
-    #            self._requires_update_[expired_name] = True
-    #        #fset(self, value)
-    #    return new_fset
-
-    #@classmethod
-    #def setup_deleted_setter(cls):
-    #    def new_fset(self, value):
-    #        raise NotImplementedError
-    #    return new_fset
-
-    #@classmethod
-    #def setup_deleted_deleter(cls):
-    #    def new_fdel(self):
-    #        raise NotImplementedError
-    #    return new_fdel
 
     @classmethod
     def get_mro_by_bases(cls, bases: tuple[type, ...]) -> tuple[type, ...]:
@@ -346,20 +196,6 @@ class LazyMeta(ABCMeta):
         return instance_new
 
 
-#def expire_properties(*property_names):
-#    def wrapped(method):
-#        def new_method(self, *args, **kwargs):
-#            expired_names = set(property_names).union(*(
-#                self.__class__._supporting_dict_[name]
-#                for name in property_names
-#            ))
-#            for expired_name in expired_names:
-#                self._requires_update_[expired_name] = True
-#            return method(self, *args, **kwargs)
-#        return new_method
-#    return wrapped
-
-
 """
 class A(metaclass=LazyMeta):
     @lazy_property_initializer
@@ -383,9 +219,8 @@ class A(metaclass=LazyMeta):
     def add_foo(self, i: int):
         self._foo_.append(i)
         return self
-"""
 
-"""
+
 a = A()
 a.add_foo("")
 print(a._foo_)  # ['']

@@ -5,9 +5,7 @@ from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from ..custom_typing import *
 
 
-__all__ = [
-    "FrameGeometry"
-]
+__all__ = ["FrameGeometry"]
 
 
 class FrameGeometry(ParametricSurfaceGeometry):

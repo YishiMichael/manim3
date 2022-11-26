@@ -79,27 +79,10 @@ class Scene(Mobject):
         #self.fbo: moderngl.Framebuffer = fbo
 
     def render_scene(self, dt: float):
-        #shader_data = self.scene_mobject.setup_shader_data(self.scene_mobject.camera)
-        #self.scene_mobject.context_wrapper.render(shader_data)
-        #return self
-        #print()
-        #print("Before")
-        #print(len(self.fbo.read().lstrip(b"\x00")))
-        #print()
-        #print(len(self.get_descendents()))
-        #print()
-        #t = time.time()
         for mobject in self.get_descendents():
             mobject.update_dt(dt)
             mobject._camera_ = self.camera
-            #shader_data = mobject.setup_shader_data()
             mobject.render()
-            #if mobject.shader_data is None:
-            #    continue
-            #self.context_wrapper.render(shader_data)
-        #print(time.time()-t)
-        #print("After")
-        #print(len(self.fbo.read().lstrip(b"\x00")))
         return self
 
     def wait(self, t: Real):
@@ -116,16 +99,8 @@ class Scene(Mobject):
                     time.sleep(dt - delta_t)
                 timestamp = time.time()
                 window.clear()
-                #print()
-                #print(len(self.fbo.read().lstrip(b"\x00")))
                 self.render_scene(dt)
-                #print(len(self.fbo.read().lstrip(b"\x00")))
                 window.swap_buffers()
         else:  # TODO
-            #print()
-            #self.fbo.clear()
-            #print(123)
-            #print(len(self.fbo.read().lstrip(b"\x00")))
             self.render_scene(dt)
-            #print(len(self.fbo.read().lstrip(b"\x00")))
         return self

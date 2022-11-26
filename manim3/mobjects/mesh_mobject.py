@@ -1,5 +1,3 @@
-#from dataclasses import dataclass
-
 from abc import abstractmethod
 
 import moderngl
@@ -9,7 +7,6 @@ import pyrr
 from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
-#from ..shader_utils import ShaderData
 from ..utils.lazy import lazy_property, lazy_property_initializer
 from ..custom_typing import *
 
@@ -118,7 +115,7 @@ class MeshMobject(Mobject):
         buffers_from_matrix: dict[str, tuple[moderngl.Buffer, str]],
         buffers_from_material: dict[str, tuple[moderngl.Buffer, str]],
     ) -> dict[str, tuple[moderngl.Buffer, str]]:
-        # Update distributively as making buffers is expensive
+        # Update distributively, as making buffers is expensive
         return {
             **buffers_from_camera,
             **buffers_from_geometry,
@@ -133,27 +130,3 @@ class MeshMobject(Mobject):
     @lazy_property
     def _render_primitive_(cls) -> int:
         return moderngl.TRIANGLES
-
-    #@lazy_property
-    #def shader_data(self) -> ShaderData:
-    #    geometry = self.geometry
-    #    if geometry is None:
-    #        return None
-    #    #material = self.material
-    #    #color_map = self._color_map
-    #    #if color_map is not None:
-    #    #    material.color_map = np.flipud(color_map)  # flip y  # TODO 
-
-    #    return ShaderData(
-    #        enable_depth_test=self._enable_depth_test,
-    #        enable_blend=self._enable_blend,
-    #        cull_face=self._cull_face,
-    #        wireframe=self._wireframe,
-    #        shader_filename="mesh",
-    #        define_macros=defines,
-    #        textures_dict=textures,
-    #        #uniforms_dict=uniforms,
-    #        attributes_dict=attrs,
-    #        vertex_indices=geometry.index,
-    #        render_primitive=moderngl.TRIANGLES
-    #    )

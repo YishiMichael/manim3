@@ -34,26 +34,7 @@ class ImageMobject(SkiaMobject):
             height,
             frame_scale
         )
-        super().__init__(
-            #frame=frame,
-            #resolution=(px_width, px_height)
-        )
-        #px_width = image.width()
-        #px_height = image.height()
-        #frame = self.calculate_frame(
-        #    px_width / PIXEL_PER_UNIT,
-        #    px_height / PIXEL_PER_UNIT,
-        #    width,
-        #    height,
-        #    frame_scale
-        #)
-        #self.frame_size: tuple[float, float] = self.calculate_frame_size(
-        #    image.width() / PIXEL_PER_UNIT,
-        #    image.height() / PIXEL_PER_UNIT,
-        #    width,
-        #    height,
-        #    frame_scale
-        #)
+        super().__init__()
 
     @lazy_property_initializer
     def _image_() -> skia.Image:
@@ -79,16 +60,3 @@ class ImageMobject(SkiaMobject):
                 image=image, left=0.0, top=0.0, paint=paint
             )
         return cls._make_texture(surface.makeImageSnapshot())
-
-    #@lazy_property
-    #def _resolution_(image: skia.Image) -> tuple[int, int]:
-    #    return (image.width(), image.height())
-
-    #@lazy_property
-    #def _draw_(
-    #    image: skia.Image,
-    #    paint: Paint | None
-    #) -> Callable[[skia.Canvas], None]:
-    #    def draw(canvas: skia.Canvas) -> None:
-    #        canvas.drawImage(image, 0.0, 0.0, paint)
-    #    return draw

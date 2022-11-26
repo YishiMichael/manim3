@@ -5,9 +5,7 @@ from ..constants import PI, TAU
 from ..custom_typing import *
 
 
-__all__ = [
-    "SphereGeometry"
-]
+__all__ = ["SphereGeometry"]
 
 
 class SphereGeometry(ParametricSurfaceGeometry):
