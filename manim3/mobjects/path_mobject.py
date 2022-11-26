@@ -34,10 +34,10 @@ class PathMobject(SkiaMobject):
             #)
         )
         #self.frame_buff: tuple[Real, Real] = frame_buff
-        if flip_y:
-            self.scale(np.array((1.0, -1.0, 1.0)), about_point=ORIGIN)
 
         #print(type(path))
+        if flip_y:
+            self.scale(np.array((1.0, -1.0, 1.0)), about_point=ORIGIN)
         if path is not None:
             self.set_path(path)
 
@@ -71,7 +71,11 @@ class PathMobject(SkiaMobject):
     #    pass
 
     @lazy_property_initializer
-    def _fill_paint_() -> Paint | None:
+    def _disable_fill_() -> bool:
+        return False
+
+    @lazy_property_initializer
+    def _fill_paint_() -> Paint:
         return Paint(
             anti_alias=True,
             style=skia.Paint.kFill_Style,
@@ -85,7 +89,11 @@ class PathMobject(SkiaMobject):
     #    pass
 
     @lazy_property_initializer
-    def _stroke_paint_() -> Paint | None:
+    def _disable_stroke_() -> bool:
+        return False
+
+    @lazy_property_initializer
+    def _stroke_paint_() -> Paint:
         return Paint(
             anti_alias=True,
             style=skia.Paint.kStroke_Style,
@@ -120,6 +128,10 @@ class PathMobject(SkiaMobject):
         path: Path,
         frame_buff: tuple[float, float]
     ) -> skia.Rect:
+        #print("Updated")
+        #rect = path._skia_path_.computeTightBounds().makeOutset(*frame_buff)
+        #rect.dump()
+        #print(rect.width(), rect.height())
         return path._skia_path_.computeTightBounds().makeOutset(*frame_buff)
         ##self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
         #self.stretch_to_fit_width(frame.width())
@@ -128,11 +140,23 @@ class PathMobject(SkiaMobject):
         #return self
 
     @lazy_property
+    def _paints_(
+        cls,
+        fill_paint: Paint,
+        disable_fill: bool,
+        stroke_paint: Paint,
+        disable_stroke: bool,
+        draw_stroke_behind_fill: bool,
+    ) -> list[Paint]:
+        paints = [(fill_paint, disable_fill), (stroke_paint, disable_stroke)]
+        if draw_stroke_behind_fill:
+            paints.reverse()
+        return [paint for paint, disable in paints if not disable]
+
+    @lazy_property
     def _color_map_(
         cls,
-        fill_paint: Paint | None,
-        stroke_paint: Paint | None,
-        draw_stroke_behind_fill: bool,
+        paints: list[Paint],
         frame: skia.Rect,
         path: Path
     ) -> moderngl.Texture:
@@ -140,19 +164,18 @@ class PathMobject(SkiaMobject):
             int(frame.width() * PIXEL_PER_UNIT),
             int(frame.height() * PIXEL_PER_UNIT)
         )
+        #print(int(frame.width() * PIXEL_PER_UNIT),
+        #    int(frame.height() * PIXEL_PER_UNIT))
+        #skia.Rect.Make(surface.imageInfo().bounds()).dump()
+        #skia.Rect.Make(surface.imageInfo().bounds()).dump()
         with surface as canvas:
             canvas.concat(skia.Matrix.MakeRectToRect(
                 src=frame,
                 dst=skia.Rect.Make(surface.imageInfo().bounds()),
                 stf=skia.Matrix.kFill_ScaleToFit
             ))
-
-            paints = [fill_paint, stroke_paint]
-            if draw_stroke_behind_fill:
-                paints.reverse()
             for paint in paints:
-                if paint is not None:
-                    canvas.drawPath(path=path._skia_path_, paint=paint)
+                canvas.drawPath(path=path._skia_path_, paint=paint)
         return cls._make_texture(surface.makeImageSnapshot())
 
     #@lazy_property
@@ -200,14 +223,12 @@ class PathMobject(SkiaMobject):
         self._path_ = path
         return self
 
+    @_disable_fill_.updater
     @_fill_paint_.updater
-    def set_local_fill(self, disable: bool = False, **kwargs):
-        if disable is False:
-            if self._fill_paint_ is None:
-                self._fill_paint_ = Paint()
-            self._fill_paint_.set(**kwargs)
-        else:
-            self._fill_paint_ = None
+    def set_local_fill(self, disable: bool | None = None, **kwargs):
+        if disable is not None:
+            self._disable_fill_ = disable
+        self._fill_paint_.set(**kwargs)
         return self
 
     def set_fill(
@@ -222,14 +243,12 @@ class PathMobject(SkiaMobject):
             mobject.set_local_fill(**kwargs)
         return self
 
+    @_disable_stroke_.updater
     @_stroke_paint_.updater
-    def set_local_stroke(self, disable: bool = False, **kwargs):
-        if disable is False:
-            if self._stroke_paint_ is None:
-                self._stroke_paint_ = Paint()
-            self._stroke_paint_.set(**kwargs)
-        else:
-            self._stroke_paint_ = None
+    def set_local_stroke(self, disable: bool | None = None, **kwargs):
+        if disable is not None:
+            self._disable_stroke_ = disable
+        self._stroke_paint_.set(**kwargs)
         return self
 
     def set_stroke(
@@ -244,11 +263,12 @@ class PathMobject(SkiaMobject):
             mobject.set_local_stroke(**kwargs)
         return self
 
+    @_draw_stroke_behind_fill_.updater
     def set_paint(
         self,
         *,
-        disable_fill: bool = False,
-        disable_stroke: bool = False,
+        disable_fill: bool | None = None,
+        disable_stroke: bool | None = None,
         draw_stroke_behind_fill: bool | None = None,
         fill_color: ColorType | None = None,
         fill_opacity: Real | None = None,

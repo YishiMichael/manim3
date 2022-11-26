@@ -5,10 +5,10 @@ import numpy as np
 import pyrr
 import skia
 
+from ..geometries.frame_geometry import FrameGeometry
 from ..geometries.geometry import Geometry
-from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..utils.lazy import lazy_property_initializer
+from ..utils.lazy import lazy_property, lazy_property_initializer
 from ..custom_typing import *
 
 
@@ -31,13 +31,19 @@ class SkiaMobject(MeshMobject):
         #self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
         #self.shift(np.array((frame.centerX(), -frame.centerY(), 0.0)))
 
-    @lazy_property_initializer
-    def _geometry_() -> Geometry:
-        return PlaneGeometry()
+    @lazy_property
+    def _geometry_(cls, frame: skia.Rect) -> Geometry:
+        return FrameGeometry(frame)
 
     @lazy_property_initializer
-    def _prev_frame_() -> skia.Rect:
-        return skia.Rect(l=-1.0, t=1.0, r=1.0, b=-1.0)
+    @abstractmethod
+    def _frame_() -> skia.Rect:
+        raise NotImplementedError
+
+    #@lazy_property_initializer
+    #def _prev_frame_() -> skia.Rect:
+    #    # Rect induced from FrameGeometry
+    #    return skia.Rect(l=-1.0, t=1.0, r=1.0, b=-1.0)
 
     #@_prev_frame.setter
     #def _prev_frame(self, arg: pyrr.Matrix44) -> None:
@@ -89,28 +95,53 @@ class SkiaMobject(MeshMobject):
     #    #image.save('skia_output.png', skia.kPNG)
     #    return surface.makeImageSnapshot()
 
-    def render(self) -> None:
-        # Calculate the matrix inverse could be expensive, so use the explicit formula
-        prev_frame = self._prev_frame_
-        prev_frame_matrix_inv = reduce(pyrr.Matrix44.__matmul__, (
-            self.matrix_from_translation(np.array((-prev_frame.centerX(), prev_frame.centerY(), 0.0))),
-            self.matrix_from_scale(np.array((2.0 / prev_frame.width(), -2.0 / prev_frame.height(), 1.0)))
-        ))
-        frame = self._frame_
-        frame_matrix = reduce(pyrr.Matrix44.__matmul__, (
-            self.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
-            self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
-        ))
-        self.preapply_raw_matrix(
-            prev_frame_matrix_inv,
-            broadcast=False
-        )
-        self.preapply_raw_matrix(
-            frame_matrix,
-            broadcast=False
-        )
-        self._prev_frame_ = frame
-        super().render()
+    #@_prev_frame_.updater
+    #def render(self) -> None:
+    #    # Calculate the matrix inverse could be expensive, so use the explicit formula
+    #    #prev_frame = self._prev_frame_
+    #    frame = self._frame_
+    #    #print(
+    #    #    prev_frame.centerX(),
+    #    #    prev_frame.centerY(),
+    #    #    prev_frame.width(),
+    #    #    prev_frame.height()
+    #    #)
+    #    #print(
+    #    #    frame.centerX(),
+    #    #    frame.centerY(),
+    #    #    frame.width(),
+    #    #    frame.height()
+    #    #)
+    #    #prev_frame_matrix_inv = reduce(pyrr.Matrix44.__matmul__, (
+    #    #    self.matrix_from_translation(np.array((-prev_frame.centerX(), prev_frame.centerY(), 0.0))),
+    #    #    self.matrix_from_scale(np.array((2.0 / prev_frame.width(), -2.0 / prev_frame.height(), 1.0)))
+    #    #))
+    #    #print(prev_frame_matrix_inv)
+    #    frame_matrix = reduce(pyrr.Matrix44.__matmul__, (
+    #        self.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
+    #        self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
+    #    ))
+    #    #frame_matrix = self.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
+    #    #frame_matrix_inv = reduce(pyrr.Matrix44.__matmul__, (
+    #    #    self.matrix_from_translation(np.array((-frame.centerX(), frame.centerY(), 0.0))),
+    #    #    self.matrix_from_scale(np.array((2.0 / frame.width(), -2.0 / frame.height(), 1.0)))
+    #    #))
+    #    #print(frame_matrix)
+    #    #print()
+    #    #self.preapply_raw_matrix(
+    #    #    prev_frame_matrix_inv,
+    #    #    broadcast=False
+    #    #)
+    #    self.preapply_raw_matrix(
+    #        frame_matrix,
+    #        broadcast=False
+    #    )
+    #    #self._prev_frame_ = frame
+    #    super().render()
+    #    #self.preapply_raw_matrix(
+    #    #    frame_matrix_inv,
+    #    #    broadcast=False
+    #    #)
 
     @classmethod
     def _calculate_frame(
@@ -163,11 +194,6 @@ class SkiaMobject(MeshMobject):
         ))
         assert surface is not None
         return surface
-
-    @lazy_property_initializer
-    @abstractmethod
-    def _frame_() -> skia.Rect:
-        raise NotImplementedError
 
     #@lazy_property_initializer
     #@abstractmethod

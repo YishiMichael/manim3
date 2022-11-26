@@ -242,7 +242,7 @@ class Mobject(Renderable):
     ) -> Vector3Type:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
-    def apply_raw_matrix(
+    def apply_matrix_direct(
         self,
         matrix: pyrr.Matrix44,
         *,
@@ -254,17 +254,17 @@ class Mobject(Renderable):
             mobject.set_local_matrix(mobject._matrix_ @ matrix)
         return self
 
-    def preapply_raw_matrix(
-        self,
-        matrix: pyrr.Matrix44,
-        *,
-        broadcast: bool = True
-    ):
-        #if np.isclose(np.linalg.det(matrix), 0.0):
-        #    warnings.warn("Applying a singular matrix transform")
-        for mobject in self.get_descendents(broadcast=broadcast):
-            mobject.set_local_matrix(matrix @ mobject._matrix_)
-        return self
+    #def preapply_raw_matrix(
+    #    self,
+    #    matrix: pyrr.Matrix44,
+    #    *,
+    #    broadcast: bool = True
+    #):
+    #    #if np.isclose(np.linalg.det(matrix), 0.0):
+    #    #    warnings.warn("Applying a singular matrix transform")
+    #    for mobject in self.get_descendents(broadcast=broadcast):
+    #        mobject.set_local_matrix(matrix @ mobject._matrix_)
+    #    return self
 
     def apply_matrix(
         self,
@@ -286,7 +286,7 @@ class Mobject(Renderable):
             matrix,
             self.matrix_from_translation(about_point)
         ))
-        self.apply_raw_matrix(
+        self.apply_matrix_direct(
             matrix,
             broadcast=broadcast
         )

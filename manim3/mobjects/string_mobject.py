@@ -93,8 +93,9 @@ class StringMobject(SVGMobject):
             paint_settings={
                 "fill_color": Color("white"),
                 "fill_opacity": 1.0,
-                "stroke_width": 0.0,
-                "stroke_opacity": 0.0
+                "disable_stroke": True
+                #"stroke_width": 0.0,
+                #"stroke_opacity": 0.0
             },
             **kwargs
         )
@@ -120,8 +121,9 @@ class StringMobject(SVGMobject):
             paint_settings={
                 "fill_color": Color("white"),
                 "fill_opacity": 1.0,
-                "stroke_width": 0.0,
-                "stroke_opacity": 0.0
+                "disable_stroke": True
+                #"stroke_width": 0.0,
+                #"stroke_opacity": 0.0
             }
         )
         if len(self.children) != len(labelled_svg.children):

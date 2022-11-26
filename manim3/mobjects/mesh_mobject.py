@@ -64,12 +64,12 @@ class MeshMobject(Mobject):
         geometry: Geometry,
         define_macros: list[str]
     ) -> dict[str, tuple[moderngl.Buffer, str]]:
-        result = {
+        buffers = {
             "in_position": (cls._make_buffer(geometry.positions), "3f8 /v")
         }
         if "USE_UV" in define_macros:
-            result["in_uv"] = (cls._make_buffer(geometry.uvs), "2f8 /v")
-        return result
+            buffers["in_uv"] = (cls._make_buffer(geometry.uvs), "2f8 /v")
+        return buffers
 
     @lazy_property
     def _buffers_from_matrix_(
