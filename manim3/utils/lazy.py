@@ -1,13 +1,13 @@
-from abc import ABC
-from typing import Callable, ClassVar, Concatenate, Generic, ParamSpec, Type, TypeVar, overload
-
-
 __all__ = [
     "lazy_property",
     "lazy_property_initializer",
     "lazy_property_initializer_writable",
     "LazyBase"
 ]
+
+
+from abc import ABC
+from typing import Callable, ClassVar, Concatenate, Generic, ParamSpec, Type, TypeVar, overload
 
 
 _T = TypeVar("_T")

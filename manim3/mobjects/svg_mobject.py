@@ -1,3 +1,6 @@
+__all__ = ["SVGMobject"]
+
+
 from typing import Any
 import warnings
 
@@ -8,9 +11,6 @@ from ..mobjects.path_mobject import PathGroup
 from ..mobjects.path_mobject import PathMobject
 from ..utils.path import Path
 from ..custom_typing import *
-
-
-__all__ = ["SVGMobject"]
 
 
 class SVGMobject(PathGroup):

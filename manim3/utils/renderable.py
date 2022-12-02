@@ -1,3 +1,6 @@
+__all__ = ["Renderable"]
+
+
 from functools import lru_cache
 import os
 import re
@@ -5,27 +8,10 @@ import re
 import moderngl
 import skia
 
+from ..utils.context import ContextSingleton
 from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..constants import SHADERS_PATH
 from ..custom_typing import *
-
-
-__all__ = [
-    "ContextSingleton",
-    "Renderable"
-]
-
-
-class ContextSingleton:
-    _INSTANCE: moderngl.Context | None = None
-
-    def __new__(cls):
-        assert cls._INSTANCE is not None
-        return cls._INSTANCE
-
-    @classmethod
-    def set(cls, ctx: moderngl.Context) -> None:
-        cls._INSTANCE = ctx
 
 
 class Renderable(LazyBase):

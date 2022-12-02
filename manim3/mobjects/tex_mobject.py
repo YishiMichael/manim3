@@ -1,3 +1,9 @@
+__all__ = [
+    "TexText",
+    "Tex"
+]
+
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
@@ -22,12 +28,6 @@ from ..custom_typing import *
     #from typing import Iterable, Union
 
     #from manimlib.mobject.types.vectorized_mobject import VGroup
-
-
-__all__ = [
-    "TexText",
-    "Tex"
-]
 
 
 @dataclass

@@ -1,11 +1,11 @@
+__all__ = ["ParametricSurfaceGeometry"]
+
+
 import numpy as np
 from typing import Callable
 
 from ..geometries.geometry import Geometry, GeometryAttributes
 from ..custom_typing import *
-
-
-__all__ = ["ParametricSurfaceGeometry"]
 
 
 class ParametricSurfaceGeometry(Geometry):

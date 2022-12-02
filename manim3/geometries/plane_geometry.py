@@ -1,10 +1,10 @@
+__all__ = ["PlaneGeometry"]
+
+
 import numpy as np
 
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from ..custom_typing import *
-
-
-__all__ = ["PlaneGeometry"]
 
 
 class PlaneGeometry(ParametricSurfaceGeometry):

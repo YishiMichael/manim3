@@ -1,12 +1,12 @@
+__all__ = ["OrthographicCamera"]
+
+
 import pyrr
 
 from ..cameras.camera import Camera
 from ..constants import CAMERA_FAR, CAMERA_NEAR
 from ..constants import FRAME_X_RADIUS, FRAME_Y_RADIUS
 from ..custom_typing import *
-
-
-__all__ = ["OrthographicCamera"]
 
 
 class OrthographicCamera(Camera):
@@ -27,8 +27,8 @@ class OrthographicCamera(Camera):
         self.near: float = float(near)
         self.far: float = float(far)
 
-    def get_projection_matrix(self) -> pyrr.Matrix44:
-        return pyrr.Matrix44.orthogonal_projection(
+    def get_projection_matrix(self) -> Matrix44Type:
+        return pyrr.matrix44.create_orthogonal_projection(
             self.left,
             self.right,
             self.top,

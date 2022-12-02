@@ -1,3 +1,6 @@
+__all__ = ["Path"]
+
+
 from abc import abstractmethod
 from typing import Callable, Generic, TypeVar
 
@@ -7,9 +10,6 @@ import skia
 
 from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
-
-
-__all__ = ["Path"]
 
 
 _T = TypeVar("_T", bound="CurveInterpolantBase")

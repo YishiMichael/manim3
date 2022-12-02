@@ -1,10 +1,10 @@
+__all__ = ["Paint"]
+
+
 from colour import Color
 import skia
 
 from ..custom_typing import *
-
-
-__all__ = ["Paint"]
 
 
 class Paint(skia.Paint):

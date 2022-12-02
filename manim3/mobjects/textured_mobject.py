@@ -1,12 +1,12 @@
+__all__ = ["TexturedMobject"]
+
+
 import moderngl
 import skia
 
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.lazy import lazy_property_initializer_writable
 from ..custom_typing import *
-
-
-__all__ = ["TexturedMobject"]
 
 
 class TexturedMobject(MeshMobject):

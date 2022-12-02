@@ -1,10 +1,3 @@
-from colour import Color
-import re
-from typing import Iterable, Literal, Union
-
-import numpy as np
-
-
 __all__ = [
     "Real",
     "Vector2Type",
@@ -25,6 +18,13 @@ __all__ = [
     "Span",
     "Selector"
 ]
+
+
+from colour import Color
+import re
+from typing import Iterable, Literal, Union
+
+import numpy as np
 
 
 Real = float | int

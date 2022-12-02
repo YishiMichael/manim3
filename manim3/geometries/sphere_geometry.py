@@ -1,11 +1,11 @@
+__all__ = ["SphereGeometry"]
+
+
 import numpy as np
 
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from ..constants import PI, TAU
 from ..custom_typing import *
-
-
-__all__ = ["SphereGeometry"]
 
 
 class SphereGeometry(ParametricSurfaceGeometry):

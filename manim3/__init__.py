@@ -21,6 +21,7 @@ from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 from .mobjects.textured_mobject import *
 
+from .utils.context import *
 from .utils.lazy import *
 from .utils.paint import *
 from .utils.path import *

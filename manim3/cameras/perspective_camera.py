@@ -1,3 +1,6 @@
+__all__ = ["PerspectiveCamera"]
+
+
 import numpy as np
 import pyrr
 
@@ -6,9 +9,6 @@ from ..constants import ASPECT_RATIO, FRAME_Y_RADIUS
 from ..constants import CAMERA_ALTITUDE, CAMERA_FAR, CAMERA_NEAR
 from ..constants import DEGREES
 from ..custom_typing import *
-
-
-__all__ = ["PerspectiveCamera"]
 
 
 class PerspectiveCamera(Camera):
@@ -25,8 +25,8 @@ class PerspectiveCamera(Camera):
         self.near: float = float(near)
         self.far: float = float(far)
 
-    def get_projection_matrix(self) -> pyrr.Matrix44:
-        return pyrr.Matrix44.perspective_projection(
+    def get_projection_matrix(self) -> Matrix44Type:
+        return pyrr.matrix44.create_perspective_projection(
             self.fovy,
             self.aspect,
             self.near,

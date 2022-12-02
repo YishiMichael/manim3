@@ -1,3 +1,6 @@
+__all__ = ["Scene"]
+
+
 import time
 
 import moderngl
@@ -7,7 +10,7 @@ from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
 from .mobjects.mobject import Mobject
 #from ..mobjects.scene_mobject import SceneMobject
-from .utils.renderable import ContextSingleton
+from .utils.context import ContextSingleton
 from .constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from .custom_typing import *
 

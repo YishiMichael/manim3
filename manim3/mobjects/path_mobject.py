@@ -1,3 +1,9 @@
+__all__ = [
+    "PathMobject",
+    "PathGroup"
+]
+
+
 from colour import Color
 import moderngl
 import numpy as np
@@ -10,12 +16,6 @@ from ..utils.path import Path
 from ..constants import ORIGIN
 from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import *
-
-
-__all__ = [
-    "PathMobject",
-    "PathGroup"
-]
 
 
 class PathMobject(SkiaMobject):
@@ -77,18 +77,6 @@ class PathMobject(SkiaMobject):
     def _frame_buff_() -> tuple[float, float]:
         return (0.25, 0.25)
 
-    #@_stroke_paint.setter
-    #def _stroke_paint(self, arg: Paint | None) -> None:
-    #    pass
-
-    #@lazy_property
-    #def draw_stroke_behind_fill(self) -> bool:
-    #    return False
-
-    #@draw_stroke_behind_fill.setter
-    #def draw_stroke_behind_fill(self, arg: bool) -> None:
-    #    pass
-
     @lazy_property
     @classmethod
     def _frame_(
@@ -96,24 +84,7 @@ class PathMobject(SkiaMobject):
         path: Path,
         frame_buff: tuple[float, float]
     ) -> skia.Rect:
-        #print("Updated")
-        #rect = path._skia_path_.computeTightBounds().makeOutset(*frame_buff)
-        #rect.dump()
-        #print(rect.width(), rect.height())
         return path._skia_path_.computeTightBounds().makeOutset(*frame_buff)
-        ##self.scale(np.array((frame.width() / 2.0, frame.height() / 2.0, 1.0)))
-        #self.stretch_to_fit_width(frame.width())
-        #self.stretch_to_fit_height(frame.height())
-        #self.shift(np.array((frame.centerX(), -frame.centerY(), 0.0)))
-        #return self
-
-    #@lazy_property
-    #@classmethod
-    #def _geometry_matrix_(cls, frame: skia.Rect) -> pyrr.Matrix44:
-    #    return reduce(pyrr.Matrix44.__matmul__, (
-    #        cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
-    #        cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
-    #    ))
 
     @lazy_property
     @classmethod

@@ -1,3 +1,10 @@
+__all__ = [
+    "MarkupText",
+    "Text",
+    "Code"
+]
+
+
 import hashlib
 import os
 import re
@@ -42,13 +49,6 @@ from ..custom_typing import *
 #            tuple[Union[int, None], Union[int, None]]
 #        ]]
 #    ]
-
-
-__all__ = [
-    "MarkupText",
-    "Text",
-    "Code"
-]
 
 
 def get_text_dir() -> str:

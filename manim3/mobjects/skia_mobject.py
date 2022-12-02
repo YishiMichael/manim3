@@ -1,8 +1,10 @@
+__all__ = ["SkiaMobject"]
+
+
 from abc import abstractmethod
 from functools import reduce
 
 import numpy as np
-import pyrr
 import skia
 
 from ..geometries.geometry import Geometry
@@ -10,9 +12,6 @@ from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.lazy import lazy_property
 from ..custom_typing import *
-
-
-__all__ = ["SkiaMobject"]
 
 
 class SkiaMobject(MeshMobject):
@@ -33,8 +32,8 @@ class SkiaMobject(MeshMobject):
 
     @lazy_property
     @classmethod
-    def _geometry_matrix_(cls, frame: skia.Rect) -> pyrr.Matrix44:
-        return reduce(pyrr.Matrix44.__matmul__, (
+    def _geometry_matrix_(cls, frame: skia.Rect) -> Matrix44Type:
+        return reduce(np.ndarray.__matmul__, (
             cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
             cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
         ))

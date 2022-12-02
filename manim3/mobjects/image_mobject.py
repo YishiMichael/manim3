@@ -1,3 +1,6 @@
+__all__ = ["ImageMobject"]
+
+
 import moderngl
 import skia
 
@@ -6,9 +9,6 @@ from ..utils.lazy import lazy_property, lazy_property_initializer_writable
 from ..utils.paint import Paint
 from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import *
-
-
-__all__ = ["ImageMobject"]
 
 
 class ImageMobject(SkiaMobject):

@@ -1,3 +1,10 @@
+__all__ = [
+    "BoundingBox3D",
+    "Mobject",
+    "Group"
+]
+
+
 import copy
 from dataclasses import dataclass
 from functools import reduce
@@ -16,13 +23,6 @@ from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property
 from ..utils.renderable import Renderable
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
-
-
-__all__ = [
-    "BoundingBox3D",
-    "Mobject",
-    "Group"
-]
 
 
 T = TypeVar("T")
@@ -161,35 +161,35 @@ class Mobject(Renderable):
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _matrix_() -> pyrr.Matrix44:
-        return pyrr.Matrix44.identity()
+    def _matrix_() -> Matrix44Type:
+        return np.identity(4)
 
     @lazy_property_initializer
     @staticmethod
-    def _geometry_matrix_() -> pyrr.Matrix44:
-        return pyrr.Matrix44.identity()
+    def _geometry_matrix_() -> Matrix44Type:
+        return np.identity(4)
 
     @lazy_property
     @classmethod
-    def _composite_matrix_(cls, geometry_matrix: pyrr.Matrix44, matrix: pyrr.Matrix44) -> pyrr.Matrix44:
+    def _composite_matrix_(cls, geometry_matrix: Matrix44Type, matrix: Matrix44Type) -> Matrix44Type:
         return geometry_matrix @ matrix
 
     @_matrix_.updater
-    def set_local_matrix(self, matrix: pyrr.Matrix44):
+    def set_local_matrix(self, matrix: Matrix44Type):
         self._matrix_ = matrix
         return self
 
     @classmethod
-    def matrix_from_translation(cls, vector: Vector3Type) -> pyrr.Matrix44:
-        return pyrr.Matrix44.from_translation(vector)
+    def matrix_from_translation(cls, vector: Vector3Type) -> Matrix44Type:
+        return pyrr.matrix44.create_from_translation(vector)
 
     @classmethod
-    def matrix_from_scale(cls, factor_vector: Vector3Type) -> pyrr.Matrix44:
-        return pyrr.Matrix44.from_scale(factor_vector)
+    def matrix_from_scale(cls, factor_vector: Vector3Type) -> Matrix44Type:
+        return pyrr.matrix44.create_from_scale(factor_vector)
 
     @classmethod
-    def matrix_from_rotation(cls, rotation: Rotation) -> pyrr.Matrix44:
-        return pyrr.Matrix44.from_matrix33(rotation.as_matrix())
+    def matrix_from_rotation(cls, rotation: Rotation) -> Matrix44Type:
+        return pyrr.matrix44.create_from_matrix33(rotation.as_matrix())
 
     @lazy_property_initializer
     @staticmethod
@@ -256,7 +256,7 @@ class Mobject(Renderable):
 
     def apply_matrix_directly(
         self,
-        matrix: pyrr.Matrix44,
+        matrix: Matrix44Type,
         *,
         broadcast: bool = True
     ):
@@ -268,7 +268,7 @@ class Mobject(Renderable):
 
     def apply_matrix(
         self,
-        matrix: pyrr.Matrix44,
+        matrix: Matrix44Type,
         *,
         about_point: Vector3Type | None = None,
         about_edge: Vector3Type | None = None,
@@ -281,7 +281,7 @@ class Mobject(Renderable):
         elif about_edge is not None:
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
-        matrix = reduce(pyrr.Matrix44.__matmul__, (
+        matrix = reduce(np.ndarray.__matmul__, (
             self.matrix_from_translation(-about_point),
             matrix,
             self.matrix_from_translation(about_point)
@@ -317,12 +317,7 @@ class Mobject(Renderable):
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
     ):
-        if isinstance(factor, Real):
-            factor_vector = pyrr.Vector3()
-            factor_vector.fill(factor)
-        else:
-            factor_vector = pyrr.Vector3(factor)
-        matrix = self.matrix_from_scale(factor_vector)
+        matrix = self.matrix_from_scale(np.ones(3) * factor)
         self.apply_matrix(
             matrix,
             about_point=about_point,

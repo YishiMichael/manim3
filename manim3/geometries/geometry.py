@@ -1,13 +1,13 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-
-from ..custom_typing import *
-
-
 __all__ = [
     "GeometryAttributes",
     "Geometry"
 ]
+
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+from ..custom_typing import *
 
 
 @dataclass

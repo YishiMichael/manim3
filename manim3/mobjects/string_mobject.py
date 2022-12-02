@@ -1,3 +1,6 @@
+__all__ = ["StringMobject"]
+
+
 from abc import abstractmethod
 from colour import Color
 import itertools as it
@@ -25,9 +28,6 @@ from ..custom_typing import *
 #if TYPE_CHECKING:
 #    from colour import Color
 #    from typing import Callable, Iterable, Union
-
-
-__all__ = ["StringMobject"]
 
 
 class StringMobject(SVGMobject):

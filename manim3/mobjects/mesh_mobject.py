@@ -1,15 +1,14 @@
+__all__ = ["MeshMobject"]
+
+
 import moderngl
 import numpy as np
-import pyrr
 
 from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
-
-
-__all__ = ["MeshMobject"]
 
 
 #@dataclass
@@ -66,7 +65,7 @@ class MeshMobject(Mobject):
     @classmethod
     def _buffers_from_matrix_(
         cls,
-        composite_matrix: pyrr.Matrix44
+        composite_matrix: Matrix44Type
     ) -> dict[str, tuple[moderngl.Buffer, str]]:
         return {
             "in_model_matrix": (cls._make_buffer(composite_matrix), "16f8 /r")

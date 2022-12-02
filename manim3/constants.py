@@ -1,9 +1,3 @@
-import numpy as np
-import os
-
-from .custom_typing import *
-
-
 __all__ = [
     "MANIM3_PATH",
     "SHADERS_PATH",
@@ -36,6 +30,12 @@ __all__ = [
     "TAU",
     "DEGREES",
 ]
+
+
+import numpy as np
+import os
+
+from .custom_typing import *
 
 
 MANIM3_PATH: str = os.path.dirname(__file__)

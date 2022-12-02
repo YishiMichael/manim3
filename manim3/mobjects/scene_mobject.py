@@ -1,3 +1,6 @@
+__all__ = ["SceneMobject"]
+
+
 #import moderngl
 #from moderngl_window.context.pyglet.window import Window as PygletWindow
 import skia
@@ -8,9 +11,6 @@ from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import *
 from ..scene import Scene
 #from ..shader_utils import ContextWrapper  # TODO: move to a proper location
-
-
-__all__ = ["SceneMobject"]
 
 
 class SceneMobject(SkiaMobject):
