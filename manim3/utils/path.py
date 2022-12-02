@@ -2,11 +2,10 @@ from abc import abstractmethod
 from typing import Callable, Generic, TypeVar
 
 import numpy as np
-import scipy.integrate
 import scipy.interpolate
 import skia
 
-from ..utils.lazy import LazyMeta, lazy_property, lazy_property_initializer
+from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
 
 
@@ -25,15 +24,15 @@ def interp1d(x: FloatArrayType, y: FloatArrayType, tol: Real = 1e-6, **kwargs) -
     return scipy.interpolate.interp1d(new_x, new_y, **kwargs)
 
 
-class CurveInterpolantBase(metaclass=LazyMeta):
-    @lazy_property_initializer
+class CurveInterpolantBase(LazyBase):
+    @property
     @abstractmethod
-    def _a_final_() -> float:
+    def _a_final_(self) -> float:
         raise NotImplementedError
 
-    @lazy_property_initializer
+    @property
     @abstractmethod
-    def _l_final_() -> float:
+    def _l_final_(self) -> float:
         raise NotImplementedError
 
     @abstractmethod
@@ -77,7 +76,7 @@ class CurveInterpolantBase(metaclass=LazyMeta):
         return self.partial_by_l(l_ratio * self._l_final_)
 
 
-class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
+class CurveInterpolant(Generic[_T], CurveInterpolantBase):
     """
     A general tree-structured curve interpolant.
 
@@ -86,35 +85,42 @@ class CurveInterpolant(CurveInterpolantBase, Generic[_T]):
     A bunch of translation methods are defined.
     """
     def __init__(self, children: list[_T] | None = None):
-        if children is None:
-            children = []
-        self._children_.extend(children)
+        super().__init__()
+        if children is not None:
+            self._children_.extend(children)
 
     @lazy_property_initializer
+    @staticmethod
     def _children_() -> list[_T]:
         return []
 
     @lazy_property
+    @classmethod
     def _a_knots_(cls, children: list[_T]) -> FloatArrayType:
         return np.insert(np.cumsum([child._a_final_ for child in children]), 0, 0.0)
 
     @lazy_property
+    @classmethod
     def _l_knots_(cls, children: list[_T]) -> FloatArrayType:
         return np.insert(np.cumsum([child._l_final_ for child in children]), 0, 0.0)
 
     @lazy_property
+    @classmethod
     def _a_final_(cls, a_knots: FloatArrayType) -> float:
         return a_knots[-1]
 
     @lazy_property
+    @classmethod
     def _l_final_(cls, l_knots: FloatArrayType) -> float:
         return l_knots[-1]
 
     @lazy_property
+    @classmethod
     def _a_interpolator_(cls, a_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
         return cls.integer_interpolator(a_knots)
 
     @lazy_property
+    @classmethod
     def _l_interpolator_(cls, l_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
         return cls.integer_interpolator(l_knots)
 
@@ -171,18 +177,21 @@ class BezierCurve(CurveInterpolantBase):
     Bezier curves defined on domain [0, 1].
     """
     def __init__(self, points: Vector2ArrayType):
-        self._points_ = points
         super().__init__()
+        self._points_ = points
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _points_() -> Vector2ArrayType:
-        return np.array(())
+        return NotImplemented
 
     @lazy_property
+    @classmethod
     def _order_(cls, points: Vector2ArrayType) -> int:
         return len(points) - 1
 
     @lazy_property
+    @classmethod
     def _gamma_(cls, order: int, points: Vector2ArrayType) -> scipy.interpolate.BSpline:
         return scipy.interpolate.BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
@@ -191,29 +200,35 @@ class BezierCurve(CurveInterpolantBase):
         )
 
     @lazy_property
+    @classmethod
     def _a_samples_(cls, order: int) -> FloatArrayType:
         num_samples = 9 if order > 1 else 2
         return np.linspace(0.0, 1.0, num_samples)
 
     @lazy_property
+    @classmethod
     def _l_samples_(cls, gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
         p_samples = gamma(a_samples)
         segment_lengths = np.linalg.norm(p_samples[1:] - p_samples[:-1], axis=1)
         return np.insert(np.cumsum(segment_lengths), 0, 0.0)
 
     @lazy_property
+    @classmethod
     def _a_l_interp_(cls, a_samples: FloatArrayType, l_samples: FloatArrayType) -> scipy.interpolate.interp1d:
         return interp1d(a_samples, l_samples)
 
     @lazy_property
+    @classmethod
     def _l_a_interp_(cls, l_samples: FloatArrayType, a_samples: FloatArrayType) -> Callable[[Real], Real]:
         return interp1d(l_samples, a_samples)
 
     @lazy_property
+    @classmethod
     def _a_final_(cls) -> float:
         return 1.0
 
     @lazy_property
+    @classmethod
     def _l_final_(cls, a_l_interp: scipy.interpolate.interp1d, a_final: float) -> float:
         return a_l_interp(a_final)
 
@@ -256,7 +271,7 @@ class Contours(CurveInterpolant[Contour]):
     pass
 
 
-class Path(metaclass=LazyMeta):
+class Path(LazyBase):
     """
     A list of contours, either open or closed
     """
@@ -264,6 +279,7 @@ class Path(metaclass=LazyMeta):
         self,
         path: skia.Path | Contours | None = None
     ):
+        super().__init__()
         if isinstance(path, skia.Path):
             self._skia_path_ = path
         elif isinstance(path, Contours):
@@ -330,11 +346,13 @@ class Path(metaclass=LazyMeta):
             path.close()
         return path
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _skia_path_() -> skia.Path:
         return skia.Path()
 
     @lazy_property
+    @classmethod
     def _contours_(cls, skia_path: skia.Path) -> Contours:
         return Path._get_contours_by_skia_path(skia_path)
 
@@ -369,10 +387,12 @@ class Path(metaclass=LazyMeta):
         return self
 
     @lazy_property
+    @classmethod
     def _a_final_(cls, contours: Contours) -> float:
         return contours._a_final_
 
     @lazy_property
+    @classmethod
     def _l_final_(cls, contours: Contours) -> float:
         return contours._l_final_
 

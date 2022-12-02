@@ -10,8 +10,9 @@ from scipy.spatial.transform import Rotation
 
 #from ..animations.animation import Animation
 from ..cameras.camera import Camera
+from ..geometries.geometry import Geometry
 from ..cameras.perspective_camera import PerspectiveCamera
-from ..utils.lazy import lazy_property_initializer
+from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..utils.renderable import Renderable
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
@@ -158,13 +159,20 @@ class Mobject(Renderable):
 
     # matrix & transform
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _matrix_() -> pyrr.Matrix44:
         return pyrr.Matrix44.identity()
 
-    #@_matrix.setter
-    #def _matrix(self, arg: pyrr.Matrix44) -> None:
-    #    pass
+    @lazy_property_initializer
+    @staticmethod
+    def _geometry_matrix_() -> pyrr.Matrix44:
+        return pyrr.Matrix44.identity()
+
+    @lazy_property
+    @classmethod
+    def _composite_matrix_(cls, geometry_matrix: pyrr.Matrix44, matrix: pyrr.Matrix44) -> pyrr.Matrix44:
+        return geometry_matrix @ matrix
 
     @_matrix_.updater
     def set_local_matrix(self, matrix: pyrr.Matrix44):
@@ -184,10 +192,14 @@ class Mobject(Renderable):
         return pyrr.Matrix44.from_matrix33(rotation.as_matrix())
 
     @lazy_property_initializer
-    def _local_sample_points_() -> Vector3ArrayType:
-        # Implemented in subclasses
-        return np.zeros((0, 3))
-        #raise NotImplementedError
+    @staticmethod
+    def _geometry_() -> Geometry:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
+    def _geometry_sample_points_(cls, geometry: Geometry) -> Vector3ArrayType:
+        return geometry.positions
 
     # TODO: lazify bounding boxes
 
@@ -198,10 +210,10 @@ class Mobject(Renderable):
     ) -> BoundingBox3D:
         points = [
             pyrr.matrix44.apply_to_vector(
-                mobject._matrix_, point
+                mobject._composite_matrix_, point
             )
             for mobject in self.get_descendents(broadcast=broadcast)
-            for point in mobject._local_sample_points_
+            for point in mobject._geometry_sample_points_
         ]
         if not points:
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
@@ -242,7 +254,7 @@ class Mobject(Renderable):
     ) -> Vector3Type:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
-    def apply_matrix_direct(
+    def apply_matrix_directly(
         self,
         matrix: pyrr.Matrix44,
         *,
@@ -274,7 +286,7 @@ class Mobject(Renderable):
             matrix,
             self.matrix_from_translation(about_point)
         ))
-        self.apply_matrix_direct(
+        self.apply_matrix_directly(
             matrix,
             broadcast=broadcast
         )
@@ -482,7 +494,8 @@ class Mobject(Renderable):
 
     # shader
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _camera_() -> Camera:
         return PerspectiveCamera()
 

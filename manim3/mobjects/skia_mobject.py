@@ -1,11 +1,14 @@
 from abc import abstractmethod
+from functools import reduce
 
+import numpy as np
+import pyrr
 import skia
 
-from ..geometries.frame_geometry import FrameGeometry
 from ..geometries.geometry import Geometry
+from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..utils.lazy import lazy_property, lazy_property_initializer
+from ..utils.lazy import lazy_property
 from ..custom_typing import *
 
 
@@ -19,13 +22,22 @@ class SkiaMobject(MeshMobject):
         self._cull_face_ = "front_and_back"
 
     @lazy_property
-    def _geometry_(cls, frame: skia.Rect) -> Geometry:
-        return FrameGeometry(frame)
+    @classmethod
+    def _geometry_(cls) -> Geometry:
+        return PlaneGeometry()
 
-    @lazy_property_initializer
+    @property
     @abstractmethod
-    def _frame_() -> skia.Rect:
-        raise NotImplementedError
+    def _frame_(self) -> skia.Rect:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
+    def _geometry_matrix_(cls, frame: skia.Rect) -> pyrr.Matrix44:
+        return reduce(pyrr.Matrix44.__matmul__, (
+            cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
+            cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
+        ))
 
     @classmethod
     def _calculate_frame(

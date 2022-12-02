@@ -1,5 +1,3 @@
-from abc import abstractmethod
-
 import moderngl
 import numpy as np
 import pyrr
@@ -7,7 +5,7 @@ import pyrr
 from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
-from ..utils.lazy import lazy_property, lazy_property_initializer
+from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
 
 
@@ -23,29 +21,24 @@ __all__ = ["MeshMobject"]
 class MeshMobject(Mobject):
     def __init__(self):
         super().__init__()
-        self.invisible = False
         #self.geometry: Geometry | None = self.init_geometry()  # TODO: consider using trimesh
         #self.material: MeshMaterialAttributes = MeshMaterialAttributes(
         #    color=np.ones(4),
         #    color_map=None
         #)
 
-    @lazy_property_initializer
-    @abstractmethod
-    def _geometry_() -> Geometry:
-        raise NotImplementedError
-
-    @lazy_property
-    def _local_sample_points_(cls, geometry: Geometry) -> Vector3ArrayType:
-        if geometry is None:
-            return np.zeros((0, 3))
-        return geometry.positions
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _invisible_() -> bool:
+        return False
 
     @lazy_property_initializer
+    @staticmethod
     def _color_map_() -> moderngl.Texture | None:
         return None
 
     @lazy_property
+    @classmethod
     def _buffers_from_camera_(
         cls,
         camera: Camera
@@ -56,6 +49,7 @@ class MeshMobject(Mobject):
         }
 
     @lazy_property
+    @classmethod
     def _buffers_from_geometry_(
         cls,
         geometry: Geometry,
@@ -69,15 +63,17 @@ class MeshMobject(Mobject):
         return buffers
 
     @lazy_property
+    @classmethod
     def _buffers_from_matrix_(
         cls,
-        matrix: pyrr.Matrix44
+        composite_matrix: pyrr.Matrix44
     ) -> dict[str, tuple[moderngl.Buffer, str]]:
         return {
-            "in_model_matrix": (cls._make_buffer(matrix), "16f8 /r")
+            "in_model_matrix": (cls._make_buffer(composite_matrix), "16f8 /r")
         }
 
     @lazy_property
+    @classmethod
     def _buffers_from_material_(cls) -> dict[str, tuple[moderngl.Buffer, str]]:  # TODO
         color = np.ones(4)
         return {
@@ -85,10 +81,12 @@ class MeshMobject(Mobject):
         }
 
     @lazy_property
+    @classmethod
     def _shader_filename_(cls) -> str:
         return "mesh"
 
     @lazy_property
+    @classmethod
     def _define_macros_(cls, color_map: moderngl.Texture | None) -> list[str]:
         defines = []
         if color_map is not None:
@@ -97,6 +95,7 @@ class MeshMobject(Mobject):
         return defines
 
     @lazy_property
+    @classmethod
     def _textures_dict_(
         cls,
         define_macros: list[str],
@@ -108,6 +107,7 @@ class MeshMobject(Mobject):
         return textures
 
     @lazy_property
+    @classmethod
     def _buffers_dict_(
         cls,
         buffers_from_camera: dict[str, tuple[moderngl.Buffer, str]],
@@ -124,9 +124,11 @@ class MeshMobject(Mobject):
         }
 
     @lazy_property
+    @classmethod
     def _vertex_indices_(cls, geometry: Geometry) -> VertexIndicesType:
         return geometry.indices
 
     @lazy_property
+    @classmethod
     def _render_primitive_(cls) -> int:
         return moderngl.TRIANGLES

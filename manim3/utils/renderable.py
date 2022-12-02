@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from functools import lru_cache
 import os
 import re
@@ -6,7 +5,7 @@ import re
 import moderngl
 import skia
 
-from ..utils.lazy import LazyMeta, lazy_property, lazy_property_initializer
+from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..constants import SHADERS_PATH
 from ..custom_typing import *
 
@@ -18,62 +17,72 @@ __all__ = [
 
 
 class ContextSingleton:
-    _instance: moderngl.Context | None = None
+    _INSTANCE: moderngl.Context | None = None
 
     def __new__(cls):
-        assert cls._instance is not None
-        return cls._instance
+        assert cls._INSTANCE is not None
+        return cls._INSTANCE
+
+    @classmethod
+    def set(cls, ctx: moderngl.Context) -> None:
+        cls._INSTANCE = ctx
 
 
-class Renderable(metaclass=LazyMeta):
-    def __init__(self):
-        self.invisible: bool = True
-
+class Renderable(LazyBase):
     @lazy_property_initializer
+    @staticmethod
+    def _invisible_() -> bool:
+        return True
+
+    @lazy_property_initializer_writable
+    @staticmethod
     def _enable_depth_test_() -> bool:
         return True
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _enable_blend_() -> bool:
         return True
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _cull_face_() -> str:
         return "back"
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
+    @staticmethod
     def _wireframe_() -> bool:
         return False
 
     @lazy_property_initializer
-    @abstractmethod
+    @staticmethod
     def _shader_filename_() -> str:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property_initializer
-    @abstractmethod
+    @staticmethod
     def _define_macros_() -> list[str]:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property_initializer
-    @abstractmethod
+    @staticmethod
     def _textures_dict_() -> dict[str, tuple[moderngl.Texture, int]]:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property_initializer
-    @abstractmethod
+    @staticmethod
     def _buffers_dict_() -> dict[str, tuple[moderngl.Buffer, str]]:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property_initializer
-    @abstractmethod
+    @staticmethod
     def _vertex_indices_() -> VertexIndicesType:
-        raise NotImplementedError
+        return NotImplemented
 
     @lazy_property_initializer
-    @abstractmethod
+    @staticmethod
     def _render_primitive_() -> int:
-        raise NotImplementedError
+        return NotImplemented
 
     @classmethod
     def _make_texture(cls, image: skia.Image) -> moderngl.Texture:
@@ -138,6 +147,7 @@ class Renderable(metaclass=LazyMeta):
         )
 
     @lazy_property
+    @classmethod
     def _program_(
         cls,
         shader_filename: str,
@@ -149,10 +159,12 @@ class Renderable(metaclass=LazyMeta):
         )
 
     @lazy_property
+    @classmethod
     def _ibo_(cls, vertex_indices: VertexIndicesType) -> moderngl.Buffer:
         return ContextSingleton().buffer(vertex_indices.tobytes())
 
     @lazy_property
+    @classmethod
     def _vao_(
         cls,
         buffers_dict: dict[str, tuple[moderngl.Buffer, str]],
@@ -172,7 +184,7 @@ class Renderable(metaclass=LazyMeta):
         )
 
     def render(self) -> None:
-        if self.invisible:
+        if self._invisible_:
             return
 
         ctx = ContextSingleton()

@@ -60,7 +60,7 @@ class Scene(Mobject):
             #fbo = ctx.detect_framebuffer()
             fbo.use()
 
-        ContextSingleton._instance = ctx
+        ContextSingleton.set(ctx)
         #fbo.use()
         self.window: PygletWindow | None = window
         #self.ctx: moderngl.Context = ctx
