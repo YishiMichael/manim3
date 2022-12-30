@@ -8,6 +8,7 @@ from ..cameras.camera import Camera
 from ..constants import ASPECT_RATIO, FRAME_Y_RADIUS
 from ..constants import CAMERA_ALTITUDE, CAMERA_FAR, CAMERA_NEAR
 from ..constants import DEGREES
+from ..utils.lazy import lazy_property, lazy_property_initializer_writable
 from ..custom_typing import *
 
 
@@ -20,15 +21,43 @@ class PerspectiveCamera(Camera):
         far: Real = CAMERA_FAR
     ):
         super().__init__()
-        self.fovy: float = float(fovy)
-        self.aspect: float = float(aspect)
-        self.near: float = float(near)
-        self.far: float = float(far)
+        self._fovy_ = fovy
+        self._aspect_ = aspect
+        self._near_ = near
+        self._far_ = far
 
-    def get_projection_matrix(self) -> Matrix44Type:
+    @lazy_property_initializer_writable
+    @classmethod
+    def _fovy_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _aspect_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _near_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _far_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
+    def _projection_matrix_(
+        cls,
+        fovy: Real,
+        aspect: Real,
+        near: Real,
+        far: Real
+    ) -> Matrix44Type:
         return pyrr.matrix44.create_perspective_projection(
-            self.fovy,
-            self.aspect,
-            self.near,
-            self.far
+            fovy,
+            aspect,
+            near,
+            far
         )

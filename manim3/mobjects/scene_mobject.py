@@ -1,3 +1,4 @@
+"""
 __all__ = ["SceneMobject"]
 
 
@@ -44,7 +45,7 @@ class SceneMobject(SkiaMobject):
         print("Called SceneMobject")
         scene.render()
         #print(bool(fbo.read().lstrip(b"\x00")))
-        #for mobject in self.get_descendents():
+        #for mobject in self.get_descendants():
         #    shader_data = mobject.setup_shader_data(self.camera)
         #    if shader_data is None:
         #        continue
@@ -70,3 +71,4 @@ class SceneMobject(SkiaMobject):
                 #components=4
             )
         )
+"""

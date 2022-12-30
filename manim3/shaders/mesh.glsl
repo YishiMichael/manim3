@@ -6,7 +6,7 @@
 
 in mat4 in_projection_matrix;
 in mat4 in_view_matrix;
-in mat4 in_model_matrix;
+//in mat4 in_model_matrix;
 in vec3 in_position;
 in vec4 in_color;
 #if defined USE_UV
@@ -23,7 +23,7 @@ void main() {
     #if defined USE_UV
         vert_uv = in_uv;
     #endif
-    gl_Position = in_projection_matrix * in_view_matrix * in_model_matrix * vec4(in_position, 1.0);
+    gl_Position = in_projection_matrix * in_view_matrix * vec4(in_position, 1.0);
 }
 
 

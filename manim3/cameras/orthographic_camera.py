@@ -6,6 +6,7 @@ import pyrr
 from ..cameras.camera import Camera
 from ..constants import CAMERA_FAR, CAMERA_NEAR
 from ..constants import FRAME_X_RADIUS, FRAME_Y_RADIUS
+from ..utils.lazy import lazy_property, lazy_property_initializer_writable
 from ..custom_typing import *
 
 
@@ -20,19 +21,59 @@ class OrthographicCamera(Camera):
         far: Real = CAMERA_FAR
     ):
         super().__init__()
-        self.left: float = float(left)
-        self.right: float = float(right)
-        self.top: float = float(top)
-        self.bottom: float = float(bottom)
-        self.near: float = float(near)
-        self.far: float = float(far)
+        self._left_ = left
+        self._right_ = right
+        self._top_ = top
+        self._bottom_ = bottom
+        self._near_ = near
+        self._far_ = far
 
-    def get_projection_matrix(self) -> Matrix44Type:
+    @lazy_property_initializer_writable
+    @classmethod
+    def _left_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _right_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _top_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _bottom_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _near_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _far_(cls) -> Real:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
+    def _projection_matrix_(
+        cls,
+        left: Real,
+        right: Real,
+        top: Real,
+        bottom: Real,
+        near: Real,
+        far: Real
+    ) -> Matrix44Type:
         return pyrr.matrix44.create_orthogonal_projection(
-            self.left,
-            self.right,
-            self.top,
-            self.bottom,
-            self.near,
-            self.far
+            left,
+            right,
+            top,
+            bottom,
+            near,
+            far
         )

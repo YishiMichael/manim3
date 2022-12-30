@@ -8,3 +8,4 @@ pyrr
 skia-pathops
 skia-python
 toml
+trimesh

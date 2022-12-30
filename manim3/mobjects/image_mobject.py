@@ -37,23 +37,23 @@ class ImageMobject(SkiaMobject):
         )
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _image_() -> skia.Image:
+    @classmethod
+    def _image_(cls) -> skia.Image:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _paint_() -> Paint | None:
+    @classmethod
+    def _paint_(cls) -> Paint | None:
         return None
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _frame_() -> skia.Rect:
+    @classmethod
+    def _frame_(cls) -> skia.Rect:
         return NotImplemented
 
     @lazy_property
     @classmethod
-    def _color_map_(
+    def _uniform_color_map_texture_(
         cls,
         image: skia.Image,
         paint: Paint | None

@@ -31,18 +31,18 @@ class PathMobject(SkiaMobject):
             self.set_path(path)
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _path_() -> Path:
+    @classmethod
+    def _path_(cls) -> Path:
         return Path()
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _disable_fill_() -> bool:
+    @classmethod
+    def _disable_fill_(cls) -> bool:
         return False
 
     @lazy_property_initializer
-    @staticmethod
-    def _fill_paint_() -> Paint:
+    @classmethod
+    def _fill_paint_(cls) -> Paint:
         return Paint(
             anti_alias=True,
             style=skia.Paint.kFill_Style,
@@ -52,13 +52,13 @@ class PathMobject(SkiaMobject):
         )
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _disable_stroke_() -> bool:
+    @classmethod
+    def _disable_stroke_(cls) -> bool:
         return False
 
     @lazy_property_initializer
-    @staticmethod
-    def _stroke_paint_() -> Paint:
+    @classmethod
+    def _stroke_paint_(cls) -> Paint:
         return Paint(
             anti_alias=True,
             style=skia.Paint.kStroke_Style,
@@ -68,13 +68,13 @@ class PathMobject(SkiaMobject):
         )
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _draw_stroke_behind_fill_() -> bool:
+    @classmethod
+    def _draw_stroke_behind_fill_(cls) -> bool:
         return False
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _frame_buff_() -> tuple[float, float]:
+    @classmethod
+    def _frame_buff_(cls) -> tuple[float, float]:
         return (0.25, 0.25)
 
     @lazy_property
@@ -103,7 +103,7 @@ class PathMobject(SkiaMobject):
 
     @lazy_property
     @classmethod
-    def _color_map_(
+    def _uniform_color_map_texture_(
         cls,
         paints: list[Paint],
         frame: skia.Rect,
@@ -140,7 +140,7 @@ class PathMobject(SkiaMobject):
         broadcast: bool = True,
         **kwargs
     ):
-        for mobject in self.get_descendents(broadcast=broadcast):
+        for mobject in self.get_descendants(broadcast=broadcast):
             if not isinstance(mobject, PathMobject):
                 continue
             mobject.set_local_fill(**kwargs)
@@ -159,7 +159,7 @@ class PathMobject(SkiaMobject):
         broadcast: bool = True,
         **kwargs
     ):
-        for mobject in self.get_descendents(broadcast=broadcast):
+        for mobject in self.get_descendants(broadcast=broadcast):
             if not isinstance(mobject, PathMobject):
                 continue
             mobject.set_local_stroke(**kwargs)
@@ -194,7 +194,7 @@ class PathMobject(SkiaMobject):
         if stroke_color is not None:
             stroke_kwargs["opacity"] = stroke_opacity
 
-        for mobject in self.get_descendents(broadcast=broadcast):
+        for mobject in self.get_descendants(broadcast=broadcast):
             if not isinstance(mobject, PathMobject):
                 continue
             if draw_stroke_behind_fill is not None:

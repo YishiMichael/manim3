@@ -107,12 +107,12 @@ class StringMobject(SVGMobject):
 
     @abstractmethod
     def get_file_path_by_content(self, content: str) -> str:
-        raise NotImplementedError
+        pass
 
     def get_labels(self) -> list[int]:
         labels_count = len(self.labelled_spans)
         if labels_count == 1:
-            return [0] * len(self.children)
+            return [0] * len(self.get_children())
 
         labelled_content = self.get_content(is_labelled=True)
         file_path = self.get_file_path_by_content(labelled_content)
@@ -126,16 +126,16 @@ class StringMobject(SVGMobject):
                 #"stroke_opacity": 0.0
             }
         )
-        if len(self.children) != len(labelled_svg.children):
+        if len(self.get_children()) != len(labelled_svg.get_children()):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."
             )
-            return [0] * len(self.children)
+            return [0] * len(self.get_children())
 
         self.rearrange_children_by_positions(labelled_svg)
         unrecognizable_colors = []
         labels = []
-        for child in labelled_svg.children:
+        for child in labelled_svg.get_children():
             label = self.color_to_int(child._fill_paint_.color)
             if label >= labels_count:
                 unrecognizable_colors.append(label)
@@ -160,7 +160,7 @@ class StringMobject(SVGMobject):
         # each child is labelled by the nearest one of `labelled_svg`.
         # The correctness cannot be ensured, since the svg may
         # change significantly after inserting color commands.
-        if not labelled_svg.children:
+        if not labelled_svg.get_children():
             return
 
         bb_0 = self.get_bounding_box()
@@ -168,12 +168,12 @@ class StringMobject(SVGMobject):
         labelled_svg.move_to(self).scale(bb_1.radius / bb_0.radius)
 
         distance_matrix = cdist(
-            [child.get_center() for child in self.children],
-            [child.get_center() for child in labelled_svg.children]
+            [child.get_center() for child in self.get_children()],
+            [child.get_center() for child in labelled_svg.get_children()]
         )
         _, indices = linear_sum_assignment(distance_matrix)
         new_children = [
-            labelled_svg.children[index]
+            labelled_svg.get_children()[index]
             for index in indices
         ]
         labelled_svg.set_children(new_children)
@@ -235,9 +235,9 @@ class StringMobject(SVGMobject):
     #def hex_to_int(rgb_hex: str) -> int:
     #    return int(rgb_hex[1:], 16)
 
-    #@staticmethod
-    #def int_to_hex(rgb_int: int) -> str:
-    #    return f"#{rgb_int:06x}".upper()
+    @staticmethod
+    def int_to_hex(rgb_int: int) -> str:
+        return f"#{rgb_int:06x}".upper()
 
     # Parsing
 
@@ -443,46 +443,46 @@ class StringMobject(SVGMobject):
     @classmethod
     @abstractmethod
     def get_command_matches(cls, string: str) -> list[re.Match]:
-        raise NotImplementedError
+        pass
 
     @classmethod
     @abstractmethod
     def get_command_flag(cls, match_obj: re.Match) -> int:
-        raise NotImplementedError
+        pass
 
     @classmethod
     @abstractmethod
     def replace_for_content(cls, match_obj: re.Match) -> str:
-        raise NotImplementedError
+        pass
 
     @classmethod
     @abstractmethod
     def replace_for_matching(cls, match_obj: re.Match) -> str:
-        raise NotImplementedError
+        pass
 
     @classmethod
     @abstractmethod
     def get_attr_dict_from_command_pair(
         cls, open_command: re.Match, close_command: re.Match,
     ) -> dict[str, str] | None:
-        raise NotImplementedError
+        pass
 
     @classmethod
     @abstractmethod
     def get_command_string(
         cls, attr_dict: dict[str, str], is_end: bool, label: int | None
     ) -> str:
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def get_configured_items(self) -> list[tuple[Span, dict[str, str]]]:
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def get_content_prefix_and_suffix(
         self, is_labelled: bool
     ) -> tuple[str, str]:
-        raise NotImplementedError
+        pass
 
     # Selector
 
@@ -565,7 +565,7 @@ class StringMobject(SVGMobject):
     ) -> PathGroup:
         return PathGroup(*(
             PathGroup(*(
-                self.children[child_index]
+                self.get_children()[child_index]
                 for child_index in indices_list
             ))
             for indices_list in indices_lists

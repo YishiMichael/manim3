@@ -7,140 +7,190 @@ __all__ = [
 
 
 from abc import ABC
-from typing import Callable, ClassVar, Concatenate, Generic, ParamSpec, Type, TypeVar, overload
+import inspect
+from typing import Any, Callable, ClassVar, Concatenate, Generic, ParamSpec, TypeVar, overload
+
+from ..utils.node import Node
 
 
 _T = TypeVar("_T")
 _R = TypeVar("_R")
 _P = ParamSpec("_P")
+_Annotation = Any
 _LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
 
 
-class lazy_property(Generic[_T]):
+#class ParameterNode(Node):
+#    def __init__(self, name: str, annotation: _Annotation):
+#        self.name: str = name
+#        self.annotation: _Annotation = annotation
+#        super().__init__()
+
+
+class lazy_property(Node, Generic[_LazyBaseT, _T]):
     def __init__(self, class_method: Callable[..., _T]):
-        assert isinstance(class_method, classmethod)
-        self.class_method: Callable[..., _T] = class_method.__func__
-        code = class_method.__func__.__code__
-        self.varnames: list[str] = [
-            f"_{varname}_"
-            for varname in code.co_varnames[1:code.co_argcount]  # ignore cls
-        ]
-        self.values: dict[LazyBase, _T] = {}
-        self.requires_update: dict[LazyBase, bool] = {}
+        #assert isinstance(method, classmethod)
+        method = class_method.__func__
+        self.method: Callable[..., _T] = method
+        signature = inspect.signature(method)
+        #node = ParameterNode(method.__name__, signature.return_annotation)
+        #node.set_children(
+        #    ParameterNode(f"_{parameter.name}_", parameter.annotation)
+        #    for parameter in list(signature.parameters.values())[1:]  # ignores cls
+        #)
+        #self.parameter_node: ParameterNode = node
+        self.name: str = method.__name__
+        self.annotation: _Annotation = signature.return_annotation
+        #self.node: ParameterNode = ParameterNode(method.__name__, signature.return_annotation)
+        self.parameters: dict[str, _Annotation] = {
+            f"_{parameter.name}_": parameter.annotation
+            for parameter in list(signature.parameters.values())[1:]
+        }
+        self.value_dict: dict[_LazyBaseT, _T] = {}
+        self.requires_update: dict[_LazyBaseT, bool] = {}
+        self.release_method: Callable[[_T], None] | None = None
+        super().__init__()
 
     @overload
-    def __get__(self, instance: None, owner: "Type[LazyBase] | None" = None) -> "lazy_property": ...
+    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T]": ...
 
     @overload
-    def __get__(self, instance: "LazyBase", owner: "Type[LazyBase] | None" = None) -> _T: ...
+    def __get__(self, instance: _LazyBaseT, owner: type[_LazyBaseT] | None = None) -> _T: ...
 
-    def __get__(self, instance: "LazyBase | None", owner: "Type[LazyBase] | None" = None) -> "lazy_property | _T":
+    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T] | _T":
         if instance is None:
             return self
         if not self.requires_update[instance]:
-            return self.values[instance]
-        value = self.class_method(owner, *(
-            instance.__getattribute__(varname)
-            for varname in self.varnames
+            return self.value_dict[instance]
+        if owner is None:
+            owner = type(instance)
+        if self.release_method is not None:
+            if instance in self.value_dict:
+                self.release_method(self.value_dict[instance])
+        value = self.method(owner, *(
+            instance.__getattribute__(parameter)
+            for parameter in self.parameters
         ))
-        self.values[instance] = value
+        self.value_dict[instance] = value
         self.requires_update[instance] = False
         return value
 
-    def add_instance(self, instance: "LazyBase") -> None:
+    def add_instance(self, instance: _LazyBaseT) -> None:
         self.requires_update[instance] = True
 
+    def releaser(self, release_method: Callable[[_T], None]) -> Callable[[_T], None]:
+        self.release_method = release_method
+        return release_method
 
-class lazy_property_initializer(Generic[_T]):
-    def __init__(self, static_method: Callable[[], _T]):
-        assert isinstance(static_method, staticmethod)
-        self.static_method: Callable[[], _T] = static_method.__func__
-        self.values: dict[LazyBase, _T] = {}
+    def _expire_instance(self, instance: _LazyBaseT) -> None:
+        #for expired_prop in self._EXPIRE_DICT[initializer]:
+        for expired_prop in self.get_ancestors():
+            expired_prop.requires_update[instance] = True
+
+
+class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
+    #def __init__(self, method: Callable[[type[_LazyBaseT]], _T]):
+    #    assert isinstance(method, classmethod)
+    #    self.method: Callable[[type[_LazyBaseT]], _T] = method.__func__
+    #    self.values: dict[LazyBase, _T] = {}
 
     @overload
-    def __get__(self, instance: None, owner: "Type[LazyBase] | None" = None) -> "lazy_property_initializer": ...
+    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_initializer[_LazyBaseT, _T]": ...
 
     @overload
-    def __get__(self, instance: "LazyBase", owner: "Type[LazyBase] | None" = None) -> _T: ...
+    def __get__(self, instance: _LazyBaseT, owner: type[_LazyBaseT] | None = None) -> _T: ...
 
-    def __get__(self, instance: "LazyBase | None", owner: "Type[LazyBase] | None" = None) -> "lazy_property_initializer | _T":
+    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_initializer[_LazyBaseT, _T] | _T":
         if instance is None:
             return self
-        return self.values[instance]
+        return self.value_dict[instance]
 
-    def __set__(self, instance: "LazyBase", value: _T) -> None:
+    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
         raise ValueError("Attempting to set a readonly property")
 
-    def add_instance(self, instance: "LazyBase") -> None:
-        self.values[instance] = self.static_method()
+    def add_instance(self, instance: _LazyBaseT) -> None:
+        self.value_dict[instance] = self.method(instance.__class__)
 
     def updater(self, update_method: Callable[Concatenate[_LazyBaseT, _P], _R]) -> Callable[Concatenate[_LazyBaseT, _P], _R]:
         def new_update_method(instance: _LazyBaseT, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-            instance._expire(self)
+            self._expire_instance(instance)
             return update_method(instance, *args, **kwargs)
         return new_update_method
 
 
-class lazy_property_initializer_writable(lazy_property_initializer[_T]):
-    def __set__(self, instance: "LazyBase", value: _T) -> None:
-        instance._expire(self)
-        self.values[instance] = value
+class lazy_property_initializer_writable(lazy_property_initializer[_LazyBaseT, _T]):
+    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
+        self._expire_instance(instance)
+        self.value_dict[instance] = value
 
 
 class LazyBase(ABC):
-    _INITIALIZERS: ClassVar[set[lazy_property_initializer]] = set()
-    _PROPERTIES: ClassVar[set[lazy_property]] = set()
-    _EXPIRE_DICT: ClassVar[dict[lazy_property_initializer, set[lazy_property]]] = {}
+    #_INITIALIZERS: ClassVar[dict[str, lazy_property_initializer]] = {}
+    _PROPERTIES: ClassVar[list[lazy_property]]
+    #_EXPIRE_DICT: ClassVar[dict[lazy_property, set[lazy_property]]] = {}
 
     def __init_subclass__(cls) -> None:
-        initializers: dict[str, lazy_property_initializer] = {}
-        properties: dict[str, lazy_property] = {}
-        expire_dict: dict[lazy_property_initializer, set[lazy_property]] = {}
-        parameters_dict: dict[str, list[str]] = {}
+        #initializers: dict[str, lazy_property_initializer] = {}
 
-        mathods = {}
+        methods = {}
         for parent_cls in cls.__mro__[::-1]:
-            mathods.update(parent_cls.__dict__)
-        for name, method in mathods.items():
-            #if not name.startswith("_") and name.endswith("_"):
-            #    continue
-            if isinstance(method, lazy_property_initializer):
-                initializers[name] = method
-            elif isinstance(method, lazy_property):
-                properties[name] = method
-                parameters_dict[name] = method.varnames
+            methods.update(parent_cls.__dict__)  # type: ignore
 
-        for name, initializer in initializers.items():
-            expired = set()
-            extended = {
-                param for param, args in parameters_dict.items()
-                if name in args
-            }
-            while expired != extended:
-                expired = extended
-                extended = expired.union({
-                    param for param, args in parameters_dict.items()
-                    if any(arg in args for arg in expired)
-                })
-            expire_dict[initializer] = {
-                properties[property_name]
-                for property_name in expired
-            }
+        properties: dict[str, lazy_property] = {
+            name: method
+            for name, method in methods.items()
+            if isinstance(method, lazy_property)
+        }
+        for prop in properties.values():
+            if isinstance(prop, lazy_property_initializer):
+                assert not prop.parameters
+                continue
+            for param_name, param_annotation in prop.parameters.items():
+                param_node = properties[param_name]
+                assert param_node.annotation == param_annotation, \
+                    AssertionError(f"Type annotation mismatched: {param_node.annotation} and {param_annotation}")
+                prop.add(param_node)
 
-        cls._INITIALIZERS = set(initializers.values())
-        cls._PROPERTIES = set(properties.values())
-        cls._EXPIRE_DICT = expire_dict
+        #expire_dict: dict[lazy_property_initializer, set[lazy_property]] = {}
+
+        #assemble_nodes([
+        #    method.node
+        #    for method in properties.values()
+        #])
+
+        #for name, initializer in initializers.items():
+        #    expired = set()
+        #    extended = {
+        #        param for param, args in parameters_dict.items()
+        #        if name in args
+        #    }
+        #    while expired != extended:
+        #        expired = extended
+        #        extended = expired.union({
+        #            param for param, args in parameters_dict.items()
+        #            if any(arg in args for arg in expired)
+        #        })
+        #    expire_dict[initializer] = {
+        #        properties[property_name]
+        #        for property_name in expired
+        #    }
+
+        #cls._INITIALIZERS = initializers
+        cls._PROPERTIES = list(properties.values())
+        #cls._EXPIRE_DICT = {
+        #    prop:
+        #}
+        return super().__init_subclass__()
 
     def __init__(self) -> None:
-        for initializer in self._INITIALIZERS:
-            initializer.add_instance(self)
+        #for initializer in self._INITIALIZERS.values():
+        #    initializer.add_instance(self)
         for prop in self._PROPERTIES:
             prop.add_instance(self)
         super().__init__()
 
-    def _expire(self, initializer: lazy_property_initializer) -> None:
-        for expired_prop in self._EXPIRE_DICT[initializer]:
-            expired_prop.requires_update[self] = True
+    #def _is_expired(self, name: str) -> bool:
+    #    return self._PROPERTIES[name].requires_update[self]
 
 
 """
@@ -151,8 +201,8 @@ class A(LazyBase):
         return int(q)
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _q_() -> str:
+    @classmethod
+    def _q_(cls) -> str:
         return "2"
 
 

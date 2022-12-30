@@ -1,5 +1,5 @@
 __all__ = [
-    "BoundingBox3D",
+    #"BoundingBox3D",
     "Mobject",
     "Group"
 ]
@@ -8,24 +8,29 @@ __all__ = [
 import copy
 from dataclasses import dataclass
 from functools import reduce
-from typing import Generator, Iterable, Iterator, TypeVar
+import itertools as it
+from typing import Iterator
 import warnings
+#from manimlib.mobject.mobject import moderngl
 
+import moderngl
 import numpy as np
-import pyrr
+#import pyrr
 from scipy.spatial.transform import Rotation
+from trimesh.parent import Geometry3D
+
 
 #from ..animations.animation import Animation
-from ..cameras.camera import Camera
-from ..geometries.geometry import Geometry
-from ..cameras.perspective_camera import PerspectiveCamera
-from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
-from ..utils.renderable import Renderable
+#from ..cameras.camera import Camera
+#from ..cameras.perspective_camera import PerspectiveCamera
+#from ..utils.context import ContextSingleton
+from ..utils.context_singleton import ContextSingleton
+from ..utils.lazy import lazy_property_initializer
+from ..utils.node import Node
+from ..utils.renderable import IntermediateDepthTextures, IntermediateTextures, Renderable
+#from ..utils.renderable import LazyBase
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
-
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -34,193 +39,92 @@ class BoundingBox3D:
     radius: Vector3Type
 
 
-class Mobject(Renderable):
-    def __init__(self) -> None:
-        self.parents: list["Mobject"] = []
-        self.children: list["Mobject"] = []
-
-        #self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
-        self.animations: list["Animation"] = []  # TODO: circular typing
-        super().__init__()
+class Mobject(Node, Renderable):
+    #def __init__(self) -> None:
+    #    #self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
+    #    self.render_passes: list["RenderPass"] = []
+    #    self.animations: list["Animation"] = []  # TODO: circular typing
+    #    super().__init__()
 
     def __iter__(self) -> Iterator["Mobject"]:
         return iter(self.get_children())
 
     def __getitem__(self, i: int | slice):
         if isinstance(i, int):
-            return self.children.__getitem__(i)
-        return Group(*self.children.__getitem__(i))
-
-    # family
-
-    def get_parents(self) -> list["Mobject"]:
-        return self.parents
-
-    def get_children(self) -> list["Mobject"]:
-        return self.children
-
-    def _bind_child(self, node, index: int | None = None):
-        if node.includes(self):
-            raise ValueError(f"'{node}' has already included '{self}'")
-        if index is not None:
-            self.children.insert(index, node)
-        else:
-            self.children.append(node)
-        node.parents.append(self)
-        return self
-
-    def _unbind_child(self, node):
-        self.children.remove(node)
-        node.parents.remove(self)
-        return self
-
-    @classmethod
-    def remove_redundancies(cls, l: Iterable[T]) -> list[T]:
-        """
-        Used instead of list(set(l)) to maintain order
-        Keeps the first occurrence of each element
-        """
-        return list(dict.fromkeys(l))
-
-    def _iter_ancestors(self) -> Generator["Mobject", None, None]:
-        yield self
-        for parent in self.get_parents():
-            yield from parent._iter_ancestors()
-
-    def _iter_descendents(self) -> Generator["Mobject", None, None]:
-        yield self
-        for child in self.get_children():
-            yield from child._iter_descendents()
-
-    def get_ancestors(self, *, broadcast: bool = True) -> list["Mobject"]:  # TODO: order
-        if not broadcast:
-            return [self]
-        return self.remove_redundancies(self._iter_ancestors())
-
-    def get_descendents(self, *, broadcast: bool = True) -> list["Mobject"]:
-        if not broadcast:
-            return [self]
-        return self.remove_redundancies(self._iter_descendents())
-
-    def includes(self, node) -> bool:
-        return node in self._iter_descendents()
-
-    #def clear_bindings(self) -> None:
-    #    for parent in self.parent:
-    #        parent.children.remove(self)
-    #    for child in self.children:
-    #        child.parent.remove(self)
-    #    #for parent in self.parent:
-    #    #    for child in self.children:
-    #    #        parent._bind_child(child, loop_check=False)
-    #    self.parent.clear()
-    #    self.children.clear()
-
-    def index(self, node) -> int:
-        return self.get_children().index(node)
-
-    def insert(self, index: int, *nodes):
-        for i, node in enumerate(nodes, start=index):
-            self._bind_child(node, index=i)
-        return self
-
-    def add(self, *nodes):
-        for node in nodes:
-            self._bind_child(node)
-        return self
-
-    def remove(self, *nodes):
-        for node in nodes:
-            self._unbind_child(node)
-        return self
-
-    def pop(self, index: int = -1):
-        node = self.children[index]
-        self._unbind_child(node)
-        return node
-
-    def clear(self):
-        for child in self.children[:]:
-            self._unbind_child(child)
-        return self
-
-    def clear_parents(self):
-        for parent in self.parents:
-            parent._unbind_child(self)
-        return self
-
-    def set_children(self, children: Iterable["Mobject"]):
-        self.clear()
-        self.add(*children)
-        return self
+            return self.get_children().__getitem__(i)
+        return Group(*self.get_children().__getitem__(i))
 
     def copy(self):
         return copy.copy(self)  # TODO
 
     # matrix & transform
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _matrix_() -> Matrix44Type:
-        return np.identity(4)
+    #@lazy_property_initializer_writable
+    #@staticmethod
+    #def _matrix_() -> Matrix44Type:
+    #    return np.identity(4)
 
-    @lazy_property_initializer
-    @staticmethod
-    def _geometry_matrix_() -> Matrix44Type:
-        return np.identity(4)
+    #@lazy_property_initializer
+    #@staticmethod
+    #def _geometry_matrix_() -> Matrix44Type:
+    #    return np.identity(4)
 
-    @lazy_property
-    @classmethod
-    def _composite_matrix_(cls, geometry_matrix: Matrix44Type, matrix: Matrix44Type) -> Matrix44Type:
-        return geometry_matrix @ matrix
-
-    @_matrix_.updater
-    def set_local_matrix(self, matrix: Matrix44Type):
-        self._matrix_ = matrix
-        return self
+    #@lazy_property
+    #@classmethod
+    #def _composite_matrix_(cls, geometry_matrix: Matrix44Type, matrix: Matrix44Type) -> Matrix44Type:
+    #    return geometry_matrix @ matrix
 
     @classmethod
     def matrix_from_translation(cls, vector: Vector3Type) -> Matrix44Type:
-        return pyrr.matrix44.create_from_translation(vector)
+        m = np.identity(4)
+        m[:3, 3] = vector
+        return m
 
     @classmethod
-    def matrix_from_scale(cls, factor_vector: Vector3Type) -> Matrix44Type:
-        return pyrr.matrix44.create_from_scale(factor_vector)
+    def matrix_from_scale(cls, factor: Real | Vector3Type) -> Matrix44Type:
+        m = np.identity(4)
+        m[:3, :3] *= factor
+        return m
 
     @classmethod
     def matrix_from_rotation(cls, rotation: Rotation) -> Matrix44Type:
-        return pyrr.matrix44.create_from_matrix33(rotation.as_matrix())
+        m = np.identity(4)
+        m[:3, :3] = rotation.as_matrix()
+        return m
 
     @lazy_property_initializer
-    @staticmethod
-    def _geometry_() -> Geometry:
+    @classmethod
+    def _geometry_(cls) -> Geometry3D:
         return NotImplemented
 
-    @lazy_property
-    @classmethod
-    def _geometry_sample_points_(cls, geometry: Geometry) -> Vector3ArrayType:
-        return geometry.positions
+    @_geometry_.updater
+    def apply_transform_locally(self, matrix: Matrix44Type):
+        self._geometry_.apply_transform(matrix)
+        return self
 
-    # TODO: lazify bounding boxes
+    #@lazy_property_initializer
+    #@staticmethod
+    #def _geometry_sample_points_() -> Vector3ArrayType:
+    #    return NotImplemented
+    #    #return geometry.positions
 
     def get_bounding_box(
         self,
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
-        points = [
-            pyrr.matrix44.apply_to_vector(
-                mobject._composite_matrix_, point
-            )
-            for mobject in self.get_descendents(broadcast=broadcast)
-            for point in mobject._geometry_sample_points_
-        ]
-        if not points:
+        bounds_array = np.array([
+            bounds
+            for mobject in self.get_descendants(broadcast=broadcast)
+            if (bounds := mobject._geometry_.bounds) is not None
+        ])
+        if not bounds_array.shape[0]:
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
             origin = ORIGIN
             radius = ORIGIN
         else:
-            minimum, maximum = pyrr.aabb.create_from_points(points)
+            minimum = bounds_array[:, 0].min(axis=0)
+            maximum = bounds_array[:, 1].max(axis=0)
             origin = (maximum + minimum) / 2.0
             radius = (maximum - minimum) / 2.0
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division
@@ -254,19 +158,19 @@ class Mobject(Renderable):
     ) -> Vector3Type:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
-    def apply_matrix_directly(
-        self,
-        matrix: Matrix44Type,
-        *,
-        broadcast: bool = True
-    ):
-        #if np.isclose(np.linalg.det(matrix), 0.0):
-        #    warnings.warn("Applying a singular matrix transform")
-        for mobject in self.get_descendents(broadcast=broadcast):
-            mobject.set_local_matrix(mobject._matrix_ @ matrix)
-        return self
+    #def apply_matrix_directly(
+    #    self,
+    #    matrix: Matrix44Type,
+    #    *,
+    #    broadcast: bool = True
+    #):
+    #    #if np.isclose(np.linalg.det(matrix), 0.0):
+    #    #    warnings.warn("Applying a singular matrix transform")
+    #    for mobject in self.get_descendants(broadcast=broadcast):
+    #        mobject.apply_transform(matrix)
+    #    return self
 
-    def apply_matrix(
+    def apply_transform(
         self,
         matrix: Matrix44Type,
         *,
@@ -286,10 +190,10 @@ class Mobject(Renderable):
             matrix,
             self.matrix_from_translation(about_point)
         ))
-        self.apply_matrix_directly(
-            matrix,
-            broadcast=broadcast
-        )
+        #if np.isclose(np.linalg.det(matrix), 0.0):
+        #    warnings.warn("Applying a singular matrix transform")
+        for mobject in self.get_descendants(broadcast=broadcast):
+            mobject.apply_transform_locally(matrix)
         return self
 
     def shift(
@@ -303,7 +207,7 @@ class Mobject(Renderable):
             vector *= coor_mask
         matrix = self.matrix_from_translation(vector)
         # `about_point` and `about_edge` are meaningless when shifting
-        self.apply_matrix(
+        self.apply_transform(
             matrix,
             broadcast=broadcast
         )
@@ -317,8 +221,8 @@ class Mobject(Renderable):
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
     ):
-        matrix = self.matrix_from_scale(np.ones(3) * factor)
-        self.apply_matrix(
+        matrix = self.matrix_from_scale(factor)
+        self.apply_transform(
             matrix,
             about_point=about_point,
             about_edge=about_edge,
@@ -335,7 +239,7 @@ class Mobject(Renderable):
         broadcast: bool = True
     ):
         matrix = self.matrix_from_rotation(rotation)
-        self.apply_matrix(
+        self.apply_transform(
             matrix,
             about_point=about_point,
             about_edge=about_edge,
@@ -473,26 +377,86 @@ class Mobject(Renderable):
         )
         return self
 
+    # render
+
+    def _render(self, scene: "Scene", target_framebuffer: moderngl.Framebuffer) -> None:
+        # Implemented in subclasses
+        pass
+
+    def _render_full(self, scene: "Scene", target_framebuffer: moderngl.Framebuffer) -> None:
+        render_passes = self._render_passes_
+        if not render_passes:
+            #target_framebuffer.clear()
+            target_framebuffer.use()
+            self._render(scene, target_framebuffer)
+            return
+
+        with IntermediateTextures.register(len(render_passes)) as textures:
+            with IntermediateDepthTextures.register(len(render_passes)) as depth_textures:
+                framebuffers = [
+                    ContextSingleton().framebuffer(
+                        color_attachments=(texture,),
+                        depth_attachment=depth_texture
+                    )
+                    for texture, depth_texture in zip(textures, depth_textures)
+                ]
+                framebuffers.append(target_framebuffer)
+                framebuffers[0].use()
+                self._render(scene, framebuffers[0])
+                for render_pass, (input_framebuffer, output_framebuffer) in zip(render_passes, it.pairwise(framebuffers)):
+                    output_framebuffer.use()
+                    render_pass._render(
+                        input_texture=input_framebuffer.color_attachments[0],
+                        input_depth_texture=input_framebuffer.depth_attachment,
+                        output_framebuffer=output_framebuffer,
+                        mobject=self,
+                        scene=scene
+                    )
+
+    @lazy_property_initializer
+    @classmethod
+    def _render_passes_(cls) -> list["RenderPass"]:
+        return []
+
+    @_render_passes_.updater
+    def add_pass(self, *render_passes: "RenderPass"):
+        for render_pass in render_passes:
+            self._render_passes_.append(render_pass)
+        return self
+
+    @_render_passes_.updater
+    def remove_pass(self, *render_passes: "RenderPass"):
+        for render_pass in render_passes:
+            self._render_passes_.remove(render_pass)
+        return self
+
     # animations
 
+    @lazy_property_initializer
+    @classmethod
+    def _animations_(cls) -> list["Animation"]:
+        return []
+
+    @_animations_.updater
     def animate(self, animation: "Animation"):
-        self.animations.append(animation)
+        self._animations_.append(animation)
         animation.start(self)
         return self
 
-    def update_dt(self, dt: Real):
-        for animation in self.animations[:]:
+    @_animations_.updater
+    def _update_dt(self, dt: Real):
+        for animation in self._animations_[:]:
             animation.update_dt(self, dt)
             if animation.expired():
-                self.animations.remove(animation)
+                self._animations_.remove(animation)
         return self
 
     # shader
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _camera_() -> Camera:
-        return PerspectiveCamera()
+    #@lazy_property_initializer_writable
+    #@classmethod
+    #def _camera_(cls) -> Camera:
+    #    return PerspectiveCamera()
 
     #@_camera.setter
     #def _camera(self, camera: Camera) -> None:

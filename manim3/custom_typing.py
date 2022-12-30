@@ -13,6 +13,7 @@ __all__ = [
     "Matrix44ArrayType",
     "ColorArrayType",
     "AttributeType",
+    "UniformType",
     "VertexIndicesType",
     "ColorType",
     "Span",
@@ -55,6 +56,16 @@ AttributeType = Union[
     Vector4ArrayType,
     Matrix33ArrayType,
     Matrix44ArrayType
+]
+UniformType = Union[
+    bool,
+    int,
+    float,
+    Vector2Type,
+    Vector3Type,
+    Vector4Type,
+    Matrix33Type,
+    Matrix44Type
 ]
 VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.int32]]
 

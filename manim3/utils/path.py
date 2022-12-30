@@ -28,24 +28,24 @@ class CurveInterpolantBase(LazyBase):
     @property
     @abstractmethod
     def _a_final_(self) -> float:
-        raise NotImplementedError
+        pass
 
     @property
     @abstractmethod
     def _l_final_(self) -> float:
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def a_to_p(self, a: Real) -> Vector2Type:
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def a_to_l(self, a: Real) -> float:
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def l_to_a(self, l: Real) -> float:
-        raise NotImplementedError
+        pass
 
     def a_ratio_to_p(self, a_ratio: Real) -> Vector2Type:
         return self.a_to_p(a_ratio * self._a_final_)
@@ -64,7 +64,7 @@ class CurveInterpolantBase(LazyBase):
 
     @abstractmethod
     def partial_by_a(self, a: Real):
-        raise NotImplementedError
+        pass
 
     def partial_by_l(self, l: Real):
         return self.partial_by_a(self.l_to_a(l))
@@ -90,8 +90,8 @@ class CurveInterpolant(Generic[_T], CurveInterpolantBase):
             self._children_.extend(children)
 
     @lazy_property_initializer
-    @staticmethod
-    def _children_() -> list[_T]:
+    @classmethod
+    def _children_(cls) -> list[_T]:
         return []
 
     @lazy_property
@@ -181,8 +181,8 @@ class BezierCurve(CurveInterpolantBase):
         self._points_ = points
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _points_() -> Vector2ArrayType:
+    @classmethod
+    def _points_(cls) -> Vector2ArrayType:
         return NotImplemented
 
     @lazy_property
@@ -347,8 +347,8 @@ class Path(LazyBase):
         return path
 
     @lazy_property_initializer_writable
-    @staticmethod
-    def _skia_path_() -> skia.Path:
+    @classmethod
+    def _skia_path_(cls) -> skia.Path:
         return skia.Path()
 
     @lazy_property
