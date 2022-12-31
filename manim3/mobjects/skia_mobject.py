@@ -1,7 +1,7 @@
 __all__ = ["SkiaMobject"]
 
 
-from abc import abstractmethod
+#from abc import abstractmethod
 from functools import reduce
 
 import moderngl
@@ -12,15 +12,15 @@ from trimesh import Trimesh
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.textured_mesh_mobject import TexturedMeshMobject
 from ..utils.context_singleton import ContextSingleton
-from ..utils.lazy import lazy_property, lazy_property_initializer
+from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
 
 
 class SkiaMobject(TexturedMeshMobject):
-    def __init__(self):
-        super().__init__()
-        self._enable_depth_test_ = False
-        self._cull_face_ = "front_and_back"
+    #def __init__(self):
+    #    super().__init__()
+    #    self._enable_depth_test_ = False
+    #    self._cull_face_ = "front_and_back"
 
     @lazy_property
     @classmethod
@@ -30,6 +30,11 @@ class SkiaMobject(TexturedMeshMobject):
             cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))  # order?
         ))
         return PlaneGeometry().apply_transform(frame_matrix)
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _enable_only_(cls) -> int:
+        return moderngl.BLEND
 
     @lazy_property_initializer
     @classmethod

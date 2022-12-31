@@ -103,5 +103,5 @@ class TexturedMeshMobject(MeshMobject):
             uniforms={},
             subroutines={},
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
+            enable_only=self._enable_only_
         ))

@@ -135,7 +135,7 @@ class Scene(Mobject):
     def _render_scene(self) -> None:
         self._render_full(self, self.framebuffer)
 
-    def _update_scene_dt(self, dt: Real):
+    def _update_dt(self, dt: Real):
         for mobject in self.mobject.get_descendants():
             mobject._update_dt(dt)
         return self
@@ -163,7 +163,7 @@ class Scene(Mobject):
                 time.sleep(dt - delta_t)
             timestamp = time.time()
             window.clear()
-            self._update_scene_dt(dt)
+            self._update_dt(dt)
             self._render_scene()
             window.swap_buffers()
         return self

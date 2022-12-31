@@ -114,6 +114,7 @@ class PathMobject(SkiaMobject):
             int(frame.height() * PIXEL_PER_UNIT)
         )
         with surface as canvas:
+            #canvas.clear(color=skia.Color4f.kTransparent)
             canvas.concat(skia.Matrix.MakeRectToRect(
                 src=frame,
                 dst=skia.Rect.Make(surface.imageInfo().bounds()),

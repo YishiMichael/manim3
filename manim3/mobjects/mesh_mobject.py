@@ -96,6 +96,11 @@ class MeshMobject(Mobject):
     def _color_(cls) -> ColorArrayType:
         return np.ones(4)
 
+    @lazy_property_initializer_writable
+    @classmethod
+    def _enable_only_(cls) -> int:
+        return moderngl.BLEND | moderngl.DEPTH_TEST
+
     #@lazy_property_initializer
     #@classmethod
     #def _material_(cls) -> MeshMaterial:
@@ -180,7 +185,7 @@ class MeshMobject(Mobject):
             uniforms={},
             subroutines={},
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
+            enable_only=self._enable_only_
         ))
 
     #@lazy_property

@@ -12,7 +12,7 @@ class Node:
     def __init__(self, *args, **kwargs) -> None:
         self.__parents__: list = []
         self.__children__: list = []
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __iter__(self: Self) -> Iterator[Self]:
         return iter(self._children)
