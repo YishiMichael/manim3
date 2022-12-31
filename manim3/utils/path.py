@@ -97,12 +97,12 @@ class CurveInterpolant(Generic[_T], CurveInterpolantBase):
     @lazy_property
     @classmethod
     def _a_knots_(cls, children: list[_T]) -> FloatArrayType:
-        return np.insert(np.cumsum([child._a_final_ for child in children]), 0, 0.0)
+        return np.insert(np.cumsum([child._a_final_ for child in children], dtype=np.float32), 0, 0.0)
 
     @lazy_property
     @classmethod
     def _l_knots_(cls, children: list[_T]) -> FloatArrayType:
-        return np.insert(np.cumsum([child._l_final_ for child in children]), 0, 0.0)
+        return np.insert(np.cumsum([child._l_final_ for child in children], dtype=np.float32), 0, 0.0)
 
     @lazy_property
     @classmethod
@@ -165,7 +165,7 @@ class CurveInterpolant(Generic[_T], CurveInterpolantBase):
             Otherwise, returns `(i, target - array[i])` such that
             `0 <= i < len(array) - 1` and `array[i] < target <= array[i + 1]`.
             """
-            index = int(interp1d(array, np.array(range(len(array))) - 1.0, kind="next")(target))
+            index = int(interp1d(array, np.array(range(len(array)), dtype=np.float32) - 1.0, kind="next")(target))
             if index == -1:
                 return 0, 0.0
             return index, target - array[index]
@@ -233,7 +233,7 @@ class BezierCurve(CurveInterpolantBase):
         return a_l_interp(a_final)
 
     def a_to_p(self, a: Real) -> Vector2Type:
-        return self._gamma_(a)
+        return self._gamma_(a).astype(np.float32)
 
     def a_to_l(self, a: Real) -> float:
         return self._a_l_interp_(a)
@@ -247,14 +247,14 @@ class BezierCurve(CurveInterpolantBase):
             for n in range(1, self._order_ + 2)
         ]))
 
-    def rise_order_to(self, new_order: int):
-        new_points = self._points_
-        for n in range(self._order_ + 1, new_order + 1):
-            mat = np.zeros((n + 1, n))
-            mat[(np.arange(n), np.arange(n))] = np.arange(n, 0, -1) / n
-            mat[(np.arange(n) + 1, np.arange(n))] = np.arange(1, n + 1) / n
-            new_points = mat @ new_points
-        return BezierCurve(new_points)
+    #def rise_order_to(self, new_order: int):
+    #    new_points = self._points_
+    #    for n in range(self._order_ + 1, new_order + 1):
+    #        mat = np.zeros((n + 1, n))
+    #        mat[(np.arange(n), np.arange(n))] = np.arange(n, 0, -1) / n
+    #        mat[(np.arange(n) + 1, np.arange(n))] = np.arange(1, n + 1) / n
+    #        new_points = mat @ new_points
+    #    return BezierCurve(new_points)
 
 
 class Contour(CurveInterpolant[BezierCurve]):
@@ -308,14 +308,14 @@ class Path(LazyBase):
             ):
                 contour.append(BezierCurve(np.array([
                     np.array(list(point)) for point in points
-                ])))
+                ], dtype=np.float32)))
             elif verb == skia.Path.Verb.kConic_Verb:
                 # Approximate per conic curve with 8 quads
                 quad_points = skia.Path.ConvertConicToQuads(*points, iterator.conicWeight(), 3)
                 for i in range(0, len(quad_points), 2):
                     contour.append(BezierCurve(np.array([
                         np.array(list(point)) for point in quad_points[i:i + 3]
-                    ])))
+                    ], dtype=np.float32)))
             elif verb == skia.Path.Verb.kClose_Verb:
                 if contour:
                     contours.append(Contour(contour))

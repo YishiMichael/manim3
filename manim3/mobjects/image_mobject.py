@@ -53,7 +53,7 @@ class ImageMobject(SkiaMobject):
 
     @lazy_property
     @classmethod
-    def _uniform_color_map_texture_(
+    def _color_map_texture_(
         cls,
         image: skia.Image,
         paint: Paint | None

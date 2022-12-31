@@ -2,15 +2,13 @@ __all__ = ["ParametricSurfaceGeometry"]
 
 
 import numpy as np
-from trimesh import Trimesh
-from trimesh.visual import TextureVisuals
 from typing import Callable
 
-#from ..geometries.geometry import Geometry, GeometryAttributes
+from ..geometries.geometry import Geometry
 from ..custom_typing import *
 
 
-class ParametricSurfaceGeometry(Trimesh):
+class ParametricSurfaceGeometry(Geometry):
     def __init__(
         self,
         func: Callable[[float, float], Vector3Type],
@@ -27,38 +25,30 @@ class ParametricSurfaceGeometry(Trimesh):
         nw = index_grid[:, :-1, +1:]
         sw = index_grid[:, :-1, :-1]
         se = index_grid[:, +1:, :-1]
-        faces = np.ravel_multi_index(
+        indices = np.ravel_multi_index(
             tuple(np.stack((se, sw, ne, sw, nw, ne), axis=3)),
             (u_len, v_len)
-        ).reshape((-1, 3)).astype(np.int32)
+        ).flatten().astype(np.int32)
 
-        uv = np.stack(np.meshgrid(
+        uvs = np.stack(np.meshgrid(
             np.linspace(0.0, 1.0, u_len),
             np.linspace(0.0, 1.0, v_len),
             indexing="ij"
-        ), 2).reshape((-1, 2))
+        ), 2).reshape((-1, 2)).astype(np.float32)
         samples = np.stack(np.meshgrid(
             np.linspace(u_start, u_stop, u_len),
             np.linspace(v_start, v_stop, v_len),
             indexing="ij"
-        ), 2).reshape((-1, 2))
-        vertices = np.apply_along_axis(lambda p: func(*p), 1, samples)
+        ), 2).reshape((-1, 2)).astype(np.float32)
+        positions = np.apply_along_axis(lambda p: func(*p), 1, samples)
         #return GeometryAttributes(
         #    indices=indices,
         #    positions=positions,
         #    uvs=uvs
         #)
         super().__init__(
-            vertices=vertices,
-            faces=faces,
-            visual=TextureVisuals(uv=uv)
+            indices=indices,
+            positions=positions,
+            uvs=uvs
         )
-        #self.func: Callable[[float, float], Vector3Type] = func
-        #self.u_range: tuple[Real, Real] = u_range
-        #self.v_range: tuple[Real, Real] = v_range
-        #self.resolution: tuple[int, int] = resolution
-        
-
-    #def init_geometry_attributes(self) -> GeometryAttributes:
-    #    
-    #    # TODO: normals using `from scipy.misc import derivative`
+        # TODO: normals using `from scipy.misc import derivative`

@@ -1,6 +1,7 @@
 __all__ = ["OrthographicCamera"]
 
 
+import numpy as np
 import pyrr
 
 from ..cameras.camera import Camera
@@ -75,5 +76,6 @@ class OrthographicCamera(Camera):
             top,
             bottom,
             near,
-            far
+            far,
+            dtype=np.float32
         )

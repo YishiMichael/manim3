@@ -1,13 +1,11 @@
-#__all__ = [
-#    "GeometryAttributes",
-#    "Geometry"
-#]
+__all__ = ["Geometry"]
 
 
-#from abc import ABC, abstractmethod
-#from dataclasses import dataclass
+import moderngl
 
-#from ..custom_typing import *
+from ..utils.lazy import lazy_property, lazy_property_initializer_writable
+from ..utils.renderable import Renderable
+from ..custom_typing import *
 
 
 #@dataclass
@@ -17,13 +15,64 @@
 #    uvs: Vector2ArrayType
 
 
-#class Geometry(ABC):
-#    def __init__(self):
-#        attributes = self.init_geometry_attributes()
-#        self.indices: VertexIndicesType = attributes.indices
-#        self.positions: Vector3ArrayType = attributes.positions
-#        self.uvs: Vector2ArrayType = attributes.uvs
+class Geometry(Renderable):
+    def __init__(
+        self,
+        indices: VertexIndicesType,
+        positions: Vector3ArrayType,
+        uvs: Vector2ArrayType
+    ):
+        super().__init__()
+        #attributes = self.init_geometry_attributes()
+        self._indices_ = indices
+        self._positions_ = positions
+        self._uvs_ = uvs
 
-#    @abstractmethod
-#    def init_geometry_attributes(self) -> GeometryAttributes:
-#        pass
+    @lazy_property_initializer_writable
+    @classmethod
+    def _indices_(cls) -> VertexIndicesType:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _positions_(cls) -> Vector3ArrayType:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @classmethod
+    def _uvs_(cls) -> Vector2ArrayType:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
+    def _indices_buffer_(cls, indices: VertexIndicesType) -> moderngl.Buffer:
+        return cls._make_buffer(indices)
+
+    @_indices_buffer_.releaser
+    @staticmethod
+    def _indices_buffer_releaser(indices_buffer: moderngl.Buffer) -> None:
+        indices_buffer.release()
+
+    @lazy_property
+    @classmethod
+    def _positions_buffer_(cls, positions: Vector3ArrayType) -> moderngl.Buffer:
+        return cls._make_buffer(positions)
+
+    @_positions_buffer_.releaser
+    @staticmethod
+    def _positions_buffer_releaser(positions_buffer: moderngl.Buffer) -> None:
+        positions_buffer.release()
+
+    @lazy_property
+    @classmethod
+    def _uvs_buffer_(cls, uvs: Vector2ArrayType) -> moderngl.Buffer:
+        return cls._make_buffer(uvs)
+
+    @_uvs_buffer_.releaser
+    @staticmethod
+    def _uvs_buffer_releaser(uvs_buffer: moderngl.Buffer) -> None:
+        uvs_buffer.release()
+
+    #@abstractmethod
+    #def init_geometry_attributes(self) -> GeometryAttributes:
+    #    pass

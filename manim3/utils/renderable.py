@@ -7,7 +7,7 @@ __all__ = [
 
 
 from abc import ABC, abstractmethod
-import atexit
+#import atexit
 from contextlib import contextmanager
 from dataclasses import dataclass
 #from functools import lru_cache
@@ -16,12 +16,13 @@ from dataclasses import dataclass
 from typing import Generator, Generic, Hashable, TypeVar
 
 import moderngl
+import numpy as np
 
-from manim3.utils.lazy import LazyBase
 #from PIL import Image
 #import skia
 
 #from ..utils.node import Node
+from ..utils.lazy import LazyBase
 #from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from ..custom_typing import *
@@ -40,7 +41,7 @@ class ResourceFactory(Generic[_T], ABC):
         cls.__OCCUPIED__ = []
         cls.__VACANT__ = []
         cls.__RESOURCE_GENERATOR__ = cls._generate()
-        atexit.register(lambda: cls._release_all())
+        #atexit.register(lambda: cls._release_all())
         return super().__init_subclass__()
 
     @classmethod
@@ -52,9 +53,9 @@ class ResourceFactory(Generic[_T], ABC):
     #def _reset(cls, resource: _T) -> None:
     #    pass
 
-    @classmethod
-    def _release(cls, resource: _T) -> None:
-        pass
+    #@classmethod
+    #def _release(cls, resource: _T) -> None:
+    #    pass
 
     @classmethod
     def _register_enter(cls) -> _T:
@@ -74,18 +75,18 @@ class ResourceFactory(Generic[_T], ABC):
         #cls._reset(resource)
         cls.__VACANT__.append(resource)
 
-    #@contextmanager
-    #@classmethod
-    #def register(cls) -> Generator[_T, None, None]:
-    #    resource = cls._register_enter()
-    #    try:
-    #        yield resource
-    #    finally:
-    #        cls._register_exit(resource)
+    @contextmanager
+    @classmethod
+    def register(cls) -> Generator[_T, None, None]:
+        resource = cls._register_enter()
+        try:
+            yield resource
+        finally:
+            cls._register_exit(resource)
 
     @classmethod
     @contextmanager
-    def register(cls, n: int) -> Generator[list[_T], None, None]:
+    def register_n(cls, n: int) -> Generator[list[_T], None, None]:
         resource_list = [
             cls._register_enter()
             for _ in range(n)
@@ -96,14 +97,14 @@ class ResourceFactory(Generic[_T], ABC):
             for resource in resource_list:
                 cls._register_exit(resource)
 
-    @classmethod
-    def _release_all(cls) -> None:
-        while cls.__OCCUPIED__:
-            resource = cls.__OCCUPIED__.pop()
-            cls._release(resource)
-        while cls.__VACANT__:
-            resource = cls.__VACANT__.pop()
-            cls._release(resource)
+    #@classmethod
+    #def _release_all(cls) -> None:
+    #    while cls.__OCCUPIED__:
+    #        resource = cls.__OCCUPIED__.pop()
+    #        cls._release(resource)
+    #    while cls.__VACANT__:
+    #        resource = cls.__VACANT__.pop()
+    #        cls._release(resource)
 
 
 class TextureBindings(ResourceFactory[int]):
@@ -129,9 +130,9 @@ class IntermediateTextures(ResourceFactory[moderngl.Texture]):
                 components=4
             )
 
-    @classmethod
-    def _release(cls, resource: moderngl.Texture) -> None:
-        resource.release()
+    #@classmethod
+    #def _release(cls, resource: moderngl.Texture) -> None:
+    #    resource.release()
 
 
 class IntermediateDepthTextures(IntermediateTextures):
@@ -229,12 +230,15 @@ class IntermediateDepthTextures(IntermediateTextures):
 
 @dataclass
 class RenderStep:
-    vertex_array: moderngl.VertexArray
+    program: moderngl.Program
+    index_buffer: moderngl.Buffer
+    attributes: dict[str, tuple[str, moderngl.Buffer]]
     textures: dict[str, moderngl.Texture]
-    uniforms: dict[str, moderngl.Buffer]
+    uniform_blocks: dict[str, moderngl.Buffer]
     subroutines: dict[str, str]
     framebuffer: moderngl.Framebuffer
     enable_only: int
+    mode: int
 
 
 class Renderable(LazyBase):
@@ -246,24 +250,25 @@ class Renderable(LazyBase):
         #subroutines: dict[str, str],
         #framebuffer: moderngl.Framebuffer
     ) -> None:
-        vertex_array = render_step.vertex_array
+        program = render_step.program
+        index_buffer = render_step.index_buffer
+        attributes = render_step.attributes
         textures = render_step.textures
-        uniforms = render_step.uniforms
+        uniforms = render_step.uniform_blocks
         subroutines = render_step.subroutines
         framebuffer = render_step.framebuffer
         enable_only = render_step.enable_only
+        mode = render_step.mode
 
         program_attributes, program_textures, program_uniforms, program_subroutines \
-            = cls._get_program_parameters(vertex_array.program)
-        assert set(program_attributes) == set(
-            attribute_name for _, _, attribute_name in vertex_array._content
-        )
+            = cls._get_program_parameters(program)
+        assert set(program_attributes) == set(attributes)
         assert set(program_textures) == set(textures)
         assert set(program_uniforms) == set(uniforms)
         assert set(program_subroutines) == set(subroutines)
 
-        with TextureBindings.register(len(textures)) as texture_bindings:
-            with UniformBindings.register(len(uniforms)) as uniform_bindings:
+        with TextureBindings.register_n(len(textures)) as texture_bindings:
+            with UniformBindings.register_n(len(uniforms)) as uniform_bindings:
                 texture_binding_dict = dict(zip(textures.values(), texture_bindings))
                 uniform_binding_dict = dict(zip(uniforms.values(), uniform_bindings))
 
@@ -286,6 +291,15 @@ class Renderable(LazyBase):
                         program_textures[texture_name].value = texture_binding_dict[texture]
                     for uniform_name, uniform in uniforms.items():
                         program_uniforms[uniform_name].value = uniform_binding_dict[uniform]
+                    vertex_array = ContextSingleton().vertex_array(
+                        program=program,
+                        content=[
+                            (buffer, buffer_format, attribute_name)
+                            for attribute_name, (buffer_format, buffer) in attributes.items()
+                        ],
+                        index_buffer=index_buffer,
+                        mode=mode
+                    )
                     vertex_array.subroutines = tuple(
                         program_subroutines[subroutines[subroutine_name]].index
                         for subroutine_name in vertex_array.program.subroutines
@@ -296,6 +310,11 @@ class Renderable(LazyBase):
         #    TextureBindings.log_out(texture_binding)
         #for uniform_binding in uniform_binding_dict.values():
         #    UniformBindings.log_out(uniform_binding)
+
+    @classmethod
+    def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
+        for render_step in render_routine:
+            cls._render_by_step(render_step)
 
     @classmethod
     def _get_program_parameters(
@@ -324,7 +343,7 @@ class Renderable(LazyBase):
         return program_attributes, program_textures, program_uniforms, program_subroutines
 
     @classmethod
-    def _make_buffer(cls, array: AttributeType) -> moderngl.Buffer:
+    def _make_buffer(cls, array: np.ndarray) -> moderngl.Buffer:
         return ContextSingleton().buffer(array.tobytes())
 
 

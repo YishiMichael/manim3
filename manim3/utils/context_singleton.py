@@ -1,6 +1,8 @@
 __all__ = ["ContextSingleton"]
 
 
+import atexit
+
 import moderngl
 
 
@@ -16,3 +18,4 @@ class ContextSingleton:
     def set(cls, ctx: moderngl.Context) -> None:
         assert cls._INSTANCE is None
         cls._INSTANCE = ctx
+        atexit.register(lambda: ctx.release())

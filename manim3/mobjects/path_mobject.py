@@ -103,7 +103,7 @@ class PathMobject(SkiaMobject):
 
     @lazy_property
     @classmethod
-    def _uniform_color_map_texture_(
+    def _color_map_texture_(
         cls,
         paints: list[Paint],
         frame: skia.Rect,
@@ -124,6 +124,7 @@ class PathMobject(SkiaMobject):
                 canvas.drawPath(path=path._skia_path_, paint=paint)
         return cls._make_texture(surface.makeImageSnapshot())
 
+    #@SkiaMobject._update_model_matrix_by_refreshed_frame
     def set_path(self, path: Path):
         self._path_ = path
         return self

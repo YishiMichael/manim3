@@ -3,26 +3,32 @@ __all__ = ["MeshMobject"]
 
 import moderngl
 import numpy as np
-from trimesh.base import Trimesh
-from manim3.utils.context_singleton import ContextSingleton
-
-from manim3.utils.renderable import RenderStep
+#from trimesh.base import Trimesh
 
 #from ..cameras.camera import Camera
-#from ..geometries.geometry import Geometry
+from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
-from ..mobjects.scene import Scene
+from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
+from ..utils.renderable import RenderStep
+from ..utils.scene_config import SceneConfig
 from ..custom_typing import *
 
 
 MESH_VERTEX_SHADER = """
 #version 430
 
-in mat4 in_projection_matrix;
-in mat4 in_view_matrix;
 in vec3 in_position;
 in vec4 in_color;
+
+layout (std140) uniform uniform_block_camera_matrices {
+    mat4 uniform_projection_matrix;
+    mat4 uniform_view_matrix;
+};
+layout (std140) uniform uniform_block_model_matrices {
+    mat4 uniform_model_matrix;
+    mat4 uniform_geometry_matrix;
+};
 
 out VS_FS {
     vec4 color;
@@ -30,7 +36,7 @@ out VS_FS {
 
 void main() {
     vs_out.color = in_color;
-    gl_Position = in_projection_matrix * in_view_matrix * vec4(in_position, 1.0);
+    gl_Position = uniform_projection_matrix * uniform_view_matrix * uniform_model_matrix * uniform_geometry_matrix * vec4(in_position, 1.0);
 }
 """
 
@@ -86,15 +92,33 @@ class MeshMobject(Mobject):
     #def _invisible_(cls) -> bool:
     #    return False
 
+    @lazy_property
+    @classmethod
+    def _geometry_matrix_(cls) -> Matrix44Type:
+        return np.identity(4, dtype=np.float32)
+
+    @lazy_property
+    @classmethod
+    def _model_matrices_buffer_(cls, model_matrix: Matrix44Type, geometry_matrix: Matrix44Type) -> moderngl.Buffer:
+        buffer = ContextSingleton().buffer(reserve=128)
+        buffer.write(model_matrix.tobytes(), offset=0)
+        buffer.write(geometry_matrix.tobytes(), offset=64)
+        return buffer
+
+    @_model_matrices_buffer_.releaser
+    @staticmethod
+    def _model_matrices_buffer_releaser(model_matrices_buffer: moderngl.Buffer) -> None:
+        model_matrices_buffer.release()
+
     @lazy_property_initializer
     @classmethod
-    def _geometry_(cls) -> Trimesh:
+    def _geometry_(cls) -> Geometry:
         return NotImplemented
 
     @lazy_property_initializer_writable
     @classmethod
     def _color_(cls) -> ColorArrayType:
-        return np.ones(4)
+        return np.ones(4, dtype=np.float32)
 
     @lazy_property_initializer_writable
     @classmethod
@@ -129,63 +153,45 @@ class MeshMobject(Mobject):
 
     @lazy_property
     @classmethod
-    def _in_position_buffer_(cls, geometry: Trimesh) -> moderngl.Buffer:
-        return cls._make_buffer(geometry.vertices.astype(np.float64))
-
-    @_in_position_buffer_.releaser
-    @staticmethod
-    def _in_position_buffer_releaser(in_position_buffer: moderngl.Buffer) -> None:
-        in_position_buffer.release()
-
-    #@lazy_property
-    #@classmethod
-    #def _in_uv_buffer_(cls, geometry: Trimesh) -> moderngl.Buffer:
-    #    return cls._make_buffer(geometry.visual.uv.astype(np.float64))
-
-    #@_in_uv_buffer_.releaser
-    #@staticmethod
-    #def _in_uv_buffer_releaser(in_uv_buffer: moderngl.Buffer) -> None:
-    #    in_uv_buffer.release()
-
-    @lazy_property
-    @classmethod
-    def _in_color_buffer_(cls, color: ColorArrayType) -> moderngl.Buffer:
+    def _color_buffer_(cls, color: ColorArrayType) -> moderngl.Buffer:
         return cls._make_buffer(color.astype(np.float64))
 
-    @_in_color_buffer_.releaser
+    @_color_buffer_.releaser
     @staticmethod
-    def _in_color_buffer_releaser(in_color_buffer: moderngl.Buffer) -> None:
-        in_color_buffer.release()
+    def _color_buffer_releaser(color_buffer: moderngl.Buffer) -> None:
+        color_buffer.release()
 
-    @lazy_property
-    @classmethod
-    def _index_buffer_(cls, geometry: Trimesh) -> moderngl.Buffer:
-        return cls._make_buffer(geometry.faces.astype(np.int32))
-
-    @_index_buffer_.releaser
-    @staticmethod
-    def _index_buffer_releaser(index_buffer: moderngl.Buffer) -> None:
-        index_buffer.release()
-
-    def _render(self, scene: Scene, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         self._render_by_step(RenderStep(
-            vertex_array=ContextSingleton().vertex_array(
-                program=self._program_,
-                content=[
-                    (scene.camera._in_projection_matrix_buffer_, "16f8 /r", "in_projection_matrix"),
-                    (scene.camera._in_view_matrix_buffer_, "16f8 /r", "in_view_matrix"),
-                    (self._in_position_buffer_, "3f8 /v", "in_position"),
-                    #(in_uv_buffer, "2f8 /v", "in_uv"),
-                    (self._in_color_buffer_, "4f8 /r", "in_color"),
-                ],
-                index_buffer=self._index_buffer_,
-                mode=moderngl.TRIANGLES
-            ),
+            program=self._program_,
+            index_buffer=self._geometry_._indices_buffer_,
+            attributes={
+                "in_position": ("3f4 /v", self._geometry_._positions_buffer_),
+                "in_color": ("4f4 /r", self._color_buffer_),
+            },
+            #vertex_array=ContextSingleton().vertex_array(
+            #    program=self._program_,
+            #    content=[
+            #        (scene_config._camera_._projection_matrix_buffer_, "16f8 /r", "in_projection_matrix"),
+            #        (scene_config._camera_._view_matrix_buffer_, "16f8 /r", "in_view_matrix"),
+            #        (self._model_matrix_buffer_, "16f8 /r", "in_model_matrix"),
+            #        (self._geometry_matrix_buffer_, "16f8 /r", "in_geometry_matrix"),
+            #        (self._geometry_._positions_buffer_, "3f8 /v", "in_position"),
+            #        #(in_uv_buffer, "2f8 /v", "in_uv"),
+            #        (self._color_buffer_, "4f8 /r", "in_color"),
+            #    ],
+            #    index_buffer=self._geometry_._indices_buffer_,
+            #    mode=moderngl.TRIANGLES
+            #),
             textures={},
-            uniforms={},
+            uniform_blocks={
+                "uniform_block_camera_matrices": scene_config._camera_._camera_matrices_buffer_,
+                "uniform_block_model_matrices": self._model_matrices_buffer_
+            },
             subroutines={},
             framebuffer=target_framebuffer,
-            enable_only=self._enable_only_
+            enable_only=self._enable_only_,
+            mode=moderngl.TRIANGLES
         ))
 
     #@lazy_property

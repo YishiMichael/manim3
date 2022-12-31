@@ -5,12 +5,19 @@ import time
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
+#import numpy as np
 
-from ..cameras.camera import Camera
-from ..cameras.perspective_camera import PerspectiveCamera
+
+#from ..cameras.camera import Camera
+#from ..cameras.perspective_camera import PerspectiveCamera
+#from ..geometries.geometry import Geometry
+#from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mobject import Mobject
 #from ..mobjects.scene_mobject import SceneMobject
+#from ..mobjects.textured_mesh_mobject import TexturedMeshMobject
 from ..utils.context_singleton import ContextSingleton
+from ..utils.lazy import lazy_property_initializer
+from ..utils.scene_config import SceneConfig
 from ..constants import PIXEL_HEIGHT, PIXEL_WIDTH
 from ..custom_typing import *
 
@@ -18,8 +25,8 @@ from ..custom_typing import *
 class Scene(Mobject):
     def __init__(self, is_main: bool = False):
         super().__init__()
-        self.mobject: Mobject = Mobject()
-        self.camera: Camera = PerspectiveCamera()
+        #self.mobject: Mobject = Mobject()
+        #self.camera: Camera = PerspectiveCamera()
 
         if is_main:
             window = PygletWindow(
@@ -120,23 +127,59 @@ class Scene(Mobject):
     #        size=(PIXEL_WIDTH, PIXEL_HEIGHT)
     #    )
 
-    def add(self, *mobjects: Mobject):
-        self.mobject.add(*mobjects)
-        return self
+    #@lazy_property_initializer_writable
+    #@classmethod
+    #def _model_matrix_(cls) -> Matrix44Type:
+    #    return cls.matrix_from_scale(np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS, 1.0)))
 
-    def remove(self, *mobjects: Mobject):
-        self.mobject.remove(*mobjects)
-        return self
+    #@lazy_property_initializer
+    #@classmethod
+    #def _geometry_(cls) -> Geometry:
+    #    return PlaneGeometry()
 
-    def _render(self, scene: "Scene", target_framebuffer: moderngl.Framebuffer) -> None:
-        for mobject in self.mobject.get_descendants():
-            mobject._render_full(scene, target_framebuffer)
+    @lazy_property_initializer
+    @classmethod
+    def _scene_config_(cls) -> SceneConfig:
+        return SceneConfig()
+
+    #@lazy_property_initializer
+    #@classmethod
+    #def _root_(cls) -> Mobject:
+    #    return Mobject()
+
+    #@_root_.updater
+    #def add(self, *mobjects: Mobject):
+    #    self._root_.add(*mobjects)
+    #    return self
+
+    #@_root_.updater
+    #def remove(self, *mobjects: Mobject):
+    #    self._root_.remove(*mobjects)
+    #    return self
+
+    #@lazy_property
+    #@classmethod
+    #def _color_map_texture_(cls, root: Mobject, scene_config: SceneConfig) -> moderngl.Texture:
+    #    texture = ContextSingleton().texture(
+    #        size=(PIXEL_WIDTH, PIXEL_HEIGHT),
+    #        components=4
+    #    )
+    #    target_framebuffer = ContextSingleton().framebuffer(
+    #        color_attachments=(texture,)
+    #    )
+    #    for mobject in root.get_descendants():
+    #        mobject._render_full(scene_config, target_framebuffer)
+    #    return texture
+
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        for mobject in self.get_descendants_excluding_self():
+            mobject._render_full(scene_config, target_framebuffer)
 
     def _render_scene(self) -> None:
-        self._render_full(self, self.framebuffer)
+        self._render_full(self._scene_config_, self.framebuffer)
 
     def _update_dt(self, dt: Real):
-        for mobject in self.mobject.get_descendants():
+        for mobject in self.get_descendants_excluding_self():
             mobject._update_dt(dt)
         return self
 

@@ -9,7 +9,7 @@ import copy
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
-from typing import Iterator
+from typing import Iterator, overload
 import warnings
 #from manimlib.mobject.mobject import moderngl
 
@@ -17,17 +17,16 @@ import moderngl
 import numpy as np
 #import pyrr
 from scipy.spatial.transform import Rotation
-from trimesh.parent import Geometry3D
-
+#from trimesh.parent import Geometry3D
 
 #from ..animations.animation import Animation
-#from ..cameras.camera import Camera
-#from ..cameras.perspective_camera import PerspectiveCamera
+from ..geometries.geometry import Geometry
 #from ..utils.context import ContextSingleton
 from ..utils.context_singleton import ContextSingleton
-from ..utils.lazy import lazy_property_initializer
+from ..utils.lazy import lazy_property_initializer, lazy_property_initializer_writable
 from ..utils.node import Node
 from ..utils.renderable import IntermediateDepthTextures, IntermediateTextures, Renderable
+from ..utils.scene_config import SceneConfig
 #from ..utils.renderable import LazyBase
 from ..constants import ORIGIN, RIGHT
 from ..custom_typing import *
@@ -59,47 +58,83 @@ class Mobject(Node, Renderable):
 
     # matrix & transform
 
-    #@lazy_property_initializer_writable
-    #@staticmethod
-    #def _matrix_() -> Matrix44Type:
-    #    return np.identity(4)
+    @lazy_property_initializer_writable
+    @classmethod
+    def _model_matrix_(cls) -> Matrix44Type:
+        return np.identity(4, dtype=np.float32)
 
     #@lazy_property_initializer
-    #@staticmethod
-    #def _geometry_matrix_() -> Matrix44Type:
+    #@classmethod
+    #def _geometry_matrix_(cls) -> Matrix44Type:
     #    return np.identity(4)
 
     #@lazy_property
     #@classmethod
-    #def _composite_matrix_(cls, geometry_matrix: Matrix44Type, matrix: Matrix44Type) -> Matrix44Type:
-    #    return geometry_matrix @ matrix
+    #def _model_matrix_(cls, matrix: Matrix44Type, geometry_matrix: Matrix44Type) -> Matrix44Type:
+    #    return matrix @ geometry_matrix
+
+    #@lazy_property
+    #@classmethod
+    #def _model_matrix_buffer_(cls, model_matrix: Matrix44Type) -> moderngl.Buffer:
+    #    return cls._make_buffer(model_matrix)
+
+    #@_model_matrix_buffer_.releaser
+    #@staticmethod
+    #def _model_matrix_buffer_releaser(model_matrix_buffer: moderngl.Buffer) -> None:
+    #    model_matrix_buffer.release()
 
     @classmethod
     def matrix_from_translation(cls, vector: Vector3Type) -> Matrix44Type:
-        m = np.identity(4)
-        m[:3, 3] = vector
+        m = np.identity(4, dtype=np.float32)
+        m[3, :3] = vector
         return m
 
     @classmethod
     def matrix_from_scale(cls, factor: Real | Vector3Type) -> Matrix44Type:
-        m = np.identity(4)
+        m = np.identity(4, dtype=np.float32)
         m[:3, :3] *= factor
         return m
 
     @classmethod
     def matrix_from_rotation(cls, rotation: Rotation) -> Matrix44Type:
-        m = np.identity(4)
+        m = np.identity(4, dtype=np.float32)
         m[:3, :3] = rotation.as_matrix()
         return m
 
+    @overload
+    @classmethod
+    def apply_affine(cls, matrix: Matrix44Type, vector: Vector3Type) -> Vector3Type: ...
+
+    @overload
+    @classmethod
+    def apply_affine(cls, matrix: Matrix44Type, vector: Vector3ArrayType) -> Vector3ArrayType: ...
+
+    @classmethod
+    def apply_affine(cls, matrix: Matrix44Type, vector: Vector3Type | Vector3ArrayType) -> Vector3Type | Vector3ArrayType:
+        if len(vector.shape) == 1:
+            v = vector[:, None]
+        else:
+            v = vector[:, :].T
+        v = np.concatenate((v, np.ones((1, v.shape[1]))))
+        v = matrix.T @ v
+        if not np.allclose(v[3], 1.0):
+            v /= v[3]
+        v = v[:3]
+        if len(vector.shape) == 1:
+            result = v.squeeze(axis=1)
+        else:
+            result = v.T
+        return result
+
     @lazy_property_initializer
     @classmethod
-    def _geometry_(cls) -> Geometry3D:
+    def _geometry_(cls) -> Geometry:
         return NotImplemented
 
-    @_geometry_.updater
+    @_model_matrix_.updater
     def apply_transform_locally(self, matrix: Matrix44Type):
-        self._geometry_.apply_transform(matrix)
+        self._model_matrix_ = matrix @ self._model_matrix_
+        #self._geometry_.apply_transform(matrix)
         return self
 
     #@lazy_property_initializer
@@ -113,18 +148,17 @@ class Mobject(Node, Renderable):
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
-        bounds_array = np.array([
-            bounds
+        points_array = np.array([
+            self.apply_affine(self._model_matrix_, mobject._geometry_._positions_)
             for mobject in self.get_descendants(broadcast=broadcast)
-            if (bounds := mobject._geometry_.bounds) is not None
         ])
-        if not bounds_array.shape[0]:
+        if not points_array.shape[0]:
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
             origin = ORIGIN
             radius = ORIGIN
         else:
-            minimum = bounds_array[:, 0].min(axis=0)
-            maximum = bounds_array[:, 1].max(axis=0)
+            minimum = points_array[:, 0].min(axis=0)
+            maximum = points_array[:, 1].max(axis=0)
             origin = (maximum + minimum) / 2.0
             radius = (maximum - minimum) / 2.0
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division
@@ -316,7 +350,7 @@ class Mobject(Node, Renderable):
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
     ):
-        factor_vector = np.ones(3)
+        factor_vector = np.ones(3, dtype=np.float32)
         factor_vector[dim] = target_length / self.get_bounding_box_size(broadcast=broadcast)[dim]
         self.scale(
             factor_vector,
@@ -379,20 +413,20 @@ class Mobject(Node, Renderable):
 
     # render
 
-    def _render(self, scene: "Scene", target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Implemented in subclasses
         pass
 
-    def _render_full(self, scene: "Scene", target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render_full(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         render_passes = self._render_passes_
-        if not render_passes:
-            #target_framebuffer.clear()
-            target_framebuffer.use()
-            self._render(scene, target_framebuffer)
-            return
+        #if not render_passes:
+        #    #target_framebuffer.clear()
+        #    target_framebuffer.use()
+        #    self._render(scene_config, target_framebuffer)
+        #    return
 
-        with IntermediateTextures.register(len(render_passes)) as textures:
-            with IntermediateDepthTextures.register(len(render_passes)) as depth_textures:
+        with IntermediateTextures.register_n(len(render_passes)) as textures:
+            with IntermediateDepthTextures.register_n(len(render_passes)) as depth_textures:
                 framebuffers = [
                     ContextSingleton().framebuffer(
                         color_attachments=(texture,),
@@ -402,7 +436,7 @@ class Mobject(Node, Renderable):
                 ]
                 framebuffers.append(target_framebuffer)
                 framebuffers[0].use()
-                self._render(scene, framebuffers[0])
+                self._render(scene_config, framebuffers[0])
                 for render_pass, (input_framebuffer, output_framebuffer) in zip(render_passes, it.pairwise(framebuffers)):
                     output_framebuffer.use()
                     render_pass._render(
@@ -410,7 +444,7 @@ class Mobject(Node, Renderable):
                         input_depth_texture=input_framebuffer.depth_attachment,
                         output_framebuffer=output_framebuffer,
                         mobject=self,
-                        scene=scene
+                        scene_config=scene_config
                     )
 
     @lazy_property_initializer

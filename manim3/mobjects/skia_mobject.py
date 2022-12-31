@@ -2,18 +2,25 @@ __all__ = ["SkiaMobject"]
 
 
 #from abc import abstractmethod
-from functools import reduce
+#from functools import reduce
+from typing import Callable, Concatenate, ParamSpec, TypeVar
 
 import moderngl
 import numpy as np
 import skia
-from trimesh import Trimesh
+#from trimesh import Trimesh
 
+from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.textured_mesh_mobject import TexturedMeshMobject
 from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
+
+
+_SkiaMobjectT = TypeVar("_SkiaMobjectT", bound="SkiaMobject")
+_R = TypeVar("_R")
+_P = ParamSpec("_P")
 
 
 class SkiaMobject(TexturedMeshMobject):
@@ -22,14 +29,20 @@ class SkiaMobject(TexturedMeshMobject):
     #    self._enable_depth_test_ = False
     #    self._cull_face_ = "front_and_back"
 
+    @lazy_property_initializer
+    @classmethod
+    def _geometry_(cls) -> Geometry:
+        #frame_matrix = reduce(np.ndarray.__matmul__, (
+        #    cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))),
+        #    cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))  # order?
+        #))
+        return PlaneGeometry()
+
     @lazy_property
     @classmethod
-    def _geometry_(cls, frame: skia.Rect) -> Trimesh:
-        frame_matrix = reduce(np.ndarray.__matmul__, (
-            cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))),
-            cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))  # order?
-        ))
-        return PlaneGeometry().apply_transform(frame_matrix)
+    def _geometry_matrix_(cls, frame: skia.Rect) -> Matrix44Type:
+        return cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))) \
+            @ cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))
 
     @lazy_property_initializer_writable
     @classmethod
@@ -43,11 +56,21 @@ class SkiaMobject(TexturedMeshMobject):
 
     #@lazy_property
     #@classmethod
-    #def _geometry_matrix_(cls, frame: skia.Rect) -> Matrix44Type:
-    #    return reduce(np.ndarray.__matmul__, (
-    #        cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))),
-    #        cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
-    #    ))
+    #def _frame_matrix_(cls, frame: skia.Rect) -> Matrix44Type:
+    #    return cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))) \
+    #        @ cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))
+
+    #@classmethod
+    #def _update_model_matrix_by_refreshed_frame(
+    #    cls, method: Callable[Concatenate[_SkiaMobjectT, _P], _R]
+    #) -> Callable[Concatenate[_SkiaMobjectT, _P], _R]:
+    #    def new_method(instance: _SkiaMobjectT, *args: _P.args, **kwargs: _P.kwargs) -> _R:
+    #        old_frame_matrix = instance._frame_matrix_
+    #        result = method(instance, *args, **kwargs)
+    #        new_frame_matrix = instance._frame_matrix_
+    #        instance._model_matrix_ = (instance._model_matrix_ @ np.linalg.inv(old_frame_matrix)) @ new_frame_matrix
+    #        return result
+    #    return new_method
 
     @classmethod
     def _calculate_frame(

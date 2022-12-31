@@ -1,20 +1,19 @@
 __all__ = ["RenderPass"]
 
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Generic, TypeVar
 
 import moderngl
 
-from ..mobjects.mobject import Mobject
-from ..scene import Scene
-from ..utils.renderable import RenderStep, Renderable
+from ..mobjects.mobject import Mobject, SceneConfig
+from ..utils.renderable import Renderable
 
 
 _MobjectT = TypeVar("_MobjectT", bound="Mobject")
 
 
-class RenderPass(Generic[_MobjectT], ABC, Renderable):
+class RenderPass(Generic[_MobjectT], Renderable):
     @abstractmethod
     def _render(
         self,
@@ -22,11 +21,11 @@ class RenderPass(Generic[_MobjectT], ABC, Renderable):
         input_depth_texture: moderngl.Texture,
         output_framebuffer: moderngl.Framebuffer,
         mobject: _MobjectT,
-        scene: Scene,
+        scene_config: SceneConfig
     ):
         pass
 
-    @classmethod
-    def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
-        for render_step in render_routine:
-            cls._render_by_step(render_step)
+    #@classmethod
+    #def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
+    #    for render_step in render_routine:
+    #        cls._render_by_step(render_step)

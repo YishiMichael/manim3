@@ -90,6 +90,11 @@ class Node:
             return [self]
         return self._remove_redundancies(self._iter_descendants())
 
+    def get_descendants_excluding_self(self: Self) -> list[Self]:
+        result = self.get_descendants()
+        result.remove(self)
+        return result
+
     # setters
 
     def includes(self: Self, node: Self) -> bool:

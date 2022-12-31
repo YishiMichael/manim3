@@ -59,5 +59,6 @@ class PerspectiveCamera(Camera):
             fovy,
             aspect,
             near,
-            far
+            far,
+            dtype=np.float32
         )

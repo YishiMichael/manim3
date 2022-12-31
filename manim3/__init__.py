@@ -4,7 +4,7 @@ from .cameras.camera import *
 from .cameras.orthographic_camera import *
 from .cameras.perspective_camera import *
 
-#from .geometries.geometry import *
+from .geometries.geometry import *
 from .geometries.parametric_surface_geometry import *
 from .geometries.plane_geometry import *
 from .geometries.sphere_geometry import *
@@ -21,11 +21,15 @@ from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 from .mobjects.textured_mesh_mobject import *
 
+from .render_passes.light_pass import *
+from .render_passes.render_pass import *
+
 from .utils.context_singleton import *
 from .utils.lazy import *
 from .utils.paint import *
 from .utils.path import *
 from .utils.renderable import *
+from .utils.scene_config import *
 
 from .constants import *
 from .custom_colors import *
