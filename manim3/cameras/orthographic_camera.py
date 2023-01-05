@@ -1,7 +1,7 @@
 __all__ = ["OrthographicCamera"]
 
 
-import numpy as np
+#import numpy as np
 import pyrr
 
 from ..cameras.camera import Camera
@@ -30,39 +30,38 @@ class OrthographicCamera(Camera):
         self._far_ = far
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _left_(cls) -> Real:
+    @staticmethod
+    def _left_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _right_(cls) -> Real:
+    @staticmethod
+    def _right_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _top_(cls) -> Real:
+    @staticmethod
+    def _top_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _bottom_(cls) -> Real:
+    @staticmethod
+    def _bottom_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _near_(cls) -> Real:
+    @staticmethod
+    def _near_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _far_(cls) -> Real:
+    @staticmethod
+    def _far_() -> Real:
         return NotImplemented
 
     @lazy_property
-    @classmethod
+    @staticmethod
     def _projection_matrix_(
-        cls,
         left: Real,
         right: Real,
         top: Real,
@@ -76,6 +75,5 @@ class OrthographicCamera(Camera):
             top,
             bottom,
             near,
-            far,
-            dtype=np.float32
+            far
         )

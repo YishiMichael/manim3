@@ -37,30 +37,29 @@ class ImageMobject(SkiaMobject):
         )
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _image_(cls) -> skia.Image:
+    @staticmethod
+    def _image_() -> skia.Image:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _paint_(cls) -> Paint | None:
+    @staticmethod
+    def _paint_() -> Paint | None:
         return None
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _frame_(cls) -> skia.Rect:
+    @staticmethod
+    def _frame_() -> skia.Rect:
         return NotImplemented
 
     @lazy_property
-    @classmethod
+    @staticmethod
     def _color_map_texture_(
-        cls,
         image: skia.Image,
         paint: Paint | None
-    ) -> moderngl.Texture:
-        surface = cls._make_surface(image.width(), image.height())
+    ) -> moderngl.Texture | None:
+        surface = SkiaMobject._make_surface(image.width(), image.height())
         with surface as canvas:
             canvas.drawImage(
                 image=image, left=0.0, top=0.0, paint=paint
             )
-        return cls._make_texture(surface.makeImageSnapshot())
+        return SkiaMobject._make_texture(surface.makeImageSnapshot())

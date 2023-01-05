@@ -54,16 +54,16 @@ CAMERA_ALTITUDE: float = 2.0
 CAMERA_NEAR: float = 0.1
 CAMERA_FAR: float = 100.0
 
-ORIGIN: Vector3Type = np.array((0.0, 0.0, 0.0), dtype=np.float32)
-RIGHT: Vector3Type = np.array((1.0, 0.0, 0.0), dtype=np.float32)
-LEFT: Vector3Type = np.array((-1.0, 0.0, 0.0), dtype=np.float32)
-UP: Vector3Type = np.array((0.0, 1.0, 0.0), dtype=np.float32)
-DOWN: Vector3Type = np.array((0.0, -1.0, 0.0), dtype=np.float32)
-OUT: Vector3Type = np.array((0.0, 0.0, 1.0), dtype=np.float32)
-IN: Vector3Type = np.array((0.0, 0.0, -1.0), dtype=np.float32)
-X_AXIS: Vector3Type = np.array((1.0, 0.0, 0.0), dtype=np.float32)
-Y_AXIS: Vector3Type = np.array((0.0, 1.0, 0.0), dtype=np.float32)
-Z_AXIS: Vector3Type = np.array((0.0, 0.0, 1.0), dtype=np.float32)
+ORIGIN: Vector3Type = np.array((0.0, 0.0, 0.0))
+RIGHT: Vector3Type = np.array((1.0, 0.0, 0.0))
+LEFT: Vector3Type = np.array((-1.0, 0.0, 0.0))
+UP: Vector3Type = np.array((0.0, 1.0, 0.0))
+DOWN: Vector3Type = np.array((0.0, -1.0, 0.0))
+OUT: Vector3Type = np.array((0.0, 0.0, 1.0))
+IN: Vector3Type = np.array((0.0, 0.0, -1.0))
+X_AXIS: Vector3Type = np.array((1.0, 0.0, 0.0))
+Y_AXIS: Vector3Type = np.array((0.0, 1.0, 0.0))
+Z_AXIS: Vector3Type = np.array((0.0, 0.0, 1.0))
 
 UR: Vector3Type = UP + RIGHT
 UL: Vector3Type = UP + LEFT

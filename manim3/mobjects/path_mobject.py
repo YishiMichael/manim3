@@ -31,18 +31,18 @@ class PathMobject(SkiaMobject):
             self.set_path(path)
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _path_(cls) -> Path:
+    @staticmethod
+    def _path_() -> Path:
         return Path()
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _disable_fill_(cls) -> bool:
+    @staticmethod
+    def _disable_fill_() -> bool:
         return False
 
     @lazy_property_initializer
-    @classmethod
-    def _fill_paint_(cls) -> Paint:
+    @staticmethod
+    def _fill_paint_() -> Paint:
         return Paint(
             anti_alias=True,
             style=skia.Paint.kFill_Style,
@@ -52,13 +52,13 @@ class PathMobject(SkiaMobject):
         )
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _disable_stroke_(cls) -> bool:
+    @staticmethod
+    def _disable_stroke_() -> bool:
         return False
 
     @lazy_property_initializer
-    @classmethod
-    def _stroke_paint_(cls) -> Paint:
+    @staticmethod
+    def _stroke_paint_() -> Paint:
         return Paint(
             anti_alias=True,
             style=skia.Paint.kStroke_Style,
@@ -68,28 +68,26 @@ class PathMobject(SkiaMobject):
         )
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _draw_stroke_behind_fill_(cls) -> bool:
+    @staticmethod
+    def _draw_stroke_behind_fill_() -> bool:
         return False
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _frame_buff_(cls) -> tuple[float, float]:
+    @staticmethod
+    def _frame_buff_() -> tuple[float, float]:
         return (0.25, 0.25)
 
     @lazy_property
-    @classmethod
+    @staticmethod
     def _frame_(
-        cls,
         path: Path,
         frame_buff: tuple[float, float]
     ) -> skia.Rect:
         return path._skia_path_.computeTightBounds().makeOutset(*frame_buff)
 
     @lazy_property
-    @classmethod
+    @staticmethod
     def _paints_(
-        cls,
         fill_paint: Paint,
         disable_fill: bool,
         stroke_paint: Paint,
@@ -102,14 +100,13 @@ class PathMobject(SkiaMobject):
         return [paint for paint, disable in paints if not disable]
 
     @lazy_property
-    @classmethod
+    @staticmethod
     def _color_map_texture_(
-        cls,
         paints: list[Paint],
         frame: skia.Rect,
         path: Path
-    ) -> moderngl.Texture:
-        surface = cls._make_surface(
+    ) -> moderngl.Texture | None:
+        surface = SkiaMobject._make_surface(
             int(frame.width() * PIXEL_PER_UNIT),
             int(frame.height() * PIXEL_PER_UNIT)
         )
@@ -122,7 +119,7 @@ class PathMobject(SkiaMobject):
             ))
             for paint in paints:
                 canvas.drawPath(path=path._skia_path_, paint=paint)
-        return cls._make_texture(surface.makeImageSnapshot())
+        return SkiaMobject._make_texture(surface.makeImageSnapshot())
 
     #@SkiaMobject._update_model_matrix_by_refreshed_frame
     def set_path(self, path: Path):

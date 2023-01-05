@@ -19,7 +19,7 @@ from .mobjects.string_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
-from .mobjects.textured_mesh_mobject import *
+#from .mobjects.textured_mesh_mobject import *
 
 from .render_passes.light_pass import *
 from .render_passes.render_pass import *

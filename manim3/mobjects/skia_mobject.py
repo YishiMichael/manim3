@@ -3,35 +3,31 @@ __all__ = ["SkiaMobject"]
 
 #from abc import abstractmethod
 #from functools import reduce
-from typing import Callable, Concatenate, ParamSpec, TypeVar
 
 import moderngl
 import numpy as np
 import skia
+
 #from trimesh import Trimesh
 
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
-from ..mobjects.textured_mesh_mobject import TexturedMeshMobject
+from ..mobjects.mobject import Mobject
+from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
 from ..custom_typing import *
 
 
-_SkiaMobjectT = TypeVar("_SkiaMobjectT", bound="SkiaMobject")
-_R = TypeVar("_R")
-_P = ParamSpec("_P")
-
-
-class SkiaMobject(TexturedMeshMobject):
+class SkiaMobject(MeshMobject):
     #def __init__(self):
     #    super().__init__()
     #    self._enable_depth_test_ = False
     #    self._cull_face_ = "front_and_back"
 
     @lazy_property_initializer
-    @classmethod
-    def _geometry_(cls) -> Geometry:
+    @staticmethod
+    def _geometry_() -> Geometry:
         #frame_matrix = reduce(np.ndarray.__matmul__, (
         #    cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))),
         #    cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))  # order?
@@ -39,19 +35,19 @@ class SkiaMobject(TexturedMeshMobject):
         return PlaneGeometry()
 
     @lazy_property
-    @classmethod
-    def _geometry_matrix_(cls, frame: skia.Rect) -> Matrix44Type:
-        return cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))) \
-            @ cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))
+    @staticmethod
+    def _geometry_matrix_(frame: skia.Rect) -> Matrix44Type:
+        return Mobject.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))) \
+            @ Mobject.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _enable_only_(cls) -> int:
+    @staticmethod
+    def _enable_only_() -> int:
         return moderngl.BLEND
 
     @lazy_property_initializer
-    @classmethod
-    def _frame_(cls) -> skia.Rect:
+    @staticmethod
+    def _frame_() -> skia.Rect:
         return NotImplemented
 
     #@lazy_property

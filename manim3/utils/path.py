@@ -90,39 +90,39 @@ class CurveInterpolant(Generic[_T], CurveInterpolantBase):
             self._children_.extend(children)
 
     @lazy_property_initializer
-    @classmethod
-    def _children_(cls) -> list[_T]:
+    @staticmethod
+    def _children_() -> list[_T]:
         return []
 
     @lazy_property
-    @classmethod
-    def _a_knots_(cls, children: list[_T]) -> FloatArrayType:
-        return np.insert(np.cumsum([child._a_final_ for child in children], dtype=np.float32), 0, 0.0)
+    @staticmethod
+    def _a_knots_(children: list[_T]) -> FloatArrayType:
+        return np.insert(np.cumsum([child._a_final_ for child in children]), 0, 0.0)
 
     @lazy_property
-    @classmethod
-    def _l_knots_(cls, children: list[_T]) -> FloatArrayType:
-        return np.insert(np.cumsum([child._l_final_ for child in children], dtype=np.float32), 0, 0.0)
+    @staticmethod
+    def _l_knots_(children: list[_T]) -> FloatArrayType:
+        return np.insert(np.cumsum([child._l_final_ for child in children]), 0, 0.0)
 
     @lazy_property
-    @classmethod
-    def _a_final_(cls, a_knots: FloatArrayType) -> float:
+    @staticmethod
+    def _a_final_(a_knots: FloatArrayType) -> float:
         return a_knots[-1]
 
     @lazy_property
-    @classmethod
-    def _l_final_(cls, l_knots: FloatArrayType) -> float:
+    @staticmethod
+    def _l_final_(l_knots: FloatArrayType) -> float:
         return l_knots[-1]
 
     @lazy_property
-    @classmethod
-    def _a_interpolator_(cls, a_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
-        return cls.integer_interpolator(a_knots)
+    @staticmethod
+    def _a_interpolator_(a_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        return CurveInterpolant.integer_interpolator(a_knots)
 
     @lazy_property
-    @classmethod
-    def _l_interpolator_(cls, l_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
-        return cls.integer_interpolator(l_knots)
+    @staticmethod
+    def _l_interpolator_(l_knots: FloatArrayType) -> Callable[[Real], tuple[int, float]]:
+        return CurveInterpolant.integer_interpolator(l_knots)
 
     def a_interpolate(self, a: Real) -> tuple[int, float]:
         return self._a_interpolator_(a)
@@ -165,7 +165,7 @@ class CurveInterpolant(Generic[_T], CurveInterpolantBase):
             Otherwise, returns `(i, target - array[i])` such that
             `0 <= i < len(array) - 1` and `array[i] < target <= array[i + 1]`.
             """
-            index = int(interp1d(array, np.array(range(len(array)), dtype=np.float32) - 1.0, kind="next")(target))
+            index = int(interp1d(array, np.array(range(len(array))) - 1.0, kind="next")(target))
             if index == -1:
                 return 0, 0.0
             return index, target - array[index]
@@ -181,18 +181,18 @@ class BezierCurve(CurveInterpolantBase):
         self._points_ = points
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _points_(cls) -> Vector2ArrayType:
+    @staticmethod
+    def _points_() -> Vector2ArrayType:
         return NotImplemented
 
     @lazy_property
-    @classmethod
-    def _order_(cls, points: Vector2ArrayType) -> int:
+    @staticmethod
+    def _order_(points: Vector2ArrayType) -> int:
         return len(points) - 1
 
     @lazy_property
-    @classmethod
-    def _gamma_(cls, order: int, points: Vector2ArrayType) -> scipy.interpolate.BSpline:
+    @staticmethod
+    def _gamma_(order: int, points: Vector2ArrayType) -> scipy.interpolate.BSpline:
         return scipy.interpolate.BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
             c=points,
@@ -200,40 +200,40 @@ class BezierCurve(CurveInterpolantBase):
         )
 
     @lazy_property
-    @classmethod
-    def _a_samples_(cls, order: int) -> FloatArrayType:
+    @staticmethod
+    def _a_samples_(order: int) -> FloatArrayType:
         num_samples = 9 if order > 1 else 2
         return np.linspace(0.0, 1.0, num_samples)
 
     @lazy_property
-    @classmethod
-    def _l_samples_(cls, gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
+    @staticmethod
+    def _l_samples_(gamma: scipy.interpolate.BSpline, a_samples: FloatArrayType) -> FloatArrayType:
         p_samples = gamma(a_samples)
         segment_lengths = np.linalg.norm(p_samples[1:] - p_samples[:-1], axis=1)
         return np.insert(np.cumsum(segment_lengths), 0, 0.0)
 
     @lazy_property
-    @classmethod
-    def _a_l_interp_(cls, a_samples: FloatArrayType, l_samples: FloatArrayType) -> scipy.interpolate.interp1d:
+    @staticmethod
+    def _a_l_interp_(a_samples: FloatArrayType, l_samples: FloatArrayType) -> scipy.interpolate.interp1d:
         return interp1d(a_samples, l_samples)
 
     @lazy_property
-    @classmethod
-    def _l_a_interp_(cls, l_samples: FloatArrayType, a_samples: FloatArrayType) -> Callable[[Real], Real]:
+    @staticmethod
+    def _l_a_interp_(l_samples: FloatArrayType, a_samples: FloatArrayType) -> Callable[[Real], Real]:
         return interp1d(l_samples, a_samples)
 
     @lazy_property
-    @classmethod
-    def _a_final_(cls) -> float:
+    @staticmethod
+    def _a_final_() -> float:
         return 1.0
 
     @lazy_property
-    @classmethod
-    def _l_final_(cls, a_l_interp: scipy.interpolate.interp1d, a_final: float) -> float:
+    @staticmethod
+    def _l_final_(a_l_interp: scipy.interpolate.interp1d, a_final: float) -> float:
         return a_l_interp(a_final)
 
     def a_to_p(self, a: Real) -> Vector2Type:
-        return self._gamma_(a).astype(np.float32)
+        return self._gamma_(a)
 
     def a_to_l(self, a: Real) -> float:
         return self._a_l_interp_(a)
@@ -308,14 +308,14 @@ class Path(LazyBase):
             ):
                 contour.append(BezierCurve(np.array([
                     np.array(list(point)) for point in points
-                ], dtype=np.float32)))
+                ])))
             elif verb == skia.Path.Verb.kConic_Verb:
                 # Approximate per conic curve with 8 quads
                 quad_points = skia.Path.ConvertConicToQuads(*points, iterator.conicWeight(), 3)
                 for i in range(0, len(quad_points), 2):
                     contour.append(BezierCurve(np.array([
                         np.array(list(point)) for point in quad_points[i:i + 3]
-                    ], dtype=np.float32)))
+                    ])))
             elif verb == skia.Path.Verb.kClose_Verb:
                 if contour:
                     contours.append(Contour(contour))
@@ -347,13 +347,13 @@ class Path(LazyBase):
         return path
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _skia_path_(cls) -> skia.Path:
+    @staticmethod
+    def _skia_path_() -> skia.Path:
         return skia.Path()
 
     @lazy_property
-    @classmethod
-    def _contours_(cls, skia_path: skia.Path) -> Contours:
+    @staticmethod
+    def _contours_(skia_path: skia.Path) -> Contours:
         return Path._get_contours_by_skia_path(skia_path)
 
     @_skia_path_.updater
@@ -387,13 +387,13 @@ class Path(LazyBase):
         return self
 
     @lazy_property
-    @classmethod
-    def _a_final_(cls, contours: Contours) -> float:
+    @staticmethod
+    def _a_final_(contours: Contours) -> float:
         return contours._a_final_
 
     @lazy_property
-    @classmethod
-    def _l_final_(cls, contours: Contours) -> float:
+    @staticmethod
+    def _l_final_(contours: Contours) -> float:
         return contours._l_final_
 
     def a_to_p(self, a: Real) -> Vector2Type:

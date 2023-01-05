@@ -138,8 +138,8 @@ class Scene(Mobject):
     #    return PlaneGeometry()
 
     @lazy_property_initializer
-    @classmethod
-    def _scene_config_(cls) -> SceneConfig:
+    @staticmethod
+    def _scene_config_() -> SceneConfig:
         return SceneConfig()
 
     #@lazy_property_initializer

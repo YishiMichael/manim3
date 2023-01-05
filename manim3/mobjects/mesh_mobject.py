@@ -8,49 +8,102 @@ import numpy as np
 #from ..cameras.camera import Camera
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
-from ..utils.context_singleton import ContextSingleton
+#from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
-from ..utils.renderable import RenderStep
+from ..utils.renderable import RenderStep, ShaderStrings, TextureStorage, UniformBlockBuffer
 from ..utils.scene_config import SceneConfig
 from ..custom_typing import *
 
 
+#MESH_VERTEX_SHADER = """
+##version 430 core
+#
+#in vec3 in_position;
+#in vec4 in_color;
+#
+#layout (std140) uniform ub_camera_matrices {
+#    mat4 uniform_projection_matrix;
+#    mat4 uniform_view_matrix;
+#};
+#layout (std140) uniform ub_model_matrices {
+#    mat4 uniform_model_matrix;
+#    mat4 uniform_geometry_matrix;
+#};
+#
+#out VS_FS {
+#    vec4 color;
+#} vs_out;
+#
+#void main() {
+#    vs_out.color = in_color;
+#    gl_Position = uniform_projection_matrix * uniform_view_matrix * uniform_model_matrix * uniform_geometry_matrix * vec4(in_position, 1.0);
+#}
+#"""
+#
+#MESH_FRAGMENT_SHADER = """
+##version 430
+#
+#in VS_FS {
+#    vec4 color;
+#} fs_in;
+#
+#out vec4 frag_color;
+#
+#void main() {
+#    frag_color = fs_in.color;
+#}
+#"""
+
+
 MESH_VERTEX_SHADER = """
-#version 430
+#version 430 core
 
-in vec3 in_position;
-in vec4 in_color;
+in vec3 a_position;
+in vec2 a_uv;
 
-layout (std140) uniform uniform_block_camera_matrices {
-    mat4 uniform_projection_matrix;
-    mat4 uniform_view_matrix;
+layout (std140) uniform ub_camera_matrices {
+    mat4 u_projection_matrix;
+    mat4 u_view_matrix;
 };
-layout (std140) uniform uniform_block_model_matrices {
-    mat4 uniform_model_matrix;
-    mat4 uniform_geometry_matrix;
+layout (std140) uniform ub_model_matrices {
+    mat4 u_model_matrix;
+    mat4 u_geometry_matrix;
 };
 
 out VS_FS {
-    vec4 color;
+    vec2 uv;
 } vs_out;
 
 void main() {
-    vs_out.color = in_color;
-    gl_Position = uniform_projection_matrix * uniform_view_matrix * uniform_model_matrix * uniform_geometry_matrix * vec4(in_position, 1.0);
+    vs_out.uv = a_uv;
+    gl_Position = u_projection_matrix * u_view_matrix * u_model_matrix * u_geometry_matrix * vec4(a_position, 1.0);
 }
 """
 
 MESH_FRAGMENT_SHADER = """
 #version 430
+#define NUM_U_COLOR_MAPS _
 
 in VS_FS {
-    vec4 color;
+    vec2 uv;
 } fs_in;
+
+layout (std140) uniform ub_color {
+    vec4 u_color;
+};
+#if NUM_U_COLOR_MAPS
+uniform sampler2D u_color_maps[NUM_U_COLOR_MAPS];
+#endif
 
 out vec4 frag_color;
 
 void main() {
-    frag_color = fs_in.color;
+    frag_color = u_color;
+    #if NUM_U_COLOR_MAPS
+    for (int i = 0; i < NUM_U_COLOR_MAPS; ++i) {
+        frag_color *= texture(u_color_maps[i], fs_in.uv);
+    }
+    #endif
 }
 """
 
@@ -93,36 +146,85 @@ class MeshMobject(Mobject):
     #    return False
 
     @lazy_property
-    @classmethod
-    def _geometry_matrix_(cls) -> Matrix44Type:
-        return np.identity(4, dtype=np.float32)
-
-    @lazy_property
-    @classmethod
-    def _model_matrices_buffer_(cls, model_matrix: Matrix44Type, geometry_matrix: Matrix44Type) -> moderngl.Buffer:
-        buffer = ContextSingleton().buffer(reserve=128)
-        buffer.write(model_matrix.tobytes(), offset=0)
-        buffer.write(geometry_matrix.tobytes(), offset=64)
-        return buffer
-
-    @_model_matrices_buffer_.releaser
     @staticmethod
-    def _model_matrices_buffer_releaser(model_matrices_buffer: moderngl.Buffer) -> None:
-        model_matrices_buffer.release()
+    def _geometry_matrix_() -> Matrix44Type:
+        return np.identity(4)
 
     @lazy_property_initializer
-    @classmethod
-    def _geometry_(cls) -> Geometry:
+    @staticmethod
+    def _ub_model_matrices_o_() -> UniformBlockBuffer:
+        return UniformBlockBuffer()
+
+    @lazy_property
+    @staticmethod
+    def _ub_model_matrices_(
+        ub_model_matrices_o: UniformBlockBuffer,
+        model_matrix: Matrix44Type,
+        geometry_matrix: Matrix44Type
+    ) -> UniformBlockBuffer:
+        ub_model_matrices_o._data_ = [
+            (model_matrix, np.float32, None),
+            (geometry_matrix, np.float32, None),
+        ]
+        #buffer = ContextSingleton().buffer(reserve=128)
+        #buffer.write(model_matrix.tobytes(), offset=0)
+        #buffer.write(geometry_matrix.tobytes(), offset=64)
+        return ub_model_matrices_o
+
+    #@_model_matrices_buffer_.releaser
+    #@staticmethod
+    #def _model_matrices_buffer_releaser(model_matrices_buffer: moderngl.Buffer) -> None:
+    #    model_matrices_buffer.release()
+
+    @lazy_property_initializer
+    @staticmethod
+    def _geometry_() -> Geometry:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _color_(cls) -> ColorArrayType:
-        return np.ones(4, dtype=np.float32)
+    @staticmethod
+    def _color_() -> ColorArrayType:
+        return np.ones(4)
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _enable_only_(cls) -> int:
+    @staticmethod
+    def _ub_color_o_() -> UniformBlockBuffer:
+        return UniformBlockBuffer()
+
+    @lazy_property
+    @staticmethod
+    def _ub_color_(
+        ub_color_o: UniformBlockBuffer,
+        color: ColorArrayType
+    ) -> UniformBlockBuffer:
+        ub_color_o._data_ = [
+            (color, np.float32, None)
+        ]
+        return ub_color_o
+
+    @lazy_property_initializer
+    @staticmethod
+    def _color_map_texture_() -> moderngl.Texture | None:
+        return NotImplemented
+
+    @lazy_property_initializer
+    @staticmethod
+    def _u_color_maps_o_() -> TextureStorage:
+        return TextureStorage()
+
+    @lazy_property
+    @staticmethod
+    def _u_color_maps_(
+        u_color_maps_o: TextureStorage,
+        color_map_texture: moderngl.Texture | None
+    ) -> TextureStorage:
+        textures = [color_map_texture] if color_map_texture is not None else []
+        u_color_maps_o._data_ = (textures, "NUM_U_COLOR_MAPS")
+        return u_color_maps_o
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _enable_only_() -> int:
         return moderngl.BLEND | moderngl.DEPTH_TEST
 
     #@lazy_property_initializer
@@ -138,37 +240,35 @@ class MeshMobject(Mobject):
     #def _color_map_() -> moderngl.Texture | None:
     #    return None
 
-    @lazy_property
-    @classmethod
-    def _program_(cls) -> moderngl.Program:
-        return ContextSingleton().program(
-            vertex_shader=MESH_VERTEX_SHADER,
-            fragment_shader=MESH_FRAGMENT_SHADER
-        )
+    #@lazy_property
+    #@staticmethod
+    #def _program_() -> moderngl.Program:
+    #    return ContextSingleton().program(
+    #        vertex_shader=MESH_VERTEX_SHADER,
+    #        fragment_shader=MESH_FRAGMENT_SHADER
+    #    )
 
-    @_program_.releaser
-    @staticmethod
-    def _program_releaser(program: moderngl.Program) -> None:
-        program.release()
+    #@_program_.releaser
+    #@staticmethod
+    #def _program_releaser(program: moderngl.Program) -> None:
+    #    program.release()
 
-    @lazy_property
-    @classmethod
-    def _color_buffer_(cls, color: ColorArrayType) -> moderngl.Buffer:
-        return cls._make_buffer(color.astype(np.float64))
+    #@lazy_property
+    #@staticmethod
+    #def _color_buffer_(color: ColorArrayType) -> moderngl.Buffer:
+    #    return Renderable._make_buffer(color, np.float32)
 
-    @_color_buffer_.releaser
-    @staticmethod
-    def _color_buffer_releaser(color_buffer: moderngl.Buffer) -> None:
-        color_buffer.release()
+    #@_color_buffer_.releaser
+    #@staticmethod
+    #def _color_buffer_releaser(color_buffer: moderngl.Buffer) -> None:
+    #    color_buffer.release()
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         self._render_by_step(RenderStep(
-            program=self._program_,
-            index_buffer=self._geometry_._indices_buffer_,
-            attributes={
-                "in_position": ("3f4 /v", self._geometry_._positions_buffer_),
-                "in_color": ("4f4 /r", self._color_buffer_),
-            },
+            shader_strings=ShaderStrings(
+                vertex_shader=MESH_VERTEX_SHADER,
+                fragment_shader=MESH_FRAGMENT_SHADER
+            ),
             #vertex_array=ContextSingleton().vertex_array(
             #    program=self._program_,
             #    content=[
@@ -183,12 +283,21 @@ class MeshMobject(Mobject):
             #    index_buffer=self._geometry_._indices_buffer_,
             #    mode=moderngl.TRIANGLES
             #),
-            textures={},
+            texture_storages={
+                "u_color_maps": self._u_color_maps_
+            },
             uniform_blocks={
-                "uniform_block_camera_matrices": scene_config._camera_._camera_matrices_buffer_,
-                "uniform_block_model_matrices": self._model_matrices_buffer_
+                "ub_camera_matrices": scene_config._camera_._ub_camera_matrices_,
+                "ub_model_matrices": self._ub_model_matrices_,
+                "ub_color": self._ub_color_
+            },
+            attributes={
+                "a_position": self._geometry_._a_position_,
+                "a_uv": self._geometry_._a_uv_,
+                #"in_color": ("4f4 /r", self._color_buffer_),
             },
             subroutines={},
+            index_buffer=self._geometry_._index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=self._enable_only_,
             mode=moderngl.TRIANGLES

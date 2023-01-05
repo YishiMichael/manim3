@@ -28,18 +28,18 @@ class ParametricSurfaceGeometry(Geometry):
         indices = np.ravel_multi_index(
             tuple(np.stack((se, sw, ne, sw, nw, ne), axis=3)),
             (u_len, v_len)
-        ).flatten().astype(np.int32)
+        ).flatten().astype(np.uint)
 
         uvs = np.stack(np.meshgrid(
             np.linspace(0.0, 1.0, u_len),
             np.linspace(0.0, 1.0, v_len),
             indexing="ij"
-        ), 2).reshape((-1, 2)).astype(np.float32)
+        ), 2).reshape((-1, 2))
         samples = np.stack(np.meshgrid(
             np.linspace(u_start, u_stop, u_len),
             np.linspace(v_start, v_stop, v_len),
             indexing="ij"
-        ), 2).reshape((-1, 2)).astype(np.float32)
+        ), 2).reshape((-1, 2))
         positions = np.apply_along_axis(lambda p: func(*p), 1, samples)
         #return GeometryAttributes(
         #    indices=indices,

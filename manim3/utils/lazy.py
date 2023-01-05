@@ -28,9 +28,9 @@ _LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
 
 
 class lazy_property(Node, Generic[_LazyBaseT, _T]):
-    def __init__(self, class_method: Callable[..., _T]):
-        #assert isinstance(method, classmethod)
-        method = class_method.__func__
+    def __init__(self, static_method: Callable[..., _T]):
+        #assert isinstance(method, staticmethod)
+        method = static_method.__func__
         self.method: Callable[..., _T] = method
         signature = inspect.signature(method)
         #node = ParameterNode(method.__name__, signature.return_annotation)
@@ -44,7 +44,7 @@ class lazy_property(Node, Generic[_LazyBaseT, _T]):
         #self.node: ParameterNode = ParameterNode(method.__name__, signature.return_annotation)
         self.parameters: dict[str, _Annotation] = {
             f"_{parameter.name}_": parameter.annotation
-            for parameter in list(signature.parameters.values())[1:]
+            for parameter in list(signature.parameters.values())
         }
         self.value_dict: dict[_LazyBaseT, _T] = {}
         self.requires_update: dict[_LazyBaseT, bool] = {}
@@ -62,18 +62,20 @@ class lazy_property(Node, Generic[_LazyBaseT, _T]):
             return self
         if not self.requires_update[instance]:
             return self.value_dict[instance]
-        if owner is None:
-            owner = type(instance)
         if self.release_method is not None:
             if instance in self.value_dict:
                 self.release_method(self.value_dict[instance])
-        value = self.method(owner, *(
+        value = self.method(*(
             instance.__getattribute__(parameter)
             for parameter in self.parameters
         ))
         self.value_dict[instance] = value
         self.requires_update[instance] = False
         return value
+
+    @property
+    def stripped_name(self) -> str:
+        return self.name.strip("_")
 
     def add_instance(self, instance: _LazyBaseT) -> None:
         self.requires_update[instance] = True
@@ -109,7 +111,7 @@ class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
         raise ValueError("Attempting to set a readonly property")
 
     def add_instance(self, instance: _LazyBaseT) -> None:
-        self.value_dict[instance] = self.method(instance.__class__)
+        self.value_dict[instance] = self.method()
 
     def updater(self, update_method: Callable[Concatenate[_LazyBaseT, _P], _R]) -> Callable[Concatenate[_LazyBaseT, _P], _R]:
         def new_update_method(instance: _LazyBaseT, *args: _P.args, **kwargs: _P.kwargs) -> _R:
@@ -147,6 +149,7 @@ class LazyBase(ABC):
                 continue
             for param_name, param_annotation in prop.parameters.items():
                 param_node = properties[param_name]
+                # TODO: use issubclass() instead
                 assert param_node.annotation == param_annotation, \
                     AssertionError(f"Type annotation mismatched: {param_node.annotation} and {param_annotation}")
                 prop.add(param_node)
@@ -196,13 +199,13 @@ class LazyBase(ABC):
 """
 class A(LazyBase):
     @lazy_property
-    @classmethod
-    def _p_(cls, q: str):
+    @staticmethod
+    def _p_(q: str):
         return int(q)
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _q_(cls) -> str:
+    @staticmethod
+    def _q_() -> str:
         return "2"
 
 

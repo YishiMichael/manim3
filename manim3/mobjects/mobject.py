@@ -58,11 +58,6 @@ class Mobject(Node, Renderable):
 
     # matrix & transform
 
-    @lazy_property_initializer_writable
-    @classmethod
-    def _model_matrix_(cls) -> Matrix44Type:
-        return np.identity(4, dtype=np.float32)
-
     #@lazy_property_initializer
     #@classmethod
     #def _geometry_matrix_(cls) -> Matrix44Type:
@@ -83,34 +78,34 @@ class Mobject(Node, Renderable):
     #def _model_matrix_buffer_releaser(model_matrix_buffer: moderngl.Buffer) -> None:
     #    model_matrix_buffer.release()
 
-    @classmethod
-    def matrix_from_translation(cls, vector: Vector3Type) -> Matrix44Type:
-        m = np.identity(4, dtype=np.float32)
+    @staticmethod
+    def matrix_from_translation(vector: Vector3Type) -> Matrix44Type:
+        m = np.identity(4)
         m[3, :3] = vector
         return m
 
-    @classmethod
-    def matrix_from_scale(cls, factor: Real | Vector3Type) -> Matrix44Type:
-        m = np.identity(4, dtype=np.float32)
+    @staticmethod
+    def matrix_from_scale(factor: Real | Vector3Type) -> Matrix44Type:
+        m = np.identity(4)
         m[:3, :3] *= factor
         return m
 
-    @classmethod
-    def matrix_from_rotation(cls, rotation: Rotation) -> Matrix44Type:
-        m = np.identity(4, dtype=np.float32)
+    @staticmethod
+    def matrix_from_rotation(rotation: Rotation) -> Matrix44Type:
+        m = np.identity(4)
         m[:3, :3] = rotation.as_matrix()
         return m
 
     @overload
-    @classmethod
-    def apply_affine(cls, matrix: Matrix44Type, vector: Vector3Type) -> Vector3Type: ...
+    @staticmethod
+    def apply_affine(matrix: Matrix44Type, vector: Vector3Type) -> Vector3Type: ...
 
     @overload
-    @classmethod
-    def apply_affine(cls, matrix: Matrix44Type, vector: Vector3ArrayType) -> Vector3ArrayType: ...
+    @staticmethod
+    def apply_affine(matrix: Matrix44Type, vector: Vector3ArrayType) -> Vector3ArrayType: ...
 
-    @classmethod
-    def apply_affine(cls, matrix: Matrix44Type, vector: Vector3Type | Vector3ArrayType) -> Vector3Type | Vector3ArrayType:
+    @staticmethod
+    def apply_affine(matrix: Matrix44Type, vector: Vector3Type | Vector3ArrayType) -> Vector3Type | Vector3ArrayType:
         if len(vector.shape) == 1:
             v = vector[:, None]
         else:
@@ -127,9 +122,14 @@ class Mobject(Node, Renderable):
         return result
 
     @lazy_property_initializer
-    @classmethod
-    def _geometry_(cls) -> Geometry:
+    @staticmethod
+    def _geometry_() -> Geometry:
         return NotImplemented
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _model_matrix_() -> Matrix44Type:
+        return np.identity(4)
 
     @_model_matrix_.updater
     def apply_transform_locally(self, matrix: Matrix44Type):
@@ -350,7 +350,7 @@ class Mobject(Node, Renderable):
         about_edge: Vector3Type | None = None,
         broadcast: bool = True
     ):
-        factor_vector = np.ones(3, dtype=np.float32)
+        factor_vector = np.ones(3)
         factor_vector[dim] = target_length / self.get_bounding_box_size(broadcast=broadcast)[dim]
         self.scale(
             factor_vector,
@@ -448,8 +448,8 @@ class Mobject(Node, Renderable):
                     )
 
     @lazy_property_initializer
-    @classmethod
-    def _render_passes_(cls) -> list["RenderPass"]:
+    @staticmethod
+    def _render_passes_() -> list["RenderPass"]:
         return []
 
     @_render_passes_.updater
@@ -467,8 +467,8 @@ class Mobject(Node, Renderable):
     # animations
 
     @lazy_property_initializer
-    @classmethod
-    def _animations_(cls) -> list["Animation"]:
+    @staticmethod
+    def _animations_() -> list["Animation"]:
         return []
 
     @_animations_.updater

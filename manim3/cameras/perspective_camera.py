@@ -27,29 +27,28 @@ class PerspectiveCamera(Camera):
         self._far_ = far
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _fovy_(cls) -> Real:
+    @staticmethod
+    def _fovy_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _aspect_(cls) -> Real:
+    @staticmethod
+    def _aspect_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _near_(cls) -> Real:
+    @staticmethod
+    def _near_() -> Real:
         return NotImplemented
 
     @lazy_property_initializer_writable
-    @classmethod
-    def _far_(cls) -> Real:
+    @staticmethod
+    def _far_() -> Real:
         return NotImplemented
 
     @lazy_property
-    @classmethod
+    @staticmethod
     def _projection_matrix_(
-        cls,
         fovy: Real,
         aspect: Real,
         near: Real,
@@ -59,6 +58,5 @@ class PerspectiveCamera(Camera):
             fovy,
             aspect,
             near,
-            far,
-            dtype=np.float32
+            far
         )
