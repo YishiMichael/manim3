@@ -120,7 +120,7 @@ class MeshMobject(Mobject):
     ) -> UniformBlockBuffer:
         ub_model_matrices_o._data_ = [
             (model_matrix, np.float32, None),
-            (geometry_matrix, np.float32, None),
+            (geometry_matrix, np.float32, None)
         ]
         return ub_model_matrices_o
 

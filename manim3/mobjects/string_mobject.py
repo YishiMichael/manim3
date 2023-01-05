@@ -16,7 +16,7 @@ from ..custom_typing import (
     Selector,
     Span
 )
-from ..mobjects.path_mobject import PathGroup
+from ..mobjects.path_mobject import PathMobject
 from ..mobjects.svg_mobject import SVGMobject
 
 
@@ -103,7 +103,7 @@ class StringMobject(SVGMobject):
     def get_labels(self) -> list[int]:
         labels_count = len(self.labelled_spans)
         if labels_count == 1:
-            return [0] * len(self.get_children())
+            return [0] * len(self.path_mobjects)
 
         labelled_content = self.get_content(is_labelled=True)
         file_path = self.get_file_path_by_content(labelled_content)
@@ -117,16 +117,16 @@ class StringMobject(SVGMobject):
                 #"stroke_opacity": 0.0
             }
         )
-        if len(self.get_children()) != len(labelled_svg.get_children()):
+        if len(self.path_mobjects) != len(labelled_svg.path_mobjects):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."
             )
-            return [0] * len(self.get_children())
+            return [0] * len(self.path_mobjects)
 
         self.rearrange_children_by_positions(labelled_svg)
         unrecognizable_colors = []
         labels = []
-        for child in labelled_svg.get_children():
+        for child in labelled_svg.path_mobjects:
             label = self.color_to_int(child._fill_paint_.color)
             if label >= labels_count:
                 unrecognizable_colors.append(label)
@@ -151,7 +151,7 @@ class StringMobject(SVGMobject):
         # each child is labelled by the nearest one of `labelled_svg`.
         # The correctness cannot be ensured, since the svg may
         # change significantly after inserting color commands.
-        if not labelled_svg.get_children():
+        if not labelled_svg.path_mobjects:
             return
 
         bb_0 = self.get_bounding_box()
@@ -159,12 +159,12 @@ class StringMobject(SVGMobject):
         labelled_svg.move_to(self).scale(bb_1.radius / bb_0.radius)
 
         distance_matrix = cdist(
-            [child.get_center() for child in self.get_children()],
-            [child.get_center() for child in labelled_svg.get_children()]
+            [child.get_center() for child in self.path_mobjects],
+            [child.get_center() for child in labelled_svg.path_mobjects]
         )
         _, indices = linear_sum_assignment(distance_matrix)
         new_children = [
-            labelled_svg.get_children()[index]
+            labelled_svg.path_mobjects[index]
             for index in indices
         ]
         labelled_svg.set_children(new_children)
@@ -551,30 +551,37 @@ class StringMobject(SVGMobject):
             ]
         ))
 
+    def build_part_from_indices_list(
+        self, indices_list: list[int]
+    ) -> PathMobject:
+        return PathMobject().add(*(
+            self.path_mobjects[child_index]
+            for child_index in indices_list
+        ))
+
     def build_parts_from_indices_lists(
         self, indices_lists: list[list[int]]
-    ) -> PathGroup:
-        return PathGroup(*(
-            PathGroup(*(
-                self.get_children()[child_index]
-                for child_index in indices_list
-            ))
+    ) -> PathMobject:
+        return PathMobject().add(*(
+            self.build_part_from_indices_list(indices_list)
             for indices_list in indices_lists
         ))
 
-    def build_groups(self) -> PathGroup:
+    def build_groups(self) -> PathMobject:
         return self.build_parts_from_indices_lists([
             indices_list
             for _, indices_list in self.get_group_part_items()
         ])
 
-    def select_parts(self, selector: Selector) -> PathGroup:
+    def select_parts(self, selector: Selector) -> PathMobject:
         return self.build_parts_from_indices_lists(
             self.get_child_indices_lists_by_selector(selector)
         )
 
-    def select_part(self, selector: Selector, index: int = 0) -> PathGroup:
-        return self.select_parts(selector)[index]
+    def select_part(self, selector: Selector, index: int = 0) -> PathMobject:
+        return self.build_part_from_indices_list(
+            self.get_child_indices_lists_by_selector(selector)[index]
+        )
 
     def set_parts_color(self, selector: Selector, color: ColorType):
         self.select_parts(selector).set_fill(color=color)

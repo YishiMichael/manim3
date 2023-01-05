@@ -7,3 +7,4 @@ pygments
 skia-pathops
 skia-python
 toml
+xxhash

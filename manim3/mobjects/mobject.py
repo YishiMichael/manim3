@@ -1,14 +1,15 @@
-__all__ = [
-    "Mobject",
-    "Group"
-]
+__all__ = ["Mobject"]
 
 
 import copy
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
-from typing import Iterator, overload
+from typing import (
+    Iterable,
+    Iterator,
+    overload
+)
 import warnings
 
 import moderngl
@@ -47,8 +48,17 @@ class BoundingBox3D:
     radius: Vector3Type
 
 
-class Mobject(Node, Renderable):
-    #def __init__(self) -> None:
+class MobjectNode(Node):
+    def __init__(self, mobject: "Mobject"):
+        self._mobject: Mobject = mobject
+        super().__init__()
+
+
+class Mobject(Renderable):
+    def __init__(self) -> None:
+        self._node: MobjectNode = MobjectNode(self)
+        super().__init__()
+
     #    #self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
     #    self.render_passes: list["RenderPass"] = []
     #    self.animations: list["Animation"] = []  # TODO: circular typing
@@ -57,13 +67,64 @@ class Mobject(Node, Renderable):
     def __iter__(self) -> Iterator["Mobject"]:
         return iter(self.get_children())
 
-    def __getitem__(self, i: int | slice):
+    def __getitem__(self, i: int | slice) -> "Mobject":
         if isinstance(i, int):
             return self.get_children().__getitem__(i)
-        return Group(*self.get_children().__getitem__(i))
+        return Mobject().add(*self.get_children().__getitem__(i))
 
     def copy(self):
         return copy.copy(self)  # TODO
+
+    # family matters
+
+    def get_parents(self) -> "list[Mobject]":
+        return [node._mobject for node in self._node.get_parents()]
+
+    def get_children(self) -> "list[Mobject]":
+        return [node._mobject for node in self._node.get_children()]
+
+    def get_ancestors(self, *, broadcast: bool = True) -> "list[Mobject]":
+        return [node._mobject for node in self._node.get_ancestors(broadcast=broadcast)]
+
+    def get_descendants(self, *, broadcast: bool = True) -> "list[Mobject]":
+        return [node._mobject for node in self._node.get_descendants(broadcast=broadcast)]
+
+    def get_descendants_excluding_self(self) -> "list[Mobject]":
+        return [node._mobject for node in self._node.get_descendants_excluding_self()]
+
+    def includes(self, mobject: "Mobject") -> bool:
+        return self._node.includes(mobject._node)
+
+    def index(self, mobject: "Mobject") -> int:
+        return self._node.index(mobject._node)
+
+    def insert(self, index: int, mobject: "Mobject"):
+        self._node.insert(index, mobject._node)
+        return self
+
+    def add(self, *mobjects: "Mobject"):
+        self._node.add(*(mobject._node for mobject in mobjects))
+        return self
+
+    def remove(self, *mobjects: "Mobject"):
+        self._node.remove(*(mobject._node for mobject in mobjects))
+        return self
+
+    def pop(self, index: int = -1):
+        self._node.pop(index=index)
+        return self
+
+    def clear(self):
+        self._node.clear()
+        return self
+
+    def clear_parents(self):
+        self._node.clear_parents()
+        return self
+
+    def set_children(self, mobjects: Iterable["Mobject"]):
+        self._node.set_children(mobject._node for mobject in mobjects)
+        return self
 
     # matrix & transform
 
@@ -499,13 +560,13 @@ class Mobject(Node, Renderable):
     #    pass
 
 
-class Group(Mobject):
-    def __init__(self, *mobjects: Mobject):
-        super().__init__()
-        self.add(*mobjects)
+#class Group(Mobject):
+#    def __init__(self, *mobjects: Mobject):
+#        super().__init__()
+#        self.add(*mobjects)
 
-    # TODO
-    def _bind_child(self, node, index: int | None = None):
-        assert isinstance(node, Mobject)
-        super()._bind_child(node, index=index)
-        return self
+#    # TODO
+#    def _bind_child(self, node, index: int | None = None):
+#        assert isinstance(node, Mobject)
+#        super()._bind_child(node, index=index)
+#        return self

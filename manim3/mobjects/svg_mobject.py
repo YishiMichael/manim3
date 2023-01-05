@@ -8,14 +8,11 @@ import skia
 import svgelements as se
 
 from ..custom_typing import Real
-from ..mobjects.path_mobject import (
-    PathGroup,
-    PathMobject
-)
+from ..mobjects.path_mobject import PathMobject
 from ..utils.path import Path
 
 
-class SVGMobject(PathGroup):
+class SVGMobject(PathMobject):
     def __init__(
         self,
         file_path: str,
@@ -40,7 +37,7 @@ class SVGMobject(PathGroup):
             stf=skia.Matrix.kFill_ScaleToFit
         )
 
-        mobjects = []
+        path_mobjects: list[PathMobject] = []
         for shape in svg.elements():
             if not isinstance(shape, se.Shape):
                 continue
@@ -54,8 +51,10 @@ class SVGMobject(PathGroup):
             if paint_settings is not None:
                 mobject.set_paint(**paint_settings)
             mobject.set_paint(**self.get_paint_settings_from_shape(shape))
-            mobjects.append(mobject)
-        super().__init__(*mobjects)
+            path_mobjects.append(mobject)
+        self.path_mobjects: list[PathMobject] = path_mobjects
+        super().__init__()
+        self.add(*path_mobjects)
 
     @classmethod
     def shape_to_skia_path(cls, shape: se.Shape) -> skia.Path | None:

@@ -1,7 +1,4 @@
-__all__ = [
-    "PathMobject",
-    "PathGroup"
-]
+__all__ = ["PathMobject"]
 
 
 from colour import Color
@@ -209,16 +206,4 @@ class PathMobject(SkiaMobject):
                 self._draw_stroke_behind_fill_ = draw_stroke_behind_fill
             mobject.set_fill(**fill_kwargs, broadcast=False)
             mobject.set_stroke(**stroke_kwargs, broadcast=False)
-        return self
-
-
-class PathGroup(PathMobject):
-    def __init__(self, *mobjects: PathMobject):
-        super().__init__()
-        self.add(*mobjects)
-
-    # TODO
-    def _bind_child(self, node, index: int | None = None):
-        assert isinstance(node, PathMobject)
-        super()._bind_child(node, index=index)
         return self
