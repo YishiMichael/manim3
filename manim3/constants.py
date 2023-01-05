@@ -35,7 +35,7 @@ __all__ = [
 import numpy as np
 import os
 
-from .custom_typing import *
+from .custom_typing import Vector3Type
 
 
 MANIM3_PATH: str = os.path.dirname(__file__)

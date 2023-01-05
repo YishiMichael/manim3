@@ -1,5 +1,4 @@
 __all__ = [
-    #"BoundingBox3D",
     "Mobject",
     "Group"
 ]
@@ -11,25 +10,35 @@ from functools import reduce
 import itertools as it
 from typing import Iterator, overload
 import warnings
-#from manimlib.mobject.mobject import moderngl
 
 import moderngl
 import numpy as np
-#import pyrr
 from scipy.spatial.transform import Rotation
-#from trimesh.parent import Geometry3D
 
 #from ..animations.animation import Animation
+from ..constants import (
+    ORIGIN,
+    RIGHT
+)
+from ..custom_typing import (
+    Matrix44Type,
+    Real,
+    Vector3Type,
+    Vector3ArrayType
+)
 from ..geometries.geometry import Geometry
-#from ..utils.context import ContextSingleton
 from ..utils.context_singleton import ContextSingleton
-from ..utils.lazy import lazy_property_initializer, lazy_property_initializer_writable
+from ..utils.lazy import (
+    lazy_property_initializer,
+    lazy_property_initializer_writable
+)
 from ..utils.node import Node
-from ..utils.renderable import IntermediateDepthTextures, IntermediateTextures, Renderable
+from ..utils.renderable import (
+    IntermediateDepthTextures,
+    IntermediateTextures,
+    Renderable
+)
 from ..utils.scene_config import SceneConfig
-#from ..utils.renderable import LazyBase
-from ..constants import ORIGIN, RIGHT
-from ..custom_typing import *
 
 
 @dataclass
@@ -134,14 +143,7 @@ class Mobject(Node, Renderable):
     @_model_matrix_.updater
     def apply_transform_locally(self, matrix: Matrix44Type):
         self._model_matrix_ = matrix @ self._model_matrix_
-        #self._geometry_.apply_transform(matrix)
         return self
-
-    #@lazy_property_initializer
-    #@staticmethod
-    #def _geometry_sample_points_() -> Vector3ArrayType:
-    #    return NotImplemented
-    #    #return geometry.positions
 
     def get_bounding_box(
         self,

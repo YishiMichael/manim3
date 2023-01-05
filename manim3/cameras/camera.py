@@ -1,22 +1,34 @@
 __all__ = ["Camera"]
 
 
-#import moderngl
 import numpy as np
-import pyrr
 
-from ..constants import CAMERA_ALTITUDE
-from ..constants import ORIGIN, OUT, UP
-#from ..utils.context_singleton import ContextSingleton
-from ..utils.renderable import Renderable, UniformBlockBuffer
-from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
-from ..custom_typing import *
+from ..constants import (
+    CAMERA_ALTITUDE,
+    ORIGIN,
+    OUT,
+    UP
+)
+from ..custom_typing import (
+    Matrix44Type,
+    Vector3Type
+)
+from ..utils.renderable import (
+    Renderable,
+    UniformBlockBuffer
+)
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_initializer,
+    lazy_property_initializer_writable
+)
+
+
+def normalize(array: Vector3Type) -> Vector3Type:
+    return array / np.linalg.norm(array)
 
 
 class Camera(Renderable):
-    #def __init__(self):
-    #    self.view_matrix: Matrix44Type = pyrr.matrix44.create_look_at(CAMERA_ALTITUDE * OUT, ORIGIN, UP)
-
     @lazy_property_initializer
     @staticmethod
     def _projection_matrix_() -> Matrix44Type:
@@ -24,8 +36,35 @@ class Camera(Renderable):
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _view_matrix_() -> Matrix44Type:
-        return pyrr.matrix44.create_look_at(CAMERA_ALTITUDE * OUT, ORIGIN, UP)
+    def _eye_() -> Vector3Type:
+        return CAMERA_ALTITUDE * OUT
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _target_() -> Vector3Type:
+        return ORIGIN
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _up_() -> Vector3Type:
+        return CAMERA_ALTITUDE * UP
+
+    @lazy_property
+    @staticmethod
+    def _view_matrix_(
+        eye: Vector3Type,
+        target: Vector3Type,
+        up: Vector3Type
+    ) -> Matrix44Type:
+        z = normalize(eye - target)
+        x = normalize(np.cross(up, z))
+        y = normalize(np.cross(z, x))
+        rot_mat = np.vstack((x, y, z))
+
+        m = np.identity(4)
+        m[:3, :3] = rot_mat.T
+        m[3, :3] = -rot_mat @ eye
+        return m
 
     @lazy_property_initializer_writable
     @staticmethod
@@ -44,18 +83,3 @@ class Camera(Renderable):
             (view_matrix, np.float32, None)
         ]
         return ub_camera_matrices_o
-
-    #@_camera_matrices_buffer_.releaser
-    #@staticmethod
-    #def _camera_matrices_buffer_releaser(uniform_camera_matrices_buffer: moderngl.Buffer) -> None:
-    #    uniform_camera_matrices_buffer.release()
-
-    #@lazy_property
-    #@classmethod
-    #def _view_matrix_buffer_(cls, view_matrix: Matrix44Type) -> moderngl.Buffer:
-    #    return cls._make_buffer(view_matrix.astype(np.float64))
-
-    #@_view_matrix_buffer_.releaser
-    #@staticmethod
-    #def _view_matrix_buffer_releaser(view_matrix_buffer: moderngl.Buffer) -> None:
-    #    view_matrix_buffer.release()

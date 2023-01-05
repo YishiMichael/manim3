@@ -4,8 +4,11 @@ __all__ = ["ParametricSurfaceGeometry"]
 import numpy as np
 from typing import Callable
 
+from ..custom_typing import (
+    Real,
+    Vector3Type
+)
 from ..geometries.geometry import Geometry
-from ..custom_typing import *
 
 
 class ParametricSurfaceGeometry(Geometry):
@@ -41,11 +44,6 @@ class ParametricSurfaceGeometry(Geometry):
             indexing="ij"
         ), 2).reshape((-1, 2))
         positions = np.apply_along_axis(lambda p: func(*p), 1, samples)
-        #return GeometryAttributes(
-        #    indices=indices,
-        #    positions=positions,
-        #    uvs=uvs
-        #)
         super().__init__(
             indices=indices,
             positions=positions,

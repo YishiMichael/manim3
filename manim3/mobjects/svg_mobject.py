@@ -7,10 +7,12 @@ import warnings
 import skia
 import svgelements as se
 
-from ..mobjects.path_mobject import PathGroup
-from ..mobjects.path_mobject import PathMobject
+from ..custom_typing import Real
+from ..mobjects.path_mobject import (
+    PathGroup,
+    PathMobject
+)
 from ..utils.path import Path
-from ..custom_typing import *
 
 
 class SVGMobject(PathGroup):

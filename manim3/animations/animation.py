@@ -1,11 +1,11 @@
+#__all__ = ["Animation"]
+
+
 from typing import Generic, TypeVar
 
+from ..custom_typing import Real
 from ..mobjects.mobject import Mobject
 from ..mobjects.path_mobject import PathMobject
-from ..custom_typing import *
-
-
-#__all__ = ["Animation"]
 
 
 MobjectType = TypeVar("MobjectType", bound="Mobject")

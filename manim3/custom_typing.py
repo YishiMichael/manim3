@@ -23,7 +23,11 @@ __all__ = [
 
 from colour import Color
 import re
-from typing import Iterable, Literal, Union
+from typing import (
+    Iterable,
+    Literal,
+    Union
+)
 
 import numpy as np
 

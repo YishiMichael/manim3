@@ -15,40 +15,13 @@ import pygments
 import pygments.formatters
 import pygments.lexers
 
-from ..mobjects.string_mobject import StringMobject
 from ..constants import PIXEL_PER_UNIT
-from ..custom_typing import *
-
-#from manimlib.constants import DEFAULT_PIXEL_WIDTH, FRAME_WIDTH
-#from manimlib.constants import NORMAL
-#from manimlib.logger import log
-#from manimlib.mobject.svg.string_mobject import StringMobject
-#from manimlib.utils.config_ops import digest_config
-#from manimlib.utils.customization import get_customization
-#from manimlib.utils.directories import get_downloads_dir
-#from manimlib.utils.directories import get_text_dir
-#from manimlib.utils.simple_functions import hash_string
-
-#from typing import TYPE_CHECKING
-
-#if TYPE_CHECKING:
-#    from colour import Color
-#    from typing import Iterable, Union
-#
-#    from manimlib.mobject.types.vectorized_mobject import VGroup
-#
-#    ManimColor = Union[str, Color]
-#    Span = tuple[int, int]
-#    Selector = Union[
-#        str,
-#        re.Pattern,
-#        tuple[Union[int, None], Union[int, None]],
-#        Iterable[Union[
-#            str,
-#            re.Pattern,
-#            tuple[Union[int, None], Union[int, None]]
-#        ]]
-#    ]
+from ..custom_typing import (
+    Real,
+    Selector,
+    Span
+)
+from ..mobjects.string_mobject import StringMobject
 
 
 def get_text_dir() -> str:

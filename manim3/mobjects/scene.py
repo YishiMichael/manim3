@@ -5,28 +5,21 @@ import time
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
-#import numpy as np
 
-
-#from ..cameras.camera import Camera
-#from ..cameras.perspective_camera import PerspectiveCamera
-#from ..geometries.geometry import Geometry
-#from ..geometries.plane_geometry import PlaneGeometry
+from ..constants import (
+    PIXEL_HEIGHT,
+    PIXEL_WIDTH
+)
+from ..custom_typing import Real
 from ..mobjects.mobject import Mobject
-#from ..mobjects.scene_mobject import SceneMobject
-#from ..mobjects.textured_mesh_mobject import TexturedMeshMobject
 from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import lazy_property_initializer
 from ..utils.scene_config import SceneConfig
-from ..constants import PIXEL_HEIGHT, PIXEL_WIDTH
-from ..custom_typing import *
 
 
 class Scene(Mobject):
     def __init__(self, is_main: bool = False):
         super().__init__()
-        #self.mobject: Mobject = Mobject()
-        #self.camera: Camera = PerspectiveCamera()
 
         if is_main:
             window = PygletWindow(

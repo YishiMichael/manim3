@@ -4,7 +4,10 @@ __all__ = ["Paint"]
 from colour import Color
 import skia
 
-from ..custom_typing import *
+from ..custom_typing import (
+    ColorType,
+    Real
+)
 
 
 class Paint(skia.Paint):

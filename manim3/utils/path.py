@@ -8,8 +8,18 @@ import numpy as np
 import scipy.interpolate
 import skia
 
-from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
-from ..custom_typing import *
+from ..custom_typing import (
+    FloatArrayType,
+    Real,
+    Vector2ArrayType,
+    Vector2Type
+)
+from ..utils.lazy import (
+    LazyBase,
+    lazy_property,
+    lazy_property_initializer,
+    lazy_property_initializer_writable
+)
 
 
 _T = TypeVar("_T", bound="CurveInterpolantBase")

@@ -4,7 +4,6 @@ moderngl
 moderngl_window
 numpy
 pygments
-pyrr
 skia-pathops
 skia-python
 toml

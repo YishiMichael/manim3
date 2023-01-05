@@ -10,32 +10,38 @@ __all__ = [
 ]
 
 
-from abc import ABC, abstractmethod
-#import atexit
+from abc import (
+    ABC,
+    abstractmethod
+)
 from contextlib import contextmanager
 from dataclasses import dataclass
-#from functools import lru_cache
-#import inspect
-#import os
 import re
-from typing import ClassVar, Generator, Generic, Hashable, TypeVar, overload
-
+from typing import (
+    ClassVar,
+    Generator,
+    Generic,
+    Hashable,
+    TypeVar,
+    overload
+)
 
 import moderngl
 import numpy as np
 import numpy.typing as npt
-#from numpy.typing import DTypeLike
 from xxhash import xxh3_64_digest
 
-#from PIL import Image
-#import skia
-
-#from ..utils.node import Node
-from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer_writable
-#from ..utils.lazy import LazyBase, lazy_property, lazy_property_initializer, lazy_property_initializer_writable
-from ..constants import PIXEL_HEIGHT, PIXEL_WIDTH
-from ..custom_typing import *
+from ..constants import (
+    PIXEL_HEIGHT,
+    PIXEL_WIDTH
+)
+from ..custom_typing import VertexIndicesType
 from ..utils.context_singleton import ContextSingleton
+from ..utils.lazy import (
+    LazyBase,
+    lazy_property,
+    lazy_property_initializer_writable
+)
 
 
 _T = TypeVar("_T", bound="Hashable")
@@ -50,7 +56,6 @@ class ResourceFactory(Generic[_T], ABC):
         cls.__OCCUPIED__ = []
         cls.__VACANT__ = []
         cls.__RESOURCE_GENERATOR__ = cls._generate()
-        #atexit.register(lambda: cls._release_all())
         return super().__init_subclass__()
 
     @classmethod
@@ -153,90 +158,6 @@ class IntermediateDepthTextures(IntermediateTextures):
             )
 
 
-    #_RESOURCE_DICT: dict[_T, int] = {}
-    #_VACANT_BINDINGS: set[int] = set()
-
-    #@abstractmethod
-    #@classmethod
-    #def _init_vacant_bindings(cls) -> set[int]:
-    #    pass
-
-    #def __init_subclass__(cls):
-    #    cls._VACANT_BINDINGS.update(cls._init_vacant_bindings())
-
-    #@classmethod
-    #def log_in(cls, resource: _T) -> int:
-    #    if not cls._VACANT_BINDINGS:
-    #        raise ValueError(f"Cannot allocate a binding for {resource}")
-    #    binding = min(cls._VACANT_BINDINGS)
-    #    cls._VACANT_BINDINGS.remove(binding)
-    #    cls._RESOURCE_DICT[resource] = binding
-    #    return binding
-
-    #@classmethod
-    #def log_out(cls, resource: _T) -> None:
-    #    binding = cls._RESOURCE_DICT.pop(resource)
-    #    cls._VACANT_BINDINGS.add(binding)
-
-
-#class TextureBindings(ResourceBindings[moderngl.Texture]):
-#    @classmethod
-#    def _init_vacant_bindings(cls) -> set[int]:
-#        return set(range(1, 32))  # TODO
-
-
-#class UniformBindings(ResourceBindings[moderngl.Buffer]):
-#    @classmethod
-#    def _init_vacant_bindings(cls) -> set[int]:
-#        return set(range(64))  # TODO
-
-
-
-
-    #@contextmanager
-    #def register(cls, texture: moderngl.Texture) -> Generator[int, None, None]:
-    #    try:
-    #        yield cls.log_in(texture)
-    #    finally:
-    #        cls.log_out(texture)
-
-
-    #_MAX_SCENES: ClassVar[int] = 64                 #  0 ~  63, cannot rewrite
-    #_MAX_EXTERNAL_TEXTURES: ClassVar[int] = 32      # 64 ~  95, rewrite when overflow
-    #_MAX_INTERMEDIATE_TEXTURES: ClassVar[int] = 32  # 96 ~ 127, always rewrite
-    #_SCENES: "ClassVar[list[Scene | None]]" = [None] * _MAX_SCENES
-    #_SCENE_PTR: ClassVar[int] = 0
-    #_TEXTURE_PATHS: ClassVar[list[str | None]] = [None] * _MAX_EXTERNAL_TEXTURES
-    #_TEXTURE_PATH_PTR: ClassVar[int] = 0
-
-    #@classmethod
-    #def bind_scene(cls, scene: "Scene") -> int:
-    #    if scene in cls._SCENES:
-    #        return cls._SCENES.index(scene)
-    #    if cls._SCENE_PTR == cls._MAX_SCENES:
-    #        raise ValueError(f"Cannot allocate a texture unit for {scene}")
-    #    cls._SCENES[cls._SCENE_PTR] = scene
-    #    cls._SCENE_PTR += 1
-    #    return cls._SCENE_PTR - 1
-
-    #@classmethod
-    #def bind_image(cls, path: str) -> int:
-    #    if path in cls._TEXTURE_PATHS:
-    #        return cls._MAX_SCENES + cls._TEXTURE_PATHS.index(path)
-    #    if cls._TEXTURE_PATH_PTR == cls._MAX_EXTERNAL_TEXTURES:
-    #        cls._TEXTURE_PATH_PTR = 0
-    #    cls._TEXTURE_PATHS[cls._TEXTURE_PATH_PTR] = path
-    #    cls._TEXTURE_PATH_PTR += 1
-    #    return cls._MAX_SCENES + cls._TEXTURE_PATH_PTR - 1
-
-    #@classmethod
-    #def get_intermediate_units(cls, num: int) -> list[int]:
-    #    if not 0 <= num < cls._MAX_INTERMEDIATE_TEXTURES:
-    #        raise ValueError(f"Cannot allocate {num} intermediate texture units")
-    #    head = cls._MAX_SCENES + cls._MAX_EXTERNAL_TEXTURES
-    #    return list(range(head, head + num))
-
-
 class TextureStorage(LazyBase):
     @lazy_property_initializer_writable
     @staticmethod
@@ -252,14 +173,6 @@ class TextureStorage(LazyBase):
         if isinstance(array_len, int):
             assert len(textures) == array_len
         return textures[:]
-
-    #@lazy_property
-    #@staticmethod
-    #def _array_len_(data: moderngl.Texture | tuple[list[moderngl.Texture], int | str]) -> int | None:
-    #    if isinstance(data, moderngl.Texture):
-    #        return 1
-    #    textures, _ = data
-    #    return len(textures)
 
     @lazy_property
     @staticmethod
@@ -286,10 +199,6 @@ class UniformBlockBuffer(LazyBase):
         np.float32: 4,
         np.float64: 8
     }
-
-    #def __init__(self, arrays: list[UniformType]):
-    #    super().__init__()
-    #    self._arrays_ = arrays
 
     @lazy_property_initializer_writable
     @staticmethod

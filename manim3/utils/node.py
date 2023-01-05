@@ -1,7 +1,13 @@
 __all__ = ["Node"]
 
 
-from typing import Generator, Iterable, Iterator, TypeVar, overload
+from typing import (
+    Generator,
+    Iterable,
+    Iterator,
+    TypeVar,
+    overload
+)
 
 
 _T = TypeVar("_T")

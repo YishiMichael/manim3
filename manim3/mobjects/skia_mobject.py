@@ -1,22 +1,24 @@
 __all__ = ["SkiaMobject"]
 
 
-#from abc import abstractmethod
-#from functools import reduce
-
 import moderngl
 import numpy as np
 import skia
 
-#from trimesh import Trimesh
-
+from ..custom_typing import (
+    Matrix44Type,
+    Real
+)
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mobject import Mobject
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.context_singleton import ContextSingleton
-from ..utils.lazy import lazy_property, lazy_property_initializer, lazy_property_initializer_writable
-from ..custom_typing import *
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_initializer,
+    lazy_property_initializer_writable
+)
 
 
 class SkiaMobject(MeshMobject):
@@ -28,10 +30,6 @@ class SkiaMobject(MeshMobject):
     @lazy_property_initializer
     @staticmethod
     def _geometry_() -> Geometry:
-        #frame_matrix = reduce(np.ndarray.__matmul__, (
-        #    cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))),
-        #    cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))  # order?
-        #))
         return PlaneGeometry()
 
     @lazy_property
@@ -49,24 +47,6 @@ class SkiaMobject(MeshMobject):
     @staticmethod
     def _frame_() -> skia.Rect:
         return NotImplemented
-
-    #@lazy_property
-    #@classmethod
-    #def _frame_matrix_(cls, frame: skia.Rect) -> Matrix44Type:
-    #    return cls.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0))) \
-    #        @ cls.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0)))
-
-    #@classmethod
-    #def _update_model_matrix_by_refreshed_frame(
-    #    cls, method: Callable[Concatenate[_SkiaMobjectT, _P], _R]
-    #) -> Callable[Concatenate[_SkiaMobjectT, _P], _R]:
-    #    def new_method(instance: _SkiaMobjectT, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-    #        old_frame_matrix = instance._frame_matrix_
-    #        result = method(instance, *args, **kwargs)
-    #        new_frame_matrix = instance._frame_matrix_
-    #        instance._model_matrix_ = (instance._model_matrix_ @ np.linalg.inv(old_frame_matrix)) @ new_frame_matrix
-    #        return result
-    #    return new_method
 
     @classmethod
     def _calculate_frame(

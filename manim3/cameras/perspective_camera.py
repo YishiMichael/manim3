@@ -2,14 +2,21 @@ __all__ = ["PerspectiveCamera"]
 
 
 import numpy as np
-import pyrr
 
 from ..cameras.camera import Camera
-from ..constants import ASPECT_RATIO, FRAME_Y_RADIUS
-from ..constants import CAMERA_ALTITUDE, CAMERA_FAR, CAMERA_NEAR
-from ..constants import DEGREES
+from ..constants import (
+    ASPECT_RATIO,
+    CAMERA_ALTITUDE,
+    CAMERA_FAR,
+    CAMERA_NEAR,
+    DEGREES,
+    FRAME_Y_RADIUS
+)
+from ..custom_typing import (
+    Matrix44Type,
+    Real
+)
 from ..utils.lazy import lazy_property, lazy_property_initializer_writable
-from ..custom_typing import *
 
 
 class PerspectiveCamera(Camera):
@@ -54,9 +61,23 @@ class PerspectiveCamera(Camera):
         near: Real,
         far: Real
     ) -> Matrix44Type:
-        return pyrr.matrix44.create_perspective_projection(
-            fovy,
-            aspect,
-            near,
-            far
-        )
+        ymax = near * np.tan(fovy * np.pi / 360.0)
+        xmax = ymax * aspect
+        left = -xmax
+        right = xmax
+        bottom = -ymax
+        top = ymax
+
+        a = (right + left) / (right - left)
+        b = (top + bottom) / (top - bottom)
+        c = -(far + near) / (far - near)
+        d = -2.0 * far * near / (far - near)
+        e = 2.0 * near / (right - left)
+        f = 2.0 * near / (top - bottom)
+
+        return np.array((
+            (  e, 0.0, 0.0,  0.0),
+            (0.0,   f, 0.0,  0.0),
+            (  a,   b,   c, -1.0),
+            (0.0, 0.0,   d,  0.0),
+        ))

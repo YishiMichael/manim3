@@ -11,23 +11,14 @@ import warnings
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
+from ..custom_typing import (
+    ColorType,
+    Selector,
+    Span
+)
 from ..mobjects.path_mobject import PathGroup
 from ..mobjects.svg_mobject import SVGMobject
-from ..custom_typing import *
 
-#from manimlib.constants import WHITE
-#from manimlib.logger import log
-#from manimlib.mobject.svg.svg_mobject import SVGMobject
-#from manimlib.mobject.types.vectorized_mobject import VGroup
-#from manimlib.utils.color import color_to_rgb
-#from manimlib.utils.color import rgb_to_hex
-#from manimlib.utils.config_ops import digest_config
-
-#from typing import TYPE_CHECKING
-
-#if TYPE_CHECKING:
-#    from colour import Color
-#    from typing import Callable, Iterable, Union
 
 
 class StringMobject(SVGMobject):

@@ -14,20 +14,12 @@ import warnings
 
 import toml
 
-from ..mobjects.string_mobject import StringMobject
 from ..constants import MANIM3_PATH
-from ..custom_typing import *
-
-#from manimlib.utils.tex_file_writing import display_during_execution
-#from manimlib.utils.tex_file_writing import tex_content_to_svg_file
-
-#from typing import TYPE_CHECKING
-
-#if TYPE_CHECKING:
-    #from colour import Color
-    #from typing import Iterable, Union
-
-    #from manimlib.mobject.types.vectorized_mobject import VGroup
+from ..custom_typing import (
+    ColorType,
+    Span
+)
+from ..mobjects.string_mobject import StringMobject
 
 
 @dataclass
