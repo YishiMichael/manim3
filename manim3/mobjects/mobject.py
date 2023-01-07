@@ -12,7 +12,6 @@ from typing import (
 )
 import warnings
 
-import moderngl
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -28,14 +27,15 @@ from ..custom_typing import (
     Vector3ArrayType
 )
 from ..geometries.geometry import Geometry
-from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import (
     lazy_property_initializer,
     lazy_property_initializer_writable
 )
 from ..utils.node import Node
 from ..utils.renderable import (
+    Framebuffer,
     IntermediateDepthTextures,
+    IntermediateFramebuffer,
     IntermediateTextures,
     Renderable
 )
@@ -203,7 +203,7 @@ class Mobject(Renderable):
 
     @_model_matrix_.updater
     def apply_transform_locally(self, matrix: Matrix44Type):
-        self._model_matrix_ = matrix @ self._model_matrix_
+        self._model_matrix_ = self._model_matrix_ @ matrix
         return self
 
     def get_bounding_box(
@@ -211,7 +211,7 @@ class Mobject(Renderable):
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
-        points_array = np.array([
+        points_array = np.concatenate([
             self.apply_affine(self._model_matrix_, mobject._geometry_._position_)
             for mobject in self.get_descendants(broadcast=broadcast)
         ])
@@ -220,8 +220,8 @@ class Mobject(Renderable):
             origin = ORIGIN
             radius = ORIGIN
         else:
-            minimum = points_array[:, 0].min(axis=0)
-            maximum = points_array[:, 1].max(axis=0)
+            minimum = points_array.min(axis=0)
+            maximum = points_array.max(axis=0)
             origin = (maximum + minimum) / 2.0
             radius = (maximum - minimum) / 2.0
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division
@@ -476,11 +476,11 @@ class Mobject(Renderable):
 
     # render
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         # Implemented in subclasses
         pass
 
-    def _render_full(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render_full(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         render_passes = self._render_passes_
         #if not render_passes:
         #    #target_framebuffer.clear()
@@ -490,21 +490,21 @@ class Mobject(Renderable):
 
         with IntermediateTextures.register_n(len(render_passes)) as textures:
             with IntermediateDepthTextures.register_n(len(render_passes)) as depth_textures:
-                framebuffers = [
-                    ContextSingleton().framebuffer(
-                        color_attachments=(texture,),
+                input_framebuffers = [
+                    IntermediateFramebuffer(
+                        color_attachments=[texture],
                         depth_attachment=depth_texture
                     )
                     for texture, depth_texture in zip(textures, depth_textures)
                 ]
-                framebuffers.append(target_framebuffer)
-                framebuffers[0].use()
-                self._render(scene_config, framebuffers[0])
-                for render_pass, (input_framebuffer, output_framebuffer) in zip(render_passes, it.pairwise(framebuffers)):
-                    output_framebuffer.use()
+                output_framebuffers: list[Framebuffer] = input_framebuffers[:]
+                output_framebuffers.append(target_framebuffer)
+                #framebuffers[0].use()
+                self._render(scene_config, output_framebuffers[0])
+                for render_pass, input_framebuffer, output_framebuffer in zip(render_passes, input_framebuffers, output_framebuffers[1:]):
+                    #output_framebuffer.use()
                     render_pass._render(
-                        input_texture=input_framebuffer.color_attachments[0],
-                        input_depth_texture=input_framebuffer.depth_attachment,
+                        input_framebuffer=input_framebuffer,
                         output_framebuffer=output_framebuffer,
                         mobject=self,
                         scene_config=scene_config

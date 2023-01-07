@@ -13,6 +13,7 @@ from ..utils.lazy import (
     lazy_property_initializer_writable
 )
 from ..utils.renderable import (
+    Framebuffer,
     RenderStep,
     ShaderStrings,
     TextureStorage,
@@ -178,7 +179,7 @@ class MeshMobject(Mobject):
     def _enable_only_() -> int:
         return moderngl.BLEND | moderngl.DEPTH_TEST
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         self._render_by_step(RenderStep(
             shader_strings=ShaderStrings(
                 vertex_shader=MESH_VERTEX_SHADER,

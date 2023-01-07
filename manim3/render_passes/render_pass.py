@@ -4,10 +4,12 @@ __all__ = ["RenderPass"]
 from abc import abstractmethod
 from typing import Generic, TypeVar
 
-import moderngl
-
 from ..mobjects.mobject import Mobject, SceneConfig
-from ..utils.renderable import Renderable
+from ..utils.renderable import (
+    IntermediateFramebuffer,
+    Framebuffer,
+    Renderable
+)
 
 
 _MobjectT = TypeVar("_MobjectT", bound="Mobject")
@@ -17,9 +19,8 @@ class RenderPass(Generic[_MobjectT], Renderable):
     @abstractmethod
     def _render(
         self,
-        input_texture: moderngl.Texture,
-        input_depth_texture: moderngl.Texture,
-        output_framebuffer: moderngl.Framebuffer,
+        input_framebuffer: IntermediateFramebuffer,
+        output_framebuffer: Framebuffer,
         mobject: _MobjectT,
         scene_config: SceneConfig
     ):

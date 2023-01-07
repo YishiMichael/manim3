@@ -1,7 +1,9 @@
 __all__ = [
     "AttributeBuffer",
+    "Framebuffer",
     "IndexBuffer",
     "IntermediateDepthTextures",
+    "IntermediateFramebuffer",
     "IntermediateTextures",
     "RenderStep",
     "Renderable",
@@ -510,6 +512,34 @@ class IndexBuffer(DynamicBuffer):
         return [self._variable_]
 
 
+class Framebuffer:
+    def __init__(self, framebuffer: moderngl.Framebuffer):
+        self._framebuffer: moderngl.Framebuffer = framebuffer
+
+
+class IntermediateFramebuffer(Framebuffer):
+    def __init__(
+        self,
+        color_attachments: list[moderngl.Texture],
+        depth_attachment: moderngl.Texture | None
+    ):
+        self._color_attachments: list[moderngl.Texture] = color_attachments
+        self._depth_attachment: moderngl.Texture | None = depth_attachment
+        super().__init__(
+            ContextSingleton().framebuffer(
+                color_attachments=tuple(color_attachments),
+                depth_attachment=depth_attachment
+            )
+        )
+
+    def get_attachment(self, index: int) -> moderngl.Texture:
+        if index >= 0:
+            return self._color_attachments[index]
+        assert index == -1
+        assert (depth_attachment := self._depth_attachment) is not None
+        return depth_attachment
+
+
 @dataclass(
     order=True,
     unsafe_hash=True,
@@ -592,7 +622,7 @@ class RenderStep:
     attributes: dict[str, AttributeBuffer]
     subroutines: dict[str, str]
     index_buffer: IndexBuffer
-    framebuffer: moderngl.Framebuffer
+    framebuffer: Framebuffer
     enable_only: int
     mode: int
 
@@ -649,7 +679,7 @@ class Renderable(LazyBase):
                 #}
 
                 with ContextSingleton().scope(
-                    framebuffer=framebuffer,
+                    framebuffer=framebuffer._framebuffer,
                     enable_only=enable_only,
                     textures=tuple(texture_binding_dict.items()),
                     uniform_buffers=tuple(

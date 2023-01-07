@@ -14,6 +14,7 @@ from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.path_mobject import *
 from .mobjects.scene import *
+from .mobjects.scene_mobject import *
 from .mobjects.skia_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.svg_mobject import *

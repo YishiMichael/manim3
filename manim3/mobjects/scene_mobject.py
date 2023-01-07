@@ -1,74 +1,55 @@
-"""
 __all__ = ["SceneMobject"]
 
 
-#import moderngl
-#from moderngl_window.context.pyglet.window import Window as PygletWindow
-import skia
+import moderngl
+import numpy as np
 
-#from ..cameras.camera import Camera  # TODO: move to a proper location
-from ..mobjects.skia_mobject import SkiaMobject
-from ..constants import PIXEL_PER_UNIT
-from ..custom_typing import *
-from ..scene import Scene
-#from ..shader_utils import ContextWrapper  # TODO: move to a proper location
+from ..constants import (
+    FRAME_HEIGHT,
+    FRAME_WIDTH
+)
+from ..custom_typing import Real
+from ..geometries.geometry import Geometry
+from ..geometries.plane_geometry import PlaneGeometry
+from ..mobjects.mesh_mobject import MeshMobject
+from ..mobjects.scene import Scene
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_initializer,
+    lazy_property_initializer_writable
+)
+from ..utils.renderable import IntermediateFramebuffer
 
 
-class SceneMobject(SkiaMobject):
+class SceneMobject(MeshMobject):
     def __init__(
         self,
-        #camera: Camera,
-        scene: Scene,
-        frame: skia.Rect,
-        #resolution: tuple[int, int],
-        #window: PygletWindow | None = None
+        scene: Scene
     ):
-        #if window is None:
-        #    ctx = moderngl.create_context(standalone=True)
-        #else:
-        #    ctx = window.ctx
-        #self.camera: Camera = camera
-        #self.context_wrapper: ContextWrapper = ContextWrapper(ctx)
-        super().__init__(
-            frame=frame,
-            resolution=(
-                int(frame.width() * PIXEL_PER_UNIT),
-                int(-frame.height() * PIXEL_PER_UNIT)  # flip y
-            )
-        )
-        self.scene: Scene = scene
+        super().__init__()
+        assert scene._window is None  # TODO
+        self._scene_ = scene
+        self.stretch_to_fit_size(np.array((FRAME_WIDTH, FRAME_HEIGHT, 0.0)))
 
-    def draw(self, canvas: skia.Canvas) -> None:
-        scene = self.scene
-        fbo = scene.fbo
-        #print(bool(fbo.read().lstrip(b"\x00")))
-        print("Called SceneMobject")
-        scene.render()
-        #print(bool(fbo.read().lstrip(b"\x00")))
-        #for mobject in self.get_descendants():
-        #    shader_data = mobject.setup_shader_data(self.camera)
-        #    if shader_data is None:
-        #        continue
-        #    self.context_wrapper.render(shader_data)
-        #print(len(fbo.read(
-        #        #viewport=fbo.viewport,
-        #        components=4
-        #    )))
-        #print(fbo.read(
-        #        viewport=fbo.viewport,
-        #        components=4
-        #    ))
-        print("After Called SceneMobject", len(fbo.read().strip(b"\x00")))
-        canvas.writePixels(
-            info=skia.ImageInfo.Make(
-                width=self.resolution[0],
-                height=self.resolution[1],
-                ct=skia.kRGBA_8888_ColorType,
-                at=skia.kUnpremul_AlphaType
-            ),
-            pixels=fbo.read(
-                #viewport=fbo.viewport,
-                #components=4
-            )
-        )
-"""
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _scene_() -> Scene:
+        return NotImplemented
+
+    @lazy_property_initializer
+    @staticmethod
+    def _geometry_() -> Geometry:
+        return PlaneGeometry()
+
+    @lazy_property
+    @staticmethod
+    def _color_map_texture_(scene: Scene) -> moderngl.Texture | None:
+        scene._render_scene()
+        framebuffer = scene._framebuffer
+        assert isinstance(framebuffer, IntermediateFramebuffer)
+        return framebuffer.get_attachment(0)
+
+    @_scene_.updater
+    def _update_dt(self, dt: Real):
+        super()._update_dt(dt)
+        self._scene_._update_dt(dt)
