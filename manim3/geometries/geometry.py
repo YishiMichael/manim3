@@ -6,6 +6,8 @@ import numpy as np
 from ..custom_typing import (
     Vector2ArrayType,
     Vector3ArrayType,
+    Vector4ArrayType,
+    Vector4Type,
     VertexIndicesType
 )
 from ..utils.lazy import (
@@ -59,7 +61,7 @@ class Geometry(Renderable):
     @lazy_property_initializer
     @staticmethod
     def _a_position_o_() -> AttributeBuffer:
-        return AttributeBuffer("vec3", "v")
+        return AttributeBuffer("vec3")
 
     @lazy_property
     @staticmethod
@@ -67,7 +69,7 @@ class Geometry(Renderable):
         a_position_o: AttributeBuffer,
         position: Vector3ArrayType
     ) -> AttributeBuffer:
-        a_position_o.write(position)
+        a_position_o.write(position, "v")
         return a_position_o
 
     @lazy_property_initializer_writable
@@ -78,7 +80,7 @@ class Geometry(Renderable):
     @lazy_property_initializer
     @staticmethod
     def _a_uv_o_() -> AttributeBuffer:
-        return AttributeBuffer("vec2", "v")
+        return AttributeBuffer("vec2")
 
     @lazy_property
     @staticmethod
@@ -86,5 +88,25 @@ class Geometry(Renderable):
         a_uv_o: AttributeBuffer,
         uv: Vector2ArrayType
     ) -> AttributeBuffer:
-        a_uv_o.write(uv)
+        a_uv_o.write(uv, "v")
         return a_uv_o
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _color_() -> Vector4Type | Vector4ArrayType:
+        return np.ones(4)
+
+    @lazy_property_initializer
+    @staticmethod
+    def _a_color_o_() -> AttributeBuffer:
+        return AttributeBuffer("vec4")
+
+    @lazy_property
+    @staticmethod
+    def _a_color_(
+        a_color_o: AttributeBuffer,
+        color: Vector4Type | Vector4ArrayType
+    ) -> AttributeBuffer:
+        usage = "rv"[len(color.shape) - 1]
+        a_color_o.write(color, usage)
+        return a_color_o

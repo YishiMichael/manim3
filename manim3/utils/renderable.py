@@ -673,10 +673,9 @@ class AttributeBuffer(DynamicBuffer):
     #}
 
 
-    def __init__(self, declaration: str, usage: str):
+    def __init__(self, declaration: str):
         super().__init__()
         self._variable_ = GLSLVariable(declaration)
-        self._usage_ = usage
 
     @lazy_property_initializer_writable
     @staticmethod
@@ -699,9 +698,11 @@ class AttributeBuffer(DynamicBuffer):
 
     @_variable_.updater
     @_buffer_.updater
-    def write(self, data: np.ndarray) -> None:
+    def write(self, data: np.ndarray, usage: str) -> None:
+        assert usage in ("v", "r")
+        multiple_blocks = usage != "r"
+        self._usage_ = usage
         variable = self._variable_
-        multiple_blocks = self._usage_ == "v"
         variable.write(data, multiple_blocks=multiple_blocks)
         #data_info = variable._data_info_
         #if data_info is None:
@@ -818,7 +819,7 @@ class IndexBuffer(DynamicBuffer):
     @lazy_property_initializer
     @staticmethod
     def _buffer_() -> moderngl.Buffer:
-        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic?
+        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic? check capacity
 
     @_variable_.updater
     @_buffer_.updater

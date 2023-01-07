@@ -5,10 +5,7 @@ import moderngl
 import numpy as np
 
 from ..geometries.geometry import Geometry
-from ..custom_typing import (
-    ColorArrayType,
-    Matrix44Type
-)
+from ..custom_typing import Matrix44Type
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import (
     lazy_property,
@@ -42,12 +39,12 @@ layout (std140) uniform ub_model_matrices {
 
 out VS_FS {
     vec2 uv;
-    //vec4 color;
+    vec4 color;
 } vs_out;
 
 void main() {
     vs_out.uv = a_uv;
-    //vs_out.color = a_color;
+    vs_out.color = a_color;
     gl_Position = u_projection_matrix * u_view_matrix * u_model_matrix * u_geometry_matrix * vec4(a_position, 1.0);
 }
 """
@@ -58,12 +55,9 @@ MESH_FRAGMENT_SHADER = """
 
 in VS_FS {
     vec2 uv;
-    //vec4 color;
+    vec4 color;
 } fs_in;
 
-layout (std140) uniform ub_color {
-    vec4 u_color;
-};
 #if NUM_U_COLOR_MAPS
 uniform sampler2D u_color_maps[NUM_U_COLOR_MAPS];
 #endif
@@ -71,7 +65,7 @@ uniform sampler2D u_color_maps[NUM_U_COLOR_MAPS];
 out vec4 frag_color;
 
 void main() {
-    frag_color = u_color;
+    frag_color = fs_in.color;
     #if NUM_U_COLOR_MAPS
     for (int i = 0; i < NUM_U_COLOR_MAPS; ++i) {
         frag_color *= texture(u_color_maps[i], fs_in.uv);
@@ -136,28 +130,28 @@ class MeshMobject(Mobject):
     def _geometry_() -> Geometry:
         return NotImplemented
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _color_() -> ColorArrayType:
-        return np.ones(4)
+    #@lazy_property_initializer_writable
+    #@staticmethod
+    #def _color_() -> ColorArrayType:
+    #    return np.ones(4)
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _ub_color_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer({
-            "u_color": "vec4"
-        })
+    #@lazy_property_initializer_writable
+    #@staticmethod
+    #def _ub_color_o_() -> UniformBlockBuffer:
+    #    return UniformBlockBuffer({
+    #        "u_color": "vec4"
+    #    })
 
-    @lazy_property
-    @staticmethod
-    def _ub_color_(
-        ub_color_o: UniformBlockBuffer,
-        color: ColorArrayType
-    ) -> UniformBlockBuffer:
-        ub_color_o.write({
-            "u_color": color
-        })
-        return ub_color_o
+    #@lazy_property
+    #@staticmethod
+    #def _ub_color_(
+    #    ub_color_o: UniformBlockBuffer,
+    #    color: ColorArrayType
+    #) -> UniformBlockBuffer:
+    #    ub_color_o.write({
+    #        "u_color": color
+    #    })
+    #    return ub_color_o
 
     @lazy_property_initializer
     @staticmethod
@@ -196,12 +190,12 @@ class MeshMobject(Mobject):
             uniform_blocks={
                 "ub_camera_matrices": scene_config._camera_._ub_camera_matrices_,
                 "ub_model_matrices": self._ub_model_matrices_,
-                "ub_color": self._ub_color_
+                #"ub_color": self._ub_color_
             },
             attributes={
                 "a_position": self._geometry_._a_position_,
                 "a_uv": self._geometry_._a_uv_,
-                #"a_color": self._geometry_._a_color_
+                "a_color": self._geometry_._a_color_
             },
             subroutines={},
             index_buffer=self._geometry_._index_buffer_,

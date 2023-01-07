@@ -11,7 +11,7 @@ __all__ = [
     "Vector4ArrayType",
     "Matrix33ArrayType",
     "Matrix44ArrayType",
-    "ColorArrayType",
+    #"ColorArrayType",
     "VertexIndicesType",
     #"AttributeType",
     #"UniformType",
@@ -52,7 +52,7 @@ Vector4ArrayType = np.ndarray[tuple[_ND, _4D], np.dtype[np.float_]]
 Matrix33ArrayType = np.ndarray[tuple[_ND, _3D, _3D], np.dtype[np.float_]]
 Matrix44ArrayType = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
 
-ColorArrayType = Vector4Type
+#ColorArrayType = Vector4Type
 VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 #AttributeType = Union[
 #    FloatArrayType,
