@@ -7,7 +7,6 @@ __all__ = [
     "IntermediateTextures",
     "RenderStep",
     "Renderable",
-    "ShaderStrings",
     "UniformBlockBuffer"
 ]
 
@@ -18,14 +17,15 @@ from abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import lru_cache
+import os
 import re
 from typing import (
     ClassVar,
     Generator,
     Generic,
     Hashable,
-    TypeVar,
-    overload
+    TypeVar
 )
 
 import moderngl
@@ -34,7 +34,8 @@ from xxhash import xxh3_64_digest
 
 from ..constants import (
     PIXEL_HEIGHT,
-    PIXEL_WIDTH
+    PIXEL_WIDTH,
+    SHADERS_PATH
 )
 from ..custom_typing import VertexIndicesType
 from ..utils.context_singleton import ContextSingleton
@@ -468,10 +469,8 @@ class AttributeBuffer(DynamicBuffer):
     @lazy_property
     @staticmethod
     def _buffer_format_(variable: GLSLVariable, usage: str) -> str:
-        declaration_info = variable._declaration_info_
-        size = np.prod(declaration_info.shape, dtype=int)
-        dtype = declaration_info.dtype
-        return f"{size}{dtype.kind}{dtype.itemsize} /{usage}"
+        dtype = variable._info_dtype_
+        return f"{variable._data_array_len_ * variable._info_size_}{dtype.kind}{dtype.itemsize} /{usage}"
 
     def _validate(self, attribute: moderngl.Attribute) -> None:
         assert attribute.array_length == self._variable_._data_array_len_
@@ -540,57 +539,46 @@ class IntermediateFramebuffer(Framebuffer):
         return depth_attachment
 
 
-@dataclass(
-    order=True,
-    unsafe_hash=True,
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class ShaderStrings:
-    vertex_shader: str
-    fragment_shader: str | None = None
-    geometry_shader: str | None = None
-    tess_control_shader: str | None = None
-    tess_evaluation_shader: str | None = None
-
-
 class Programs:  # TODO: make abstract base class Cachable
     _CACHE: ClassVar[dict[bytes, moderngl.Program]] = {}
 
     @classmethod
-    def _get_program(cls, shader_strings: ShaderStrings, dynamic_array_lens: dict[str, int]) -> moderngl.Program:
-        hash_val = cls._hash_items(shader_strings, cls._dict_as_hashable(dynamic_array_lens))
+    def _get_program(cls, shader_str: str, dynamic_array_lens: dict[str, int]) -> moderngl.Program:
+        hash_val = cls._hash_items(shader_str, cls._dict_as_hashable(dynamic_array_lens))
         cached_program = cls._CACHE.get(hash_val)
         if cached_program is not None:
             return cached_program
+
+        array_len_macros = [
+            f"#define {array_len_name} {array_len}"
+            for array_len_name, array_len in dynamic_array_lens.items()
+        ]
+        shaders = {
+            shader_type: cls._insert_macros(shader_str, [f"#define {shader_type}", *array_len_macros])
+            for shader_type in (
+                "VERTEX_SHADER",
+                "FRAGMENT_SHADER",
+                "GEOMETRY_SHADER",
+                "TESS_CONTROL_SHADER",
+                "TESS_EVALUATION_SHADER"
+            )
+            if re.search(rf"\b{shader_type}\b", shader_str, flags=re.MULTILINE) is not None
+        }
         program = ContextSingleton().program(
-            vertex_shader=cls._add_array_len_macros(shader_strings.vertex_shader, dynamic_array_lens),
-            fragment_shader=cls._add_array_len_macros(shader_strings.fragment_shader, dynamic_array_lens),
-            geometry_shader=cls._add_array_len_macros(shader_strings.geometry_shader, dynamic_array_lens),
-            tess_control_shader=cls._add_array_len_macros(shader_strings.tess_control_shader, dynamic_array_lens),
-            tess_evaluation_shader=cls._add_array_len_macros(shader_strings.tess_evaluation_shader, dynamic_array_lens),
+            vertex_shader=shaders["VERTEX_SHADER"],
+            fragment_shader=shaders.get("FRAGMENT_SHADER"),
+            geometry_shader=shaders.get("GEOMETRY_SHADER"),
+            tess_control_shader=shaders.get("TESS_CONTROL_SHADER"),
+            tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER"),
         )
         cls._CACHE[hash_val] = program
         return program
 
-    @overload
     @classmethod
-    def _add_array_len_macros(cls, shader: str, dynamic_array_lens: dict[str, int]) -> str: ...
-
-    @overload
-    @classmethod
-    def _add_array_len_macros(cls, shader: None, dynamic_array_lens: dict[str, int]) -> None: ...
-
-    @classmethod
-    def _add_array_len_macros(cls, shader: str | None, dynamic_array_lens: dict[str, int]) -> str | None:
-        if shader is None:
-            return None
-
+    def _insert_macros(cls, shader: str, macros: list[str]) -> str:
         def repl(match_obj: re.Match) -> str:
-            return match_obj.group() + "".join(
-                f"#define {array_len_name} {array_len}\n"
-                for array_len_name, array_len in dynamic_array_lens.items()
+            return match_obj.group() + "\n" + "".join(
+                f"{macro}\n" for macro in macros
             )
         return re.sub(r"#version .*\n", repl, shader, flags=re.MULTILINE)
 
@@ -617,7 +605,7 @@ class Programs:  # TODO: make abstract base class Cachable
 )
 class RenderStep:
     #program: moderngl.Program
-    shader_strings: ShaderStrings
+    shader_str: str
     texture_storages: dict[str, TextureStorage]
     uniform_blocks: dict[str, UniformBlockBuffer]
     attributes: dict[str, AttributeBuffer]
@@ -637,7 +625,7 @@ class Renderable(LazyBase):
         #subroutines: dict[str, str],
         #framebuffer: moderngl.Framebuffer
     ) -> None:
-        shader_strings = render_step.shader_strings
+        shader_str = render_step.shader_str
         texture_storages = render_step.texture_storages
         uniform_blocks = render_step.uniform_blocks
         attributes = render_step.attributes
@@ -655,7 +643,7 @@ class Renderable(LazyBase):
         for attribute in attributes.values():
             dynamic_array_lens.update(attribute._dump_dynamic_array_lens())
 
-        program = Programs._get_program(shader_strings, dynamic_array_lens)
+        program = Programs._get_program(shader_str, dynamic_array_lens)
         program_uniforms, program_uniform_blocks, program_attributes, program_subroutines \
             = cls._get_program_parameters(program)
 
@@ -769,3 +757,10 @@ class Renderable(LazyBase):
             elif isinstance(member, moderngl.Subroutine):
                 program_subroutines[name] = member
         return program_uniforms, program_uniform_blocks, program_attributes, program_subroutines
+
+    @lru_cache(maxsize=8)
+    @staticmethod
+    def _read_shader(filename: str) -> str:
+        with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
+            content = shader_file.read()
+        return content

@@ -36,7 +36,7 @@ class SceneMobject(MeshMobject):
     def _scene_() -> Scene:
         return NotImplemented
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable  # writable?
     @staticmethod
     def _geometry_() -> Geometry:
         return PlaneGeometry()

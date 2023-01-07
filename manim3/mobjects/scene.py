@@ -65,7 +65,9 @@ class Scene(Mobject):
             mobject._render_full(scene_config, target_framebuffer)
 
     def _render_scene(self) -> None:
-        self._render_full(self._scene_config_, self._framebuffer)
+        framebuffer = self._framebuffer
+        framebuffer._framebuffer.clear()
+        self._render_full(self._scene_config_, framebuffer)
 
     def _update_dt(self, dt: Real):
         for mobject in self.get_descendants_excluding_self():
