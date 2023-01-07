@@ -29,16 +29,15 @@ _Annotation = Any
 _LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
 
 
-class PropertyNode(Node):
-    def __init__(self, prop: "lazy_property"):
-        self._prop: lazy_property = prop
-        super().__init__()
+#class PropertyNode(Node):
+#    def __init__(self, prop: "lazy_property"):
+#        self._prop: lazy_property = prop
+#        super().__init__()
 
 
-class lazy_property(Generic[_LazyBaseT, _T]):
+class lazy_property(Generic[_LazyBaseT, _T], Node):
     def __init__(self, static_method: Callable[..., _T]):
         #assert isinstance(method, staticmethod)
-        self._node: PropertyNode = PropertyNode(self)
         method = static_method.__func__
         self.method: Callable[..., _T] = method
         signature = inspect.signature(method)
@@ -87,8 +86,8 @@ class lazy_property(Generic[_LazyBaseT, _T]):
         return release_method
 
     def _expire_instance(self, instance: _LazyBaseT) -> None:
-        for expired_prop_node in self._node.get_ancestors():
-            expired_prop_node._prop.requires_update[instance] = True
+        for expired_prop in self.get_ancestors():
+            expired_prop.requires_update[instance] = True
 
 
 class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
@@ -144,7 +143,7 @@ class LazyBase(ABC):
                 # TODO: use issubclass() instead
                 assert param_node.annotation == param_annotation, \
                     AssertionError(f"Type annotation mismatched: {param_node.annotation} and {param_annotation}")
-                prop._node.add(param_node._node)
+                prop.add(param_node)
 
         cls._PROPERTIES = list(properties.values())
         return super().__init_subclass__()

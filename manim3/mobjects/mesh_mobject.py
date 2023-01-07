@@ -29,6 +29,7 @@ MESH_VERTEX_SHADER = """
 
 in vec3 a_position;
 in vec2 a_uv;
+in vec4 a_color;
 
 layout (std140) uniform ub_camera_matrices {
     mat4 u_projection_matrix;
@@ -41,10 +42,12 @@ layout (std140) uniform ub_model_matrices {
 
 out VS_FS {
     vec2 uv;
+    //vec4 color;
 } vs_out;
 
 void main() {
     vs_out.uv = a_uv;
+    //vs_out.color = a_color;
     gl_Position = u_projection_matrix * u_view_matrix * u_model_matrix * u_geometry_matrix * vec4(a_position, 1.0);
 }
 """
@@ -55,6 +58,7 @@ MESH_FRAGMENT_SHADER = """
 
 in VS_FS {
     vec2 uv;
+    //vec4 color;
 } fs_in;
 
 layout (std140) uniform ub_color {
@@ -109,7 +113,10 @@ class MeshMobject(Mobject):
     @lazy_property_initializer
     @staticmethod
     def _ub_model_matrices_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer()
+        return UniformBlockBuffer({
+            "u_model_matrix": "mat4",
+            "u_geometry_matrix": "mat4"
+        })
 
     @lazy_property
     @staticmethod
@@ -118,10 +125,10 @@ class MeshMobject(Mobject):
         model_matrix: Matrix44Type,
         geometry_matrix: Matrix44Type
     ) -> UniformBlockBuffer:
-        ub_model_matrices_o._data_ = [
-            (model_matrix, np.float32, None),
-            (geometry_matrix, np.float32, None)
-        ]
+        ub_model_matrices_o.write({
+            "u_model_matrix": model_matrix,
+            "u_geometry_matrix": geometry_matrix
+        })
         return ub_model_matrices_o
 
     @lazy_property_initializer
@@ -137,7 +144,9 @@ class MeshMobject(Mobject):
     @lazy_property_initializer_writable
     @staticmethod
     def _ub_color_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer()
+        return UniformBlockBuffer({
+            "u_color": "vec4"
+        })
 
     @lazy_property
     @staticmethod
@@ -145,9 +154,9 @@ class MeshMobject(Mobject):
         ub_color_o: UniformBlockBuffer,
         color: ColorArrayType
     ) -> UniformBlockBuffer:
-        ub_color_o._data_ = [
-            (color, np.float32, None)
-        ]
+        ub_color_o.write({
+            "u_color": color
+        })
         return ub_color_o
 
     @lazy_property_initializer
@@ -158,7 +167,7 @@ class MeshMobject(Mobject):
     @lazy_property_initializer
     @staticmethod
     def _u_color_maps_o_() -> TextureStorage:
-        return TextureStorage()
+        return TextureStorage("sampler2D[NUM_U_COLOR_MAPS]")
 
     @lazy_property
     @staticmethod
@@ -167,7 +176,7 @@ class MeshMobject(Mobject):
         color_map_texture: moderngl.Texture | None
     ) -> TextureStorage:
         textures = [color_map_texture] if color_map_texture is not None else []
-        u_color_maps_o._data_ = (textures, "NUM_U_COLOR_MAPS")
+        u_color_maps_o.write(textures)
         return u_color_maps_o
 
     @lazy_property_initializer_writable
@@ -192,6 +201,7 @@ class MeshMobject(Mobject):
             attributes={
                 "a_position": self._geometry_._a_position_,
                 "a_uv": self._geometry_._a_uv_,
+                #"a_color": self._geometry_._a_color_
             },
             subroutines={},
             index_buffer=self._geometry_._index_buffer_,

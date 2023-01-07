@@ -67,10 +67,10 @@ class Mobject(Renderable):
     def __iter__(self) -> Iterator["Mobject"]:
         return iter(self.get_children())
 
-    def __getitem__(self, i: int | slice) -> "Mobject":
-        if isinstance(i, int):
-            return self.get_children().__getitem__(i)
-        return Mobject().add(*self.get_children().__getitem__(i))
+    #def __getitem__(self, i: int | slice) -> "Mobject":
+    #    if isinstance(i, int):
+    #        return self.get_children().__getitem__(i)
+    #    return Mobject().add(*self.get_children().__getitem__(i))
 
     def copy(self):
         return copy.copy(self)  # TODO
@@ -212,7 +212,7 @@ class Mobject(Renderable):
         broadcast: bool = True
     ) -> BoundingBox3D:
         points_array = np.array([
-            self.apply_affine(self._model_matrix_, mobject._geometry_._positions_)
+            self.apply_affine(self._model_matrix_, mobject._geometry_._position_)
             for mobject in self.get_descendants(broadcast=broadcast)
         ])
         if not points_array.shape[0]:

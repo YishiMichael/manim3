@@ -69,7 +69,10 @@ class Camera(Renderable):
     @lazy_property_initializer_writable
     @staticmethod
     def _ub_camera_matrices_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer()
+        return UniformBlockBuffer({
+            "u_projection_matrix": "mat4",
+            "u_view_matrix": "mat4"
+        })
 
     @lazy_property
     @staticmethod
@@ -78,8 +81,8 @@ class Camera(Renderable):
         projection_matrix: Matrix44Type,
         view_matrix: Matrix44Type
     ) -> UniformBlockBuffer:
-        ub_camera_matrices_o._data_ = [
-            (projection_matrix, np.float32, None),
-            (view_matrix, np.float32, None)
-        ]
+        ub_camera_matrices_o.write({
+            "u_projection_matrix": projection_matrix,
+            "u_view_matrix": view_matrix
+        })
         return ub_camera_matrices_o

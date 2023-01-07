@@ -6,8 +6,11 @@ from typing import Callable, Generic, TypeVar
 
 import numpy as np
 import scipy.interpolate
+from shapely.geometry import MultiPolygon
+
 import skia
 
+from ..geometries.geometry import Geometry
 from ..custom_typing import (
     FloatArrayType,
     Real,
@@ -20,6 +23,28 @@ from ..utils.lazy import (
     lazy_property_initializer,
     lazy_property_initializer_writable
 )
+
+
+#class Path(LazyBase):
+#    @lazy_property_initializer
+#    @staticmethod
+#    def _full_shape_() -> MultiPolygon:
+#        return MultiPolygon()
+
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _dist_slice_() -> tuple[Real, Real] | None:
+#        return None
+
+#    @lazy_property
+#    @staticmethod
+#    def _geometry_(shape: MultiPolygon, dist_slice: tuple[Real, Real] | None) -> Geometry:
+#        pass
+
+
+#offset_curve
+#substring
+
 
 
 _T = TypeVar("_T", bound="CurveInterpolantBase")

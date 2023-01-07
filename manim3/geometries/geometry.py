@@ -23,18 +23,18 @@ from ..utils.renderable import (
 class Geometry(Renderable):
     def __init__(
         self,
-        indices: VertexIndicesType,
-        positions: Vector3ArrayType,
-        uvs: Vector2ArrayType
+        index: VertexIndicesType,
+        position: Vector3ArrayType,
+        uv: Vector2ArrayType
     ):
         super().__init__()
-        self._indices_ = indices
-        self._positions_ = positions
-        self._uvs_ = uvs
+        self._index_ = index
+        self._position_ = position
+        self._uv_ = uv
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _indices_() -> VertexIndicesType:
+    def _index_() -> VertexIndicesType:
         return NotImplemented
 
     @lazy_property_initializer
@@ -46,45 +46,45 @@ class Geometry(Renderable):
     @staticmethod
     def _index_buffer_(
         index_buffer_o: IndexBuffer,
-        indices: VertexIndicesType
+        index: VertexIndicesType
     ) -> IndexBuffer:
-        index_buffer_o._data_ = indices
+        index_buffer_o.write(index)
         return index_buffer_o
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _positions_() -> Vector3ArrayType:
+    def _position_() -> Vector3ArrayType:
         return NotImplemented
 
     @lazy_property_initializer
     @staticmethod
     def _a_position_o_() -> AttributeBuffer:
-        return AttributeBuffer()
+        return AttributeBuffer("vec3", "v")
 
     @lazy_property
     @staticmethod
     def _a_position_(
         a_position_o: AttributeBuffer,
-        positions: Vector3ArrayType
+        position: Vector3ArrayType
     ) -> AttributeBuffer:
-        a_position_o._data_ = (positions, np.float32)
+        a_position_o.write(position)
         return a_position_o
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _uvs_() -> Vector2ArrayType:
+    def _uv_() -> Vector2ArrayType:
         return NotImplemented
 
     @lazy_property_initializer
     @staticmethod
     def _a_uv_o_() -> AttributeBuffer:
-        return AttributeBuffer()
+        return AttributeBuffer("vec2", "v")
 
     @lazy_property
     @staticmethod
     def _a_uv_(
         a_uv_o: AttributeBuffer,
-        uvs: Vector2ArrayType
+        uv: Vector2ArrayType
     ) -> AttributeBuffer:
-        a_uv_o._data_ = (uvs, np.float32)
+        a_uv_o.write(uv)
         return a_uv_o

@@ -19,7 +19,6 @@ from ..utils.scene_config import SceneConfig
 
 class Scene(Mobject):
     def __init__(self, is_main: bool = False):
-        super().__init__()
 
         if is_main:
             window = PygletWindow(
@@ -52,6 +51,7 @@ class Scene(Mobject):
             )
             #fbo = ctx.detect_framebuffer()
             #fbo.use()
+        super().__init__()
 
         #self.scene_mobject: SceneMobject = SceneMobject(
         #    camera=PerspectiveCamera(),
