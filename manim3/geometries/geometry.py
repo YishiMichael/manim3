@@ -27,11 +27,13 @@ class Geometry(Renderable):
         self,
         index: VertexIndicesType,
         position: Vector3ArrayType,
+        normal: Vector3ArrayType,
         uv: Vector2ArrayType
     ):
         super().__init__()
         self._index_ = index
         self._position_ = position
+        self._normal_ = normal
         self._uv_ = uv
 
     @lazy_property_initializer_writable
@@ -71,6 +73,25 @@ class Geometry(Renderable):
     ) -> AttributeBuffer:
         a_position_o.write(position, "v")
         return a_position_o
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _normal_() -> Vector3ArrayType:
+        return NotImplemented
+
+    @lazy_property_initializer
+    @staticmethod
+    def _a_normal_o_() -> AttributeBuffer:
+        return AttributeBuffer("vec3")
+
+    @lazy_property
+    @staticmethod
+    def _a_normal_(
+        a_normal_o: AttributeBuffer,
+        normal: Vector3ArrayType
+    ) -> AttributeBuffer:
+        a_normal_o.write(normal, "v")
+        return a_normal_o
 
     @lazy_property_initializer_writable
     @staticmethod

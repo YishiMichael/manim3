@@ -15,6 +15,7 @@ class ParametricSurfaceGeometry(Geometry):
     def __init__(
         self,
         func: Callable[[float, float], Vector3Type],
+        normal_func: Callable[[float, float], Vector3Type],
         u_range: tuple[Real, Real],
         v_range: tuple[Real, Real],
         resolution: tuple[int, int] = (100, 100)
@@ -44,9 +45,10 @@ class ParametricSurfaceGeometry(Geometry):
             indexing="ij"
         ), 2).reshape((-1, 2))
         position = np.apply_along_axis(lambda p: func(*p), 1, samples)
+        normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
         super().__init__(
             index=index,
             position=position,
+            normal=normal,
             uv=uv
         )
-        # TODO: normals using `from scipy.misc import derivative`

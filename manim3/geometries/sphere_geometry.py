@@ -7,7 +7,10 @@ from ..constants import (
     PI,
     TAU
 )
-from ..custom_typing import Real
+from ..custom_typing import (
+    Real,
+    Vector3Type
+)
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 
 
@@ -21,9 +24,13 @@ class SphereGeometry(ParametricSurfaceGeometry):
         theta_segments: int = 32,
         phi_segments: int = 16
     ):
+        def func(theta: float, phi: float) -> Vector3Type:
+            return np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
+
         super().__init__(
-            lambda theta, phi: np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi))),
-            (theta_start, theta_start + theta_sweep),
-            (phi_start, phi_start + phi_sweep),
-            (theta_segments, phi_segments)
+            func=func,
+            normal_func=func,
+            u_range=(theta_start, theta_start + theta_sweep),
+            v_range=(phi_start, phi_start + phi_sweep),
+            resolution=(theta_segments, phi_segments)
         )

@@ -565,33 +565,34 @@ class Programs:  # TODO: make abstract base class Cachable
         if cached_program is not None:
             return cached_program
         program = ContextSingleton().program(
-            vertex_shader=cls._replace_array_lens(shader_strings.vertex_shader, dynamic_array_lens),
-            fragment_shader=cls._replace_array_lens(shader_strings.fragment_shader, dynamic_array_lens),
-            geometry_shader=cls._replace_array_lens(shader_strings.geometry_shader, dynamic_array_lens),
-            tess_control_shader=cls._replace_array_lens(shader_strings.tess_control_shader, dynamic_array_lens),
-            tess_evaluation_shader=cls._replace_array_lens(shader_strings.tess_evaluation_shader, dynamic_array_lens),
+            vertex_shader=cls._add_array_len_macros(shader_strings.vertex_shader, dynamic_array_lens),
+            fragment_shader=cls._add_array_len_macros(shader_strings.fragment_shader, dynamic_array_lens),
+            geometry_shader=cls._add_array_len_macros(shader_strings.geometry_shader, dynamic_array_lens),
+            tess_control_shader=cls._add_array_len_macros(shader_strings.tess_control_shader, dynamic_array_lens),
+            tess_evaluation_shader=cls._add_array_len_macros(shader_strings.tess_evaluation_shader, dynamic_array_lens),
         )
         cls._CACHE[hash_val] = program
         return program
 
     @overload
     @classmethod
-    def _replace_array_lens(cls, shader: str, dynamic_array_lens: dict[str, int]) -> str: ...
+    def _add_array_len_macros(cls, shader: str, dynamic_array_lens: dict[str, int]) -> str: ...
 
     @overload
     @classmethod
-    def _replace_array_lens(cls, shader: None, dynamic_array_lens: dict[str, int]) -> None: ...
+    def _add_array_len_macros(cls, shader: None, dynamic_array_lens: dict[str, int]) -> None: ...
 
     @classmethod
-    def _replace_array_lens(cls, shader: str | None, dynamic_array_lens: dict[str, int]) -> str | None:
+    def _add_array_len_macros(cls, shader: str | None, dynamic_array_lens: dict[str, int]) -> str | None:
         if shader is None:
             return None
 
         def repl(match_obj: re.Match) -> str:
-            array_len_name = match_obj.group(1)
-            assert isinstance(array_len_name, str)
-            return f"#define {array_len_name} {dynamic_array_lens[array_len_name]}"
-        return re.sub(r"#define (\w+) _(?=\n)", repl, shader, flags=re.MULTILINE)
+            return match_obj.group() + "".join(
+                f"#define {array_len_name} {array_len}\n"
+                for array_len_name, array_len in dynamic_array_lens.items()
+            )
+        return re.sub(r"#version .*\n", repl, shader, flags=re.MULTILINE)
 
     @classmethod
     def _hash_items(cls, *items: Hashable) -> bytes:
@@ -663,7 +664,7 @@ class Renderable(LazyBase):
             for texture_storage_name, texture_storage in texture_storages.items()
             for index, texture in enumerate(texture_storage._texture_list_)
         }
-        subroutines_copy = subroutines.copy()
+
         with TextureBindings.register_n(len(textures)) as texture_bindings:
             with UniformBindings.register_n(len(uniform_blocks)) as uniform_block_bindings:
                 texture_binding_dict = dict(zip(textures.values(), texture_bindings))
@@ -688,10 +689,10 @@ class Renderable(LazyBase):
                     )
                 ):
                     # texture storage
-                    for texture_storage_name, texture_storage in texture_storages.items():
-                        if texture_storage._is_empty():
-                            continue
-                        program_uniform = program_uniforms.pop(texture_storage_name)
+                    for texture_storage_name, program_uniform in program_uniforms.items():
+                        #for texture_storage_name, texture_storage in texture_storages.items():
+                        texture_storage = texture_storages[texture_storage_name]
+                        assert not texture_storage._is_empty()
                         texture_storage._validate(program_uniform)
                         texture_bindings = [
                             texture_binding_dict[textures[(texture_storage_name, index)]]
@@ -700,26 +701,23 @@ class Renderable(LazyBase):
                         program_uniform.value = texture_bindings[0] if len(texture_bindings) == 1 else texture_bindings
 
                     # uniform block
-                    for uniform_block_name, uniform_block in uniform_blocks.items():
-                        if uniform_block._is_empty():
-                            continue
-                        program_uniform_block = program_uniform_blocks.pop(uniform_block_name)
+                    for uniform_block_name, program_uniform_block in program_uniform_blocks.items():
+                        uniform_block = uniform_blocks[uniform_block_name]
+                        assert not uniform_block._is_empty()
                         uniform_block._validate(program_uniform_block)
                         program_uniform_block.value = uniform_block_binding_dict[uniform_block]
 
                     # attribute
                     attribute_num_blocks: list[int] = []
                     content: list[tuple[moderngl.Buffer, str, str]] = []
-                    for attribute_name, attribute in attributes.items():
-                        if attribute._is_empty():
-                            continue
-                        program_attribute = program_attributes.pop(attribute_name)
+                    for attribute_name, program_attribute in program_attributes.items():
+                        attribute = attributes[attribute_name]
+                        assert not attribute._is_empty()
                         attribute._validate(program_attribute)
                         if (attribute_num_block := attribute._variable_._data_num_blocks_) is not None:
                             attribute_num_blocks.append(attribute_num_block)
                         content.append((attribute._buffer_, attribute._buffer_format_, attribute_name))
                     assert len(set(attribute_num_blocks)) <= 1
-
                     vertex_array = ContextSingleton().vertex_array(
                         program=program,
                         content=content,
@@ -728,18 +726,13 @@ class Renderable(LazyBase):
                     )
 
                     # subroutine
-                    subroutine_indices: list[int] = []
-                    for subroutine_name in program.subroutines:
-                        subroutine_value = subroutines_copy.pop(subroutine_name)
-                        subroutine_indices.append(program_subroutines[subroutine_value].index)
-                    vertex_array.subroutines = tuple(subroutine_indices)
+                    vertex_array.subroutines = tuple(
+                        program_subroutines[subroutines[subroutine_name]].index
+                        for subroutine_name in program.subroutines
+                    )
 
                     vertex_array.render()
 
-        assert not program_uniforms
-        assert not program_uniform_blocks
-        assert not program_attributes
-        assert not subroutines_copy
         #assert not program_subroutines
         #for texture_binding in texture_binding_dict.values():
         #    TextureBindings.log_out(texture_binding)

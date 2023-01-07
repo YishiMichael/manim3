@@ -71,7 +71,8 @@ class Camera(Renderable):
     def _ub_camera_matrices_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer({
             "u_projection_matrix": "mat4",
-            "u_view_matrix": "mat4"
+            "u_view_matrix": "mat4",
+            "u_view_position": "vec3"
         })
 
     @lazy_property
@@ -79,10 +80,12 @@ class Camera(Renderable):
     def _ub_camera_matrices_(
         ub_camera_matrices_o: UniformBlockBuffer,
         projection_matrix: Matrix44Type,
-        view_matrix: Matrix44Type
+        view_matrix: Matrix44Type,
+        eye: Vector3Type
     ) -> UniformBlockBuffer:
         ub_camera_matrices_o.write({
             "u_projection_matrix": projection_matrix,
-            "u_view_matrix": view_matrix
+            "u_view_matrix": view_matrix,
+            "u_view_position": eye
         })
         return ub_camera_matrices_o

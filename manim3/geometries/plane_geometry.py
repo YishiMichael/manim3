@@ -13,8 +13,9 @@ class PlaneGeometry(ParametricSurfaceGeometry):
         height_segments: int = 1
     ):
         super().__init__(
-            lambda x, y: np.array((x, y, 0.0)),
-            (-1.0, 1.0),
-            (-1.0, 1.0),
-            (width_segments, height_segments)
+            func=lambda x, y: np.array((x, y, 0.0)),
+            normal_func=lambda x, y: np.array((0.0, 0.0, 1.0)),
+            u_range=(-1.0, 1.0),
+            v_range=(-1.0, 1.0),
+            resolution=(width_segments, height_segments)
         )
