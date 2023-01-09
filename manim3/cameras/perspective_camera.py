@@ -13,7 +13,7 @@ from ..constants import (
     FRAME_Y_RADIUS
 )
 from ..custom_typing import (
-    Matrix44Type,
+    Mat4T,
     Real
 )
 from ..utils.lazy import lazy_property, lazy_property_initializer_writable
@@ -60,7 +60,7 @@ class PerspectiveCamera(Camera):
         aspect: Real,
         near: Real,
         far: Real
-    ) -> Matrix44Type:
+    ) -> Mat4T:
         ymax = near * np.tan(fovy * np.pi / 360.0)
         xmax = ymax * aspect
         left = -xmax

@@ -6,7 +6,7 @@ import numpy as np
 import skia
 
 from ..custom_typing import (
-    Matrix44Type,
+    Mat4T,
     Real
 )
 from ..geometries.geometry import Geometry
@@ -34,7 +34,7 @@ class SkiaMobject(MeshMobject):
 
     @lazy_property
     @staticmethod
-    def _geometry_matrix_(frame: skia.Rect) -> Matrix44Type:
+    def _geometry_matrix_(frame: skia.Rect) -> Mat4T:
         return Mobject.matrix_from_scale(np.array((frame.width() / 2.0, -frame.height() / 2.0, 1.0))) \
             @ Mobject.matrix_from_translation(np.array((frame.centerX(), -frame.centerY(), 0.0)))
 

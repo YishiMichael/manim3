@@ -10,8 +10,8 @@ from ..constants import (
     UP
 )
 from ..custom_typing import (
-    Matrix44Type,
-    Vector3Type
+    Mat4T,
+    Vec3T
 )
 from ..utils.renderable import (
     Renderable,
@@ -24,38 +24,38 @@ from ..utils.lazy import (
 )
 
 
-def normalize(array: Vector3Type) -> Vector3Type:
+def normalize(array: Vec3T) -> Vec3T:
     return array / np.linalg.norm(array)
 
 
 class Camera(Renderable):
     @lazy_property_initializer
     @staticmethod
-    def _projection_matrix_() -> Matrix44Type:
+    def _projection_matrix_() -> Mat4T:
         return NotImplemented
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _eye_() -> Vector3Type:
+    def _eye_() -> Vec3T:
         return CAMERA_ALTITUDE * OUT
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _target_() -> Vector3Type:
+    def _target_() -> Vec3T:
         return ORIGIN
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _up_() -> Vector3Type:
+    def _up_() -> Vec3T:
         return CAMERA_ALTITUDE * UP
 
     @lazy_property
     @staticmethod
     def _view_matrix_(
-        eye: Vector3Type,
-        target: Vector3Type,
-        up: Vector3Type
-    ) -> Matrix44Type:
+        eye: Vec3T,
+        target: Vec3T,
+        up: Vec3T
+    ) -> Mat4T:
         z = normalize(eye - target)
         x = normalize(np.cross(up, z))
         y = normalize(np.cross(z, x))
@@ -69,19 +69,19 @@ class Camera(Renderable):
     @lazy_property_initializer_writable
     @staticmethod
     def _ub_camera_matrices_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer({
-            "u_projection_matrix": "mat4",
-            "u_view_matrix": "mat4",
-            "u_view_position": "vec3"
-        })
+        return UniformBlockBuffer("ub_camera_matrices", [
+            "mat4 u_projection_matrix",
+            "mat4 u_view_matrix",
+            "vec3 u_view_position"
+        ])
 
     @lazy_property
     @staticmethod
     def _ub_camera_matrices_(
         ub_camera_matrices_o: UniformBlockBuffer,
-        projection_matrix: Matrix44Type,
-        view_matrix: Matrix44Type,
-        eye: Vector3Type
+        projection_matrix: Mat4T,
+        view_matrix: Mat4T,
+        eye: Vec3T
     ) -> UniformBlockBuffer:
         ub_camera_matrices_o.write({
             "u_projection_matrix": projection_matrix,

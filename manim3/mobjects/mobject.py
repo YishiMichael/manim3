@@ -4,7 +4,6 @@ __all__ = ["Mobject"]
 import copy
 from dataclasses import dataclass
 from functools import reduce
-import itertools as it
 from typing import (
     Iterable,
     Iterator,
@@ -21,10 +20,10 @@ from ..constants import (
     RIGHT
 )
 from ..custom_typing import (
-    Matrix44Type,
+    Mat4T,
     Real,
-    Vector3Type,
-    Vector3ArrayType
+    Vec3T,
+    Vec3sT
 )
 from ..geometries.geometry import Geometry
 from ..utils.lazy import (
@@ -44,8 +43,8 @@ from ..utils.scene_config import SceneConfig
 
 @dataclass
 class BoundingBox3D:
-    origin: Vector3Type
-    radius: Vector3Type
+    origin: Vec3T
+    radius: Vec3T
 
 
 class MobjectNode(Node):
@@ -130,17 +129,17 @@ class Mobject(Renderable):
 
     #@lazy_property_initializer
     #@classmethod
-    #def _geometry_matrix_(cls) -> Matrix44Type:
+    #def _geometry_matrix_(cls) -> Mat4T:
     #    return np.identity(4)
 
     #@lazy_property
     #@classmethod
-    #def _model_matrix_(cls, matrix: Matrix44Type, geometry_matrix: Matrix44Type) -> Matrix44Type:
+    #def _model_matrix_(cls, matrix: Mat4T, geometry_matrix: Mat4T) -> Mat4T:
     #    return matrix @ geometry_matrix
 
     #@lazy_property
     #@classmethod
-    #def _model_matrix_buffer_(cls, model_matrix: Matrix44Type) -> moderngl.Buffer:
+    #def _model_matrix_buffer_(cls, model_matrix: Mat4T) -> moderngl.Buffer:
     #    return cls._make_buffer(model_matrix)
 
     #@_model_matrix_buffer_.releaser
@@ -149,33 +148,33 @@ class Mobject(Renderable):
     #    model_matrix_buffer.release()
 
     @staticmethod
-    def matrix_from_translation(vector: Vector3Type) -> Matrix44Type:
+    def matrix_from_translation(vector: Vec3T) -> Mat4T:
         m = np.identity(4)
         m[3, :3] = vector
         return m
 
     @staticmethod
-    def matrix_from_scale(factor: Real | Vector3Type) -> Matrix44Type:
+    def matrix_from_scale(factor: Real | Vec3T) -> Mat4T:
         m = np.identity(4)
         m[:3, :3] *= factor
         return m
 
     @staticmethod
-    def matrix_from_rotation(rotation: Rotation) -> Matrix44Type:
+    def matrix_from_rotation(rotation: Rotation) -> Mat4T:
         m = np.identity(4)
         m[:3, :3] = rotation.as_matrix()
         return m
 
     @overload
     @staticmethod
-    def apply_affine(matrix: Matrix44Type, vector: Vector3Type) -> Vector3Type: ...
+    def apply_affine(matrix: Mat4T, vector: Vec3T) -> Vec3T: ...
 
     @overload
     @staticmethod
-    def apply_affine(matrix: Matrix44Type, vector: Vector3ArrayType) -> Vector3ArrayType: ...
+    def apply_affine(matrix: Mat4T, vector: Vec3sT) -> Vec3sT: ...
 
     @staticmethod
-    def apply_affine(matrix: Matrix44Type, vector: Vector3Type | Vector3ArrayType) -> Vector3Type | Vector3ArrayType:
+    def apply_affine(matrix: Mat4T, vector: Vec3T | Vec3sT) -> Vec3T | Vec3sT:
         if len(vector.shape) == 1:
             v = vector[:, None]
         else:
@@ -198,11 +197,11 @@ class Mobject(Renderable):
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _model_matrix_() -> Matrix44Type:
+    def _model_matrix_() -> Mat4T:
         return np.identity(4)
 
     @_model_matrix_.updater
-    def apply_transform_locally(self, matrix: Matrix44Type):
+    def apply_transform_locally(self, matrix: Mat4T):
         self._model_matrix_ = self._model_matrix_ @ matrix
         return self
 
@@ -235,16 +234,16 @@ class Mobject(Renderable):
         self,
         *,
         broadcast: bool = True
-    ) -> Vector3Type:
+    ) -> Vec3T:
         aabb = self.get_bounding_box(broadcast=broadcast)
         return aabb.radius * 2.0
 
     def get_bounding_box_point(
         self,
-        direction: Vector3Type,
+        direction: Vec3T,
         *,
         broadcast: bool = True
-    ) -> Vector3Type:
+    ) -> Vec3T:
         aabb = self.get_bounding_box(broadcast=broadcast)
         return aabb.origin + direction * aabb.radius
 
@@ -252,12 +251,12 @@ class Mobject(Renderable):
         self,
         *,
         broadcast: bool = True
-    ) -> Vector3Type:
+    ) -> Vec3T:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
     #def apply_matrix_directly(
     #    self,
-    #    matrix: Matrix44Type,
+    #    matrix: Mat4T,
     #    *,
     #    broadcast: bool = True
     #):
@@ -269,10 +268,10 @@ class Mobject(Renderable):
 
     def apply_transform(
         self,
-        matrix: Matrix44Type,
+        matrix: Mat4T,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         if about_point is None:
@@ -295,9 +294,9 @@ class Mobject(Renderable):
 
     def shift(
         self,
-        vector: Vector3Type,
+        vector: Vec3T,
         *,
-        coor_mask: Vector3Type | None = None,
+        coor_mask: Vec3T | None = None,
         broadcast: bool = True
     ):
         if coor_mask is not None:
@@ -312,10 +311,10 @@ class Mobject(Renderable):
 
     def scale(
         self,
-        factor: Real | Vector3Type,
+        factor: Real | Vec3T,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         matrix = self.matrix_from_scale(factor)
@@ -331,8 +330,8 @@ class Mobject(Renderable):
         self,
         rotation: Rotation,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         matrix = self.matrix_from_rotation(rotation)
@@ -346,10 +345,10 @@ class Mobject(Renderable):
 
     def move_to(
         self,
-        mobject_or_point: "Mobject | Vector3Type",
-        aligned_edge: Vector3Type = ORIGIN,
+        mobject_or_point: "Mobject | Vec3T",
+        aligned_edge: Vec3T = ORIGIN,
         *,
-        coor_mask: Vector3Type | None = None,
+        coor_mask: Vec3T | None = None,
         broadcast: bool = True
     ):
         if isinstance(mobject_or_point, Mobject):
@@ -367,11 +366,11 @@ class Mobject(Renderable):
 
     def next_to(
         self,
-        mobject_or_point: "Mobject | Vector3Type",
-        direction: Vector3Type = RIGHT,
+        mobject_or_point: "Mobject | Vec3T",
+        direction: Vec3T = RIGHT,
         buff: float = 0.25,
         *,
-        coor_mask: Vector3Type | None = None,
+        coor_mask: Vec3T | None = None,
         broadcast: bool = True
     ):
         if isinstance(mobject_or_point, Mobject):
@@ -389,10 +388,10 @@ class Mobject(Renderable):
 
     def stretch_to_fit_size(
         self,
-        target_size: Vector3Type,
+        target_size: Vec3T,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         factor_vector = target_size / self.get_bounding_box_size(broadcast=broadcast)
@@ -409,8 +408,8 @@ class Mobject(Renderable):
         target_length: Real,
         dim: int,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         factor_vector = np.ones(3)
@@ -427,8 +426,8 @@ class Mobject(Renderable):
         self,
         target_length: Real,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         self.stretch_to_fit_dim(
@@ -444,8 +443,8 @@ class Mobject(Renderable):
         self,
         target_length: Real,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         self.stretch_to_fit_dim(
@@ -461,8 +460,8 @@ class Mobject(Renderable):
         self,
         target_length: Real,
         *,
-        about_point: Vector3Type | None = None,
-        about_edge: Vector3Type | None = None,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
         self.stretch_to_fit_dim(

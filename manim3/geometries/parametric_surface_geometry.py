@@ -6,7 +6,7 @@ from typing import Callable
 
 from ..custom_typing import (
     Real,
-    Vector3Type
+    Vec3T
 )
 from ..geometries.geometry import Geometry
 
@@ -14,8 +14,8 @@ from ..geometries.geometry import Geometry
 class ParametricSurfaceGeometry(Geometry):
     def __init__(
         self,
-        func: Callable[[float, float], Vector3Type],
-        normal_func: Callable[[float, float], Vector3Type],
+        func: Callable[[float, float], Vec3T],
+        normal_func: Callable[[float, float], Vec3T],
         u_range: tuple[Real, Real],
         v_range: tuple[Real, Real],
         resolution: tuple[int, int] = (100, 100)

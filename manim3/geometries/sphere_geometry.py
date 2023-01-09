@@ -9,7 +9,7 @@ from ..constants import (
 )
 from ..custom_typing import (
     Real,
-    Vector3Type
+    Vec3T
 )
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 
@@ -24,7 +24,7 @@ class SphereGeometry(ParametricSurfaceGeometry):
         theta_segments: int = 32,
         phi_segments: int = 16
     ):
-        def func(theta: float, phi: float) -> Vector3Type:
+        def func(theta: float, phi: float) -> Vec3T:
             return np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
 
         super().__init__(

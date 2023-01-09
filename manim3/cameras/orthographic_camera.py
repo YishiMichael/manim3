@@ -11,7 +11,7 @@ from ..constants import (
     FRAME_Y_RADIUS
 )
 from ..custom_typing import (
-    Matrix44Type,
+    Mat4T,
     Real
 )
 from ..utils.lazy import (
@@ -77,7 +77,7 @@ class OrthographicCamera(Camera):
         bottom: Real,
         near: Real,
         far: Real
-    ) -> Matrix44Type:
+    ) -> Mat4T:
         rml = right - left
         tmb = top - bottom
         fmn = far - near

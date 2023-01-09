@@ -1,5 +1,5 @@
 __all__ = [
-    "AttributeBuffer",
+    "AttributesBuffer",
     "Framebuffer",
     "IndexBuffer",
     "IntermediateDepthTextures",
@@ -21,6 +21,7 @@ from functools import lru_cache
 import os
 import re
 from typing import (
+    Any,
     ClassVar,
     Generator,
     Generic,
@@ -33,11 +34,12 @@ import numpy as np
 from xxhash import xxh3_64_digest
 
 from ..constants import (
+    GLSL_DTYPE,
     PIXEL_HEIGHT,
     PIXEL_WIDTH,
     SHADERS_PATH
 )
-from ..custom_typing import VertexIndicesType
+#from ..custom_typing import VertexIndicesType
 from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import (
     LazyBase,
@@ -161,354 +163,853 @@ class IntermediateDepthTextures(IntermediateTextures):
             )
 
 
+#@dataclass
+#class DeclarationInfo:
+#    shape: tuple[int, ...]
+#    dtype: np.dtype
+#    array_len: int | str | None
+
+
 @dataclass
-class DeclarationInfo:
-    shape: tuple[int, ...]
-    dtype: np.dtype
-    array_len: int | str | None
+class FieldInfo:
+    dtype_str: str
+    name: str
+    array_shape: list[int | str]
+    #shape: tuple[int, ...]
+    #dtype: np.dtype
+    #array_len: int | str | None
 
 
-class GLSLVariable(LazyBase):
-    _DTYPE_STR_CONVERSION_DICT: ClassVar[dict[str, np.dtype]] = {
-        "bool": np.dtype(np.int32),
-        "uint": np.dtype(np.uint32),
-        "int": np.dtype(np.int32),
-        "float": np.dtype(np.float32),
-        "double": np.dtype(np.float64)
-    }
-    _DTYPE_CHAR_CONVERSION_DICT: ClassVar[dict[str, np.dtype]] = {
-        dtype_str[0]: dtype
-        for dtype_str, dtype in _DTYPE_STR_CONVERSION_DICT.items()
-    }
-    _DTYPE_CHAR_CONVERSION_DICT[""] = _DTYPE_CHAR_CONVERSION_DICT.pop("f")
-
-    def __init__(self, declaration: str):
+class GLSLBuffer(LazyBase):
+    # std140 format
+    def __init__(
+        self,
+        field: str,
+        child_structs: dict[str, list[str]] | None = None
+    ):
         super().__init__()
-        self._declaration_ = declaration
+        if child_structs is None:
+            child_structs = {}
+        self.field_info: FieldInfo = self._parse_field_str(field)
+        self.child_structs_info: dict[str, list[FieldInfo]] = {
+            name: [self._parse_field_str(child_field) for child_field in child_struct_fields]
+            for name, child_struct_fields in child_structs.items()
+        }
+
+    def __del__(self):
+        pass  # TODO: release buffer
+
+    @lazy_property_initializer
+    @staticmethod
+    def _buffer_() -> moderngl.Buffer:
+        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic?
+
+    #@_buffer_.updater
+    #def write(self, data: dict[str, np.ndarray]) -> None:
+    #    self._write_direct(data)
+    #    buffer = self._buffer_
+    #    if self._itemsize_ == 0:
+    #        buffer.clear()
+    #        return
+    #    #print("UniformBlockBuffer", offset)
+    #    buffer.orphan(self._itemsize_)
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _declaration_() -> str:
+    def _struct_dtype_() -> np.dtype:
         return NotImplemented
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _dynamic_array_lens_() -> dict[str, int]:
+        return NotImplemented
+
+    #@lazy_property_initializer_writable
+    #@staticmethod
+    #def _format_components_() -> list[str]:
+    #    return NotImplemented
+
+    @lazy_property
+    @staticmethod
+    def _itemsize_(struct_dtype: np.dtype) -> int:
+        return struct_dtype.itemsize
+
+    def _is_empty(self) -> bool:
+        return self._itemsize_ == 0
+
+    #@lazy_property
+    #@staticmethod_initializer_writable
+    #def _buffer_format_() -> str:
+    #    return NotImplemented
+
+    @_buffer_.updater
+    def write(self, data: np.ndarray | dict[str, Any]) -> None:
+        data_dict = self._flatten_as_data_dict(data, (self.field_info.name,))
+        #data_dict = {
+        #    tuple(data_key.split(".")): data_value
+        #    for data_key, data_value in data_dict.items()
+        #}
+        struct_dtype, dynamic_array_lens = self._build_struct_dtype(
+            [self.field_info], self.child_structs_info, data_dict, 0
+        )
+        data_storage = np.zeros((), dtype=struct_dtype)
+        for data_key, data_value in data_dict.items():
+            if not data_value.size:
+                continue
+            last_field = data_key[-1]
+            data_key = data_key[:-1]
+            data_ptr = data_storage
+            while data_key:
+                data_ptr = data_ptr[data_key[0]]
+                data_key = data_key[1:]
+            data_ptr[last_field] = data_value
+        #self._data_storage_ = data_storage
+        self._struct_dtype_ = struct_dtype
+        self._dynamic_array_lens_ = dynamic_array_lens
+        #self._format_components_ = format_components
+
+        bytes_data = data_storage.tobytes()
+        assert struct_dtype.itemsize == len(bytes_data)
+        buffer = self._buffer_
+        #if struct_dtype.itemsize == 0:
+        #    buffer.clear()
+        #    return
+        #print("UniformBlockBuffer", offset)
+        buffer.orphan(struct_dtype.itemsize)
+        buffer.write(bytes_data)
 
     @classmethod
-    def _parse_shape_and_dtype(cls, dtype_str: str) -> tuple[tuple[int, ...], np.dtype]:
-        str_to_dtype = GLSLVariable._DTYPE_STR_CONVERSION_DICT
-        char_to_dtype = GLSLVariable._DTYPE_CHAR_CONVERSION_DICT
-        if (type_match := re.fullmatch(r"(?P<dtype>[a-z]+)", dtype_str)) is not None:
-            shape = ()
-            dtype = str_to_dtype[type_match.group("dtype")]
-        elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)vec(?P<n>[2-4])", dtype_str)) is not None:
-            n = int(type_match.group("n"))
-            shape = (n,)
-            dtype = char_to_dtype[type_match.group("dtype_char")]
-        elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)mat(?P<n>[2-4])", dtype_str)) is not None:
-            n = int(type_match.group("n"))
-            shape = (n, n)
-            dtype = char_to_dtype[type_match.group("dtype_char")]
-        elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)mat(?P<n>[2-4])x(?P<m>[2-4])", dtype_str)) is not None:
-            n = int(type_match.group("n"))
-            m = int(type_match.group("m"))
-            shape = (n, m)  # TODO: check order
-            dtype = char_to_dtype[type_match.group("dtype_char")]
-        else:
-            raise ValueError(f"Invalid dtype string: `{dtype_str}`")
-        return (shape, dtype)
+    def _flatten_as_data_dict(
+        cls,
+        data: np.ndarray | dict[str, Any],
+        prefix: tuple[str, ...]
+    ) -> dict[tuple[str, ...], np.ndarray]:
+        if isinstance(data, np.ndarray):
+            return {prefix: data}
+        result: dict[tuple[str, ...], np.ndarray] = {}
+        for child_name, child_data in data.items():
+            result.update(cls._flatten_as_data_dict(child_data, prefix + (child_name,)))
+        return result
 
-    @lazy_property
-    @staticmethod
-    def _declaration_info_(declaration: str) -> DeclarationInfo:
-        pattern = re.compile(r"""
-            (?P<dtype>\w+)
-            (?:\[(?:
-                (?P<array_len>\d+)
-                |(?P<dynamic_array_len>[a-zA-Z_]+)
-            )\])?
-        """, flags=re.X)
-        match_obj = pattern.fullmatch(declaration)
-        assert match_obj is not None
-        shape, dtype = GLSLVariable._parse_shape_and_dtype(match_obj.group("dtype"))
-        if (array_len := match_obj.group("array_len")) is not None:
-            array_len = int(array_len)
-        elif (array_len := match_obj.group("dynamic_array_len")) is not None:
-            array_len = str(array_len)
+    @classmethod
+    def _build_struct_dtype(
+        cls,
+        fields_info: list[FieldInfo],
+        child_structs_info: dict[str, list[FieldInfo]],
+        data_dict: dict[tuple[str, ...], np.ndarray],
+        depth: int
+    ) -> tuple[np.dtype, dict[str, int]]:
+        field_items: list[tuple[str, np.dtype, tuple[int, ...], int]] = []
+        dynamic_array_lens: dict[str, int] = {}
+        offset = 0
+
+        for field_info in fields_info:
+            dtype_str = field_info.dtype_str
+            name = field_info.name
+            array_shape = field_info.array_shape
+            next_depth = depth + len(array_shape)
+
+            child_data: dict[tuple[str, ...], np.ndarray] = {}
+            node_dynamic_array_lens: dict[str, int] = {}
+            for data_key, data_value in data_dict.items():
+                if data_key[0] != name:
+                    continue
+                if data_value.size:
+                    data_array_shape = data_value.shape[depth:next_depth]
+                else:
+                    data_array_shape = tuple(0 for _ in array_shape)
+                for array_len, data_array_len in zip(array_shape, data_array_shape, strict=True):
+                    if isinstance(array_len, int):
+                        assert array_len == data_array_len
+                    else:
+                        # Rewrite if the recorded array length is 0
+                        if node_dynamic_array_lens.get(array_len, 0) and data_array_len:
+                            assert node_dynamic_array_lens[array_len] == data_array_len
+                        else:
+                            node_dynamic_array_lens[array_len] = data_array_len
+                child_data[data_key[1:]] = data_value
+            dynamic_array_lens.update(node_dynamic_array_lens)
+            shape = tuple(
+                array_len if isinstance(array_len, int) else node_dynamic_array_lens[array_len]
+                for array_len in array_shape
+            )
+
+            if (child_struct_fields_info := child_structs_info.get(dtype_str)) is not None:
+                child_dtype, child_dynamic_array_lens = cls._build_struct_dtype(
+                    child_struct_fields_info, child_structs_info, child_data, next_depth
+                )
+                dynamic_array_lens.update(child_dynamic_array_lens)
+
+                base_alignment = 16
+                pad_tail = True
+            else:
+                child_dtype = GLSL_DTYPE[dtype_str]
+                assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
+                if not data_value.size:
+                    continue
+                assert child_dtype.shape == data_value.shape[next_depth:]
+
+                #child_format_components = [
+                #    f"{np.prod(shape + child_dtype.shape, dtype=int)}{child_dtype.kind}{child_dtype.base.itemsize}"
+                #]
+                if not shape and len(child_dtype.shape) <= 1:
+                    if child_dtype.shape == ():
+                        base_alignment_units = 1
+                    elif child_dtype.shape == (2,):
+                        base_alignment_units = 2
+                    elif child_dtype.shape == (3,):
+                        base_alignment_units = 4
+                    elif child_dtype.shape == (4,):
+                        base_alignment_units = 4
+                    else:
+                        raise
+                    base_alignment = base_alignment_units * child_dtype.base.itemsize
+                    pad_tail = False
+                else:
+                    base_alignment = 4 * child_dtype.base.itemsize
+                    pad_tail = True
+
+            offset += (-offset) % base_alignment
+            field_items.append((name, child_dtype, shape, offset))
+            offset += np.prod(shape, dtype=int) * child_dtype.itemsize
+            if pad_tail:
+                offset += (-offset) % base_alignment
+
+        if not field_items:
+            dtype = np.dtype([])
         else:
-            array_len = None
-        return DeclarationInfo(
-            shape=shape,
-            dtype=dtype,
-            array_len=array_len
+            names, child_dtypes, shapes, offsets = zip(*field_items)
+            dtype = np.dtype({
+                "names": names,
+                "formats": [(child_dtype, shape) for child_dtype, shape in zip(child_dtypes, shapes)],
+                "offsets": offsets,
+                "itemsize": offset
+            })
+        return dtype, dynamic_array_lens
+
+    #@classmethod
+    #def _parse_atomic_dtype(cls, dtype_str: str) -> np.dtype:
+    #    str_to_base_type = {
+    #        "uint": "u4",
+    #        "int": "i4",
+    #        "float": "f4",
+    #        "double": "f8"
+    #    }
+    #    char_to_base_type = {
+    #        "u": "u4",
+    #        "i": "i4",
+    #        "": "f4",
+    #        "d": "f8"
+    #    }
+    #    if (type_match := re.fullmatch(r"(?P<dtype_str>[a-z]+)", dtype_str)) is not None:
+    #        base = str_to_base_type[type_match.group("dtype_str")]
+    #        shape = ()
+    #    elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)vec(?P<n>[2-4])", dtype_str)) is not None:
+    #        base = char_to_base_type[type_match.group("dtype_char")]
+    #        n = int(type_match.group("n"))
+    #        shape = (n,)
+    #    elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)mat(?P<n>[2-4])", dtype_str)) is not None:
+    #        base = char_to_base_type[type_match.group("dtype_char")]
+    #        n = int(type_match.group("n"))
+    #        shape = (n, n)
+    #    elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)mat(?P<n>[2-4])x(?P<m>[2-4])", dtype_str)) is not None:
+    #        base = char_to_base_type[type_match.group("dtype_char")]
+    #        n = int(type_match.group("n"))
+    #        m = int(type_match.group("m"))
+    #        shape = (n, m)  # TODO: check order
+    #    else:
+    #        raise ValueError(f"Invalid dtype string: `{dtype_str}`")
+    #    return np.dtype((base, shape))
+
+    @classmethod
+    def _parse_field_str(cls, field_str: str) -> FieldInfo:
+        pattern = re.compile(r"""
+            (?P<dtype_str>\w+?)
+            \s
+            (?P<name>\w+?)
+            (?P<array_shape>(\[\w+?\])*)  # starting with `_` for dynamic, but not declared as a macro
+        """, flags=re.X)
+        match_obj = pattern.fullmatch(field_str)
+        assert match_obj is not None
+        return FieldInfo(
+            dtype_str=match_obj.group("dtype_str"),
+            name=match_obj.group("name"),
+            array_shape=[
+                int(s) if re.match(r"^\d+$", s := match_obj.group(1)) is not None else s
+                for match_obj in re.finditer(r"\[(\w+?)\]", match_obj.group("array_shape"))
+            ],
         )
 
-    @lazy_property
-    @staticmethod
-    def _info_shape_(declaration_info: DeclarationInfo) -> tuple[int, ...]:
-        return declaration_info.shape
-
-    @lazy_property
-    @staticmethod
-    def _info_dtype_(declaration_info: DeclarationInfo) -> np.dtype:
-        return declaration_info.dtype
-
-    @lazy_property
-    @staticmethod
-    def _info_array_len_(declaration_info: DeclarationInfo) -> int | str | None:
-        return declaration_info.array_len
-
-    @lazy_property
-    @staticmethod
-    def _info_size_(info_shape: tuple[int, ...]) -> int:
-        return np.prod(info_shape, dtype=int)
-
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _data_bytes_() -> bytes:
-        return NotImplemented
-
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _data_num_blocks_() -> int | None:
-        return NotImplemented
-
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _data_array_len_() -> int:
-        return NotImplemented
-
-    def write(self, data: np.ndarray, *, multiple_blocks: bool = False) -> None:
-        info_array_len = self._info_array_len_
-        data = data.astype(self._info_dtype_, casting="same_kind")
-        if not data.size:
-            assert isinstance(info_array_len, str)
-            self._data_bytes_ = bytes()
-            self._data_num_blocks_ = None
-            self._data_array_len_ = 0
-            return
-
-        shape = data.shape
-        if multiple_blocks:
-            data_num_blocks = shape[0]
-            shape = shape[1:]
-        else:
-            data_num_blocks = None
-        if info_array_len is not None:
-            data_array_len = shape[0]
-            if isinstance(info_array_len, int):
-                assert info_array_len == data_array_len
-            shape = shape[1:]
-        else:
-            data_array_len = 1
-
-        self._data_bytes_ = data.tobytes()
-        self._data_num_blocks_ = data_num_blocks
-        self._data_array_len_ = data_array_len
-
-    def _is_empty(self) -> bool:
-        return self._data_array_len_ == 0
+    #@classmethod
+    #def _parse_field_strs(cls, field_strs: list[str]) -> list[FieldInfo]:
+    #    return [cls._parse_field_str(field_str) for field_str in field_strs]
 
 
-class DynamicBuffer(LazyBase):
-    @abstractmethod
-    def _get_variables(self) -> list[GLSLVariable]:
-        pass
+#class GLSLVariable(LazyBase):
+#    _DTYPE_STR_CONVERSION_DICT: ClassVar[dict[str, np.dtype]] = {
+#        "bool": np.dtype(np.int32),
+#        "uint": np.dtype(np.uint32),
+#        "int": np.dtype(np.int32),
+#        "float": np.dtype(np.float32),
+#        "double": np.dtype(np.float64)
+#    }
+#    _DTYPE_CHAR_CONVERSION_DICT: ClassVar[dict[str, np.dtype]] = {
+#        dtype_str[0]: dtype
+#        for dtype_str, dtype in _DTYPE_STR_CONVERSION_DICT.items()
+#    }
+#    _DTYPE_CHAR_CONVERSION_DICT[""] = _DTYPE_CHAR_CONVERSION_DICT.pop("f")
 
-    def _dump_dynamic_array_lens(self) -> dict[str, int]:
-        dynamic_array_lens: dict[str, int] = {}
-        for variable in self._get_variables():
-            if isinstance(variable._info_array_len_, str):
-                dynamic_array_lens[variable._info_array_len_] = variable._data_array_len_
-        return dynamic_array_lens
+#    def __init__(self, dtype: np.dtype, array_shape_str: str):
+#        super().__init__()
+#        self._info_dtype_ = dtype
+#        self._info_array_shape_str_ = array_shape_str
 
-    def _is_empty(self) -> bool:
-        return all(variable._is_empty() for variable in self._get_variables())
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _info_dtype_() -> np.dtype:
+#        return NotImplemented
+
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _info_array_shape_str_() -> str:
+#        return NotImplemented
+
+#    #@classmethod
+#    #def _parse_shape_and_dtype(cls, dtype_str: str) -> tuple[tuple[int, ...], np.dtype]:
+#    #    str_to_dtype = GLSLVariable._DTYPE_STR_CONVERSION_DICT
+#    #    char_to_dtype = GLSLVariable._DTYPE_CHAR_CONVERSION_DICT
+#    #    if (type_match := re.fullmatch(r"(?P<dtype>[a-z]+)", dtype_str)) is not None:
+#    #        shape = ()
+#    #        dtype = str_to_dtype[type_match.group("dtype")]
+#    #    elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)vec(?P<n>[2-4])", dtype_str)) is not None:
+#    #        n = int(type_match.group("n"))
+#    #        shape = (n,)
+#    #        dtype = char_to_dtype[type_match.group("dtype_char")]
+#    #    elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)mat(?P<n>[2-4])", dtype_str)) is not None:
+#    #        n = int(type_match.group("n"))
+#    #        shape = (n, n)
+#    #        dtype = char_to_dtype[type_match.group("dtype_char")]
+#    #    elif (type_match := re.fullmatch(r"(?P<dtype_char>\w*)mat(?P<n>[2-4])x(?P<m>[2-4])", dtype_str)) is not None:
+#    #        n = int(type_match.group("n"))
+#    #        m = int(type_match.group("m"))
+#    #        shape = (n, m)  # TODO: check order
+#    #        dtype = char_to_dtype[type_match.group("dtype_char")]
+#    #    else:
+#    #        raise ValueError(f"Invalid dtype string: `{dtype_str}`")
+#    #    return (shape, dtype)
+
+#    @lazy_property
+#    @staticmethod
+#    def _info_array_shape_(info_array_shape_str: str) -> list[int | str]:
+#        return [
+#            int(s) if re.match(r"^\d+$", s := match_obj.group()) is not None else s
+#            for match_obj in re.finditer(r"(?<=\[)\w+?(?=\])", info_array_shape_str)
+#        ]
+#        #:
+#        #    if (array_len := match_obj.group("array_len")) is not None:
+#        #        info_array_shape.append(int(array_len))
+#        #    elif (array_len := match_obj.group("dynamic_array_len")) is not None:
+#        #        info_array_shape.append(str(array_len))
+#        #    else:
+#        #        raise  # never
+#        #match_obj = pattern.fullmatch(declaration)
+#        #assert match_obj is not None
+#        #shape, dtype = GLSLVariable._parse_shape_and_dtype(match_obj.group("dtype"))
+#        #if (array_len := match_obj.group("array_len")) is not None:
+#        #    array_len = int(array_len)
+#        #elif (array_len := match_obj.group("dynamic_array_len")) is not None:
+#        #    array_len = str(array_len)
+#        #else:
+#        #    array_len = None
+#        #return DeclarationInfo(
+#        #    shape=shape,
+#        #    dtype=dtype,
+#        #    array_len=array_len
+#        #)
+
+#    #@lazy_property
+#    #@staticmethod
+#    #def _info_shape_(declaration_info: DeclarationInfo) -> tuple[int, ...]:
+#    #    return declaration_info.shape
+
+#    #@lazy_property
+#    #@staticmethod
+#    #def _info_dtype_(declaration_info: DeclarationInfo) -> np.dtype:
+#    #    return declaration_info.dtype
+
+#    #@lazy_property
+#    #@staticmethod
+#    #def _info_array_len_(declaration_info: DeclarationInfo) -> int | str | None:
+#    #    return declaration_info.array_len
+
+#    #@lazy_property
+#    #@staticmethod
+#    #def _info_size_(info_shape: tuple[int, ...]) -> int:
+#    #    return np.prod(info_shape, dtype=int)
+
+#    #@lazy_property_initializer_writable
+#    #@staticmethod
+#    #def _data_bytes_() -> bytes:
+#    #    return NotImplemented
+
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _data_() -> np.ndarray:
+#        return NotImplemented
+
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _data_num_blocks_() -> int | None:
+#        return NotImplemented
+
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _data_array_shape_() -> tuple[int, ...]:
+#        return NotImplemented
+
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _dynamic_array_lens_() -> dict[str, int]:
+#        return NotImplemented
+
+#    def write(self, data: np.ndarray, *, multiple_blocks: bool = False) -> None:
+#        info_array_shape = self._info_array_shape_
+#        self._data_ = data.astype(self._info_dtype_.base, casting="same_kind")
+#        if not data.size:
+#            dynamic_array_lens = {
+#                array_len: 0
+#                for array_len in info_array_shape
+#                if isinstance(array_len, str)
+#            }
+#            assert dynamic_array_lens
+#            #self._data_bytes_ = bytes()
+#            self._data_num_blocks_ = None
+#            self._data_array_size_ = 0
+#            self._dynamic_array_lens_ = dynamic_array_lens
+#            return
+
+#        shape = data.shape
+#        if multiple_blocks:
+#            data_num_blocks = shape[0]
+#            shape = shape[1:]
+#        else:
+#            data_num_blocks = None
+#        dtype_shape = self._info_dtype_.shape
+#        assert len(dtype_shape) <= len(shape)
+#        assert shape[-len(dtype_shape):] == dtype_shape
+#        data_array_shape = shape[:-len(dtype_shape)]
+
+#        #data_array_size = 1
+#        dynamic_array_lens: dict[str, int] = {}
+#        for data_array_len, info_array_len in zip(data_array_shape, info_array_shape, strict=True):
+#            #data_array_size *= data_array_len
+#            if isinstance(info_array_len, int):
+#                assert data_array_len == info_array_len
+#            else:
+#                dynamic_array_lens[info_array_len] = data_array_len
+#        #if info_array_len is not None:
+#        #    data_array_len = shape[0]
+#        #    if isinstance(info_array_len, int):
+#        #        assert info_array_len == data_array_len
+#        #    shape = shape[1:]
+#        #else:
+#        #    data_array_len = 1
+
+#        #self._data_bytes_ = data.tobytes()
+#        self._data_num_blocks_ = data_num_blocks
+#        self._data_array_shape_ = data_array_shape
+#        self._dynamic_array_lens_ = dynamic_array_lens
+
+#    def _is_empty(self) -> bool:
+#        return self._data_array_size_ == 0
 
 
-class TextureStorage(DynamicBuffer):
-    def __init__(self, declaration: str):
-        super().__init__()
-        assert declaration.startswith("sampler2D")
-        self._variable_ = GLSLVariable(declaration.replace("sampler2D", "uint"))
+#class DynamicBuffer(LazyBase):
+#    @abstractmethod
+#    def _get_variables(self) -> list[GLSLVariable]:
+#        pass
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _variable_() -> GLSLVariable:
-        return NotImplemented
+#    def _dump_dynamic_array_lens(self) -> dict[str, int]:
+#        dynamic_array_lens: dict[str, int] = {}
+#        for variable in self._get_variables():
+#            dynamic_array_lens.update(variable._dynamic_array_lens_)
+#            #if isinstance(variable._info_array_len_, str):
+#            #    dynamic_array_lens[variable._info_array_len_] = variable._data_array_len_
+#        return dynamic_array_lens
+
+#    def _is_empty(self) -> bool:
+#        return all(variable._is_empty() for variable in self._get_variables())
+
+
+class TextureStorage(GLSLBuffer):
+    def __init__(self, field: str):
+        replaced_field = re.sub(r"^sampler2D\b", "uint", field)
+        assert field != replaced_field
+        super().__init__(field=replaced_field)
 
     @lazy_property_initializer_writable
     @staticmethod
     def _texture_list_() -> list[moderngl.Texture]:
         return NotImplemented
 
-    @_variable_.updater
-    def write(self, textures: moderngl.Texture | list[moderngl.Texture]) -> None:
-        if isinstance(textures, moderngl.Texture):
-            texture_list = [textures]
-            data = np.array(0, dtype=np.uint32)
-        else:
-            texture_list = textures[:]
-            data = np.arange(len(textures), dtype=np.uint32)
+    def write(self, textures: np.ndarray) -> None:
+        texture_list: list[moderngl.Texture] = []
+        for texture in textures.flatten():
+            assert isinstance(texture, moderngl.Texture)
+            if texture not in texture_list:
+                texture_list.append(texture)
         self._texture_list_ = texture_list
-        self._variable_.write(data)
+        data = np.vectorize(lambda texture: texture_list.index(texture), otypes=[np.uint32])(textures)
+        super().write(data)
 
     def _validate(self, uniform: moderngl.Uniform) -> None:
+        assert uniform.name == self.field_info.name
         assert uniform.dimension == 1
-        assert uniform.array_length == self._variable_._data_array_len_
-
-    def _get_variables(self) -> list[GLSLVariable]:
-        return [self._variable_]
+        assert uniform.array_length == np.prod(self._struct_dtype_[self.field_info.name].shape, dtype=int)
 
 
-class UniformBlockBuffer(DynamicBuffer):
-    def __init__(self, declaration_dict: dict[str, str]):
-        super().__init__()
-        self._variables_ = {
-            name: GLSLVariable(declaration)
-            for name, declaration in declaration_dict.items()
-        }
+#class TextureStorage(DynamicBuffer):
+#    def __init__(self, array_shape_str: str):
+#        super().__init__()
+#        self._variable_ = GLSLVariable(np.dtype(np.uint32), array_shape_str)
 
-    def __del__(self):
-        pass  # TODO: release buffer
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _variable_() -> GLSLVariable:
+#        return NotImplemented
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _variables_() -> dict[str, GLSLVariable]:
-        return NotImplemented
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _texture_list_() -> list[moderngl.Texture]:
+#        return NotImplemented
 
-    @lazy_property_initializer
-    @staticmethod
-    def _buffer_() -> moderngl.Buffer:
-        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic?
+#    @_variable_.updater
+#    def write(self, textures: moderngl.Texture | list[moderngl.Texture]) -> None:
+#        if isinstance(textures, moderngl.Texture):
+#            texture_list = [textures]
+#            data = np.array(0, dtype=np.uint32)
+#        else:
+#            texture_list = textures[:]
+#            data = np.arange(len(textures), dtype=np.uint32)
+#        self._texture_list_ = texture_list
+#        self._variable_.write(data)
 
-    @_variables_.updater
-    @_buffer_.updater
-    def write(self, data: dict[str, np.ndarray]) -> None:
-        # std140 format
-        chunk_items: list[tuple[bytes, int, int, int]] = []
-        offset = 0
-        data_copy = data.copy()
-        for name, variable in self._variables_.items():
-            uniform = data_copy.pop(name)
-            variable.write(uniform)
-            if variable._is_empty():
-                continue
+#    def _validate(self, uniform: moderngl.Uniform) -> None:
+#        assert uniform.dimension == 1
+#        assert uniform.array_length == self._variable_._data_array_size_
 
-            shape = variable._info_shape_
-            size = variable._info_size_
-            if variable._info_array_len_ is None and len(shape) < 2:
-                chunk_alignment = size if size <= 2 else 4
-                chunk_count = 1
-                occupied_units = size
-            else:
-                chunk_alignment = 4
-                chunk_count = variable._data_array_len_ * size // (shape[-1] if shape else 1)
-                occupied_units = chunk_count * chunk_alignment
+#    def _get_variables(self) -> list[GLSLVariable]:
+#        return [self._variable_]
 
-            itemsize = variable._info_dtype_.itemsize
-            base_alignment = chunk_alignment * itemsize
-            offset += (-offset) % base_alignment
-            chunk_items.append((variable._data_bytes_, offset, base_alignment, chunk_count))
-            offset += occupied_units * itemsize
 
-        assert not data_copy
+class UniformBlockBuffer(GLSLBuffer):
+    def __init__(self, name: str, fields: list[str], child_structs: dict[str, list[str]] | None = None):
+        if child_structs is None:
+            child_structs = {}
+        super().__init__(
+            field=f"__UniformBlockStruct__ {name}",
+            child_structs={
+                "__UniformBlockStruct__": fields,
+                **child_structs
+            }
+        )
 
-        offset += (-offset) % 16
-        buffer = self._buffer_
-        if not offset:
-            buffer.clear()
-            return
-        #print("UniformBlockBuffer", offset)
-        buffer.orphan(offset)
-        for data_bytes, offset, base_alignment, chunk_count in chunk_items:
-            buffer.write_chunks(data_bytes, start=offset, step=base_alignment, count=chunk_count)
+    #def write(self, data: dict[str, np.ndarray]) -> None:
+    #    self._write_direct(data)
 
     def _validate(self, uniform_block: moderngl.UniformBlock) -> None:
-        assert uniform_block.size == self._buffer_.size
-
-    def _get_variables(self) -> list[GLSLVariable]:
-        return list(self._variables_.values())
+        assert uniform_block.name == self.field_info.name
+        assert uniform_block.size == self._itemsize_
 
 
-class AttributeBuffer(DynamicBuffer):
-    def __init__(self, declaration: str):
-        super().__init__()
-        self._variable_ = GLSLVariable(declaration)
+#class UniformBlockBuffer(DynamicBuffer):
+#    def __init__(self, info_dict: dict[str, tuple[np.dtype, str]]):
+#        super().__init__()
+#        self._variables_ = {
+#            name: GLSLVariable(dtype, array_shape_str)
+#            for name, (dtype, array_shape_str) in info_dict.items()
+#        }
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _variable_() -> GLSLVariable:
-        return NotImplemented
+#    def __del__(self):
+#        pass  # TODO: release buffer
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _usage_() -> str:
-        return NotImplemented
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _variables_() -> dict[str, GLSLVariable]:
+#        return NotImplemented
 
-    @lazy_property_initializer
-    @staticmethod
-    def _buffer_() -> moderngl.Buffer:
-        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic?
+#    @lazy_property_initializer
+#    @staticmethod
+#    def _buffer_() -> moderngl.Buffer:
+#        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic?
 
-    @_variable_.updater
-    @_buffer_.updater
-    def write(self, data: np.ndarray, usage: str) -> None:
-        assert usage in ("v", "r")
-        multiple_blocks = usage != "r"
-        self._usage_ = usage
-        variable = self._variable_
-        variable.write(data, multiple_blocks=multiple_blocks)
-        #data_info = variable._data_info_
-        #if data_info is None:
-        #    buffer.clear()
-        #    return
-        data_bytes = variable._data_bytes_
-        buffer = self._buffer_
-        #print("AttributeBuffer", len(data_bytes))
-        buffer.orphan(len(data_bytes))
-        buffer.write(data_bytes)
+#    @_variables_.updater
+#    @_buffer_.updater
+#    def write(self, data: dict[str, np.ndarray]) -> None:
+#        # std140 format
+#        chunk_items: list[tuple[bytes, int, int, int]] = []
+
+#        def _is_base_type(dtype: np.dtype) -> bool:
+#            return any(
+#                dtype is glsl_dtype
+#                for glsl_dtype in GLSL_DTYPE.values()
+#            )
+
+#        def _yield_item(variable: GLSLVariable) -> None:
+#            offset = 0
+#            dtype = variable._info_dtype_
+#            if dtype.fields is None:
+#                assert _is_base_type(dtype)
+#                dtype_shape = dtype.shape
+#                dtype_size = np.prod(dtype_shape, dtype=int)
+#                if not variable._info_array_shape_ and len(dtype_shape) <= 1:
+#                    chunk_alignment = dtype_size if dtype_size <= 2 else 4
+#                    chunk_count = 1
+#                    occupied_units = dtype_size
+#                else:
+#                    chunk_alignment = 4
+#                    chunk_count = variable._data_array_size_ * dtype_size // (dtype_shape[-1] if dtype_shape else 1)
+#                    occupied_units = chunk_count * chunk_alignment
+
+#                base_alignment = chunk_alignment * dtype.itemsize
+#                offset += (-offset) % base_alignment
+#                yield (variable._data_.tobytes(), offset, base_alignment, chunk_count)
+#                offset += occupied_units * dtype.itemsize
+#            else:
+#                for child_dtype, *_ in dtype.fields.values():
+#                    if child_dtype.fields is None:
+#                        if _is_base_type(child_dtype):
+#                            array_size = 1
+#                        else:
+#                            array_size = np.prod(child_dtype.shape, dtype=int)
+#                            assert _is_base_type(child_dtype.base)
+#                        #assert _is_base_type(dtype)
+#                        dtype_shape = child_dtype.shape
+#                        dtype_size = np.prod(dtype_shape, dtype=int)
+#                        if not variable._info_array_shape_ and len(dtype_shape) <= 1:
+#                            chunk_alignment = dtype_size if dtype_size <= 2 else 4
+#                            chunk_count = 1
+#                            occupied_units = dtype_size
+#                        else:
+#                            chunk_alignment = 4
+#                            chunk_count = array_size * dtype_size // (dtype_shape[-1] if dtype_shape else 1)
+#                            occupied_units = chunk_count * chunk_alignment
+
+#                        base_alignment = chunk_alignment * dtype.itemsize
+#                        offset += (-offset) % base_alignment
+#                        yield (variable._data_.tobytes(), offset, base_alignment, chunk_count)
+#                        offset += occupied_units * dtype.itemsize
+#                    else:
+#                        ...
+
+
+#        data_copy = data.copy()
+#        for name, variable in self._variables_.items():
+#            uniform = data_copy.pop(name)
+#            variable.write(uniform)
+#            if variable._is_empty():
+#                continue
+
+#            dtype = variable._info_dtype_
+
+
+
+
+#            #shape = variable._info_shape_
+#            #size = variable._info_size_
+#            #if variable._info_array_len_ is None and len(shape) < 2:
+#            #    chunk_alignment = size if size <= 2 else 4
+#            #    chunk_count = 1
+#            #    occupied_units = size
+#            #else:
+#            #    chunk_alignment = 4
+#            #    chunk_count = variable._data_array_len_ * size // (shape[-1] if shape else 1)
+#            #    occupied_units = chunk_count * chunk_alignment
+
+#            #itemsize = variable._info_dtype_.itemsize
+#            #base_alignment = chunk_alignment * itemsize
+#            #offset += (-offset) % base_alignment
+#            #chunk_items.append((variable._data_bytes_, offset, base_alignment, chunk_count))
+#            #offset += occupied_units * itemsize
+
+#        assert not data_copy
+
+#        offset += (-offset) % 16
+#        buffer = self._buffer_
+#        if not offset:
+#            buffer.clear()
+#            return
+#        #print("UniformBlockBuffer", offset)
+#        buffer.orphan(offset)
+#        for data_bytes, offset, base_alignment, chunk_count in chunk_items:
+#            buffer.write_chunks(data_bytes, start=offset, step=base_alignment, count=chunk_count)
+
+#    def _validate(self, uniform_block: moderngl.UniformBlock) -> None:
+#        assert uniform_block.size == self._buffer_.size
+
+#    def _get_variables(self) -> list[GLSLVariable]:
+#        return list(self._variables_.values())
+
+
+class AttributesBuffer(GLSLBuffer):
+    def __init__(self, attributes: list[str], child_structs: dict[str, list[str]] | None = None):
+        if child_structs is None:
+            child_structs = {}
+        super().__init__(
+            field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
+            child_structs={
+                "__VertexStruct__": attributes,
+                **child_structs
+            }
+        )
+
+    #def write(self, data: dict[str, np.ndarray]) -> None:
+    #    self._write_direct(data)
 
     @lazy_property
     @staticmethod
-    def _buffer_format_(variable: GLSLVariable, usage: str) -> str:
-        dtype = variable._info_dtype_
-        return f"{variable._data_array_len_ * variable._info_size_}{dtype.kind}{dtype.itemsize} /{usage}"
+    def _vertex_dtype_(struct_dtype: np.dtype) -> np.dtype:
+        return struct_dtype["__vertex__"].base
 
-    def _validate(self, attribute: moderngl.Attribute) -> None:
-        assert attribute.array_length == self._variable_._data_array_len_
-        assert attribute.dimension == self._variable_._info_size_
-        assert attribute.shape == self._variable_._info_dtype_.kind.replace("u", "I")
+    def _get_buffer_format(self, attribute_name_set: set[str]) -> tuple[str, list[str]]:
+        vertex_dtype = self._vertex_dtype_
+        vertex_fields = vertex_dtype.fields
+        assert vertex_fields is not None
+        dtype_stack: list[tuple[np.dtype, int]] = []
+        attribute_names: list[str] = []
+        for field_name, (field_dtype, field_offset, *_) in vertex_fields.items():
+            if field_name not in attribute_name_set:
+                continue
+            dtype_stack.append((field_dtype, field_offset))
+            attribute_names.append(field_name)
 
-    def _get_variables(self) -> list[GLSLVariable]:
-        return [self._variable_]
+        components: list[str] = []
+        current_offset = 0
+        while dtype_stack:
+            dtype, offset = dtype_stack.pop(0)
+            if dtype.base.fields is not None:
+                dtype_stack = [
+                    (child_dtype, offset + i * dtype.base.itemsize + child_offset)
+                    for i in range(np.prod(dtype.shape, dtype=int))
+                    for child_dtype, child_offset, *_ in dtype.base.fields.values()
+                ] + dtype_stack
+                continue
+            if current_offset != offset:
+                components.append(f"{offset - current_offset}x")
+                current_offset = offset
+            dtype_size = np.prod(dtype.shape, dtype=int)
+            dtype_itemsize = dtype.base.itemsize
+            components.append(f"{dtype_size}{dtype.base.kind}{dtype_itemsize}")
+            current_offset += dtype_size * dtype_itemsize
+        if current_offset != vertex_dtype.itemsize:
+            components.append(f"{vertex_dtype.itemsize - current_offset}x")
+        components.append("/v")
+        return " ".join(components), attribute_names
+
+    def _validate(self, attributes: dict[str, moderngl.Attribute]) -> None:
+        vertex_dtype = self._vertex_dtype_
+        for attribute_name, attribute in attributes.items():
+            field_dtype = vertex_dtype[attribute_name]
+            if any(glsl_dtype is field_dtype for glsl_dtype in GLSL_DTYPE.values()):
+                array_shape = ()
+                atom_dtype = field_dtype
+            else:
+                array_shape = field_dtype.shape
+                atom_dtype = field_dtype.base
+            assert attribute.array_length == np.prod(array_shape, dtype=int)
+            assert attribute.dimension == np.prod(atom_dtype.shape, dtype=int)
+            assert attribute.shape == atom_dtype.base.kind.replace("u", "I")
 
 
-class IndexBuffer(DynamicBuffer):
-    @lazy_property_initializer
-    @staticmethod
-    def _variable_() -> GLSLVariable:
-        return GLSLVariable("uint")
+#class AttributeBuffer(DynamicBuffer):
+#    def __init__(self, declaration: str):
+#        super().__init__()
+#        self._variable_ = GLSLVariable(declaration)
 
-    @lazy_property_initializer
-    @staticmethod
-    def _buffer_() -> moderngl.Buffer:
-        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic? check capacity
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _variable_() -> GLSLVariable:
+#        return NotImplemented
 
-    @_variable_.updater
-    @_buffer_.updater
-    def write(self, data: VertexIndicesType) -> None:
-        variable = self._variable_
-        variable.write(data, multiple_blocks=True)
-        #data_info = variable._data_info_
-        #if data_info is None:
-        #    buffer.clear()
-        #    return
-        data_bytes = variable._data_bytes_
-        buffer = self._buffer_
-        #print("IndexBuffer", len(data_bytes))
-        buffer.orphan(len(data_bytes))
-        buffer.write(data_bytes)
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _usage_() -> str:
+#        return NotImplemented
 
-    def _get_variables(self) -> list[GLSLVariable]:
-        return [self._variable_]
+#    @lazy_property_initializer
+#    @staticmethod
+#    def _buffer_() -> moderngl.Buffer:
+#        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic?
+
+#    @_variable_.updater
+#    @_buffer_.updater
+#    def write(self, data: np.ndarray, usage: str) -> None:
+#        assert usage in ("v", "r")
+#        multiple_blocks = usage != "r"
+#        self._usage_ = usage
+#        variable = self._variable_
+#        variable.write(data, multiple_blocks=multiple_blocks)
+#        #data_info = variable._data_info_
+#        #if data_info is None:
+#        #    buffer.clear()
+#        #    return
+#        data_bytes = variable._data_bytes_
+#        buffer = self._buffer_
+#        #print("AttributeBuffer", len(data_bytes))
+#        buffer.orphan(len(data_bytes))
+#        buffer.write(data_bytes)
+
+#    @lazy_property
+#    @staticmethod
+#    def _buffer_format_(variable: GLSLVariable, usage: str) -> str:
+#        dtype = variable._info_dtype_
+#        return f"{variable._data_array_len_ * variable._info_size_}{dtype.kind}{dtype.itemsize} /{usage}"
+
+#    def _validate(self, attribute: moderngl.Attribute) -> None:
+#        assert attribute.array_length == self._variable_._data_array_len_
+#        assert attribute.dimension == self._variable_._info_size_
+#        assert attribute.shape == self._variable_._info_dtype_.kind.replace("u", "I")
+
+#    def _get_variables(self) -> list[GLSLVariable]:
+#        return [self._variable_]
+
+
+class IndexBuffer(GLSLBuffer):
+    def __init__(self):
+        super().__init__(field="uint __index__[__NUM_INDEX__]")
+
+    #def write(self, data: VertexIndicesType) -> None:
+    #    self._write_direct(data)
+
+
+#class IndexBuffer(DynamicBuffer):
+#    @lazy_property_initializer
+#    @staticmethod
+#    def _variable_() -> GLSLVariable:
+#        return GLSLVariable("uint")
+
+#    @lazy_property_initializer
+#    @staticmethod
+#    def _buffer_() -> moderngl.Buffer:
+#        return ContextSingleton().buffer(reserve=1024)  # TODO: dynamic? check capacity
+
+#    @_variable_.updater
+#    @_buffer_.updater
+#    def write(self, data: VertexIndicesType) -> None:
+#        variable = self._variable_
+#        variable.write(data, multiple_blocks=True)
+#        #data_info = variable._data_info_
+#        #if data_info is None:
+#        #    buffer.clear()
+#        #    return
+#        data_bytes = variable._data_bytes_
+#        buffer = self._buffer_
+#        #print("IndexBuffer", len(data_bytes))
+#        buffer.orphan(len(data_bytes))
+#        buffer.write(data_bytes)
+
+#    def _get_variables(self) -> list[GLSLVariable]:
+#        return [self._variable_]
 
 
 class Framebuffer:
@@ -606,9 +1107,12 @@ class Programs:  # TODO: make abstract base class Cachable
 class RenderStep:
     #program: moderngl.Program
     shader_str: str
-    texture_storages: dict[str, TextureStorage]
-    uniform_blocks: dict[str, UniformBlockBuffer]
-    attributes: dict[str, AttributeBuffer]
+    #texture_storages: dict[str, TextureStorage]
+    texture_storages: list[TextureStorage]
+    #uniform_blocks: dict[str, UniformBlockBuffer]
+    uniform_blocks: list[UniformBlockBuffer]
+    #attributes: dict[str, AttributeBuffer]
+    attributes: AttributesBuffer
     subroutines: dict[str, str]
     index_buffer: IndexBuffer
     framebuffer: Framebuffer
@@ -636,27 +1140,34 @@ class Renderable(LazyBase):
         mode = render_step.mode
 
         dynamic_array_lens: dict[str, int] = {}
-        for texture_storage in texture_storages.values():
-            dynamic_array_lens.update(texture_storage._dump_dynamic_array_lens())
-        for uniform_block in uniform_blocks.values():
-            dynamic_array_lens.update(uniform_block._dump_dynamic_array_lens())
-        for attribute in attributes.values():
-            dynamic_array_lens.update(attribute._dump_dynamic_array_lens())
+        for texture_storage in texture_storages:
+            dynamic_array_lens.update(texture_storage._dynamic_array_lens_)
+        for uniform_block in uniform_blocks:
+            dynamic_array_lens.update(uniform_block._dynamic_array_lens_)
+        dynamic_array_lens.update(attributes._dynamic_array_lens_)
 
         program = Programs._get_program(shader_str, dynamic_array_lens)
         program_uniforms, program_uniform_blocks, program_attributes, program_subroutines \
             = cls._get_program_parameters(program)
 
-        textures: dict[tuple[str, int], moderngl.Texture] = {
+        texture_storage_dict = {
+            texture_storage.field_info.name: texture_storage
+            for texture_storage in texture_storages
+        }
+        texture_dict: dict[tuple[str, int], moderngl.Texture] = {
             (texture_storage_name, index): texture
-            for texture_storage_name, texture_storage in texture_storages.items()
+            for texture_storage_name, texture_storage in texture_storage_dict.items()
             for index, texture in enumerate(texture_storage._texture_list_)
         }
+        uniform_block_dict = {
+            uniform_block.field_info.name: uniform_block
+            for uniform_block in uniform_blocks
+        }
 
-        with TextureBindings.register_n(len(textures)) as texture_bindings:
+        with TextureBindings.register_n(len(texture_dict)) as texture_bindings:
             with UniformBindings.register_n(len(uniform_blocks)) as uniform_block_bindings:
-                texture_binding_dict = dict(zip(textures.values(), texture_bindings))
-                uniform_block_binding_dict = dict(zip(uniform_blocks.values(), uniform_block_bindings))
+                texture_binding_dict = dict(zip(texture_dict.values(), texture_bindings))
+                uniform_block_binding_dict = dict(zip(uniform_blocks, uniform_block_bindings))
 
                 #texture_binding_dict = {
                 #    texture: TextureBindings.log_in()
@@ -676,44 +1187,55 @@ class Renderable(LazyBase):
                         for uniform_block, binding in uniform_block_binding_dict.items()
                     )
                 ):
-                    # texture storage
+                    # texture storages
                     for texture_storage_name, program_uniform in program_uniforms.items():
                         #for texture_storage_name, texture_storage in texture_storages.items():
-                        texture_storage = texture_storages[texture_storage_name]
+                        texture_storage = texture_storage_dict[texture_storage_name]
                         assert not texture_storage._is_empty()
                         texture_storage._validate(program_uniform)
                         texture_bindings = [
-                            texture_binding_dict[textures[(texture_storage_name, index)]]
+                            texture_binding_dict[texture_dict[(texture_storage_name, index)]]
                             for index, _ in enumerate(texture_storage._texture_list_)
                         ]
                         program_uniform.value = texture_bindings[0] if len(texture_bindings) == 1 else texture_bindings
 
-                    # uniform block
+                    # uniform blocks
                     for uniform_block_name, program_uniform_block in program_uniform_blocks.items():
-                        uniform_block = uniform_blocks[uniform_block_name]
+                        uniform_block = uniform_block_dict[uniform_block_name]
                         assert not uniform_block._is_empty()
                         uniform_block._validate(program_uniform_block)
                         program_uniform_block.value = uniform_block_binding_dict[uniform_block]
 
-                    # attribute
-                    attribute_num_blocks: list[int] = []
-                    content: list[tuple[moderngl.Buffer, str, str]] = []
-                    for attribute_name, program_attribute in program_attributes.items():
-                        attribute = attributes[attribute_name]
-                        assert not attribute._is_empty()
-                        attribute._validate(program_attribute)
-                        if (attribute_num_block := attribute._variable_._data_num_blocks_) is not None:
-                            attribute_num_blocks.append(attribute_num_block)
-                        content.append((attribute._buffer_, attribute._buffer_format_, attribute_name))
-                    assert len(set(attribute_num_blocks)) <= 1
+                    # attributes
+                    assert not attributes._is_empty()
+                    attributes._validate(program_attributes)
+                    #assert not index_buffer._is_empty()
+                    buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))
                     vertex_array = ContextSingleton().vertex_array(
                         program=program,
-                        content=content,
+                        content=[(attributes._buffer_, buffer_format, *attribute_names)],
                         index_buffer=index_buffer._buffer_,
                         mode=mode
                     )
 
-                    # subroutine
+                    #attribute_num_blocks: list[int] = []
+                    #content: list[tuple[moderngl.Buffer, str, str]] = []
+                    #for attribute_name, program_attribute in program_attributes.items():
+                    #    attribute = attributes[attribute_name]
+                    #    assert not attribute._is_empty()
+                    #    attribute._validate(program_attribute)
+                    #    if (attribute_num_block := attribute._variable_._data_num_blocks_) is not None:
+                    #        attribute_num_blocks.append(attribute_num_block)
+                    #    content.append((attribute._buffer_, attribute._buffer_format_, attribute_name))
+                    #assert len(set(attribute_num_blocks)) <= 1
+                    #vertex_array = ContextSingleton().vertex_array(
+                    #    program=program,
+                    #    content=content,
+                    #    index_buffer=index_buffer._buffer_,
+                    #    mode=mode
+                    #)
+
+                    # subroutines
                     vertex_array.subroutines = tuple(
                         program_subroutines[subroutines[subroutine_name]].index
                         for subroutine_name in program.subroutines

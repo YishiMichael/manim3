@@ -1,16 +1,16 @@
 __all__ = [
     "Real",
-    "Vector2Type",
-    "Vector3Type",
-    "Vector4Type",
-    "Matrix33Type",
-    "Matrix44Type",
-    "FloatArrayType",
-    "Vector2ArrayType",
-    "Vector3ArrayType",
-    "Vector4ArrayType",
-    "Matrix33ArrayType",
-    "Matrix44ArrayType",
+    "Vec2T",
+    "Vec3T",
+    "Vec4T",
+    "Mat3T",
+    "Mat4T",
+    "FloatsT",
+    "Vec2sT",
+    "Vec3sT",
+    "Vec4sT",
+    "Mat3sT",
+    "Mat4sT",
     "VertexIndicesType",
     "ColorType",
     "Span",
@@ -36,18 +36,19 @@ _2D = Literal[2]
 _3D = Literal[3]
 _4D = Literal[4]
 
-Vector2Type = np.ndarray[tuple[_2D], np.dtype[np.float_]]
-Vector3Type = np.ndarray[tuple[_3D], np.dtype[np.float_]]
-Vector4Type = np.ndarray[tuple[_4D], np.dtype[np.float_]]
-Matrix33Type = np.ndarray[tuple[_3D, _3D], np.dtype[np.float_]]
-Matrix44Type = np.ndarray[tuple[_4D, _4D], np.dtype[np.float_]]
+Vec2T = np.ndarray[tuple[_2D], np.dtype[np.float_]]
+Vec3T = np.ndarray[tuple[_3D], np.dtype[np.float_]]
+Vec4T = np.ndarray[tuple[_4D], np.dtype[np.float_]]
+Mat3T = np.ndarray[tuple[_3D, _3D], np.dtype[np.float_]]
+Mat4T = np.ndarray[tuple[_4D, _4D], np.dtype[np.float_]]
 
-FloatArrayType = np.ndarray[tuple[_ND], np.dtype[np.float_]]
-Vector2ArrayType = np.ndarray[tuple[_ND, _2D], np.dtype[np.float_]]
-Vector3ArrayType = np.ndarray[tuple[_ND, _3D], np.dtype[np.float_]]
-Vector4ArrayType = np.ndarray[tuple[_ND, _4D], np.dtype[np.float_]]
-Matrix33ArrayType = np.ndarray[tuple[_ND, _3D, _3D], np.dtype[np.float_]]
-Matrix44ArrayType = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
+FloatsT = np.ndarray[tuple[_ND], np.dtype[np.float_]]
+Vec2sT = np.ndarray[tuple[_ND, _2D], np.dtype[np.float_]]
+Vec3sT = np.ndarray[tuple[_ND, _3D], np.dtype[np.float_]]
+Vec4sT = np.ndarray[tuple[_ND, _4D], np.dtype[np.float_]]
+Mat3sT = np.ndarray[tuple[_ND, _3D, _3D], np.dtype[np.float_]]
+Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
+
 VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
 ColorType = Color | str

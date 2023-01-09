@@ -5,7 +5,7 @@ import moderngl
 import numpy as np
 
 from ..geometries.geometry import Geometry
-from ..custom_typing import Matrix44Type
+from ..custom_typing import Mat4T
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import (
     lazy_property,
@@ -48,23 +48,23 @@ from ..utils.scene_config import SceneConfig
 class MeshMobject(Mobject):
     @lazy_property
     @staticmethod
-    def _geometry_matrix_() -> Matrix44Type:
+    def _geometry_matrix_() -> Mat4T:
         return np.identity(4)
 
     @lazy_property_initializer
     @staticmethod
     def _ub_model_matrices_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer({
-            "u_model_matrix": "mat4",
-            "u_geometry_matrix": "mat4"
-        })
+        return UniformBlockBuffer("ub_model_matrices", [
+            "mat4 u_model_matrix",
+            "mat4 u_geometry_matrix"
+        ])
 
     @lazy_property
     @staticmethod
     def _ub_model_matrices_(
         ub_model_matrices_o: UniformBlockBuffer,
-        model_matrix: Matrix44Type,
-        geometry_matrix: Matrix44Type
+        model_matrix: Mat4T,
+        geometry_matrix: Mat4T
     ) -> UniformBlockBuffer:
         ub_model_matrices_o.write({
             "u_model_matrix": model_matrix,
@@ -85,7 +85,7 @@ class MeshMobject(Mobject):
     @lazy_property_initializer
     @staticmethod
     def _u_color_maps_o_() -> TextureStorage:
-        return TextureStorage("sampler2D[NUM_U_COLOR_MAPS]")
+        return TextureStorage("sampler2D u_color_maps[NUM_U_COLOR_MAPS]")
 
     @lazy_property
     @staticmethod
@@ -94,7 +94,7 @@ class MeshMobject(Mobject):
         color_map_texture: moderngl.Texture | None
     ) -> TextureStorage:
         textures = [color_map_texture] if color_map_texture is not None else []
-        u_color_maps_o.write(textures)
+        u_color_maps_o.write(np.array(textures))
         return u_color_maps_o
 
     @lazy_property_initializer_writable
@@ -105,21 +105,15 @@ class MeshMobject(Mobject):
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         self._render_by_step(RenderStep(
             shader_str=Renderable._read_shader("mesh"),
-            texture_storages={
-                "u_color_maps": self._u_color_maps_
-            },
-            uniform_blocks={
-                "ub_camera_matrices": scene_config._camera_._ub_camera_matrices_,
-                "ub_model_matrices": self._ub_model_matrices_,
-                "ub_lights": scene_config._ub_lights_
-                #"ub_color": self._ub_color_
-            },
-            attributes={
-                "a_position": self._geometry_._a_position_,
-                "a_normal": self._geometry_._a_normal_,
-                "a_uv": self._geometry_._a_uv_,
-                "a_color": self._geometry_._a_color_
-            },
+            texture_storages=[
+                self._u_color_maps_
+            ],
+            uniform_blocks=[
+                scene_config._camera_._ub_camera_matrices_,
+                self._ub_model_matrices_,
+                scene_config._ub_lights_
+            ],
+            attributes=self._geometry_._attributes_,
             subroutines={},
             index_buffer=self._geometry_._index_buffer_,
             framebuffer=target_framebuffer,

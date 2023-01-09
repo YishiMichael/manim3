@@ -4,10 +4,10 @@ __all__ = ["Geometry"]
 import numpy as np
 
 from ..custom_typing import (
-    Vector2ArrayType,
-    Vector3ArrayType,
-    Vector4ArrayType,
-    Vector4Type,
+    Vec2sT,
+    Vec3sT,
+    Vec4sT,
+    Vec4T,
     VertexIndicesType
 )
 from ..utils.lazy import (
@@ -16,7 +16,7 @@ from ..utils.lazy import (
     lazy_property_initializer_writable
 )
 from ..utils.renderable import (
-    AttributeBuffer,
+    AttributesBuffer,
     IndexBuffer,
     Renderable
 )
@@ -26,9 +26,9 @@ class Geometry(Renderable):
     def __init__(
         self,
         index: VertexIndicesType,
-        position: Vector3ArrayType,
-        normal: Vector3ArrayType,
-        uv: Vector2ArrayType
+        position: Vec3sT,
+        normal: Vec3sT,
+        uv: Vec2sT
     ):
         super().__init__()
         self._index_ = index
@@ -57,77 +57,49 @@ class Geometry(Renderable):
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _position_() -> Vector3ArrayType:
+    def _position_() -> Vec3sT:
         return NotImplemented
-
-    @lazy_property_initializer
-    @staticmethod
-    def _a_position_o_() -> AttributeBuffer:
-        return AttributeBuffer("vec3")
-
-    @lazy_property
-    @staticmethod
-    def _a_position_(
-        a_position_o: AttributeBuffer,
-        position: Vector3ArrayType
-    ) -> AttributeBuffer:
-        a_position_o.write(position, "v")
-        return a_position_o
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _normal_() -> Vector3ArrayType:
+    def _normal_() -> Vec3sT:
         return NotImplemented
-
-    @lazy_property_initializer
-    @staticmethod
-    def _a_normal_o_() -> AttributeBuffer:
-        return AttributeBuffer("vec3")
-
-    @lazy_property
-    @staticmethod
-    def _a_normal_(
-        a_normal_o: AttributeBuffer,
-        normal: Vector3ArrayType
-    ) -> AttributeBuffer:
-        a_normal_o.write(normal, "v")
-        return a_normal_o
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _uv_() -> Vector2ArrayType:
+    def _uv_() -> Vec2sT:
         return NotImplemented
-
-    @lazy_property_initializer
-    @staticmethod
-    def _a_uv_o_() -> AttributeBuffer:
-        return AttributeBuffer("vec2")
-
-    @lazy_property
-    @staticmethod
-    def _a_uv_(
-        a_uv_o: AttributeBuffer,
-        uv: Vector2ArrayType
-    ) -> AttributeBuffer:
-        a_uv_o.write(uv, "v")
-        return a_uv_o
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _color_() -> Vector4Type | Vector4ArrayType:
+    def _color_() -> Vec4T | Vec4sT:
         return np.ones(4)
 
     @lazy_property_initializer
     @staticmethod
-    def _a_color_o_() -> AttributeBuffer:
-        return AttributeBuffer("vec4")
+    def _attributes_o_() -> AttributesBuffer:
+        return AttributesBuffer([
+            "vec3 a_position",
+            "vec3 a_normal",
+            "vec2 a_uv",
+            "vec4 a_color"
+        ])
 
     @lazy_property
     @staticmethod
-    def _a_color_(
-        a_color_o: AttributeBuffer,
-        color: Vector4Type | Vector4ArrayType
-    ) -> AttributeBuffer:
-        usage = "rv"[len(color.shape) - 1]
-        a_color_o.write(color, usage)
-        return a_color_o
+    def _attributes_(
+        attributes_o: AttributesBuffer,
+        position: Vec3sT,
+        normal: Vec3sT,
+        uv: Vec2sT,
+        color: Vec4T | Vec4sT  # TODO
+    ) -> AttributesBuffer:
+        if len(color.shape) == 1:
+            color = color[None].repeat(len(position), axis=0)
+        attributes_o.write({
+            "a_position": position,
+            "a_normal": normal,
+            "a_uv": uv,
+            "a_color": color
+        })
+        return attributes_o

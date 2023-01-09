@@ -1,6 +1,11 @@
 #version 430 core
 
 
+struct PointLight {
+    vec3 position;
+    vec4 color;
+};
+
 #if NUM_U_COLOR_MAPS
 uniform sampler2D u_color_maps[NUM_U_COLOR_MAPS];
 #endif
@@ -16,11 +21,8 @@ layout (std140) uniform ub_model_matrices {
 };
 layout (std140) uniform ub_lights {
     vec4 u_ambient_light_color;
-    #if NUM_U_POINT_LIGHT_POSITIONS
-    vec3 u_point_light_positions[NUM_U_POINT_LIGHT_POSITIONS];
-    #endif
-    #if NUM_U_POINT_LIGHT_COLORS
-    vec4 u_point_light_colors[NUM_U_POINT_LIGHT_COLORS];
+    #if NUM_U_POINT_LIGHTS
+    PointLight u_point_lights[NUM_U_POINT_LIGHTS];
     #endif
 };
 
@@ -67,17 +69,17 @@ void main() {
     frag_color += u_ambient_light_color;
 
     vec3 normal = normalize(fs_in.world_normal);
-    #if NUM_U_POINT_LIGHT_COLORS
-    for (int i = 0; i < NUM_U_POINT_LIGHT_COLORS; ++i) {
-        vec3 light_direction = normalize(u_point_light_positions[i] - fs_in.world_position);
-        vec4 light_color = u_point_light_colors[i];
+    #if NUM_U_POINT_LIGHTS
+    for (int i = 0; i < NUM_U_POINT_LIGHTS; ++i) {
+        PointLight point_light = u_point_lights[i];
 
-        vec4 diffuse = max(dot(normal, light_direction), 0.0) * light_color;
+        vec3 light_direction = normalize(point_light.position - fs_in.world_position);
+        vec4 diffuse = max(dot(normal, light_direction), 0.0) * point_light.color;
         frag_color += diffuse;
 
         vec3 view_direction = normalize(u_view_position - fs_in.world_position);
         vec3 reflect_direction = reflect(-light_direction, normal);
-        vec4 specular = 0.5 * pow(max(dot(view_direction, reflect_direction), 0.0), 32) * light_color;
+        vec4 specular = 0.5 * pow(max(dot(view_direction, reflect_direction), 0.0), 32) * point_light.color;
         frag_color += specular;
     }
     #endif
