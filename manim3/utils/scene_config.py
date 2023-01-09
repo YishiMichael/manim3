@@ -45,8 +45,6 @@ class SceneConfig(LazyBase):
         return UniformBlockBuffer("ub_lights", [
             "vec4 u_ambient_light_color",
             "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
-            #"PointLight u_point_light_positions": "vec3[NUM_U_POINT_LIGHT_POSITIONS]",
-            #"u_point_light_colors": "vec4[NUM_U_POINT_LIGHT_COLORS]"
         ], {
             "PointLight": [
                 "vec3 position",
