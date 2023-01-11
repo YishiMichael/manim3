@@ -1,5 +1,6 @@
 colour
 manimpango
+mapbox-earcut
 moderngl
 moderngl_window
 numpy

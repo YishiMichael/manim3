@@ -612,6 +612,9 @@ class Renderable(LazyBase):
         enable_only = render_step.enable_only
         mode = render_step.mode
 
+        if attributes._is_empty() or index_buffer._is_empty():
+            return
+
         dynamic_array_lens: dict[str, int] = {}
         for texture_storage in texture_storages:
             dynamic_array_lens.update(texture_storage._dynamic_array_lens_)
@@ -684,7 +687,7 @@ class Renderable(LazyBase):
                         program_uniform_block.value = uniform_block_binding_dict[uniform_block]
 
                     # attributes
-                    assert not attributes._is_empty()
+                    #assert not attributes._is_empty()
                     attributes._validate(program_attributes)
                     #assert not index_buffer._is_empty()
                     buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))

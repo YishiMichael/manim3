@@ -5,7 +5,7 @@ from typing import Generic, TypeVar
 
 from ..custom_typing import Real
 from ..mobjects.mobject import Mobject
-from ..mobjects.path_mobject import PathMobject
+from ..mobjects.shape_mobject import ShapeMobject
 
 
 MobjectType = TypeVar("MobjectType", bound="Mobject")
@@ -34,20 +34,19 @@ class Animation(Generic[MobjectType]):
         return False
 
 
-class DrawPath(Animation[PathMobject]):
-    def start(self, initial_mobject: PathMobject) -> None:
+class DrawShape(Animation[ShapeMobject]):
+    def start(self, initial_mobject: ShapeMobject) -> None:
         super().start(initial_mobject)
-        import copy
-        self.initial_path = copy.deepcopy(initial_mobject._path_)
+        self.initial_shape = initial_mobject._shape_
 
-    def update(self, mobject: PathMobject, t: Real) -> None:
+    def update(self, mobject: ShapeMobject, t: Real) -> None:
         if t > 3.0:
             return
         #self.initial_mobject.path.partial_by_l_ratio(t / 3).skia_path.dump()
         #self.initial_path.skia_path.dump()
         #print(t)
         #print(mobject._path_._l_final_)
-        mobject.set_path(self.initial_path.partial_by_l_ratio(t / 3.0))
+        mobject._shape_ = self.initial_shape.partial(0.0, t / 3.0)
 
     def expired(self) -> bool:
         return self.elapsed_time > 3.0

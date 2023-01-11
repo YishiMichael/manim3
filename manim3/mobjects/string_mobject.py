@@ -127,7 +127,7 @@ class StringMobject(SVGMobject):
         unrecognizable_colors = []
         labels = []
         for child in labelled_svg.path_mobjects:
-            label = self.color_to_int(child._fill_paint_.color)
+            label = self.color_to_int(child.get_local_fill())
             if label >= labels_count:
                 unrecognizable_colors.append(label)
                 label = 0

@@ -364,6 +364,19 @@ class Mobject(Renderable):
         )
         return self
 
+    def center(
+        self,
+        *,
+        coor_mask: Vec3T | None = None,
+        broadcast: bool = True
+    ):
+        self.move_to(
+            ORIGIN,
+            coor_mask=coor_mask,
+            broadcast=broadcast
+        )
+        return self
+
     def next_to(
         self,
         mobject_or_point: "Mobject | Vec3T",
@@ -471,6 +484,36 @@ class Mobject(Renderable):
             about_edge=about_edge,
             broadcast=broadcast
         )
+        return self
+
+    def _adjust_frame(
+        self,
+        original_width: Real,
+        original_height: Real,
+        specified_width: Real | None,
+        specified_height: Real | None,
+        specified_frame_scale: Real | None
+    ):
+        # Called when initializing a planar mobject
+        if specified_width is None and specified_height is None:
+            width = original_width
+            height = original_height
+            if specified_frame_scale is not None:
+                width *= specified_frame_scale
+                height *= specified_frame_scale
+        elif specified_width is not None and specified_height is None:
+            width = specified_width
+            height = specified_width / original_width * original_height
+        elif specified_width is None and specified_height is not None:
+            width = specified_height / original_height * original_width
+            height = specified_height
+        elif specified_width is not None and specified_height is not None:
+            width = specified_width
+            height = specified_height
+        else:
+            raise  # never
+        self.center()
+        self.stretch_to_fit_size(np.array((width, height, 0.0)))
         return self
 
     # render

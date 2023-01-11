@@ -17,7 +17,6 @@ layout (std140) uniform ub_camera_matrices {
 };
 layout (std140) uniform ub_model_matrices {
     mat4 u_model_matrix;
-    mat4 u_geometry_matrix;
 };
 layout (std140) uniform ub_lights {
     vec4 u_ambient_light_color;
@@ -45,8 +44,8 @@ out VS_FS {
 void main() {
     vs_out.uv = a_uv;
     vs_out.color = a_color;
-    vs_out.world_position = vec3(u_model_matrix * u_geometry_matrix * vec4(a_position, 1.0));
-    vs_out.world_normal = mat3(transpose(inverse(u_model_matrix * u_geometry_matrix))) * a_normal;
+    vs_out.world_position = vec3(u_model_matrix * vec4(a_position, 1.0));
+    vs_out.world_normal = mat3(transpose(inverse(u_model_matrix))) * a_normal;
     gl_Position = u_projection_matrix * u_view_matrix * vec4(vs_out.world_position, 1.0);
 }
 

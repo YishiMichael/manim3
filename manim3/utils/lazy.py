@@ -8,6 +8,10 @@ __all__ = [
 
 from abc import ABC
 import inspect
+from types import (
+    GenericAlias,
+    UnionType
+)
 from typing import (
     Any,
     Callable,
@@ -140,9 +144,8 @@ class LazyBase(ABC):
                 continue
             for param_name, param_annotation in prop.parameters.items():
                 param_node = properties[param_name]
-                # TODO: use issubclass() instead
-                assert param_node.annotation == param_annotation, \
-                    AssertionError(f"Type annotation mismatched: {param_node.annotation} and {param_annotation}")
+                assert cls._check_annotation_matching(param_annotation, param_node.annotation), \
+                    AssertionError(f"Type annotation mismatched: `{param_node.annotation}` and `{param_annotation}`")
                 prop.add(param_node)
 
         cls._PROPERTIES = list(properties.values())
@@ -152,6 +155,14 @@ class LazyBase(ABC):
         for prop in self._PROPERTIES:
             prop.add_instance(self)
         super().__init__()
+
+    @classmethod
+    def _check_annotation_matching(cls, param_annotation: _Annotation, node_annotation: _Annotation) -> bool:
+        if isinstance(node_annotation, GenericAlias):
+            return issubclass(param_annotation.__origin__, node_annotation.__origin__)
+        if isinstance(param_annotation, UnionType):
+            return True  # TODO
+        return issubclass(param_annotation, node_annotation)
 
 
 """

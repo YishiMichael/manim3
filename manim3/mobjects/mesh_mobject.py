@@ -46,17 +46,17 @@ from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):
-    @lazy_property
-    @staticmethod
-    def _geometry_matrix_() -> Mat4T:
-        return np.identity(4)
+    #@lazy_property
+    #@staticmethod
+    #def _geometry_matrix_() -> Mat4T:
+    #    return np.identity(4)
 
     @lazy_property_initializer
     @staticmethod
     def _ub_model_matrices_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_model_matrices", [
             "mat4 u_model_matrix",
-            "mat4 u_geometry_matrix"
+            #"mat4 u_geometry_matrix"
         ])
 
     @lazy_property
@@ -64,11 +64,11 @@ class MeshMobject(Mobject):
     def _ub_model_matrices_(
         ub_model_matrices_o: UniformBlockBuffer,
         model_matrix: Mat4T,
-        geometry_matrix: Mat4T
+        #geometry_matrix: Mat4T
     ) -> UniformBlockBuffer:
         ub_model_matrices_o.write({
             "u_model_matrix": model_matrix,
-            "u_geometry_matrix": geometry_matrix
+            #"u_geometry_matrix": geometry_matrix
         })
         return ub_model_matrices_o
 
