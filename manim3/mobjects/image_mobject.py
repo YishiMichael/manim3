@@ -15,14 +15,12 @@ from ..utils.lazy import (
     lazy_property_initializer,
     lazy_property_initializer_writable
 )
-#from ..utils.paint import Paint
 
 
 class ImageMobject(MeshMobject):
     def __init__(
         self,
         image_path: str,
-        #paint: Paint | None = None,
         *,
         width: Real | None = None,
         height: Real | None = 4.0,
@@ -31,7 +29,6 @@ class ImageMobject(MeshMobject):
         super().__init__()
         image: Image.Image = Image.open(image_path)
         self._image_ = image
-        #self._paint_ = paint
 
         self._adjust_frame(
             image.width / PIXEL_PER_UNIT,
@@ -51,16 +48,6 @@ class ImageMobject(MeshMobject):
     @staticmethod
     def _geometry_() -> PlaneGeometry:
         return PlaneGeometry()
-
-    #@lazy_property_initializer_writable
-    #@staticmethod
-    #def _paint_() -> Paint | None:
-    #    return None
-
-    #@lazy_property_initializer_writable
-    #@staticmethod
-    #def _frame_() -> skia.Rect:
-    #    return NotImplemented
 
     @lazy_property
     @staticmethod

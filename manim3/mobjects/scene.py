@@ -3,7 +3,6 @@ __all__ = ["Scene"]
 
 import time
 
-#import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
 
 from ..constants import (

@@ -16,20 +16,16 @@ from .mobjects.mobject import *
 from .mobjects.path_mobject import *
 from .mobjects.scene import *
 from .mobjects.scene_mobject import *
-#from .mobjects.skia_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.shape_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 
-from .render_passes.light_pass import *
 from .render_passes.render_pass import *
 
 from .utils.context_singleton import *
 from .utils.lazy import *
-#from .utils.paint import *
-#from .utils.path import *
 from .utils.renderable import *
 from .utils.scene_config import *
 from .utils.shape import *

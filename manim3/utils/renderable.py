@@ -17,7 +17,8 @@ from abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, reduce
+import operator as op
 import os
 import re
 from typing import (
@@ -34,7 +35,6 @@ import numpy as np
 from xxhash import xxh3_64_digest
 
 from ..constants import (
-    GLSL_DTYPE,
     PIXEL_HEIGHT,
     PIXEL_WIDTH,
     SHADERS_PATH
@@ -172,6 +172,43 @@ class FieldInfo:
 
 class GLSLBuffer(LazyBase):
     # std140 format
+    _GLSL_DTYPE: ClassVar[dict[str, np.dtype]] = {
+        "int":     np.dtype(("i4", ())),
+        "ivec2":   np.dtype(("i4", (2,))),
+        "ivec3":   np.dtype(("i4", (3,))),
+        "ivec4":   np.dtype(("i4", (4,))),
+        "uint":    np.dtype(("u4", ())),
+        "uvec2":   np.dtype(("u4", (2,))),
+        "uvec3":   np.dtype(("u4", (3,))),
+        "uvec4":   np.dtype(("u4", (4,))),
+        "float":   np.dtype(("f4", ())),
+        "vec2":    np.dtype(("f4", (2,))),
+        "vec3":    np.dtype(("f4", (3,))),
+        "vec4":    np.dtype(("f4", (4,))),
+        "double":  np.dtype(("f8", ())),
+        "dvec2":   np.dtype(("f8", (2,))),
+        "dvec3":   np.dtype(("f8", (3,))),
+        "dvec4":   np.dtype(("f8", (4,))),
+        "mat2":    np.dtype(("f4", (2, 2))),
+        "mat2x3":  np.dtype(("f4", (2, 3))),  # TODO: check order
+        "mat2x4":  np.dtype(("f4", (2, 4))),
+        "mat3x2":  np.dtype(("f4", (3, 2))),
+        "mat3":    np.dtype(("f4", (3, 3))),
+        "mat3x4":  np.dtype(("f4", (3, 4))),
+        "mat4x2":  np.dtype(("f4", (4, 2))),
+        "mat4x3":  np.dtype(("f4", (4, 3))),
+        "mat4":    np.dtype(("f4", (4, 4))),
+        "dmat2":   np.dtype(("f8", (2, 2))),
+        "dmat2x3": np.dtype(("f8", (2, 3))),
+        "dmat2x4": np.dtype(("f8", (2, 4))),
+        "dmat3x2": np.dtype(("f8", (3, 2))),
+        "dmat3":   np.dtype(("f8", (3, 3))),
+        "dmat3x4": np.dtype(("f8", (3, 4))),
+        "dmat4x2": np.dtype(("f8", (4, 2))),
+        "dmat4x3": np.dtype(("f8", (4, 3))),
+        "dmat4":   np.dtype(("f8", (4, 4))),
+    }
+
     def __init__(
         self,
         field: str,
@@ -307,7 +344,7 @@ class GLSLBuffer(LazyBase):
                 base_alignment = 16
                 pad_tail = True
             else:
-                child_dtype = GLSL_DTYPE[dtype_str]
+                child_dtype = cls._GLSL_DTYPE[dtype_str]
                 assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
                 if not data_value.size:
                     continue
@@ -332,7 +369,7 @@ class GLSLBuffer(LazyBase):
 
             offset += (-offset) % base_alignment
             field_items.append((name, child_dtype, shape, offset))
-            offset += np.prod(shape, dtype=int) * child_dtype.itemsize
+            offset += cls._int_prod(shape) * child_dtype.itemsize
             if pad_tail:
                 offset += (-offset) % base_alignment
 
@@ -367,6 +404,10 @@ class GLSLBuffer(LazyBase):
             ],
         )
 
+    @classmethod
+    def _int_prod(cls, shape: tuple[int, ...]) -> int:
+        return reduce(op.mul, shape, 1)
+
 
 class TextureStorage(GLSLBuffer):
     def __init__(self, field: str):
@@ -397,7 +438,7 @@ class TextureStorage(GLSLBuffer):
     def _validate(self, uniform: moderngl.Uniform) -> None:
         assert uniform.name == self.field_info.name
         assert uniform.dimension == 1
-        assert uniform.array_length == np.prod(self._struct_dtype_[self.field_info.name].shape, dtype=int)
+        assert uniform.array_length == self._int_prod(self._struct_dtype_[self.field_info.name].shape)
 
 
 class UniformBlockBuffer(GLSLBuffer):
@@ -450,18 +491,18 @@ class AttributesBuffer(GLSLBuffer):
         current_offset = 0
         while dtype_stack:
             dtype, offset = dtype_stack.pop(0)
+            dtype_size = self._int_prod(dtype.shape)
+            dtype_itemsize = dtype.base.itemsize
             if dtype.base.fields is not None:
                 dtype_stack = [
-                    (child_dtype, offset + i * dtype.base.itemsize + child_offset)
-                    for i in range(np.prod(dtype.shape, dtype=int))
+                    (child_dtype, offset + i * dtype_itemsize + child_offset)
+                    for i in range(dtype_size)
                     for child_dtype, child_offset, *_ in dtype.base.fields.values()
                 ] + dtype_stack
                 continue
             if current_offset != offset:
                 components.append(f"{offset - current_offset}x")
                 current_offset = offset
-            dtype_size = np.prod(dtype.shape, dtype=int)
-            dtype_itemsize = dtype.base.itemsize
             components.append(f"{dtype_size}{dtype.base.kind}{dtype_itemsize}")
             current_offset += dtype_size * dtype_itemsize
         if current_offset != vertex_dtype.itemsize:
@@ -473,14 +514,14 @@ class AttributesBuffer(GLSLBuffer):
         vertex_dtype = self._vertex_dtype_
         for attribute_name, attribute in attributes.items():
             field_dtype = vertex_dtype[attribute_name]
-            if any(glsl_dtype is field_dtype for glsl_dtype in GLSL_DTYPE.values()):
+            if any(glsl_dtype is field_dtype for glsl_dtype in self._GLSL_DTYPE.values()):
                 array_shape = ()
                 atom_dtype = field_dtype
             else:
                 array_shape = field_dtype.shape
                 atom_dtype = field_dtype.base
-            assert attribute.array_length == np.prod(array_shape, dtype=int)
-            assert attribute.dimension == np.prod(atom_dtype.shape, dtype=int)
+            assert attribute.array_length == self._int_prod(array_shape)
+            assert attribute.dimension == self._int_prod(atom_dtype.shape)
             assert attribute.shape == atom_dtype.base.kind.replace("u", "I")
 
 
@@ -621,8 +662,13 @@ class Renderable(LazyBase):
         for uniform_block in uniform_blocks:
             dynamic_array_lens.update(uniform_block._dynamic_array_lens_)
         dynamic_array_lens.update(attributes._dynamic_array_lens_)
+        filtered_array_lens = {
+            array_len_name: array_len
+            for array_len_name, array_len in dynamic_array_lens.items()
+            if not re.fullmatch(r"__\w+__", array_len_name)
+        }
 
-        program = Programs._get_program(shader_str, dynamic_array_lens)
+        program = Programs._get_program(shader_str, filtered_array_lens)
         program_uniforms, program_uniform_blocks, program_attributes, program_subroutines \
             = cls._get_program_parameters(program)
 
@@ -630,11 +676,6 @@ class Renderable(LazyBase):
             texture_storage.field_info.name: texture_storage
             for texture_storage in texture_storages
         }
-        #texture_dict: dict[tuple[str, int], moderngl.Texture] = {
-        #    (texture_storage_name, index): texture
-        #    for texture_storage_name, texture_storage in texture_storage_dict.items()
-        #    for index, texture in enumerate(texture_storage._texture_list_)
-        #}
         uniform_block_dict = {
             uniform_block.field_info.name: uniform_block
             for uniform_block in uniform_blocks

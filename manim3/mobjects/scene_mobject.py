@@ -15,7 +15,6 @@ from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.scene import Scene
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_initializer,
     lazy_property_initializer_writable
 )
 from ..utils.renderable import IntermediateFramebuffer

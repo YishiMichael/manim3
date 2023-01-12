@@ -33,12 +33,6 @@ _Annotation = Any
 _LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
 
 
-#class PropertyNode(Node):
-#    def __init__(self, prop: "lazy_property"):
-#        self._prop: lazy_property = prop
-#        super().__init__()
-
-
 class lazy_property(Generic[_LazyBaseT, _T], Node):
     def __init__(self, static_method: Callable[..., _T]):
         #assert isinstance(method, staticmethod)

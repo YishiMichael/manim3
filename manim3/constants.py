@@ -28,13 +28,13 @@ __all__ = [
     "DR",
     "PI",
     "TAU",
-    "DEGREES",
-    "GLSL_DTYPE"
+    "DEGREES"
 ]
 
 
-import numpy as np
 import os
+
+import numpy as np
 
 from .custom_typing import Vec3T
 
@@ -74,40 +74,3 @@ DR: Vec3T = DOWN + RIGHT
 PI: float = np.pi
 TAU: float = PI * 2.0
 DEGREES: float = PI / 180.0
-
-GLSL_DTYPE: dict[str, np.dtype] = {
-    "int":     np.dtype(("i4", ())),
-    "ivec2":   np.dtype(("i4", (2,))),
-    "ivec3":   np.dtype(("i4", (3,))),
-    "ivec4":   np.dtype(("i4", (4,))),
-    "uint":    np.dtype(("u4", ())),
-    "uvec2":   np.dtype(("u4", (2,))),
-    "uvec3":   np.dtype(("u4", (3,))),
-    "uvec4":   np.dtype(("u4", (4,))),
-    "float":   np.dtype(("f4", ())),
-    "vec2":    np.dtype(("f4", (2,))),
-    "vec3":    np.dtype(("f4", (3,))),
-    "vec4":    np.dtype(("f4", (4,))),
-    "double":  np.dtype(("f8", ())),
-    "dvec2":   np.dtype(("f8", (2,))),
-    "dvec3":   np.dtype(("f8", (3,))),
-    "dvec4":   np.dtype(("f8", (4,))),
-    "mat2":    np.dtype(("f4", (2, 2))),
-    "mat2x3":  np.dtype(("f4", (2, 3))),  # TODO: check order
-    "mat2x4":  np.dtype(("f4", (2, 4))),
-    "mat3x2":  np.dtype(("f4", (3, 2))),
-    "mat3":    np.dtype(("f4", (3, 3))),
-    "mat3x4":  np.dtype(("f4", (3, 4))),
-    "mat4x2":  np.dtype(("f4", (4, 2))),
-    "mat4x3":  np.dtype(("f4", (4, 3))),
-    "mat4":    np.dtype(("f4", (4, 4))),
-    "dmat2":   np.dtype(("f8", (2, 2))),
-    "dmat2x3": np.dtype(("f8", (2, 3))),
-    "dmat2x4": np.dtype(("f8", (2, 4))),
-    "dmat3x2": np.dtype(("f8", (3, 2))),
-    "dmat3":   np.dtype(("f8", (3, 3))),
-    "dmat3x4": np.dtype(("f8", (3, 4))),
-    "dmat4x2": np.dtype(("f8", (4, 2))),
-    "dmat4x3": np.dtype(("f8", (4, 3))),
-    "dmat4":   np.dtype(("f8", (4, 4))),
-}

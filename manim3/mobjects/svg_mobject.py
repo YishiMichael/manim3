@@ -1,12 +1,10 @@
 __all__ = ["SVGMobject"]
 
 
-from colour import Color
 from typing import Any
 import warnings
 
 import numpy as np
-#import skia
 import svgelements as se
 
 from ..custom_typing import (
@@ -14,7 +12,6 @@ from ..custom_typing import (
     Real
 )
 from ..mobjects.path_mobject import PathMobject
-#from ..utils.path import Path
 
 
 class SVGMobject(PathMobject):
@@ -28,21 +25,6 @@ class SVGMobject(PathMobject):
         paint_settings: dict[str, Any] | None = None  # TODO
     ):
         svg = se.SVG.parse(file_path)
-        #svg_bbox = svg.bbox()
-        #svg_bbox = skia.Rect.MakeXYWH(*)
-        #svg_frame = self._calculate_frame(
-        #    svg_bbox.width(),
-        #    svg_bbox.height(),
-        #    width,
-        #    height,
-        #    frame_scale
-        #)
-        #transform_matrix = skia.Matrix.MakeRectToRect(
-        #    src=svg_bbox,
-        #    dst=svg_frame,
-        #    stf=skia.Matrix.kFill_ScaleToFit
-        #)
-
         path_mobjects: list[PathMobject] = []
         for shape in svg.elements():
             if not isinstance(shape, se.Shape):
@@ -102,17 +84,6 @@ class SVGMobject(PathMobject):
 
     @classmethod
     def convert_transform(cls, matrix: se.Matrix) -> Mat4T:
-        #return skia.Matrix.MakeAll(
-        #    scaleX=matrix.a,
-        #    skewX=matrix.c,
-        #    transX=matrix.e,
-        #    skewY=matrix.b,
-        #    scaleY=matrix.d,
-        #    transY=matrix.f,
-        #    pers0=0.0,
-        #    pers1=0.0,
-        #    pers2=1.0
-        #)
         return np.array((
             (matrix.a, matrix.b, 0.0, 0.0),
             (matrix.c, matrix.d, 0.0, 0.0),
@@ -130,22 +101,3 @@ class SVGMobject(PathMobject):
             # Don't know why, svgelements may parse stroke_width out of nothing...
             "stroke_width": shape.stroke_width
         }
-
-    #@classmethod
-    #def path_to_skia_path(cls, path_shape: se.Path) -> skia.Path:
-    #    path_shape.approximate_arcs_with_cubics()
-    #    path = skia.Path()
-    #    for segment in path_shape.segments():
-    #        if isinstance(segment, se.Move):
-    #            path.moveTo(*segment.end)
-    #        elif isinstance(segment, se.Close):
-    #            path.close()
-    #        elif isinstance(segment, se.Line):
-    #            path.lineTo(*segment.end)
-    #        elif isinstance(segment, se.QuadraticBezier):
-    #            path.quadTo(*segment.control, *segment.end)
-    #        elif isinstance(segment, se.CubicBezier):
-    #            path.cubicTo(*segment.control1, *segment.control2, *segment.end)
-    #        else:
-    #            raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-    #    return path

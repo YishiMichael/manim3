@@ -2,9 +2,10 @@ __all__ = ["MeshMobject"]
 
 
 import inspect
+import re
 from typing import Callable
 
-from colour import Color, re
+from colour import Color
 import moderngl
 import numpy as np
 
@@ -12,8 +13,7 @@ from ..geometries.geometry import Geometry
 from ..custom_typing import (
     ColorType,
     Mat4T,
-    Vec4T,
-    Vec4sT
+    Vec4T
 )
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import (
@@ -32,53 +32,23 @@ from ..utils.renderable import (
 )
 from ..utils.scene_config import SceneConfig
 
-#class MeshMaterial(ABC):
-#    @abstractmethod
-#    def _get_render_step(
-#        self,
-#        scene: Scene,
-#        geometry: Trimesh,
-#        target_framebuffer: moderngl.Framebuffer
-#    ) -> RenderStep:
-#        pass
-
-
-#class SimpleMeshMaterial(MeshMaterial):
-#    def __init__(self, color: ColorArrayType):
-#        self.color: ColorArrayType = color
-
-
-#class TexturedMeshMaterial(MeshMaterial):
-#    def __init__(self, color_map: ColorArrayType):
-#        self.color: ColorArrayType = color
-#    color: ColorArrayType
-#    color_map: moderngl.Texture | None
-
 
 class MeshMobject(Mobject):
-    #@lazy_property
-    #@staticmethod
-    #def _geometry_matrix_() -> Mat4T:
-    #    return np.identity(4)
-
     @lazy_property_initializer
     @staticmethod
     def _ub_model_matrices_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_model_matrices", [
-            "mat4 u_model_matrix",
-            #"mat4 u_geometry_matrix"
+            "mat4 u_model_matrix"
         ])
 
     @lazy_property
     @staticmethod
     def _ub_model_matrices_(
         ub_model_matrices_o: UniformBlockBuffer,
-        model_matrix: Mat4T,
-        #geometry_matrix: Mat4T
+        model_matrix: Mat4T
     ) -> UniformBlockBuffer:
         ub_model_matrices_o.write({
-            "u_model_matrix": model_matrix,
-            #"u_geometry_matrix": geometry_matrix
+            "u_model_matrix": model_matrix
         })
         return ub_model_matrices_o
 
@@ -141,9 +111,6 @@ class MeshMobject(Mobject):
     def _attributes_(
         attributes_o: AttributesBuffer,
         geometry: Geometry,
-        #position: Vec3sT,
-        #normal: Vec3sT,
-        #uv: Vec2sT,
         color: ColorType | Callable[..., Vec4T]
     ) -> AttributesBuffer:
         position = geometry._position_
