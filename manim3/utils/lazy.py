@@ -129,24 +129,24 @@ class LazyBase(ABC):
     _PROPERTIES: ClassVar[list[lazy_property]]
 
     def __init_subclass__(cls) -> None:
-        methods: dict[str, Any] = {}
+        properties: dict[str, lazy_property] = {}
         for parent_cls in cls.__mro__[::-1]:
-            methods.update(parent_cls.__dict__)
+            for name, method in parent_cls.__dict__.items():
+                if name not in properties:
+                    if isinstance(method, lazy_property):
+                        properties[name] = method
+                    continue
+                assert isinstance(method, lazy_property)
+                cls._check_annotation_matching(method.annotation, properties[name].annotation)
+                properties[name] = method
 
-        properties: dict[str, lazy_property] = {
-            name: method
-            for name, method in methods.items()
-            if isinstance(method, lazy_property)
-        }
         for prop in properties.values():
             if isinstance(prop, lazy_property_initializer):
                 assert not prop.parameters
                 continue
             for param_name, param_annotation in prop.parameters.items():
-                param_node = properties[param_name]
-                assert cls._check_annotation_matching(param_annotation, param_node.annotation), \
-                    AssertionError(f"Type annotation mismatched: `{param_node.annotation}` and `{param_annotation}`")
-                prop.add(param_node)
+                cls._check_annotation_matching(properties[param_name].annotation, param_annotation)
+                prop.add(properties[param_name])
 
         cls._PROPERTIES = list(properties.values())
         return super().__init_subclass__()
@@ -157,12 +157,24 @@ class LazyBase(ABC):
         super().__init__()
 
     @classmethod
-    def _check_annotation_matching(cls, param_annotation: _Annotation, node_annotation: _Annotation) -> bool:
-        if isinstance(node_annotation, GenericAlias):
-            return issubclass(param_annotation.__origin__, node_annotation.__origin__)
-        if isinstance(param_annotation, UnionType):
-            return True  # TODO
-        return issubclass(param_annotation, node_annotation)
+    def _check_annotation_matching(cls, child_annotation: _Annotation, parent_annotation: _Annotation) -> None:
+        def _to_classes(annotation: _Annotation) -> tuple[type, ...]:
+            if isinstance(annotation, UnionType):
+                children = annotation.__args__
+            else:
+                children = (annotation,)
+            return tuple(
+                child.__origin__ if isinstance(child, GenericAlias) else child
+                for child in children
+            )
+
+        assert all(
+            any(
+                issubclass(child_cls, parent_cls)
+                for parent_cls in _to_classes(parent_annotation)
+            )
+            for child_cls in _to_classes(child_annotation)
+        ), f"Type annotation mismatched: `{child_annotation}` is not compatible with `{parent_annotation}`"
 
 
 """

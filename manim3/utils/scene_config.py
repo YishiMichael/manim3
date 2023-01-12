@@ -32,12 +32,12 @@ class SceneConfig(LazyBase):
     @lazy_property_initializer_writable
     @staticmethod
     def _point_light_positions_() -> Vec3sT:
-        return np.ones((3, 0))
+        return np.ones((0, 3))
 
     @lazy_property_initializer_writable
     @staticmethod
     def _point_light_colors_() -> Vec4sT:
-        return np.ones((4, 0))
+        return np.ones((0, 4))
 
     @lazy_property_initializer_writable
     @staticmethod

@@ -3,7 +3,6 @@ __all__ = ["ShapeMobject"]
 
 import moderngl
 
-from ..geometries.geometry import Geometry
 from ..geometries.shape_geometry import ShapeGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.lazy import (
@@ -25,7 +24,7 @@ class ShapeMobject(MeshMobject):
 
     @lazy_property
     @staticmethod
-    def _geometry_(shape: Shape) -> Geometry:
+    def _geometry_(shape: Shape) -> ShapeGeometry:
         return ShapeGeometry(shape)
 
     @lazy_property_initializer_writable
