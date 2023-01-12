@@ -165,10 +165,10 @@ class ShapeInterpolantBase(LazyBase):
     def _length_knots_(lengths: FloatsT, length: float) -> FloatsT:
         return np.insert(lengths.cumsum() / length, 0, 0.0)
 
-    @property
-    @abstractmethod
-    def _shapely_obj_(self) -> shapely.geometry.base.BaseGeometry:
-        pass
+    #@property
+    #@abstractmethod
+    #def _shapely_obj_(self) -> shapely.geometry.base.BaseGeometry:
+    #    pass
 
     @abstractmethod
     def interpolate_point(self, alpha: Real) -> Vec2T:
@@ -210,7 +210,7 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
         index, residue = self._integer_interpolate(self._length_knots_, alpha)
         return self._children_[index].interpolate_point(residue)
 
-    def interpolate_shape(self, other: "ShapeInterpolant[_ChildT]", alpha: Real) -> "ShapeInterpolant[_ChildT]":
+    def interpolate_shape(self, other: "ShapeInterpolant[_ChildT]", alpha: Real):
         children = self._children_
         knots_0 = self._length_knots_[1:]
         knots_1 = other._length_knots_[1:]
@@ -252,7 +252,7 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
         #    for start, end in it.pairwise(all_knots)
         #])
 
-    def partial(self, start: Real, end: Real) -> "ShapeInterpolant[_ChildT]":
+    def partial(self, start: Real, end: Real):
         children = self._children_
         knots = self._length_knots_
         start_index, start_residue = self._integer_interpolate(knots, start)
@@ -269,7 +269,7 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
             new_children = [
                 children[start_index].partial(start_residue, 1.0),
                 *children[start_index + 1:end_index],
-                children[end_index].partial(1.0, end_residue)
+                children[end_index].partial(0.0, end_residue)
             ]
         return self.__class__(new_children)
 
@@ -392,25 +392,25 @@ class Polygon(ShapeInterpolant[LineString]):
     #        holes = []
     #    super().__init__([shell, *holes])
 
-    @lazy_property
-    @staticmethod
-    def _shapely_obj_(children: list[LineString]) -> shapely.geometry.Polygon:
-        shell_coords = children[0]._coords_
-        shell_coords_len = len(shell_coords)
-        if not shell_coords_len:
-            return shapely.geometry.base.EmptyGeometry()
-        elif shell_coords_len == 1:
-            return shapely.geometry.Point(shell_coords[0])
-        elif shell_coords_len == 2:
-            return shapely.geometry.LineString(shell_coords)
-        return shapely.geometry.Polygon(
-            shell_coords,
-            [
-                hole_coords
-                for line_string in children[1:]
-                if len(hole_coords := line_string._coords_) >= 3
-            ]
-        )
+    #@lazy_property
+    #@staticmethod
+    #def _shapely_polygon_(children: list[LineString]) -> shapely.geometry.Polygon:
+    #    shell_coords = children[0]._coords_
+    #    shell_coords_len = len(shell_coords)
+    #    if not shell_coords_len:
+    #        return shapely.geometry.base.EmptyGeometry()
+    #    elif shell_coords_len == 1:
+    #        return shapely.geometry.Point(shell_coords[0])
+    #    elif shell_coords_len == 2:
+    #        return shapely.geometry.LineString(shell_coords)
+    #    return shapely.geometry.Polygon(
+    #        shell_coords,
+    #        [
+    #            hole_coords
+    #            for line_string in children[1:]
+    #            if len(hole_coords := line_string._coords_) >= 3
+    #        ]
+    #    )
 
     @lazy_property
     @staticmethod
@@ -422,12 +422,12 @@ class Polygon(ShapeInterpolant[LineString]):
 
 
 class Polygons(ShapeInterpolant[Polygon]):
-    @lazy_property
-    @staticmethod
-    def _shapely_obj_(children: list[Polygon]) -> shapely.geometry.base.BaseGeometry:
-        return shapely.geometry.GeometryCollection([
-            child._shapely_obj_ for child in children
-        ])
+    #@lazy_property
+    #@staticmethod
+    #def _shapely_obj_(children: list[Polygon]) -> shapely.geometry.base.BaseGeometry:
+    #    return shapely.geometry.GeometryCollection([
+    #        child._shapely_obj_ for child in children
+    #    ])
 
     #def __init__(self, polygons: list[Polygon]):
     #    super().__init__()
@@ -544,5 +544,7 @@ class Shape(LazyBase):
 
     def _build_from_interpolation_result(self, polygons: Polygons) -> "Shape":
         return Shape(reduce(shapely.geometry.base.BaseGeometry.__xor__, [
-            polygon._shapely_obj_ for polygon in polygons._children_
+            line_string._shapely_obj_
+            for polygon in polygons._children_
+            for line_string in polygon._children_
         ]))

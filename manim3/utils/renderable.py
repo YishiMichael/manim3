@@ -355,7 +355,7 @@ class GLSLBuffer(LazyBase):
             \s
             (?P<name>\w+?)
             (?P<array_shape>(\[\w+?\])*)
-        """, flags=re.X)
+        """, flags=re.VERBOSE)
         match_obj = pattern.fullmatch(field_str)
         assert match_obj is not None
         return FieldInfo(

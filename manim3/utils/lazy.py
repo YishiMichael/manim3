@@ -159,13 +159,12 @@ class LazyBase(ABC):
     @classmethod
     def _check_annotation_matching(cls, child_annotation: _Annotation, parent_annotation: _Annotation) -> None:
         def _to_classes(annotation: _Annotation) -> tuple[type, ...]:
-            if isinstance(annotation, UnionType):
-                children = annotation.__args__
-            else:
-                children = (annotation,)
             return tuple(
-                child.__origin__ if isinstance(child, GenericAlias) else child
-                for child in children
+                child.__origin__ if isinstance(child, GenericAlias) else
+                Callable if isinstance(child, Callable) else child
+                for child in (
+                    annotation.__args__ if isinstance(annotation, UnionType) else (annotation,)
+                )
             )
 
         assert all(

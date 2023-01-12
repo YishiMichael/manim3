@@ -74,7 +74,7 @@ class MarkupText(StringMobject):
     #    "global_config": {},
     #    "local_configs": {},
     #    "disable_ligatures": True,
-    #    "isolate": re.compile(r"\w+", re.U),
+    #    "isolate": re.compile(r"\w+", flags=re.UNICODE),
     #}
 
     # See https://docs.gtk.org/Pango/pango_markup.html
@@ -113,7 +113,7 @@ class MarkupText(StringMobject):
         global_config: dict[str, str] | None = None,
         local_configs: dict[str, dict[str, str]] | None = None,
         disable_ligatures: bool = True,
-        isolate: Selector = re.compile(r"\w+", re.U),
+        isolate: Selector = re.compile(r"\w+", flags=re.UNICODE),
         **kwargs
     ):
         #self.full2short(kwargs)
@@ -292,7 +292,7 @@ class MarkupText(StringMobject):
             )
             |(?P<entity>&(?P<unicode>\#(?P<hex>x)?)?(?P<content>.*?);)
             |(?P<char>[>"'])
-        """, flags=re.X | re.S)
+        """, flags=re.VERBOSE | re.DOTALL)
         return list(pattern.finditer(string))
 
     @classmethod
@@ -339,7 +339,7 @@ class MarkupText(StringMobject):
             return {
                 match_obj.group("attr_name"): match_obj.group("attr_val")
                 for match_obj in re.finditer(
-                    pattern, open_command.group("attr_list"), re.S | re.X
+                    pattern, open_command.group("attr_list"), flags=re.VERBOSE | re.DOTALL
                 )
             }
         return MarkupText.MARKUP_TAGS.get(tag_name, {})

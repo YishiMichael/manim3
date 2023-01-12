@@ -259,7 +259,7 @@ class TexText(StringMobject):
             (?P<command>\\(?:[a-zA-Z]+|.))
             |(?P<open>{+)
             |(?P<close>}+)
-        """, flags=re.X | re.S)
+        """, flags=re.VERBOSE | re.DOTALL)
         result = []
         open_stack = []
         for match_obj in pattern.finditer(string):

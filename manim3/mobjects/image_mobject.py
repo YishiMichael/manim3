@@ -7,7 +7,6 @@ from PIL import Image
 
 from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import Real
-from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.context_singleton import ContextSingleton
@@ -50,7 +49,7 @@ class ImageMobject(MeshMobject):
 
     @lazy_property_initializer
     @staticmethod
-    def _geometry_() -> Geometry:
+    def _geometry_() -> PlaneGeometry:
         return PlaneGeometry()
 
     #@lazy_property_initializer_writable
@@ -65,7 +64,7 @@ class ImageMobject(MeshMobject):
 
     @lazy_property
     @staticmethod
-    def _color_map_texture_(image: Image.Image) -> moderngl.Texture | None:
+    def _color_map_texture_(image: Image.Image) -> moderngl.Texture:
         return ContextSingleton().texture(
             size=image.size,
             components=len(image.getbands()),

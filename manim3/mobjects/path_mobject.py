@@ -1,15 +1,19 @@
 __all__ = ["PathMobject"]
 
 
-from colour import Color
+from functools import reduce
+from typing import Callable
+
 import numpy as np
 from scipy.interpolate import BSpline
 import shapely.geometry
 import svgelements as se
 
 from ..custom_typing import (
+    ColorType,
     Vec2T,
-    Vec2sT
+    Vec2sT,
+    Vec4T
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..utils.lazy import (
@@ -55,7 +59,7 @@ class BezierCurve(LazyBase):
 
 
 class PathMobject(ShapeMobject):
-    def __init__(self, path: se.Path | None = None):
+    def __init__(self, path: se.Path | str | None = None):
         if path is None:
             shape = Shape()
         else:
@@ -63,7 +67,9 @@ class PathMobject(ShapeMobject):
         super().__init__(shape)
 
     @classmethod
-    def path_to_shape(cls, se_path: se.Path) -> Shape:
+    def path_to_shape(cls, se_path: se.Path | str) -> Shape:
+        if isinstance(se_path, str):
+            se_path = se.Path(se_path)
         se_path.approximate_arcs_with_cubics()
         polygon_point_lists: list[list[Vec2T]] = []
         current_list: list[Vec2T] = []
@@ -86,26 +92,24 @@ class PathMobject(ShapeMobject):
                 current_list.extend(BezierCurve(np.array(control_points))._sample_points_[1:])
         polygon_point_lists.append(current_list)
 
-        return Shape(shapely.geometry.MultiLineString([
-            shapely.geometry.LineString(polygon_point_list)
+        return Shape(reduce(shapely.geometry.base.BaseGeometry.__xor__, [
+            shapely.geometry.Polygon(polygon_point_list)
             for polygon_point_list in polygon_point_lists
             if polygon_point_list
         ]))
 
-    def set_local_fill(self, color: Color | str):
-        if isinstance(color, str):
-            color = Color(color)
-        self._geometry_._color_ = np.array([*color.rgb, 1.0])
+    def set_local_fill(self, color: ColorType | Callable[..., Vec4T]):
+        self._color_ = color
         return self
 
-    def get_local_fill(self) -> Color:
-        color = Color()
-        color.rgb = tuple(self._geometry_._color_[:3])  # TODO
-        return color
+    #def get_local_fill(self) -> Color:
+    #    color = Color()
+    #    color.rgb = tuple(self._geometry_._color_[:3])  # TODO
+    #    return color
 
     def set_fill(
         self,
-        color: Color | str,
+        color: ColorType | Callable[..., Vec4T],
         *,
         broadcast: bool = True
     ):

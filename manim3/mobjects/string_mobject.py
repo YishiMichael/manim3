@@ -127,7 +127,9 @@ class StringMobject(SVGMobject):
         unrecognizable_colors = []
         labels = []
         for child in labelled_svg.path_mobjects:
-            label = self.color_to_int(child.get_local_fill())
+            child_color = child._color_
+            assert not isinstance(child_color, Callable)
+            label = self.color_to_int(child_color)
             if label >= labels_count:
                 unrecognizable_colors.append(label)
                 label = 0
@@ -215,8 +217,10 @@ class StringMobject(SVGMobject):
         return span_0[0] <= span_1[0] and span_0[1] >= span_1[1]
 
     @classmethod
-    def color_to_int(cls, color: Color) -> int:
-        return int(color.hex_l[1:], 16)
+    def color_to_int(cls, color: ColorType) -> int:
+        c = Color()
+        c.rgb = cls._color_to_vector(color)[:3]
+        return int(c.hex_l[1:], 16)
 
     #@staticmethod
     #def color_to_hex(color: RGBAInt) -> str:

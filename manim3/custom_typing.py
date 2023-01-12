@@ -51,7 +51,7 @@ Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
 
 VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
-ColorType = Color | str
+ColorType = Color | str | Vec3T | Vec4T
 Span = tuple[int, int]
 Selector = Union[
     str,
