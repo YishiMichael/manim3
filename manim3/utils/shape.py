@@ -1,4 +1,8 @@
-__all__ = ["Shape"]
+__all__ = [
+    "LineString",
+    "MultiLineString",
+    "Shape"
+]
 
 
 from abc import abstractmethod
@@ -9,7 +13,6 @@ from typing import (
     TypeVar
 )
 
-from mapbox_earcut import triangulate_float32
 import numpy as np
 import shapely.geometry
 import shapely.ops
@@ -18,8 +21,7 @@ from ..custom_typing import (
     FloatsT,
     Real,
     Vec2T,
-    Vec2sT,
-    VertexIndicesType
+    Vec2sT
 )
 from ..utils.lazy import (
     LazyBase,
@@ -68,6 +70,8 @@ class ShapeInterpolantBase(LazyBase):
         `0 <= i <= len(array) - 1` and `array[i - 1] <= target <= array[i]`,
         where we've interpreted `array[-1]` as 0.
         """
+        if not len(array):
+            return 0, 0.0
         index = int(np.searchsorted(array, target))
         if index == 0:
             try:
@@ -138,6 +142,9 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
 
     def partial(self, start: Real, end: Real):
         children = self._children_
+        if not children:
+            return self.__class__()
+
         knots = self._length_knots_
         start_index, start_residue = self._integer_interpolate(knots, start)
         end_index, end_residue = self._integer_interpolate(knots, end)
@@ -155,7 +162,33 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
 class LineString(ShapeInterpolantBase):
     def __init__(self, coords: Vec2sT):
         super().__init__()
+        # We first normalize the input,
+        # which is to remove redundant adjacent points to ensure
+        # all segments have non-zero lengths.
+        #if not len(coords):
+        #    kind = "empty"
+        #    simplified_coords = coords
+        #else:
+        #    points: list[Vec2T] = [coords[0]]
+        #    current_point = coords[0]
+        #    for point in coords:
+        #        if np.isclose(np.linalg.norm(point - current_point), 0.0):
+        #            continue
+        #        current_point = point
+        #        points.append(point)
+        #    if len(points) == 1:
+        #        kind = "point"
+        #    elif not np.isclose(np.linalg.norm(points[-1] - points[0]), 0.0):
+        #        kind = "line_string"
+        #    else:
+        #        #points.pop()
+        #        assert len(points) >= 3
+        #        kind = "linear_ring"
+        #    simplified_coords = np.array(points)
+
+        assert len(coords)
         self._coords_ = coords
+        #self._kind_ = kind
 
     @lazy_property_initializer_writable
     @staticmethod
@@ -164,13 +197,24 @@ class LineString(ShapeInterpolantBase):
 
     @lazy_property
     @staticmethod
-    def _shapely_obj_(coords: Vec2sT) -> shapely.geometry.base.BaseGeometry:
-        coords_len = len(coords)
-        if not coords_len:
-            return shapely.geometry.base.EmptyGeometry()
-        elif coords_len == 1:
+    def _kind_(coords: Vec2sT) -> str:
+        if len(coords) == 1:
+            return "point"
+        if not np.isclose(np.linalg.norm(coords[-1] - coords[0]), 0.0):
+            return "line_string"
+        return "linear_ring"
+
+    #@lazy_property
+    #@staticmethod
+    #def _signed_area_(coords: Vec2sT) -> float:
+    #    return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
+
+    @lazy_property
+    @staticmethod
+    def _shapely_component_(kind: str, coords: Vec2sT) -> shapely.geometry.base.BaseGeometry:
+        if kind == "point":
             return shapely.geometry.Point(coords[0])
-        elif coords_len == 2:
+        if len(coords) == 2:
             return shapely.geometry.LineString(coords)
         return shapely.geometry.Polygon(coords)
 
@@ -218,80 +262,238 @@ class LineString(ShapeInterpolantBase):
         return LineString(np.array(new_coords))
 
 
-class Polygon(ShapeInterpolant[LineString]):
-    @lazy_property
-    @staticmethod
-    def _triangulation_(children: list[LineString]) -> tuple[Vec2sT, VertexIndicesType]:
-        ring_coords_list = [np.array(ring._coords_, dtype=np.float32) for ring in children]
-        coords = np.concatenate(ring_coords_list)
-        ring_ends = np.cumsum([len(ring_coords) for ring_coords in ring_coords_list], dtype=np.uint32)
-        return (coords, triangulate_float32(coords, ring_ends))
+class MultiLineString(ShapeInterpolant[LineString]):
+    pass
 
 
-class Polygons(ShapeInterpolant[Polygon]):
-    @lazy_property
-    @staticmethod
-    def _triangulation_(children: list[Polygon]) -> tuple[Vec2sT, VertexIndicesType]:
-        if not children:
-            return np.zeros((0, 2)), np.zeros((0,), dtype=np.uint32)
-
-        item_list: list[tuple[Vec2sT, VertexIndicesType]] = []
-        coords_len = 0
-        for child in children:
-            coords, indices = child._triangulation_
-            item_list.append((coords, indices + coords_len))
-            coords_len += len(coords)
-        coords_list, indices_list = zip(*item_list)
-        return np.concatenate(coords_list), np.concatenate(indices_list)
+#class Polygon(ShapeInterpolant[LineString]):
+#    def __init__(self, line_strings: list[LineString] | None = None):
+#        if line_strings is None:
+#            line_strings = []
+#        simplified_line_strings = [
+#            line_string for line_string in line_strings
+#            if line_string._kind_ != "empty"
+#        ]
+#        if not len(simplified_line_strings):
+#            kind = "empty"
+#        else:
+#            shell = simplified_line_strings[0]
+#            if shell._kind_ in ("")
+#
+#            points: list[Vec2T] = [coords[0]]
+#            current_point = coords[0]
+#            for point in coords:
+#                if np.isclose(np.linalg.norm(point - current_point), 0.0):
+#                    continue
+#                current_point = point
+#                points.append(point)
+#            if len(points) == 1:
+#                kind = "point"
+#            elif not np.isclose(np.linalg.norm(points[-1] - points[0]), 0.0):
+#                kind = "line_string"
+#            else:
+#                #points.pop()
+#                assert len(points) >= 3
+#                kind = "linear_ring"
+#            simplified_coords = np.array(points)
+#
+#        super().__init__(simplified_line_strings)
+#        self._kind_ = kind
+#
+#    @lazy_property_initializer_writable
+#    @staticmethod
+#    def _kind_() -> str:
+#        return NotImplemented
+#
+#    @lazy_property
+#    @staticmethod
+#    def _shapely_obj_(children: list[LineString]) -> shapely.geometry.Polygon:
+#        return shapely.geometry.Polygon(
+#            children[0]._coords_,
+#            [line_string._coords_ for line_string in children[1:]]
+#        )
+#
+#    #@lazy_property
+#    #@staticmethod
+#    #def _shapely_boundary_(children: list[LineString]) -> list[shapely.geometry.LineString]:
+#    #    return [
+#    #        shapely.geometry.LineString(line_string._coords_)
+#    #        for line_string in children
+#    #    ]
+#
+#    #@lazy_property
+#    #@staticmethod
+#    #def _triangulation_(children: list[LineString]) -> tuple[VertexIndexType, Vec2sT]:
+#    #    ring_coords_list = [np.array(ring._coords_, dtype=np.float32) for ring in children]
+#    #    coords = np.concatenate(ring_coords_list)
+#    #    if not len(coords):
+#    #        return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+#
+#    #    ring_ends = np.cumsum([len(ring_coords) for ring_coords in ring_coords_list], dtype=np.uint32)
+#    #    return triangulate_float32(coords, ring_ends), coords
+#
+#
+#class Polygons(ShapeInterpolant[Polygon]):
+#    @lazy_property
+#    @staticmethod
+#    def _shapely_obj_(children: list[Polygon]) -> shapely.geometry.GeometryCollection:
+#        return shapely.geometry.GeometryCollection([
+#            polygon._shapely_obj_
+#            for polygon in children
+#        ])
+#
+#    #@lazy_property
+#    #@staticmethod
+#    #def _shapely_boundary_(children: list[Polygon]) -> list[shapely.geometry.LineString]:
+#    #    return [
+#    #        shapely_line_string
+#    #        for polygon in children
+#    #        for shapely_line_string in polygon._shapely_boundary_
+#    #    ]
+#
+#    #@lazy_property
+#    #@staticmethod
+#    #def _triangulation_(children: list[Polygon]) -> tuple[VertexIndexType, Vec2sT]:
+#    #    if not children:
+#    #        return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+#
+#    #    item_list: list[tuple[VertexIndexType, Vec2sT]] = []
+#    #    coords_len = 0
+#    #    for child in children:
+#    #        indices, coords = child._triangulation_
+#    #        item_list.append((indices + coords_len, coords))
+#    #        coords_len += len(coords)
+#    #    indices_list, coords_list = zip(*item_list)
+#    #    return np.concatenate(indices_list), np.concatenate(coords_list)
 
 
 class Shape(LazyBase):
-    def __init__(self, shapely_obj: shapely.geometry.base.BaseGeometry | None = None):
+    def __init__(self, multi_line_string: MultiLineString | None = None):
         super().__init__()
-        if shapely_obj is not None:
-            self._polygons_ = Polygons(list(self._polygons_from_shapely(shapely_obj)))
+        if multi_line_string is not None:
+            self._multi_line_string_ = multi_line_string
+
+    def __and__(self, other: "Shape"):
+        return self.intersection(other)
+
+    def __or__(self, other: "Shape"):
+        return self.union(other)
+
+    def __sub__(self, other: "Shape"):
+        return self.difference(other)
+
+    def __xor__(self, other: "Shape"):
+        return self.symmetric_difference(other)
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _polygons_() -> Polygons:
-        return Polygons()
+    def _multi_line_string_() -> MultiLineString:
+        return MultiLineString()
 
     @classmethod
-    def _polygons_from_shapely(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> Generator[Polygon, None, None]:
+    def _from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> "Shape":
+        return Shape(MultiLineString(list(cls._get_line_strings_from_shapely_obj(shapely_obj))))
+
+    @classmethod
+    def _get_line_strings_from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> Generator[LineString, None, None]:
         if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
-            yield Polygon([LineString(np.array(shapely_obj.coords))])
+            yield LineString(np.array(shapely_obj.coords))
         elif isinstance(shapely_obj, shapely.geometry.Polygon):
-            yield Polygon([
-                LineString(np.array(boundary.coords))
-                for boundary in [shapely_obj.exterior, *shapely_obj.interiors]
-            ])
+            shapely_obj = shapely.geometry.polygon.orient(shapely_obj)  # TODO: needed?
+            yield LineString(np.array(shapely_obj.exterior.coords))
+            for interior in shapely_obj.interiors:
+                yield LineString(np.array(interior.coords))
         elif isinstance(shapely_obj, shapely.geometry.base.BaseMultipartGeometry):
             for child in shapely_obj.geoms:
-                yield from cls._polygons_from_shapely(child)
+                yield from cls._get_line_strings_from_shapely_obj(child)
         else:
             raise TypeError
 
-    def interpolate_point(self, alpha: Real) -> Vec2T:
-        return self._polygons_.interpolate_point(alpha)
-
-    def interpolate_shape(self, other: "Shape", alpha: Real) -> "Shape":
-        return self._build_from_interpolation_result(
-            self._polygons_.interpolate_shape(other._polygons_, alpha)
-        )
-
-    def partial(self, start: Real, end: Real) -> "Shape":
-        return self._build_from_interpolation_result(
-            self._polygons_.partial(start, end)
-        )
-
     @lazy_property
     @staticmethod
-    def _triangulation_(polygons: Polygons) -> tuple[Vec2sT, VertexIndicesType]:
-        return polygons._triangulation_
+    def _shapely_obj_(multi_line_string: MultiLineString) -> shapely.geometry.base.BaseGeometry:
+        return Shape._to_shapely_object(multi_line_string)
 
-    def _build_from_interpolation_result(self, polygons: Polygons) -> "Shape":
-        return Shape(reduce(shapely.geometry.base.BaseGeometry.__xor__, [
-            line_string._shapely_obj_
-            for polygon in polygons._children_
-            for line_string in polygon._children_
-        ]))
+    #@lazy_property
+    #@staticmethod
+    #def _shapely_boundary_(polygons: Polygons) -> list[shapely.geometry.LineString]:
+    #    return polygons._shapely_boundary_
+
+    @classmethod
+    def _to_shapely_object(cls, multi_line_string: MultiLineString) -> shapely.geometry.base.BaseGeometry:
+        return reduce(shapely.geometry.base.BaseGeometry.__xor__, [
+            line_string._shapely_component_
+            for line_string in multi_line_string._children_
+        ], shapely.geometry.GeometryCollection())
+
+    def interpolate_point(self, alpha: Real) -> Vec2T:
+        return self._multi_line_string_.interpolate_point(alpha)
+
+    def interpolate_shape(self, other: "Shape", alpha: Real) -> "Shape":
+        return Shape(self._multi_line_string_.interpolate_shape(other._multi_line_string_, alpha))
+
+    def partial(self, start: Real, end: Real) -> "Shape":
+        return Shape(self._multi_line_string_.partial(start, end))
+
+    #@lazy_property
+    #@staticmethod
+    #def _triangulation_(polygons: Polygons) -> tuple[VertexIndexType, Vec2sT]:
+    #    return polygons._triangulation_
+
+    # operations ported from shapely
+
+    @property
+    def area(self) -> float:
+        return self._shapely_obj_.area
+
+    def distance(self, other: "Shape") -> float:
+        return self._shapely_obj_.distance(other._shapely_obj_)
+
+    def hausdorff_distance(self, other: "Shape") -> float:
+        return self._shapely_obj_.hausdorff_distance(other._shapely_obj_)
+
+    @property
+    def length(self) -> float:
+        return self._shapely_obj_.length
+
+    @property
+    def centroid(self) -> Vec2T:
+        return np.array(self._shapely_obj_.centroid)
+
+    @property
+    def convex_hull(self) -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.convex_hull)
+
+    @property
+    def envelope(self) -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.envelope)
+
+    def buffer(
+        self,
+        distance: Real,
+        quad_segs: int = 16,
+        cap_style: str = "round",
+        join_style: str = "round",
+        mitre_limit: Real = 5.0,
+        single_sided: bool = False
+    ) -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.buffer(
+            distance=distance,
+            quad_segs=quad_segs,
+            cap_style=cap_style,
+            join_style=join_style,
+            mitre_limit=mitre_limit,
+            single_sided=single_sided
+        ))
+
+    def intersection(self, other: "Shape") -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.intersection(other._shapely_obj_))
+
+    def union(self, other: "Shape") -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.union(other._shapely_obj_))
+
+    def difference(self, other: "Shape") -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.difference(other._shapely_obj_))
+
+    def symmetric_difference(self, other: "Shape") -> "Shape":
+        return Shape._from_shapely_obj(self._shapely_obj_.symmetric_difference(other._shapely_obj_))

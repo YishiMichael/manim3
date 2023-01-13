@@ -1,22 +1,20 @@
 __all__ = ["PathMobject"]
 
 
-from functools import reduce
-from typing import Callable
-
 import numpy as np
 from scipy.interpolate import BSpline
-import shapely.geometry
 import svgelements as se
 
 from ..custom_typing import (
-    ColorType,
     Vec2T,
-    Vec2sT,
-    Vec4T
+    Vec2sT
 )
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.shape import Shape
+from ..utils.shape import (
+    LineString,
+    MultiLineString,
+    Shape
+)
 
 
 class PathMobject(ShapeMobject):
@@ -32,15 +30,18 @@ class PathMobject(ShapeMobject):
         if isinstance(se_path, str):
             se_path = se.Path(se_path)
         se_path.approximate_arcs_with_cubics()
-        polygon_point_lists: list[list[Vec2T]] = []
-        current_list: list[Vec2T] = []
+        point_lists: list[list[Vec2T]] = []
+        point_list: list[Vec2T] = []
+        current_path_start_point: Vec2T = np.zeros(2)
         for segment in se_path.segments():
             if isinstance(segment, se.Move):
-                polygon_point_lists.append(current_list)
-                current_list = [np.array(segment.end)]
+                point_lists.append(point_list)
+                current_path_start_point = np.array(segment.end)
+                point_list = [current_path_start_point]
             elif isinstance(segment, se.Close):
-                polygon_point_lists.append(current_list)
-                current_list = []
+                point_list.append(current_path_start_point)
+                point_lists.append(point_list)
+                point_list = []
             else:
                 if isinstance(segment, se.Line):
                     control_points = [segment.start, segment.end]
@@ -50,37 +51,21 @@ class PathMobject(ShapeMobject):
                     control_points = [segment.start, segment.control1, segment.control2, segment.end]
                 else:
                     raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-                current_list.extend(cls._get_bezier_sample_points(np.array(control_points))[1:])
-        polygon_point_lists.append(current_list)
+                point_list.extend(cls._get_bezier_sample_points(np.array(control_points))[1:])
+        point_lists.append(point_list)
 
-        return Shape(reduce(shapely.geometry.base.BaseGeometry.__xor__, [
-            shapely.geometry.Polygon(polygon_point_list)
-            for polygon_point_list in polygon_point_lists
-            if polygon_point_list
+        return Shape(MultiLineString([
+            LineString(np.array(coords))
+            for coords in point_lists if coords
         ]))
 
     @classmethod
     def _get_bezier_sample_points(cls, points: Vec2sT) -> Vec2sT:
         order = len(points) - 1
         num_samples = 2 if order == 1 else 17
-        return BSpline(
+        gamma = BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
             c=points,
             k=order
-        )(np.linspace(0.0, 1.0, num_samples)).astype(float)
-
-    def set_local_fill(self, color: ColorType | Callable[..., Vec4T]):
-        self._color_ = color
-        return self
-
-    def set_fill(
-        self,
-        color: ColorType | Callable[..., Vec4T],
-        *,
-        broadcast: bool = True
-    ):
-        for mobject in self.get_descendants(broadcast=broadcast):
-            if not isinstance(mobject, PathMobject):
-                continue
-            mobject.set_local_fill(color=color)
-        return self
+        )
+        return gamma(np.linspace(0.0, 1.0, num_samples)).astype(float)

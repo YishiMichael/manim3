@@ -11,7 +11,7 @@ __all__ = [
     "Vec4sT",
     "Mat3sT",
     "Mat4sT",
-    "VertexIndicesType",
+    "VertexIndexType",
     "ColorType",
     "Span",
     "Selector"
@@ -49,7 +49,7 @@ Vec4sT = np.ndarray[tuple[_ND, _4D], np.dtype[np.float_]]
 Mat3sT = np.ndarray[tuple[_ND, _3D, _3D], np.dtype[np.float_]]
 Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
 
-VertexIndicesType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
+VertexIndexType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
 ColorType = Color | str | Vec3T | Vec4T
 Span = tuple[int, int]

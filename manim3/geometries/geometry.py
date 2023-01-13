@@ -4,7 +4,7 @@ __all__ = ["Geometry"]
 from ..custom_typing import (
     Vec2sT,
     Vec3sT,
-    VertexIndicesType
+    VertexIndexType
 )
 from ..utils.lazy import (
     LazyBase,
@@ -15,7 +15,7 @@ from ..utils.lazy import (
 class Geometry(LazyBase):
     def __init__(
         self,
-        index: VertexIndicesType,
+        index: VertexIndexType,
         position: Vec3sT,
         normal: Vec3sT,
         uv: Vec2sT
@@ -25,11 +25,10 @@ class Geometry(LazyBase):
         self._position_ = position
         self._normal_ = normal
         self._uv_ = uv
-        #self._color_ = np.ones(4)[None].repeat(len(position), axis=0)
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _index_() -> VertexIndicesType:
+    def _index_() -> VertexIndexType:
         return NotImplemented
 
     @lazy_property_initializer_writable

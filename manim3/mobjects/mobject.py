@@ -263,10 +263,10 @@ class Mobject(Renderable):
     #    #if np.isclose(np.linalg.det(matrix), 0.0):
     #    #    warnings.warn("Applying a singular matrix transform")
     #    for mobject in self.get_descendants(broadcast=broadcast):
-    #        mobject.apply_transform(matrix)
+    #        mobject.apply_relative_transform(matrix)
     #    return self
 
-    def apply_transform(
+    def apply_relative_transform(
         self,
         matrix: Mat4T,
         *,
@@ -303,7 +303,7 @@ class Mobject(Renderable):
             vector *= coor_mask
         matrix = self.matrix_from_translation(vector)
         # `about_point` and `about_edge` are meaningless when shifting
-        self.apply_transform(
+        self.apply_relative_transform(
             matrix,
             broadcast=broadcast
         )
@@ -318,7 +318,7 @@ class Mobject(Renderable):
         broadcast: bool = True
     ):
         matrix = self.matrix_from_scale(factor)
-        self.apply_transform(
+        self.apply_relative_transform(
             matrix,
             about_point=about_point,
             about_edge=about_edge,
@@ -335,7 +335,7 @@ class Mobject(Renderable):
         broadcast: bool = True
     ):
         matrix = self.matrix_from_rotation(rotation)
-        self.apply_transform(
+        self.apply_relative_transform(
             matrix,
             about_point=about_point,
             about_edge=about_edge,

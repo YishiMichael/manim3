@@ -118,16 +118,17 @@ class MeshMobject(Mobject):
         uv = geometry._uv_
 
         if isinstance(color, Callable) and (color_func_params := inspect.signature(color).parameters):
+            supported_parameters = {
+                "position": position,
+                "normal": normal,
+                "uv": uv
+            }
             color_array = np.array([
                 color(*args)
                 for args in zip(*(
-                    {
-                        "position": position,
-                        "normal": normal,
-                        "uv": uv,
-                    }[name]
+                    supported_parameters[name]
                     for name in color_func_params
-                ))
+                ), strict=True)
             ])
         else:
             if isinstance(color, Callable):

@@ -48,6 +48,7 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
         self.value_dict: dict[_LazyBaseT, _T] = {}
         self.requires_update: dict[_LazyBaseT, bool] = {}
         self.release_method: Callable[[_T], None] | None = None
+        self.ancestors: list[lazy_property[_LazyBaseT, _T]] = []
         super().__init__()
 
     @overload
@@ -76,15 +77,18 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
     def stripped_name(self) -> str:
         return self.name.strip("_")
 
-    def add_instance(self, instance: _LazyBaseT) -> None:
-        self.requires_update[instance] = True
-
     def releaser(self, release_method: Callable[[_T], None]) -> Callable[[_T], None]:
         self.release_method = release_method
         return release_method
 
-    def _expire_instance(self, instance: _LazyBaseT) -> None:
-        for expired_prop in self.get_ancestors():
+    def add_instance(self, instance: _LazyBaseT) -> None:
+        self.requires_update[instance] = True
+
+    def update_ancestors_cache(self) -> None:
+        self.ancestors = self.get_ancestors()
+
+    def expire_instance(self, instance: _LazyBaseT) -> None:
+        for expired_prop in self.ancestors:
             expired_prop.requires_update[instance] = True
 
 
@@ -108,14 +112,14 @@ class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
 
     def updater(self, update_method: Callable[Concatenate[_LazyBaseT, _P], _R]) -> Callable[Concatenate[_LazyBaseT, _P], _R]:
         def new_update_method(instance: _LazyBaseT, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-            self._expire_instance(instance)
+            self.expire_instance(instance)
             return update_method(instance, *args, **kwargs)
         return new_update_method
 
 
 class lazy_property_initializer_writable(lazy_property_initializer[_LazyBaseT, _T]):
     def __set__(self, instance: _LazyBaseT, value: _T) -> None:
-        self._expire_instance(instance)
+        self.expire_instance(instance)
         self.value_dict[instance] = value
 
 
@@ -141,6 +145,8 @@ class LazyBase(ABC):
             for param_name, param_annotation in prop.parameters.items():
                 cls._check_annotation_matching(properties[param_name].annotation, param_annotation)
                 prop.add(properties[param_name])
+        for prop in properties.values():
+            prop.update_ancestors_cache()
 
         cls._PROPERTIES = list(properties.values())
         return super().__init_subclass__()

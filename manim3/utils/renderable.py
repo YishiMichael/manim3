@@ -39,7 +39,7 @@ from ..constants import (
     PIXEL_WIDTH,
     SHADERS_PATH
 )
-#from ..custom_typing import VertexIndicesType
+#from ..custom_typing import VertexIndexType
 from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import (
     LazyBase,
