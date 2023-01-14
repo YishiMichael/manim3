@@ -1,5 +1,6 @@
 __all__ = [
     "AttributesBuffer",
+    "ContextState",
     "Framebuffer",
     "IndexBuffer",
     "IntermediateDepthTextures",
@@ -250,7 +251,7 @@ class GLSLBuffer(LazyBase):
         return self._itemsize_ == 0
 
     @_buffer_.updater
-    def write(self, data: np.ndarray | dict[str, Any]) -> None:
+    def write(self, data: np.ndarray | dict[str, Any]):
         data_dict = self._flatten_as_data_dict(data, (self.field_info.name,))
         struct_dtype, dynamic_array_lens = self._build_struct_dtype(
             [self.field_info], self.child_structs_info, data_dict, 0
@@ -274,10 +275,11 @@ class GLSLBuffer(LazyBase):
         buffer = self._buffer_
         if struct_dtype.itemsize == 0:
             buffer.clear()
-            return
+            return self
         #print(struct_dtype.itemsize)
         buffer.orphan(struct_dtype.itemsize)
         buffer.write(bytes_data)
+        return self
 
     @classmethod
     def _flatten_as_data_dict(
@@ -420,7 +422,7 @@ class TextureStorage(GLSLBuffer):
     def _texture_list_() -> list[moderngl.Texture]:
         return NotImplemented
 
-    def write(self, textures: np.ndarray) -> None:
+    def write(self, textures: np.ndarray):
         texture_list: list[moderngl.Texture] = []
         # Remove redundancies
         for texture in textures.flatten():
@@ -430,6 +432,7 @@ class TextureStorage(GLSLBuffer):
         self._texture_list_ = texture_list
         data = np.vectorize(lambda texture: texture_list.index(texture), otypes=[np.uint32])(textures)
         super().write(data)
+        return self
 
     def _get_indices(self) -> list[int]:
         size = self._struct_dtype_[self.field_info.name].itemsize
@@ -615,6 +618,16 @@ class Programs:  # TODO: make abstract base class Cachable
         return tuple(sorted(d.items()))
 
 
+@dataclass
+class ContextState:
+    depth_func: str = "<"
+    blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING
+    blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD
+    front_face: str = "ccw"
+    cull_face: str = "back"
+    wireframe: bool = False
+
+
 @dataclass(
     order=True,
     unsafe_hash=True,
@@ -631,10 +644,13 @@ class RenderStep:
     index_buffer: IndexBuffer
     framebuffer: Framebuffer
     enable_only: int
+    context_state: ContextState
     mode: int
 
 
 class Renderable(LazyBase):
+    _DEFAULT_CONTEXT_STATE: ClassVar[ContextState] = ContextState()
+
     @classmethod
     def _render_by_step(cls, render_step: RenderStep
         #vertex_array: moderngl.VertexArray,
@@ -651,6 +667,7 @@ class Renderable(LazyBase):
         index_buffer = render_step.index_buffer
         framebuffer = render_step.framebuffer
         enable_only = render_step.enable_only
+        context_state = render_step.context_state
         mode = render_step.mode
 
         if attributes._is_empty() or index_buffer._is_empty():
@@ -685,6 +702,8 @@ class Renderable(LazyBase):
             texture for texture_storage in texture_storages
             for texture in texture_storage._texture_list_
         ))
+
+        cls._set_context_state(context_state)
 
         with TextureBindings.register_n(len(textures)) as texture_bindings:
             with UniformBindings.register_n(len(uniform_blocks)) as uniform_block_bindings:
@@ -753,6 +772,8 @@ class Renderable(LazyBase):
         #for uniform_binding in uniform_binding_dict.values():
         #    UniformBindings.log_out(uniform_binding)
 
+        cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
+
     @classmethod
     def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
         for render_step in render_routine:
@@ -790,3 +811,13 @@ class Renderable(LazyBase):
         with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
             content = shader_file.read()
         return content
+
+    @classmethod
+    def _set_context_state(cls, context_state: ContextState) -> None:
+        context = ContextSingleton()
+        context.depth_func = context_state.depth_func
+        context.blend_func = context_state.blend_func
+        context.blend_equation = context_state.blend_equation
+        context.front_face = context_state.front_face
+        context.cull_face = context_state.cull_face
+        context.wireframe = context_state.wireframe

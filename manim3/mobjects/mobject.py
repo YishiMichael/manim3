@@ -541,10 +541,8 @@ class Mobject(Renderable):
                 ]
                 output_framebuffers: list[Framebuffer] = input_framebuffers[:]
                 output_framebuffers.append(target_framebuffer)
-                #framebuffers[0].use()
                 self._render(scene_config, output_framebuffers[0])
                 for render_pass, input_framebuffer, output_framebuffer in zip(render_passes, input_framebuffers, output_framebuffers[1:]):
-                    #output_framebuffer.use()
                     render_pass._render(
                         input_framebuffer=input_framebuffer,
                         output_framebuffer=output_framebuffer,

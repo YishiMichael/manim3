@@ -22,6 +22,7 @@ from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 
+from .render_passes.copy_pass import *
 from .render_passes.render_pass import *
 
 from .utils.context_singleton import *

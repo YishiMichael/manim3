@@ -13,7 +13,10 @@ from ..geometries.geometry import Geometry
 from ..custom_typing import (
     ColorType,
     Mat4T,
-    Vec4T
+    Vec2sT,
+    Vec3sT,
+    Vec4T,
+    Vec4sT
 )
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import (
@@ -23,6 +26,7 @@ from ..utils.lazy import (
 )
 from ..utils.renderable import (
     AttributesBuffer,
+    ContextState,
     Framebuffer,
     IndexBuffer,
     RenderStep,
@@ -116,27 +120,7 @@ class MeshMobject(Mobject):
         position = geometry._position_
         normal = geometry._normal_
         uv = geometry._uv_
-
-        if isinstance(color, Callable) and (color_func_params := inspect.signature(color).parameters):
-            supported_parameters = {
-                "position": position,
-                "normal": normal,
-                "uv": uv
-            }
-            color_array = np.array([
-                color(*args)
-                for args in zip(*(
-                    supported_parameters[name]
-                    for name in color_func_params
-                ), strict=True)
-            ])
-        else:
-            if isinstance(color, Callable):
-                pure_color = color()
-            else:
-                pure_color = MeshMobject._color_to_vector(color)
-            color_array = pure_color[None].repeat(len(position), axis=0)
-
+        color_array = MeshMobject._calculate_color_array(color, position, normal, uv)
         attributes_o.write({
             "a_position": position,
             "a_normal": normal,
@@ -171,6 +155,33 @@ class MeshMobject(Mobject):
                 return np.array(color, dtype=float)
         raise TypeError
 
+    @classmethod
+    def _calculate_color_array(
+        cls,
+        color: ColorType | Callable[..., Vec4T],
+        position: Vec3sT,
+        normal: Vec3sT,
+        uv: Vec2sT
+    ) -> Vec4sT:
+        if isinstance(color, Callable) and (color_func_params := inspect.signature(color).parameters):
+            supported_parameters = {
+                "position": position,
+                "normal": normal,
+                "uv": uv
+            }
+            return np.array([
+                color(*args)
+                for args in zip(*(
+                    supported_parameters[name]
+                    for name in color_func_params
+                ), strict=True)
+            ])
+        if isinstance(color, Callable):
+            pure_color = color()
+        else:
+            pure_color = MeshMobject._color_to_vector(color)
+        return pure_color[None].repeat(len(position), axis=0)
+
     @lazy_property_initializer_writable
     @staticmethod
     def _enable_only_() -> int:
@@ -192,5 +203,6 @@ class MeshMobject(Mobject):
             index_buffer=self._index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=self._enable_only_,
+            context_state=ContextState(),
             mode=moderngl.TRIANGLES
         ))

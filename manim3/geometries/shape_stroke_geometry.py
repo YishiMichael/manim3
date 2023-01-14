@@ -65,9 +65,6 @@ class ShapeStrokeGeometry(Geometry):
     def _get_line_string_stroke_triangulation(
         cls, line_string: LineString, width: Real, round_end: bool, single_sided: bool
     ) -> tuple[VertexIndexType, Vec2sT, FloatsT]:
-        if np.isclose(width, 0.0):
-            return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2)), np.zeros((0,))
-
         index_list: list[tuple[int, int, int]] = []
         z_list: list[complex] = []
         distance_list: list[float] = []
@@ -82,13 +79,14 @@ class ShapeStrokeGeometry(Geometry):
                 result.append(next(vertex_counter))
             return result
 
-        path_zs = [complex(x, y) for x, y in line_string._coords_]
-        if line_string._kind_ == "linear_ring":
-            is_ring = True
-            path_zs.pop()
-        else:
-            is_ring = False
-        path_zs_index = dump_vertex(path_zs, True)
+        def dump_result() -> tuple[VertexIndexType, Vec2sT, FloatsT]:
+            if not index_list:
+                return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2)), np.zeros((0,))
+
+            index = np.array(index_list).flatten()
+            coords = np.array([[z.real, z.imag] for z in z_list])
+            distance = np.array(distance_list)
+            return index, coords, distance
 
         def it_advance(iterator: Iterator) -> Iterator:
             next(iterator)
@@ -96,7 +94,7 @@ class ShapeStrokeGeometry(Geometry):
 
         def add_sector(
             p: complex, width: Real, angle_0: Real, angle_1: Real,
-            ip: int, il1: int | None, il0: int | None
+            ip: int, il1: int, il0: int
         ) -> None:
             # Make sure `d_angle` is between +-pi
             d_angle = (angle_1 - angle_0 + np.pi) % (2.0 * np.pi) - np.pi
@@ -111,30 +109,56 @@ class ShapeStrokeGeometry(Geometry):
             sector_samples = list(p + np.exp(angle_samples * 1.0j) * width)
 
             # Eliminate the first end last samples if they're generated already
-            l1 = sector_samples.pop(0)
-            if il1 is None:
-                il1, = dump_vertex([l1], False)
-            l0 = sector_samples.pop(-1)
-            if il0 is None:
-                il0, = dump_vertex([l0], False)
-            sector_zs_index = dump_vertex(sector_samples, False)
+            sector_zs_index = dump_vertex(sector_samples[1:-1], False)
             for is0, is1 in it.pairwise([il1, *sector_zs_index, il0]):
                 index_list.append((ip, is0, is1))
 
-        def add_single_side(width: Real) -> None:
-            segments_len = len(path_zs_index) - 1
-            if is_ring:
-                segments_len += 1
-            angles: list[float] = []
+        if np.isclose(width, 0.0):
+            return dump_result()
+
+        if line_string._kind_ == "point":
+            if not round_end or single_sided:
+                return dump_result()
+            x, y = line_string._coords_[0]
+            p = complex(x, y)
+            ip, = dump_vertex([p], True)
+            l0 = p + width
+            l1 = p - width
+            il0, il1 = dump_vertex([l0, l1], False)
+            add_sector(p, width, 0.0, np.pi, ip, il0, il1)
+            add_sector(p, width, -np.pi, 0.0, ip, il1, il0)
+            return dump_result()
+
+        path_zs = [complex(x, y) for x, y in line_string._coords_]
+        if line_string._kind_ == "linear_ring":
+            is_ring = True
+            path_zs.pop()
+        else:
+            is_ring = False
+        path_zs_index = dump_vertex(path_zs, True)
+
+        segments_len = len(path_zs_index) - 1
+        if is_ring:
+            segments_len += 1
+        joints_len = segments_len - 1
+        if is_ring:
+            joints_len += 1
+        angles = [
+            float(np.angle((p1 - p0) * 1.0j))
+            for _, (p0, p1) in zip(
+                range(segments_len),
+                it.pairwise(it.cycle(path_zs))
+            )
+        ]
+
+        def add_single_side(width: Real) -> tuple[list[int], list[int]]:
             line_zs_index_0: list[int] = []
             line_zs_index_1: list[int] = []
-            for _, ((ip0, p0), (ip1, p1)) in zip(
+            for _, ((ip0, p0), (ip1, p1)), angle in zip(
                 range(segments_len),
-                it.pairwise(it.cycle(zip(path_zs_index, path_zs)))
+                it.pairwise(it.cycle(zip(path_zs_index, path_zs))),
+                it.cycle(angles)
             ):
-                direction = p1 - p0
-                angle = float(np.angle(direction * 1.0j))
-                angles.append(angle)
                 normal = np.exp(angle * 1.0j) * width
                 l0 = p0 + normal
                 l1 = p1 + normal
@@ -144,18 +168,6 @@ class ShapeStrokeGeometry(Geometry):
                 index_list.append((ip0, ip1, il0))
                 index_list.append((ip1, il1, il0))
 
-            #segments = np.array([
-            #    [z0, z1]
-            #    for _, (z0, z1) in zip(range(segments_len), )
-            #])
-            #directions = segments[:, 1] - segments[:, 0]
-            #directions = directions / np.linalg.norm(directions, axis=1)[:, None]
-            #normals = 1.0j * directions
-            #line_zs = (segments + normals[..., None] * width).flatten()
-
-            joints_len = segments_len - 1
-            if is_ring:
-                joints_len += 1
             # Advance to the 2nd point, as the first point doesn't contain a joint
             for _, (ip, p), (angle_0, angle_1), il1, il0 in zip(
                 range(joints_len),
@@ -166,16 +178,20 @@ class ShapeStrokeGeometry(Geometry):
             ):
                 add_sector(p, width, angle_0, angle_1, ip, il1, il0)
 
-            if round_end and not is_ring:
-                d_theta = np.sign(width) * np.pi / 2.0
-                add_sector(path_zs[0], width, angles[0] + d_theta, angles[0], path_zs_index[0], None, line_zs_index_0[0])
-                add_sector(path_zs[-1], width, angles[-1], angles[-1] - d_theta, path_zs_index[-1], line_zs_index_1[-1], None)
+            return line_zs_index_0, line_zs_index_1
 
-        add_single_side(width)
+        line_zs_index_00, line_zs_index_10 = add_single_side(width)
         if not single_sided:
-            add_single_side(-width)
+            line_zs_index_01, line_zs_index_11 = add_single_side(-width)
+            if round_end and not is_ring:
+                d_theta = np.sign(width) * np.pi
+                add_sector(
+                    path_zs[-1], width, angles[-1], angles[-1] - d_theta,
+                    path_zs_index[-1], line_zs_index_10[-1], line_zs_index_11[-1]
+                )
+                add_sector(
+                    path_zs[0], width, angles[0] + d_theta, angles[0],
+                    path_zs_index[0], line_zs_index_01[0], line_zs_index_00[0]
+                )
 
-        index = np.array(index_list).flatten()
-        coords = np.array([[z.real, z.imag] for z in z_list])
-        distance = np.array(distance_list)
-        return index, coords, distance
+        return dump_result()
