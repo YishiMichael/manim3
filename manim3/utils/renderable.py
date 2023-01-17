@@ -18,7 +18,10 @@ from abc import (
 )
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import lru_cache, reduce
+from functools import (
+    lru_cache,
+    reduce
+)
 import operator as op
 import os
 import re
@@ -40,7 +43,6 @@ from ..constants import (
     PIXEL_WIDTH,
     SHADERS_PATH
 )
-#from ..custom_typing import VertexIndexType
 from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import (
     LazyBase,
@@ -652,7 +654,7 @@ class Renderable(LazyBase):
     _DEFAULT_CONTEXT_STATE: ClassVar[ContextState] = ContextState()
 
     @classmethod
-    def _render_by_step(cls, render_step: RenderStep
+    def _render_single_step(cls, render_step: RenderStep
         #vertex_array: moderngl.VertexArray,
         #textures: dict[str, moderngl.Texture],
         #uniforms: dict[str, moderngl.Buffer],
@@ -775,9 +777,14 @@ class Renderable(LazyBase):
         cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
 
     @classmethod
-    def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
-        for render_step in render_routine:
-            cls._render_by_step(render_step)
+    def _render_by_step(cls, *render_steps: RenderStep) -> None:
+        for render_step in render_steps:
+            cls._render_single_step(render_step)
+
+    #@classmethod
+    #def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
+    #    for render_step in render_routine:
+    #        cls._render_by_step(render_step)
 
     @classmethod
     def _get_program_parameters(

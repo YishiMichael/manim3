@@ -27,11 +27,12 @@ class Scene(Mobject):
                 size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
                 fullscreen=False,
                 resizable=True,
-                gl_version=(3, 3),
+                gl_version=(4, 3),
                 vsync=True,
                 cursor=True
             )
             ctx = window.ctx
+            #ctx.gc_mode = "auto"
             ContextSingleton.set(ctx)
             framebuffer = Framebuffer(
                 ContextSingleton().detect_framebuffer()
@@ -65,7 +66,7 @@ class Scene(Mobject):
 
     def _render_scene(self) -> None:
         framebuffer = self._framebuffer
-        framebuffer._framebuffer.clear()
+        #framebuffer._framebuffer.clear()  # TODO: needed?
         self._render_full(self._scene_config_, framebuffer)
 
     def _update_dt(self, dt: Real):

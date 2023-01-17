@@ -12,7 +12,6 @@ import numpy as np
 from ..geometries.geometry import Geometry
 from ..custom_typing import (
     ColorType,
-    Mat4T,
     Vec2sT,
     Vec3sT,
     Vec4T,
@@ -31,8 +30,7 @@ from ..utils.renderable import (
     IndexBuffer,
     RenderStep,
     Renderable,
-    TextureStorage,
-    UniformBlockBuffer
+    TextureStorage
 )
 from ..utils.scene_config import SceneConfig
 
@@ -40,26 +38,18 @@ from ..utils.scene_config import SceneConfig
 class MeshMobject(Mobject):
     @lazy_property_initializer
     @staticmethod
-    def _ub_model_matrices_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_model_matrices", [
-            "mat4 u_model_matrix"
-        ])
-
-    @lazy_property
-    @staticmethod
-    def _ub_model_matrices_(
-        ub_model_matrices_o: UniformBlockBuffer,
-        model_matrix: Mat4T
-    ) -> UniformBlockBuffer:
-        ub_model_matrices_o.write({
-            "u_model_matrix": model_matrix
-        })
-        return ub_model_matrices_o
-
-    @lazy_property_initializer
-    @staticmethod
     def _color_map_texture_() -> moderngl.Texture | None:
         return None
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _geometry_() -> Geometry:
+        return NotImplemented
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _color_() -> ColorType | Callable[..., Vec4T]:
+        return Color("white")
 
     @lazy_property_initializer
     @staticmethod
@@ -76,15 +66,34 @@ class MeshMobject(Mobject):
         u_color_maps_o.write(np.array(textures))
         return u_color_maps_o
 
-    @lazy_property_initializer_writable
+    @lazy_property_initializer
     @staticmethod
-    def _geometry_() -> Geometry:
-        return NotImplemented
+    def _attributes_o_() -> AttributesBuffer:
+        return AttributesBuffer([
+            "vec3 in_position",
+            "vec3 in_normal",
+            "vec2 in_uv",
+            "vec4 in_color"
+        ])
 
-    @lazy_property_initializer_writable
+    @lazy_property
     @staticmethod
-    def _color_() -> ColorType | Callable[..., Vec4T]:
-        return Color("white")
+    def _attributes_(
+        attributes_o: AttributesBuffer,
+        geometry: Geometry,
+        color: ColorType | Callable[..., Vec4T]
+    ) -> AttributesBuffer:
+        position = geometry._position_
+        normal = geometry._normal_
+        uv = geometry._uv_
+        color_array = MeshMobject._calculate_color_array(color, position, normal, uv)
+        attributes_o.write({
+            "in_position": position,
+            "in_normal": normal,
+            "in_uv": uv,
+            "in_color": color_array
+        })
+        return attributes_o
 
     @lazy_property_initializer
     @staticmethod
@@ -100,34 +109,30 @@ class MeshMobject(Mobject):
         index_buffer_o.write(geometry._index_)
         return index_buffer_o
 
-    @lazy_property_initializer
+    @lazy_property_initializer_writable
     @staticmethod
-    def _attributes_o_() -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 a_position",
-            "vec3 a_normal",
-            "vec2 a_uv",
-            "vec4 a_color"
-        ])
+    def _enable_only_() -> int:
+        return moderngl.BLEND | moderngl.DEPTH_TEST
 
-    @lazy_property
-    @staticmethod
-    def _attributes_(
-        attributes_o: AttributesBuffer,
-        geometry: Geometry,
-        color: ColorType | Callable[..., Vec4T]
-    ) -> AttributesBuffer:
-        position = geometry._position_
-        normal = geometry._normal_
-        uv = geometry._uv_
-        color_array = MeshMobject._calculate_color_array(color, position, normal, uv)
-        attributes_o.write({
-            "a_position": position,
-            "a_normal": normal,
-            "a_uv": uv,
-            "a_color": color_array
-        })
-        return attributes_o
+    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
+        self._render_by_step(RenderStep(
+            shader_str=Renderable._read_shader("mesh"),
+            texture_storages=[
+                self._u_color_maps_
+            ],
+            uniform_blocks=[
+                scene_config._camera_._ub_camera_,
+                self._ub_model_,
+                scene_config._ub_lights_
+            ],
+            attributes=self._attributes_,
+            subroutines={},
+            index_buffer=self._index_buffer_,
+            framebuffer=target_framebuffer,
+            enable_only=self._enable_only_,
+            context_state=ContextState(),
+            mode=moderngl.TRIANGLES
+        ))
 
     @classmethod
     def _color_to_vector(cls, color: ColorType) -> Vec4T:
@@ -181,28 +186,3 @@ class MeshMobject(Mobject):
         else:
             pure_color = MeshMobject._color_to_vector(color)
         return pure_color[None].repeat(len(position), axis=0)
-
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _enable_only_() -> int:
-        return moderngl.BLEND | moderngl.DEPTH_TEST
-
-    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        self._render_by_step(RenderStep(
-            shader_str=Renderable._read_shader("mesh"),
-            texture_storages=[
-                self._u_color_maps_
-            ],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_matrices_,
-                self._ub_model_matrices_,
-                scene_config._ub_lights_
-            ],
-            attributes=self._attributes_,
-            subroutines={},
-            index_buffer=self._index_buffer_,
-            framebuffer=target_framebuffer,
-            enable_only=self._enable_only_,
-            context_state=ContextState(),
-            mode=moderngl.TRIANGLES
-        ))

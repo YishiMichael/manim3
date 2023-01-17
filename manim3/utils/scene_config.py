@@ -4,7 +4,7 @@ __all__ = ["SceneConfig"]
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..cameras.perspective_camera import PerspectiveCamera
+from ..cameras.orthographic_camera import OrthographicCamera
 from ..custom_typing import (
     Vec3sT,
     Vec4sT,
@@ -22,7 +22,7 @@ class SceneConfig(LazyBase):
     @lazy_property_initializer_writable
     @staticmethod
     def _camera_() -> Camera:
-        return PerspectiveCamera()
+        return OrthographicCamera()
 
     @lazy_property_initializer_writable
     @staticmethod

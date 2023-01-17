@@ -27,6 +27,7 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import Geometry
 from ..utils.lazy import (
+    lazy_property,
     lazy_property_initializer,
     lazy_property_initializer_writable
 )
@@ -36,7 +37,8 @@ from ..utils.renderable import (
     IntermediateDepthTextures,
     IntermediateFramebuffer,
     IntermediateTextures,
-    Renderable
+    Renderable,
+    UniformBlockBuffer
 )
 from ..utils.scene_config import SceneConfig
 
@@ -517,6 +519,24 @@ class Mobject(Renderable):
         return self
 
     # render
+
+    @lazy_property_initializer
+    @staticmethod
+    def _ub_model_o_() -> UniformBlockBuffer:
+        return UniformBlockBuffer("ub_model", [
+            "mat4 u_model_matrix"
+        ])
+
+    @lazy_property
+    @staticmethod
+    def _ub_model_(
+        ub_model_o: UniformBlockBuffer,
+        model_matrix: Mat4T
+    ) -> UniformBlockBuffer:
+        ub_model_o.write({
+            "u_model_matrix": model_matrix
+        })
+        return ub_model_o
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         # Implemented in subclasses

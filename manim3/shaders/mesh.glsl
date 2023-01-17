@@ -10,12 +10,13 @@ struct PointLight {
 uniform sampler2D u_color_maps[NUM_U_COLOR_MAPS];
 #endif
 
-layout (std140) uniform ub_camera_matrices {
+layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
     mat4 u_view_matrix;
     vec3 u_view_position;
+    vec2 u_frame_radius;
 };
-layout (std140) uniform ub_model_matrices {
+layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
 layout (std140) uniform ub_lights {
@@ -26,13 +27,15 @@ layout (std140) uniform ub_lights {
 };
 
 
+/***********************/
 #if defined VERTEX_SHADER
+/***********************/
 
 
-in vec3 a_position;
-in vec3 a_normal;
-in vec2 a_uv;
-in vec4 a_color;
+in vec3 in_position;
+in vec3 in_normal;
+in vec2 in_uv;
+in vec4 in_color;
 
 out VS_FS {
     vec3 world_position;
@@ -42,15 +45,17 @@ out VS_FS {
 } vs_out;
 
 void main() {
-    vs_out.uv = a_uv;
-    vs_out.color = a_color;
-    vs_out.world_position = vec3(u_model_matrix * vec4(a_position, 1.0));
-    vs_out.world_normal = mat3(transpose(inverse(u_model_matrix))) * a_normal;
+    vs_out.uv = in_uv;
+    vs_out.color = in_color;
+    vs_out.world_position = vec3(u_model_matrix * vec4(in_position, 1.0));
+    vs_out.world_normal = mat3(transpose(inverse(u_model_matrix))) * in_normal;
     gl_Position = u_projection_matrix * u_view_matrix * vec4(vs_out.world_position, 1.0);
 }
 
 
+/***************************/
 #elif defined FRAGMENT_SHADER
+/***************************/
 
 
 in VS_FS {

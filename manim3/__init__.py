@@ -18,6 +18,7 @@ from .mobjects.scene import *
 from .mobjects.scene_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.shape_mobject import *
+from .mobjects.stroke_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
