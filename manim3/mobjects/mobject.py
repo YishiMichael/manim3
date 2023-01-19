@@ -203,8 +203,12 @@ class Mobject(Renderable):
         return np.identity(4)
 
     @_model_matrix_.updater
+    def _set_model_matrix(self, matrix: Mat4T):
+        self._model_matrix_ = matrix
+        return self
+
     def apply_transform_locally(self, matrix: Mat4T):
-        self._model_matrix_ = self._model_matrix_ @ matrix
+        self._set_model_matrix(self._model_matrix_ @ matrix)
         return self
 
     def get_bounding_box(
@@ -520,6 +524,11 @@ class Mobject(Renderable):
 
     # render
 
+    @lazy_property
+    @staticmethod
+    def _apply_oit_() -> bool:
+        return False
+
     @lazy_property_initializer
     @staticmethod
     def _ub_model_o_() -> UniformBlockBuffer:
@@ -540,35 +549,67 @@ class Mobject(Renderable):
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         # Implemented in subclasses
+        # We may regard `target_framebuffer` as initially empty
         pass
 
     def _render_full(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         render_passes = self._render_passes_
-        #if not render_passes:
-        #    #target_framebuffer.clear()
-        #    target_framebuffer.use()
-        #    self._render(scene_config, target_framebuffer)
-        #    return
+        if not render_passes:
+            target_framebuffer.clear()
+            #target_framebuffer.use()
+            self._render(scene_config, target_framebuffer)
+            return
 
-        with IntermediateTextures.register_n(len(render_passes)) as textures:
-            with IntermediateDepthTextures.register_n(len(render_passes)) as depth_textures:
-                input_framebuffers = [
-                    IntermediateFramebuffer(
-                        color_attachments=[texture],
-                        depth_attachment=depth_texture
-                    )
-                    for texture, depth_texture in zip(textures, depth_textures)
-                ]
-                output_framebuffers: list[Framebuffer] = input_framebuffers[:]
-                output_framebuffers.append(target_framebuffer)
-                self._render(scene_config, output_framebuffers[0])
-                for render_pass, input_framebuffer, output_framebuffer in zip(render_passes, input_framebuffers, output_framebuffers[1:]):
-                    render_pass._render(
-                        input_framebuffer=input_framebuffer,
-                        output_framebuffer=output_framebuffer,
-                        mobject=self,
-                        scene_config=scene_config
-                    )
+        intermediate_framebuffer = IntermediateFramebuffer(
+            color_attachments=[IntermediateTextures.fetch()],
+            depth_attachment=IntermediateDepthTextures.fetch()
+        )
+        intermediate_framebuffer.clear()
+        self._render(scene_config, intermediate_framebuffer)
+        for render_pass in render_passes[:-1]:
+            prev_intermediate_framebuffer = intermediate_framebuffer
+            intermediate_framebuffer = IntermediateFramebuffer(
+                color_attachments=[IntermediateTextures.fetch()],
+                depth_attachment=IntermediateDepthTextures.fetch()
+            )
+            intermediate_framebuffer.clear()
+            render_pass._render(
+                input_framebuffer=prev_intermediate_framebuffer,
+                output_framebuffer=intermediate_framebuffer,
+                mobject=self,
+                scene_config=scene_config
+            )
+            IntermediateTextures.restore(prev_intermediate_framebuffer.get_attachment(0))
+            IntermediateDepthTextures.restore(prev_intermediate_framebuffer.get_attachment(-1))
+        render_passes[-1]._render(
+            input_framebuffer=intermediate_framebuffer,
+            output_framebuffer=target_framebuffer,
+            mobject=self,
+            scene_config=scene_config
+        )
+        IntermediateTextures.restore(intermediate_framebuffer.get_attachment(0))
+        IntermediateDepthTextures.restore(intermediate_framebuffer.get_attachment(-1))
+
+
+        #with IntermediateTextures.register_n(len(render_passes)) as textures:
+        #    with IntermediateDepthTextures.register_n(len(render_passes)) as depth_textures:
+        #        input_framebuffers = [
+        #            IntermediateFramebuffer(
+        #                color_attachments=[texture],
+        #                depth_attachment=depth_texture
+        #            )
+        #            for texture, depth_texture in zip(textures, depth_textures)
+        #        ]
+        #        output_framebuffers: list[Framebuffer] = input_framebuffers[:]
+        #        output_framebuffers.append(target_framebuffer)
+        #        self._render(scene_config, output_framebuffers[0])
+        #        for render_pass, input_framebuffer, output_framebuffer in zip(render_passes, input_framebuffers, output_framebuffers[1:]):
+        #            render_pass._render(
+        #                input_framebuffer=input_framebuffer,
+        #                output_framebuffer=output_framebuffer,
+        #                mobject=self,
+        #                scene_config=scene_config
+        #            )
 
     @lazy_property_initializer
     @staticmethod

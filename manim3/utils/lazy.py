@@ -45,10 +45,10 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
             f"_{parameter.name}_": parameter.annotation
             for parameter in list(signature.parameters.values())
         }
+        self.ancestors: list[lazy_property[_LazyBaseT, _T]] = []
         self.value_dict: dict[_LazyBaseT, _T] = {}
         self.requires_update: dict[_LazyBaseT, bool] = {}
-        self.release_method: Callable[[_T], None] | None = None
-        self.ancestors: list[lazy_property[_LazyBaseT, _T]] = []
+        #self.release_method: Callable[[_T], None] | None = None
         super().__init__()
 
     @overload
@@ -62,9 +62,10 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
             return self
         if not self.requires_update[instance]:
             return self.value_dict[instance]
-        if self.release_method is not None:
-            if instance in self.value_dict:
-                self.release_method(self.value_dict[instance])
+        #if self.release_method is not None:
+        #if instance in self.value_dict:
+        #    del self.value_dict[instance]
+                #self.release_method(self.value_dict[instance])
         value = self.method(*(
             instance.__getattribute__(parameter)
             for parameter in self.parameters
@@ -77,9 +78,9 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
     def stripped_name(self) -> str:
         return self.name.strip("_")
 
-    def releaser(self, release_method: Callable[[_T], None]) -> Callable[[_T], None]:
-        self.release_method = release_method
-        return release_method
+    #def releaser(self, release_method: Callable[[_T], None]) -> Callable[[_T], None]:
+    #    self.release_method = release_method
+    #    return release_method
 
     def add_instance(self, instance: _LazyBaseT) -> None:
         self.requires_update[instance] = True
@@ -151,13 +152,30 @@ class LazyBase(ABC):
         cls._PROPERTIES = list(properties.values())
         return super().__init_subclass__()
 
-    def __init__(self) -> None:
-        for prop in self._PROPERTIES:
-            prop.add_instance(self)
-        super().__init__()
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls)
+        for prop in cls._PROPERTIES:
+            prop.add_instance(instance)
+        return instance
+
+    #def __init__(self) -> None:
+    #    for prop in self._PROPERTIES:
+    #        prop.add_instance(self)
+    #        #print(self.__class__.__name__, prop.name, len(prop.value_dict))
+    #    super().__init__()
+
+    #def __del__(self) -> None:
+    #    for prop in self._PROPERTIES:
+    #        print(prop.name, len(prop.value_dict))
+    #    super().__del__(self)
 
     @classmethod
     def _check_annotation_matching(cls, child_annotation: _Annotation, parent_annotation: _Annotation) -> None:
+        error_message = f"Type annotation mismatched: `{child_annotation}` is not compatible with `{parent_annotation}`"
+        if isinstance(child_annotation, TypeVar):
+            assert isinstance(parent_annotation, TypeVar) and child_annotation == parent_annotation, error_message
+            return
+
         def _to_classes(annotation: _Annotation) -> tuple[type, ...]:
             return tuple(
                 child.__origin__ if isinstance(child, GenericAlias) else
@@ -173,7 +191,7 @@ class LazyBase(ABC):
                 for parent_cls in _to_classes(parent_annotation)
             )
             for child_cls in _to_classes(child_annotation)
-        ), f"Type annotation mismatched: `{child_annotation}` is not compatible with `{parent_annotation}`"
+        ), error_message
 
 
 """

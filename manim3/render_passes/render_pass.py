@@ -4,7 +4,7 @@ __all__ = ["RenderPass"]
 from abc import abstractmethod
 from typing import Generic, TypeVar
 
-from ..mobjects.mobject import Mobject, SceneConfig
+from ..mobjects.mobject import Mobject
 from ..utils.renderable import (
     IntermediateFramebuffer,
     Framebuffer,
@@ -20,9 +20,7 @@ class RenderPass(Generic[_MobjectT], Renderable):
     def _render(
         self,
         input_framebuffer: IntermediateFramebuffer,
-        output_framebuffer: Framebuffer,
-        mobject: _MobjectT,
-        scene_config: SceneConfig
+        output_framebuffer: Framebuffer
     ):
         pass
 

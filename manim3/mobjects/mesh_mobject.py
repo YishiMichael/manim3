@@ -125,8 +125,8 @@ class MeshMobject(Mobject):
                 self._ub_model_,
                 scene_config._ub_lights_
             ],
-            attributes=self._attributes_,
             subroutines={},
+            attributes=self._attributes_,
             index_buffer=self._index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=self._enable_only_,

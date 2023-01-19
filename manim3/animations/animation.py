@@ -46,7 +46,7 @@ class DrawShape(Animation[ShapeMobject]):
         #self.initial_path.skia_path.dump()
         #print(t)
         #print(mobject._path_._l_final_)
-        mobject._shape_ = self.initial_shape.partial(0.0, t / 3.0)
+        mobject._set_shape(self.initial_shape.partial(0.0, t / 3.0))
 
     def expired(self) -> bool:
         return self.elapsed_time > 3.0

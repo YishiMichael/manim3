@@ -11,8 +11,8 @@ from ..custom_typing import (
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..utils.shape import (
-    LineString,
-    MultiLineString,
+    LineString2D,
+    MultiLineString2D,
     Shape
 )
 
@@ -54,8 +54,8 @@ class PathMobject(ShapeMobject):
                 point_list.extend(cls._get_bezier_sample_points(np.array(control_points))[1:])
         point_lists.append(point_list)
 
-        return Shape(MultiLineString([
-            LineString(np.array(coords))
+        return Shape(MultiLineString2D([
+            LineString2D(np.array(coords))
             for coords in point_lists if coords
         ]))
 

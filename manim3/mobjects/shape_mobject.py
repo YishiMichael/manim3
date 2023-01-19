@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Callable
 
 import moderngl
-import numpy as np
 
 from ..custom_typing import (
     ColorType,
@@ -37,7 +36,7 @@ class StrokeConfig:
 class ShapeMobject(MeshMobject):
     def __init__(self, shape: Shape):
         super().__init__()
-        self._shape_ = shape
+        self._set_shape(shape)
 
     @lazy_property_initializer_writable
     @staticmethod
@@ -49,79 +48,98 @@ class ShapeMobject(MeshMobject):
     def _geometry_(shape: Shape) -> ShapeGeometry:
         return ShapeGeometry(shape)
 
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _enable_only_() -> int:
-        return moderngl.BLEND
-
     @lazy_property_initializer
     @staticmethod
-    def _foreground_stroke_configs_() -> list[StrokeConfig]:
+    def _stroke_mobjects_() -> list[StrokeMobject]:
         return []
 
-    @lazy_property_initializer
-    @staticmethod
-    def _background_stroke_configs_() -> list[StrokeConfig]:
-        return []
+    def _set_shape(self, shape: Shape):
+        self._shape_ = shape
+        for stroke in self._stroke_mobjects_:
+            stroke._multi_line_string_ = shape._multi_line_string_3d_
+        return self
 
-    @lazy_property
-    @staticmethod
-    def _foreground_stroke_mobjects_(
-        foreground_stroke_configs: list[StrokeConfig],
-        shape: Shape,
-        model_matrix: Mat4T
-    ) -> list[StrokeMobject]:
-        result: list[StrokeMobject] = []
-        for line_string in shape._multi_line_string_._children_:
-            if line_string._kind_ == "point":
-                continue
-            position = np.insert(line_string._coords_, 2, 0.0, axis=1)
-            is_loop = line_string._kind_ == "linear_ring"
-            if is_loop:
-                position = position[:-1]
-            for stroke_config in foreground_stroke_configs:
-                stroke = StrokeMobject(position, is_loop)
-                if (width := stroke_config.width) is not None:
-                    stroke._width_ = width
-                if (color := stroke_config.color) is not None:
-                    stroke._color_ = color
-                if (dilate := stroke_config.dilate) is not None:
-                    stroke._dilate_ = dilate
-                if (single_sided := stroke_config.single_sided) is not None:
-                    stroke._single_sided_ = single_sided
-                stroke.apply_transform_locally(model_matrix)
-                result.append(stroke)
-        return result
+    def _set_model_matrix(self, matrix: Mat4T):
+        super()._set_model_matrix(matrix)
+        for stroke in self._stroke_mobjects_:
+            stroke._set_model_matrix(matrix)
+        return self
 
-    @lazy_property
-    @staticmethod
-    def _background_stroke_mobjects_(
-        background_stroke_configs: list[StrokeConfig],
-        shape: Shape,
-        model_matrix: Mat4T
-    ) -> list[StrokeMobject]:
-        # TODO
-        result: list[StrokeMobject] = []
-        for line_string in shape._multi_line_string_._children_:
-            if line_string._kind_ == "point":
-                continue
-            position = np.insert(line_string._coords_, 2, 0.0, axis=1)
-            is_loop = line_string._kind_ == "linear_ring"
-            if is_loop:
-                position = position[:-1]
-            for stroke_config in background_stroke_configs:
-                stroke = StrokeMobject(position, is_loop)
-                if (width := stroke_config.width) is not None:
-                    stroke._width_ = width
-                if (color := stroke_config.color) is not None:
-                    stroke._color_ = color
-                if (dilate := stroke_config.dilate) is not None:
-                    stroke._dilate_ = dilate
-                if (single_sided := stroke_config.single_sided) is not None:
-                    stroke._single_sided_ = single_sided
-                stroke.apply_transform_locally(model_matrix)
-                result.append(stroke)
-        return result
+    #@lazy_property_initializer_writable
+    #@staticmethod
+    #def _enable_only_() -> int:
+    #    return moderngl.BLEND
+
+    #@lazy_property_initializer
+    #@staticmethod
+    #def _foreground_stroke_configs_() -> list[StrokeConfig]:
+    #    return []
+
+    #@lazy_property_initializer
+    #@staticmethod
+    #def _background_stroke_configs_() -> list[StrokeConfig]:
+    #    return []
+
+
+
+    #@lazy_property
+    #@staticmethod
+    #def _stroke_mobjects_(
+    #    foreground_stroke_configs: list[StrokeConfig],
+    #    shape: Shape,
+    #    model_matrix: Mat4T
+    #) -> list[StrokeMobject]:
+    #    result: list[StrokeMobject] = []
+    #    for line_string in shape._multi_line_string_._children_:
+    #        if line_string._kind_ == "point":
+    #            continue
+    #        position = np.insert(line_string._coords_, 2, 0.0, axis=1)
+    #        is_loop = line_string._kind_ == "linear_ring"
+    #        if is_loop:
+    #            position = position[:-1]
+    #        for stroke_config in foreground_stroke_configs:
+    #            stroke = StrokeMobject(position, is_loop)
+    #            if (width := stroke_config.width) is not None:
+    #                stroke._width_ = width
+    #            if (color := stroke_config.color) is not None:
+    #                stroke._color_ = color
+    #            if (dilate := stroke_config.dilate) is not None:
+    #                stroke._dilate_ = dilate
+    #            if (single_sided := stroke_config.single_sided) is not None:
+    #                stroke._single_sided_ = single_sided
+    #            stroke.apply_transform_locally(model_matrix)
+    #            result.append(stroke)
+    #    return result
+
+    #@lazy_property
+    #@staticmethod
+    #def _background_stroke_mobjects_(
+    #    background_stroke_configs: list[StrokeConfig],
+    #    shape: Shape,
+    #    model_matrix: Mat4T
+    #) -> list[StrokeMobject]:
+    #    # TODO
+    #    result: list[StrokeMobject] = []
+    #    for line_string in shape._multi_line_string_._children_:
+    #        if line_string._kind_ == "point":
+    #            continue
+    #        position = np.insert(line_string._coords_, 2, 0.0, axis=1)
+    #        is_loop = line_string._kind_ == "linear_ring"
+    #        if is_loop:
+    #            position = position[:-1]
+    #        for stroke_config in background_stroke_configs:
+    #            stroke = StrokeMobject(position, is_loop)
+    #            if (width := stroke_config.width) is not None:
+    #                stroke._width_ = width
+    #            if (color := stroke_config.color) is not None:
+    #                stroke._color_ = color
+    #            if (dilate := stroke_config.dilate) is not None:
+    #                stroke._dilate_ = dilate
+    #            if (single_sided := stroke_config.single_sided) is not None:
+    #                stroke._single_sided_ = single_sided
+    #            stroke.apply_transform_locally(model_matrix)
+    #            result.append(stroke)
+    #    return result
 
     def _set_fill_locally(self, color: ColorType | Callable[..., Vec4T]):
         self._color_ = color
@@ -139,8 +157,7 @@ class ShapeMobject(MeshMobject):
             mobject._set_fill_locally(color=color)
         return self
 
-    @_foreground_stroke_configs_.updater
-    @_background_stroke_configs_.updater
+    @_stroke_mobjects_.updater
     def _add_stroke_locally(
         self,
         *,
@@ -148,18 +165,28 @@ class ShapeMobject(MeshMobject):
         color: ColorType | None = None,
         dilate: Real | None = None,
         single_sided: bool | None = None,
-        background: bool = False
+        #background: bool = False
     ):
-        stroke_config = StrokeConfig(
-            width=width,
-            color=color,
-            dilate=dilate,
-            single_sided=single_sided
-        )
-        if not background:
-            self._foreground_stroke_configs_.append(stroke_config)
-        else:
-            self._background_stroke_configs_.append(stroke_config)
+        stroke = StrokeMobject(self._shape_._multi_line_string_3d_)
+        if width is not None:
+            stroke._width_ = width
+        if color is not None:
+            stroke._color_ = color
+        if dilate is not None:
+            stroke._dilate_ = dilate
+        if single_sided is not None:
+            stroke._single_sided_ = single_sided
+        stroke._set_model_matrix(self._model_matrix_)
+        #stroke_config = StrokeConfig(
+        #    width=width,
+        #    color=color,
+        #    dilate=dilate,
+        #    single_sided=single_sided
+        #)
+        #if not background:
+        #    self._foreground_stroke_configs_.append(stroke_config)
+        #else:
+        self._stroke_mobjects_.append(stroke)
         return self
 
     def add_stroke(
@@ -169,7 +196,7 @@ class ShapeMobject(MeshMobject):
         color: ColorType | None = None,
         dilate: Real | None = None,
         single_sided: bool | None = None,
-        background: bool = False,
+        #background: bool = False,
         broadcast: bool = True
     ):
         for mobject in self.get_descendants(broadcast=broadcast):
@@ -180,15 +207,15 @@ class ShapeMobject(MeshMobject):
                 color=color,
                 dilate=dilate,
                 single_sided=single_sided,
-                background=background
+                #background=background
             )
         return self
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        for stroke in self._foreground_stroke_mobjects_:
-            stroke._render(scene_config, target_framebuffer)
+        #for stroke in self._background_stroke_mobjects_:
+        #    stroke._render(scene_config, target_framebuffer)
         super()._render(scene_config, target_framebuffer)
-        for stroke in self._background_stroke_mobjects_:
+        for stroke in self._stroke_mobjects_:
             stroke._render(scene_config, target_framebuffer)
 
 

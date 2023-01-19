@@ -1,6 +1,8 @@
 __all__ = [
-    "LineString",
-    "MultiLineString",
+    "LineString2D",
+    "LineString3D",
+    "MultiLineString2D",
+    "MultiLineString3D",
     "Shape"
 ]
 
@@ -21,7 +23,9 @@ from ..custom_typing import (
     FloatsT,
     Real,
     Vec2T,
-    Vec2sT
+    Vec3T,
+    Vec2sT,
+    Vec3sT
 )
 from ..utils.lazy import (
     LazyBase,
@@ -31,10 +35,12 @@ from ..utils.lazy import (
 )
 
 
-_ChildT = TypeVar("_ChildT", bound="ShapeInterpolantBase")
+#_ChildT = TypeVar("_ChildT", bound="ShapeInterpolant")
+_VecT = TypeVar("_VecT", bound=Vec2T | Vec3T)
+_VecsT = TypeVar("_VecsT", bound=Vec2sT | Vec3sT)
 
 
-class ShapeInterpolantBase(LazyBase):
+class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
     @lazy_property
     @staticmethod
     def _lengths_() -> FloatsT:
@@ -51,15 +57,15 @@ class ShapeInterpolantBase(LazyBase):
         return lengths.cumsum() / length
 
     @abstractmethod
-    def interpolate_point(self, alpha: Real) -> Vec2T:
+    def interpolate_point(self, alpha: Real) -> _VecT:
         pass
 
     @abstractmethod
-    def interpolate_shape(self, other: "ShapeInterpolantBase", alpha: Real) -> "ShapeInterpolantBase":
+    def interpolate_shape(self, other: "ShapeInterpolant", alpha: Real) -> "ShapeInterpolant":
         pass
 
     @abstractmethod
-    def partial(self, start: Real, end: Real) -> "ShapeInterpolantBase":
+    def partial(self, start: Real, end: Real) -> "ShapeInterpolant":
         pass
 
     @classmethod
@@ -86,27 +92,124 @@ class ShapeInterpolantBase(LazyBase):
             return index, 0.0
 
 
-class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
-    def __init__(self, children: list[_ChildT] | None = None):
+class LineString(ShapeInterpolant[_VecT, _VecsT]):
+    def __init__(self, coords: _VecsT):
+        super().__init__()
+        # We first normalize the input,
+        # which is to remove redundant adjacent points to ensure
+        # all segments have non-zero lengths.
+        #if not len(coords):
+        #    kind = "empty"
+        #    simplified_coords = coords
+        #else:
+        #    points: list[Vec2T] = [coords[0]]
+        #    current_point = coords[0]
+        #    for point in coords:
+        #        if np.isclose(np.linalg.norm(point - current_point), 0.0):
+        #            continue
+        #        current_point = point
+        #        points.append(point)
+        #    if len(points) == 1:
+        #        kind = "point"
+        #    elif not np.isclose(np.linalg.norm(points[-1] - points[0]), 0.0):
+        #        kind = "line_string"
+        #    else:
+        #        #points.pop()
+        #        assert len(points) >= 3
+        #        kind = "linear_ring"
+        #    simplified_coords = np.array(points)
+
+        assert len(coords)
+        self._coords_ = coords
+        #self._kind_ = kind
+
+    @lazy_property_initializer_writable
+    @staticmethod
+    def _coords_() -> _VecsT:
+        return NotImplemented
+
+    @lazy_property
+    @staticmethod
+    def _kind_(coords: _VecsT) -> str:
+        if len(coords) == 1:
+            return "point"
+        if not np.isclose(np.linalg.norm(coords[-1] - coords[0]), 0.0):
+            return "line_string"
+        return "linear_ring"
+
+    #@lazy_property
+    #@staticmethod
+    #def _signed_area_(coords: Vec2sT) -> float:
+    #    return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
+
+    @lazy_property
+    @staticmethod
+    def _shapely_component_(kind: str, coords: _VecsT) -> shapely.geometry.base.BaseGeometry:
+        if kind == "point":
+            return shapely.geometry.Point(coords[0])
+        if len(coords) == 2:
+            return shapely.geometry.LineString(coords)
+        return shapely.geometry.Polygon(coords)
+
+    @lazy_property
+    @staticmethod
+    def _lengths_(coords: _VecsT) -> FloatsT:
+        return np.linalg.norm(coords[1:] - coords[:-1], axis=1)
+
+    @classmethod
+    def _lerp(cls, vec_0: _VecT, vec_1: _VecT, alpha: Real) -> _VecT:
+        return (1.0 - alpha) * vec_0 + alpha * vec_1
+
+    def interpolate_point(self, alpha: Real) -> _VecT:
+        index, residue = self._integer_interpolate(self._length_knots_, alpha)
+        return self._lerp(self._coords_[index], self._coords_[index + 1], residue)
+
+    def interpolate_shape(self, other: "LineString", alpha: Real) -> "LineString":
+        all_knots = sorted({0.0, *self._length_knots_, *other._length_knots_})
+        return LineString(np.array([
+            self._lerp(self.interpolate_point(knot), other.interpolate_point(knot), alpha)
+            for knot in all_knots
+        ]))
+
+    def partial(self, start: Real, end: Real) -> "LineString":
+        coords = self._coords_
+        knots = self._length_knots_
+        start_index, start_residue = self._integer_interpolate(knots, start)
+        end_index, end_residue = self._integer_interpolate(knots, end)
+        if start_index == end_index and start_residue == end_residue:
+            new_coords = [
+                self._lerp(coords[start_index], coords[start_index + 1], start_residue)
+            ]
+        else:
+            new_coords = [
+                self._lerp(coords[start_index], coords[start_index + 1], start_residue),
+                *coords[start_index + 1:end_index + 1],
+                self._lerp(coords[end_index], coords[end_index + 1], end_residue)
+            ]
+        return LineString(np.array(new_coords))
+
+
+class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
+    def __init__(self, children: list[LineString[_VecT, _VecsT]] | None = None):
         super().__init__()
         if children is not None:
             self._children_.extend(children)
 
     @lazy_property_initializer
     @staticmethod
-    def _children_() -> list[_ChildT]:
+    def _children_() -> list[LineString[_VecT, _VecsT]]:
         return []
 
     @lazy_property
     @staticmethod
-    def _lengths_(children: list[_ChildT]) -> FloatsT:
+    def _lengths_(children: list[LineString[_VecT, _VecsT]]) -> FloatsT:
         return np.array([child._length_ for child in children])
 
-    def interpolate_point(self, alpha: Real) -> Vec2T:
+    def interpolate_point(self, alpha: Real) -> _VecT:
         index, residue = self._integer_interpolate(self._length_knots_, alpha)
         return self._children_[index].interpolate_point(residue)
 
-    def interpolate_shape(self, other: "ShapeInterpolant[_ChildT]", alpha: Real):
+    def interpolate_shape(self, other: "MultiLineString[_VecT, _VecsT]", alpha: Real):
         children = self._children_
         knots_0 = self._length_knots_
         knots_1 = other._length_knots_
@@ -115,7 +218,7 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
         start_1 = 0.0
         ptr_0 = 0
         ptr_1 = 0
-        new_children: list[_ChildT] = []
+        new_children: list[LineString[_VecT, _VecsT]] = []
         while ptr_0 < len(knots_0) and ptr_1 < len(knots_1):
             knot_0 = knots_0[ptr_0]
             knot_1 = knots_1[ptr_1]
@@ -159,111 +262,11 @@ class ShapeInterpolant(Generic[_ChildT], ShapeInterpolantBase):
         return self.__class__(new_children)
 
 
-class LineString(ShapeInterpolantBase):
-    def __init__(self, coords: Vec2sT):
-        super().__init__()
-        # We first normalize the input,
-        # which is to remove redundant adjacent points to ensure
-        # all segments have non-zero lengths.
-        #if not len(coords):
-        #    kind = "empty"
-        #    simplified_coords = coords
-        #else:
-        #    points: list[Vec2T] = [coords[0]]
-        #    current_point = coords[0]
-        #    for point in coords:
-        #        if np.isclose(np.linalg.norm(point - current_point), 0.0):
-        #            continue
-        #        current_point = point
-        #        points.append(point)
-        #    if len(points) == 1:
-        #        kind = "point"
-        #    elif not np.isclose(np.linalg.norm(points[-1] - points[0]), 0.0):
-        #        kind = "line_string"
-        #    else:
-        #        #points.pop()
-        #        assert len(points) >= 3
-        #        kind = "linear_ring"
-        #    simplified_coords = np.array(points)
-
-        assert len(coords)
-        self._coords_ = coords
-        #self._kind_ = kind
-
-    @lazy_property_initializer_writable
-    @staticmethod
-    def _coords_() -> Vec2sT:
-        return NotImplemented
-
-    @lazy_property
-    @staticmethod
-    def _kind_(coords: Vec2sT) -> str:
-        if len(coords) == 1:
-            return "point"
-        if not np.isclose(np.linalg.norm(coords[-1] - coords[0]), 0.0):
-            return "line_string"
-        return "linear_ring"
-
-    #@lazy_property
-    #@staticmethod
-    #def _signed_area_(coords: Vec2sT) -> float:
-    #    return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
-
-    @lazy_property
-    @staticmethod
-    def _shapely_component_(kind: str, coords: Vec2sT) -> shapely.geometry.base.BaseGeometry:
-        if kind == "point":
-            return shapely.geometry.Point(coords[0])
-        if len(coords) == 2:
-            return shapely.geometry.LineString(coords)
-        return shapely.geometry.Polygon(coords)
-
-    @lazy_property
-    @staticmethod
-    def _lengths_(coords: Vec2sT) -> FloatsT:
-        return np.linalg.norm(coords[1:] - coords[:-1], axis=1)
-
-    @classmethod
-    def _lerp(cls, vec_0: Vec2T, vec_1: Vec2T, alpha: Real) -> Vec2T:
-        return (1.0 - alpha) * vec_0 + alpha * vec_1
-
-    def interpolate_point(self, alpha: Real) -> Vec2T:
-        index, residue = self._integer_interpolate(self._length_knots_, alpha)
-        return self._lerp(self._coords_[index], self._coords_[index + 1], residue)
-
-    def interpolate_shape(self, other: "LineString", alpha: Real) -> "LineString":
-        all_knots = sorted({0.0, *self._length_knots_, *other._length_knots_})
-        return LineString(np.array([
-            self._lerp(self.interpolate_point(knot), other.interpolate_point(knot), alpha)
-            for knot in all_knots
-        ]))
-
-    def partial(self, start: Real, end: Real) -> "LineString":
-        coords = self._coords_
-        knots = self._length_knots_
-        start_index, start_residue = self._integer_interpolate(knots, start)
-        end_index, end_residue = self._integer_interpolate(knots, end)
-        if start_index == end_index:
-            if start_residue == end_residue:
-                new_coords = [
-                    self._lerp(coords[start_index], coords[start_index + 1], start_residue)
-                ]
-            else:
-                new_coords = [
-                    self._lerp(coords[start_index], coords[start_index + 1], start_residue),
-                    self._lerp(coords[start_index], coords[start_index + 1], end_residue)
-                ]
-        else:
-            new_coords = [
-                self._lerp(coords[start_index], coords[start_index + 1], start_residue),
-                *coords[start_index + 1:end_index],
-                self._lerp(coords[end_index], coords[end_index + 1], end_residue)
-            ]
-        return LineString(np.array(new_coords))
+#class LineString2D(LineString[])
 
 
-class MultiLineString(ShapeInterpolant[LineString]):
-    pass
+#class MultiLineString(ShapeInterpolant[LineString, _VecT, _VecsT]):
+#    pass
 
 
 #class Polygon(ShapeInterpolant[LineString]):
@@ -367,8 +370,24 @@ class MultiLineString(ShapeInterpolant[LineString]):
 #    #    return np.concatenate(indices_list), np.concatenate(coords_list)
 
 
+class LineString2D(LineString[Vec2T, Vec2sT]):
+    pass
+
+
+class LineString3D(LineString[Vec3T, Vec3sT]):
+    pass
+
+
+class MultiLineString2D(MultiLineString[Vec2T, Vec2sT]):
+    pass
+
+
+class MultiLineString3D(MultiLineString[Vec3T, Vec3sT]):
+    pass
+
+
 class Shape(LazyBase):
-    def __init__(self, multi_line_string: MultiLineString | None = None):
+    def __init__(self, multi_line_string: MultiLineString2D | None = None):
         super().__init__()
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
@@ -387,22 +406,30 @@ class Shape(LazyBase):
 
     @lazy_property_initializer_writable
     @staticmethod
-    def _multi_line_string_() -> MultiLineString:
-        return MultiLineString()
+    def _multi_line_string_() -> MultiLineString2D:
+        return MultiLineString2D()
+
+    @lazy_property
+    @staticmethod
+    def _multi_line_string_3d_(multi_line_string: MultiLineString2D) -> MultiLineString3D:
+        return MultiLineString3D([
+            LineString3D(np.insert(line_string._coords_, 2, 0.0, axis=1))
+            for line_string in multi_line_string._children_
+        ])
 
     @classmethod
     def _from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> "Shape":
-        return Shape(MultiLineString(list(cls._get_line_strings_from_shapely_obj(shapely_obj))))
+        return Shape(MultiLineString2D(list(cls._get_line_strings_from_shapely_obj(shapely_obj))))
 
     @classmethod
-    def _get_line_strings_from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> Generator[LineString, None, None]:
+    def _get_line_strings_from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> Generator[LineString2D, None, None]:
         if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
-            yield LineString(np.array(shapely_obj.coords))
+            yield LineString2D(np.array(shapely_obj.coords))
         elif isinstance(shapely_obj, shapely.geometry.Polygon):
             shapely_obj = shapely.geometry.polygon.orient(shapely_obj)  # TODO: needed?
-            yield LineString(np.array(shapely_obj.exterior.coords))
+            yield LineString2D(np.array(shapely_obj.exterior.coords))
             for interior in shapely_obj.interiors:
-                yield LineString(np.array(interior.coords))
+                yield LineString2D(np.array(interior.coords))
         elif isinstance(shapely_obj, shapely.geometry.base.BaseMultipartGeometry):
             for child in shapely_obj.geoms:
                 yield from cls._get_line_strings_from_shapely_obj(child)
@@ -411,7 +438,7 @@ class Shape(LazyBase):
 
     @lazy_property
     @staticmethod
-    def _shapely_obj_(multi_line_string: MultiLineString) -> shapely.geometry.base.BaseGeometry:
+    def _shapely_obj_(multi_line_string: MultiLineString2D) -> shapely.geometry.base.BaseGeometry:
         return Shape._to_shapely_object(multi_line_string)
 
     #@lazy_property
@@ -420,7 +447,7 @@ class Shape(LazyBase):
     #    return polygons._shapely_boundary_
 
     @classmethod
-    def _to_shapely_object(cls, multi_line_string: MultiLineString) -> shapely.geometry.base.BaseGeometry:
+    def _to_shapely_object(cls, multi_line_string: MultiLineString2D) -> shapely.geometry.base.BaseGeometry:
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, [
             line_string._shapely_component_
             for line_string in multi_line_string._children_

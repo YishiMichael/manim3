@@ -3,7 +3,9 @@ __all__ = ["Scene"]
 
 import time
 
+import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
+import numpy as np
 
 from ..constants import (
     PIXEL_HEIGHT,
@@ -11,11 +13,23 @@ from ..constants import (
 )
 from ..custom_typing import Real
 from ..mobjects.mobject import Mobject
+from ..render_passes.copy_pass import CopyPass
 from ..utils.context_singleton import ContextSingleton
-from ..utils.lazy import lazy_property_initializer
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_initializer
+)
 from ..utils.renderable import (
+    AttributesBuffer,
+    ContextState,
     Framebuffer,
-    IntermediateFramebuffer
+    IndexBuffer,
+    IntermediateDepthTextures,
+    IntermediateFramebuffer,
+    IntermediateTextures,
+    RenderStep,
+    Renderable,
+    TextureStorage
 )
 from ..utils.scene_config import SceneConfig
 
@@ -23,17 +37,7 @@ from ..utils.scene_config import SceneConfig
 class Scene(Mobject):
     def __init__(self, *, main: bool = False):
         if main:
-            window = PygletWindow(
-                size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
-                fullscreen=False,
-                resizable=True,
-                gl_version=(4, 3),
-                vsync=True,
-                cursor=True
-            )
-            ctx = window.ctx
-            #ctx.gc_mode = "auto"
-            ContextSingleton.set(ctx)
+            window = ContextSingleton.get_window()
             framebuffer = Framebuffer(
                 ContextSingleton().detect_framebuffer()
             )
@@ -60,13 +64,166 @@ class Scene(Mobject):
     def _scene_config_() -> SceneConfig:
         return SceneConfig()
 
+    @lazy_property_initializer
+    @staticmethod
+    def _u_color_map_o_() -> TextureStorage:
+        return TextureStorage("sampler2D u_color_map")
+
+    @lazy_property_initializer
+    @staticmethod
+    def _u_accum_map_o_() -> TextureStorage:
+        return TextureStorage("sampler2D u_accum_map")
+
+    @lazy_property_initializer
+    @staticmethod
+    def _u_revealage_map_o_() -> TextureStorage:
+        return TextureStorage("sampler2D u_revealage_map")
+
+    @lazy_property
+    @staticmethod
+    def _attributes_() -> AttributesBuffer:
+        return AttributesBuffer([
+            "vec3 in_position",
+            "vec2 in_uv"
+        ]).write({
+            "in_position": np.array([
+                [-1.0, -1.0, 0.0],
+                [1.0, -1.0, 0.0],
+                [1.0, 1.0, 0.0],
+                [-1.0, 1.0, 0.0],
+            ]),
+            "in_uv": np.array([
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 1.0],
+                [0.0, 1.0],
+            ])
+        })
+
+    @lazy_property
+    @staticmethod
+    def _index_buffer_() -> IndexBuffer:
+        return IndexBuffer().write(np.array((
+            0, 1, 2, 3
+        )))
+
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
+        # Inspired from https://github.com/ambrosiogabe/MathAnimation
+        # ./Animations/src/renderer/Renderer.cpp
+        opaque_mobjects: list[Mobject] = []
+        transparent_mobjects: list[Mobject] = []
         for mobject in self.get_descendants_excluding_self():
-            mobject._render_full(scene_config, target_framebuffer)
+            if mobject._apply_oit_:
+                transparent_mobjects.append(mobject)
+            else:
+                opaque_mobjects.append(mobject)
+
+        # `revealage` is of type float and initialized with 1.0
+        component_texture = IntermediateTextures.fetch()
+        opaque_texture = IntermediateTextures.fetch()
+        accum_texture = IntermediateTextures.fetch()
+        revealage_texture = IntermediateTextures.fetch(components=1, fill_bits=True)
+        component_depth_texture = IntermediateDepthTextures.fetch()
+        depth_texture = IntermediateDepthTextures.fetch()
+        component_target_framebuffer = IntermediateFramebuffer([component_texture], component_depth_texture)
+
+        opaque_target_framebuffer = IntermediateFramebuffer([opaque_texture], depth_texture)
+        for mobject in opaque_mobjects:
+            component_target_framebuffer.clear()
+            #print(component_target_framebuffer._framebuffer.depth_mask)
+            mobject._render_full(scene_config, component_target_framebuffer)
+            CopyPass(
+                enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
+                context_state=ContextState(
+                    blend_func=(moderngl.ONE, moderngl.ZERO)
+                )
+            )._render(
+                input_framebuffer=component_target_framebuffer,
+                output_framebuffer=opaque_target_framebuffer
+            )
+            #depth_vals = np.frombuffer(depth_texture.read(), dtype=np.float32)
+            #print(depth_vals.min(), depth_vals.max())
+            #print(len(depth_texture.read()))
+            #print(len(depth_texture.read()), depth_texture.size)
+
+        accum_target_framebuffer = IntermediateFramebuffer([accum_texture], depth_texture)
+        accum_target_framebuffer._framebuffer.depth_mask = False
+        revealage_target_framebuffer = IntermediateFramebuffer([revealage_texture], depth_texture)
+        for mobject in transparent_mobjects:
+            component_target_framebuffer.clear()
+            mobject._render_full(scene_config, component_target_framebuffer)
+            u_color_map = self._u_color_map_o_.write(
+                np.array(component_texture)
+            )
+            self._render_by_step(RenderStep(
+                shader_str=Renderable._read_shader("oit_accum"),
+                texture_storages=[
+                    u_color_map
+                ],
+                uniform_blocks=[],
+                subroutines={},
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
+                framebuffer=accum_target_framebuffer,
+                enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
+                context_state=ContextState(
+                    blend_func=moderngl.ADDITIVE_BLENDING
+                ),
+                mode=moderngl.TRIANGLE_FAN
+            ), RenderStep(
+                shader_str=Renderable._read_shader("oit_revealage"),
+                texture_storages=[
+                    u_color_map
+                ],
+                uniform_blocks=[],
+                subroutines={},
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
+                framebuffer=revealage_target_framebuffer,
+                enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
+                context_state=ContextState(
+                    blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
+                ),
+                mode=moderngl.TRIANGLE_FAN
+            ))
+
+        CopyPass(
+            enable_only=moderngl.BLEND,
+            context_state=ContextState()
+        )._render(
+            input_framebuffer=opaque_target_framebuffer,
+            output_framebuffer=target_framebuffer
+        )
+        self._render_by_step(RenderStep(
+            shader_str=Renderable._read_shader("oit_compose"),
+            texture_storages=[
+                self._u_accum_map_o_.write(
+                    np.array(accum_texture)
+                ),
+                self._u_revealage_map_o_.write(
+                    np.array(revealage_texture)
+                )
+            ],
+            uniform_blocks=[],
+            subroutines={},
+            attributes=self._attributes_,
+            index_buffer=self._index_buffer_,
+            framebuffer=target_framebuffer,
+            enable_only=moderngl.BLEND,
+            context_state=ContextState(),
+            mode=moderngl.TRIANGLE_FAN
+        ))
+
+        IntermediateTextures.restore(component_texture)
+        IntermediateTextures.restore(opaque_texture)
+        IntermediateTextures.restore(accum_texture)
+        IntermediateTextures.restore(revealage_texture)
+        IntermediateDepthTextures.restore(component_depth_texture)
+        IntermediateDepthTextures.restore(depth_texture)
 
     def _render_scene(self) -> None:
         framebuffer = self._framebuffer
-        #framebuffer._framebuffer.clear()  # TODO: needed?
+        framebuffer.clear()  # TODO: needed?
         self._render_full(self._scene_config_, framebuffer)
 
     def _update_dt(self, dt: Real):
