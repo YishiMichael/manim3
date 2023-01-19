@@ -172,8 +172,9 @@ class LazyBase(ABC):
     @classmethod
     def _check_annotation_matching(cls, child_annotation: _Annotation, parent_annotation: _Annotation) -> None:
         error_message = f"Type annotation mismatched: `{child_annotation}` is not compatible with `{parent_annotation}`"
-        if isinstance(child_annotation, TypeVar):
-            assert isinstance(parent_annotation, TypeVar) and child_annotation == parent_annotation, error_message
+        if isinstance(child_annotation, TypeVar) or isinstance(parent_annotation, TypeVar):
+            if isinstance(child_annotation, TypeVar) and isinstance(parent_annotation, TypeVar):
+                assert child_annotation == parent_annotation, error_message
             return
 
         def _to_classes(annotation: _Annotation) -> tuple[type, ...]:

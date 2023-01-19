@@ -16,7 +16,7 @@ from abc import (
     ABC,
     abstractmethod
 )
-from contextlib import contextmanager
+#from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import (
     lru_cache,
@@ -28,7 +28,7 @@ import re
 from typing import (
     Any,
     ClassVar,
-    Generator,
+    #Generator,
     Generic,
     Hashable,
     TypeVar
@@ -75,7 +75,7 @@ class ResourceFactory(Generic[_T], ABC):
         hash_val = cls._hash_items(cls._dict_as_hashable(kwargs))
         if (vacant_list := cls.__VACANT__.get(hash_val)) is not None and vacant_list:
             instance = vacant_list.pop()
-            cls._reset(instance)
+            #cls._reset(instance)
             return instance
         instance = cls._construct(**kwargs)
         cls.__HASHES__[instance] = hash_val
@@ -93,9 +93,9 @@ class ResourceFactory(Generic[_T], ABC):
     def _construct(cls, **kwargs) -> _T:
         pass
 
-    @classmethod
-    def _reset(cls, instance: _T) -> None:
-        pass
+    #@classmethod
+    #def _reset(cls, instance: _T) -> None:
+    #    pass
 
     #@classmethod
     #@abstractmethod
@@ -193,16 +193,12 @@ class IntermediateTextures(ResourceFactory[moderngl.Texture]):
         cls,
         size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
         components: int = 4,
-        fill_bits: bool = False
+        dtype: str = "f1"
     ) -> moderngl.Texture:
-        if fill_bits:
-            data = (np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.uint8) * 255).tobytes()
-        else:
-            data = None
         return ContextSingleton().texture(
             size=size,
             components=components,
-            data=data
+            dtype=dtype
         )
 
 
@@ -210,16 +206,11 @@ class IntermediateDepthTextures(ResourceFactory[moderngl.Texture]):
     @classmethod
     def _construct(
         cls,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
-        fill_ones: bool = True
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
     ) -> moderngl.Texture:
-        if fill_ones:
-            data = np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
-        else:
-            data = None
         return ContextSingleton().depth_texture(
             size=size,
-            data=data
+            data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
         )
 
 
@@ -639,8 +630,21 @@ class Framebuffer:
     def __init__(self, framebuffer: moderngl.Framebuffer):
         self._framebuffer: moderngl.Framebuffer = framebuffer
 
-    def clear(self) -> None:
-        self._framebuffer.clear()
+    def clear(
+        self,
+        red: float = 0.0,
+        green: float = 0.0,
+        blue: float = 0.0,
+        alpha: float = 0.0,
+        depth: float = 1.0,
+    ) -> None:
+        self._framebuffer.clear(
+            red=red,
+            green=green,
+            blue=blue,
+            alpha=alpha,
+            depth=depth
+        )
 
     def release(self) -> None:
         self._framebuffer.release()

@@ -7,6 +7,7 @@ from .cameras.perspective_camera import *
 from .geometries.geometry import *
 from .geometries.parametric_surface_geometry import *
 from .geometries.plane_geometry import *
+from .geometries.prismoid_geometry import *
 from .geometries.shape_geometry import *
 from .geometries.sphere_geometry import *
 

@@ -524,7 +524,7 @@ class Mobject(Renderable):
 
     # render
 
-    @lazy_property
+    @lazy_property_initializer_writable
     @staticmethod
     def _apply_oit_() -> bool:
         return False

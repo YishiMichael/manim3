@@ -118,19 +118,18 @@ class Scene(Mobject):
             else:
                 opaque_mobjects.append(mobject)
 
-        # `revealage` is of type float and initialized with 1.0
         component_texture = IntermediateTextures.fetch()
         opaque_texture = IntermediateTextures.fetch()
-        accum_texture = IntermediateTextures.fetch()
-        revealage_texture = IntermediateTextures.fetch(components=1, fill_bits=True)
+        accum_texture = IntermediateTextures.fetch(dtype="f2")
+        revealage_texture = IntermediateTextures.fetch(components=1)
         component_depth_texture = IntermediateDepthTextures.fetch()
         depth_texture = IntermediateDepthTextures.fetch()
         component_target_framebuffer = IntermediateFramebuffer([component_texture], component_depth_texture)
 
         opaque_target_framebuffer = IntermediateFramebuffer([opaque_texture], depth_texture)
+        opaque_target_framebuffer.clear()
         for mobject in opaque_mobjects:
             component_target_framebuffer.clear()
-            #print(component_target_framebuffer._framebuffer.depth_mask)
             mobject._render_full(scene_config, component_target_framebuffer)
             CopyPass(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
@@ -141,14 +140,13 @@ class Scene(Mobject):
                 input_framebuffer=component_target_framebuffer,
                 output_framebuffer=opaque_target_framebuffer
             )
-            #depth_vals = np.frombuffer(depth_texture.read(), dtype=np.float32)
-            #print(depth_vals.min(), depth_vals.max())
-            #print(len(depth_texture.read()))
-            #print(len(depth_texture.read()), depth_texture.size)
 
         accum_target_framebuffer = IntermediateFramebuffer([accum_texture], depth_texture)
+        accum_target_framebuffer.clear()
         accum_target_framebuffer._framebuffer.depth_mask = False
         revealage_target_framebuffer = IntermediateFramebuffer([revealage_texture], depth_texture)
+        revealage_target_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0
+        revealage_target_framebuffer._framebuffer.depth_mask = False
         for mobject in transparent_mobjects:
             component_target_framebuffer.clear()
             mobject._render_full(scene_config, component_target_framebuffer)
@@ -223,7 +221,7 @@ class Scene(Mobject):
 
     def _render_scene(self) -> None:
         framebuffer = self._framebuffer
-        framebuffer.clear()  # TODO: needed?
+        framebuffer.clear()
         self._render_full(self._scene_config_, framebuffer)
 
     def _update_dt(self, dt: Real):
