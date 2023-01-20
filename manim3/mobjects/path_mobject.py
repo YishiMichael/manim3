@@ -1,11 +1,15 @@
 __all__ = ["PathMobject"]
 
 
+import itertools as it
+from typing import Callable
+
 import numpy as np
 from scipy.interpolate import BSpline
 import svgelements as se
 
 from ..custom_typing import (
+    FloatsT,
     Vec2T,
     Vec2sT
 )
@@ -42,10 +46,10 @@ class PathMobject(ShapeMobject):
                 point_list.append(current_path_start_point)
                 point_lists.append(point_list)
                 point_list = []
+            elif isinstance(segment, se.Line):
+                point_list.append(np.array(segment.end))
             else:
-                if isinstance(segment, se.Line):
-                    control_points = [segment.start, segment.end]
-                elif isinstance(segment, se.QuadraticBezier):
+                if isinstance(segment, se.QuadraticBezier):
                     control_points = [segment.start, segment.control, segment.end]
                 elif isinstance(segment, se.CubicBezier):
                     control_points = [segment.start, segment.control1, segment.control2, segment.end]
@@ -60,12 +64,33 @@ class PathMobject(ShapeMobject):
         ]))
 
     @classmethod
-    def _get_bezier_sample_points(cls, points: Vec2sT) -> Vec2sT:
-        order = len(points) - 1
-        num_samples = 2 if order == 1 else 17
+    def _get_bezier_sample_points(cls, control_points: Vec2sT) -> Vec2sT:
+        def smoothen_samples(curve: Callable[[FloatsT], Vec2sT], samples: FloatsT, bisect_depth: int) -> FloatsT:
+            # Bisect a segment if one of its endpoints has a turning angle above the threshold.
+            # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
+            if bisect_depth == 4:
+                return samples
+            points = curve(samples)
+            directions = points[1:] - points[:-1]
+            directions /= np.linalg.norm(directions, axis=1)[:, None]
+            angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
+            large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
+            if not len(large_angle_indices):
+                return samples
+            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain(*(
+                ((i, i + 1), (i + 1, i + 2))
+                for i in large_angle_indices
+            )))))
+            new_samples = np.average(samples[insertion_index_pairs], axis=1)
+            return smoothen_samples(curve, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
+
+        order = len(control_points) - 1
         gamma = BSpline(
             t=np.append(np.zeros(order + 1), np.ones(order + 1)),
-            c=points,
+            c=control_points,
             k=order
         )
-        return gamma(np.linspace(0.0, 1.0, num_samples)).astype(float)
+        if np.isclose(np.linalg.norm(gamma(1.0) - gamma(0.0)), 0.0):
+            return np.array((gamma(0.0),))
+        samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
+        return gamma(samples).astype(float)

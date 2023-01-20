@@ -552,7 +552,7 @@ class Mobject(Renderable):
         # We may regard `target_framebuffer` as initially empty
         pass
 
-    def _render_full(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
+    def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
         render_passes = self._render_passes_
         if not render_passes:
             target_framebuffer.clear()

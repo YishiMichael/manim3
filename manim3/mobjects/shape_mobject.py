@@ -34,14 +34,15 @@ class StrokeConfig:
 
 
 class ShapeMobject(MeshMobject):
-    def __init__(self, shape: Shape):
+    def __init__(self, shape: Shape | None = None):
         super().__init__()
-        self._set_shape(shape)
+        if shape is not None:
+            self._set_shape(shape)
 
     @lazy_property_initializer_writable
     @staticmethod
     def _shape_() -> Shape:
-        return NotImplemented
+        return Shape()
 
     @lazy_property
     @staticmethod

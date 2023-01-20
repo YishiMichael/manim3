@@ -130,7 +130,7 @@ class Scene(Mobject):
         opaque_target_framebuffer.clear()
         for mobject in opaque_mobjects:
             component_target_framebuffer.clear()
-            mobject._render_full(scene_config, component_target_framebuffer)
+            mobject._render_with_passes(scene_config, component_target_framebuffer)
             CopyPass(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                 context_state=ContextState(
@@ -149,7 +149,7 @@ class Scene(Mobject):
         revealage_target_framebuffer._framebuffer.depth_mask = False
         for mobject in transparent_mobjects:
             component_target_framebuffer.clear()
-            mobject._render_full(scene_config, component_target_framebuffer)
+            mobject._render_with_passes(scene_config, component_target_framebuffer)
             u_color_map = self._u_color_map_o_.write(
                 np.array(component_texture)
             )
@@ -222,7 +222,7 @@ class Scene(Mobject):
     def _render_scene(self) -> None:
         framebuffer = self._framebuffer
         framebuffer.clear()
-        self._render_full(self._scene_config_, framebuffer)
+        self._render_with_passes(self._scene_config_, framebuffer)
 
     def _update_dt(self, dt: Real):
         for mobject in self.get_descendants_excluding_self():
