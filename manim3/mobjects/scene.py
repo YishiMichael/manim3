@@ -149,6 +149,7 @@ class Scene(Mobject):
         revealage_target_framebuffer._framebuffer.depth_mask = False
         for mobject in transparent_mobjects:
             component_target_framebuffer.clear()
+            component_target_framebuffer._framebuffer.depth_mask = False
             mobject._render_with_passes(scene_config, component_target_framebuffer)
             u_color_map = self._u_color_map_o_.write(
                 np.array(component_texture)

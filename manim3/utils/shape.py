@@ -366,10 +366,9 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
 
 
 class LineString2D(LineString[Vec2T, Vec2sT]):
-    @lazy_property
-    @staticmethod
-    def _signed_area_(coords: Vec2sT) -> float:
-        return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
+    @classmethod
+    def _is_counterclockwise(cls, coords: Vec2sT) -> float:
+        return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0 > 0
 
 
 class LineString3D(LineString[Vec3T, Vec3sT]):

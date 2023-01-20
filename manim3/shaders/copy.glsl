@@ -32,12 +32,10 @@ out vec4 frag_color;
 
 void main() {
     frag_color = texture(u_color_map, fs_in.uv);
-    if (frag_color.a < 1e-5) {
-        gl_FragDepth = 1.0;
-        //discard;
-    } else {
-        gl_FragDepth = texture(u_depth_map, fs_in.uv).x;
+    if (frag_color.a == 0.0) {
+        discard;
     }
+    gl_FragDepth = texture(u_depth_map, fs_in.uv).x;
 }
 
 

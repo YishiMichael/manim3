@@ -198,7 +198,7 @@ class StrokeMobject(Mobject):
                 self._ub_stroke_
             ],
             subroutines={
-                "line_dilate_func": "single_sided_dilate" if self._single_sided_ else "both_sided_dilate"
+                "line_subroutine": "single_sided" if self._single_sided_ else "both_sided"
             },
             attributes=self._attributes_,
             index_buffer=self._line_index_buffer_,
@@ -218,7 +218,7 @@ class StrokeMobject(Mobject):
                 self._ub_stroke_
             ],
             subroutines={
-                "join_dilate_func": "single_sided_dilate" if self._single_sided_ else "both_sided_dilate"
+                "join_subroutine": "single_sided" if self._single_sided_ else "both_sided"
             },
             attributes=self._attributes_,
             index_buffer=self._join_index_buffer_,

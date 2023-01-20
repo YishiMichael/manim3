@@ -1,7 +1,7 @@
 #version 430 core
 
 
-subroutine void join_dilate_func_t(vec4 center_position, float angle_start, float delta_angle);
+subroutine void join_subroutine_t(vec4 center_position, float angle_start, float delta_angle);
 
 layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
@@ -18,7 +18,7 @@ layout (std140) uniform ub_stroke {
     float u_stroke_dilate;
 };
 
-subroutine uniform join_dilate_func_t join_dilate_func;
+subroutine uniform join_subroutine_t join_subroutine;
 
 const float PI = 3.141592653589793;
 const mat2 frame_transform = mat2(
@@ -65,6 +65,11 @@ out GS_FS {
 } gs_out;
 
 
+vec2 to_ndc_space(vec4 position) {
+    return position.xy / position.w;
+}
+
+
 float get_normal_angle(vec2 direction) {
     return atan(direction.x, -direction.y);
 }
@@ -99,28 +104,30 @@ void emit_sector(float stroke_width, vec4 center_position, float angle_start, fl
 }
 
 
-subroutine(join_dilate_func_t)
-void single_sided_dilate(vec4 center_position, float angle_start, float delta_angle) {
+subroutine(join_subroutine_t)
+void single_sided(vec4 center_position, float angle_start, float delta_angle) {
     if (delta_angle * u_stroke_width < 0.0) {
         emit_sector(u_stroke_width, center_position, angle_start, delta_angle);
     }
 }
 
 
-subroutine(join_dilate_func_t)
-void both_sided_dilate(vec4 center_position, float angle_start, float delta_angle) {
+subroutine(join_subroutine_t)
+void both_sided(vec4 center_position, float angle_start, float delta_angle) {
     emit_sector(-sign(delta_angle) * abs(u_stroke_width), center_position, angle_start, delta_angle);
 }
 
 
 void main() {
-    vec4 center_position = gs_in[1].gl_position;
-    float normal_angle_0 = get_normal_angle(frame_transform * vec2(gs_in[1].gl_position - gs_in[0].gl_position));
-    float normal_angle_1 = get_normal_angle(frame_transform * vec2(gs_in[2].gl_position - gs_in[1].gl_position));
+    vec2 p0_ndc = to_ndc_space(gs_in[0].gl_position);
+    vec2 p1_ndc = to_ndc_space(gs_in[1].gl_position);
+    vec2 p2_ndc = to_ndc_space(gs_in[2].gl_position);
+    float normal_angle_0 = get_normal_angle(frame_transform * (p1_ndc - p0_ndc));
+    float normal_angle_1 = get_normal_angle(frame_transform * (p2_ndc - p1_ndc));
     // -PI <= delta_angle < PI
     float delta_angle = mod(normal_angle_1 - normal_angle_0 + PI, 2.0 * PI) - PI;
 
-    join_dilate_func(center_position, normal_angle_0, delta_angle);
+    join_subroutine(gs_in[1].gl_position, normal_angle_0, delta_angle);
 }
 
 

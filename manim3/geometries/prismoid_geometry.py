@@ -11,7 +11,10 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import Geometry
 from ..geometries.shape_geometry import ShapeGeometry
-from ..utils.shape import Shape
+from ..utils.shape import (
+    LineString2D,
+    Shape
+)
 
 
 class PrismoidGeometry(Geometry):
@@ -23,7 +26,7 @@ class PrismoidGeometry(Geometry):
         index_offset = 0
         for line_string in shape._multi_line_string_._children_:
             coords = line_string._coords_
-            if line_string._signed_area_ < 0:
+            if not LineString2D._is_counterclockwise(coords):
                 # Normalize winding
                 coords = coords[::-1]
             # Remove redundant adjacent points to ensure

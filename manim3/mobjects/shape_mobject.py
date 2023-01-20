@@ -188,6 +188,7 @@ class ShapeMobject(MeshMobject):
         #    self._foreground_stroke_configs_.append(stroke_config)
         #else:
         self._stroke_mobjects_.append(stroke)
+        self.add(stroke)
         return self
 
     def add_stroke(
@@ -212,12 +213,12 @@ class ShapeMobject(MeshMobject):
             )
         return self
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        #for stroke in self._background_stroke_mobjects_:
-        #    stroke._render(scene_config, target_framebuffer)
-        super()._render(scene_config, target_framebuffer)
-        for stroke in self._stroke_mobjects_:
-            stroke._render(scene_config, target_framebuffer)
+    #def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
+    #    #for stroke in self._background_stroke_mobjects_:
+    #    #    stroke._render(scene_config, target_framebuffer)
+    #    super()._render(scene_config, target_framebuffer)
+    #    for stroke in self._stroke_mobjects_:
+    #        stroke._render(scene_config, target_framebuffer)
 
 
 #class ShapeStrokeMobject(ShapeMobject):
