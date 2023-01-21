@@ -28,8 +28,8 @@ from ..utils.renderable import (
     ContextState,
     Framebuffer,
     IndexBuffer,
+    RenderProcedure,
     RenderStep,
-    Renderable,
     TextureStorage
 )
 from ..utils.scene_config import SceneConfig
@@ -118,24 +118,7 @@ class MeshMobject(Mobject):
         return moderngl.BLEND | moderngl.DEPTH_TEST
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        self._render_by_step(RenderStep(
-            shader_str=Renderable._read_shader("mesh"),
-            texture_storages=[
-                self._u_color_maps_
-            ],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                scene_config._ub_lights_
-            ],
-            subroutines={},
-            attributes=self._attributes_,
-            index_buffer=self._index_buffer_,
-            framebuffer=target_framebuffer,
-            enable_only=self._enable_only_,
-            context_state=ContextState(),
-            mode=moderngl.TRIANGLES
-        ))
+        MeshRenderProcedure().render(self, scene_config, target_framebuffer)
 
     @classmethod
     def _color_to_vector(cls, color: ColorType) -> Vec4T:
@@ -189,3 +172,30 @@ class MeshMobject(Mobject):
         else:
             pure_color = MeshMobject._color_to_vector(color)
         return pure_color[None].repeat(len(position), axis=0)
+
+
+class MeshRenderProcedure(RenderProcedure):
+    def render(
+        self,
+        mesh_mobject: MeshMobject,
+        scene_config: SceneConfig,
+        target_framebuffer: Framebuffer
+    ) -> None:
+        self.render_by_step(RenderStep(
+            shader_str=self._read_shader("mesh"),
+            texture_storages=[
+                mesh_mobject._u_color_maps_
+            ],
+            uniform_blocks=[
+                scene_config._camera_._ub_camera_,
+                mesh_mobject._ub_model_,
+                scene_config._ub_lights_
+            ],
+            subroutines={},
+            attributes=mesh_mobject._attributes_,
+            index_buffer=mesh_mobject._index_buffer_,
+            framebuffer=target_framebuffer,
+            enable_only=mesh_mobject._enable_only_,
+            context_state=ContextState(),
+            mode=moderngl.TRIANGLES
+        ))

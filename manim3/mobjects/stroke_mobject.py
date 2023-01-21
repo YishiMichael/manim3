@@ -24,8 +24,8 @@ from ..utils.renderable import (
     ContextState,
     Framebuffer,
     IndexBuffer,
+    RenderProcedure,
     RenderStep,
-    Renderable,
     UniformBlockBuffer
 )
 from ..utils.scene_config import SceneConfig
@@ -181,37 +181,30 @@ class StrokeMobject(Mobject):
         join_index_buffer_o.write(np.array(index_list))
         return join_index_buffer_o
 
-    #@lazy_property
-    #@staticmethod
-    #def _copy_pass_() -> CopyPass:
-    #    return CopyPass()
-
     def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        #with IntermediateTextures.register_n(1) as textures:
-        #    with IntermediateDepthTextures.register_n(1) as depth_textures:
-        #        intermediate_framebuffer = IntermediateFramebuffer(textures, depth_textures[0])
-        #        #from PIL import Image
-        #        #print("*"*30)
-        #        #print(intermediate_framebuffer._framebuffer)
-        #        #print(intermediate_framebuffer._color_attachments, intermediate_framebuffer._depth_attachment)
-        #        #print(target_framebuffer._framebuffer)
-        #        #print()
-        #        #Image.frombytes('RGB', intermediate_framebuffer._framebuffer.size, intermediate_framebuffer._framebuffer.read(), 'raw').show()
-        #        intermediate_framebuffer._framebuffer.clear()  # ???
-        #        ##Image.frombytes('RGB', intermediate_framebuffer._framebuffer.size, intermediate_framebuffer._framebuffer.read(), 'raw').show()
-        self._render_by_step(RenderStep(
-            shader_str=Renderable._read_shader("stroke_line"),
+        StrokeRenderProcedure().render(self, scene_config, target_framebuffer)
+
+
+class StrokeRenderProcedure(RenderProcedure):
+    def render(
+        self,
+        stroke_mobject: StrokeMobject,
+        scene_config: SceneConfig,
+        target_framebuffer: Framebuffer
+    ) -> None:
+        self.render_by_step(RenderStep(
+            shader_str=self._read_shader("stroke_line"),
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                self._ub_stroke_
+                stroke_mobject._ub_model_,
+                stroke_mobject._ub_stroke_
             ],
             subroutines={
-                "line_subroutine": "single_sided" if self._single_sided_ else "both_sided"
+                "line_subroutine": "single_sided" if stroke_mobject._single_sided_ else "both_sided"
             },
-            attributes=self._attributes_,
-            index_buffer=self._line_index_buffer_,
+            attributes=stroke_mobject._attributes_,
+            index_buffer=stroke_mobject._line_index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
             context_state=ContextState(
@@ -220,18 +213,18 @@ class StrokeMobject(Mobject):
             ),
             mode=moderngl.LINE_STRIP
         ), RenderStep(
-            shader_str=Renderable._read_shader("stroke_join"),
+            shader_str=self._read_shader("stroke_join"),
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                self._ub_stroke_
+                stroke_mobject._ub_model_,
+                stroke_mobject._ub_stroke_
             ],
             subroutines={
-                "join_subroutine": "single_sided" if self._single_sided_ else "both_sided"
+                "join_subroutine": "single_sided" if stroke_mobject._single_sided_ else "both_sided"
             },
-            attributes=self._attributes_,
-            index_buffer=self._join_index_buffer_,
+            attributes=stroke_mobject._attributes_,
+            index_buffer=stroke_mobject._join_index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
             context_state=ContextState(
@@ -240,20 +233,3 @@ class StrokeMobject(Mobject):
             ),
             mode=moderngl.TRIANGLES
         ))
-        #from PIL import Image
-        #Image.frombytes('RGB', target_framebuffer._framebuffer.size, target_framebuffer._framebuffer.read(), 'raw').show()
-
-        #color_vals = np.frombuffer(target_framebuffer.get_attachment(0).read(), dtype=np.uint32)
-        #print(color_vals.min(), color_vals.max())
-        #depth_vals = np.frombuffer(target_framebuffer.get_attachment(-1).read(), dtype=np.float32)
-        #print(depth_vals.min(), depth_vals.max())
-        #        #Image.frombytes('RGB', intermediate_framebuffer._framebuffer.size, intermediate_framebuffer._framebuffer.read(), 'raw').show()
-        #        #Image.frombytes('RGB', target_framebuffer._framebuffer.size, target_framebuffer._framebuffer.read(), 'raw').show()
-        #        CopyPass()._render(
-        #            input_framebuffer=intermediate_framebuffer,
-        #            output_framebuffer=target_framebuffer,
-        #            mobject=self,
-        #            scene_config=scene_config
-        #        )
-        #        #Image.frombytes('RGB', target_framebuffer._framebuffer.size, target_framebuffer._framebuffer.read(), 'raw').show()
-        #        intermediate_framebuffer.release()

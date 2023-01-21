@@ -13,15 +13,12 @@ from ..constants import (
 )
 from ..custom_typing import (
     Mat4T,
-    Real,
     Vec2T,
     Vec3T
 )
-from ..utils.renderable import (
-    Renderable,
-    UniformBlockBuffer
-)
+from ..utils.renderable import UniformBlockBuffer
 from ..utils.lazy import (
+    LazyBase,
     lazy_property,
     lazy_property_initializer,
     lazy_property_initializer_writable
@@ -32,7 +29,7 @@ def normalize(array: Vec3T) -> Vec3T:
     return array / np.linalg.norm(array)
 
 
-class Camera(Renderable):
+class Camera(LazyBase):
     @lazy_property_initializer
     @staticmethod
     def _projection_matrix_() -> Mat4T:

@@ -6,8 +6,8 @@ __all__ = [
     "IntermediateDepthTextures",
     "IntermediateFramebuffer",
     "IntermediateTextures",
+    "RenderProcedure",
     "RenderStep",
-    "Renderable",
     "UniformBlockBuffer"
 ]
 
@@ -208,6 +208,7 @@ class IntermediateDepthTextures(ResourceFactory[moderngl.Texture]):
         cls,
         size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
     ) -> moderngl.Texture:
+        # Initialized as ones (far clip plane)
         return ContextSingleton().depth_texture(
             size=size,
             data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
@@ -279,7 +280,7 @@ class IntermediateFramebuffer(Framebuffer):
 #    @classmethod
 #    def _generate(cls) -> Generator[moderngl.Texture, None, None]:
 #        while True:
-#            # Initialized as ones (far clip plane)
+#            
 #            yield ContextSingleton().depth_texture(
 #                size=(PIXEL_WIDTH, PIXEL_HEIGHT),
 #                data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
@@ -293,7 +294,7 @@ class FieldInfo:
     array_shape: list[int | str]
 
 
-class GLSLBuffer(LazyBase):
+class GLSLDynamicStruct(LazyBase):
     _GLSL_DTYPE: ClassVar[dict[str, np.dtype]] = {
         "int":     np.dtype(("i4", ())),
         "ivec2":   np.dtype(("i4", (2,))),
@@ -346,17 +347,9 @@ class GLSLBuffer(LazyBase):
             for name, child_struct_fields in child_structs.items()
         }
 
-    def __del__(self):
-        pass  # TODO: release buffer
-
-    @lazy_property_initializer
-    @staticmethod
-    def _buffer_() -> moderngl.Buffer:
-        return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
-
     @lazy_property_initializer_writable
     @staticmethod
-    def _struct_dtype_() -> np.dtype:
+    def _data_storage_() -> np.ndarray:
         return NotImplemented
 
     @lazy_property_initializer_writable
@@ -366,13 +359,17 @@ class GLSLBuffer(LazyBase):
 
     @lazy_property
     @staticmethod
+    def _struct_dtype_(data_storage: np.ndarray) -> np.dtype:
+        return data_storage.dtype
+
+    @lazy_property
+    @staticmethod
     def _itemsize_(struct_dtype: np.dtype) -> int:
         return struct_dtype.itemsize
 
     def _is_empty(self) -> bool:
         return self._itemsize_ == 0
 
-    @_buffer_.updater
     def write(self, data: np.ndarray | dict[str, Any]):
         data_dict = self._flatten_as_data_dict(data, (self.field_info.name,))
         struct_dtype, dynamic_array_lens = self._build_struct_dtype(
@@ -389,18 +386,8 @@ class GLSLBuffer(LazyBase):
                 data_ptr = data_ptr[data_key[0]]
                 data_key = data_key[1:]
             data_ptr[last_field] = data_value
-        self._struct_dtype_ = struct_dtype
+        self._data_storage_ = data_storage
         self._dynamic_array_lens_ = dynamic_array_lens
-
-        bytes_data = data_storage.tobytes()
-        assert struct_dtype.itemsize == len(bytes_data)
-        buffer = self._buffer_
-        if struct_dtype.itemsize == 0:
-            buffer.clear()
-            return self
-        #print(struct_dtype.itemsize)
-        buffer.orphan(struct_dtype.itemsize)
-        buffer.write(bytes_data)
         return self
 
     @classmethod
@@ -545,7 +532,32 @@ class GLSLBuffer(LazyBase):
         return base_alignment, pad_tail
 
 
-class TextureStorage(GLSLBuffer):
+class GLSLDynamicBuffer(GLSLDynamicStruct):
+    #def __del__(self):
+    #    pass  # TODO: release buffer
+
+    @lazy_property_initializer
+    @staticmethod
+    def _buffer_() -> moderngl.Buffer:
+        return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+
+    @_buffer_.updater
+    def write(self, data: np.ndarray | dict[str, Any]):
+        super().write(data)
+        bytes_data = self._data_storage_.tobytes()
+        #assert struct_dtype.itemsize == len(bytes_data)
+        buffer = self._buffer_
+        struct_dtype = self._struct_dtype_
+        if struct_dtype.itemsize == 0:
+            buffer.clear()
+            return self
+        #print(struct_dtype.itemsize)
+        buffer.orphan(struct_dtype.itemsize)
+        buffer.write(bytes_data)
+        return self
+
+
+class TextureStorage(GLSLDynamicStruct):
     def __init__(self, field: str):
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
         assert field != replaced_field
@@ -579,7 +591,7 @@ class TextureStorage(GLSLBuffer):
     #    assert uniform.array_length == self._int_prod(self._struct_dtype_[self.field_info.name].shape)
 
 
-class UniformBlockBuffer(GLSLBuffer):
+class UniformBlockBuffer(GLSLDynamicBuffer):
     _LAYOUT = "std140"
 
     def __init__(self, name: str, fields: list[str], child_structs: dict[str, list[str]] | None = None):
@@ -598,7 +610,7 @@ class UniformBlockBuffer(GLSLBuffer):
         assert uniform_block.size == self._itemsize_
 
 
-class AttributesBuffer(GLSLBuffer):
+class AttributesBuffer(GLSLDynamicBuffer):
     # Let's keep using std140 layout, hopefully leading to a faster processing speed
     _LAYOUT = "std140"
 
@@ -668,7 +680,7 @@ class AttributesBuffer(GLSLBuffer):
             assert attribute.shape == atom_dtype.base.kind.replace("u", "I")
 
 
-class IndexBuffer(GLSLBuffer):
+class IndexBuffer(GLSLDynamicBuffer):
     def __init__(self):
         super().__init__(field="uint __index__[__NUM_INDEX__]")
 
@@ -858,8 +870,17 @@ class RenderStep:
     mode: int
 
 
-class Renderable(LazyBase):
+class RenderProcedure(LazyBase):
+    _INSTANCES: "ClassVar[dict[type[RenderProcedure], RenderProcedure]]" = {}
     _DEFAULT_CONTEXT_STATE: ClassVar[ContextState] = ContextState()
+
+    def __new__(cls):
+        if (instance := cls._INSTANCES.get(cls)) is not None:
+            assert isinstance(instance, cls)
+            return instance
+        instance = super().__new__(cls)
+        cls._INSTANCES[cls] = instance
+        return instance
 
     @classmethod
     def _render_single_step(cls, render_step: RenderStep
@@ -964,17 +985,17 @@ class Renderable(LazyBase):
         cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
 
     @classmethod
-    def _render_by_step(cls, *render_steps: RenderStep) -> None:
+    def render_by_step(cls, *render_steps: RenderStep) -> None:
         for render_step in render_steps:
             cls._render_single_step(render_step)
 
     #@classmethod
     #def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
     #    for render_step in render_routine:
-    #        cls._render_by_step(render_step)
+    #        cls.render_by_step(render_step)
 
-    @lru_cache(maxsize=8)
     @staticmethod
+    @lru_cache(maxsize=8)
     def _read_shader(filename: str) -> str:
         with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
             content = shader_file.read()

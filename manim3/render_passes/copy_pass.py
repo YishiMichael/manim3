@@ -18,24 +18,11 @@ from ..utils.renderable import (
     IndexBuffer,
     IntermediateFramebuffer,
     RenderStep,
-    Renderable,
     TextureStorage
 )
 
 
 class CopyPass(RenderPass):
-    _INSTANCE: "CopyPass | None" = None
-
-    def __new__(cls, *args, **kwargs) -> "CopyPass":
-        if cls._INSTANCE is None:
-            cls._INSTANCE = super().__new__(cls)
-        return cls._INSTANCE
-
-    def __init__(self, enable_only: int, context_state: ContextState):
-        super().__init__()
-        self._enable_only_ = enable_only
-        self._context_state_ = context_state
-
     @lazy_property_initializer
     @staticmethod
     def _u_color_map_o_() -> TextureStorage:
@@ -77,20 +64,32 @@ class CopyPass(RenderPass):
     @lazy_property_initializer_writable
     @staticmethod
     def _enable_only_() -> int:
-        return NotImplemented
+        return moderngl.NOTHING
 
     @lazy_property_initializer_writable
     @staticmethod
     def _context_state_() -> ContextState:
-        return NotImplemented
+        return ContextState()
 
-    def _render(
+    def set(
+        self,
+        *,
+        enable_only: int | None = None,
+        context_state: ContextState | None = None
+    ):
+        if enable_only is not None:
+            self._enable_only_ = enable_only
+        if context_state is not None:
+            self._context_state_ = context_state
+        return self
+
+    def render(
         self,
         input_framebuffer: IntermediateFramebuffer,
         output_framebuffer: Framebuffer
     ):
-        self._render_by_step(RenderStep(
-            shader_str=Renderable._read_shader("copy"),
+        self.render_by_step(RenderStep(
+            shader_str=self._read_shader("copy"),
             texture_storages=[
                 self._u_color_map_o_.write(
                     np.array(input_framebuffer.get_attachment(0))
@@ -104,7 +103,7 @@ class CopyPass(RenderPass):
             attributes=self._attributes_,
             index_buffer=self._index_buffer_,
             framebuffer=output_framebuffer,
-            enable_only=self._enable_only_,  #moderngl.BLEND,  # TODO
-            context_state=self._context_state_,  #ContextState(),  # TODO
+            enable_only=self._enable_only_,
+            context_state=self._context_state_,
             mode=moderngl.TRIANGLE_FAN
         ))
