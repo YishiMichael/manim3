@@ -192,10 +192,10 @@ class Mobject(Renderable):
             result = v.T
         return result
 
-    @lazy_property_initializer
-    @staticmethod
-    def _geometry_() -> Geometry:
-        return NotImplemented
+    #@lazy_property_initializer
+    #@staticmethod
+    #def _geometry_() -> Geometry:
+    #    return NotImplemented
 
     @lazy_property_initializer_writable
     @staticmethod
@@ -211,13 +211,17 @@ class Mobject(Renderable):
         self._set_model_matrix(self._model_matrix_ @ matrix)
         return self
 
+    def _get_local_sample_points(self) -> Vec3sT:
+        # Implemented in subclasses
+        return np.zeros((0, 3))
+
     def get_bounding_box(
         self,
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
         points_array = np.concatenate([
-            self.apply_affine(self._model_matrix_, mobject._geometry_._position_)
+            self.apply_affine(self._model_matrix_, mobject._get_local_sample_points())
             for mobject in self.get_descendants(broadcast=broadcast)
         ])
         if not points_array.shape[0]:
@@ -581,6 +585,7 @@ class Mobject(Renderable):
             )
             IntermediateTextures.restore(prev_intermediate_framebuffer.get_attachment(0))
             IntermediateDepthTextures.restore(prev_intermediate_framebuffer.get_attachment(-1))
+            prev_intermediate_framebuffer.release()
         render_passes[-1]._render(
             input_framebuffer=intermediate_framebuffer,
             output_framebuffer=target_framebuffer,
@@ -589,6 +594,7 @@ class Mobject(Renderable):
         )
         IntermediateTextures.restore(intermediate_framebuffer.get_attachment(0))
         IntermediateDepthTextures.restore(intermediate_framebuffer.get_attachment(-1))
+        intermediate_framebuffer.release()
 
 
         #with IntermediateTextures.register_n(len(render_passes)) as textures:

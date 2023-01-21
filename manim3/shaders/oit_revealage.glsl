@@ -2,6 +2,7 @@
 
 
 uniform sampler2D u_color_map;
+uniform sampler2D u_depth_map;
 
 
 #if defined VERTEX_SHADER
@@ -30,8 +31,8 @@ in VS_FS {
 out float frag_revealage;
 
 void main() {
-    // From https://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html
     frag_revealage = texture(u_color_map, fs_in.uv).a;
+    gl_FragDepth = texture(u_depth_map, fs_in.uv).x;
 }
 
 

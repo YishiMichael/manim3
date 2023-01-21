@@ -214,6 +214,53 @@ class IntermediateDepthTextures(ResourceFactory[moderngl.Texture]):
         )
 
 
+class Framebuffer:
+    def __init__(self, framebuffer: moderngl.Framebuffer):
+        self._framebuffer: moderngl.Framebuffer = framebuffer
+
+    def clear(
+        self,
+        red: float = 0.0,
+        green: float = 0.0,
+        blue: float = 0.0,
+        alpha: float = 0.0,
+        depth: float = 1.0,
+    ) -> None:
+        self._framebuffer.clear(
+            red=red,
+            green=green,
+            blue=blue,
+            alpha=alpha,
+            depth=depth
+        )
+
+    def release(self) -> None:
+        self._framebuffer.release()
+
+
+class IntermediateFramebuffer(Framebuffer):
+    def __init__(
+        self,
+        color_attachments: list[moderngl.Texture],
+        depth_attachment: moderngl.Texture | None
+    ):
+        self._color_attachments: list[moderngl.Texture] = color_attachments
+        self._depth_attachment: moderngl.Texture | None = depth_attachment
+        super().__init__(
+            ContextSingleton().framebuffer(
+                color_attachments=tuple(color_attachments),
+                depth_attachment=depth_attachment
+            )
+        )
+
+    def get_attachment(self, index: int) -> moderngl.Texture:
+        if index >= 0:
+            return self._color_attachments[index]
+        assert index == -1
+        assert (depth_attachment := self._depth_attachment) is not None
+        return depth_attachment
+
+
 #class IntermediateTextures(ResourceFactory[moderngl.Texture]):
 #    @classmethod
 #    def _generate(cls) -> Generator[moderngl.Texture, None, None]:
@@ -624,53 +671,6 @@ class AttributesBuffer(GLSLBuffer):
 class IndexBuffer(GLSLBuffer):
     def __init__(self):
         super().__init__(field="uint __index__[__NUM_INDEX__]")
-
-
-class Framebuffer:
-    def __init__(self, framebuffer: moderngl.Framebuffer):
-        self._framebuffer: moderngl.Framebuffer = framebuffer
-
-    def clear(
-        self,
-        red: float = 0.0,
-        green: float = 0.0,
-        blue: float = 0.0,
-        alpha: float = 0.0,
-        depth: float = 1.0,
-    ) -> None:
-        self._framebuffer.clear(
-            red=red,
-            green=green,
-            blue=blue,
-            alpha=alpha,
-            depth=depth
-        )
-
-    def release(self) -> None:
-        self._framebuffer.release()
-
-
-class IntermediateFramebuffer(Framebuffer):
-    def __init__(
-        self,
-        color_attachments: list[moderngl.Texture],
-        depth_attachment: moderngl.Texture | None
-    ):
-        self._color_attachments: list[moderngl.Texture] = color_attachments
-        self._depth_attachment: moderngl.Texture | None = depth_attachment
-        super().__init__(
-            ContextSingleton().framebuffer(
-                color_attachments=tuple(color_attachments),
-                depth_attachment=depth_attachment
-            )
-        )
-
-    def get_attachment(self, index: int) -> moderngl.Texture:
-        if index >= 0:
-            return self._color_attachments[index]
-        assert index == -1
-        assert (depth_attachment := self._depth_attachment) is not None
-        return depth_attachment
 
 
 class Program(LazyBase):  # TODO: make abstract base class Cachable

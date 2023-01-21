@@ -9,7 +9,8 @@ import numpy as np
 
 from ..custom_typing import (
     ColorType,
-    Real
+    Real,
+    Vec3sT
 )
 from ..mobjects.mobject import Mobject
 from ..mobjects.mesh_mobject import MeshMobject
@@ -60,6 +61,15 @@ class StrokeMobject(Mobject):
     @staticmethod
     def _single_sided_() -> bool:
         return False
+
+    def _get_local_sample_points(self) -> Vec3sT:
+        line_strings = self._multi_line_string_._children_
+        if not line_strings:
+            return np.zeros((0, 3))
+        return np.concatenate([
+            line_string._coords_
+            for line_string in line_strings
+        ])
 
     @lazy_property_initializer
     @staticmethod

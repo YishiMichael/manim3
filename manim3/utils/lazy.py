@@ -74,6 +74,9 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
         self.requires_update[instance] = False
         return value
 
+    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
+        raise ValueError("Attempting to set a readonly property")
+
     @property
     def stripped_name(self) -> str:
         return self.name.strip("_")
@@ -104,9 +107,6 @@ class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
         if instance is None:
             return self
         return self.value_dict[instance]
-
-    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
-        raise ValueError("Attempting to set a readonly property")
 
     def add_instance(self, instance: _LazyBaseT) -> None:
         self.value_dict[instance] = self.method()

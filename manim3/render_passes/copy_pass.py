@@ -10,7 +10,6 @@ from manim3.utils.lazy import (
     lazy_property_initializer_writable
 )
 
-from ..mobjects.mobject import Mobject
 from ..render_passes.render_pass import RenderPass
 from ..utils.renderable import (
     AttributesBuffer,
@@ -24,7 +23,7 @@ from ..utils.renderable import (
 )
 
 
-class CopyPass(RenderPass[Mobject]):
+class CopyPass(RenderPass):
     _INSTANCE: "CopyPass | None" = None
 
     def __new__(cls, *args, **kwargs) -> "CopyPass":

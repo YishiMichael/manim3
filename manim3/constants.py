@@ -43,7 +43,7 @@ MANIM3_PATH: str = os.path.dirname(__file__)
 SHADERS_PATH: str = os.path.join(MANIM3_PATH, "shaders")
 
 PIXEL_HEIGHT: int = 1080
-PIXEL_WIDTH: int = 1920
+PIXEL_WIDTH: int = 1080
 ASPECT_RATIO: float = PIXEL_WIDTH / PIXEL_HEIGHT
 
 FRAME_HEIGHT: float = 8.0

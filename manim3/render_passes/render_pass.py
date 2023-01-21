@@ -2,9 +2,7 @@ __all__ = ["RenderPass"]
 
 
 from abc import abstractmethod
-from typing import Generic, TypeVar
 
-from ..mobjects.mobject import Mobject
 from ..utils.renderable import (
     IntermediateFramebuffer,
     Framebuffer,
@@ -12,10 +10,7 @@ from ..utils.renderable import (
 )
 
 
-_MobjectT = TypeVar("_MobjectT", bound="Mobject")
-
-
-class RenderPass(Generic[_MobjectT], Renderable):
+class RenderPass(Renderable):
     @abstractmethod
     def _render(
         self,

@@ -79,6 +79,11 @@ class Scene(Mobject):
     def _u_revealage_map_o_() -> TextureStorage:
         return TextureStorage("sampler2D u_revealage_map")
 
+    @lazy_property_initializer
+    @staticmethod
+    def _u_depth_map_o_() -> TextureStorage:
+        return TextureStorage("sampler2D u_depth_map")
+
     @lazy_property
     @staticmethod
     def _attributes_() -> AttributesBuffer:
@@ -127,10 +132,14 @@ class Scene(Mobject):
         component_target_framebuffer = IntermediateFramebuffer([component_texture], component_depth_texture)
 
         opaque_target_framebuffer = IntermediateFramebuffer([opaque_texture], depth_texture)
+        opaque_target_framebuffer._framebuffer.depth_mask = True
         opaque_target_framebuffer.clear()
         for mobject in opaque_mobjects:
+            component_target_framebuffer._framebuffer.depth_mask = True
             component_target_framebuffer.clear()
             mobject._render_with_passes(scene_config, component_target_framebuffer)
+            #vals = np.frombuffer(depth_texture.read(), dtype=np.float32)
+            #print(vals.min(), vals.max())
             CopyPass(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                 context_state=ContextState(
@@ -140,24 +149,36 @@ class Scene(Mobject):
                 input_framebuffer=component_target_framebuffer,
                 output_framebuffer=opaque_target_framebuffer
             )
+            #vals = np.frombuffer(depth_texture.read(), dtype=np.float32)
+            #print(vals.min(), vals.max())
+            #print()
+        #print("####")
 
+        # Test against each fragment by the depth buffer, but never write to it.
+        # We should prevent from clearing buffer bits.
         accum_target_framebuffer = IntermediateFramebuffer([accum_texture], depth_texture)
-        accum_target_framebuffer.clear()
         accum_target_framebuffer._framebuffer.depth_mask = False
+        accum_target_framebuffer.clear()
         revealage_target_framebuffer = IntermediateFramebuffer([revealage_texture], depth_texture)
-        revealage_target_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0
         revealage_target_framebuffer._framebuffer.depth_mask = False
+        revealage_target_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0
         for mobject in transparent_mobjects:
+            component_target_framebuffer._framebuffer.depth_mask = True
             component_target_framebuffer.clear()
-            component_target_framebuffer._framebuffer.depth_mask = False
             mobject._render_with_passes(scene_config, component_target_framebuffer)
             u_color_map = self._u_color_map_o_.write(
                 np.array(component_texture)
             )
+            u_depth_map = self._u_depth_map_o_.write(
+                np.array(component_depth_texture)
+            )
+            #vals = np.frombuffer(depth_texture.read(), dtype=np.float32)
+            #print(vals.min(), vals.max(), np.average(vals))
             self._render_by_step(RenderStep(
                 shader_str=Renderable._read_shader("oit_accum"),
                 texture_storages=[
-                    u_color_map
+                    u_color_map,
+                    u_depth_map
                 ],
                 uniform_blocks=[],
                 subroutines={},
@@ -172,7 +193,8 @@ class Scene(Mobject):
             ), RenderStep(
                 shader_str=Renderable._read_shader("oit_revealage"),
                 texture_storages=[
-                    u_color_map
+                    u_color_map,
+                    u_depth_map
                 ],
                 uniform_blocks=[],
                 subroutines={},
@@ -185,9 +207,15 @@ class Scene(Mobject):
                 ),
                 mode=moderngl.TRIANGLE_FAN
             ))
+            #vals = np.frombuffer(depth_texture.read(), dtype=np.float32)
+            #print(vals.min(), vals.max(), np.average(vals))
+            #print()
+        #print("####")
+        #from PIL import Image
+        #Image.frombytes('RGB', accum_target_framebuffer._framebuffer.size, accum_target_framebuffer._framebuffer.read(), 'raw').show()
 
         CopyPass(
-            enable_only=moderngl.BLEND,
+            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
             context_state=ContextState()
         )._render(
             input_framebuffer=opaque_target_framebuffer,
@@ -208,7 +236,7 @@ class Scene(Mobject):
             attributes=self._attributes_,
             index_buffer=self._index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND,
+            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
             context_state=ContextState(),
             mode=moderngl.TRIANGLE_FAN
         ))
@@ -219,6 +247,10 @@ class Scene(Mobject):
         IntermediateTextures.restore(revealage_texture)
         IntermediateDepthTextures.restore(component_depth_texture)
         IntermediateDepthTextures.restore(depth_texture)
+        component_target_framebuffer.release()
+        opaque_target_framebuffer.release()
+        accum_target_framebuffer.release()
+        revealage_target_framebuffer.release()
 
     def _render_scene(self) -> None:
         framebuffer = self._framebuffer

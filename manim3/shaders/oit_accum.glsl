@@ -2,6 +2,7 @@
 
 
 uniform sampler2D u_color_map;
+uniform sampler2D u_depth_map;
 
 
 #if defined VERTEX_SHADER
@@ -37,6 +38,7 @@ void main() {
     float w = (min(1.0, color.a * 8.0) + 0.01) * (1.0 - gl_FragCoord.z * 0.95);
     w = clamp(w * w * w * 1e8, 1e-2, 3e2);
     frag_accum = color * w;
+    gl_FragDepth = texture(u_depth_map, fs_in.uv).x;
 }
 
 

@@ -46,6 +46,9 @@ class MeshMobject(Mobject):
     def _geometry_() -> Geometry:
         return NotImplemented
 
+    def _get_local_sample_points(self) -> Vec3sT:
+        return self._geometry_._position_
+
     @lazy_property_initializer_writable
     @staticmethod
     def _color_() -> ColorType | Callable[..., Vec4T]:
