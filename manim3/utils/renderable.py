@@ -688,15 +688,15 @@ class IndexBuffer(GLSLDynamicBuffer):
 class Program(LazyBase):  # TODO: make abstract base class Cachable
     _CACHE: "ClassVar[dict[bytes, Program]]" = {}
 
-    def __new__(cls, shader_str: str, dynamic_array_lens: dict[str, int]):
+    def __new__(cls, shader_str: str, custom_macros: list[str], dynamic_array_lens: dict[str, int]):
         # TODO: move function to somewhere suitable
-        hash_val = ResourceFactory._hash_items(shader_str, ResourceFactory._dict_as_hashable(dynamic_array_lens))
+        hash_val = ResourceFactory._hash_items(shader_str, tuple(custom_macros), ResourceFactory._dict_as_hashable(dynamic_array_lens))
         cached_instance = cls._CACHE.get(hash_val)
         if cached_instance is not None:
             return cached_instance
 
         instance = super().__new__(cls)
-        moderngl_program = cls._construct_moderngl_program(shader_str, dynamic_array_lens)
+        moderngl_program = cls._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
         instance._program_ = moderngl_program
         instance._texture_binding_dict_ = cls._set_texture_bindings(moderngl_program)
         instance._uniform_block_binding_dict_ = cls._set_uniform_block_bindings(moderngl_program)
@@ -755,13 +755,27 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
         }
 
     @classmethod
-    def _construct_moderngl_program(cls, shader_str: str, dynamic_array_lens: dict[str, int]) -> moderngl.Program:
+    def _construct_moderngl_program(
+        cls,
+        shader_str: str,
+        custom_macros: list[str],
+        dynamic_array_lens: dict[str, int]
+    ) -> moderngl.Program:
+        version_string = ContextSingleton.get_version_string()
         array_len_macros = [
             f"#define {array_len_name} {array_len}"
             for array_len_name, array_len in dynamic_array_lens.items()
         ]
         shaders = {
-            shader_type: cls._insert_macros(shader_str, [f"#define {shader_type}", *array_len_macros])
+            shader_type: "\n".join([
+                version_string,
+                "\n",
+                f"#define {shader_type}",
+                *custom_macros,
+                *array_len_macros,
+                "\n",
+                shader_str
+            ])
             for shader_type in (
                 "VERTEX_SHADER",
                 "FRAGMENT_SHADER",
@@ -780,13 +794,13 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
         )
         return program
 
-    @classmethod
-    def _insert_macros(cls, shader: str, macros: list[str]) -> str:
-        def repl(match_obj: re.Match) -> str:
-            return match_obj.group() + "\n" + "".join(
-                f"{macro}\n" for macro in macros
-            )
-        return re.sub(r"#version .*\n", repl, shader, flags=re.MULTILINE)
+    #@classmethod
+    #def _insert_macros(cls, shader: str, macros: list[str]) -> str:
+    #    def repl(match_obj: re.Match) -> str:
+    #        return match_obj.group() + "\n" + "".join(
+    #            f"{macro}\n" for macro in macros
+    #        )
+    #    return re.sub(r"#version .*\n", repl, shader, flags=re.MULTILINE)
 
     @classmethod
     def _set_texture_bindings(cls, program: moderngl.Program) -> dict[str, dict[tuple[int, ...], int]]:
@@ -859,9 +873,10 @@ class ContextState:
 )
 class RenderStep:
     shader_str: str
+    custom_macros: list[str]
     texture_storages: list[TextureStorage]
     uniform_blocks: list[UniformBlockBuffer]
-    subroutines: dict[str, str]
+    #subroutines: dict[str, str]
     attributes: AttributesBuffer
     index_buffer: IndexBuffer
     framebuffer: Framebuffer
@@ -891,9 +906,10 @@ class RenderProcedure(LazyBase):
         #framebuffer: moderngl.Framebuffer
     ) -> None:
         shader_str = render_step.shader_str
+        custom_macros = render_step.custom_macros
         texture_storages = render_step.texture_storages
         uniform_blocks = render_step.uniform_blocks
-        subroutines = render_step.subroutines
+        #subroutines = render_step.subroutines
         attributes = render_step.attributes
         index_buffer = render_step.index_buffer
         framebuffer = render_step.framebuffer
@@ -916,7 +932,7 @@ class RenderProcedure(LazyBase):
             if not re.fullmatch(r"__\w+__", array_len_name)
         }
 
-        program = Program(shader_str, filtered_array_lens)
+        program = Program(shader_str, custom_macros, filtered_array_lens)
         #program_uniforms = program._uniforms_
         #program_uniform_blocks = program._uniform_blocks_
         #program_attributes = program._attributes_
@@ -957,10 +973,10 @@ class RenderProcedure(LazyBase):
             uniform_block_bindings.append((uniform_block._buffer_, binding))
 
         # subroutines
-        subroutine_indices: list[int] = [
-            program._subroutines_[subroutines[subroutine_name]].index
-            for subroutine_name in program._program_.subroutines
-        ]
+        #subroutine_indices: list[int] = [
+        #    program._subroutines_[subroutines[subroutine_name]].index
+        #    for subroutine_name in program._program_.subroutines
+        #]
 
         # attributes
         program_attributes = program._attributes_
@@ -980,7 +996,7 @@ class RenderProcedure(LazyBase):
             textures=tuple(texture_bindings),
             uniform_buffers=tuple(uniform_block_bindings)
         ):
-            vertex_array.subroutines = tuple(subroutine_indices)
+            #vertex_array.subroutines = tuple(subroutine_indices)
             vertex_array.render()
         cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
 

@@ -1,8 +1,3 @@
-#version 430 core
-
-
-subroutine void line_subroutine_t(vec4 line_start_gl_position, vec4 line_end_gl_position, vec4 offset_vec);
-
 layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
     mat4 u_view_matrix;
@@ -18,13 +13,11 @@ layout (std140) uniform ub_stroke {
     float u_stroke_dilate;
 };
 
-subroutine uniform line_subroutine_t line_subroutine;
-
-const mat2 frame_transform = mat2(
+mat2 frame_transform = mat2(
     u_frame_radius.x, 0.0,
     0.0, u_frame_radius.y
 );
-const mat2 frame_transform_inv = mat2(
+mat2 frame_transform_inv = mat2(
     1.0 / u_frame_radius.x, 0.0,
     0.0, 1.0 / u_frame_radius.y
 );
@@ -38,12 +31,12 @@ const mat2 frame_transform_inv = mat2(
 in vec3 in_position;
 
 out VS_GS {
-    vec4 gl_position;
+    vec4 position;
 } vs_out;
 
 
 void main() {
-    vs_out.gl_position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
+    vs_out.position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
 }
 
 
@@ -56,7 +49,7 @@ layout (lines) in;
 layout (triangle_strip, max_vertices = 6) out;
 
 in VS_GS {
-    vec4 gl_position;
+    vec4 position;
 } gs_in[2];
 
 out GS_FS {
@@ -69,42 +62,40 @@ vec2 to_ndc_space(vec4 position) {
 }
 
 
-subroutine(line_subroutine_t)
-void single_sided(vec4 line_start_gl_position, vec4 line_end_gl_position, vec4 offset_vec) {
+void single_sided(vec4 line_start_position, vec4 line_end_position, vec4 offset_vec) {
     gs_out.dilate_factor = 0.0;
-    gl_Position = line_start_gl_position + offset_vec;
+    gl_Position = line_start_position + offset_vec;
     EmitVertex();
-    gl_Position = line_end_gl_position + offset_vec;
+    gl_Position = line_end_position + offset_vec;
     EmitVertex();
     gs_out.dilate_factor = 1.0;
-    gl_Position = line_start_gl_position;
+    gl_Position = line_start_position;
     EmitVertex();
-    gl_Position = line_end_gl_position;
+    gl_Position = line_end_position;
     EmitVertex();
 }
 
 
-subroutine(line_subroutine_t)
-void both_sided(vec4 line_start_gl_position, vec4 line_end_gl_position, vec4 offset_vec) {
-    single_sided(line_start_gl_position, line_end_gl_position, offset_vec);
+void both_sided(vec4 line_start_position, vec4 line_end_position, vec4 offset_vec) {
+    single_sided(line_start_position, line_end_position, offset_vec);
     gs_out.dilate_factor = 0.0;
-    gl_Position = line_start_gl_position - offset_vec;
+    gl_Position = line_start_position - offset_vec;
     EmitVertex();
-    gl_Position = line_end_gl_position - offset_vec;
+    gl_Position = line_end_position - offset_vec;
     EmitVertex();
 }
 
 
 void main() {
-    vec2 p0_ndc = to_ndc_space(gs_in[0].gl_position);
-    vec2 p1_ndc = to_ndc_space(gs_in[1].gl_position);
+    vec2 p0_ndc = to_ndc_space(gs_in[0].position);
+    vec2 p1_ndc = to_ndc_space(gs_in[1].position);
     // Rotate 90 degrees counterclockwise, while taking the aspect ratio into consideration
     vec2 transformed_direction = frame_transform * (p1_ndc - p0_ndc);
     vec2 transformed_normal = normalize(vec2(-transformed_direction.y, transformed_direction.x));
     vec2 normal = frame_transform_inv * transformed_normal;
     vec4 offset_vec = u_stroke_width * vec4(normal, 0.0, 0.0);
 
-    line_subroutine(gs_in[0].gl_position, gs_in[1].gl_position, offset_vec);
+    line_subroutine(gs_in[0].position, gs_in[1].position, offset_vec);
     EndPrimitive();
 }
 

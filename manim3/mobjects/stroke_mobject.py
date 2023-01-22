@@ -192,17 +192,18 @@ class StrokeRenderProcedure(RenderProcedure):
         scene_config: SceneConfig,
         target_framebuffer: Framebuffer
     ) -> None:
+        subroutine_name = "single_sided" if stroke_mobject._single_sided_ else "both_sided"
         self.render_by_step(RenderStep(
             shader_str=self._read_shader("stroke_line"),
+            custom_macros=[
+                f"#define line_subroutine {subroutine_name}"
+            ],
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
                 stroke_mobject._ub_model_,
                 stroke_mobject._ub_stroke_
             ],
-            subroutines={
-                "line_subroutine": "single_sided" if stroke_mobject._single_sided_ else "both_sided"
-            },
             attributes=stroke_mobject._attributes_,
             index_buffer=stroke_mobject._line_index_buffer_,
             framebuffer=target_framebuffer,
@@ -214,15 +215,15 @@ class StrokeRenderProcedure(RenderProcedure):
             mode=moderngl.LINE_STRIP
         ), RenderStep(
             shader_str=self._read_shader("stroke_join"),
+            custom_macros=[
+                f"#define join_subroutine {subroutine_name}"
+            ],
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
                 stroke_mobject._ub_model_,
                 stroke_mobject._ub_stroke_
             ],
-            subroutines={
-                "join_subroutine": "single_sided" if stroke_mobject._single_sided_ else "both_sided"
-            },
             attributes=stroke_mobject._attributes_,
             index_buffer=stroke_mobject._join_index_buffer_,
             framebuffer=target_framebuffer,

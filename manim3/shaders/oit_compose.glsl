@@ -1,6 +1,3 @@
-#version 430 core
-
-
 uniform sampler2D u_accum_map;
 uniform sampler2D u_revealage_map;
 

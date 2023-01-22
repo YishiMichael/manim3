@@ -4,13 +4,12 @@ __all__ = ["CopyPass"]
 import moderngl
 import numpy as np
 
-from manim3.utils.lazy import (
+from ..render_passes.render_pass import RenderPass
+from ..utils.lazy import (
     lazy_property,
     lazy_property_initializer,
     lazy_property_initializer_writable
 )
-
-from ..render_passes.render_pass import RenderPass
 from ..utils.renderable import (
     AttributesBuffer,
     ContextState,
@@ -90,6 +89,7 @@ class CopyPass(RenderPass):
     ):
         self.render_by_step(RenderStep(
             shader_str=self._read_shader("copy"),
+            custom_macros=[],
             texture_storages=[
                 self._u_color_map_o_.write(
                     np.array(input_framebuffer.get_attachment(0))
@@ -99,7 +99,6 @@ class CopyPass(RenderPass):
                 )
             ],
             uniform_blocks=[],
-            subroutines={},
             attributes=self._attributes_,
             index_buffer=self._index_buffer_,
             framebuffer=output_framebuffer,

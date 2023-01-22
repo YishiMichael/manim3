@@ -1,6 +1,3 @@
-#version 430 core
-
-
 struct PointLight {
     vec3 position;
     vec4 color;

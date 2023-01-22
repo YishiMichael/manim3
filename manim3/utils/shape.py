@@ -35,7 +35,6 @@ from ..utils.lazy import (
 )
 
 
-#_ChildT = TypeVar("_ChildT", bound="ShapeInterpolant")
 _VecT = TypeVar("_VecT", bound=Vec2T | Vec3T)
 _VecsT = TypeVar("_VecsT", bound=Vec2sT | Vec3sT)
 
@@ -368,7 +367,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
 class LineString2D(LineString[Vec2T, Vec2sT]):
     @classmethod
     def _is_counterclockwise(cls, coords: Vec2sT) -> float:
-        return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0 > 0
+        return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0 > 0.0
 
 
 class LineString3D(LineString[Vec3T, Vec3sT]):

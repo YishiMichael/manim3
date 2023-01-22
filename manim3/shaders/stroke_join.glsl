@@ -1,8 +1,3 @@
-#version 430 core
-
-
-subroutine void join_subroutine_t(vec4 center_position, float angle_start, float delta_angle);
-
 layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
     mat4 u_view_matrix;
@@ -18,14 +13,13 @@ layout (std140) uniform ub_stroke {
     float u_stroke_dilate;
 };
 
-subroutine uniform join_subroutine_t join_subroutine;
-
 const float PI = 3.141592653589793;
-const mat2 frame_transform = mat2(
+
+mat2 frame_transform = mat2(
     u_frame_radius.x, 0.0,
     0.0, u_frame_radius.y
 );
-const mat2 frame_transform_inv = mat2(
+mat2 frame_transform_inv = mat2(
     1.0 / u_frame_radius.x, 0.0,
     0.0, 1.0 / u_frame_radius.y
 );
@@ -39,12 +33,12 @@ const mat2 frame_transform_inv = mat2(
 in vec3 in_position;
 
 out VS_GS {
-    vec4 gl_position;
+    vec4 position;
 } vs_out;
 
 
 void main() {
-    vs_out.gl_position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
+    vs_out.position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
 }
 
 
@@ -57,7 +51,7 @@ layout (triangles) in;
 layout (triangle_strip, max_vertices = 8) out;
 
 in VS_GS {
-    vec4 gl_position;
+    vec4 position;
 } gs_in[3];
 
 out GS_FS {
@@ -104,7 +98,6 @@ void emit_sector(float stroke_width, vec4 center_position, float angle_start, fl
 }
 
 
-subroutine(join_subroutine_t)
 void single_sided(vec4 center_position, float angle_start, float delta_angle) {
     if (delta_angle * u_stroke_width < 0.0) {
         emit_sector(u_stroke_width, center_position, angle_start, delta_angle);
@@ -112,22 +105,21 @@ void single_sided(vec4 center_position, float angle_start, float delta_angle) {
 }
 
 
-subroutine(join_subroutine_t)
 void both_sided(vec4 center_position, float angle_start, float delta_angle) {
     emit_sector(-sign(delta_angle) * abs(u_stroke_width), center_position, angle_start, delta_angle);
 }
 
 
 void main() {
-    vec2 p0_ndc = to_ndc_space(gs_in[0].gl_position);
-    vec2 p1_ndc = to_ndc_space(gs_in[1].gl_position);
-    vec2 p2_ndc = to_ndc_space(gs_in[2].gl_position);
+    vec2 p0_ndc = to_ndc_space(gs_in[0].position);
+    vec2 p1_ndc = to_ndc_space(gs_in[1].position);
+    vec2 p2_ndc = to_ndc_space(gs_in[2].position);
     float normal_angle_0 = get_normal_angle(frame_transform * (p1_ndc - p0_ndc));
     float normal_angle_1 = get_normal_angle(frame_transform * (p2_ndc - p1_ndc));
     // -PI <= delta_angle < PI
     float delta_angle = mod(normal_angle_1 - normal_angle_0 + PI, 2.0 * PI) - PI;
 
-    join_subroutine(gs_in[1].gl_position, normal_angle_0, delta_angle);
+    join_subroutine(gs_in[1].position, normal_angle_0, delta_angle);
 }
 
 

@@ -13,14 +13,15 @@ from ..constants import (
 
 
 class ContextSingleton:
-    window = PygletWindow(
+    window: PygletWindow = PygletWindow(
         size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
         fullscreen=False,
         resizable=True,
-        gl_version=(4, 3),
+        gl_version=(3, 3),
         vsync=True,
         cursor=True
     )
+    version_string: str = "#version 330 core"
     _INSTANCE: moderngl.Context = window.ctx
     #_INSTANCE.gc_mode = "auto"
     atexit.register(lambda: ContextSingleton._INSTANCE.release())
@@ -29,5 +30,9 @@ class ContextSingleton:
         return cls._INSTANCE
 
     @classmethod
-    def get_window(cls):
+    def get_window(cls) -> PygletWindow:
         return cls.window
+
+    @classmethod
+    def get_version_string(cls) -> str:
+        return cls.version_string

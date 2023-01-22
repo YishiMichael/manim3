@@ -183,6 +183,7 @@ class MeshRenderProcedure(RenderProcedure):
     ) -> None:
         self.render_by_step(RenderStep(
             shader_str=self._read_shader("mesh"),
+            custom_macros=[],
             texture_storages=[
                 mesh_mobject._u_color_maps_
             ],
@@ -191,7 +192,6 @@ class MeshRenderProcedure(RenderProcedure):
                 mesh_mobject._ub_model_,
                 scene_config._ub_lights_
             ],
-            subroutines={},
             attributes=mesh_mobject._attributes_,
             index_buffer=mesh_mobject._index_buffer_,
             framebuffer=target_framebuffer,

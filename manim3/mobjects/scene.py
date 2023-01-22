@@ -275,12 +275,12 @@ class SceneRenderProcedure(RenderProcedure):
             )
             self.render_by_step(RenderStep(
                 shader_str=self._read_shader("oit_accum"),
+                custom_macros=[],
                 texture_storages=[
                     u_color_map,
                     u_depth_map
                 ],
                 uniform_blocks=[],
-                subroutines={},
                 attributes=self._attributes_,
                 index_buffer=self._index_buffer_,
                 framebuffer=accum_framebuffer,
@@ -291,12 +291,12 @@ class SceneRenderProcedure(RenderProcedure):
                 mode=moderngl.TRIANGLE_FAN
             ), RenderStep(
                 shader_str=self._read_shader("oit_revealage"),
+                custom_macros=[],
                 texture_storages=[
                     u_color_map,
                     u_depth_map
                 ],
                 uniform_blocks=[],
-                subroutines={},
                 attributes=self._attributes_,
                 index_buffer=self._index_buffer_,
                 framebuffer=revealage_framebuffer,
@@ -316,6 +316,7 @@ class SceneRenderProcedure(RenderProcedure):
         )
         self.render_by_step(RenderStep(
             shader_str=self._read_shader("oit_compose"),
+            custom_macros=[],
             texture_storages=[
                 self._u_accum_map_o_.write(
                     np.array(self._accum_texture_)
@@ -325,7 +326,6 @@ class SceneRenderProcedure(RenderProcedure):
                 )
             ],
             uniform_blocks=[],
-            subroutines={},
             attributes=self._attributes_,
             index_buffer=self._index_buffer_,
             framebuffer=target_framebuffer,
