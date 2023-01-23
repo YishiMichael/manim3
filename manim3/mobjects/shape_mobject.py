@@ -85,6 +85,7 @@ class ShapeMobject(MeshMobject):
             stroke._color_ = color
         if dilate is not None:
             stroke._dilate_ = dilate
+            stroke._apply_oit_ = True  # TODO
         if single_sided is not None:
             stroke._single_sided_ = single_sided
         stroke._set_model_matrix(self._model_matrix_)

@@ -193,6 +193,8 @@ class StrokeRenderProcedure(RenderProcedure):
         target_framebuffer: Framebuffer
     ) -> None:
         subroutine_name = "single_sided" if stroke_mobject._single_sided_ else "both_sided"
+        # Render color
+        target_framebuffer._framebuffer.depth_mask = False
         self.render_by_step(RenderStep(
             shader_str=self._read_shader("stroke_line"),
             custom_macros=[
@@ -207,7 +209,7 @@ class StrokeRenderProcedure(RenderProcedure):
             attributes=stroke_mobject._attributes_,
             index_buffer=stroke_mobject._line_index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
+            enable_only=moderngl.BLEND,
             context_state=ContextState(
                 blend_func=moderngl.ADDITIVE_BLENDING,
                 blend_equation=moderngl.MAX
@@ -227,10 +229,49 @@ class StrokeRenderProcedure(RenderProcedure):
             attributes=stroke_mobject._attributes_,
             index_buffer=stroke_mobject._join_index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
+            enable_only=moderngl.BLEND,
             context_state=ContextState(
                 blend_func=moderngl.ADDITIVE_BLENDING,
                 blend_equation=moderngl.MAX
             ),
             mode=moderngl.TRIANGLES
         ))
+        target_framebuffer._framebuffer.depth_mask = True
+        # Render depth
+        target_framebuffer._framebuffer.color_mask = (False, False, False, False)
+        self.render_by_step(RenderStep(
+            shader_str=self._read_shader("stroke_line"),
+            custom_macros=[
+                f"#define line_subroutine {subroutine_name}"
+            ],
+            texture_storages=[],
+            uniform_blocks=[
+                scene_config._camera_._ub_camera_,
+                stroke_mobject._ub_model_,
+                stroke_mobject._ub_stroke_
+            ],
+            attributes=stroke_mobject._attributes_,
+            index_buffer=stroke_mobject._line_index_buffer_,
+            framebuffer=target_framebuffer,
+            enable_only=moderngl.DEPTH_TEST,
+            context_state=ContextState(),
+            mode=moderngl.LINE_STRIP
+        ), RenderStep(
+            shader_str=self._read_shader("stroke_join"),
+            custom_macros=[
+                f"#define join_subroutine {subroutine_name}"
+            ],
+            texture_storages=[],
+            uniform_blocks=[
+                scene_config._camera_._ub_camera_,
+                stroke_mobject._ub_model_,
+                stroke_mobject._ub_stroke_
+            ],
+            attributes=stroke_mobject._attributes_,
+            index_buffer=stroke_mobject._join_index_buffer_,
+            framebuffer=target_framebuffer,
+            enable_only=moderngl.DEPTH_TEST,
+            context_state=ContextState(),
+            mode=moderngl.TRIANGLES
+        ))
+        target_framebuffer._framebuffer.color_mask = (True, True, True, True)
