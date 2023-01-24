@@ -5,6 +5,7 @@ moderngl
 moderngl_window
 numpy
 pygments
+scipy
 shapely
 toml
 xxhash
