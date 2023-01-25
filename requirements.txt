@@ -7,5 +7,6 @@ numpy
 pygments
 scipy
 shapely
+svgelements
 toml
 xxhash
