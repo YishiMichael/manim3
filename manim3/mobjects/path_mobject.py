@@ -68,7 +68,7 @@ class PathMobject(ShapeMobject):
         def smoothen_samples(curve: Callable[[FloatsT], Vec2sT], samples: FloatsT, bisect_depth: int) -> FloatsT:
             # Bisect a segment if one of its endpoints has a turning angle above the threshold.
             # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
-            if bisect_depth == 4:
+            if bisect_depth >= 4:
                 return samples
             points = curve(samples)
             directions = points[1:] - points[:-1]
