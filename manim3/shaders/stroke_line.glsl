@@ -53,7 +53,7 @@ in VS_GS {
 } gs_in[2];
 
 out GS_FS {
-    float dilate_factor;
+    float distance_to_edge;
 } gs_out;
 
 
@@ -63,12 +63,12 @@ vec2 to_ndc_space(vec4 position) {
 
 
 void single_sided(vec4 line_start_position, vec4 line_end_position, vec4 offset_vec) {
-    gs_out.dilate_factor = 0.0;
+    gs_out.distance_to_edge = 0.0;
     gl_Position = line_start_position + offset_vec;
     EmitVertex();
     gl_Position = line_end_position + offset_vec;
     EmitVertex();
-    gs_out.dilate_factor = 1.0;
+    gs_out.distance_to_edge = 1.0;
     gl_Position = line_start_position;
     EmitVertex();
     gl_Position = line_end_position;
@@ -78,7 +78,7 @@ void single_sided(vec4 line_start_position, vec4 line_end_position, vec4 offset_
 
 void both_sided(vec4 line_start_position, vec4 line_end_position, vec4 offset_vec) {
     single_sided(line_start_position, line_end_position, offset_vec);
-    gs_out.dilate_factor = 0.0;
+    gs_out.distance_to_edge = 0.0;
     gl_Position = line_start_position - offset_vec;
     EmitVertex();
     gl_Position = line_end_position - offset_vec;
@@ -106,14 +106,15 @@ void main() {
 
 
 in GS_FS {
-    float dilate_factor;
+    float distance_to_edge;
 } fs_in;
 
 out vec4 frag_color;
 
 
 void main() {
-    frag_color = vec4(u_stroke_color.rgb, u_stroke_color.a * pow(fs_in.dilate_factor, u_stroke_dilate));
+    float distance_to_edge = fs_in.distance_to_edge;
+    frag_color = vec4(u_stroke_color.rgb, u_stroke_color.a * pow(distance_to_edge, u_stroke_dilate));
 }
 
 

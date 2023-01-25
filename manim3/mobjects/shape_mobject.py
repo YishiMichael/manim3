@@ -5,7 +5,6 @@ from typing import Callable
 
 from ..custom_typing import (
     ColorType,
-    Mat4T,
     Real,
     Vec4T
 )
@@ -14,8 +13,8 @@ from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_updatable,
+    lazy_property_writable
 )
 from ..utils.shape import Shape
 
@@ -26,7 +25,7 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self._set_shape(shape)
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _shape_() -> Shape:
         return Shape()
@@ -36,7 +35,7 @@ class ShapeMobject(MeshMobject):
     def _geometry_(shape: Shape) -> ShapeGeometry:
         return ShapeGeometry(shape)
 
-    @lazy_property_initializer
+    @lazy_property_updatable
     @staticmethod
     def _stroke_mobjects_() -> list[StrokeMobject]:
         return []
@@ -47,11 +46,11 @@ class ShapeMobject(MeshMobject):
             stroke._multi_line_string_ = shape._multi_line_string_3d_
         return self
 
-    def _set_model_matrix(self, matrix: Mat4T):
-        super()._set_model_matrix(matrix)
-        for stroke in self._stroke_mobjects_:
-            stroke._set_model_matrix(matrix)
-        return self
+    #def _set_model_matrix(self, matrix: Mat4T):
+    #    super()._set_model_matrix(matrix)
+    #    for stroke in self._stroke_mobjects_:
+    #        stroke._set_model_matrix(matrix)
+    #    return self
 
     def _set_fill_locally(self, color: ColorType | Callable[..., Vec4T]):
         self._color_ = color

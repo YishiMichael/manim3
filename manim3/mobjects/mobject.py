@@ -11,6 +11,7 @@ from typing import (
 )
 import warnings
 
+import moderngl
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -29,15 +30,15 @@ from ..render_passes.render_pass import RenderPass
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_updatable,
+    lazy_property_writable
 )
 from ..utils.node import Node
 from ..utils.renderable import (
-    Framebuffer,
-    IntermediateDepthTextures,
-    IntermediateFramebuffer,
-    IntermediateTextures,
+    #Framebuffer,
+    #IntermediateDepthTextures,
+    #IntermediateFramebuffer,
+    #IntermediateTextures,
     RenderProcedure,
     UniformBlockBuffer
 )
@@ -130,7 +131,7 @@ class Mobject(LazyBase):
 
     # matrix & transform
 
-    #@lazy_property_initializer
+    #@lazy_property_updatable
     #@classmethod
     #def _geometry_matrix_(cls) -> Mat4T:
     #    return np.identity(4)
@@ -193,12 +194,12 @@ class Mobject(LazyBase):
             result = v.T
         return result
 
-    #@lazy_property_initializer
+    #@lazy_property_updatable
     #@staticmethod
     #def _geometry_() -> Geometry:
     #    return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _model_matrix_() -> Mat4T:
         return np.identity(4)
@@ -529,12 +530,12 @@ class Mobject(LazyBase):
 
     # render
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _apply_oit_() -> bool:
         return False
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _ub_model_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_model", [
@@ -552,15 +553,15 @@ class Mobject(LazyBase):
         })
         return ub_model_o
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Implemented in subclasses
         # We may regard `target_framebuffer` as initially empty
         pass
 
-    def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
+    def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         PassesRenderProcedure().render(self, scene_config, target_framebuffer)
 
-    @lazy_property_initializer
+    @lazy_property_updatable
     @staticmethod
     def _render_passes_() -> list[RenderPass]:
         return []
@@ -579,7 +580,7 @@ class Mobject(LazyBase):
 
     # animations
 
-    @lazy_property_initializer
+    @lazy_property_updatable
     @staticmethod
     def _animations_() -> list["Animation"]:
         return []
@@ -600,7 +601,7 @@ class Mobject(LazyBase):
 
     # shader
 
-    #@lazy_property_initializer_writable
+    #@lazy_property_writable
     #@classmethod
     #def _camera_(cls) -> Camera:
     #    return PerspectiveCamera()
@@ -623,44 +624,63 @@ class Mobject(LazyBase):
 
 
 class PassesRenderProcedure(RenderProcedure):
+    @lazy_property
+    @staticmethod
+    def _intermediate_texture_0_() -> moderngl.Texture:
+        return RenderProcedure.construct_texture()
+
+    @lazy_property
+    @staticmethod
+    def _intermediate_texture_1_() -> moderngl.Texture:
+        return RenderProcedure.construct_texture()
+
     def render(
         self,
         mobject: Mobject,
         scene_config: SceneConfig,
-        target_framebuffer: Framebuffer
+        target_framebuffer: moderngl.Framebuffer
     ) -> None:
         render_passes = mobject._render_passes_
         if not render_passes:
+            #from PIL import Image
+
             target_framebuffer.clear()  # TODO
             mobject._render(scene_config, target_framebuffer)
+            #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
             return
 
-        intermediate_framebuffer = IntermediateFramebuffer(
-            color_attachments=[IntermediateTextures.fetch()],
-            depth_attachment=IntermediateDepthTextures.fetch()
+        textures = (self._intermediate_texture_0_, self._intermediate_texture_1_)
+        target_texture_id = 0
+        intermediate_framebuffer = RenderProcedure.construct_framebuffer(
+            color_attachments=[textures[target_texture_id]],
+            depth_attachment=target_framebuffer.depth_attachment
         )
         intermediate_framebuffer.clear()  # TODO: strore in the class as lazy attributes
         mobject._render(scene_config, intermediate_framebuffer)
         for render_pass in render_passes[:-1]:
+            target_texture_id = 1 - target_texture_id
             prev_intermediate_framebuffer = intermediate_framebuffer
-            intermediate_framebuffer = IntermediateFramebuffer(
-                color_attachments=[IntermediateTextures.fetch()],
-                depth_attachment=IntermediateDepthTextures.fetch()
+            intermediate_framebuffer = RenderProcedure.construct_framebuffer(
+                color_attachments=[textures[target_texture_id]],
+                depth_attachment=None
             )
             intermediate_framebuffer.clear()
-            render_pass.render(
-                input_framebuffer=prev_intermediate_framebuffer,
-                output_framebuffer=intermediate_framebuffer
+            render_pass._render(
+                texture=textures[1 - target_texture_id],
+                target_framebuffer=intermediate_framebuffer
             )
-            IntermediateTextures.restore(prev_intermediate_framebuffer.get_attachment(0))
-            IntermediateDepthTextures.restore(prev_intermediate_framebuffer.get_attachment(-1))
+            #IntermediateTextures.restore(prev_intermediate_framebuffer.get_attachment(0))
+            #IntermediateDepthTextures.restore(prev_intermediate_framebuffer.get_attachment(-1))
             prev_intermediate_framebuffer.release()
-        render_passes[-1].render(
-            input_framebuffer=intermediate_framebuffer,
-            output_framebuffer=target_framebuffer
+        render_passes[-1]._render(
+            texture=textures[target_texture_id],
+            target_framebuffer=target_framebuffer  # TODO: shall we disable writing to depth?
         )
-        IntermediateTextures.restore(intermediate_framebuffer.get_attachment(0))
-        IntermediateDepthTextures.restore(intermediate_framebuffer.get_attachment(-1))
+        #from PIL import Image
+        #Image.frombytes('RGB', intermediate_framebuffer.size, intermediate_framebuffer.read(), 'raw').show()
+        #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
+        #IntermediateTextures.restore(intermediate_framebuffer.get_attachment(0))
+        #IntermediateDepthTextures.restore(intermediate_framebuffer.get_attachment(-1))
         intermediate_framebuffer.release()
 
 

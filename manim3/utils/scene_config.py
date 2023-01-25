@@ -13,33 +13,33 @@ from ..custom_typing import (
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
-    lazy_property_initializer_writable
+    lazy_property_writable
 )
 from ..utils.renderable import UniformBlockBuffer
 
 
 class SceneConfig(LazyBase):
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _camera_() -> Camera:
         return PerspectiveCamera()
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _ambient_light_color_() -> Vec4T:
         return np.ones(4)
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _point_light_positions_() -> Vec3sT:
         return np.ones((0, 3))
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _point_light_colors_() -> Vec4sT:
         return np.ones((0, 4))
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _ub_lights_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_lights", [

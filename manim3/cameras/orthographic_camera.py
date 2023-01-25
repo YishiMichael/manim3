@@ -16,7 +16,7 @@ from ..custom_typing import (
 )
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_initializer_writable
+    lazy_property_writable
 )
 
 
@@ -38,32 +38,32 @@ class OrthographicCamera(Camera):
         self._near_ = near
         self._far_ = far
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _left_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _right_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _top_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _bottom_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _near_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _far_() -> Real:
         return NotImplemented

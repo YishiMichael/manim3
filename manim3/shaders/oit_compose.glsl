@@ -2,7 +2,9 @@ uniform sampler2D u_accum_map;
 uniform sampler2D u_revealage_map;
 
 
+/***********************/
 #if defined VERTEX_SHADER
+/***********************/
 
 
 in vec3 in_position;
@@ -12,13 +14,16 @@ out VS_FS {
     vec2 uv;
 } vs_out;
 
+
 void main() {
     vs_out.uv = in_uv;
     gl_Position = vec4(in_position, 1.0);
 }
 
 
+/***************************/
 #elif defined FRAGMENT_SHADER
+/***************************/
 
 
 in VS_FS {
@@ -26,6 +31,7 @@ in VS_FS {
 } fs_in;
 
 out vec4 frag_color;
+
 
 void main() {
     float revealage = texture(u_revealage_map, fs_in.uv).x;

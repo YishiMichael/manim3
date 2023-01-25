@@ -16,16 +16,15 @@ from ..mobjects.mobject import Mobject
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_writable
 )
 from ..utils.renderable import (
     AttributesBuffer,
-    ContextState,
-    Framebuffer,
+    #ContextState,
+    #Framebuffer,
     IndexBuffer,
     RenderProcedure,
-    RenderStep,
+    #RenderStep,
     UniformBlockBuffer
 )
 from ..utils.scene_config import SceneConfig
@@ -37,27 +36,27 @@ class StrokeMobject(Mobject):
         super().__init__()
         self._multi_line_string_ = multi_line_string
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _multi_line_string_() -> MultiLineString3D:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _width_() -> Real:
         return 0.04
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _color_() -> ColorType:
         return Color("white")
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _dilate_() -> Real:
         return 0.0
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _single_sided_() -> bool:
         return False
@@ -71,7 +70,7 @@ class StrokeMobject(Mobject):
             for line_string in line_strings
         ])
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _ub_stroke_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_stroke", [
@@ -95,7 +94,7 @@ class StrokeMobject(Mobject):
         })
         return ub_stroke_o
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _attributes_o_() -> AttributesBuffer:
         return AttributesBuffer([
@@ -123,7 +122,7 @@ class StrokeMobject(Mobject):
         })
         return attributes_o
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _line_index_buffer_o_() -> IndexBuffer:
         return IndexBuffer()
@@ -149,7 +148,7 @@ class StrokeMobject(Mobject):
         line_index_buffer_o.write(np.array(index_list))
         return line_index_buffer_o
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _join_index_buffer_o_() -> IndexBuffer:
         return IndexBuffer()
@@ -181,22 +180,23 @@ class StrokeMobject(Mobject):
         join_index_buffer_o.write(np.array(index_list))
         return join_index_buffer_o
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        StrokeRenderProcedure().render(self, scene_config, target_framebuffer)
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        StrokeMobjectRenderProcedure().render(self, scene_config, target_framebuffer)
 
 
-class StrokeRenderProcedure(RenderProcedure):
+class StrokeMobjectRenderProcedure(RenderProcedure):
     def render(
         self,
         stroke_mobject: StrokeMobject,
         scene_config: SceneConfig,
-        target_framebuffer: Framebuffer
+        target_framebuffer: moderngl.Framebuffer
     ) -> None:
         subroutine_name = "single_sided" if stroke_mobject._single_sided_ else "both_sided"
+        # TODO: Is this already the best practice?
         # Render color
-        target_framebuffer._framebuffer.depth_mask = False
-        self.render_by_step(RenderStep(
-            shader_str=self._read_shader("stroke_line"),
+        target_framebuffer.depth_mask = False
+        self.render_by_step(self.render_step(
+            shader_str=self.read_shader("stroke_line"),
             custom_macros=[
                 f"#define line_subroutine {subroutine_name}"
             ],
@@ -210,13 +210,13 @@ class StrokeRenderProcedure(RenderProcedure):
             index_buffer=stroke_mobject._line_index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=moderngl.BLEND,
-            context_state=ContextState(
+            context_state=self.context_state(
                 blend_func=moderngl.ADDITIVE_BLENDING,
                 blend_equation=moderngl.MAX
             ),
             mode=moderngl.LINE_STRIP
-        ), RenderStep(
-            shader_str=self._read_shader("stroke_join"),
+        ), self.render_step(
+            shader_str=self.read_shader("stroke_join"),
             custom_macros=[
                 f"#define join_subroutine {subroutine_name}"
             ],
@@ -230,17 +230,17 @@ class StrokeRenderProcedure(RenderProcedure):
             index_buffer=stroke_mobject._join_index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=moderngl.BLEND,
-            context_state=ContextState(
+            context_state=self.context_state(
                 blend_func=moderngl.ADDITIVE_BLENDING,
                 blend_equation=moderngl.MAX
             ),
             mode=moderngl.TRIANGLES
         ))
-        target_framebuffer._framebuffer.depth_mask = True
+        target_framebuffer.depth_mask = True
         # Render depth
-        target_framebuffer._framebuffer.color_mask = (False, False, False, False)
-        self.render_by_step(RenderStep(
-            shader_str=self._read_shader("stroke_line"),
+        target_framebuffer.color_mask = (False, False, False, False)
+        self.render_by_step(self.render_step(
+            shader_str=self.read_shader("stroke_line"),
             custom_macros=[
                 f"#define line_subroutine {subroutine_name}"
             ],
@@ -254,10 +254,10 @@ class StrokeRenderProcedure(RenderProcedure):
             index_buffer=stroke_mobject._line_index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=moderngl.DEPTH_TEST,
-            context_state=ContextState(),
+            context_state=self.context_state(),
             mode=moderngl.LINE_STRIP
-        ), RenderStep(
-            shader_str=self._read_shader("stroke_join"),
+        ), self.render_step(
+            shader_str=self.read_shader("stroke_join"),
             custom_macros=[
                 f"#define join_subroutine {subroutine_name}"
             ],
@@ -271,7 +271,7 @@ class StrokeRenderProcedure(RenderProcedure):
             index_buffer=stroke_mobject._join_index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=moderngl.DEPTH_TEST,
-            context_state=ContextState(),
+            context_state=self.context_state(),
             mode=moderngl.TRIANGLES
         ))
-        target_framebuffer._framebuffer.color_mask = (True, True, True, True)
+        target_framebuffer.color_mask = (True, True, True, True)

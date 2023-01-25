@@ -8,7 +8,7 @@ from ..custom_typing import (
 )
 from ..utils.lazy import (
     LazyBase,
-    lazy_property_initializer_writable
+    lazy_property_writable
 )
 
 
@@ -26,22 +26,22 @@ class Geometry(LazyBase):
         self._normal_ = normal
         self._uv_ = uv
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _index_() -> VertexIndexType:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _position_() -> Vec3sT:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _normal_() -> Vec3sT:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _uv_() -> Vec2sT:
         return NotImplemented

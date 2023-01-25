@@ -41,6 +41,7 @@ out VS_FS {
     vec4 color;
 } vs_out;
 
+
 void main() {
     vs_out.uv = in_uv;
     vs_out.color = in_color;
@@ -63,6 +64,7 @@ in VS_FS {
 } fs_in;
 
 out vec4 frag_color;
+
 
 void main() {
     frag_color = vec4(0.0);

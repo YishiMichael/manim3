@@ -12,6 +12,7 @@ out VS_FS {
     vec2 uv;
 } vs_out;
 
+
 void main() {
     vs_out.uv = in_uv;
     gl_Position = vec4(in_position, 1.0);
@@ -26,6 +27,7 @@ in VS_FS {
 } fs_in;
 
 out vec4 frag_accum;
+
 
 void main() {
     // From https://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html

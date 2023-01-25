@@ -26,9 +26,9 @@ class PrismoidGeometry(Geometry):
         index_offset = 0
         for line_string in shape._multi_line_string_._children_:
             coords = line_string._coords_
-            if not LineString2D._is_counterclockwise(coords):
-                # Normalize winding
-                coords = coords[::-1]
+            #if not LineString2D._is_counterclockwise(coords):
+            #    # Normalize winding
+            #    coords = coords[::-1]
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths
             points: list[Vec2T] = [coords[0]]

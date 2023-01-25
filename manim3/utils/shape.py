@@ -30,8 +30,8 @@ from ..custom_typing import (
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_updatable,
+    lazy_property_writable
 )
 
 
@@ -122,7 +122,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         self._coords_ = coords
         #self._kind_ = kind
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _coords_() -> _VecsT:
         return NotImplemented
@@ -189,7 +189,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         if children is not None:
             self._children_.extend(children)
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _children_() -> list[LineString[_VecT, _VecsT]]:
         return []
@@ -297,7 +297,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
 #        super().__init__(simplified_line_strings)
 #        self._kind_ = kind
 #
-#    @lazy_property_initializer_writable
+#    @lazy_property_writable
 #    @staticmethod
 #    def _kind_() -> str:
 #        return NotImplemented
@@ -400,7 +400,7 @@ class Shape(LazyBase):
     def __xor__(self, other: "Shape"):
         return self.symmetric_difference(other)
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _multi_line_string_() -> MultiLineString2D:
         return MultiLineString2D()

@@ -20,28 +20,24 @@ from ..custom_typing import (
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_writable
 )
 from ..utils.renderable import (
     AttributesBuffer,
-    ContextState,
-    Framebuffer,
     IndexBuffer,
     RenderProcedure,
-    RenderStep,
     TextureStorage
 )
 from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):
-    @lazy_property_initializer
+    @lazy_property_writable
     @staticmethod
     def _color_map_texture_() -> moderngl.Texture | None:
         return None
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _geometry_() -> Geometry:
         return NotImplemented
@@ -49,12 +45,12 @@ class MeshMobject(Mobject):
     def _get_local_sample_points(self) -> Vec3sT:
         return self._geometry_._position_
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _color_() -> ColorType | Callable[..., Vec4T]:
         return Color("white")
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _u_color_maps_o_() -> TextureStorage:
         return TextureStorage("sampler2D u_color_maps[NUM_U_COLOR_MAPS]")
@@ -69,7 +65,7 @@ class MeshMobject(Mobject):
         u_color_maps_o.write(np.array(textures))
         return u_color_maps_o
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _attributes_o_() -> AttributesBuffer:
         return AttributesBuffer([
@@ -98,7 +94,7 @@ class MeshMobject(Mobject):
         })
         return attributes_o
 
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _index_buffer_o_() -> IndexBuffer:
         return IndexBuffer()
@@ -112,13 +108,13 @@ class MeshMobject(Mobject):
         index_buffer_o.write(geometry._index_)
         return index_buffer_o
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _enable_only_() -> int:
         return moderngl.BLEND | moderngl.DEPTH_TEST
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: Framebuffer) -> None:
-        MeshRenderProcedure().render(self, scene_config, target_framebuffer)
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        MeshMobjectRenderProcedure().render(self, scene_config, target_framebuffer)
 
     @classmethod
     def _color_to_vector(cls, color: ColorType) -> Vec4T:
@@ -174,15 +170,15 @@ class MeshMobject(Mobject):
         return pure_color[None].repeat(len(position), axis=0)
 
 
-class MeshRenderProcedure(RenderProcedure):
+class MeshMobjectRenderProcedure(RenderProcedure):
     def render(
         self,
         mesh_mobject: MeshMobject,
         scene_config: SceneConfig,
-        target_framebuffer: Framebuffer
+        target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        self.render_by_step(RenderStep(
-            shader_str=self._read_shader("mesh"),
+        self.render_by_step(self.render_step(
+            shader_str=self.read_shader("mesh"),
             custom_macros=[],
             texture_storages=[
                 mesh_mobject._u_color_maps_
@@ -196,6 +192,6 @@ class MeshRenderProcedure(RenderProcedure):
             index_buffer=mesh_mobject._index_buffer_,
             framebuffer=target_framebuffer,
             enable_only=mesh_mobject._enable_only_,
-            context_state=ContextState(),
+            context_state=self.context_state(),
             mode=moderngl.TRIANGLES
         ))

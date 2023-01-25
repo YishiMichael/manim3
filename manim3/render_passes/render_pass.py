@@ -3,18 +3,10 @@ __all__ = ["RenderPass"]
 
 from abc import abstractmethod
 
-from ..utils.renderable import (
-    IntermediateFramebuffer,
-    Framebuffer,
-    RenderProcedure
-)
+import moderngl
 
 
-class RenderPass(RenderProcedure):
+class RenderPass:
     @abstractmethod
-    def render(
-        self,
-        input_framebuffer: IntermediateFramebuffer,
-        output_framebuffer: Framebuffer
-    ):
+    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> moderngl.Texture:
         pass

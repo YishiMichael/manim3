@@ -25,10 +25,9 @@ from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 
-from .render_passes.copy_pass import *
+from .render_passes.gaussian_blur_pass import *
 from .render_passes.render_pass import *
 
-from .utils.context_singleton import *
 from .utils.lazy import *
 from .utils.renderable import *
 from .utils.scene_config import *

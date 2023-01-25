@@ -136,11 +136,11 @@ out vec4 frag_color;
 
 
 void main() {
-    float dilate_factor = 1.0 - length(fs_in.transformed_offset_vec) / abs(u_stroke_width);
-    if (dilate_factor <= 0.0) {
+    float distance_to_edge = 1.0 - length(fs_in.transformed_offset_vec) / abs(u_stroke_width);
+    if (distance_to_edge <= 0.0) {
         discard;
     }
-    frag_color = vec4(u_stroke_color.rgb, u_stroke_color.a * pow(dilate_factor, u_stroke_dilate));
+    frag_color = vec4(u_stroke_color.rgb, u_stroke_color.a * pow(distance_to_edge, u_stroke_dilate));
 }
 
 

@@ -1,21 +1,21 @@
 __all__ = [
     "AttributesBuffer",
-    "ContextState",
-    "Framebuffer",
+    #"ContextState",
+    #"Framebuffer",
     "IndexBuffer",
-    "IntermediateDepthTextures",
-    "IntermediateFramebuffer",
-    "IntermediateTextures",
+    #"IntermediateDepthTextures",
+    #"IntermediateTextures",
     "RenderProcedure",
-    "RenderStep",
+    #"RenderStep",
     "UniformBlockBuffer"
 ]
 
 
-from abc import (
-    ABC,
-    abstractmethod
-)
+#from abc import (
+#    ABC,
+#    abstractmethod
+#)
+import atexit
 #from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import (
@@ -29,12 +29,13 @@ from typing import (
     Any,
     ClassVar,
     #Generator,
-    Generic,
+    #Generic,
     Hashable,
-    TypeVar
+    #TypeVar
 )
 
 import moderngl
+from moderngl_window.context.pyglet.window import Window as PygletWindow
 import numpy as np
 from xxhash import xxh3_64_digest
 
@@ -43,125 +44,132 @@ from ..constants import (
     PIXEL_WIDTH,
     SHADERS_PATH
 )
-from ..utils.context_singleton import ContextSingleton
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_updatable,
+    lazy_property_writable
 )
 
 
-_T = TypeVar("_T")
+class ContextSingleton:
+    _window: PygletWindow = PygletWindow(
+        size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
+        fullscreen=False,
+        resizable=True,
+        gl_version=(3, 3),
+        vsync=True,
+        cursor=True
+    )
+    _INSTANCE: moderngl.Context = _window.ctx
+    #_INSTANCE.gc_mode = "auto"
+    atexit.register(lambda: ContextSingleton._INSTANCE.release())
 
-
-class ResourceFactory(Generic[_T], ABC):
-    __HASHES__: dict[_T, bytes]
-    __VACANT__: dict[bytes, list[_T]]
-    #__OCCUPIED__: list[_T]
-    #__OCCUPIED__: dict[Self, bytes]
-    #__VACANT__: dict[bytes, list[Self]]
-    #__RESOURCE_GENERATOR__: Generator[_T, None, None]
-
-    def __init_subclass__(cls) -> None:
-        #cls.__OCCUPIED__ = []
-        cls.__HASHES__ = {}
-        cls.__VACANT__ = {}
-        #cls.__RESOURCE_GENERATOR__ = cls._generate()
-        super().__init_subclass__()
-
-    @classmethod
-    def fetch(cls, **kwargs):
-        hash_val = cls._hash_items(cls._dict_as_hashable(kwargs))
-        if (vacant_list := cls.__VACANT__.get(hash_val)) is not None and vacant_list:
-            instance = vacant_list.pop()
-            #cls._reset(instance)
-            return instance
-        instance = cls._construct(**kwargs)
-        cls.__HASHES__[instance] = hash_val
-        return instance
-
-    @classmethod
-    def restore(cls, instance: _T) -> None:
-        hash_val = cls.__HASHES__[instance]
-        if hash_val not in cls.__VACANT__:
-            cls.__VACANT__[hash_val] = []
-        cls.__VACANT__[hash_val].append(instance)
-
-    @classmethod
-    @abstractmethod
-    def _construct(cls, **kwargs) -> _T:
-        pass
+    def __new__(cls):
+        return cls._INSTANCE
 
     #@classmethod
-    #def _reset(cls, instance: _T) -> None:
-    #    pass
+    #def get_version_string(cls) -> str:
+    #    return f"#version {cls._INSTANCE.version_code} core"
 
-    #@classmethod
-    #@abstractmethod
-    #def _generate(cls) -> Generator[_T, None, None]:
-    #    pass
 
-    #@classmethod
-    #def _reset(cls, resource: _T) -> None:
-    #    pass
+#_T = TypeVar("_T")
 
-    #@classmethod
-    #def _release(cls, resource: _T) -> None:
-    #    pass
 
-    #@classmethod
-    #def _register_enter(cls) -> _T:
-    #    if cls.__VACANT__:
-    #        resource = cls.__VACANT__.pop(0)
-    #    else:
-    #        try:
-    #            resource = next(cls.__RESOURCE_GENERATOR__)
-    #        except StopIteration:
-    #            raise MemoryError(f"{cls.__name__} cannot allocate a new object") from None
-    #    cls.__OCCUPIED__.append(resource)
-    #    return resource
+#class ResourceFactory(Generic[_T], ABC):
+#    __HASHES__: dict[_T, bytes]
+#    __VACANT__: dict[bytes, list[_T]]
+#    #__OCCUPIED__: list[_T]
+#    #__OCCUPIED__: dict[Self, bytes]
+#    #__VACANT__: dict[bytes, list[Self]]
+#    #__RESOURCE_GENERATOR__: Generator[_T, None, None]
 
-    #@classmethod
-    #def _register_exit(cls, resource: _T) -> None:
-    #    cls.__OCCUPIED__.remove(resource)
-    #    #cls._reset(resource)
-    #    cls.__VACANT__.append(resource)
+#    def __init_subclass__(cls) -> None:
+#        #cls.__OCCUPIED__ = []
+#        cls.__HASHES__ = {}
+#        cls.__VACANT__ = {}
+#        #cls.__RESOURCE_GENERATOR__ = cls._generate()
+#        super().__init_subclass__()
 
-    #@classmethod
-    #@contextmanager
-    #def register(cls) -> Generator[_T, None, None]:
-    #    resource = cls._register_enter()
-    #    try:
-    #        yield resource
-    #    finally:
-    #        cls._register_exit(resource)
+#    @classmethod
+#    def fetch(cls, **kwargs):
+#        hash_val = cls._hash_items(cls._dict_as_hashable(kwargs))
+#        if (vacant_list := cls.__VACANT__.get(hash_val)) is not None and vacant_list:
+#            instance = vacant_list.pop()
+#            #cls._reset(instance)
+#            return instance
+#        instance = cls._construct(**kwargs)
+#        cls.__HASHES__[instance] = hash_val
+#        return instance
 
-    #@classmethod
-    #@contextmanager
-    #def register_n(cls, n: int) -> Generator[list[_T], None, None]:
-    #    resource_list = [
-    #        cls._register_enter()
-    #        for _ in range(n)
-    #    ]
-    #    try:
-    #        yield resource_list
-    #    finally:
-    #        for resource in resource_list:
-    #            cls._register_exit(resource)
+#    @classmethod
+#    def restore(cls, instance: _T) -> None:
+#        hash_val = cls.__HASHES__[instance]
+#        if hash_val not in cls.__VACANT__:
+#            cls.__VACANT__[hash_val] = []
+#        cls.__VACANT__[hash_val].append(instance)
 
-    @classmethod
-    def _hash_items(cls, *items: Hashable) -> bytes:
-        return xxh3_64_digest(
-            b"".join(
-                bytes(hex(hash(item)), encoding="ascii")
-                for item in items
-            )
-        )
+#    @classmethod
+#    @abstractmethod
+#    def _construct(cls, **kwargs) -> _T:
+#        pass
 
-    @classmethod
-    def _dict_as_hashable(cls, d: dict[Hashable, Hashable]) -> Hashable:
-        return tuple(sorted(d.items()))
+#    #@classmethod
+#    #def _reset(cls, instance: _T) -> None:
+#    #    pass
+
+#    #@classmethod
+#    #@abstractmethod
+#    #def _generate(cls) -> Generator[_T, None, None]:
+#    #    pass
+
+#    #@classmethod
+#    #def _reset(cls, resource: _T) -> None:
+#    #    pass
+
+#    #@classmethod
+#    #def _release(cls, resource: _T) -> None:
+#    #    pass
+
+#    #@classmethod
+#    #def _register_enter(cls) -> _T:
+#    #    if cls.__VACANT__:
+#    #        resource = cls.__VACANT__.pop(0)
+#    #    else:
+#    #        try:
+#    #            resource = next(cls.__RESOURCE_GENERATOR__)
+#    #        except StopIteration:
+#    #            raise MemoryError(f"{cls.__name__} cannot allocate a new object") from None
+#    #    cls.__OCCUPIED__.append(resource)
+#    #    return resource
+
+#    #@classmethod
+#    #def _register_exit(cls, resource: _T) -> None:
+#    #    cls.__OCCUPIED__.remove(resource)
+#    #    #cls._reset(resource)
+#    #    cls.__VACANT__.append(resource)
+
+#    #@classmethod
+#    #@contextmanager
+#    #def register(cls) -> Generator[_T, None, None]:
+#    #    resource = cls._register_enter()
+#    #    try:
+#    #        yield resource
+#    #    finally:
+#    #        cls._register_exit(resource)
+
+#    #@classmethod
+#    #@contextmanager
+#    #def register_n(cls, n: int) -> Generator[list[_T], None, None]:
+#    #    resource_list = [
+#    #        cls._register_enter()
+#    #        for _ in range(n)
+#    #    ]
+#    #    try:
+#    #        yield resource_list
+#    #    finally:
+#    #        for resource in resource_list:
+#    #            cls._register_exit(resource)
 
     #@classmethod
     #def _release_all(cls) -> None:
@@ -187,79 +195,72 @@ class ResourceFactory(Generic[_T], ABC):
 #            yield uniform_binding
 
 
-class IntermediateTextures(ResourceFactory[moderngl.Texture]):
-    @classmethod
-    def _construct(
-        cls,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
-        components: int = 4,
-        dtype: str = "f1"
-    ) -> moderngl.Texture:
-        return ContextSingleton().texture(
-            size=size,
-            components=components,
-            dtype=dtype
-        )
+#class IntermediateTextures(ResourceFactory[moderngl.Texture]):
+#    @classmethod
+#    def _construct(
+#        cls,
+#        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+#        components: int = 4,
+#        dtype: str = "f1"
+#    ) -> moderngl.Texture:
+#        return ContextSingleton().texture(
+#            size=size,
+#            components=components,
+#            dtype=dtype
+#        )
 
 
-class IntermediateDepthTextures(ResourceFactory[moderngl.Texture]):
-    @classmethod
-    def _construct(
-        cls,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
-    ) -> moderngl.Texture:
-        # Initialized as ones (far clip plane)
-        return ContextSingleton().depth_texture(
-            size=size,
-            data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
-        )
+#class IntermediateDepthTextures(ResourceFactory[moderngl.Texture]):
+#    @classmethod
+#    def _construct(
+#        cls,
+#        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
+#    ) -> moderngl.Texture:
+#        # Initialized as ones (far clip plane)
+#        return ContextSingleton().depth_texture(
+#            size=size,
+#            data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
+#        )
 
 
-class Framebuffer:
-    def __init__(self, framebuffer: moderngl.Framebuffer):
-        self._framebuffer: moderngl.Framebuffer = framebuffer
+#class Framebuffer:
+#    def __init__(
+#        self,
+#        color_attachments: list[moderngl.Texture],
+#        depth_attachment: moderngl.Texture | None
+#    ):
+#        self._color_attachments: list[moderngl.Texture] = color_attachments
+#        self._depth_attachment: moderngl.Texture | None = depth_attachment
+#        self._framebuffer: moderngl.Framebuffer = ContextSingleton().framebuffer(
+#            color_attachments=tuple(color_attachments),
+#            depth_attachment=depth_attachment
+#        )
 
-    def clear(
-        self,
-        red: float = 0.0,
-        green: float = 0.0,
-        blue: float = 0.0,
-        alpha: float = 0.0,
-        depth: float = 1.0,
-    ) -> None:
-        self._framebuffer.clear(
-            red=red,
-            green=green,
-            blue=blue,
-            alpha=alpha,
-            depth=depth
-        )
+#    #def get_attachment(self, index: int) -> moderngl.Texture:
+#    #    if index >= 0:
+#    #        return self._color_attachments[index]
+#    #    assert index == -1
+#    #    assert (depth_attachment := self._depth_attachment) is not None
+#    #    return depth_attachment
 
-    def release(self) -> None:
-        self._framebuffer.release()
+#    def clear(
+#        self,
+#        red: float = 0.0,
+#        green: float = 0.0,
+#        blue: float = 0.0,
+#        alpha: float = 0.0,
+#        depth: float = 1.0,
+#    ) -> None:
+#        self._framebuffer.clear(
+#            red=red,
+#            green=green,
+#            blue=blue,
+#            alpha=alpha,
+#            depth=depth
+#        )
 
-
-class IntermediateFramebuffer(Framebuffer):
-    def __init__(
-        self,
-        color_attachments: list[moderngl.Texture],
-        depth_attachment: moderngl.Texture | None
-    ):
-        self._color_attachments: list[moderngl.Texture] = color_attachments
-        self._depth_attachment: moderngl.Texture | None = depth_attachment
-        super().__init__(
-            ContextSingleton().framebuffer(
-                color_attachments=tuple(color_attachments),
-                depth_attachment=depth_attachment
-            )
-        )
-
-    def get_attachment(self, index: int) -> moderngl.Texture:
-        if index >= 0:
-            return self._color_attachments[index]
-        assert index == -1
-        assert (depth_attachment := self._depth_attachment) is not None
-        return depth_attachment
+#    def release(self) -> None:
+#        self._framebuffer.release()
 
 
 #class IntermediateTextures(ResourceFactory[moderngl.Texture]):
@@ -347,12 +348,12 @@ class GLSLDynamicStruct(LazyBase):
             for name, child_struct_fields in child_structs.items()
         }
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _data_storage_() -> np.ndarray:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _dynamic_array_lens_() -> dict[str, int]:
         return NotImplemented
@@ -379,13 +380,11 @@ class GLSLDynamicStruct(LazyBase):
         for data_key, data_value in data_dict.items():
             if not data_value.size:
                 continue
-            last_field = data_key[-1]
-            data_key = data_key[:-1]
             data_ptr = data_storage
             while data_key:
                 data_ptr = data_ptr[data_key[0]]
                 data_key = data_key[1:]
-            data_ptr[last_field] = data_value
+            data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)
         self._data_storage_ = data_storage
         self._dynamic_array_lens_ = dynamic_array_lens
         return self
@@ -411,7 +410,15 @@ class GLSLDynamicStruct(LazyBase):
         data_dict: dict[tuple[str, ...], np.ndarray],
         depth: int
     ) -> tuple[np.dtype, dict[str, int]]:
-        field_items: list[tuple[str, np.dtype, tuple[int, ...], int]] = []
+        names: list[str] = []
+        formats: list[tuple[np.dtype, tuple[int, ...]]] = []
+        offsets: list[int] = []
+
+        def add_field_item(name: str, child_dtype: np.dtype, shape: tuple[int, ...], offset: int) -> None:
+            names.append(name)
+            formats.append((child_dtype, shape))
+            offsets.append(offset)
+
         dynamic_array_lens: dict[str, int] = {}
         offset = 0
 
@@ -451,33 +458,45 @@ class GLSLDynamicStruct(LazyBase):
                     child_struct_fields_info, child_structs_info, child_data, next_depth
                 )
                 dynamic_array_lens.update(child_dynamic_array_lens)
-                base_alignment, pad_tail = cls._get_component_alignment(None, shape)
+                #base_alignment, pad_tail = cls._get_component_alignment(None, shape)
+                base_alignment = 16
+                #if cls._LAYOUT == "packed":
+                #    base_alignment = 0
+                #elif cls._LAYOUT == "std140":
+                #    base_alignment = 16
+                #else:
+                #    raise NotImplementedError
             else:
-                child_dtype = cls._GLSL_DTYPE[dtype_str]
+                atomic_dtype = cls._GLSL_DTYPE[dtype_str]
                 assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
                 if not data_value.size:
                     continue
-                assert child_dtype.shape == data_value.shape[next_depth:]
-                base_alignment, pad_tail = cls._get_component_alignment(child_dtype, shape)
+                assert atomic_dtype.shape == data_value.shape[next_depth:]
+                #base_alignment, pad_tail = cls._get_component_alignment(atomic_dtype, shape)
+                child_dtype = cls._align_atomic_dtype(atomic_dtype, not shape)
+                base_alignment = child_dtype.base.itemsize
+                #child_dtype = np.dtype({
+                #    "names": ["_"],
+                #    "formats": [atomic_dtype],
+                #    "itemsize": base_alignment if base_alignment else atomic_dtype.base.itemsize
+                #})
 
-            if base_alignment:
+            if cls._LAYOUT == "std140":
+                assert child_dtype.itemsize % base_alignment == 0
                 offset += (-offset) % base_alignment
-            field_items.append((name, child_dtype, shape, offset))
+            add_field_item(name, child_dtype, shape, offset)
             offset += cls._int_prod(shape) * child_dtype.itemsize
-            if pad_tail and base_alignment:
-                offset += (-offset) % base_alignment
+            #if pad_tail and base_alignment:
+            #    offset += (-offset) % base_alignment
+        if cls._LAYOUT == "std140":
+            offset += (-offset) % 16
 
-        if not field_items:
-            dtype = np.dtype([])
-        else:
-            names, child_dtypes, shapes, offsets = zip(*field_items)
-            dtype = np.dtype({
-                "names": names,
-                "formats": [(child_dtype, shape) for child_dtype, shape in zip(child_dtypes, shapes)],
-                "offsets": offsets,
-                "itemsize": offset
-            })  # type: ignore
-        return dtype, dynamic_array_lens
+        return np.dtype({
+            "names": names,
+            "formats": formats,
+            "offsets": offsets,
+            "itemsize": offset
+        }), dynamic_array_lens
 
     @classmethod
     def _parse_field_str(cls, field_str: str) -> FieldInfo:
@@ -502,41 +521,61 @@ class GLSLDynamicStruct(LazyBase):
     def _int_prod(cls, shape: tuple[int, ...]) -> int:
         return reduce(op.mul, shape, 1)
 
+    #@classmethod
+    #def _align_atomic_dtype(cls, child_dtype: np.dtype | None, shape: tuple[int, ...]) -> tuple[int, bool]:
+    #    if cls._LAYOUT == "packed":
+    #        base_alignment = 0
+    #        pad_tail = False
+    #    elif cls._LAYOUT == "std140":
+    #        if child_dtype is None:
+    #            base_alignment = 16
+    #            pad_tail = True
+    #        elif not shape and len(child_dtype.shape) <= 1:
+    #            if child_dtype.shape == ():
+    #                base_alignment_units = 1
+    #            elif child_dtype.shape == (2,):
+    #                base_alignment_units = 2
+    #            elif child_dtype.shape == (3,):
+    #                base_alignment_units = 4
+    #            elif child_dtype.shape == (4,):
+    #                base_alignment_units = 4
+    #            else:
+    #                raise
+    #            base_alignment = base_alignment_units * child_dtype.base.itemsize
+    #            pad_tail = False
+    #        else:
+    #            base_alignment = 4 * child_dtype.base.itemsize
+    #            pad_tail = True
+    #    else:
+    #        raise NotImplementedError
+    #    return base_alignment, pad_tail
+
     @classmethod
-    def _get_component_alignment(cls, child_dtype: np.dtype | None, shape: tuple[int, ...]) -> tuple[int, bool]:
+    def _align_atomic_dtype(cls, atomic_dtype: np.dtype, zero_dimensional: bool) -> np.dtype:
+        base = atomic_dtype.base
+        shape = atomic_dtype.shape
+        assert len(shape) <= 2 and all(2 <= l <= 4 for l in shape)
+        shape_dict = dict(enumerate(shape))
+        n_col = shape_dict.get(0, 1)
+        n_row = shape_dict.get(1, 1)
         if cls._LAYOUT == "packed":
-            base_alignment = 0
-            pad_tail = False
+            itemsize = n_row * n_col * base.itemsize
         elif cls._LAYOUT == "std140":
-            if child_dtype is None:
-                base_alignment = 16
-                pad_tail = True
-            elif not shape and len(child_dtype.shape) <= 1:
-                if child_dtype.shape == ():
-                    base_alignment_units = 1
-                elif child_dtype.shape == (2,):
-                    base_alignment_units = 2
-                elif child_dtype.shape == (3,):
-                    base_alignment_units = 4
-                elif child_dtype.shape == (4,):
-                    base_alignment_units = 4
-                else:
-                    raise
-                base_alignment = base_alignment_units * child_dtype.base.itemsize
-                pad_tail = False
-            else:
-                base_alignment = 4 * child_dtype.base.itemsize
-                pad_tail = True
+            itemsize = (n_col if zero_dimensional and n_col <= 2 and n_row == 1 else 4) * base.itemsize
         else:
             raise NotImplementedError
-        return base_alignment, pad_tail
+        return np.dtype((np.dtype({
+            "names": ["_"],
+            "formats": [(base, (n_col,))],
+            "itemsize": itemsize
+        }), (n_row,)))
 
 
 class GLSLDynamicBuffer(GLSLDynamicStruct):
     #def __del__(self):
     #    pass  # TODO: release buffer
 
-    @lazy_property_initializer
+    @lazy_property_updatable
     @staticmethod
     def _buffer_() -> moderngl.Buffer:
         return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
@@ -563,7 +602,7 @@ class TextureStorage(GLSLDynamicStruct):
         assert field != replaced_field
         super().__init__(field=replaced_field)
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _texture_array_() -> np.ndarray:
         return NotImplemented
@@ -611,17 +650,15 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
 
 
 class AttributesBuffer(GLSLDynamicBuffer):
-    # Let's keep using std140 layout, hopefully leading to a faster processing speed
+    # Let's keep using std140 layout, hopefully leading to a faster processing speed.
     _LAYOUT = "std140"
 
-    def __init__(self, attributes: list[str], child_structs: dict[str, list[str]] | None = None):
-        if child_structs is None:
-            child_structs = {}
+    def __init__(self, attributes: list[str]):
+        # Passing structs to an attribute is not allowed, so we eliminate the parameter.
         super().__init__(
             field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
             child_structs={
-                "__VertexStruct__": attributes,
-                **child_structs
+                "__VertexStruct__": attributes
             }
         )
 
@@ -631,6 +668,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
         return struct_dtype["__vertex__"].base
 
     def _get_buffer_format(self, attribute_name_set: set[str]) -> tuple[str, list[str]]:
+        # TODO: This may require refactory
         vertex_dtype = self._vertex_dtype_
         vertex_fields = vertex_dtype.fields
         assert vertex_fields is not None
@@ -669,15 +707,15 @@ class AttributesBuffer(GLSLDynamicBuffer):
         vertex_dtype = self._vertex_dtype_
         for attribute_name, attribute in attributes.items():
             field_dtype = vertex_dtype[attribute_name]
-            if any(glsl_dtype is field_dtype for glsl_dtype in self._GLSL_DTYPE.values()):
-                array_shape = ()
-                atom_dtype = field_dtype
-            else:
-                array_shape = field_dtype.shape
-                atom_dtype = field_dtype.base
-            assert attribute.array_length == self._int_prod(array_shape)
-            assert attribute.dimension == self._int_prod(atom_dtype.shape)
-            assert attribute.shape == atom_dtype.base.kind.replace("u", "I")
+            #if any(atomic_dtype is field_dtype for atomic_dtype in self._GLSL_DTYPE.values()):
+            #    array_shape = ()
+            #    atomic_dtype = field_dtype
+            #else:
+            #    array_shape = field_dtype.shape
+            #    atomic_dtype = field_dtype.base
+            assert attribute.array_length == self._int_prod(field_dtype.shape)
+            assert attribute.dimension == self._int_prod(field_dtype.base.shape) * self._int_prod(field_dtype.base["_"].shape)
+            assert attribute.shape == field_dtype.base["_"].base.kind.replace("u", "I")
 
 
 class IndexBuffer(GLSLDynamicBuffer):
@@ -690,7 +728,7 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
 
     def __new__(cls, shader_str: str, custom_macros: list[str], dynamic_array_lens: dict[str, int]):
         # TODO: move function to somewhere suitable
-        hash_val = ResourceFactory._hash_items(shader_str, tuple(custom_macros), ResourceFactory._dict_as_hashable(dynamic_array_lens))
+        hash_val = cls._hash_items(shader_str, tuple(custom_macros), cls._dict_as_hashable(dynamic_array_lens))
         cached_instance = cls._CACHE.get(hash_val)
         if cached_instance is not None:
             return cached_instance
@@ -703,17 +741,17 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
         cls._CACHE[hash_val] = instance
         return instance
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _program_() -> moderngl.Program:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _texture_binding_dict_() -> dict[str, dict[tuple[int, ...], int]]:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _uniform_block_binding_dict_() -> dict[str, int]:
         return NotImplemented
@@ -761,7 +799,7 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
         custom_macros: list[str],
         dynamic_array_lens: dict[str, int]
     ) -> moderngl.Program:
-        version_string = ContextSingleton.get_version_string()
+        version_string = f"#version {ContextSingleton().version_code} core"
         array_len_macros = [
             f"#define {array_len_name} {array_len}"
             for array_len_name, array_len in dynamic_array_lens.items()
@@ -853,6 +891,19 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
             binding += 1
         return uniform_block_binding_dict
 
+    @classmethod
+    def _hash_items(cls, *items: Hashable) -> bytes:
+        return xxh3_64_digest(
+            b"".join(
+                bytes(hex(hash(item)), encoding="ascii")
+                for item in items
+            )
+        )
+
+    @classmethod
+    def _dict_as_hashable(cls, d: dict[Hashable, Hashable]) -> Hashable:
+        return tuple(sorted(d.items()))
+
 
 @dataclass
 class ContextState:
@@ -864,22 +915,15 @@ class ContextState:
     wireframe: bool = False
 
 
-@dataclass(
-    order=True,
-    unsafe_hash=True,
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@dataclass
 class RenderStep:
     shader_str: str
     custom_macros: list[str]
     texture_storages: list[TextureStorage]
     uniform_blocks: list[UniformBlockBuffer]
-    #subroutines: dict[str, str]
     attributes: AttributesBuffer
     index_buffer: IndexBuffer
-    framebuffer: Framebuffer
+    framebuffer: moderngl.Framebuffer
     enable_only: int
     context_state: ContextState
     mode: int
@@ -971,6 +1015,7 @@ class RenderProcedure(LazyBase):
             assert isinstance(program_uniform_block, moderngl.UniformBlock)
             uniform_block._validate(program_uniform_block)
             uniform_block_bindings.append((uniform_block._buffer_, binding))
+            #print(np.frombuffer(uniform_block._buffer_.read(), dtype=np.float32))
 
         # subroutines
         #subroutine_indices: list[int] = [
@@ -991,7 +1036,7 @@ class RenderProcedure(LazyBase):
 
         cls._set_context_state(context_state)
         with ContextSingleton().scope(
-            framebuffer=framebuffer._framebuffer,
+            framebuffer=framebuffer,
             enable_only=enable_only,
             textures=tuple(texture_bindings),
             uniform_buffers=tuple(uniform_block_bindings)
@@ -999,6 +1044,16 @@ class RenderProcedure(LazyBase):
             #vertex_array.subroutines = tuple(subroutine_indices)
             vertex_array.render()
         cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
+
+    @classmethod
+    def _set_context_state(cls, context_state: ContextState) -> None:
+        context = ContextSingleton()
+        context.depth_func = context_state.depth_func
+        context.blend_func = context_state.blend_func
+        context.blend_equation = context_state.blend_equation
+        context.front_face = context_state.front_face
+        context.cull_face = context_state.cull_face
+        context.wireframe = context_state.wireframe
 
     @classmethod
     def render_by_step(cls, *render_steps: RenderStep) -> None:
@@ -1012,17 +1067,103 @@ class RenderProcedure(LazyBase):
 
     @staticmethod
     @lru_cache(maxsize=8)
-    def _read_shader(filename: str) -> str:
+    def read_shader(filename: str) -> str:
         with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
             content = shader_file.read()
         return content
 
     @classmethod
-    def _set_context_state(cls, context_state: ContextState) -> None:
-        context = ContextSingleton()
-        context.depth_func = context_state.depth_func
-        context.blend_func = context_state.blend_func
-        context.blend_equation = context_state.blend_equation
-        context.front_face = context_state.front_face
-        context.cull_face = context_state.cull_face
-        context.wireframe = context_state.wireframe
+    def construct_texture(
+        cls,
+        *,
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+        components: int = 4,
+        data: bytes | None = None,
+        dtype: str = "f1"
+    ) -> moderngl.Texture:
+        return ContextSingleton().texture(
+            size=size,
+            components=components,
+            data=data,
+            dtype=dtype
+        )
+
+    @classmethod
+    def construct_depth_texture(
+        cls,
+        *,
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
+    ) -> moderngl.Texture:
+        # Initialized as ones (far clip plane)
+        return ContextSingleton().depth_texture(
+            size=size,
+            data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
+        )
+
+    @classmethod
+    def construct_framebuffer(
+        cls,
+        *,
+        color_attachments: list[moderngl.Texture | moderngl.Renderbuffer],
+        depth_attachment: moderngl.Texture | moderngl.Renderbuffer | None
+    ) -> moderngl.Framebuffer:
+        return ContextSingleton().framebuffer(
+            color_attachments=tuple(color_attachments),
+            depth_attachment=depth_attachment
+        )
+
+    @classmethod
+    def context_state(
+        cls,
+        *,
+        depth_func: str = "<",
+        blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING,
+        blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD,
+        front_face: str = "ccw",
+        cull_face: str = "back",
+        wireframe: bool = False
+    ) -> ContextState:
+        return ContextState(
+            depth_func=depth_func,
+            blend_func=blend_func,
+            blend_equation=blend_equation,
+            front_face=front_face,
+            cull_face=cull_face,
+            wireframe=wireframe
+        )
+
+    @classmethod
+    def render_step(
+        cls,
+        *,
+        shader_str: str,
+        custom_macros: list[str],
+        texture_storages: list[TextureStorage],
+        uniform_blocks: list[UniformBlockBuffer],
+        attributes: AttributesBuffer,
+        index_buffer: IndexBuffer,
+        framebuffer: moderngl.Framebuffer,
+        enable_only: int,
+        context_state: ContextState,
+        mode: int
+    ) -> RenderStep:
+        return RenderStep(
+            shader_str=shader_str,
+            custom_macros=custom_macros,
+            texture_storages=texture_storages,
+            uniform_blocks=uniform_blocks,
+            attributes=attributes,
+            index_buffer=index_buffer,
+            framebuffer=framebuffer,
+            enable_only=enable_only,
+            context_state=context_state,
+            mode=mode
+        )
+
+    @classmethod
+    def get_window(cls) -> PygletWindow:
+        return ContextSingleton._window
+
+    @classmethod
+    def get_window_framebuffer(cls) -> moderngl.Framebuffer:
+        return ContextSingleton().detect_framebuffer()

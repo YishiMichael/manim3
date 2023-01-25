@@ -1,7 +1,7 @@
 __all__ = [
     "lazy_property",
-    "lazy_property_initializer",
-    "lazy_property_initializer_writable",
+    "lazy_property_updatable",
+    "lazy_property_writable",
     "LazyBase"
 ]
 
@@ -96,14 +96,14 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
             expired_prop.requires_update[instance] = True
 
 
-class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
+class lazy_property_updatable(lazy_property[_LazyBaseT, _T]):
     @overload
-    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_initializer[_LazyBaseT, _T]": ...
+    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_updatable[_LazyBaseT, _T]": ...
 
     @overload
     def __get__(self, instance: _LazyBaseT, owner: type[_LazyBaseT] | None = None) -> _T: ...
 
-    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_initializer[_LazyBaseT, _T] | _T":
+    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_updatable[_LazyBaseT, _T] | _T":
         if instance is None:
             return self
         return self.value_dict[instance]
@@ -118,7 +118,7 @@ class lazy_property_initializer(lazy_property[_LazyBaseT, _T]):
         return new_update_method
 
 
-class lazy_property_initializer_writable(lazy_property_initializer[_LazyBaseT, _T]):
+class lazy_property_writable(lazy_property_updatable[_LazyBaseT, _T]):
     def __set__(self, instance: _LazyBaseT, value: _T) -> None:
         self.expire_instance(instance)
         self.value_dict[instance] = value
@@ -140,7 +140,7 @@ class LazyBase(ABC):
                 properties[name] = method
 
         for prop in properties.values():
-            if isinstance(prop, lazy_property_initializer):
+            if isinstance(prop, lazy_property_updatable):
                 assert not prop.parameters
                 continue
             for param_name, param_annotation in prop.parameters.items():
@@ -202,7 +202,7 @@ class A(LazyBase):
     def _p_(q: str) -> int:
         return int(q)
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _q_() -> str:
         return "2"

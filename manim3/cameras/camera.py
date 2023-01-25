@@ -20,8 +20,7 @@ from ..utils.renderable import UniformBlockBuffer
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
-    lazy_property_initializer,
-    lazy_property_initializer_writable
+    lazy_property_writable
 )
 
 
@@ -30,27 +29,27 @@ def normalize(array: Vec3T) -> Vec3T:
 
 
 class Camera(LazyBase):
-    @lazy_property_initializer
+    @lazy_property
     @staticmethod
     def _projection_matrix_() -> Mat4T:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _eye_() -> Vec3T:
         return CAMERA_ALTITUDE * OUT
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _target_() -> Vec3T:
         return ORIGIN
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _up_() -> Vec3T:
         return CAMERA_ALTITUDE * UP
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _frame_radius_() -> Vec2T:
         return np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS))
@@ -72,7 +71,7 @@ class Camera(LazyBase):
         m[3, :3] = -rot_mat @ eye
         return m
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _ub_camera_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_camera", [

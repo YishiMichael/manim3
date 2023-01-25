@@ -16,7 +16,7 @@ from ..custom_typing import (
     Mat4T,
     Real
 )
-from ..utils.lazy import lazy_property, lazy_property_initializer_writable
+from ..utils.lazy import lazy_property, lazy_property_writable
 
 
 class PerspectiveCamera(Camera):
@@ -33,22 +33,22 @@ class PerspectiveCamera(Camera):
         self._near_ = near
         self._far_ = far
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _fovy_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _aspect_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _near_() -> Real:
         return NotImplemented
 
-    @lazy_property_initializer_writable
+    @lazy_property_writable
     @staticmethod
     def _far_() -> Real:
         return NotImplemented
