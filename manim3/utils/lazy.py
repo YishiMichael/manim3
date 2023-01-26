@@ -77,9 +77,9 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
     def __set__(self, instance: _LazyBaseT, value: _T) -> None:
         raise ValueError("Attempting to set a readonly property")
 
-    @property
-    def stripped_name(self) -> str:
-        return self.name.strip("_")
+    #@property
+    #def stripped_name(self) -> str:
+    #    return self.name.strip("_")
 
     #def releaser(self, release_method: Callable[[_T], None]) -> Callable[[_T], None]:
     #    self.release_method = release_method

@@ -191,11 +191,12 @@ class StrokeMobjectRenderProcedure(RenderProcedure):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
+        target_framebuffer.clear()
         subroutine_name = "single_sided" if stroke_mobject._single_sided_ else "both_sided"
         # TODO: Is this already the best practice?
         # Render color
         target_framebuffer.depth_mask = False
-        self.render_by_step(self.render_step(
+        self.render_step(
             shader_str=self.read_shader("stroke_line"),
             custom_macros=[
                 f"#define line_subroutine {subroutine_name}"
@@ -215,7 +216,8 @@ class StrokeMobjectRenderProcedure(RenderProcedure):
                 blend_equation=moderngl.MAX
             ),
             mode=moderngl.LINE_STRIP
-        ), self.render_step(
+        )
+        self.render_step(
             shader_str=self.read_shader("stroke_join"),
             custom_macros=[
                 f"#define join_subroutine {subroutine_name}"
@@ -235,11 +237,11 @@ class StrokeMobjectRenderProcedure(RenderProcedure):
                 blend_equation=moderngl.MAX
             ),
             mode=moderngl.TRIANGLES
-        ))
+        )
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
-        self.render_by_step(self.render_step(
+        self.render_step(
             shader_str=self.read_shader("stroke_line"),
             custom_macros=[
                 f"#define line_subroutine {subroutine_name}"
@@ -256,7 +258,8 @@ class StrokeMobjectRenderProcedure(RenderProcedure):
             enable_only=moderngl.DEPTH_TEST,
             context_state=self.context_state(),
             mode=moderngl.LINE_STRIP
-        ), self.render_step(
+        )
+        self.render_step(
             shader_str=self.read_shader("stroke_join"),
             custom_macros=[
                 f"#define join_subroutine {subroutine_name}"
@@ -273,5 +276,5 @@ class StrokeMobjectRenderProcedure(RenderProcedure):
             enable_only=moderngl.DEPTH_TEST,
             context_state=self.context_state(),
             mode=moderngl.TRIANGLES
-        ))
+        )
         target_framebuffer.color_mask = (True, True, True, True)

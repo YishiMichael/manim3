@@ -1,7 +1,8 @@
 __all__ = ["ShapeGeometry"]
 
 
-from collections.abc import Generator
+from typing import Generator
+
 from mapbox_earcut import triangulate_float32
 import numpy as np
 import shapely.geometry

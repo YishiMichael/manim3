@@ -555,7 +555,7 @@ class Mobject(LazyBase):
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Implemented in subclasses
-        # We may regard `target_framebuffer` as initially empty
+        # Notice, this function should be responsible for clearing the `target_framebuffer` if needed.
         pass
 
     def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
@@ -640,11 +640,11 @@ class PassesRenderProcedure(RenderProcedure):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
+        target_framebuffer.clear()
         render_passes = mobject._render_passes_
         if not render_passes:
             #from PIL import Image
 
-            target_framebuffer.clear()  # TODO
             mobject._render(scene_config, target_framebuffer)
             #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
             return
@@ -655,7 +655,7 @@ class PassesRenderProcedure(RenderProcedure):
             color_attachments=[textures[target_texture_id]],
             depth_attachment=target_framebuffer.depth_attachment
         )
-        intermediate_framebuffer.clear()  # TODO: strore in the class as lazy attributes
+        intermediate_framebuffer.clear()
         mobject._render(scene_config, intermediate_framebuffer)
         for render_pass in render_passes[:-1]:
             target_texture_id = 1 - target_texture_id
@@ -681,6 +681,8 @@ class PassesRenderProcedure(RenderProcedure):
         #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
         #IntermediateTextures.restore(intermediate_framebuffer.get_attachment(0))
         #IntermediateDepthTextures.restore(intermediate_framebuffer.get_attachment(-1))
+        #import time
+        #time.sleep(0.1)
         intermediate_framebuffer.release()
 
 

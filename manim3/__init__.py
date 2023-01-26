@@ -4,6 +4,7 @@ from .cameras.camera import *
 from .cameras.orthographic_camera import *
 from .cameras.perspective_camera import *
 
+from .geometries.empty_geometry import *
 from .geometries.geometry import *
 from .geometries.parametric_surface_geometry import *
 from .geometries.plane_geometry import *

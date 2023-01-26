@@ -67,14 +67,16 @@ class Scene(ChildScene):
     #    super().__init__()
 
     def _render_scene(self) -> None:
-        FinalSceneRenderProcedure().render(self)
+        framebuffer = RenderProcedure()._window_framebuffer_
+        framebuffer.clear()
+        self._render_with_passes(self._scene_config_, framebuffer)
         #framebuffer = self._framebuffer
         #framebuffer.clear()
         #self._render_with_passes(self._scene_config_, framebuffer)
         #ContextSingleton().copy_framebuffer(self._window_framebuffer, framebuffer._framebuffer)
 
     def wait(self, t: Real):
-        window = RenderProcedure().get_window()
+        window = RenderProcedure()._window_
         #if window is None:
         #    return self  # TODO
         FPS = 30.0
@@ -224,6 +226,7 @@ class ChildSceneRenderProcedure(RenderProcedure):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
+        target_framebuffer.clear()
         # Inspired from https://github.com/ambrosiogabe/MathAnimation
         # ./Animations/src/renderer/Renderer.cpp
         opaque_mobjects: list[Mobject] = []
@@ -251,9 +254,14 @@ class ChildSceneRenderProcedure(RenderProcedure):
         opaque_framebuffer.clear()
         for mobject in opaque_mobjects:
             component_framebuffer.depth_mask = True
-            component_framebuffer.clear()
+            #component_framebuffer.clear()
+            #from PIL import Image
+            #Image.frombytes('RGB', component_framebuffer.size, component_framebuffer.read(), 'raw').show()
             mobject._render_with_passes(scene_config, component_framebuffer)
-            self.render_by_step(self.render_step(
+            #import time
+            #time.sleep(0.1)
+            #Image.frombytes('RGB', component_framebuffer.size, component_framebuffer.read(), 'raw').show()
+            self.render_step(
                 shader_str=self.read_shader("copy"),
                 custom_macros=[],
                 texture_storages=[
@@ -273,7 +281,7 @@ class ChildSceneRenderProcedure(RenderProcedure):
                     blend_func=(moderngl.ONE, moderngl.ZERO)
                 ),
                 mode=moderngl.TRIANGLE_FAN
-            ))
+            )
 
         # Test against each fragment by the depth buffer, but never write to it.
         # We should prevent from clearing buffer bits.
@@ -285,7 +293,7 @@ class ChildSceneRenderProcedure(RenderProcedure):
         revealage_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0
         for mobject in transparent_mobjects:
             component_framebuffer.depth_mask = True
-            component_framebuffer.clear()
+            #component_framebuffer.clear()
             mobject._render_with_passes(scene_config, component_framebuffer)
             u_color_map = self._u_color_map_o_.write(
                 np.array(self._component_texture_)
@@ -293,7 +301,7 @@ class ChildSceneRenderProcedure(RenderProcedure):
             u_depth_map = self._u_depth_map_o_.write(
                 np.array(self._component_depth_texture_)
             )
-            self.render_by_step(self.render_step(
+            self.render_step(
                 shader_str=self.read_shader("oit_accum"),
                 custom_macros=[],
                 texture_storages=[
@@ -309,7 +317,8 @@ class ChildSceneRenderProcedure(RenderProcedure):
                     blend_func=moderngl.ADDITIVE_BLENDING
                 ),
                 mode=moderngl.TRIANGLE_FAN
-            ), self.render_step(
+            )
+            self.render_step(
                 shader_str=self.read_shader("oit_revealage"),
                 custom_macros=[],
                 texture_storages=[
@@ -325,9 +334,9 @@ class ChildSceneRenderProcedure(RenderProcedure):
                     blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
                 ),
                 mode=moderngl.TRIANGLE_FAN
-            ))
+            )
 
-        self.render_by_step(self.render_step(
+        self.render_step(
             shader_str=self.read_shader("copy"),
             custom_macros=[],
             texture_storages=[
@@ -347,7 +356,8 @@ class ChildSceneRenderProcedure(RenderProcedure):
                 blend_func=(moderngl.ONE, moderngl.ZERO)
             ),
             mode=moderngl.TRIANGLE_FAN
-        ), self.render_step(
+        )
+        self.render_step(
             shader_str=self.read_shader("oit_compose"),
             custom_macros=[],
             texture_storages=[
@@ -365,7 +375,7 @@ class ChildSceneRenderProcedure(RenderProcedure):
             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
             context_state=self.context_state(),
             mode=moderngl.TRIANGLE_FAN
-        ))
+        )
 
         #IntermediateTextures.restore(component_texture)
         #IntermediateTextures.restore(opaque_texture)
@@ -379,7 +389,7 @@ class ChildSceneRenderProcedure(RenderProcedure):
         #revealage_framebuffer.release()
 
 
-class FinalSceneRenderProcedure(RenderProcedure):
+#class FinalSceneRenderProcedure(RenderProcedure):
     #@lazy_property
     #@staticmethod
     #def _color_texture_() -> moderngl.Texture:
@@ -401,8 +411,8 @@ class FinalSceneRenderProcedure(RenderProcedure):
     #        depth_attachment=depth_texture
     #    )
 
-    def render(self, scene: Scene) -> None:
-        framebuffer = self.get_window_framebuffer()
-        framebuffer.clear()
-        scene._render_with_passes(scene._scene_config_, framebuffer)
-        #ContextSingleton().copy_framebuffer(self._window_framebuffer, framebuffer._framebuffer)
+    #def render_scene(self, scene: Scene) -> None:
+    #    framebuffer = self._window_framebuffer_
+    #    framebuffer.clear()
+    #    scene._render_with_passes(scene._scene_config_, framebuffer)
+    #    #ContextSingleton().copy_framebuffer(self._window_framebuffer, framebuffer._framebuffer)

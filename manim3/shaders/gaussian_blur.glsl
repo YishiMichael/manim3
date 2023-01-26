@@ -36,30 +36,25 @@ in VS_FS {
 out vec4 frag_color;
 
 
-vec4 horizontal_dilate(vec2 uv, sampler2D image) {
-    vec2 offset = 1.0 / textureSize(image, 0);
-    vec4 result = texture(image, uv) * u_convolution_core[0];
-    for (int i = 1; i < CONVOLUTION_CORE_SIZE; ++i) {
-        result += texture(image, uv + vec2(offset.x * i, 0.0)) * u_convolution_core[i];
-        result += texture(image, uv - vec2(offset.x * i, 0.0)) * u_convolution_core[i];
-    }
-    return result;
+vec2 horizontal_dilate(vec2 offset) {
+    return vec2(offset.x, 0.0);
 }
 
 
-vec4 vertical_dilate(vec2 uv, sampler2D image) {
-    vec2 offset = 1.0 / textureSize(image, 0);
-    vec4 result = texture(image, uv) * u_convolution_core[0];
-    for (int i = 1; i < CONVOLUTION_CORE_SIZE; ++i) {
-        result += texture(image, uv + vec2(0.0, offset.y * i)) * u_convolution_core[i];
-        result += texture(image, uv - vec2(0.0, offset.y * i)) * u_convolution_core[i];
-    }
-    return result;
+vec2 vertical_dilate(vec2 offset) {
+    return vec2(0.0, offset.y);
 }
 
 
 void main() {
-    frag_color = blur_subroutine(fs_in.uv, u_color_map);
+    vec2 uv = fs_in.uv;
+    vec2 offset = 1.0 / textureSize(u_color_map, 0);
+    vec2 directional_offset = blur_subroutine(offset);
+    frag_color = texture(u_color_map, uv) * u_convolution_core[0];
+    for (int i = 1; i < CONVOLUTION_CORE_SIZE; ++i) {
+        frag_color += texture(u_color_map, uv + i * directional_offset) * u_convolution_core[i];
+        frag_color += texture(u_color_map, uv - i * directional_offset) * u_convolution_core[i];
+    }
 }
 
 

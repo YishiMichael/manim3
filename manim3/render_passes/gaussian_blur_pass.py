@@ -31,12 +31,12 @@ class GaussianBlurPass(RenderPass):
         self.sigma: Real = sigma
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        GaussianBlurPassProcedure().set(
+        GaussianBlurPassRenderProcedure().set(
             sigma=self.sigma
         ).render(texture, target_framebuffer)
 
 
-class GaussianBlurPassProcedure(RenderProcedure):
+class GaussianBlurPassRenderProcedure(RenderProcedure):
     @lazy_property
     @staticmethod
     def _intermediate_texture_() -> moderngl.Texture:
@@ -94,8 +94,8 @@ class GaussianBlurPassProcedure(RenderProcedure):
     @staticmethod
     def _convolution_core_(sigma: Real) -> FloatsT:
         n = int(np.ceil(3.0 * sigma))
-        convolution_core = np.exp(-np.arange(-n, n + 1) ** 2 / (2.0 * sigma ** 2))
-        return convolution_core[n:] / convolution_core.sum()
+        convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
+        return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
     @lazy_property
     @staticmethod
@@ -128,7 +128,10 @@ class GaussianBlurPassProcedure(RenderProcedure):
         texture: moderngl.Texture,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        self.render_by_step(self.render_step(
+        #print(self._intermediate_framebuffer_)
+        #print(target_framebuffer)
+        #print()
+        self.render_step(
             shader_str=self.read_shader("gaussian_blur"),
             custom_macros=[
                 "#define blur_subroutine horizontal_dilate"
@@ -147,7 +150,8 @@ class GaussianBlurPassProcedure(RenderProcedure):
             enable_only=moderngl.NOTHING,
             context_state=self.context_state(),
             mode=moderngl.TRIANGLE_FAN
-        ), self.render_step(
+        )
+        self.render_step(
             shader_str=self.read_shader("gaussian_blur"),
             custom_macros=[
                 "#define blur_subroutine vertical_dilate"
@@ -166,4 +170,4 @@ class GaussianBlurPassProcedure(RenderProcedure):
             enable_only=moderngl.NOTHING,
             context_state=self.context_state(),
             mode=moderngl.TRIANGLE_FAN
-        ))
+        )

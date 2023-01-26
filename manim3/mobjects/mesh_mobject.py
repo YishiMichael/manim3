@@ -9,6 +9,7 @@ from colour import Color
 import moderngl
 import numpy as np
 
+from ..geometries.empty_geometry import EmptyGeometry
 from ..geometries.geometry import Geometry
 from ..custom_typing import (
     ColorType,
@@ -40,7 +41,7 @@ class MeshMobject(Mobject):
     @lazy_property_writable
     @staticmethod
     def _geometry_() -> Geometry:
-        return NotImplemented
+        return EmptyGeometry()
 
     def _get_local_sample_points(self) -> Vec3sT:
         return self._geometry_._position_
@@ -108,11 +109,6 @@ class MeshMobject(Mobject):
         index_buffer_o.write(geometry._index_)
         return index_buffer_o
 
-    @lazy_property_writable
-    @staticmethod
-    def _enable_only_() -> int:
-        return moderngl.BLEND | moderngl.DEPTH_TEST
-
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         MeshMobjectRenderProcedure().render(self, scene_config, target_framebuffer)
 
@@ -177,7 +173,13 @@ class MeshMobjectRenderProcedure(RenderProcedure):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        self.render_by_step(self.render_step(
+        #if mesh_mobject.__class__.__name__ == "SceneMobject":
+        #    from PIL import Image
+        #    print(target_framebuffer, id(target_framebuffer))
+        #    Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
+        #if mesh_mobject.__class__.__name__ != "SceneMobject":
+        target_framebuffer.clear()
+        self.render_step(
             shader_str=self.read_shader("mesh"),
             custom_macros=[],
             texture_storages=[
@@ -191,7 +193,15 @@ class MeshMobjectRenderProcedure(RenderProcedure):
             attributes=mesh_mobject._attributes_,
             index_buffer=mesh_mobject._index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=mesh_mobject._enable_only_,
+            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
             context_state=self.context_state(),
             mode=moderngl.TRIANGLES
-        ))
+        )
+        #if mesh_mobject.__class__.__name__ == "SceneMobject":
+        #    from PIL import Image
+        #    texture = mesh_mobject._u_color_maps_._texture_array_[0]
+        #    #print(mesh_mobject._u_color_maps_._texture_array_.shape)
+        #    #print(mesh_mobject._geometry_._position_)
+        #    print(target_framebuffer, id(target_framebuffer))
+        #    Image.frombytes('RGBA', texture.size, texture.read(), 'raw').show()
+        #    Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
