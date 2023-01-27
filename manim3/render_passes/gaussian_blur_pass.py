@@ -14,8 +14,6 @@ from ..utils.lazy import (
     lazy_property_writable
 )
 from ..utils.render_procedure import (
-    AttributesBuffer,
-    IndexBuffer,
     UniformBlockBuffer,
     RenderProcedure,
     TextureStorage
@@ -30,34 +28,6 @@ class GaussianBlurPass(RenderPass):
     @staticmethod
     def _u_color_map_o_() -> TextureStorage:
         return TextureStorage("sampler2D u_color_map")
-
-    @lazy_property
-    @staticmethod
-    def _attributes_() -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 in_position",
-            "vec2 in_uv"
-        ]).write({
-            "in_position": np.array([
-                [-1.0, -1.0, 0.0],
-                [1.0, -1.0, 0.0],
-                [1.0, 1.0, 0.0],
-                [-1.0, 1.0, 0.0],
-            ]),
-            "in_uv": np.array([
-                [0.0, 0.0],
-                [1.0, 0.0],
-                [1.0, 1.0],
-                [0.0, 1.0],
-            ])
-        })
-
-    @lazy_property
-    @staticmethod
-    def _index_buffer_() -> IndexBuffer:
-        return IndexBuffer().write(np.array((
-            0, 1, 2, 3
-        )))
 
     @lazy_property_writable
     @staticmethod
@@ -95,7 +65,7 @@ class GaussianBlurPass(RenderPass):
                     color_attachments=[intermediate_texture],
                     depth_attachment=None
                 ) as intermediate_framebuffer:
-            RenderProcedure.render_step(
+            RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("gaussian_blur"),
                 custom_macros=[
                     "#define blur_subroutine horizontal_dilate"
@@ -108,15 +78,12 @@ class GaussianBlurPass(RenderPass):
                 uniform_blocks=[
                     self._ub_convolution_core_
                 ],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=intermediate_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )
-            RenderProcedure.render_step(
+            RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("gaussian_blur"),
                 custom_macros=[
                     "#define blur_subroutine vertical_dilate"
@@ -129,11 +96,8 @@ class GaussianBlurPass(RenderPass):
                 uniform_blocks=[
                     self._ub_convolution_core_
                 ],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )

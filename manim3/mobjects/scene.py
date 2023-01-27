@@ -52,34 +52,6 @@ class ChildScene(Mobject):
     def _u_depth_map_o_() -> TextureStorage:
         return TextureStorage("sampler2D u_depth_map")
 
-    @lazy_property
-    @staticmethod
-    def _attributes_() -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 in_position",
-            "vec2 in_uv"
-        ]).write({
-            "in_position": np.array([
-                [-1.0, -1.0, 0.0],
-                [1.0, -1.0, 0.0],
-                [1.0, 1.0, 0.0],
-                [-1.0, 1.0, 0.0],
-            ]),
-            "in_uv": np.array([
-                [0.0, 0.0],
-                [1.0, 0.0],
-                [1.0, 1.0],
-                [0.0, 1.0],
-            ])
-        })
-
-    @lazy_property
-    @staticmethod
-    def _index_buffer_() -> IndexBuffer:
-        return IndexBuffer().write(np.array((
-            0, 1, 2, 3
-        )))
-
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Inspired from https://github.com/ambrosiogabe/MathAnimation
         # ./Animations/src/renderer/Renderer.cpp
@@ -116,9 +88,11 @@ class ChildScene(Mobject):
                             depth_attachment=component_depth_texture
                         ) as component_framebuffer:
                     mobject._render_with_passes(scene_config, component_framebuffer)
-                    RenderProcedure.render_step(
+                    RenderProcedure.fullscreen_render_step(
                         shader_str=RenderProcedure.read_shader("copy"),
-                        custom_macros=[],
+                        custom_macros=[
+                            "#define COPY_DEPTH"
+                        ],
                         texture_storages=[
                             self._u_color_map_o_.write(
                                 np.array(component_texture)
@@ -128,14 +102,11 @@ class ChildScene(Mobject):
                             )
                         ],
                         uniform_blocks=[],
-                        attributes=self._attributes_,
-                        index_buffer=self._index_buffer_,
                         framebuffer=opaque_framebuffer,
                         context_state=RenderProcedure.context_state(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=(moderngl.ONE, moderngl.ZERO)
-                        ),
-                        mode=moderngl.TRIANGLE_FAN
+                        )
                     )
 
             # Test against each fragment by the depth buffer, but never write to it.
@@ -156,7 +127,7 @@ class ChildScene(Mobject):
                     u_depth_map = self._u_depth_map_o_.write(
                         np.array(component_depth_texture)
                     )
-                    RenderProcedure.render_step(
+                    RenderProcedure.fullscreen_render_step(
                         shader_str=RenderProcedure.read_shader("oit_accum"),
                         custom_macros=[],
                         texture_storages=[
@@ -164,16 +135,13 @@ class ChildScene(Mobject):
                             u_depth_map
                         ],
                         uniform_blocks=[],
-                        attributes=self._attributes_,
-                        index_buffer=self._index_buffer_,
                         framebuffer=accum_framebuffer,
                         context_state=RenderProcedure.context_state(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=moderngl.ADDITIVE_BLENDING
-                        ),
-                        mode=moderngl.TRIANGLE_FAN
+                        )
                     )
-                    RenderProcedure.render_step(
+                    RenderProcedure.fullscreen_render_step(
                         shader_str=RenderProcedure.read_shader("oit_revealage"),
                         custom_macros=[],
                         texture_storages=[
@@ -181,19 +149,18 @@ class ChildScene(Mobject):
                             u_depth_map
                         ],
                         uniform_blocks=[],
-                        attributes=self._attributes_,
-                        index_buffer=self._index_buffer_,
                         framebuffer=revealage_framebuffer,
                         context_state=RenderProcedure.context_state(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
-                        ),
-                        mode=moderngl.TRIANGLE_FAN
+                        )
                     )
 
-            RenderProcedure.render_step(
+            RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("copy"),
-                custom_macros=[],
+                custom_macros=[
+                    "#define COPY_DEPTH"
+                ],
                 texture_storages=[
                     self._u_color_map_o_.write(
                         np.array(opaque_texture)
@@ -203,16 +170,13 @@ class ChildScene(Mobject):
                     )
                 ],
                 uniform_blocks=[],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                     blend_func=(moderngl.ONE, moderngl.ZERO)
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )
-            RenderProcedure.render_step(
+            RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("oit_compose"),
                 custom_macros=[],
                 texture_storages=[
@@ -224,13 +188,10 @@ class ChildScene(Mobject):
                     )
                 ],
                 uniform_blocks=[],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )
 
 

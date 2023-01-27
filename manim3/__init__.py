@@ -27,6 +27,7 @@ from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 
 from .render_passes.gaussian_blur_pass import *
+from .render_passes.pixelated_pass import *
 from .render_passes.render_pass import *
 
 from .utils.lazy import *

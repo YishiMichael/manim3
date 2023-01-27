@@ -764,17 +764,105 @@ class ContextState:
     wireframe: bool
 
 
-class RenderProcedure:
-    #_INSTANCE: "RenderProcedure" | None = None
+class RenderProcedure(LazyBase):
     _SHADER_STRS: ClassVar[dict[str, str]] = {}
+
     _WINDOW: ClassVar[PygletWindow] = ContextSingleton._WINDOW
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer] = ContextSingleton().detect_framebuffer()
+
+    _FULLSCREEN_ATTRIBUTES: AttributesBuffer = AttributesBuffer([
+        "vec3 in_position",
+        "vec2 in_uv"
+    ]).write({
+        "in_position": np.array([
+            [-1.0, -1.0, 0.0],
+            [1.0, -1.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [-1.0, 1.0, 0.0],
+        ]),
+        "in_uv": np.array([
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
+            [0.0, 1.0],
+        ])
+    })
+    _FULLSCREEN_INDEX_BUFFER: IndexBuffer = IndexBuffer().write(np.array((
+        0, 1, 2, 3
+    )))
 
     def __new__(cls):
         raise NotImplementedError
 
     def __init_subclass__(cls) -> None:
         raise NotImplementedError
+
+    @classmethod
+    def read_shader(cls, filename: str) -> str:
+        if (content := cls._SHADER_STRS.get(filename)) is not None:
+            return content
+        with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
+            content = shader_file.read()
+        cls._SHADER_STRS[filename] = content
+        return content
+
+    @classmethod
+    def context_state(
+        cls,
+        *,
+        enable_only: int,
+        depth_func: str = "<",
+        blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING,
+        blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD,
+        front_face: str = "ccw",
+        cull_face: str = "back",
+        wireframe: bool = False
+    ) -> ContextState:
+        return ContextState(
+            enable_only=enable_only,
+            depth_func=depth_func,
+            blend_func=blend_func,
+            blend_equation=blend_equation,
+            front_face=front_face,
+            cull_face=cull_face,
+            wireframe=wireframe
+        )
+
+    @classmethod
+    def texture(
+        cls,
+        *,
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+        components: int = 4,
+        dtype: str = "f1"
+    ) -> IntermediateTexture:
+        return IntermediateTexture(
+            size=size,
+            components=components,
+            dtype=dtype
+        )
+
+    @classmethod
+    def depth_texture(
+        cls,
+        *,
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
+    ) -> IntermediateDepthTexture:
+        return IntermediateDepthTexture(
+            size=size
+        )
+
+    @classmethod
+    def framebuffer(
+        cls,
+        *,
+        color_attachments: list[moderngl.Texture | moderngl.Renderbuffer],
+        depth_attachment: moderngl.Texture | moderngl.Renderbuffer | None
+    ) -> IntermediateFramebuffer:
+        return IntermediateFramebuffer(
+            color_attachments=color_attachments,
+            depth_attachment=depth_attachment
+        )
 
     @classmethod
     def render_step(
@@ -887,69 +975,26 @@ class RenderProcedure:
             #vertex_array.subroutines = tuple(subroutine_indices)
             vertex_array.render()
 
+    # TODO
     @classmethod
-    def read_shader(cls, filename: str) -> str:
-        if (content := cls._SHADER_STRS.get(filename)) is not None:
-            return content
-        with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
-            content = shader_file.read()
-        cls._SHADER_STRS[filename] = content
-        return content
-
-    @classmethod
-    def context_state(
+    def fullscreen_render_step(
         cls,
         *,
-        enable_only: int,
-        depth_func: str = "<",
-        blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING,
-        blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD,
-        front_face: str = "ccw",
-        cull_face: str = "back",
-        wireframe: bool = False
-    ) -> ContextState:
-        return ContextState(
-            enable_only=enable_only,
-            depth_func=depth_func,
-            blend_func=blend_func,
-            blend_equation=blend_equation,
-            front_face=front_face,
-            cull_face=cull_face,
-            wireframe=wireframe
-        )
-
-    @classmethod
-    def texture(
-        cls,
-        *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
-        components: int = 4,
-        dtype: str = "f1"
-    ) -> IntermediateTexture:
-        return IntermediateTexture(
-            size=size,
-            components=components,
-            dtype=dtype
-        )
-
-    @classmethod
-    def depth_texture(
-        cls,
-        *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
-    ) -> IntermediateDepthTexture:
-        return IntermediateDepthTexture(
-            size=size
-        )
-
-    @classmethod
-    def framebuffer(
-        cls,
-        *,
-        color_attachments: list[moderngl.Texture | moderngl.Renderbuffer],
-        depth_attachment: moderngl.Texture | moderngl.Renderbuffer | None
-    ) -> IntermediateFramebuffer:
-        return IntermediateFramebuffer(
-            color_attachments=color_attachments,
-            depth_attachment=depth_attachment
+        shader_str: str,
+        custom_macros: list[str],
+        texture_storages: list[TextureStorage],
+        uniform_blocks: list[UniformBlockBuffer],
+        framebuffer: moderngl.Framebuffer,
+        context_state: ContextState
+    ) -> None:
+        cls.render_step(
+            shader_str=shader_str,
+            custom_macros=custom_macros,
+            texture_storages=texture_storages,
+            uniform_blocks=uniform_blocks,
+            attributes=cls._FULLSCREEN_ATTRIBUTES,
+            index_buffer=cls._FULLSCREEN_INDEX_BUFFER,
+            framebuffer=framebuffer,
+            context_state=context_state,
+            mode=moderngl.TRIANGLE_FAN
         )
