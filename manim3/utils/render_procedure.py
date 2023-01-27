@@ -7,6 +7,7 @@ __all__ = [
     #"IntermediateTextures",
     "RenderProcedure",
     #"RenderStep",
+    "TextureStorage",
     "UniformBlockBuffer"
 ]
 
@@ -30,6 +31,7 @@ from typing import (
     Hashable,
     #TypeVar
 )
+import warnings
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
@@ -50,7 +52,7 @@ from ..utils.lazy import (
 
 
 class ContextSingleton:
-    _window: PygletWindow = PygletWindow(
+    _WINDOW: PygletWindow = PygletWindow(
         size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
         fullscreen=False,
         resizable=True,
@@ -58,7 +60,7 @@ class ContextSingleton:
         vsync=True,
         cursor=True
     )
-    _INSTANCE: moderngl.Context = _window.ctx
+    _INSTANCE: moderngl.Context = _WINDOW.ctx
     #_INSTANCE.gc_mode = "auto"
     atexit.register(lambda: ContextSingleton._INSTANCE.release())
 
@@ -66,7 +68,11 @@ class ContextSingleton:
         return cls._INSTANCE
 
 
-@dataclass
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
 class FieldInfo:
     dtype_str: str
     name: str
@@ -616,14 +622,6 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
         )
         return program
 
-    #@classmethod
-    #def _insert_macros(cls, shader: str, macros: list[str]) -> str:
-    #    def repl(match_obj: re.Match) -> str:
-    #        return match_obj.group() + "\n" + "".join(
-    #            f"{macro}\n" for macro in macros
-    #        )
-    #    return re.sub(r"#version .*\n", repl, shader, flags=re.MULTILINE)
-
     @classmethod
     def _set_texture_bindings(cls, program: moderngl.Program, texture_storage_shape_dict: dict[str, tuple[int, ...]]) -> dict[str, int]:
         texture_binding_offset_dict: dict[str, int] = {}
@@ -653,7 +651,6 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
                 assert not multi_index
                 uniform_size = 1
                 local_offset = 0
-                #uniform_values = [offset]
             else:
                 assert len(multi_index) == len(texture_storage_shape) - 1
                 uniform_size = texture_storage_shape[-1]
@@ -662,43 +659,6 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
             offset = texture_binding_offset_dict[texture_storage_name] + local_offset
             member.value = offset if uniform_size == 1 else list(range(offset, offset + uniform_size))
         return texture_binding_offset_dict
-
-
-
-        #texture_binding_dict: dict[str, dict[tuple[int, ...], int]] = {}
-        #texture_uniform_match_pattern = re.compile(r"""
-        #    (?P<texture_name>\w+?)
-        #    (?P<multi_index>(\[\d+?\])*)
-        #""", flags=re.VERBOSE)
-        #binding = 1
-        #for name in program:
-        #    member = program[name]
-        #    if not isinstance(member, moderngl.Uniform):
-        #        continue
-        #    # Used as a sampler2D
-        #    assert member.dimension == 1
-        #    match_obj = texture_uniform_match_pattern.fullmatch(name)
-        #    assert match_obj is not None
-        #    texture_name = match_obj.group("texture_name")
-        #    multi_index = tuple(
-        #        int(index_match.group(1))
-        #        for index_match in re.finditer(r"\[(\d+?)\]", match_obj.group("multi_index"))
-        #    )
-        #    if texture_name not in texture_binding_dict:
-        #        texture_binding_dict[texture_name] = {}
-        #    child_binding_dict = texture_binding_dict[texture_name]
-        #    uniform_values: list[int] = []
-        #    if member.array_length == 1:
-        #        child_binding_dict[multi_index] = binding
-        #        uniform_values.append(binding)
-        #        binding += 1
-        #    else:
-        #        for array_index in range(member.array_length):
-        #            child_binding_dict[(*multi_index, array_index)] = binding
-        #            uniform_values.append(binding)
-        #            binding += 1
-        #    member.value = uniform_values[0] if len(uniform_values) == 1 else uniform_values
-        #return texture_binding_dict
 
     @classmethod
     def _set_uniform_block_bindings(cls, program: moderngl.Program) -> dict[str, int]:
@@ -728,28 +688,123 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
         return tuple(sorted(d.items()))
 
 
-@dataclass
+class IntermediateTexture:
+    _CACHE: ClassVar[dict[bytes, list[moderngl.Texture]]] = {}
+
+    def __init__(
+        self,
+        *,
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+        components: int = 4,
+        dtype: str = "f1"
+    ):
+        hash_val = Program._hash_items(size, components, dtype)  # TODO
+        cached_instances = self._CACHE.get(hash_val)
+        if cached_instances is not None and cached_instances:
+            texture = cached_instances.pop()
+        else:
+            texture = ContextSingleton().texture(
+                size=size,
+                components=components,
+                dtype=dtype
+            )
+        self._hash_val: bytes = hash_val
+        self._instance: moderngl.Texture = texture
+
+    def __enter__(self) -> moderngl.Texture:
+        return self._instance
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        if exc_type is None:
+            self._CACHE.setdefault(self._hash_val, []).append(self._instance)
+        else:
+            self._instance.release()
+            for cached_instances in self._CACHE.values():
+                for texture in cached_instances:
+                    texture.release()
+
+
+class IntermediateDepthTexture:
+    _CACHE: ClassVar[dict[bytes, list[moderngl.Texture]]] = {}
+
+    def __init__(
+        self,
+        *,
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
+    ):
+        hash_val = Program._hash_items(size)  # TODO
+        cached_instances = self._CACHE.get(hash_val)
+        if cached_instances is not None and cached_instances:
+            texture = cached_instances.pop()
+        else:
+            # Initialized as ones (far clip plane)
+            texture = ContextSingleton().depth_texture(
+                size=size,
+                #data=np.ones(texture_config.size, dtype=np.float32).tobytes()  # TODO: use framebuffer.clear()
+            )
+        self._hash_val: bytes = hash_val
+        self._instance: moderngl.Texture = texture
+
+    def __enter__(self) -> moderngl.Texture:
+        return self._instance
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        if exc_type is None:
+            self._CACHE.setdefault(self._hash_val, []).append(self._instance)
+        else:
+            self._instance.release()
+            for cached_instances in self._CACHE.values():
+                for texture in cached_instances:
+                    texture.release()
+
+
+class IntermediateFramebuffer:
+    def __init__(
+        self,
+        *,
+        color_attachments: list[moderngl.Texture | moderngl.Renderbuffer],
+        depth_attachment: moderngl.Texture | moderngl.Renderbuffer | None
+    ):
+        framebuffer = ContextSingleton().framebuffer(
+            color_attachments=tuple(color_attachments),
+            depth_attachment=depth_attachment
+        )
+        framebuffer.clear()
+        self._instance: moderngl.Framebuffer = framebuffer
+
+    def __enter__(self) -> moderngl.Framebuffer:
+        return self._instance
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        self._instance.release()
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
 class ContextState:
-    depth_func: str = "<"
-    blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING
-    blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD
-    front_face: str = "ccw"
-    cull_face: str = "back"
-    wireframe: bool = False
+    enable_only: int
+    depth_func: str
+    blend_func: tuple[int, int] | tuple[int, int, int, int]
+    blend_equation: int | tuple[int, int]
+    front_face: str
+    cull_face: str
+    wireframe: bool
 
 
-class RenderProcedure(LazyBase):
-    _INSTANCES: "ClassVar[dict[type[RenderProcedure], RenderProcedure]]" = {}
+class RenderProcedure:
+    #_INSTANCE: "RenderProcedure" | None = None
     _SHADER_STRS: ClassVar[dict[str, str]] = {}
-    #_DEFAULT_CONTEXT_STATE: ClassVar[ContextState] = ContextState()
+    _WINDOW: ClassVar[PygletWindow] = ContextSingleton._WINDOW
+    _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer] = ContextSingleton().detect_framebuffer()
 
     def __new__(cls):
-        if (instance := cls._INSTANCES.get(cls)) is not None:
-            assert isinstance(instance, cls)
-            return instance
-        instance = super().__new__(cls)
-        cls._INSTANCES[cls] = instance
-        return instance
+        raise NotImplementedError
+
+    def __init_subclass__(cls) -> None:
+        raise NotImplementedError
 
     @classmethod
     def render_step(
@@ -762,7 +817,6 @@ class RenderProcedure(LazyBase):
         attributes: AttributesBuffer,
         index_buffer: IndexBuffer,
         framebuffer: moderngl.Framebuffer,
-        enable_only: int,
         context_state: ContextState,
         mode: int
     ) -> None:
@@ -781,6 +835,7 @@ class RenderProcedure(LazyBase):
             if not re.fullmatch(r"__\w+__", array_len_name)
         }
 
+        context = ContextSingleton()
         program = Program(
             shader_str=shader_str,
             custom_macros=custom_macros,
@@ -840,17 +895,22 @@ class RenderProcedure(LazyBase):
         program_attributes = program._attributes_
         attributes._validate(program_attributes)
         buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))
-        vertex_array = ContextSingleton().vertex_array(
+        vertex_array = context.vertex_array(
             program=program._program_,
             content=[(attributes._buffer_, buffer_format, *attribute_names)],
             index_buffer=index_buffer._buffer_,
             mode=mode
         )
 
-        cls._set_context_state(context_state)
-        with ContextSingleton().scope(
+        context.depth_func = context_state.depth_func
+        context.blend_func = context_state.blend_func
+        context.blend_equation = context_state.blend_equation
+        context.front_face = context_state.front_face
+        context.cull_face = context_state.cull_face
+        context.wireframe = context_state.wireframe
+        with context.scope(
             framebuffer=framebuffer,
-            enable_only=enable_only,
+            enable_only=context_state.enable_only,
             textures=tuple(texture_bindings),
             uniform_buffers=tuple(uniform_block_bindings)
         ):
@@ -858,15 +918,15 @@ class RenderProcedure(LazyBase):
             vertex_array.render()
         #cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
 
-    @classmethod
-    def _set_context_state(cls, context_state: ContextState) -> None:
-        context = ContextSingleton()
-        context.depth_func = context_state.depth_func
-        context.blend_func = context_state.blend_func
-        context.blend_equation = context_state.blend_equation
-        context.front_face = context_state.front_face
-        context.cull_face = context_state.cull_face
-        context.wireframe = context_state.wireframe
+    #@classmethod
+    #def _set_context_state(cls, context_state: ContextState) -> None:
+    #    context = ContextSingleton()
+    #    context.depth_func = context_state.depth_func
+    #    context.blend_func = context_state.blend_func
+    #    context.blend_equation = context_state.blend_equation
+    #    context.front_face = context_state.front_face
+    #    context.cull_face = context_state.cull_face
+    #    context.wireframe = context_state.wireframe
 
     #@classmethod
     #def render_by_step(cls, *render_steps: RenderStep) -> None:
@@ -891,6 +951,7 @@ class RenderProcedure(LazyBase):
     def context_state(
         cls,
         *,
+        enable_only: int,
         depth_func: str = "<",
         blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING,
         blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD,
@@ -899,6 +960,7 @@ class RenderProcedure(LazyBase):
         wireframe: bool = False
     ) -> ContextState:
         return ContextState(
+            enable_only=enable_only,
             depth_func=depth_func,
             blend_func=blend_func,
             blend_equation=blend_equation,
@@ -908,51 +970,37 @@ class RenderProcedure(LazyBase):
         )
 
     @classmethod
-    def construct_texture(
+    def texture(
         cls,
         *,
         size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
         components: int = 4,
-        data: bytes | None = None,
         dtype: str = "f1"
-    ) -> moderngl.Texture:
-        return ContextSingleton().texture(
+    ) -> IntermediateTexture:
+        return IntermediateTexture(
             size=size,
             components=components,
-            data=data,
             dtype=dtype
         )
 
     @classmethod
-    def construct_depth_texture(
+    def depth_texture(
         cls,
         *,
         size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
-    ) -> moderngl.Texture:
-        # Initialized as ones (far clip plane)
-        return ContextSingleton().depth_texture(
-            size=size,
-            data=np.ones((PIXEL_WIDTH, PIXEL_HEIGHT), dtype=np.float32).tobytes()
+    ) -> IntermediateDepthTexture:
+        return IntermediateDepthTexture(
+            size=size
         )
 
     @classmethod
-    def construct_framebuffer(
+    def framebuffer(
         cls,
         *,
         color_attachments: list[moderngl.Texture | moderngl.Renderbuffer],
         depth_attachment: moderngl.Texture | moderngl.Renderbuffer | None
-    ) -> moderngl.Framebuffer:
-        return ContextSingleton().framebuffer(
-            color_attachments=tuple(color_attachments),
+    ) -> IntermediateFramebuffer:
+        return IntermediateFramebuffer(
+            color_attachments=color_attachments,
             depth_attachment=depth_attachment
         )
-
-    @lazy_property
-    @staticmethod
-    def _window_() -> PygletWindow:
-        return ContextSingleton._window
-
-    @lazy_property
-    @staticmethod
-    def _window_framebuffer_() -> moderngl.Framebuffer:
-        return ContextSingleton().detect_framebuffer()

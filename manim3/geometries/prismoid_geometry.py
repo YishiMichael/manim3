@@ -11,10 +11,7 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import Geometry
 from ..geometries.shape_geometry import ShapeGeometry
-from ..utils.shape import (
-    LineString2D,
-    Shape
-)
+from ..utils.shape import Shape
 
 
 class PrismoidGeometry(Geometry):
@@ -26,11 +23,9 @@ class PrismoidGeometry(Geometry):
         index_offset = 0
         for line_string in shape._multi_line_string_._children_:
             coords = line_string._coords_
-            #if not LineString2D._is_counterclockwise(coords):
-            #    # Normalize winding
-            #    coords = coords[::-1]
             # Remove redundant adjacent points to ensure
-            # all segments have non-zero lengths
+            # all segments have non-zero lengths.
+            # TODO: Shall we normalize winding?
             points: list[Vec2T] = [coords[0]]
             current_point = coords[0]
             for point in coords:
@@ -55,8 +50,8 @@ class PrismoidGeometry(Geometry):
                     n_avg = n0 + n1
                     ip_normal_pairs.append((ip, n_avg / np.linalg.norm(n_avg)))
                 else:
-                    # Notice, vertices shall be duplicated
-                    # if its connected faces have significantly different normal vectors
+                    # Vertices shall be duplicated
+                    # if its connected faces have significantly different normal vectors.
                     ip_normal_pairs.append((ip, n0))
                     ip_normal_pairs.append((ip, n1))
 

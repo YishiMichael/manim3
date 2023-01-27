@@ -13,7 +13,7 @@ from ..utils.lazy import (
     lazy_property,
     lazy_property_writable
 )
-from ..utils.renderable import (
+from ..utils.render_procedure import (
     AttributesBuffer,
     #ContextState,
     #Framebuffer,
@@ -28,29 +28,7 @@ from ..utils.renderable import (
 
 class GaussianBlurPass(RenderPass):
     def __init__(self, sigma: Real = 1.0):
-        self.sigma: Real = sigma
-
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        GaussianBlurPassRenderProcedure().set(
-            sigma=self.sigma
-        ).render(texture, target_framebuffer)
-
-
-class GaussianBlurPassRenderProcedure(RenderProcedure):
-    @lazy_property
-    @staticmethod
-    def _intermediate_texture_() -> moderngl.Texture:
-        return RenderProcedure.construct_texture()
-
-    @lazy_property
-    @staticmethod
-    def _intermediate_framebuffer_(
-        intermediate_texture: moderngl.Texture
-    ) -> moderngl.Framebuffer:
-        return RenderProcedure.construct_framebuffer(
-            color_attachments=[intermediate_texture],
-            depth_attachment=None
-        )
+        self._sigma_ = sigma
 
     @lazy_property
     @staticmethod
@@ -115,59 +93,89 @@ class GaussianBlurPassRenderProcedure(RenderProcedure):
         })
         return ub_convolution_core_o
 
-    def set(
-        self,
-        *,
-        sigma: Real
-    ):
-        self._sigma_ = sigma
-        return self
-
-    def render(
-        self,
-        texture: moderngl.Texture,
-        target_framebuffer: moderngl.Framebuffer
-    ) -> None:
+    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         #print(self._intermediate_framebuffer_)
         #print(target_framebuffer)
         #print()
-        self.render_step(
-            shader_str=self.read_shader("gaussian_blur"),
-            custom_macros=[
-                "#define blur_subroutine horizontal_dilate"
-            ],
-            texture_storages=[
-                self._u_color_map_o_.write(
-                    np.array(texture)
-                )
-            ],
-            uniform_blocks=[
-                self._ub_convolution_core_
-            ],
-            attributes=self._attributes_,
-            index_buffer=self._index_buffer_,
-            framebuffer=self._intermediate_framebuffer_,
-            enable_only=moderngl.NOTHING,
-            context_state=self.context_state(),
-            mode=moderngl.TRIANGLE_FAN
-        )
-        self.render_step(
-            shader_str=self.read_shader("gaussian_blur"),
-            custom_macros=[
-                "#define blur_subroutine vertical_dilate"
-            ],
-            texture_storages=[
-                self._u_color_map_o_.write(
-                    np.array(self._intermediate_texture_)
-                )
-            ],
-            uniform_blocks=[
-                self._ub_convolution_core_
-            ],
-            attributes=self._attributes_,
-            index_buffer=self._index_buffer_,
-            framebuffer=target_framebuffer,
-            enable_only=moderngl.NOTHING,
-            context_state=self.context_state(),
-            mode=moderngl.TRIANGLE_FAN
-        )
+        with RenderProcedure.texture() as intermediate_texture, \
+                RenderProcedure.framebuffer(
+                    color_attachments=[intermediate_texture],
+                    depth_attachment=None
+                ) as intermediate_framebuffer:
+            RenderProcedure.render_step(
+                shader_str=RenderProcedure.read_shader("gaussian_blur"),
+                custom_macros=[
+                    "#define blur_subroutine horizontal_dilate"
+                ],
+                texture_storages=[
+                    self._u_color_map_o_.write(
+                        np.array(texture)
+                    )
+                ],
+                uniform_blocks=[
+                    self._ub_convolution_core_
+                ],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
+                framebuffer=intermediate_framebuffer,
+                context_state=RenderProcedure.context_state(
+                    enable_only=moderngl.NOTHING
+                ),
+                mode=moderngl.TRIANGLE_FAN
+            )
+            RenderProcedure.render_step(
+                shader_str=RenderProcedure.read_shader("gaussian_blur"),
+                custom_macros=[
+                    "#define blur_subroutine vertical_dilate"
+                ],
+                texture_storages=[
+                    self._u_color_map_o_.write(
+                        np.array(intermediate_texture)
+                    )
+                ],
+                uniform_blocks=[
+                    self._ub_convolution_core_
+                ],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
+                framebuffer=target_framebuffer,
+                context_state=RenderProcedure.context_state(
+                    enable_only=moderngl.NOTHING
+                ),
+                mode=moderngl.TRIANGLE_FAN
+            )
+            #intermediate_framebuffer.release()
+
+
+#class GaussianBlurPassRenderProcedure(RenderProcedure):
+#    @lazy_property
+#    @staticmethod
+#    def _intermediate_texture_() -> moderngl.Texture:
+#        return RenderProcedure.construct_texture()
+
+#    @lazy_property
+#    @staticmethod
+#    def _intermediate_framebuffer_(
+#        intermediate_texture: moderngl.Texture
+#    ) -> moderngl.Framebuffer:
+#        return RenderProcedure.construct_framebuffer(
+#            color_attachments=[intermediate_texture],
+#            depth_attachment=None
+#        )
+
+#    
+
+#    def set(
+#        self,
+#        *,
+#        sigma: Real
+#    ):
+#        self._sigma_ = sigma
+#        return self
+
+#    def render(
+#        self,
+#        texture: moderngl.Texture,
+#        target_framebuffer: moderngl.Framebuffer
+#    ) -> None:
+#        

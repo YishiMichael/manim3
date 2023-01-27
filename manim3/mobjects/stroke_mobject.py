@@ -18,13 +18,10 @@ from ..utils.lazy import (
     lazy_property,
     lazy_property_writable
 )
-from ..utils.renderable import (
+from ..utils.render_procedure import (
     AttributesBuffer,
-    #ContextState,
-    #Framebuffer,
     IndexBuffer,
     RenderProcedure,
-    #RenderStep,
     UniformBlockBuffer
 )
 from ..utils.scene_config import SceneConfig
@@ -181,58 +178,48 @@ class StrokeMobject(Mobject):
         return join_index_buffer_o
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        StrokeMobjectRenderProcedure().render(self, scene_config, target_framebuffer)
-
-
-class StrokeMobjectRenderProcedure(RenderProcedure):
-    def render(
-        self,
-        stroke_mobject: StrokeMobject,
-        scene_config: SceneConfig,
-        target_framebuffer: moderngl.Framebuffer
-    ) -> None:
-        target_framebuffer.clear()
-        subroutine_name = "single_sided" if stroke_mobject._single_sided_ else "both_sided"
+        #target_framebuffer.clear()
+        subroutine_name = "single_sided" if self._single_sided_ else "both_sided"
         # TODO: Is this already the best practice?
         # Render color
         target_framebuffer.depth_mask = False
-        self.render_step(
-            shader_str=self.read_shader("stroke_line"),
+        RenderProcedure.render_step(
+            shader_str=RenderProcedure.read_shader("stroke_line"),
             custom_macros=[
                 f"#define line_subroutine {subroutine_name}"
             ],
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
-                stroke_mobject._ub_model_,
-                stroke_mobject._ub_stroke_
+                self._ub_model_,
+                self._ub_stroke_
             ],
-            attributes=stroke_mobject._attributes_,
-            index_buffer=stroke_mobject._line_index_buffer_,
+            attributes=self._attributes_,
+            index_buffer=self._line_index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND,
-            context_state=self.context_state(
+            context_state=RenderProcedure.context_state(
+                enable_only=moderngl.BLEND,
                 blend_func=moderngl.ADDITIVE_BLENDING,
                 blend_equation=moderngl.MAX
             ),
             mode=moderngl.LINE_STRIP
         )
-        self.render_step(
-            shader_str=self.read_shader("stroke_join"),
+        RenderProcedure.render_step(
+            shader_str=RenderProcedure.read_shader("stroke_join"),
             custom_macros=[
                 f"#define join_subroutine {subroutine_name}"
             ],
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
-                stroke_mobject._ub_model_,
-                stroke_mobject._ub_stroke_
+                self._ub_model_,
+                self._ub_stroke_
             ],
-            attributes=stroke_mobject._attributes_,
-            index_buffer=stroke_mobject._join_index_buffer_,
+            attributes=self._attributes_,
+            index_buffer=self._join_index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.BLEND,
-            context_state=self.context_state(
+            context_state=RenderProcedure.context_state(
+                enable_only=moderngl.BLEND,
                 blend_func=moderngl.ADDITIVE_BLENDING,
                 blend_equation=moderngl.MAX
             ),
@@ -241,40 +228,52 @@ class StrokeMobjectRenderProcedure(RenderProcedure):
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
-        self.render_step(
-            shader_str=self.read_shader("stroke_line"),
+        RenderProcedure.render_step(
+            shader_str=RenderProcedure.read_shader("stroke_line"),
             custom_macros=[
                 f"#define line_subroutine {subroutine_name}"
             ],
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
-                stroke_mobject._ub_model_,
-                stroke_mobject._ub_stroke_
+                self._ub_model_,
+                self._ub_stroke_
             ],
-            attributes=stroke_mobject._attributes_,
-            index_buffer=stroke_mobject._line_index_buffer_,
+            attributes=self._attributes_,
+            index_buffer=self._line_index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.DEPTH_TEST,
-            context_state=self.context_state(),
+            context_state=RenderProcedure.context_state(
+                enable_only=moderngl.DEPTH_TEST
+            ),
             mode=moderngl.LINE_STRIP
         )
-        self.render_step(
-            shader_str=self.read_shader("stroke_join"),
+        RenderProcedure.render_step(
+            shader_str=RenderProcedure.read_shader("stroke_join"),
             custom_macros=[
                 f"#define join_subroutine {subroutine_name}"
             ],
             texture_storages=[],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
-                stroke_mobject._ub_model_,
-                stroke_mobject._ub_stroke_
+                self._ub_model_,
+                self._ub_stroke_
             ],
-            attributes=stroke_mobject._attributes_,
-            index_buffer=stroke_mobject._join_index_buffer_,
+            attributes=self._attributes_,
+            index_buffer=self._join_index_buffer_,
             framebuffer=target_framebuffer,
-            enable_only=moderngl.DEPTH_TEST,
-            context_state=self.context_state(),
+            context_state=RenderProcedure.context_state(
+                enable_only=moderngl.DEPTH_TEST
+            ),
             mode=moderngl.TRIANGLES
         )
         target_framebuffer.color_mask = (True, True, True, True)
+
+
+
+#class StrokeMobjectRenderProcedure(RenderProcedure):
+#    def render(
+#        self,
+#        stroke_mobject: StrokeMobject,
+#        scene_config: SceneConfig,
+#        target_framebuffer: moderngl.Framebuffer
+#    ) -> None:

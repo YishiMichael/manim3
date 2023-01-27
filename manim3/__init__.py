@@ -30,7 +30,7 @@ from .render_passes.gaussian_blur_pass import *
 from .render_passes.render_pass import *
 
 from .utils.lazy import *
-from .utils.renderable import *
+from .utils.render_procedure import *
 from .utils.scene_config import *
 from .utils.shape import *
 

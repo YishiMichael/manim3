@@ -30,7 +30,6 @@ from ..custom_typing import (
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
-    lazy_property_updatable,
     lazy_property_writable
 )
 
@@ -365,9 +364,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
 
 
 class LineString2D(LineString[Vec2T, Vec2sT]):
-    @classmethod
-    def _is_counterclockwise(cls, coords: Vec2sT) -> float:
-        return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0 > 0.0
+    pass
 
 
 class LineString3D(LineString[Vec3T, Vec3sT]):

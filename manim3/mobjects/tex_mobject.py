@@ -22,7 +22,11 @@ from ..custom_typing import (
 from ..mobjects.string_mobject import StringMobject
 
 
-@dataclass
+@dataclass(
+    frozen=True,
+    kw_only=False,
+    slots=True
+)
 class TexTemplate:
     description: str
     compiler: str

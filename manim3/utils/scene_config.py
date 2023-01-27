@@ -15,7 +15,7 @@ from ..utils.lazy import (
     lazy_property,
     lazy_property_writable
 )
-from ..utils.renderable import UniformBlockBuffer
+from ..utils.render_procedure import UniformBlockBuffer
 
 
 class SceneConfig(LazyBase):

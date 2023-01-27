@@ -16,7 +16,7 @@ from ..custom_typing import (
     Vec2T,
     Vec3T
 )
-from ..utils.renderable import UniformBlockBuffer
+from ..utils.render_procedure import UniformBlockBuffer
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
