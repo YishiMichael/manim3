@@ -15,13 +15,9 @@ from ..utils.lazy import (
 )
 from ..utils.render_procedure import (
     AttributesBuffer,
-    #ContextState,
-    #Framebuffer,
     IndexBuffer,
-    #IntermediateTextures,
     UniformBlockBuffer,
     RenderProcedure,
-    #RenderStep,
     TextureStorage
 )
 
@@ -94,9 +90,6 @@ class GaussianBlurPass(RenderPass):
         return ub_convolution_core_o
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        #print(self._intermediate_framebuffer_)
-        #print(target_framebuffer)
-        #print()
         with RenderProcedure.texture() as intermediate_texture, \
                 RenderProcedure.framebuffer(
                     color_attachments=[intermediate_texture],
@@ -144,38 +137,3 @@ class GaussianBlurPass(RenderPass):
                 ),
                 mode=moderngl.TRIANGLE_FAN
             )
-            #intermediate_framebuffer.release()
-
-
-#class GaussianBlurPassRenderProcedure(RenderProcedure):
-#    @lazy_property
-#    @staticmethod
-#    def _intermediate_texture_() -> moderngl.Texture:
-#        return RenderProcedure.construct_texture()
-
-#    @lazy_property
-#    @staticmethod
-#    def _intermediate_framebuffer_(
-#        intermediate_texture: moderngl.Texture
-#    ) -> moderngl.Framebuffer:
-#        return RenderProcedure.construct_framebuffer(
-#            color_attachments=[intermediate_texture],
-#            depth_attachment=None
-#        )
-
-#    
-
-#    def set(
-#        self,
-#        *,
-#        sigma: Real
-#    ):
-#        self._sigma_ = sigma
-#        return self
-
-#    def render(
-#        self,
-#        texture: moderngl.Texture,
-#        target_framebuffer: moderngl.Framebuffer
-#    ) -> None:
-#        

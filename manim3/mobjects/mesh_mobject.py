@@ -129,10 +129,6 @@ class MeshMobject(Mobject):
             ),
             mode=moderngl.TRIANGLES
         )
-        #print(target_framebuffer.color_mask, target_framebuffer.depth_mask)
-        #print(self._attributes_._is_empty(), self._index_buffer_._is_empty())
-        #from PIL import Image
-        #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
 
     @classmethod
     def _color_to_vector(cls, color: ColorType) -> Vec4T:
@@ -186,44 +182,3 @@ class MeshMobject(Mobject):
         else:
             pure_color = MeshMobject._color_to_vector(color)
         return pure_color[None].repeat(len(position), axis=0)
-
-
-#class MeshMobjectRenderProcedure(RenderProcedure):
-#    def render(
-#        self,
-#        mesh_mobject: MeshMobject,
-#        scene_config: SceneConfig,
-#        target_framebuffer: moderngl.Framebuffer
-#    ) -> None:
-#        #if mesh_mobject.__class__.__name__ == "SceneMobject":
-#        #    from PIL import Image
-#        #    print(target_framebuffer, id(target_framebuffer))
-#        #    Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
-#        #if mesh_mobject.__class__.__name__ != "SceneMobject":
-#        #target_framebuffer.clear()
-#        self.render_step(
-#            shader_str=self.read_shader("mesh"),
-#            custom_macros=[],
-#            texture_storages=[
-#                mesh_mobject._u_color_maps_
-#            ],
-#            uniform_blocks=[
-#                scene_config._camera_._ub_camera_,
-#                mesh_mobject._ub_model_,
-#                scene_config._ub_lights_
-#            ],
-#            attributes=mesh_mobject._attributes_,
-#            index_buffer=mesh_mobject._index_buffer_,
-#            framebuffer=target_framebuffer,
-#            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-#            context_state=self.context_state(),
-#            mode=moderngl.TRIANGLES
-#        )
-#        #if mesh_mobject.__class__.__name__ == "SceneMobject":
-#        #    from PIL import Image
-#        #    texture = mesh_mobject._u_color_maps_._texture_array_[0]
-#        #    #print(mesh_mobject._u_color_maps_._texture_array_.shape)
-#        #    #print(mesh_mobject._geometry_._position_)
-#        #    print(target_framebuffer, id(target_framebuffer))
-#        #    Image.frombytes('RGBA', texture.size, texture.read(), 'raw').show()
-#        #    Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()

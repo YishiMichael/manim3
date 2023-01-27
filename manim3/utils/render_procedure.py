@@ -1,23 +1,13 @@
 __all__ = [
     "AttributesBuffer",
-    #"ContextState",
-    #"Framebuffer",
     "IndexBuffer",
-    #"IntermediateDepthTextures",
-    #"IntermediateTextures",
     "RenderProcedure",
-    #"RenderStep",
     "TextureStorage",
     "UniformBlockBuffer"
 ]
 
 
-#from abc import (
-#    ABC,
-#    abstractmethod
-#)
 import atexit
-#from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import reduce
 import operator as op
@@ -26,12 +16,8 @@ import re
 from typing import (
     Any,
     ClassVar,
-    #Generator,
-    #Generic,
     Hashable,
-    #TypeVar
 )
-import warnings
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window as PygletWindow
@@ -242,36 +228,22 @@ class GLSLDynamicStruct(LazyBase):
                     child_struct_fields_info, child_structs_info, child_data, next_depth
                 )
                 dynamic_array_lens.update(child_dynamic_array_lens)
-                #base_alignment, pad_tail = cls._get_component_alignment(None, shape)
                 base_alignment = 16
-                #if cls._LAYOUT == "packed":
-                #    base_alignment = 0
-                #elif cls._LAYOUT == "std140":
-                #    base_alignment = 16
-                #else:
-                #    raise NotImplementedError
             else:
                 atomic_dtype = cls._GLSL_DTYPE[dtype_str]
                 assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
                 if not data_value.size:
                     continue
                 assert atomic_dtype.shape == data_value.shape[next_depth:]
-                #base_alignment, pad_tail = cls._get_component_alignment(atomic_dtype, shape)
                 child_dtype = cls._align_atomic_dtype(atomic_dtype, not shape)
                 base_alignment = child_dtype.base.itemsize
-                #child_dtype = np.dtype({
-                #    "names": ["_"],
-                #    "formats": [atomic_dtype],
-                #    "itemsize": base_alignment if base_alignment else atomic_dtype.base.itemsize
-                #})
 
             if cls._LAYOUT == "std140":
                 assert child_dtype.itemsize % base_alignment == 0
                 offset += (-offset) % base_alignment
             add_field_item(name, child_dtype, shape, offset)
             offset += cls._int_prod(shape) * child_dtype.itemsize
-            #if pad_tail and base_alignment:
-            #    offset += (-offset) % base_alignment
+
         if cls._LAYOUT == "std140":
             offset += (-offset) % 16
 
@@ -737,10 +709,8 @@ class IntermediateDepthTexture:
         if cached_instances is not None and cached_instances:
             texture = cached_instances.pop()
         else:
-            # Initialized as ones (far clip plane)
             texture = ContextSingleton().depth_texture(
-                size=size,
-                #data=np.ones(texture_config.size, dtype=np.float32).tobytes()  # TODO: use framebuffer.clear()
+                size=size
             )
         self._hash_val: bytes = hash_val
         self._instance: moderngl.Texture = texture
@@ -916,27 +886,6 @@ class RenderProcedure:
         ):
             #vertex_array.subroutines = tuple(subroutine_indices)
             vertex_array.render()
-        #cls._set_context_state(cls._DEFAULT_CONTEXT_STATE)
-
-    #@classmethod
-    #def _set_context_state(cls, context_state: ContextState) -> None:
-    #    context = ContextSingleton()
-    #    context.depth_func = context_state.depth_func
-    #    context.blend_func = context_state.blend_func
-    #    context.blend_equation = context_state.blend_equation
-    #    context.front_face = context_state.front_face
-    #    context.cull_face = context_state.cull_face
-    #    context.wireframe = context_state.wireframe
-
-    #@classmethod
-    #def render_by_step(cls, *render_steps: RenderStep) -> None:
-    #    for render_step in render_steps:
-    #        cls._render_single_step(render_step)
-
-    #@classmethod
-    #def _render_by_routine(cls, render_routine: list[RenderStep]) -> None:
-    #    for render_step in render_routine:
-    #        cls.render_by_step(render_step)
 
     @classmethod
     def read_shader(cls, filename: str) -> str:

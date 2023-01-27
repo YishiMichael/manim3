@@ -532,6 +532,27 @@ class Mobject(LazyBase):
         self.stretch_to_fit_size(np.array((width, height, 0.0)))
         return self
 
+    # animations
+
+    @lazy_property_updatable
+    @staticmethod
+    def _animations_() -> list["Animation"]:
+        return []
+
+    @_animations_.updater
+    def animate(self, animation: "Animation"):
+        self._animations_.append(animation)
+        animation.start(self)
+        return self
+
+    @_animations_.updater
+    def _update_dt(self, dt: Real):
+        for animation in self._animations_[:]:
+            animation.update_dt(self, dt)
+            if animation.expired():
+                self._animations_.remove(animation)
+        return self
+
     # render
 
     @lazy_property_writable
@@ -564,25 +585,15 @@ class Mobject(LazyBase):
         pass
 
     def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        #target_framebuffer.clear()
         render_passes = self._render_passes_
         if not render_passes:
-            #from PIL import Image
-
             self._render(scene_config, target_framebuffer)
-            #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
             return
 
         with RenderProcedure.texture() as intermediate_texture_0, \
                 RenderProcedure.texture() as intermediate_texture_1:
             textures = (intermediate_texture_0, intermediate_texture_1)
-            #framebuffers = (intermediate_framebuffer_0, intermediate_framebuffer_1)
             target_texture_id = 0
-            #intermediate_framebuffer = RenderProcedure.framebuffer(
-            #    color_attachments=[textures[target_texture_id]],
-            #    depth_attachment=target_framebuffer.depth_attachment
-            #)
-            #intermediate_framebuffer.clear()
             with RenderProcedure.framebuffer(
                         color_attachments=[intermediate_texture_0],
                         depth_attachment=target_framebuffer.depth_attachment
@@ -590,35 +601,20 @@ class Mobject(LazyBase):
                 self._render(scene_config, initial_framebuffer)
             for render_pass in render_passes[:-1]:
                 target_texture_id = 1 - target_texture_id
-                #prev_intermediate_framebuffer = intermediate_framebuffer
-                #intermediate_framebuffer = RenderProcedure.framebuffer(
-                #    color_attachments=[textures[target_texture_id]],
-                #    depth_attachment=None
-                #)
                 with RenderProcedure.framebuffer(
                             color_attachments=[textures[target_texture_id]],
                             depth_attachment=None
                         ) as intermediate_framebuffer:
-                    #intermediate_framebuffer = framebuffers[target_texture_id]
-                    #intermediate_framebuffer.clear()
                     render_pass._render(
                         texture=textures[1 - target_texture_id],
                         target_framebuffer=intermediate_framebuffer
                     )
-                #IntermediateTextures.restore(prev_intermediate_framebuffer.get_attachment(0))
-                #IntermediateDepthTextures.restore(prev_intermediate_framebuffer.get_attachment(-1))
-                #prev_intermediate_framebuffer.release()
             target_framebuffer.depth_mask = False  # TODO: shall we disable writing to depth?
             render_passes[-1]._render(
                 texture=textures[target_texture_id],
                 target_framebuffer=target_framebuffer
             )
             target_framebuffer.depth_mask = True
-            #IntermediateTextures.restore(intermediate_framebuffer.get_attachment(0))
-            #IntermediateDepthTextures.restore(intermediate_framebuffer.get_attachment(-1))
-            #import time
-            #time.sleep(0.1)
-            #intermediate_framebuffer.release()
 
     @lazy_property_updatable
     @staticmethod
@@ -637,38 +633,6 @@ class Mobject(LazyBase):
             self._render_passes_.remove(render_pass)
         return self
 
-    # animations
-
-    @lazy_property_updatable
-    @staticmethod
-    def _animations_() -> list["Animation"]:
-        return []
-
-    @_animations_.updater
-    def animate(self, animation: "Animation"):
-        self._animations_.append(animation)
-        animation.start(self)
-        return self
-
-    @_animations_.updater
-    def _update_dt(self, dt: Real):
-        for animation in self._animations_[:]:
-            animation.update_dt(self, dt)
-            if animation.expired():
-                self._animations_.remove(animation)
-        return self
-
-    # shader
-
-    #@lazy_property_writable
-    #@classmethod
-    #def _camera_(cls) -> Camera:
-    #    return PerspectiveCamera()
-
-    #@_camera.setter
-    #def _camera(self, camera: Camera) -> None:
-    #    pass
-
 
 #class Group(Mobject):
 #    def __init__(self, *mobjects: Mobject):
@@ -680,44 +644,3 @@ class Mobject(LazyBase):
 #        assert isinstance(node, Mobject)
 #        super()._bind_child(node, index=index)
 #        return self
-
-
-#class PassesRenderProcedure(RenderProcedure):
-#    #@lazy_property
-#    #@staticmethod
-#    #def _intermediate_texture_0_() -> moderngl.Texture:
-#    #    return RenderProcedure.construct_texture()
-
-#    #@lazy_property
-#    #@staticmethod
-#    #def _intermediate_texture_1_() -> moderngl.Texture:
-#    #    return RenderProcedure.construct_texture()
-
-#    def render(
-#        self,
-#        mobject: Mobject,
-#        scene_config: SceneConfig,
-#        target_framebuffer: moderngl.Framebuffer
-#    ) -> None:
-#        
-
-
-#        #with IntermediateTextures.register_n(len(render_passes)) as textures:
-#        #    with IntermediateDepthTextures.register_n(len(render_passes)) as depth_textures:
-#        #        input_framebuffers = [
-#        #            IntermediateFramebuffer(
-#        #                color_attachments=[texture],
-#        #                depth_attachment=depth_texture
-#        #            )
-#        #            for texture, depth_texture in zip(textures, depth_textures)
-#        #        ]
-#        #        output_framebuffers: list[Framebuffer] = input_framebuffers[:]
-#        #        output_framebuffers.append(target_framebuffer)
-#        #        self._render(scene_config, output_framebuffers[0])
-#        #        for render_pass, input_framebuffer, output_framebuffer in zip(render_passes, input_framebuffers, output_framebuffers[1:]):
-#        #            render_pass._render(
-#        #                input_framebuffer=input_framebuffer,
-#        #                output_framebuffer=output_framebuffer,
-#        #                mobject=self,
-#        #                scene_config=scene_config
-#        #            )

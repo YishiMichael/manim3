@@ -178,7 +178,6 @@ class StrokeMobject(Mobject):
         return join_index_buffer_o
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        #target_framebuffer.clear()
         subroutine_name = "single_sided" if self._single_sided_ else "both_sided"
         # TODO: Is this already the best practice?
         # Render color
@@ -267,13 +266,3 @@ class StrokeMobject(Mobject):
             mode=moderngl.TRIANGLES
         )
         target_framebuffer.color_mask = (True, True, True, True)
-
-
-
-#class StrokeMobjectRenderProcedure(RenderProcedure):
-#    def render(
-#        self,
-#        stroke_mobject: StrokeMobject,
-#        scene_config: SceneConfig,
-#        target_framebuffer: moderngl.Framebuffer
-#    ) -> None:

@@ -2,7 +2,6 @@ __all__ = ["EmptyGeometry"]
 
 
 import numpy as np
-import shapely.geometry
 
 from ..geometries.geometry import Geometry
 
