@@ -2,7 +2,9 @@ uniform sampler2D u_color_map;
 uniform sampler2D u_depth_map;
 
 
+/***********************/
 #if defined VERTEX_SHADER
+/***********************/
 
 
 in vec3 in_position;
@@ -19,7 +21,9 @@ void main() {
 }
 
 
+/***************************/
 #elif defined FRAGMENT_SHADER
+/***************************/
 
 
 in VS_FS {

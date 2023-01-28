@@ -109,6 +109,11 @@ class MeshMobject(Mobject):
         index_buffer_o.write(geometry._index_)
         return index_buffer_o
 
+    @lazy_property_writable
+    @staticmethod
+    def _render_samples_() -> int:
+        return 4
+
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         RenderProcedure.render_step(
             shader_str=RenderProcedure.read_shader("mesh"),

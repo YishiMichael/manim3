@@ -4,6 +4,7 @@ __all__ = ["PixelatedPass"]
 import moderngl
 import numpy as np
 
+from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import Real
 from ..render_passes.render_pass import RenderPass
 from ..utils.lazy import lazy_property
@@ -14,8 +15,8 @@ from ..utils.render_procedure import (
 
 
 class PixelatedPass(RenderPass):
-    def __init__(self, pixels: Real = 10.0):
-        self._pixels: Real = pixels
+    def __init__(self, pixel_width: Real = 0.075):
+        self._pixel_width: Real = pixel_width
 
     @lazy_property
     @staticmethod
@@ -24,8 +25,8 @@ class PixelatedPass(RenderPass):
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         texture_size = (
-            int(np.ceil(texture.width / self._pixels)),
-            int(np.ceil(texture.height / self._pixels))
+            int(np.ceil(texture.width / (self._pixel_width * PIXEL_PER_UNIT))),
+            int(np.ceil(texture.height / (self._pixel_width * PIXEL_PER_UNIT)))
         )
         with RenderProcedure.texture(size=texture_size) as intermediate_texture, \
                 RenderProcedure.framebuffer(

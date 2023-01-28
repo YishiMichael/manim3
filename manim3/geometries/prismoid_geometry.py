@@ -64,10 +64,7 @@ class PrismoidGeometry(Geometry):
                 normal_list.append(np.append(normal, 0.0))
                 uv_list.append(p)
                 uv_list.append(p)
-            for _, ((i0, (ip0, _)), (i1, (ip1, _))) in zip(
-                range(len(ip_normal_pairs)),
-                it.pairwise(it.cycle(enumerate(ip_normal_pairs)))
-            ):
+            for (i0, (ip0, _)), (i1, (ip1, _)) in it.islice(it.pairwise(it.cycle(enumerate(ip_normal_pairs))), len(ip_normal_pairs)):
                 if ip0 == ip1:
                     continue
                 index_list.extend(

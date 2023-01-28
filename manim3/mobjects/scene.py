@@ -13,8 +13,6 @@ from ..custom_typing import Real
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import lazy_property
 from ..utils.render_procedure import (
-    AttributesBuffer,
-    IndexBuffer,
     RenderProcedure,
     TextureStorage
 )

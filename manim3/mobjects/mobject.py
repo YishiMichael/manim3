@@ -560,6 +560,11 @@ class Mobject(LazyBase):
     def _apply_oit_() -> bool:
         return False
 
+    @lazy_property_writable
+    @staticmethod
+    def _render_samples_() -> int:
+        return 0
+
     @lazy_property
     @staticmethod
     def _ub_model_o_() -> UniformBlockBuffer:
@@ -584,10 +589,25 @@ class Mobject(LazyBase):
         # On the other hand, one shall clear the framebuffer before calling this function.
         pass
 
+    def _render_with_samples(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        samples = self._render_samples_
+        if not samples:
+            self._render(scene_config, target_framebuffer)
+            return
+
+        with RenderProcedure.texture(samples=4) as msaa_color_texture, \
+                RenderProcedure.depth_texture(samples=4) as msaa_depth_texture, \
+                RenderProcedure.framebuffer(
+                    color_attachments=[msaa_color_texture],
+                    depth_attachment=msaa_depth_texture
+                ) as msaa_framebuffer:
+            self._render(scene_config, msaa_framebuffer)
+            RenderProcedure.downsample_framebuffer(msaa_framebuffer, target_framebuffer)
+
     def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         render_passes = self._render_passes_
         if not render_passes:
-            self._render(scene_config, target_framebuffer)
+            self._render_with_samples(scene_config, target_framebuffer)
             return
 
         with RenderProcedure.texture() as intermediate_texture_0, \
@@ -598,7 +618,7 @@ class Mobject(LazyBase):
                         color_attachments=[intermediate_texture_0],
                         depth_attachment=target_framebuffer.depth_attachment
                     ) as initial_framebuffer:
-                self._render(scene_config, initial_framebuffer)
+                self._render_with_samples(scene_config, initial_framebuffer)
             for render_pass in render_passes[:-1]:
                 target_texture_id = 1 - target_texture_id
                 with RenderProcedure.framebuffer(

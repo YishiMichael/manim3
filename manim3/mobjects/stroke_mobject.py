@@ -177,6 +177,11 @@ class StrokeMobject(Mobject):
         join_index_buffer_o.write(np.array(index_list))
         return join_index_buffer_o
 
+    @lazy_property_writable
+    @staticmethod
+    def _render_samples_() -> int:
+        return 4
+
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         subroutine_name = "single_sided" if self._single_sided_ else "both_sided"
         # TODO: Is this already the best practice?

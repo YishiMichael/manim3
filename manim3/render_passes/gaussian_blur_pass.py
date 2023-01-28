@@ -4,6 +4,7 @@ __all__ = ["GaussianBlurPass"]
 import moderngl
 import numpy as np
 
+from ..constants import PIXEL_PER_UNIT
 from ..custom_typing import (
     FloatsT,
     Real
@@ -21,8 +22,8 @@ from ..utils.render_procedure import (
 
 
 class GaussianBlurPass(RenderPass):
-    def __init__(self, sigma: Real = 1.0):
-        self._sigma_ = sigma
+    def __init__(self, sigma_width: Real = 0.075):
+        self._sigma_width_ = sigma_width
 
     @lazy_property
     @staticmethod
@@ -31,12 +32,13 @@ class GaussianBlurPass(RenderPass):
 
     @lazy_property_writable
     @staticmethod
-    def _sigma_() -> Real:
-        return 1.0
+    def _sigma_width_() -> Real:
+        return NotImplemented
 
     @lazy_property
     @staticmethod
-    def _convolution_core_(sigma: Real) -> FloatsT:
+    def _convolution_core_(sigma_width: Real) -> FloatsT:
+        sigma = sigma_width * PIXEL_PER_UNIT
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])

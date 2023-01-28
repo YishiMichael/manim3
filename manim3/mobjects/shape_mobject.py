@@ -46,12 +46,6 @@ class ShapeMobject(MeshMobject):
             stroke._multi_line_string_ = shape._multi_line_string_3d_
         return self
 
-    #def _set_model_matrix(self, matrix: Mat4T):
-    #    super()._set_model_matrix(matrix)
-    #    for stroke in self._stroke_mobjects_:
-    #        stroke._set_model_matrix(matrix)
-    #    return self
-
     def _set_fill_locally(self, color: ColorType | Callable[..., Vec4T]):
         self._color_ = color
         return self

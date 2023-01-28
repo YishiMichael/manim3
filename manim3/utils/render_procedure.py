@@ -666,18 +666,19 @@ class IntermediateTexture:
     def __init__(
         self,
         *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
-        components: int = 4,
-        dtype: str = "f1"
+        size: tuple[int, int],
+        components: int,
+        samples: int,
+        dtype: str
     ):
-        hash_val = Program._hash_items(size, components, dtype)  # TODO
-        cached_instances = self._CACHE.get(hash_val)
-        if cached_instances is not None and cached_instances:
+        hash_val = Program._hash_items(size, components, samples, dtype)  # TODO
+        if (cached_instances := self._CACHE.get(hash_val)) is not None and cached_instances:
             texture = cached_instances.pop()
         else:
             texture = ContextSingleton().texture(
                 size=size,
                 components=components,
+                samples=samples,
                 dtype=dtype
             )
         self._hash_val: bytes = hash_val
@@ -702,15 +703,16 @@ class IntermediateDepthTexture:
     def __init__(
         self,
         *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
+        size: tuple[int, int],
+        samples: int
     ):
-        hash_val = Program._hash_items(size)  # TODO
-        cached_instances = self._CACHE.get(hash_val)
-        if cached_instances is not None and cached_instances:
+        hash_val = Program._hash_items(size, samples)  # TODO
+        if (cached_instances := self._CACHE.get(hash_val)) is not None and cached_instances:
             texture = cached_instances.pop()
         else:
             texture = ContextSingleton().depth_texture(
-                size=size
+                size=size,
+                samples=samples
             )
         self._hash_val: bytes = hash_val
         self._instance: moderngl.Texture = texture
@@ -834,11 +836,13 @@ class RenderProcedure(LazyBase):
         *,
         size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
         components: int = 4,
+        samples: int = 0,
         dtype: str = "f1"
     ) -> IntermediateTexture:
         return IntermediateTexture(
             size=size,
             components=components,
+            samples=samples,
             dtype=dtype
         )
 
@@ -846,10 +850,12 @@ class RenderProcedure(LazyBase):
     def depth_texture(
         cls,
         *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT)
+        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+        samples: int = 0
     ) -> IntermediateDepthTexture:
         return IntermediateDepthTexture(
-            size=size
+            size=size,
+            samples=samples
         )
 
     @classmethod
@@ -863,6 +869,10 @@ class RenderProcedure(LazyBase):
             color_attachments=color_attachments,
             depth_attachment=depth_attachment
         )
+
+    @classmethod
+    def downsample_framebuffer(cls, src: moderngl.Framebuffer, dst: moderngl.Framebuffer) -> None:
+        ContextSingleton().copy_framebuffer(dst=dst, src=src)
 
     @classmethod
     def render_step(
@@ -903,10 +913,6 @@ class RenderProcedure(LazyBase):
                 for texture_storage in texture_storages
             }
         )
-        #program_uniforms = program._uniforms_
-        #program_uniform_blocks = program._uniform_blocks_
-        #program_attributes = program._attributes_
-        #program_subroutines = program._subroutines_
 
         ## Remove redundancies
         #textures: list[moderngl.Texture] = list(dict.fromkeys(
@@ -941,7 +947,6 @@ class RenderProcedure(LazyBase):
             assert isinstance(program_uniform_block, moderngl.UniformBlock)
             uniform_block._validate(program_uniform_block)
             uniform_block_bindings.append((uniform_block._buffer_, binding))
-            #print(np.frombuffer(uniform_block._buffer_.read(), dtype=np.float32))
 
         # subroutines
         #subroutine_indices: list[int] = [
