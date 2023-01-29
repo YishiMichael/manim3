@@ -209,8 +209,7 @@ class StrokeMobject(Mobject):
             return []
         n_points = len(line_string._coords_)
         if line_string._kind_ == "line_string":
-            # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
-            return [0, 1, n_points - 2, n_points - 1]
+            return [0, 1, n_points - 1, n_points - 2]
         if line_string._kind_ == "linear_ring":
             return []
         raise ValueError  # never
@@ -285,7 +284,7 @@ class StrokeMobject(Mobject):
             result.extend([
                 ([
                     "#define STROKE_CAP"
-                ], cap_index_buffer, moderngl.LINE_STRIP),
+                ], cap_index_buffer, moderngl.LINES),
                 ([
                     "#define STROKE_POINT"
                 ], point_index_buffer, moderngl.POINTS)

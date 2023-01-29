@@ -125,7 +125,7 @@ void both_sided(vec4 line_start_position, vec4 line_end_position, vec2 offset_ve
 
 void main() {
     float direction_angle = get_direction_angle(gs_in[0].position, gs_in[1].position);
-    vec2 offset_vec = u_winding_sign * get_unit_vector(direction_angle - PI / 2.0);
+    vec2 offset_vec = u_winding_sign * sign(u_width) * get_unit_vector(direction_angle - PI / 2.0);
     line_subroutine(gs_in[0].position, gs_in[1].position, offset_vec);
     EndPrimitive();
 }
