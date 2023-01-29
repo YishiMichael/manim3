@@ -68,12 +68,11 @@ class Geometry(LazyBase):
         normal: Vec3sT,
         uv: Vec2sT
     ) -> AttributesBuffer:
-        attributes_o.write({
+        return attributes_o.write({
             "in_position": position,
             "in_normal": normal,
             "in_uv": uv
         })
-        return attributes_o
 
     @lazy_property
     @staticmethod
@@ -86,5 +85,4 @@ class Geometry(LazyBase):
         index_buffer_o: IndexBuffer,
         index: VertexIndexType
     ) -> IndexBuffer:
-        index_buffer_o.write(index)
-        return index_buffer_o
+        return index_buffer_o.write(index)

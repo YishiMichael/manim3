@@ -103,7 +103,7 @@ class SceneConfig(LazyBase):
         ambient_light_opacity: Real,
         point_lights: list[PointLight]
     ) -> UniformBlockBuffer:
-        ub_lights_o.write({
+        return ub_lights_o.write({
             "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
             "u_point_lights": {
                 "position": np.array([
@@ -116,7 +116,6 @@ class SceneConfig(LazyBase):
                 ])
             }
         })
-        return ub_lights_o
 
     def set_view(
         self,

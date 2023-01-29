@@ -498,7 +498,7 @@ class Mobject(Renderable):
             width = specified_width
             height = specified_height
         else:
-            raise  # never
+            raise ValueError  # never
         self.center()
         self.stretch_to_fit_size(np.array((width, height, 0.0)))
         return self
@@ -544,10 +544,9 @@ class Mobject(Renderable):
         ub_model_o: UniformBlockBuffer,
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:
-        ub_model_o.write({
+        return ub_model_o.write({
             "u_model_matrix": model_matrix.T
         })
-        return ub_model_o
 
 
 #class Group(Mobject):

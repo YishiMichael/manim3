@@ -90,8 +90,7 @@ class MeshMobject(Mobject):
         color_map_texture: moderngl.Texture | None
     ) -> TextureStorage:
         textures = [color_map_texture] if color_map_texture is not None else []
-        u_color_maps_o.write(np.array(textures))
-        return u_color_maps_o
+        return u_color_maps_o.write(np.array(textures))
 
     @lazy_property
     @staticmethod
@@ -113,13 +112,12 @@ class MeshMobject(Mobject):
         specular_strength: Real,
         shininess: Real
     ) -> UniformBlockBuffer:
-        ub_material_o.write({
+        return ub_material_o.write({
             "u_color": np.append(color, opacity),
             "u_ambient_strength": np.array(ambient_strength),
             "u_specular_strength": np.array(specular_strength),
             "u_shininess": np.array(shininess)
         })
-        return ub_material_o
 
     @lazy_property_writable
     @staticmethod

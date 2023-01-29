@@ -70,28 +70,28 @@ out vec4 frag_color;
 
 void main() {
     #if defined APPLY_PHONG_LIGHTING
+
     // From https://learnopengl.com/Lighting/Basic-Lighting
     frag_color = vec4(0.0);
-
     frag_color += u_ambient_light_color * u_ambient_strength;
-
     vec3 normal = normalize(fs_in.world_normal);
     #if NUM_U_POINT_LIGHTS
     for (int i = 0; i < NUM_U_POINT_LIGHTS; ++i) {
         PointLight point_light = u_point_lights[i];
-
         vec3 light_direction = normalize(point_light.position - fs_in.world_position);
         vec4 diffuse = max(dot(normal, light_direction), 0.0) * point_light.color;
         frag_color += diffuse;
-
         vec3 view_direction = normalize(u_view_position - fs_in.world_position);
         vec3 reflect_direction = reflect(-light_direction, normal);
         vec4 specular = pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
         frag_color += specular * u_specular_strength;
     }
     #endif
+
     #else
+
     frag_color = vec4(1.0);
+
     #endif
 
     frag_color *= u_color;

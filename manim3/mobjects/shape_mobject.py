@@ -70,6 +70,7 @@ class ShapeMobject(MeshMobject):
         *,
         width: Real | None = None,
         single_sided: bool | None = None,
+        has_linecap: bool | None = None,
         color: ColorType | None = None,
         opacity: Real | None = None,
         dilate: Real | None = None,
@@ -80,6 +81,7 @@ class ShapeMobject(MeshMobject):
         stroke._set_style_locally(
             width=width,
             single_sided=single_sided,
+            has_linecap=has_linecap,
             color=color,
             opacity=opacity,
             dilate=dilate,
@@ -95,6 +97,7 @@ class ShapeMobject(MeshMobject):
         index: int | None = None,
         width: Real | None = None,
         single_sided: bool | None = None,
+        has_linecap: bool | None = None,
         color: ColorType | None = None,
         opacity: Real | None = None,
         dilate: Real | None = None,
@@ -106,6 +109,7 @@ class ShapeMobject(MeshMobject):
             self._stroke_mobjects[index]._set_style_locally(
                 width=width,
                 single_sided=single_sided,
+                has_linecap=has_linecap,
                 color=color,
                 opacity=opacity,
                 dilate=dilate,
@@ -114,10 +118,11 @@ class ShapeMobject(MeshMobject):
         else:
             if index is not None:
                 raise IndexError
-            if any(param is not None for param in (width, single_sided, color, opacity, dilate, apply_oit)):
+            if any(param is not None for param in (width, single_sided, has_linecap, color, opacity, dilate, apply_oit)):
                 self._add_stroke_locally(
                     width=width,
                     single_sided=single_sided,
+                    has_linecap=has_linecap,
                     color=color,
                     opacity=opacity,
                     dilate=dilate,
@@ -137,6 +142,7 @@ class ShapeMobject(MeshMobject):
         apply_phong_lighting: bool | None = None,
         stroke_width: Real | None = None,
         stroke_single_sided: bool | None = None,
+        stroke_has_linecap: bool | None = None,
         stroke_color: ColorType | None = None,
         stroke_opacity: Real | None = None,
         stroke_dilate: Real | None = None,
@@ -155,6 +161,7 @@ class ShapeMobject(MeshMobject):
             index=None,
             width=stroke_width,
             single_sided=stroke_single_sided,
+            has_linecap=stroke_has_linecap,
             color=stroke_color,
             opacity=stroke_opacity,
             dilate=stroke_dilate,
@@ -193,6 +200,7 @@ class ShapeMobject(MeshMobject):
         *,
         width: Real | None = None,
         single_sided: bool | None = None,
+        has_linecap: bool | None = None,
         color: ColorType | None = None,
         opacity: Real | None = None,
         dilate: Real | None = None,
@@ -205,6 +213,7 @@ class ShapeMobject(MeshMobject):
             mobject._add_stroke_locally(
                 width=width,
                 single_sided=single_sided,
+                has_linecap=has_linecap,
                 color=color,
                 opacity=opacity,
                 dilate=dilate,
@@ -218,6 +227,7 @@ class ShapeMobject(MeshMobject):
         index: int | None = None,
         width: Real | None = None,
         single_sided: bool | None = None,
+        has_linecap: bool | None = None,
         color: ColorType | None = None,
         opacity: Real | None = None,
         dilate: Real | None = None,
@@ -231,6 +241,7 @@ class ShapeMobject(MeshMobject):
                 index=index,
                 width=width,
                 single_sided=single_sided,
+                has_linecap=has_linecap,
                 color=color,
                 opacity=opacity,
                 dilate=dilate,
@@ -250,6 +261,7 @@ class ShapeMobject(MeshMobject):
         apply_phong_lighting: bool | None = None,
         stroke_width: Real | None = None,
         stroke_single_sided: bool | None = None,
+        stroke_has_linecap: bool | None = None,
         stroke_color: ColorType | None = None,
         stroke_opacity: Real | None = None,
         stroke_dilate: Real | None = None,
@@ -269,6 +281,7 @@ class ShapeMobject(MeshMobject):
                 apply_phong_lighting=apply_phong_lighting,
                 stroke_width=stroke_width,
                 stroke_single_sided=stroke_single_sided,
+                stroke_has_linecap=stroke_has_linecap,
                 stroke_color=stroke_color,
                 stroke_opacity=stroke_opacity,
                 stroke_dilate=stroke_dilate,

@@ -56,10 +56,9 @@ class GaussianBlurPass(RenderPass):
         ub_convolution_core_o: UniformBlockBuffer,
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
-        ub_convolution_core_o.write({
+        return ub_convolution_core_o.write({
             "u_convolution_core": convolution_core
         })
-        return ub_convolution_core_o
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         with RenderProcedure.texture() as intermediate_texture, \

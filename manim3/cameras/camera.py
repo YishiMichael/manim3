@@ -83,13 +83,12 @@ class Camera(LazyBase):
         view_matrix: Mat4T,
         eye: Vec3T
     ) -> UniformBlockBuffer:
-        ub_camera_o.write({
+        return ub_camera_o.write({
             "u_projection_matrix": projection_matrix.T,
             "u_view_matrix": view_matrix.T,
             "u_view_position": eye,
             "u_frame_radius": np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS))
         })
-        return ub_camera_o
 
     def set_view(
         self,
