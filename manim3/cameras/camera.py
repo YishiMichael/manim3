@@ -13,7 +13,6 @@ from ..constants import (
 )
 from ..custom_typing import (
     Mat4T,
-    Vec2T,
     Vec3T
 )
 from ..utils.render_procedure import UniformBlockBuffer
@@ -49,11 +48,6 @@ class Camera(LazyBase):
     def _up_() -> Vec3T:
         return CAMERA_ALTITUDE * UP
 
-    @lazy_property_writable
-    @staticmethod
-    def _frame_radius_() -> Vec2T:
-        return np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS))
-
     @lazy_property
     @staticmethod
     def _view_matrix_(
@@ -87,13 +81,27 @@ class Camera(LazyBase):
         ub_camera_o: UniformBlockBuffer,
         projection_matrix: Mat4T,
         view_matrix: Mat4T,
-        eye: Vec3T,
-        frame_radius: Vec2T
+        eye: Vec3T
     ) -> UniformBlockBuffer:
         ub_camera_o.write({
             "u_projection_matrix": projection_matrix,
             "u_view_matrix": view_matrix,
             "u_view_position": eye,
-            "u_frame_radius": frame_radius
+            "u_frame_radius": np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS))
         })
         return ub_camera_o
+
+    def set_view(
+        self,
+        *,
+        eye: Vec3T | None = None,
+        target: Vec3T | None = None,
+        up: Vec3T | None = None
+    ):
+        if eye is not None:
+            self._eye_ = eye
+        if target is not None:
+            self._target_ = target
+        if up is not None:
+            self._up_ = up
+        return self

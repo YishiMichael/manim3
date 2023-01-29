@@ -127,26 +127,6 @@ class Mobject(Renderable):
 
     # matrix & transform
 
-    #@lazy_property_updatable
-    #@classmethod
-    #def _geometry_matrix_(cls) -> Mat4T:
-    #    return np.identity(4)
-
-    #@lazy_property
-    #@classmethod
-    #def _model_matrix_(cls, matrix: Mat4T, geometry_matrix: Mat4T) -> Mat4T:
-    #    return matrix @ geometry_matrix
-
-    #@lazy_property
-    #@classmethod
-    #def _model_matrix_buffer_(cls, model_matrix: Mat4T) -> moderngl.Buffer:
-    #    return cls._make_buffer(model_matrix)
-
-    #@_model_matrix_buffer_.releaser
-    #@staticmethod
-    #def _model_matrix_buffer_releaser(model_matrix_buffer: moderngl.Buffer) -> None:
-    #    model_matrix_buffer.release()
-
     @staticmethod
     def matrix_from_translation(vector: Vec3T) -> Mat4T:
         m = np.identity(4)
@@ -190,17 +170,11 @@ class Mobject(Renderable):
             result = v.T
         return result
 
-    #@lazy_property_updatable
-    #@staticmethod
-    #def _geometry_() -> Geometry:
-    #    return NotImplemented
-
     @lazy_property_writable
     @staticmethod
     def _model_matrix_() -> Mat4T:
         return np.identity(4)
 
-    @_model_matrix_.updater
     def _apply_transform_locally(self, matrix: Mat4T):
         self._model_matrix_ = self._model_matrix_ @ matrix
         return self

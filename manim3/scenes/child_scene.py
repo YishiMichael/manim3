@@ -4,7 +4,11 @@ __all__ = ["ChildScene"]
 import moderngl
 import numpy as np
 
-from ..custom_typing import Real
+from ..custom_typing import (
+    ColorType,
+    Real,
+    Vec3T
+)
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import lazy_property
 from ..utils.render_procedure import (
@@ -18,11 +22,7 @@ from ..utils.scene_config import SceneConfig
 class ChildScene(Renderable):
     def __init__(self):
         self._mobject_node: Mobject = Mobject()
-
-    @lazy_property
-    @staticmethod
-    def _scene_config_() -> SceneConfig:
-        return SceneConfig()
+        self._scene_config: SceneConfig = SceneConfig()
 
     def _update_dt(self, dt: Real):
         for mobject in self._mobject_node.iter_descendants():
@@ -197,4 +197,93 @@ class ChildScene(Renderable):
 
     def remove(self, *mobjects: Mobject):
         self._mobject_node.remove(*mobjects)
+        return self
+
+    def set_view(
+        self,
+        *,
+        eye: Vec3T | None = None,
+        target: Vec3T | None = None,
+        up: Vec3T | None = None
+    ):
+        self._scene_config.set_view(
+            eye=eye,
+            target=target,
+            up=up
+        )
+
+    def set_background(
+        self,
+        *,
+        color: ColorType | None = None,
+        opacity: Real | None = None
+    ):
+        self._scene_config.set_background(
+            color=color,
+            opacity=opacity
+        )
+        return self
+
+    def set_ambient_light(
+        self,
+        *,
+        color: ColorType | None = None,
+        opacity: Real | None = None
+    ):
+        self._scene_config.set_ambient_light(
+            color=color,
+            opacity=opacity
+        )
+        return self
+
+    def add_point_light(
+        self,
+        *,
+        position: Vec3T | None = None,
+        color: ColorType | None = None,
+        opacity: Real | None = None
+    ):
+        self._scene_config.add_point_light(
+            position=position,
+            color=color,
+            opacity=opacity
+        )
+        return self
+
+    def set_point_light(
+        self,
+        *,
+        index: int | None = None,
+        position: Vec3T | None = None,
+        color: ColorType | None = None,
+        opacity: Real | None = None
+    ):
+        self._scene_config.set_point_light(
+            index=index,
+            position=position,
+            color=color,
+            opacity=opacity
+        )
+        return self
+
+    def set_style(
+        self,
+        *,
+        background_color: ColorType | None = None,
+        background_opacity: Real | None = None,
+        ambient_light_color: ColorType | None = None,
+        ambient_light_opacity: Real | None = None,
+        point_light_position: Vec3T | None = None,
+        point_light_color: ColorType | None = None,
+        point_light_opacity: Real | None = None
+    ):
+        self._scene_config.set_style(
+            background_color=background_color,
+            background_opacity=background_opacity,
+            ambient_light_color=ambient_light_color,
+            ambient_light_opacity=ambient_light_opacity,
+            point_light_position=point_light_position,
+            point_light_color=point_light_color,
+            point_light_opacity=point_light_opacity
+        )
         return self

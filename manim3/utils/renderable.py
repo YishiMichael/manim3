@@ -44,9 +44,6 @@ class Renderable(LazyBase):
         render_passes = self._render_passes_
         if not render_passes:
             self._render_with_samples(scene_config, target_framebuffer)
-            #print(self)
-            #from PIL import Image
-            #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
             return
 
         with RenderProcedure.texture() as intermediate_texture_0, \
@@ -74,9 +71,6 @@ class Renderable(LazyBase):
                 target_framebuffer=target_framebuffer
             )
             target_framebuffer.depth_mask = True
-            #print(self)
-            #from PIL import Image
-            #Image.frombytes('RGB', target_framebuffer.size, target_framebuffer.read(), 'raw').show()
 
     @lazy_property_updatable
     @staticmethod

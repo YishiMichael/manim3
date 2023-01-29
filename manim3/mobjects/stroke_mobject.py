@@ -9,14 +9,14 @@ import numpy as np
 from ..custom_typing import (
     ColorType,
     Real,
+    Vec3T,
     Vec3sT,
     Vec4T
 )
 from ..mobjects.mobject import Mobject
-from ..mobjects.mesh_mobject import MeshMobject
+from ..utils.color import ColorUtils
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.render_procedure import (
@@ -49,10 +49,15 @@ class StrokeMobject(Mobject):
     def _single_sided_() -> bool:
         return False
 
-    @lazy_property_updatable
+    @lazy_property_writable
     @staticmethod
-    def _color_() -> Vec4T:
-        return np.ones(4)
+    def _color_() -> Vec3T:
+        return np.ones(3)
+
+    @lazy_property_writable
+    @staticmethod
+    def _opacity_() -> Real:
+        return 1.0
 
     @lazy_property_writable
     @staticmethod
@@ -73,12 +78,13 @@ class StrokeMobject(Mobject):
     def _ub_stroke_(
         ub_stroke_o: UniformBlockBuffer,
         width: Real,
-        color: Vec4T,
+        color: Vec3T,
+        opacity: Real,
         dilate: Real
     ) -> UniformBlockBuffer:
         ub_stroke_o.write({
             "u_width": np.array(width),
-            "u_color": color,
+            "u_color": np.append(color, opacity),
             "u_dilate": np.array(dilate)
         })
         return ub_stroke_o
@@ -175,8 +181,13 @@ class StrokeMobject(Mobject):
         return 4
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        subroutine_name = "single_sided" if self._single_sided_ else "both_sided"
         # TODO: Is this already the best practice?
+        subroutine_name = "single_sided" if self._single_sided_ else "both_sided"
+        uniform_blocks = [
+            scene_config._camera._ub_camera_,
+            self._ub_model_,
+            self._ub_stroke_
+        ]
         # Render color
         target_framebuffer.depth_mask = False
         RenderProcedure.render_step(
@@ -185,11 +196,7 @@ class StrokeMobject(Mobject):
                 f"#define line_subroutine {subroutine_name}"
             ],
             texture_storages=[],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                self._ub_stroke_
-            ],
+            uniform_blocks=uniform_blocks,
             attributes=self._attributes_,
             index_buffer=self._line_index_buffer_,
             framebuffer=target_framebuffer,
@@ -206,11 +213,7 @@ class StrokeMobject(Mobject):
                 f"#define join_subroutine {subroutine_name}"
             ],
             texture_storages=[],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                self._ub_stroke_
-            ],
+            uniform_blocks=uniform_blocks,
             attributes=self._attributes_,
             index_buffer=self._join_index_buffer_,
             framebuffer=target_framebuffer,
@@ -230,11 +233,7 @@ class StrokeMobject(Mobject):
                 f"#define line_subroutine {subroutine_name}"
             ],
             texture_storages=[],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                self._ub_stroke_
-            ],
+            uniform_blocks=uniform_blocks,
             attributes=self._attributes_,
             index_buffer=self._line_index_buffer_,
             framebuffer=target_framebuffer,
@@ -249,11 +248,7 @@ class StrokeMobject(Mobject):
                 f"#define join_subroutine {subroutine_name}"
             ],
             texture_storages=[],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                self._ub_stroke_
-            ],
+            uniform_blocks=uniform_blocks,
             attributes=self._attributes_,
             index_buffer=self._join_index_buffer_,
             framebuffer=target_framebuffer,
@@ -273,7 +268,6 @@ class StrokeMobject(Mobject):
             for line_string in line_strings
         ])
 
-    @_color_.updater
     def _set_style_locally(
         self,
         *,
@@ -288,19 +282,17 @@ class StrokeMobject(Mobject):
             self._width_ = width
         if single_sided is not None:
             self._single_sided_ = single_sided
-        if color is not None:
-            color_component, opacity_component = MeshMobject._decompose_color(color)  # TODO
-            self._color_[:3] = color_component
-            if opacity is None:
-                opacity = opacity_component
-        if opacity is not None:
-            self._color_[3] = opacity
+        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        if color_component is not None:
+            self._color_ = color_component
+        if opacity_component is not None:
+            self._opacity_ = opacity_component
         if dilate is not None:
             self._dilate_ = dilate
         if apply_oit is not None:
             self._apply_oit_ = apply_oit
         else:
-            if any(param is not None for param in (opacity, dilate)):
+            if any(param is not None for param in (opacity_component, dilate)):
                 self._apply_oit_ = True
         return self
 

@@ -11,8 +11,11 @@ from ..utils.render_procedure import RenderProcedure
 class Scene(ChildScene):
     def _render_scene(self) -> None:
         framebuffer = RenderProcedure._WINDOW_FRAMEBUFFER
-        framebuffer.clear()
-        self._render_with_passes(self._scene_config_, framebuffer)
+        scene_config = self._scene_config
+        red, green, blue = scene_config._background_color_
+        alpha = scene_config._background_opacity_
+        framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
+        self._render_with_passes(scene_config, framebuffer)
 
     def wait(self, t: Real):
         window = RenderProcedure._WINDOW

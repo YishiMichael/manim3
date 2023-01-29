@@ -32,6 +32,7 @@ from .render_passes.render_pass import *
 from .scenes.child_scene import *
 from .scenes.scene import *
 
+from .utils.color import *
 from .utils.lazy import *
 from .utils.render_procedure import *
 from .utils.renderable import *

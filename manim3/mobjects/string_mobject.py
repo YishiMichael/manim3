@@ -18,7 +18,7 @@ from ..custom_typing import (
 )
 from ..mobjects.path_mobject import PathMobject
 from ..mobjects.svg_mobject import SVGMobject
-
+from ..utils.color import ColorUtils
 
 
 class StringMobject(SVGMobject):
@@ -219,7 +219,7 @@ class StringMobject(SVGMobject):
     @classmethod
     def color_to_int(cls, color: ColorType) -> int:
         c = Color()
-        c.rgb, _ = cls._decompose_color(color)  # TODO
+        c.rgb, _ = ColorUtils.decompose_color(color)  # TODO
         return int(c.hex_l[1:], 16)
 
     #@staticmethod
