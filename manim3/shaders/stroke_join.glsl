@@ -12,6 +12,9 @@ layout (std140) uniform ub_stroke {
     vec4 u_color;
     float u_dilate;
 };
+layout (std140) uniform ub_winding_sign {
+    float u_winding_sign;
+};
 
 const float PI = 3.141592653589793;
 
@@ -65,7 +68,7 @@ vec2 to_ndc_space(vec4 position) {
 
 
 float get_normal_angle(vec2 direction) {
-    return atan(direction.x, -direction.y);
+    return atan(-direction.x, direction.y);
 }
 
 
@@ -99,14 +102,14 @@ void emit_sector(float width, vec4 center_position, float angle_start, float del
 
 
 void single_sided(vec4 center_position, float angle_start, float delta_angle) {
-    if (delta_angle * u_width < 0.0) {
-        emit_sector(u_width, center_position, angle_start, delta_angle);
+    if (delta_angle * u_width * u_winding_sign > 0.0) {
+        emit_sector(u_width * u_winding_sign, center_position, angle_start, delta_angle);
     }
 }
 
 
 void both_sided(vec4 center_position, float angle_start, float delta_angle) {
-    emit_sector(-sign(delta_angle) * abs(u_width), center_position, angle_start, delta_angle);
+    emit_sector(sign(delta_angle) * abs(u_width), center_position, angle_start, delta_angle);
 }
 
 

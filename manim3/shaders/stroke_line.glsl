@@ -12,6 +12,9 @@ layout (std140) uniform ub_stroke {
     vec4 u_color;
     float u_dilate;
 };
+layout (std140) uniform ub_winding_sign {
+    float u_winding_sign;
+};
 
 mat2 frame_transform = mat2(
     u_frame_radius.x, 0.0,
@@ -91,9 +94,9 @@ void main() {
     vec2 p1_ndc = to_ndc_space(gs_in[1].position);
     // Rotate 90 degrees counterclockwise, while taking the aspect ratio into consideration
     vec2 transformed_direction = frame_transform * (p1_ndc - p0_ndc);
-    vec2 transformed_normal = normalize(vec2(-transformed_direction.y, transformed_direction.x));
+    vec2 transformed_normal = normalize(vec2(transformed_direction.y, -transformed_direction.x));
     vec2 normal = frame_transform_inv * transformed_normal;
-    vec4 offset_vec = u_width * vec4(normal, 0.0, 0.0);
+    vec4 offset_vec = u_width * u_winding_sign * vec4(normal, 0.0, 0.0);
 
     line_subroutine(gs_in[0].position, gs_in[1].position, offset_vec);
     EndPrimitive();

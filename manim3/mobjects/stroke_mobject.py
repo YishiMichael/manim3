@@ -6,6 +6,7 @@ import itertools as it
 import moderngl
 import numpy as np
 
+from ..cameras.camera import Camera
 from ..custom_typing import (
     ColorType,
     Real,
@@ -87,6 +88,13 @@ class StrokeMobject(Mobject):
             "u_dilate": np.array(dilate)
         })
         return ub_stroke_o
+
+    @lazy_property
+    @staticmethod
+    def _ub_winding_sign_o_() -> UniformBlockBuffer:
+        return UniformBlockBuffer("ub_winding_sign", [
+            "float u_winding_sign"
+        ])
 
     @lazy_property
     @staticmethod
@@ -182,10 +190,14 @@ class StrokeMobject(Mobject):
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
         subroutine_name = "single_sided" if self._single_sided_ else "both_sided"
+        winding_sign = np.array(self._calculate_winding_sign(scene_config._camera))
         uniform_blocks = [
             scene_config._camera._ub_camera_,
             self._ub_model_,
-            self._ub_stroke_
+            self._ub_stroke_,
+            self._ub_winding_sign_o_.write({
+                "u_winding_sign": winding_sign
+            })
         ]
         # Render color
         target_framebuffer.depth_mask = False
@@ -257,6 +269,14 @@ class StrokeMobject(Mobject):
             mode=moderngl.TRIANGLES
         )
         target_framebuffer.color_mask = (True, True, True, True)
+
+    def _calculate_winding_sign(self, camera: Camera) -> float:
+        area = 0.0
+        transform = camera._projection_matrix_ @ camera._view_matrix_ @ self._model_matrix_
+        for line_string in self._multi_line_string_._children_:
+            coords_2d = self.apply_affine(transform, line_string._coords_)[:, :2]
+            area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
+        return 1.0 if area >= 0.0 else -1.0
 
     def _get_local_sample_points(self) -> Vec3sT:
         line_strings = self._multi_line_string_._children_
