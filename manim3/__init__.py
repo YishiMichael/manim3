@@ -17,7 +17,6 @@ from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.path_mobject import *
 from .mobjects.polyhedron import *
-from .mobjects.scene import *
 from .mobjects.scene_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.shape_mobject import *
@@ -30,8 +29,12 @@ from .render_passes.gaussian_blur_pass import *
 from .render_passes.pixelated_pass import *
 from .render_passes.render_pass import *
 
+from .scenes.child_scene import *
+from .scenes.scene import *
+
 from .utils.lazy import *
 from .utils.render_procedure import *
+from .utils.renderable import *
 from .utils.scene_config import *
 from .utils.shape import *
 

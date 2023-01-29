@@ -8,7 +8,12 @@ from ..custom_typing import (
 )
 from ..utils.lazy import (
     LazyBase,
+    lazy_property,
     lazy_property_writable
+)
+from ..utils.render_procedure import (
+    AttributesBuffer,
+    IndexBuffer
 )
 
 
@@ -45,3 +50,41 @@ class Geometry(LazyBase):
     @staticmethod
     def _uv_() -> Vec2sT:
         return NotImplemented
+
+    @lazy_property
+    @staticmethod
+    def _attributes_o_() -> AttributesBuffer:
+        return AttributesBuffer([
+            "vec3 in_position",
+            "vec3 in_normal",
+            "vec2 in_uv"
+        ])
+
+    @lazy_property
+    @staticmethod
+    def _attributes_(
+        attributes_o: AttributesBuffer,
+        position: Vec3sT,
+        normal: Vec3sT,
+        uv: Vec2sT
+    ) -> AttributesBuffer:
+        attributes_o.write({
+            "in_position": position,
+            "in_normal": normal,
+            "in_uv": uv
+        })
+        return attributes_o
+
+    @lazy_property
+    @staticmethod
+    def _index_buffer_o_() -> IndexBuffer:
+        return IndexBuffer()
+
+    @lazy_property
+    @staticmethod
+    def _index_buffer_(
+        index_buffer_o: IndexBuffer,
+        index: VertexIndexType
+    ) -> IndexBuffer:
+        index_buffer_o.write(index)
+        return index_buffer_o

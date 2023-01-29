@@ -34,12 +34,12 @@ class SVGMobject(PathMobject):
                 continue
             mobject = PathMobject(path)
             if isinstance(shape, se.Transformable) and shape.apply:
-                mobject.apply_transform_locally(self.convert_transform(shape.transform))
+                mobject.apply_transform(self.convert_transform(shape.transform))
             #mobject.apply_transform_locally(transform_matrix)
             if paint_settings is not None and (color := paint_settings.get("fill_color")) is not None:
-                mobject.set_fill(color)
+                mobject.set_fill(color=color)
             if (color := self.get_paint_settings_from_shape(shape).get("fill_color")) is not None:
-                mobject.set_fill(color)
+                mobject.set_fill(color=color)
             #mobject.set_paint(**self.get_paint_settings_from_shape(shape))
             path_mobjects.append(mobject)
 

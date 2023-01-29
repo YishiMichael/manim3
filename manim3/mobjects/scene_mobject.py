@@ -9,13 +9,9 @@ from ..constants import (
     FRAME_WIDTH
 )
 from ..custom_typing import Real
-from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
-from ..mobjects.scene import (
-    ChildScene,
-    Scene
-)
+from ..scenes.child_scene import ChildScene
 from ..utils.render_procedure import RenderProcedure
 from ..utils.scene_config import SceneConfig
 
@@ -26,7 +22,6 @@ class SceneMobject(MeshMobject):
         scene: ChildScene
     ):
         super().__init__()
-        assert not isinstance(scene, Scene)  # TODO
         self._scene: ChildScene = scene
         self._geometry_ = PlaneGeometry()
         self.stretch_to_fit_size(np.array((FRAME_WIDTH, FRAME_HEIGHT, 0.0)))

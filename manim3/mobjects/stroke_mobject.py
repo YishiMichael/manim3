@@ -3,19 +3,20 @@ __all__ = ["StrokeMobject"]
 
 import itertools as it
 
-from colour import Color
 import moderngl
 import numpy as np
 
 from ..custom_typing import (
     ColorType,
     Real,
-    Vec3sT
+    Vec3sT,
+    Vec4T
 )
 from ..mobjects.mobject import Mobject
 from ..mobjects.mesh_mobject import MeshMobject
 from ..utils.lazy import (
     lazy_property,
+    lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.render_procedure import (
@@ -45,35 +46,26 @@ class StrokeMobject(Mobject):
 
     @lazy_property_writable
     @staticmethod
-    def _color_() -> ColorType:
-        return Color("white")
+    def _single_sided_() -> bool:
+        return False
+
+    @lazy_property_updatable
+    @staticmethod
+    def _color_() -> Vec4T:
+        return np.ones(4)
 
     @lazy_property_writable
     @staticmethod
     def _dilate_() -> Real:
         return 0.0
 
-    @lazy_property_writable
-    @staticmethod
-    def _single_sided_() -> bool:
-        return False
-
-    def _get_local_sample_points(self) -> Vec3sT:
-        line_strings = self._multi_line_string_._children_
-        if not line_strings:
-            return np.zeros((0, 3))
-        return np.concatenate([
-            line_string._coords_
-            for line_string in line_strings
-        ])
-
     @lazy_property
     @staticmethod
     def _ub_stroke_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_stroke", [
-            "float u_stroke_width",
-            "vec4 u_stroke_color",
-            "float u_stroke_dilate"
+            "float u_width",
+            "vec4 u_color",
+            "float u_dilate"
         ])
 
     @lazy_property
@@ -81,13 +73,13 @@ class StrokeMobject(Mobject):
     def _ub_stroke_(
         ub_stroke_o: UniformBlockBuffer,
         width: Real,
-        color: ColorType,
+        color: Vec4T,
         dilate: Real
     ) -> UniformBlockBuffer:
         ub_stroke_o.write({
-            "u_stroke_width": np.array(width),
-            "u_stroke_color": MeshMobject._color_to_vector(color),
-            "u_stroke_dilate": np.array(dilate)
+            "u_width": np.array(width),
+            "u_color": color,
+            "u_dilate": np.array(dilate)
         })
         return ub_stroke_o
 
@@ -271,3 +263,67 @@ class StrokeMobject(Mobject):
             mode=moderngl.TRIANGLES
         )
         target_framebuffer.color_mask = (True, True, True, True)
+
+    def _get_local_sample_points(self) -> Vec3sT:
+        line_strings = self._multi_line_string_._children_
+        if not line_strings:
+            return np.zeros((0, 3))
+        return np.concatenate([
+            line_string._coords_
+            for line_string in line_strings
+        ])
+
+    @_color_.updater
+    def _set_style_locally(
+        self,
+        *,
+        width: Real | None = None,
+        single_sided: bool | None = None,
+        color: ColorType | None = None,
+        opacity: Real | None = None,
+        dilate: Real | None = None,
+        apply_oit: bool | None = None
+    ):
+        if width is not None:
+            self._width_ = width
+        if single_sided is not None:
+            self._single_sided_ = single_sided
+        if color is not None:
+            color_component, opacity_component = MeshMobject._decompose_color(color)  # TODO
+            self._color_[:3] = color_component
+            if opacity is None:
+                opacity = opacity_component
+        if opacity is not None:
+            self._color_[3] = opacity
+        if dilate is not None:
+            self._dilate_ = dilate
+        if apply_oit is not None:
+            self._apply_oit_ = apply_oit
+        else:
+            if any(param is not None for param in (opacity, dilate)):
+                self._apply_oit_ = True
+        return self
+
+    def set_style(
+        self,
+        *,
+        width: Real | None = None,
+        single_sided: bool | None = None,
+        color: ColorType | None = None,
+        opacity: Real | None = None,
+        dilate: Real | None = None,
+        apply_oit: bool | None = None,
+        broadcast: bool = True
+    ):
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if not isinstance(mobject, StrokeMobject):
+                continue
+            mobject._set_style_locally(
+                width=width,
+                single_sided=single_sided,
+                color=color,
+                opacity=opacity,
+                dilate=dilate,
+                apply_oit=apply_oit
+            )
+        return self

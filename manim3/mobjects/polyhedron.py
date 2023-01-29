@@ -31,8 +31,9 @@ class Polyhedron(ShapeMobject):
             # Append the last point to form a closed ring
             ring_coords = np.append(coords, coords[0, None], axis=0)
             shape = ShapeMobject(Shape(MultiLineString2D([LineString2D(ring_coords)])))
-            shape._set_model_matrix(matrix)
+            shape.apply_transform(matrix)
             self.add(shape)
+        self.set_style(apply_phong_lighting=True)
 
     @classmethod
     def _convert_coplanar_vertices(cls, vertices: Vec3sT) -> tuple[Mat4T, Vec2sT]:

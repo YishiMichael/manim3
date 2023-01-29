@@ -8,9 +8,9 @@ layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
 layout (std140) uniform ub_stroke {
-    float u_stroke_width;
-    vec4 u_stroke_color;
-    float u_stroke_dilate;
+    float u_width;
+    vec4 u_color;
+    float u_dilate;
 };
 
 mat2 frame_transform = mat2(
@@ -93,7 +93,7 @@ void main() {
     vec2 transformed_direction = frame_transform * (p1_ndc - p0_ndc);
     vec2 transformed_normal = normalize(vec2(-transformed_direction.y, transformed_direction.x));
     vec2 normal = frame_transform_inv * transformed_normal;
-    vec4 offset_vec = u_stroke_width * vec4(normal, 0.0, 0.0);
+    vec4 offset_vec = u_width * vec4(normal, 0.0, 0.0);
 
     line_subroutine(gs_in[0].position, gs_in[1].position, offset_vec);
     EndPrimitive();
@@ -114,7 +114,7 @@ out vec4 frag_color;
 
 void main() {
     float distance_to_edge = fs_in.distance_to_edge;
-    frag_color = vec4(u_stroke_color.rgb, u_stroke_color.a * pow(distance_to_edge, u_stroke_dilate));
+    frag_color = vec4(u_color.rgb, u_color.a * pow(distance_to_edge, u_dilate));
 }
 
 

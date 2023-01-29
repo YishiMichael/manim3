@@ -6,6 +6,7 @@ import numpy as np
 from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
 from ..custom_typing import (
+    Real,
     Vec3sT,
     Vec4sT,
     Vec4T

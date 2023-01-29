@@ -1,9 +1,7 @@
 __all__ = ["MeshMobject"]
 
 
-import inspect
 import re
-from typing import Callable
 
 from colour import Color
 import moderngl
@@ -13,21 +11,21 @@ from ..geometries.empty_geometry import EmptyGeometry
 from ..geometries.geometry import Geometry
 from ..custom_typing import (
     ColorType,
-    Vec2sT,
+    Real,
+    Vec3T,
     Vec3sT,
-    Vec4T,
-    Vec4sT
+    Vec4T
 )
 from ..mobjects.mobject import Mobject
 from ..utils.lazy import (
     lazy_property,
+    lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.render_procedure import (
-    AttributesBuffer,
-    IndexBuffer,
     RenderProcedure,
-    TextureStorage
+    TextureStorage,
+    UniformBlockBuffer
 )
 from ..utils.scene_config import SceneConfig
 
@@ -43,13 +41,40 @@ class MeshMobject(Mobject):
     def _geometry_() -> Geometry:
         return EmptyGeometry()
 
-    def _get_local_sample_points(self) -> Vec3sT:
-        return self._geometry_._position_
+    @lazy_property_updatable
+    @staticmethod
+    def _color_() -> Vec4T:
+        return np.ones(4)
+
+    #@lazy_property_writable
+    #@staticmethod
+    #def _opacity_() -> Real:
+    #    return 1.0
+
+    #@lazy_property
+    #@staticmethod
+    #def _color_(color: ColorType) -> Vec4T:
+    #    return MeshMobject._color_to_vector(color)
 
     @lazy_property_writable
     @staticmethod
-    def _color_() -> ColorType | Callable[..., Vec4T]:
-        return Color("white")
+    def _ambient_strength_() -> Real:
+        return 1.0
+
+    @lazy_property_writable
+    @staticmethod
+    def _specular_strength_() -> Real:
+        return 0.5
+
+    @lazy_property_writable
+    @staticmethod
+    def _shininess_() -> Real:
+        return 32.0
+
+    @lazy_property_writable
+    @staticmethod
+    def _apply_phong_lighting_() -> bool:
+        return True
 
     @lazy_property
     @staticmethod
@@ -68,46 +93,30 @@ class MeshMobject(Mobject):
 
     @lazy_property
     @staticmethod
-    def _attributes_o_() -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 in_position",
-            "vec3 in_normal",
-            "vec2 in_uv",
-            "vec4 in_color"
+    def _ub_material_o_() -> UniformBlockBuffer:
+        return UniformBlockBuffer("ub_material", [
+            "vec4 u_color",
+            "float u_ambient_strength",
+            "float u_specular_strength",
+            "float u_shininess"
         ])
 
     @lazy_property
     @staticmethod
-    def _attributes_(
-        attributes_o: AttributesBuffer,
-        geometry: Geometry,
-        color: ColorType | Callable[..., Vec4T]
-    ) -> AttributesBuffer:
-        position = geometry._position_
-        normal = geometry._normal_
-        uv = geometry._uv_
-        color_array = MeshMobject._calculate_color_array(color, position, normal, uv)
-        attributes_o.write({
-            "in_position": position,
-            "in_normal": normal,
-            "in_uv": uv,
-            "in_color": color_array
+    def _ub_material_(
+        ub_material_o: UniformBlockBuffer,
+        color: Vec4T,
+        ambient_strength: Real,
+        specular_strength: Real,
+        shininess: Real
+    ) -> UniformBlockBuffer:
+        ub_material_o.write({
+            "u_color": color,
+            "u_ambient_strength": np.array(ambient_strength),
+            "u_specular_strength": np.array(specular_strength),
+            "u_shininess": np.array(shininess)
         })
-        return attributes_o
-
-    @lazy_property
-    @staticmethod
-    def _index_buffer_o_() -> IndexBuffer:
-        return IndexBuffer()
-
-    @lazy_property
-    @staticmethod
-    def _index_buffer_(
-        index_buffer_o: IndexBuffer,
-        geometry: Geometry
-    ) -> IndexBuffer:
-        index_buffer_o.write(geometry._index_)
-        return index_buffer_o
+        return ub_material_o
 
     @lazy_property_writable
     @staticmethod
@@ -115,19 +124,23 @@ class MeshMobject(Mobject):
         return 4
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        custom_macros = []
+        if self._apply_phong_lighting_:
+            custom_macros.append("#define APPLY_PHONG_LIGHTING")
         RenderProcedure.render_step(
             shader_str=RenderProcedure.read_shader("mesh"),
-            custom_macros=[],
+            custom_macros=custom_macros,
             texture_storages=[
                 self._u_color_maps_
             ],
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
                 self._ub_model_,
-                scene_config._ub_lights_
+                scene_config._ub_lights_,
+                self._ub_material_
             ],
-            attributes=self._attributes_,
-            index_buffer=self._index_buffer_,
+            attributes=self._geometry_._attributes_,
+            index_buffer=self._geometry_._index_buffer_,
             framebuffer=target_framebuffer,
             context_state=RenderProcedure.context_state(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
@@ -135,16 +148,80 @@ class MeshMobject(Mobject):
             mode=moderngl.TRIANGLES
         )
 
+    @_color_.updater
+    def _set_style_locally(
+        self,
+        *,
+        color: ColorType | None = None,
+        opacity: Real | None = None,
+        apply_oit: bool | None = None,
+        ambient_strength: Real | None = None,
+        specular_strength: Real | None = None,
+        shininess: Real | None = None,
+        apply_phong_lighting: bool | None = None
+    ):
+        if color is not None:
+            color_component, opacity_component = self._decompose_color(color)
+            self._color_[:3] = color_component
+            if opacity is None:
+                opacity = opacity_component
+        if opacity is not None:
+            self._color_[3] = opacity
+        if apply_oit is not None:
+            self._apply_oit_ = apply_oit
+        else:
+            if opacity is not None:
+                self._apply_oit_ = True
+        if ambient_strength is not None:
+            self._ambient_strength_ = ambient_strength
+        if specular_strength is not None:
+            self._specular_strength_ = specular_strength
+        if shininess is not None:
+            self._shininess_ = shininess
+        if apply_phong_lighting is not None:
+            self._apply_phong_lighting_ = apply_phong_lighting
+        else:
+            if any(param is not None for param in (ambient_strength, specular_strength, shininess)):
+                self._apply_phong_lighting_ = True
+        return self
+
+    def set_style(
+        self,
+        *,
+        color: ColorType | None = None,
+        opacity: Real | None = None,
+        apply_oit: bool | None = None,
+        ambient_strength: Real | None = None,
+        specular_strength: Real | None = None,
+        shininess: Real | None = None,
+        apply_phong_lighting: bool | None = None,
+        broadcast: bool = True
+    ):
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if not isinstance(mobject, MeshMobject):
+                continue
+            mobject._set_style_locally(
+                color=color,
+                opacity=opacity,
+                apply_oit=apply_oit,
+                ambient_strength=ambient_strength,
+                specular_strength=specular_strength,
+                shininess=shininess,
+                apply_phong_lighting=apply_phong_lighting
+            )
+        return self
+
     @classmethod
-    def _color_to_vector(cls, color: ColorType) -> Vec4T:
+    def _decompose_color(cls, color: ColorType) -> tuple[Vec3T, float | None]:
+        error_message = f"Invalid color: {color}"
         if isinstance(color, Color):
-            return np.array([*color.rgb, 1.0])
+            return np.array(color.rgb), None
         if isinstance(color, str):
             if re.fullmatch(r"\w+", color):
-                return np.array([*Color(color).rgb, 1.0])
-            assert re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE)
+                return np.array(Color(color).rgb), None
+            assert re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE), error_message
             hex_len = len(color) - 1
-            assert hex_len in (3, 4, 6, 8)
+            assert hex_len in (3, 4, 6, 8), error_message
             num_components = 4 if hex_len % 3 else 3
             component_size = hex_len // num_components
             result = np.array([
@@ -152,38 +229,14 @@ class MeshMobject(Mobject):
                 for match_obj in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
             ]) * (1.0 / (16 ** component_size - 1))
             if num_components == 3:
-                result = np.append(result, 1.0)
-            return result
+                return result[:], None
+            return result[:3], result[3]
         if isinstance(color, np.ndarray):
             if color.shape == (3,):
-                return np.array([*color, 1.0], dtype=float)
+                return color[:], None
             if color.shape == (4,):
-                return np.array(color, dtype=float)
-        raise TypeError
+                return color[:3], color[3]
+        raise TypeError(error_message)
 
-    @classmethod
-    def _calculate_color_array(
-        cls,
-        color: ColorType | Callable[..., Vec4T],
-        position: Vec3sT,
-        normal: Vec3sT,
-        uv: Vec2sT
-    ) -> Vec4sT:
-        if isinstance(color, Callable) and (color_func_params := inspect.signature(color).parameters):
-            supported_parameters = {
-                "position": position,
-                "normal": normal,
-                "uv": uv
-            }
-            return np.array([
-                color(*args)
-                for args in zip(*(
-                    supported_parameters[name]
-                    for name in color_func_params
-                ), strict=True)
-            ])
-        if isinstance(color, Callable):
-            pure_color = color()
-        else:
-            pure_color = MeshMobject._color_to_vector(color)
-        return pure_color[None].repeat(len(position), axis=0)
+    def _get_local_sample_points(self) -> Vec3sT:
+        return self._geometry_._position_

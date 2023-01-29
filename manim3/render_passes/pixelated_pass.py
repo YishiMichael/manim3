@@ -15,8 +15,8 @@ from ..utils.render_procedure import (
 
 
 class PixelatedPass(RenderPass):
-    def __init__(self, pixel_width: Real = 0.075):
-        self._pixel_width: Real = pixel_width
+    def __init__(self, pixelated_width: Real = 0.1):
+        self._pixelated_width: Real = pixelated_width
 
     @lazy_property
     @staticmethod
@@ -24,9 +24,10 @@ class PixelatedPass(RenderPass):
         return TextureStorage("sampler2D u_color_map")
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+        pixel_width = self._pixelated_width * PIXEL_PER_UNIT
         texture_size = (
-            int(np.ceil(texture.width / (self._pixel_width * PIXEL_PER_UNIT))),
-            int(np.ceil(texture.height / (self._pixel_width * PIXEL_PER_UNIT)))
+            int(np.ceil(texture.width / pixel_width)),
+            int(np.ceil(texture.height / pixel_width))
         )
         with RenderProcedure.texture(size=texture_size) as intermediate_texture, \
                 RenderProcedure.framebuffer(

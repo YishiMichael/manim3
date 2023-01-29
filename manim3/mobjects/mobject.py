@@ -1,17 +1,17 @@
 __all__ = ["Mobject"]
 
 
-import copy
+#import copy
 from dataclasses import dataclass
 from functools import reduce
 from typing import (
+    Generator,
     Iterable,
     Iterator,
     overload
 )
 import warnings
 
-import moderngl
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -26,23 +26,14 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-from ..render_passes.render_pass import RenderPass
 from ..utils.lazy import (
-    LazyBase,
     lazy_property,
     lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.node import Node
-from ..utils.render_procedure import (
-    #Framebuffer,
-    #IntermediateDepthTextures,
-    #IntermediateFramebuffer,
-    #IntermediateTextures,
-    RenderProcedure,
-    UniformBlockBuffer
-)
-from ..utils.scene_config import SceneConfig
+from ..utils.render_procedure import UniformBlockBuffer
+from ..utils.renderable import Renderable
 
 
 @dataclass(
@@ -61,7 +52,7 @@ class MobjectNode(Node):
         super().__init__()
 
 
-class Mobject(LazyBase):
+class Mobject(Renderable):
     def __init__(self) -> None:
         self._node: MobjectNode = MobjectNode(self)
         super().__init__()
@@ -72,32 +63,33 @@ class Mobject(LazyBase):
     #    super().__init__()
 
     def __iter__(self) -> Iterator["Mobject"]:
-        return iter(self.get_children())
+        return self.iter_children()
 
-    #def __getitem__(self, i: int | slice) -> "Mobject":
-    #    if isinstance(i, int):
-    #        return self.get_children().__getitem__(i)
-    #    return Mobject().add(*self.get_children().__getitem__(i))
+    def __getitem__(self, i: int | slice):
+        if isinstance(i, int):
+            return self._node.__getitem__(i)._mobject
+        return self.__class__().add(*(node._mobject for node in self._node.__getitem__(i)))
 
-    def copy(self):
-        return copy.copy(self)  # TODO
+    #def copy(self):
+    #    return copy.copy(self)  # TODO
 
     # family matters
 
-    def get_parents(self) -> "list[Mobject]":
-        return [node._mobject for node in self._node.get_parents()]
+    def iter_parents(self) -> "Generator[Mobject, None, None]":
+        for node in self._node.iter_parents():
+            yield node._mobject
 
-    def get_children(self) -> "list[Mobject]":
-        return [node._mobject for node in self._node.get_children()]
+    def iter_children(self) -> "Generator[Mobject, None, None]":
+        for node in self._node.iter_children():
+            yield node._mobject
 
-    def get_ancestors(self, *, broadcast: bool = True) -> "list[Mobject]":
-        return [node._mobject for node in self._node.get_ancestors(broadcast=broadcast)]
+    def iter_ancestors(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
+        for node in self._node.iter_ancestors(broadcast=broadcast):
+            yield node._mobject
 
-    def get_descendants(self, *, broadcast: bool = True) -> "list[Mobject]":
-        return [node._mobject for node in self._node.get_descendants(broadcast=broadcast)]
-
-    def get_descendants_excluding_self(self) -> "list[Mobject]":
-        return [node._mobject for node in self._node.get_descendants_excluding_self()]
+    def iter_descendants(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
+        for node in self._node.iter_descendants(broadcast=broadcast):
+            yield node._mobject
 
     def includes(self, mobject: "Mobject") -> bool:
         return self._node.includes(mobject._node)
@@ -209,12 +201,8 @@ class Mobject(LazyBase):
         return np.identity(4)
 
     @_model_matrix_.updater
-    def _set_model_matrix(self, matrix: Mat4T):
-        self._model_matrix_ = matrix
-        return self
-
-    def apply_transform_locally(self, matrix: Mat4T):
-        self._set_model_matrix(self._model_matrix_ @ matrix)
+    def _apply_transform_locally(self, matrix: Mat4T):
+        self._model_matrix_ = self._model_matrix_ @ matrix
         return self
 
     def _get_local_sample_points(self) -> Vec3sT:
@@ -228,7 +216,7 @@ class Mobject(LazyBase):
     ) -> BoundingBox3D:
         points_array = np.concatenate([
             self.apply_affine(self._model_matrix_, mobject._get_local_sample_points())
-            for mobject in self.get_descendants(broadcast=broadcast)
+            for mobject in self.iter_descendants(broadcast=broadcast)
         ])
         if not points_array.shape[0]:
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
@@ -282,6 +270,16 @@ class Mobject(LazyBase):
     #        mobject.apply_relative_transform(matrix)
     #    return self
 
+    def apply_transform(
+        self,
+        matrix: Mat4T,
+        *,
+        broadcast: bool = True
+    ):
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            mobject._apply_transform_locally(matrix)
+        return self
+
     def apply_relative_transform(
         self,
         matrix: Mat4T,
@@ -304,8 +302,7 @@ class Mobject(LazyBase):
         ))
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
-        for mobject in self.get_descendants(broadcast=broadcast):
-            mobject.apply_transform_locally(matrix)
+        self.apply_transform(matrix, broadcast=broadcast)
         return self
 
     def shift(
@@ -560,11 +557,6 @@ class Mobject(LazyBase):
     def _apply_oit_() -> bool:
         return False
 
-    @lazy_property_writable
-    @staticmethod
-    def _render_samples_() -> int:
-        return 0
-
     @lazy_property
     @staticmethod
     def _ub_model_o_() -> UniformBlockBuffer:
@@ -582,76 +574,6 @@ class Mobject(LazyBase):
             "u_model_matrix": model_matrix
         })
         return ub_model_o
-
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        # Implemented in subclasses
-        # This function is not responsible for clearing the `target_framebuffer`.
-        # On the other hand, one shall clear the framebuffer before calling this function.
-        pass
-
-    def _render_with_samples(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        samples = self._render_samples_
-        if not samples:
-            self._render(scene_config, target_framebuffer)
-            return
-
-        with RenderProcedure.texture(samples=4) as msaa_color_texture, \
-                RenderProcedure.depth_texture(samples=4) as msaa_depth_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[msaa_color_texture],
-                    depth_attachment=msaa_depth_texture
-                ) as msaa_framebuffer:
-            self._render(scene_config, msaa_framebuffer)
-            RenderProcedure.downsample_framebuffer(msaa_framebuffer, target_framebuffer)
-
-    def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        render_passes = self._render_passes_
-        if not render_passes:
-            self._render_with_samples(scene_config, target_framebuffer)
-            return
-
-        with RenderProcedure.texture() as intermediate_texture_0, \
-                RenderProcedure.texture() as intermediate_texture_1:
-            textures = (intermediate_texture_0, intermediate_texture_1)
-            target_texture_id = 0
-            with RenderProcedure.framebuffer(
-                        color_attachments=[intermediate_texture_0],
-                        depth_attachment=target_framebuffer.depth_attachment
-                    ) as initial_framebuffer:
-                self._render_with_samples(scene_config, initial_framebuffer)
-            for render_pass in render_passes[:-1]:
-                target_texture_id = 1 - target_texture_id
-                with RenderProcedure.framebuffer(
-                            color_attachments=[textures[target_texture_id]],
-                            depth_attachment=None
-                        ) as intermediate_framebuffer:
-                    render_pass._render(
-                        texture=textures[1 - target_texture_id],
-                        target_framebuffer=intermediate_framebuffer
-                    )
-            target_framebuffer.depth_mask = False  # TODO: shall we disable writing to depth?
-            render_passes[-1]._render(
-                texture=textures[target_texture_id],
-                target_framebuffer=target_framebuffer
-            )
-            target_framebuffer.depth_mask = True
-
-    @lazy_property_updatable
-    @staticmethod
-    def _render_passes_() -> list[RenderPass]:
-        return []
-
-    @_render_passes_.updater
-    def add_pass(self, *render_passes: RenderPass):
-        for render_pass in render_passes:
-            self._render_passes_.append(render_pass)
-        return self
-
-    @_render_passes_.updater
-    def remove_pass(self, *render_passes: RenderPass):
-        for render_pass in render_passes:
-            self._render_passes_.remove(render_pass)
-        return self
 
 
 #class Group(Mobject):

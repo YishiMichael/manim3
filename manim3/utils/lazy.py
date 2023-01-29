@@ -1,8 +1,8 @@
 __all__ = [
+    "LazyBase",
     "lazy_property",
     "lazy_property_updatable",
-    "lazy_property_writable",
-    "LazyBase"
+    "lazy_property_writable"
 ]
 
 
@@ -89,7 +89,7 @@ class lazy_property(Generic[_LazyBaseT, _T], Node):
         self.requires_update[instance] = True
 
     def update_ancestors_cache(self) -> None:
-        self.ancestors = self.get_ancestors()
+        self.ancestors = list(self.iter_ancestors())
 
     def expire_instance(self, instance: _LazyBaseT) -> None:
         for expired_prop in self.ancestors:

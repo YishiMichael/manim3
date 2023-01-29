@@ -10,15 +10,14 @@ from typing import (
 )
 
 
-_T = TypeVar("_T")
 Self = TypeVar("Self", bound="Node")
 
 
 class Node:
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self) -> None:
         self.__parents__: list = []
         self.__children__: list = []
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     def __iter__(self: Self) -> Iterator[Self]:
         return iter(self._children)
@@ -32,16 +31,6 @@ class Node:
     def __getitem__(self: Self, i: int | slice) -> Self | list[Self]:
         return self._children.__getitem__(i)
 
-    @classmethod
-    def _remove_redundancies(cls, l: Iterable[_T]) -> list[_T]:
-        """
-        Used instead of list(set(l)) to maintain order
-        Keeps the first occurrence of each element
-        """
-        return list(dict.fromkeys(l))
-
-    # getters
-
     @property
     def _parents(self: Self) -> list[Self]:
         return self.__parents__
@@ -50,31 +39,11 @@ class Node:
     def _children(self: Self) -> list[Self]:
         return self.__children__
 
-    #@_parents_.updater
-    #def _append_parent(self: Self, node: Self) -> None:
-    #    self._parents_.append(node)
+    def iter_parents(self: Self) -> Iterator[Self]:
+        return iter(self._parents)
 
-    #@_parents_.updater
-    #def _remove_parent(self: Self, node: Self) -> None:
-    #    self._parents_.remove(node)
-
-    #@_children_.updater
-    #def _append_child(self: Self, node: Self) -> None:
-    #    self._children_.append(node)
-
-    #@_children_.updater
-    #def _insert_child(self: Self, index: int, node: Self) -> None:
-    #    self._children_.insert(index, node)
-
-    #@_children_.updater
-    #def _remove_child(self: Self, node: Self) -> None:
-    #    self._children_.remove(node)
-
-    def get_parents(self: Self) -> list[Self]:
-        return self._parents[:]
-
-    def get_children(self: Self) -> list[Self]:
-        return self._children[:]
+    def iter_children(self: Self) -> Iterator[Self]:
+        return iter(self._children)
 
     def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
         yield self
@@ -86,25 +55,30 @@ class Node:
         for child_node in self._children:
             yield from child_node._iter_descendants()
 
-    def get_ancestors(self: Self, *, broadcast: bool = True) -> list[Self]:  # TODO: order
+    def iter_ancestors(self: Self, *, broadcast: bool = True) -> Generator[Self, None, None]:
+        yield self
         if not broadcast:
-            return [self]
-        return self._remove_redundancies(self._iter_ancestors())
+            return
+        occurred: set[Self] = {self}
+        for node in self._iter_ancestors():
+            if node in occurred:
+                continue
+            yield node
+            occurred.add(node)
 
-    def get_descendants(self: Self, *, broadcast: bool = True) -> list[Self]:
+    def iter_descendants(self: Self, *, broadcast: bool = True) -> Generator[Self, None, None]:
+        yield self
         if not broadcast:
-            return [self]
-        return self._remove_redundancies(self._iter_descendants())
-
-    def get_descendants_excluding_self(self: Self) -> list[Self]:
-        result = self.get_descendants()
-        result.remove(self)
-        return result
-
-    # setters
+            return
+        occurred: set[Self] = {self}
+        for node in self._iter_descendants():
+            if node in occurred:
+                continue
+            yield node
+            occurred.add(node)
 
     def includes(self: Self, node: Self) -> bool:
-        return node in self._iter_descendants()
+        return node in self.iter_descendants()
 
     def _bind_child(self: Self, node: Self, *, index: int | None = None) -> None:
         if node.includes(self):
@@ -118,17 +92,6 @@ class Node:
     def _unbind_child(self: Self, node: Self) -> None:
         self._children.remove(node)
         node._parents.remove(self)
-
-    #def clear_bindings(self) -> None:
-    #    for parent in self.parent:
-    #        parent.children.remove(self)
-    #    for child in self.children:
-    #        child.parent.remove(self)
-    #    #for parent in self.parent:
-    #    #    for child in self.children:
-    #    #        parent._bind_child(child, loop_check=False)
-    #    self.parent.clear()
-    #    self.children.clear()
 
     def index(self: Self, node: Self) -> int:
         return self._children.index(node)
@@ -153,12 +116,12 @@ class Node:
         return node
 
     def clear(self: Self) -> Self:
-        for child in self.get_children():
+        for child in self.iter_children():
             self._unbind_child(child)
         return self
 
     def clear_parents(self: Self) -> Self:
-        for parent in self.get_parents():
+        for parent in self.iter_parents():
             parent._unbind_child(self)
         return self
 

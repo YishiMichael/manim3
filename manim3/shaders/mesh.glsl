@@ -22,6 +22,12 @@ layout (std140) uniform ub_lights {
     PointLight u_point_lights[NUM_U_POINT_LIGHTS];
     #endif
 };
+layout (std140) uniform ub_material {
+    vec4 u_color;
+    float u_ambient_strength;
+    float u_specular_strength;
+    float u_shininess;
+};
 
 
 /***********************/
@@ -32,19 +38,16 @@ layout (std140) uniform ub_lights {
 in vec3 in_position;
 in vec3 in_normal;
 in vec2 in_uv;
-in vec4 in_color;
 
 out VS_FS {
     vec3 world_position;
     vec3 world_normal;
     vec2 uv;
-    vec4 color;
 } vs_out;
 
 
 void main() {
     vs_out.uv = in_uv;
-    vs_out.color = in_color;
     vs_out.world_position = vec3(u_model_matrix * vec4(in_position, 1.0));
     vs_out.world_normal = mat3(transpose(inverse(u_model_matrix))) * in_normal;
     gl_Position = u_projection_matrix * u_view_matrix * vec4(vs_out.world_position, 1.0);
@@ -60,16 +63,17 @@ in VS_FS {
     vec3 world_position;
     vec3 world_normal;
     vec2 uv;
-    vec4 color;
 } fs_in;
 
 out vec4 frag_color;
 
 
 void main() {
+    #if defined APPLY_PHONG_LIGHTING
+    // From https://learnopengl.com/Lighting/Basic-Lighting
     frag_color = vec4(0.0);
 
-    frag_color += u_ambient_light_color;
+    frag_color += u_ambient_light_color * u_ambient_strength;
 
     vec3 normal = normalize(fs_in.world_normal);
     #if NUM_U_POINT_LIGHTS
@@ -82,12 +86,15 @@ void main() {
 
         vec3 view_direction = normalize(u_view_position - fs_in.world_position);
         vec3 reflect_direction = reflect(-light_direction, normal);
-        vec4 specular = 0.5 * pow(max(dot(view_direction, reflect_direction), 0.0), 32) * point_light.color;
-        frag_color += specular;
+        vec4 specular = pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
+        frag_color += specular * u_specular_strength;
     }
     #endif
+    #else
+    frag_color = vec4(1.0);
+    #endif
 
-    frag_color *= fs_in.color;
+    frag_color *= u_color;
     #if NUM_U_COLOR_MAPS
     for (int i = 0; i < NUM_U_COLOR_MAPS; ++i) {
         frag_color *= texture(u_color_maps[i], fs_in.uv);

@@ -219,7 +219,7 @@ class StringMobject(SVGMobject):
     @classmethod
     def color_to_int(cls, color: ColorType) -> int:
         c = Color()
-        c.rgb = cls._color_to_vector(color)[:3]
+        c.rgb, _ = cls._decompose_color(color)  # TODO
         return int(c.hex_l[1:], 16)
 
     #@staticmethod

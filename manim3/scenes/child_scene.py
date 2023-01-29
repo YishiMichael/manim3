@@ -1,10 +1,5 @@
-__all__ = [
-    "ChildScene",
-    "Scene"
-]
+__all__ = ["ChildScene"]
 
-
-import time
 
 import moderngl
 import numpy as np
@@ -16,17 +11,21 @@ from ..utils.render_procedure import (
     RenderProcedure,
     TextureStorage
 )
+from ..utils.renderable import Renderable
 from ..utils.scene_config import SceneConfig
 
 
-class ChildScene(Mobject):
+class ChildScene(Renderable):
+    def __init__(self):
+        self._mobject_node: Mobject = Mobject()
+
     @lazy_property
     @staticmethod
     def _scene_config_() -> SceneConfig:
         return SceneConfig()
 
     def _update_dt(self, dt: Real):
-        for mobject in self.get_descendants_excluding_self():
+        for mobject in self._mobject_node.iter_descendants():
             mobject._update_dt(dt)
         return self
 
@@ -55,7 +54,7 @@ class ChildScene(Mobject):
         # ./Animations/src/renderer/Renderer.cpp
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
-        for mobject in self.get_descendants_excluding_self():
+        for mobject in self._mobject_node.iter_descendants():
             if mobject._apply_oit_:
                 transparent_mobjects.append(mobject)
             else:
@@ -192,29 +191,10 @@ class ChildScene(Mobject):
                 )
             )
 
+    def add(self, *mobjects: Mobject):
+        self._mobject_node.add(*mobjects)
+        return self
 
-class Scene(ChildScene):
-    def _render_scene(self) -> None:
-        framebuffer = RenderProcedure._WINDOW_FRAMEBUFFER
-        framebuffer.clear()
-        self._render_with_passes(self._scene_config_, framebuffer)
-
-    def wait(self, t: Real):
-        window = RenderProcedure._WINDOW
-        #if window is None:
-        #    return self  # TODO
-        FPS = 30.0
-        dt = 1.0 / FPS
-        elapsed_time = 0.0
-        timestamp = time.time()
-        while not window.is_closing and elapsed_time < t:
-            elapsed_time += dt
-            delta_t = time.time() - timestamp
-            if dt > delta_t:
-                time.sleep(dt - delta_t)
-            timestamp = time.time()
-            window.clear()
-            self._update_dt(dt)
-            self._render_scene()
-            window.swap_buffers()
+    def remove(self, *mobjects: Mobject):
+        self._mobject_node.remove(*mobjects)
         return self

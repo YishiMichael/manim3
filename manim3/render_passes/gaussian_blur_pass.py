@@ -22,7 +22,7 @@ from ..utils.render_procedure import (
 
 
 class GaussianBlurPass(RenderPass):
-    def __init__(self, sigma_width: Real = 0.075):
+    def __init__(self, sigma_width: Real = 0.1):
         self._sigma_width_ = sigma_width
 
     @lazy_property

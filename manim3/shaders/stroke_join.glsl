@@ -8,9 +8,9 @@ layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
 layout (std140) uniform ub_stroke {
-    float u_stroke_width;
-    vec4 u_stroke_color;
-    float u_stroke_dilate;
+    float u_width;
+    vec4 u_color;
+    float u_dilate;
 };
 
 const float PI = 3.141592653589793;
@@ -81,16 +81,16 @@ void emit_vertex_by_transformed_offset_vec(vec4 center_position, vec2 transforme
 }
 
 
-void emit_sector(float stroke_width, vec4 center_position, float angle_start, float delta_angle) {
+void emit_sector(float width, vec4 center_position, float angle_start, float delta_angle) {
     float n_primitives = clamp(ceil(abs(delta_angle) / PI * 2.0), 1.0, 2.0);
     float d_angle = delta_angle / (2.0 * n_primitives);
     for (int i = 0; i < n_primitives; ++i) {
         float angle_mid = angle_start + d_angle;
         float angle_end = angle_start + d_angle * 2.0;
         emit_vertex_by_transformed_offset_vec(center_position, vec2(0.0));
-        emit_vertex_by_transformed_offset_vec(center_position, stroke_width * get_unit_vector(angle_start));
-        emit_vertex_by_transformed_offset_vec(center_position, stroke_width * get_unit_vector(angle_end));
-        emit_vertex_by_transformed_offset_vec(center_position, stroke_width / cos(d_angle) * get_unit_vector(angle_mid));
+        emit_vertex_by_transformed_offset_vec(center_position, width * get_unit_vector(angle_start));
+        emit_vertex_by_transformed_offset_vec(center_position, width * get_unit_vector(angle_end));
+        emit_vertex_by_transformed_offset_vec(center_position, width / cos(d_angle) * get_unit_vector(angle_mid));
         EndPrimitive();
 
         angle_start = angle_end;
@@ -99,14 +99,14 @@ void emit_sector(float stroke_width, vec4 center_position, float angle_start, fl
 
 
 void single_sided(vec4 center_position, float angle_start, float delta_angle) {
-    if (delta_angle * u_stroke_width < 0.0) {
-        emit_sector(u_stroke_width, center_position, angle_start, delta_angle);
+    if (delta_angle * u_width < 0.0) {
+        emit_sector(u_width, center_position, angle_start, delta_angle);
     }
 }
 
 
 void both_sided(vec4 center_position, float angle_start, float delta_angle) {
-    emit_sector(-sign(delta_angle) * abs(u_stroke_width), center_position, angle_start, delta_angle);
+    emit_sector(-sign(delta_angle) * abs(u_width), center_position, angle_start, delta_angle);
 }
 
 
@@ -136,11 +136,11 @@ out vec4 frag_color;
 
 
 void main() {
-    float distance_to_edge = 1.0 - length(fs_in.transformed_offset_vec) / abs(u_stroke_width);
+    float distance_to_edge = 1.0 - length(fs_in.transformed_offset_vec) / abs(u_width);
     if (distance_to_edge <= 0.0) {
         discard;
     }
-    frag_color = vec4(u_stroke_color.rgb, u_stroke_color.a * pow(distance_to_edge, u_stroke_dilate));
+    frag_color = vec4(u_color.rgb, u_color.a * pow(distance_to_edge, u_dilate));
 }
 
 
