@@ -1,7 +1,6 @@
 __all__ = ["MeshMobject"]
 
 
-
 import moderngl
 import numpy as np
 
@@ -47,16 +46,6 @@ class MeshMobject(Mobject):
     @staticmethod
     def _opacity_() -> Real:
         return 1.0
-
-    #@lazy_property_writable
-    #@staticmethod
-    #def _opacity_() -> Real:
-    #    return 1.0
-
-    #@lazy_property
-    #@staticmethod
-    #def _color_(color: ColorType) -> Vec4T:
-    #    return MeshMobject._color_to_vector(color)
 
     @lazy_property_writable
     @staticmethod
@@ -180,7 +169,11 @@ class MeshMobject(Mobject):
         if apply_phong_lighting is not None:
             self._apply_phong_lighting_ = apply_phong_lighting
         else:
-            if any(param is not None for param in (ambient_strength, specular_strength, shininess)):
+            if any(param is not None for param in (
+                ambient_strength,
+                specular_strength,
+                shininess
+            )):
                 self._apply_phong_lighting_ = True
         return self
 

@@ -124,11 +124,6 @@ class StrokeMobject(Mobject):
             position = np.concatenate([
                 line_string._coords_
                 for line_string in multi_line_string._children_
-                #line_string._coords_[:-1]
-                #if line_string._kind_ == "linear_ring"
-                #else line_string._coords_
-                #for line_string in multi_line_string._children_
-                #if line_string._kind_ != "point"
             ])
         return attributes_o.write({
             "in_position": position
@@ -144,14 +139,6 @@ class StrokeMobject(Mobject):
         index_arrays: list[VertexIndexType] = []
         for line_string in multi_line_string._children_:
             index_arrays.append(np.array(index_getter(line_string), dtype=np.uint32) + offset)
-            #if line_string._kind_ == "point":
-            #    continue
-            #n_points = len(line_string._coords_)
-            #if line_string._kind_ == "linear_ring":
-            #    n_points -= 1
-            #index_list.extend(range(offset, offset + n_points))
-            #if line_string._kind_ == "linear_ring":
-            #    index_list.append(offset)
             offset += len(line_string._coords_)
         if not index_arrays:
             return np.zeros(0, dtype=np.uint32)
@@ -179,19 +166,6 @@ class StrokeMobject(Mobject):
         line_index_buffer_o: IndexBuffer,
         multi_line_string: MultiLineString3D
     ) -> IndexBuffer:
-        #index_list: list[int] = []
-        #offset = 0
-        #for line_string in multi_line_string._children_:
-        #    if line_string._kind_ == "point":
-        #        continue
-        #    n_points = len(line_string._coords_)
-        #    if line_string._kind_ == "linear_ring":
-        #        n_points -= 1
-        #    index_list.extend(range(offset, offset + n_points))
-        #    if line_string._kind_ == "linear_ring":
-        #        index_list.append(offset)
-        #    offset += n_points
-        #line_index_buffer_o.write(np.array(index_list))
         return line_index_buffer_o.write(
             StrokeMobject._lump_index_from_getter(StrokeMobject._line_index_getter, multi_line_string)
         )
@@ -225,25 +199,6 @@ class StrokeMobject(Mobject):
         join_index_buffer_o: IndexBuffer,
         multi_line_string: MultiLineString3D
     ) -> IndexBuffer:
-        #index_list: list[int] = []
-        #offset = 0
-        #for line_string in multi_line_string._children_:
-        #    if line_string._kind_ == "point":
-        #        continue
-        #    n_points = len(line_string._coords_)
-        #    if line_string._kind_ == "linear_ring":
-        #        n_points -= 1
-        #    index_list.extend(it.chain(*(
-        #        range(offset + i, offset + i + 3)
-        #        for i in range(0, n_points - 2)
-        #    )))
-        #    if line_string._kind_ == "linear_ring":
-        #        index_list.extend(
-        #            offset + i
-        #            for i in (n_points - 2, n_points - 1, 0, n_points - 1, 0, 1)
-        #        )
-        #    offset += n_points
-        #join_index_buffer_o.write(np.array(index_list))
         return join_index_buffer_o.write(
             StrokeMobject._lump_index_from_getter(StrokeMobject._join_index_getter, multi_line_string)
         )
@@ -339,12 +294,6 @@ class StrokeMobject(Mobject):
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
-        #if self._single_sided_:
-        #    subroutine_name = "single_sided"
-        #    #winding_sign = self._calculate_winding_sign(scene_config._camera)
-        #else:
-        #    subroutine_name = "both_sided"
-        #    #winding_sign = 1.0  # This uniform only takes effect when single sided.
         uniform_blocks = [
             scene_config._camera._ub_camera_,
             self._ub_model_,
@@ -353,25 +302,6 @@ class StrokeMobject(Mobject):
                 "u_winding_sign": np.array(self._calculate_winding_sign(scene_config._camera))
             })
         ]
-        #render_items: list[tuple[list[str], IndexBuffer, int]] = [
-        #    ([
-        #        "#define STROKE_LINE",
-        #        f"#define line_subroutine {subroutine_name}"
-        #    ], self._line_index_buffer_, moderngl.LINE_STRIP),
-        #    ([
-        #        "#define STROKE_JOIN",
-        #        f"#define join_subroutine {subroutine_name}"
-        #    ], self._join_index_buffer_, moderngl.TRIANGLES)
-        #]
-        #if self._has_linecap_:
-        #    render_items.extend([
-        #        ([
-        #            "#define STROKE_CAP"
-        #        ], self._cap_index_buffer_, moderngl.LINE_STRIP),
-        #        ([
-        #            "#define STROKE_POINT"
-        #        ], self._point_index_buffer_, moderngl.POINTS)
-        #    ])
         # Render color
         target_framebuffer.depth_mask = False
         for custom_macros, index_buffer, mode in self._stroke_render_items_:
@@ -390,42 +320,6 @@ class StrokeMobject(Mobject):
                 ),
                 mode=mode
             )
-        #RenderProcedure.render_step(
-        #    shader_str=RenderProcedure.read_shader("stroke"),
-        #    custom_macros=[
-        #        "#define STROKE_LINE",
-        #        f"#define line_subroutine {subroutine_name}"
-        #    ],
-        #    texture_storages=[],
-        #    uniform_blocks=uniform_blocks,
-        #    attributes=self._attributes_,
-        #    index_buffer=self._line_index_buffer_,
-        #    framebuffer=target_framebuffer,
-        #    context_state=RenderProcedure.context_state(
-        #        enable_only=moderngl.BLEND,
-        #        blend_func=moderngl.ADDITIVE_BLENDING,
-        #        blend_equation=moderngl.MAX
-        #    ),
-        #    mode=moderngl.LINE_STRIP
-        #)
-        #RenderProcedure.render_step(
-        #    shader_str=RenderProcedure.read_shader("stroke"),
-        #    custom_macros=[
-        #        "#define STROKE_JOIN",
-        #        f"#define join_subroutine {subroutine_name}"
-        #    ],
-        #    texture_storages=[],
-        #    uniform_blocks=uniform_blocks,
-        #    attributes=self._attributes_,
-        #    index_buffer=self._join_index_buffer_,
-        #    framebuffer=target_framebuffer,
-        #    context_state=RenderProcedure.context_state(
-        #        enable_only=moderngl.BLEND,
-        #        blend_func=moderngl.ADDITIVE_BLENDING,
-        #        blend_equation=moderngl.MAX
-        #    ),
-        #    mode=moderngl.TRIANGLES
-        #)
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
@@ -443,38 +337,6 @@ class StrokeMobject(Mobject):
                 ),
                 mode=mode
             )
-        #RenderProcedure.render_step(
-        #    shader_str=RenderProcedure.read_shader("stroke"),
-        #    custom_macros=[
-        #        "#define STROKE_LINE",
-        #        f"#define line_subroutine {subroutine_name}"
-        #    ],
-        #    texture_storages=[],
-        #    uniform_blocks=uniform_blocks,
-        #    attributes=self._attributes_,
-        #    index_buffer=self._line_index_buffer_,
-        #    framebuffer=target_framebuffer,
-        #    context_state=RenderProcedure.context_state(
-        #        enable_only=moderngl.DEPTH_TEST
-        #    ),
-        #    mode=moderngl.LINE_STRIP
-        #)
-        #RenderProcedure.render_step(
-        #    shader_str=RenderProcedure.read_shader("stroke"),
-        #    custom_macros=[
-        #        "#define STROKE_JOIN",
-        #        f"#define join_subroutine {subroutine_name}"
-        #    ],
-        #    texture_storages=[],
-        #    uniform_blocks=uniform_blocks,
-        #    attributes=self._attributes_,
-        #    index_buffer=self._join_index_buffer_,
-        #    framebuffer=target_framebuffer,
-        #    context_state=RenderProcedure.context_state(
-        #        enable_only=moderngl.DEPTH_TEST
-        #    ),
-        #    mode=moderngl.TRIANGLES
-        #)
         target_framebuffer.color_mask = (True, True, True, True)
 
     def _calculate_winding_sign(self, camera: Camera) -> float:
@@ -522,7 +384,10 @@ class StrokeMobject(Mobject):
         if apply_oit is not None:
             self._apply_oit_ = apply_oit
         else:
-            if any(param is not None for param in (opacity_component, dilate)):
+            if any(param is not None for param in (
+                opacity_component,
+                dilate
+            )):
                 self._apply_oit_ = True
         return self
 

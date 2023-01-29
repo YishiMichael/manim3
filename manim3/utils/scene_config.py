@@ -192,7 +192,11 @@ class SceneConfig(LazyBase):
         else:
             if index is not None:
                 raise IndexError
-            if any(param is not None for param in (position, color, opacity)):
+            if any(param is not None for param in (
+                position,
+                color,
+                opacity
+            )):
                 self.add_point_light(
                     position=position,
                     color=color,

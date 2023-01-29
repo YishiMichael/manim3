@@ -118,7 +118,15 @@ class ShapeMobject(MeshMobject):
         else:
             if index is not None:
                 raise IndexError
-            if any(param is not None for param in (width, single_sided, has_linecap, color, opacity, dilate, apply_oit)):
+            if any(param is not None for param in (
+                width,
+                single_sided,
+                has_linecap,
+                color,
+                opacity,
+                dilate,
+                apply_oit
+            )):
                 self._add_stroke_locally(
                     width=width,
                     single_sided=single_sided,
