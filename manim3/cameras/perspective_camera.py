@@ -76,8 +76,8 @@ class PerspectiveCamera(Camera):
         f = 2.0 * near / (top - bottom)
 
         return np.array((
-            (  e, 0.0, 0.0,  0.0),
-            (0.0,   f, 0.0,  0.0),
-            (  a,   b,   c, -1.0),
-            (0.0, 0.0,   d,  0.0),
+            (  e, 0.0,    a, 0.0),
+            (0.0,   f,    b, 0.0),
+            (0.0, 0.0,    c,   d),
+            (0.0, 0.0, -1.0, 0.0),
         ))

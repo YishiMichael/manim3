@@ -61,8 +61,8 @@ class Camera(LazyBase):
         rot_mat = np.vstack((x, y, z))
 
         m = np.identity(4)
-        m[:3, :3] = rot_mat.T
-        m[3, :3] = -rot_mat @ eye
+        m[:3, :3] = rot_mat
+        m[:3, 3] = -rot_mat @ eye
         return m
 
     @lazy_property_writable
@@ -84,8 +84,8 @@ class Camera(LazyBase):
         eye: Vec3T
     ) -> UniformBlockBuffer:
         ub_camera_o.write({
-            "u_projection_matrix": projection_matrix,
-            "u_view_matrix": view_matrix,
+            "u_projection_matrix": projection_matrix.T,
+            "u_view_matrix": view_matrix.T,
             "u_view_position": eye,
             "u_frame_radius": np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS))
         })

@@ -90,8 +90,8 @@ class OrthographicCamera(Camera):
         tz = -(far + near) / fmn
 
         return np.array((
-            (  a, 0.0, 0.0, 0.0),
-            (0.0,   b, 0.0, 0.0),
-            (0.0, 0.0,   c, 0.0),
-            ( tx,  ty,  tz, 1.0)
+            (  a, 0.0, 0.0,  tx),
+            (0.0,   b, 0.0,  ty),
+            (0.0, 0.0,   c,  tz),
+            (0.0, 0.0, 0.0, 1.0)
         ))

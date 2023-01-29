@@ -48,14 +48,14 @@ class Polyhedron(ShapeMobject):
         z_axis = np.cross(x_axis, np.average(vertices, axis=0) - origin)
         z_axis /= np.linalg.norm(z_axis)
         y_axis = np.cross(z_axis, x_axis)
-        rotation_matrix = np.vstack((x_axis, y_axis, z_axis))
+        rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
 
-        transformed = (vertices - origin) @ np.linalg.inv(rotation_matrix)
+        transformed = (np.linalg.inv(rotation_matrix) @ (vertices - origin).T).T
         assert np.isclose(transformed[:, 2], 0.0).all(), "Vertices are not coplanar"
 
         matrix = np.identity(4)
         matrix[:3, :3] = rotation_matrix
-        matrix[3, :3] = origin
+        matrix[:3, 3] = origin
         return matrix, transformed[:, :2]
 
 

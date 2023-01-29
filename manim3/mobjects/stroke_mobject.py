@@ -10,8 +10,7 @@ from ..custom_typing import (
     ColorType,
     Real,
     Vec3T,
-    Vec3sT,
-    Vec4T
+    Vec3sT
 )
 from ..mobjects.mobject import Mobject
 from ..utils.color import ColorUtils

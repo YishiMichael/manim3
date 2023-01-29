@@ -130,7 +130,7 @@ class Mobject(Renderable):
     @staticmethod
     def matrix_from_translation(vector: Vec3T) -> Mat4T:
         m = np.identity(4)
-        m[3, :3] = vector
+        m[:3, 3] = vector
         return m
 
     @staticmethod
@@ -160,7 +160,7 @@ class Mobject(Renderable):
         else:
             v = vector[:, :].T
         v = np.concatenate((v, np.ones((1, v.shape[1]))))
-        v = matrix.T @ v
+        v = matrix @ v
         if not np.allclose(v[3], 1.0):
             v /= v[3]
         v = v[:3]
@@ -176,7 +176,7 @@ class Mobject(Renderable):
         return np.identity(4)
 
     def _apply_transform_locally(self, matrix: Mat4T):
-        self._model_matrix_ = self._model_matrix_ @ matrix
+        self._model_matrix_ = matrix @ self._model_matrix_
         return self
 
     def _get_local_sample_points(self) -> Vec3sT:
@@ -270,9 +270,9 @@ class Mobject(Renderable):
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
         matrix = reduce(np.ndarray.__matmul__, (
-            self.matrix_from_translation(-about_point),
+            self.matrix_from_translation(about_point),
             matrix,
-            self.matrix_from_translation(about_point)
+            self.matrix_from_translation(-about_point)
         ))
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
@@ -545,7 +545,7 @@ class Mobject(Renderable):
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:
         ub_model_o.write({
-            "u_model_matrix": model_matrix
+            "u_model_matrix": model_matrix.T
         })
         return ub_model_o
 

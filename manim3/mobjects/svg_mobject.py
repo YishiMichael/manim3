@@ -85,10 +85,10 @@ class SVGMobject(PathMobject):
     @classmethod
     def convert_transform(cls, matrix: se.Matrix) -> Mat4T:
         return np.array((
-            (matrix.a, matrix.b, 0.0, 0.0),
-            (matrix.c, matrix.d, 0.0, 0.0),
-            (     0.0,      0.0, 1.0, 0.0),
-            (matrix.e, matrix.f, 0.0, 1.0),
+            (matrix.a, matrix.c, 0.0, matrix.e),
+            (matrix.b, matrix.d, 0.0, matrix.f),
+            (     0.0,      0.0, 1.0,      0.0),
+            (     0.0,      0.0, 0.0,      1.0)
         ))
 
     @classmethod
