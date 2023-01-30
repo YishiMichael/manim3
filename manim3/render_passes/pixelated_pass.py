@@ -16,6 +16,7 @@ from ..utils.render_procedure import (
 
 class PixelatedPass(RenderPass):
     def __init__(self, pixelated_width: Real = 0.1):
+        super().__init__()
         self._pixelated_width: Real = pixelated_width
 
     @lazy_property

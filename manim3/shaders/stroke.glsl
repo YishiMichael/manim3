@@ -16,7 +16,8 @@ layout (std140) uniform ub_winding_sign {
     float u_winding_sign;
 };
 
-const float PI = 3.141592653589793;
+const float PI = acos(-1.0);
+const float PI_HALF = PI / 2.0;
 
 mat2 frame_transform = mat2(
     u_frame_radius.x, 0.0,
@@ -59,11 +60,6 @@ out GS_FS {
 } gs_out;
 
 
-vec2 get_unit_vector(float angle) {
-    return vec2(cos(angle), sin(angle));
-}
-
-
 vec2 to_ndc_space(vec4 position) {
     return position.xy / position.w;
 }
@@ -77,25 +73,26 @@ float get_direction_angle(vec4 position_0, vec4 position_1) {
 }
 
 
-void emit_vertex_by_offset_vec(vec4 center_position, vec2 offset_vec) {
+void emit_vertex_by_polar(vec4 center_position, float magnitude, float angle) {
+    vec2 offset_vec = magnitude * vec2(cos(angle), sin(angle));
     gs_out.offset_vec = offset_vec;
-    gl_Position = center_position + vec4(frame_transform_inv * offset_vec * abs(u_width), 0.0, 0.0);
+    gl_Position = center_position + vec4(frame_transform_inv * u_width * offset_vec, 0.0, 0.0);
     EmitVertex();
 }
 
 
-void emit_sector(vec4 center_position, float angle_start, float delta_angle, float width_sign) {
-    float n_primitives = clamp(ceil(abs(delta_angle) / PI * 2.0), 1.0, 2.0);
+void emit_sector(vec4 center_position, float sector_middle_angle, float delta_angle) {
+    float n_primitives = clamp(ceil(abs(delta_angle) / PI_HALF), 1.0, 2.0);
     float d_angle = delta_angle / (2.0 * n_primitives);
+    float angle_start = sector_middle_angle - delta_angle / 2.0;
     for (int i = 0; i < n_primitives; ++i) {
         float angle_mid = angle_start + d_angle;
         float angle_end = angle_start + d_angle * 2.0;
-        emit_vertex_by_offset_vec(center_position, vec2(0.0));
-        emit_vertex_by_offset_vec(center_position, width_sign * get_unit_vector(angle_start));
-        emit_vertex_by_offset_vec(center_position, width_sign * get_unit_vector(angle_end));
-        emit_vertex_by_offset_vec(center_position, width_sign / cos(d_angle) * get_unit_vector(angle_mid));
+        emit_vertex_by_polar(center_position, 0.0, 0.0);
+        emit_vertex_by_polar(center_position, 1.0, angle_start);
+        emit_vertex_by_polar(center_position, 1.0, angle_end);
+        emit_vertex_by_polar(center_position, 1.0 / cos(d_angle), angle_mid);
         EndPrimitive();
-
         angle_start = angle_end;
     }
 }
@@ -108,26 +105,29 @@ layout (lines) in;
 layout (triangle_strip, max_vertices = 6) out;
 
 
-void single_sided(vec4 line_start_position, vec4 line_end_position, vec2 offset_vec) {
-    emit_vertex_by_offset_vec(line_start_position, offset_vec);
-    emit_vertex_by_offset_vec(line_end_position, offset_vec);
-    emit_vertex_by_offset_vec(line_start_position, vec2(0.0));
-    emit_vertex_by_offset_vec(line_end_position, vec2(0.0));
+void both_sided(vec4 line_start_position, vec4 line_end_position, float direction_angle) {
+    emit_vertex_by_polar(line_start_position, 1.0, direction_angle - PI_HALF);
+    emit_vertex_by_polar(line_end_position, 1.0, direction_angle - PI_HALF);
+    emit_vertex_by_polar(line_start_position, 0.0, 0.0);
+    emit_vertex_by_polar(line_end_position, 0.0, 0.0);
+    emit_vertex_by_polar(line_start_position, 1.0, direction_angle + PI_HALF);
+    emit_vertex_by_polar(line_end_position, 1.0, direction_angle + PI_HALF);
+    EndPrimitive();
 }
 
 
-void both_sided(vec4 line_start_position, vec4 line_end_position, vec2 offset_vec) {
-    single_sided(line_start_position, line_end_position, offset_vec);
-    emit_vertex_by_offset_vec(line_start_position, -offset_vec);
-    emit_vertex_by_offset_vec(line_end_position, -offset_vec);
+void single_sided(vec4 line_start_position, vec4 line_end_position, float direction_angle) {
+    emit_vertex_by_polar(line_start_position, 1.0, direction_angle - u_winding_sign * PI_HALF);
+    emit_vertex_by_polar(line_end_position, 1.0, direction_angle - u_winding_sign * PI_HALF);
+    emit_vertex_by_polar(line_start_position, 0.0, 0.0);
+    emit_vertex_by_polar(line_end_position, 0.0, 0.0);
+    EndPrimitive();
 }
 
 
 void main() {
     float direction_angle = get_direction_angle(gs_in[0].position, gs_in[1].position);
-    vec2 offset_vec = u_winding_sign * sign(u_width) * get_unit_vector(direction_angle - PI / 2.0);
-    line_subroutine(gs_in[0].position, gs_in[1].position, offset_vec);
-    EndPrimitive();
+    line_subroutine(gs_in[0].position, gs_in[1].position, direction_angle);
 }
 
 
@@ -138,15 +138,15 @@ layout (triangles) in;
 layout (triangle_strip, max_vertices = 8) out;
 
 
-void single_sided(vec4 center_position, float angle_start, float delta_angle) {
-    if (delta_angle * u_width * u_winding_sign > 0.0) {
-        emit_sector(center_position, angle_start, delta_angle, sign(u_width) * u_winding_sign);
-    }
+void both_sided(vec4 center_position, float direction_middle_angle, float delta_angle) {
+    emit_sector(center_position, direction_middle_angle - sign(delta_angle) * PI_HALF, abs(delta_angle));
 }
 
 
-void both_sided(vec4 center_position, float angle_start, float delta_angle) {
-    emit_sector(center_position, angle_start, delta_angle, sign(delta_angle));
+void single_sided(vec4 center_position, float direction_middle_angle, float delta_angle) {
+    if (u_winding_sign * delta_angle > 0.0) {
+        both_sided(center_position, direction_middle_angle, delta_angle);
+    }
 }
 
 
@@ -155,7 +155,7 @@ void main() {
     float direction_angle_1 = get_direction_angle(gs_in[1].position, gs_in[2].position);
     // -PI <= delta_angle < PI
     float delta_angle = mod(direction_angle_1 - direction_angle_0 + PI, 2.0 * PI) - PI;
-    join_subroutine(gs_in[1].position, direction_angle_0 - PI / 2.0, delta_angle);
+    join_subroutine(gs_in[1].position, direction_angle_0 + delta_angle / 2.0, delta_angle);
 }
 
 
@@ -167,8 +167,8 @@ layout (triangle_strip, max_vertices = 8) out;
 
 
 void main() {
-    float direction_angle = get_direction_angle(gs_in[0].position, gs_in[1].position);
-    emit_sector(gs_in[0].position, direction_angle + PI / 2.0, PI, 1.0);
+    float opposite_direction_angle = get_direction_angle(gs_in[1].position, gs_in[0].position);
+    emit_sector(gs_in[0].position, opposite_direction_angle, PI);
 }
 
 
@@ -180,8 +180,8 @@ layout (triangle_strip, max_vertices = 16) out;
 
 
 void main() {
-    emit_sector(gs_in[0].position, 0.0, PI, 1.0);
-    emit_sector(gs_in[0].position, 0.0, -PI, 1.0);
+    emit_sector(gs_in[0].position, 0.0, PI);
+    emit_sector(gs_in[0].position, PI, PI);
 }
 
 
@@ -201,11 +201,11 @@ out vec4 frag_color;
 
 
 void main() {
-    float distance_to_edge = 1.0 - length(fs_in.offset_vec);
-    if (distance_to_edge <= 0.0) {
+    float dilate_base = 1.0 - length(fs_in.offset_vec);
+    if (dilate_base <= 0.0) {
         discard;
     }
-    frag_color = vec4(u_color.rgb, u_color.a * pow(distance_to_edge, u_dilate));
+    frag_color = vec4(u_color.rgb, u_color.a * pow(dilate_base, u_dilate));
 }
 
 

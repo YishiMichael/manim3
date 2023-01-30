@@ -4,7 +4,11 @@ __all__ = ["GaussianBlurPass"]
 import moderngl
 import numpy as np
 
-from ..constants import PIXEL_PER_UNIT
+from ..constants import (
+    PIXEL_HEIGHT,
+    PIXEL_PER_UNIT,
+    PIXEL_WIDTH
+)
 from ..custom_typing import (
     FloatsT,
     Real
@@ -23,6 +27,7 @@ from ..utils.render_procedure import (
 
 class GaussianBlurPass(RenderPass):
     def __init__(self, sigma_width: Real = 0.1):
+        super().__init__()
         self._sigma_width_ = sigma_width
 
     @lazy_property
@@ -45,18 +50,20 @@ class GaussianBlurPass(RenderPass):
 
     @lazy_property
     @staticmethod
-    def _ub_convolution_core_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_convolution_core", [
+    def _ub_gaussian_blur_o_() -> UniformBlockBuffer:
+        return UniformBlockBuffer("ub_gaussian_blur", [
+            "vec2 u_uv_offset",
             "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
         ])
 
     @lazy_property
     @staticmethod
-    def _ub_convolution_core_(
-        ub_convolution_core_o: UniformBlockBuffer,
+    def _ub_gaussian_blur_(
+        ub_gaussian_blur_o: UniformBlockBuffer,
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
-        return ub_convolution_core_o.write({
+        return ub_gaussian_blur_o.write({
+            "u_uv_offset": 1.0 / np.array((PIXEL_WIDTH, PIXEL_HEIGHT)),
             "u_convolution_core": convolution_core
         })
 
@@ -77,7 +84,7 @@ class GaussianBlurPass(RenderPass):
                     )
                 ],
                 uniform_blocks=[
-                    self._ub_convolution_core_
+                    self._ub_gaussian_blur_
                 ],
                 framebuffer=intermediate_framebuffer,
                 context_state=RenderProcedure.context_state(
@@ -95,7 +102,7 @@ class GaussianBlurPass(RenderPass):
                     )
                 ],
                 uniform_blocks=[
-                    self._ub_convolution_core_
+                    self._ub_gaussian_blur_
                 ],
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(

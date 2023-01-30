@@ -46,7 +46,7 @@ class Camera(LazyBase):
     @lazy_property_writable
     @staticmethod
     def _up_() -> Vec3T:
-        return CAMERA_ALTITUDE * UP
+        return UP
 
     @lazy_property
     @staticmethod

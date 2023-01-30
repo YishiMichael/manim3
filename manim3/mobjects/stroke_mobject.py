@@ -47,7 +47,8 @@ class StrokeMobject(Mobject):
     @lazy_property_writable
     @staticmethod
     def _width_() -> Real:
-        return 0.04
+        # TODO: The unit mismatches by a factor of 5
+        return 0.2
 
     @lazy_property_writable
     @staticmethod
@@ -93,7 +94,7 @@ class StrokeMobject(Mobject):
         dilate: Real
     ) -> UniformBlockBuffer:
         return ub_stroke_o.write({
-            "u_width": np.array(width),
+            "u_width": np.array(abs(width)),
             "u_color": np.append(color, opacity),
             "u_dilate": np.array(dilate)
         })
@@ -345,7 +346,7 @@ class StrokeMobject(Mobject):
         for line_string in self._multi_line_string_._children_:
             coords_2d = self.apply_affine(transform, line_string._coords_)[:, :2]
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
-        return 1.0 if area >= 0.0 else -1.0
+        return 1.0 if area * self._width_ >= 0.0 else -1.0
 
     def _get_local_sample_points(self) -> Vec3sT:
         line_strings = self._multi_line_string_._children_

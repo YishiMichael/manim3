@@ -4,14 +4,14 @@ __all__ = ["MeshMobject"]
 import moderngl
 import numpy as np
 
-from ..geometries.empty_geometry import EmptyGeometry
-from ..geometries.geometry import Geometry
 from ..custom_typing import (
     ColorType,
     Real,
     Vec3T,
     Vec3sT
 )
+from ..geometries.empty_geometry import EmptyGeometry
+from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
 from ..utils.color import ColorUtils
 from ..utils.lazy import (

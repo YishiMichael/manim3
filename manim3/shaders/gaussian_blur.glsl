@@ -1,6 +1,7 @@
 uniform sampler2D u_color_map;
 
-layout (std140) uniform ub_convolution_core {
+layout (std140) uniform ub_gaussian_blur {
+    vec2 u_uv_offset;
     float u_convolution_core[CONVOLUTION_CORE_SIZE];
 };
 
@@ -36,20 +37,19 @@ in VS_FS {
 out vec4 frag_color;
 
 
-vec2 horizontal_dilate(vec2 offset) {
-    return vec2(offset.x, 0.0);
+vec2 horizontal_dilate() {
+    return vec2(u_uv_offset.x, 0.0);
 }
 
 
-vec2 vertical_dilate(vec2 offset) {
-    return vec2(0.0, offset.y);
+vec2 vertical_dilate() {
+    return vec2(0.0, u_uv_offset.y);
 }
 
 
 void main() {
     vec2 uv = fs_in.uv;
-    vec2 offset = 1.0 / textureSize(u_color_map, 0);
-    vec2 directional_offset = blur_subroutine(offset);
+    vec2 directional_offset = blur_subroutine();
     frag_color = texture(u_color_map, uv) * u_convolution_core[0];
     for (int i = 1; i < CONVOLUTION_CORE_SIZE; ++i) {
         frag_color += texture(u_color_map, uv + i * directional_offset) * u_convolution_core[i];

@@ -5,12 +5,11 @@ import numpy as np
 
 from ..cameras.camera import Camera
 from ..constants import (
-    ASPECT_RATIO,
     CAMERA_ALTITUDE,
     CAMERA_FAR,
     CAMERA_NEAR,
-    DEGREES,
-    FRAME_Y_RADIUS
+    FRAME_HEIGHT,
+    FRAME_WIDTH
 )
 from ..custom_typing import (
     Mat4T,
@@ -22,25 +21,27 @@ from ..utils.lazy import lazy_property, lazy_property_writable
 class PerspectiveCamera(Camera):
     def __init__(
         self,
-        fovy: Real = 2.0 * np.arctan(FRAME_Y_RADIUS / CAMERA_ALTITUDE) / DEGREES,
-        aspect: Real = ASPECT_RATIO,
+        width: Real = FRAME_WIDTH,
+        height: Real = FRAME_HEIGHT,
         near: Real = CAMERA_NEAR,
-        far: Real = CAMERA_FAR
+        far: Real = CAMERA_FAR,
+        altitude: Real = CAMERA_ALTITUDE
     ):
         super().__init__()
-        self._fovy_ = fovy
-        self._aspect_ = aspect
+        self._width_ = width
+        self._height_ = height
         self._near_ = near
         self._far_ = far
+        self._altitude_ = altitude
 
     @lazy_property_writable
     @staticmethod
-    def _fovy_() -> Real:
+    def _width_() -> Real:
         return NotImplemented
 
     @lazy_property_writable
     @staticmethod
-    def _aspect_() -> Real:
+    def _height_() -> Real:
         return NotImplemented
 
     @lazy_property_writable
@@ -53,31 +54,27 @@ class PerspectiveCamera(Camera):
     def _far_() -> Real:
         return NotImplemented
 
+    @lazy_property_writable
+    @staticmethod
+    def _altitude_() -> Real:
+        return NotImplemented
+
     @lazy_property
     @staticmethod
     def _projection_matrix_(
-        fovy: Real,
-        aspect: Real,
+        width: Real,
+        height: Real,
         near: Real,
-        far: Real
+        far: Real,
+        altitude: Real
     ) -> Mat4T:
-        ymax = near * np.tan(fovy * np.pi / 360.0)
-        xmax = ymax * aspect
-        left = -xmax
-        right = xmax
-        bottom = -ymax
-        top = ymax
-
-        a = (right + left) / (right - left)
-        b = (top + bottom) / (top - bottom)
-        c = -(far + near) / (far - near)
-        d = -2.0 * far * near / (far - near)
-        e = 2.0 * near / (right - left)
-        f = 2.0 * near / (top - bottom)
-
+        sx = 2.0 * altitude / width
+        sy = 2.0 * altitude / height
+        sz = -(far + near) / (far - near)
+        tz = -2.0 * far * near / (far - near)
         return np.array((
-            (  e, 0.0,    a, 0.0),
-            (0.0,   f,    b, 0.0),
-            (0.0, 0.0,    c,   d),
+            ( sx, 0.0,  0.0, 0.0),
+            (0.0,  sy,  0.0, 0.0),
+            (0.0, 0.0,   sz,  tz),
             (0.0, 0.0, -1.0, 0.0),
         ))

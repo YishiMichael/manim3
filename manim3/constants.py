@@ -54,6 +54,7 @@ FRAME_X_RADIUS: float = FRAME_WIDTH / 2.0
 CAMERA_ALTITUDE: float = 5.0
 CAMERA_NEAR: float = 0.1
 CAMERA_FAR: float = 100.0
+# TODO: Move the above ones elsewhere
 
 ORIGIN: Vec3T = np.array((0.0, 0.0, 0.0))
 RIGHT: Vec3T = np.array((1.0, 0.0, 0.0))

@@ -36,6 +36,6 @@ class SceneMobject(MeshMobject):
                     color_attachments=[color_texture],
                     depth_attachment=None
                 ) as scene_framebuffer:
-            self._scene._render_with_passes(self._scene._scene_config_, scene_framebuffer)
+            self._scene._render_with_passes(self._scene._scene_config, scene_framebuffer)
             self._color_map_texture_ = color_texture
             super()._render(scene_config, target_framebuffer)
