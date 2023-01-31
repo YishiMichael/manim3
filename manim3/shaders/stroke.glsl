@@ -19,15 +19,6 @@ layout (std140) uniform ub_winding_sign {
 const float PI = acos(-1.0);
 const float PI_HALF = PI / 2.0;
 
-mat2 frame_transform = mat2(
-    u_frame_radius.x, 0.0,
-    0.0, u_frame_radius.y
-);
-mat2 frame_transform_inv = mat2(
-    1.0 / u_frame_radius.x, 0.0,
-    0.0, 1.0 / u_frame_radius.y
-);
-
 
 /***********************/
 #if defined VERTEX_SHADER
@@ -68,7 +59,7 @@ vec2 to_ndc_space(vec4 position) {
 float get_direction_angle(vec4 position_0, vec4 position_1) {
     vec2 p0_ndc = to_ndc_space(position_0);
     vec2 p1_ndc = to_ndc_space(position_1);
-    vec2 direction = frame_transform * (p1_ndc - p0_ndc);
+    vec2 direction = u_frame_radius * (p1_ndc - p0_ndc);
     return atan(direction.y, direction.x);
 }
 
@@ -76,7 +67,7 @@ float get_direction_angle(vec4 position_0, vec4 position_1) {
 void emit_vertex_by_polar(vec4 center_position, float magnitude, float angle) {
     vec2 offset_vec = magnitude * vec2(cos(angle), sin(angle));
     gs_out.offset_vec = offset_vec;
-    gl_Position = center_position + vec4(frame_transform_inv * u_width * offset_vec, 0.0, 0.0);
+    gl_Position = center_position + vec4(u_width * offset_vec / u_frame_radius, 0.0, 0.0);
     EmitVertex();
 }
 

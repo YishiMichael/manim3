@@ -12,14 +12,21 @@ import re
 from typing import Generator
 import warnings
 
+from colour import Color
 import toml
 
 from ..constants import MANIM3_PATH
 from ..custom_typing import (
     ColorType,
+    Real,
+    Selector,
     Span
 )
-from ..mobjects.string_mobject import StringMobject
+from ..mobjects.string_mobject import (
+    CommandFlag,
+    SpanEdgeFlag,
+    StringMobject
+)
 
 
 @dataclass(
@@ -46,9 +53,9 @@ def hash_string(string: str) -> str:
     return hasher.hexdigest()[:16]
 
 
-def get_tex_template(template_name: str) -> TexTemplate:
+def get_tex_template(template_name: str | None) -> TexTemplate:
     default_name = "ctex"  # TODO: set global default
-    if not template_name:
+    if template_name is None:
         template_name = default_name
     name = template_name.replace(" ", "_").lower()
     with open(os.path.join(
@@ -86,13 +93,13 @@ def get_tex_template(template_name: str) -> TexTemplate:
 
 
 def tex_content_to_svg_file(
-    content: str, template_name: str, additional_preamble: str
+    content: str, template_name: str | None, additional_preamble: str | None
 ) -> str:
     template = get_tex_template(template_name)
     compiler = template.compiler
     preamble = template.preamble
 
-    if additional_preamble:
+    if additional_preamble is not None:
         preamble += "\n" + additional_preamble
     full_tex = "\n\n".join((
         "\\documentclass[preview]{standalone}",
@@ -202,29 +209,69 @@ class TexText(StringMobject):
         self,
         string: str,
         *,
-        #font_size: Real = 48,
-        alignment: str = "\\centering",
+        font_size: Real = 48,
+        alignment: str | None = "\\centering",
         tex_environment: str | None = None,
-        template: str = "",
-        additional_preamble: str = "",
+        template: str | None = None,
+        additional_preamble: str | None = None,
+        base_color: ColorType = Color("white"),
         tex_to_color_map: dict[str, ColorType] | None = None,
-        **kwargs
+        isolate: Selector = (),
+        protect: Selector = (),
+        width: Real | None = None,
+        height: Real | None = None
     ):
         # Prevent from passing an empty string.
         if not string.strip():
             string = "\\\\"
         if tex_to_color_map is None:
             tex_to_color_map = {}
+
+        def get_content_prefix_and_suffix(is_labelled: bool) -> tuple[str, str]:
+            prefix_lines: list[str] = []
+            suffix_lines: list[str] = []
+            if not is_labelled:
+                prefix_lines.append(self._get_color_command(
+                    self._color_to_int(base_color)
+                ))
+            if alignment is not None:
+                prefix_lines.append(alignment)
+            if tex_environment is not None:
+                prefix_lines.append(f"\\begin{{{tex_environment}}}")
+                suffix_lines.append(f"\\end{{{tex_environment}}}")
+            return (
+                "".join((line + "\n" for line in prefix_lines)),
+                "".join(("\n" + line for line in suffix_lines))
+            )
+
+        def get_svg_path(content: str) -> str:
+            return tex_content_to_svg_file(
+                content=content,
+                template_name=template,
+                additional_preamble=additional_preamble
+            )
+
         #self.font_size: Real = font_size
-        self.alignment: str = alignment
-        self.tex_environment: str | None = tex_environment
-        self.template: str = template
-        self.additional_preamble: str = additional_preamble
-        self.tex_to_color_map: dict[str, ColorType] = tex_to_color_map
+        #self.alignment: str = alignment
+        #self.tex_environment: str | None = tex_environment
+        #self.template: str = template
+        #self.additional_preamble: str = additional_preamble
+        #self.tex_to_color_map: dict[str, ColorType] = tex_to_color_map
         super().__init__(
             string=string,
-            frame_scale=SCALE_FACTOR_PER_FONT_POINT * 48.0,
-            **kwargs
+            isolate=isolate,
+            protect=protect,
+            configured_items_generator=(
+                (span, {})
+                for selector in tex_to_color_map
+                for span in self._iter_spans_by_selector(selector, string)
+            ),
+            get_content_prefix_and_suffix=get_content_prefix_and_suffix,
+            get_svg_path=get_svg_path,
+            width=width,
+            height=height,
+            frame_scale=SCALE_FACTOR_PER_FONT_POINT * font_size
+            #**kwargs
         )
 
         for selector, color in tex_to_color_map.items():
@@ -247,121 +294,125 @@ class TexText(StringMobject):
     #        self.additional_preamble
     #    )
 
-    def get_file_path_by_content(self, content: str) -> str:
-        with display_during_execution(f"Writing \"{self.string}\""):
-            file_path = tex_content_to_svg_file(
-                content, self.template, self.additional_preamble
-            )
-        return file_path
+    #def get_file_path_by_content(self, content: str) -> str:
+    #    with display_during_execution(f"Writing \"{self.string}\""):
+    #        file_path = tex_content_to_svg_file(
+    #            content, self.template, self.additional_preamble
+    #        )
+    #    return file_path
 
     # Parsing
 
     @classmethod
-    def get_command_matches(cls, string: str) -> list[re.Match]:
+    def _iter_command_matches(cls, string: str) -> Generator[re.Match[str], None, None]:
         # Lump together adjacent brace pairs
         pattern = re.compile(r"""
             (?P<command>\\(?:[a-zA-Z]+|.))
             |(?P<open>{+)
             |(?P<close>}+)
         """, flags=re.VERBOSE | re.DOTALL)
-        result = []
-        open_stack = []
+
+        def get_match_obj_by_span(span: Span) -> re.Match[str]:
+            match_obj = pattern.fullmatch(string, pos=span[0], endpos=span[1])
+            assert match_obj is not None
+            return match_obj
+
+        #result: list[re.Match[str]] = []
+        open_stack: list[Span] = []
+        #brace_spans: list[tuple[int, int]] = []
         for match_obj in pattern.finditer(string):
-            if match_obj.group("open"):
-                open_stack.append((match_obj.span(), len(result)))
-            elif match_obj.group("close"):
-                close_start, close_end = match_obj.span()
-                while True:
-                    if not open_stack:
-                        raise ValueError("Missing '{' inserted")
-                    (open_start, open_end), index = open_stack.pop()
-                    n = min(open_end - open_start, close_end - close_start)
-                    result.insert(index, pattern.fullmatch(
-                        string, pos=open_end - n, endpos=open_end
-                    ))
-                    result.append(pattern.fullmatch(
-                        string, pos=close_start, endpos=close_start + n
-                    ))
-                    close_start += n
-                    if close_start < close_end:
-                        continue
-                    open_end -= n
-                    if open_start < open_end:
-                        open_stack.append(((open_start, open_end), index))
-                    break
-            else:
-                result.append(match_obj)
+            if not match_obj.group("close"):
+                if not match_obj.group("open"):
+                    yield match_obj
+                    continue
+                open_stack.append(match_obj.span())
+                continue
+            close_start, close_stop = match_obj.span()
+            while True:
+                if not open_stack:
+                    raise ValueError("Missing '{' inserted")
+                open_start, open_stop = open_stack.pop()
+                n = min(open_stop - open_start, close_stop - close_start)
+                yield get_match_obj_by_span((open_stop - n, open_stop))
+                yield get_match_obj_by_span((close_start, close_start + n))
+                close_start += n
+                if close_start < close_stop:
+                    continue
+                open_stop -= n
+                if open_start < open_stop:
+                    open_stack.append((open_start, open_stop))
+                break
         if open_stack:
             raise ValueError("Missing '}' inserted")
-        return result
+        #return result
 
     @classmethod
-    def get_command_flag(cls, match_obj: re.Match) -> int:
+    def _get_command_flag(cls, match_obj: re.Match[str]) -> CommandFlag:
         if match_obj.group("open"):
-            return 1
+            return CommandFlag.OPEN
         if match_obj.group("close"):
-            return -1
-        return 0
+            return CommandFlag.CLOSE
+        return CommandFlag.OTHER
 
     @classmethod
-    def replace_for_content(cls, match_obj: re.Match) -> str:
+    def _replace_for_content(cls, match_obj: re.Match[str]) -> str:
         return match_obj.group()
 
     @classmethod
-    def replace_for_matching(cls, match_obj: re.Match) -> str:
+    def _replace_for_matching(cls, match_obj: re.Match[str]) -> str:
         if match_obj.group("command"):
             return match_obj.group()
         return ""
 
     @classmethod
-    def get_attr_dict_from_command_pair(
-        cls, open_command: re.Match, close_command: re.Match
+    def _get_attr_dict_from_command_pair(
+        cls, open_command: re.Match[str], close_command: re.Match[str]
     ) -> dict[str, str] | None:
         if len(open_command.group()) >= 2:
             return {}
         return None
 
     @classmethod
-    def get_color_command(cls, rgb: int) -> str:
+    def _get_color_command(cls, rgb: int) -> str:
         rg, b = divmod(rgb, 256)
         r, g = divmod(rg, 256)
         return f"\\color[RGB]{{{r}, {g}, {b}}}"
 
     @classmethod
-    def get_command_string(
-        cls, attr_dict: dict[str, str], is_end: bool, label: int | None
+    def _get_command_string(
+        cls, attr_dict: dict[str, str], edge_flag: SpanEdgeFlag, label: int | None
     ) -> str:
         if label is None:
             return ""
-        if is_end:
+        if edge_flag == SpanEdgeFlag.STOP:
             return "}}"
-        return "{{" + cls.get_color_command(label)
+        return "{{" + cls._get_color_command(label)
 
-    def get_configured_items(self) -> list[tuple[Span, dict[str, str]]]:
-        return [
-            (span, {})
-            for selector in self.tex_to_color_map
-            for span in self.find_spans_by_selector(selector, self.string)
-        ]
+    #def get_configured_items(self) -> list[ConfiguredItem]:
+    #    return [
+    #        ConfiguredItem(span=span, attr_dict={})
+    #        for selector in self.tex_to_color_map
+    #        for span in self._iter_spans_by_selector(selector, self.string)
+    #    ]
 
-    def get_content_prefix_and_suffix(
-        self, is_labelled: bool
-    ) -> tuple[str, str]:
-        prefix_lines = []
-        suffix_lines = []
-        if not is_labelled:
-            prefix_lines.append(self.get_color_command(
-                self.color_to_int(self.base_color)
-            ))
-        if self.alignment:
-            prefix_lines.append(self.alignment)
-        if self.tex_environment:
-            prefix_lines.append(f"\\begin{{{self.tex_environment}}}")
-            suffix_lines.append(f"\\end{{{self.tex_environment}}}")
-        return (
-            "".join((line + "\n" for line in prefix_lines)),
-            "".join(("\n" + line for line in suffix_lines))
-        )
+    #def get_content_prefix_and_suffix(
+    #    self, is_labelled: bool
+    #) -> tuple[str, str]:
+    #    prefix_lines = []
+    #    suffix_lines = []
+    #    if not is_labelled:
+    #        prefix_lines.append(self.get_color_command(
+    #            self.color_to_int(self.base_color)
+    #        ))
+    #    if self.alignment:
+    #        prefix_lines.append(self.alignment)
+    #    if self.tex_environment:
+    #        prefix_lines.append(f"\\begin{{{self.tex_environment}}}")
+    #        suffix_lines.append(f"\\end{{{self.tex_environment}}}")
+    #    return (
+    #        "".join((line + "\n" for line in prefix_lines)),
+    #        "".join(("\n" + line for line in suffix_lines))
+    #    )
 
     # Method alias
 
@@ -387,6 +438,7 @@ class Tex(TexText):
     def __init__(
         self,
         string: str,
+        *,
         tex_environment: str | None = "align*",
         **kwargs
     ):

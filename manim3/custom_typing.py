@@ -12,8 +12,8 @@ __all__ = [
     "Mat3sT",
     "Mat4sT",
     "VertexIndexType",
-    "ColorType",
     "Span",
+    "ColorType",
     "Selector"
 ]
 
@@ -22,8 +22,7 @@ from colour import Color
 import re
 from typing import (
     Iterable,
-    Literal,
-    Union
+    Literal
 )
 
 import numpy as np
@@ -51,15 +50,6 @@ Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
 
 VertexIndexType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
-ColorType = Color | str | Vec3T | Vec4T
 Span = tuple[int, int]
-Selector = Union[
-    str,
-    re.Pattern,
-    tuple[Union[int, None], Union[int, None]],
-    Iterable[Union[
-        str,
-        re.Pattern,
-        tuple[Union[int, None], Union[int, None]]
-    ]]
-]
+ColorType = Color | str | Vec3T | Vec4T
+Selector = str | re.Pattern[str] | slice | Iterable[str | re.Pattern[str] | slice]

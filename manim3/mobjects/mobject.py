@@ -65,10 +65,16 @@ class Mobject(Renderable):
     def __iter__(self) -> Iterator["Mobject"]:
         return self.iter_children()
 
-    def __getitem__(self, i: int | slice):
-        if isinstance(i, int):
-            return self._node.__getitem__(i)._mobject
-        return self.__class__().add(*(node._mobject for node in self._node.__getitem__(i)))
+    @overload
+    def __getitem__(self, index: int) -> "Mobject": ...
+
+    @overload
+    def __getitem__(self, index: slice) -> "list[Mobject]": ...
+
+    def __getitem__(self, index: int | slice) -> "Mobject | list[Mobject]":
+        if isinstance(index, int):
+            return self._node.__getitem__(index)._mobject
+        return [node._mobject for node in self._node.__getitem__(index)]
 
     #def copy(self):
     #    return copy.copy(self)  # TODO

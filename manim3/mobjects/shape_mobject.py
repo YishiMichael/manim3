@@ -1,6 +1,9 @@
 __all__ = ["ShapeMobject"]
 
 
+import shapely.geometry
+import svgelements as se
+
 from ..custom_typing import (
     ColorType,
     Real
@@ -16,11 +19,15 @@ from ..utils.shape import Shape
 
 
 class ShapeMobject(MeshMobject):
-    def __init__(self, shape: Shape | None = None):
-        super().__init__()
+    def __init__(self, shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
         self._stroke_mobjects: list[StrokeMobject] = []
+        super().__init__()
         if shape is not None:
-            self.set_shape(shape)
+            if isinstance(shape, Shape):
+                shape_obj = shape
+            else:
+                shape_obj = Shape(shape)
+            self.set_shape(shape_obj)
         self.set_style(apply_phong_lighting=False)
 
     @lazy_property_writable
