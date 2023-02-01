@@ -38,6 +38,7 @@ from .utils.renderable import *
 from .utils.scene_config import *
 from .utils.shape import *
 
+from .config import *
 from .constants import *
 from .custom_colors import *
 from .custom_typing import *

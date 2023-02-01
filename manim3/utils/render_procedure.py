@@ -24,11 +24,7 @@ from moderngl_window.context.pyglet.window import Window as PygletWindow
 import numpy as np
 from xxhash import xxh3_64_digest
 
-from ..constants import (
-    PIXEL_HEIGHT,
-    PIXEL_WIDTH,
-    SHADERS_PATH
-)
+from ..config import Config
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
@@ -39,7 +35,7 @@ from ..utils.lazy import (
 
 class ContextSingleton:
     _WINDOW: PygletWindow = PygletWindow(
-        size=(PIXEL_WIDTH // 2, PIXEL_HEIGHT // 2),  # TODO
+        size=Config.window_pixel_size,
         fullscreen=False,
         resizable=True,
         gl_version=(3, 3),
@@ -803,7 +799,7 @@ class RenderProcedure(LazyBase):
     def read_shader(cls, filename: str) -> str:
         if (content := cls._SHADER_STRS.get(filename)) is not None:
             return content
-        with open(os.path.join(SHADERS_PATH, f"{filename}.glsl")) as shader_file:
+        with open(os.path.join(Config.shaders_dir, f"{filename}.glsl")) as shader_file:
             content = shader_file.read()
         cls._SHADER_STRS[filename] = content
         return content
@@ -834,7 +830,7 @@ class RenderProcedure(LazyBase):
     def texture(
         cls,
         *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+        size: tuple[int, int] = Config.pixel_size,
         components: int = 4,
         samples: int = 0,
         dtype: str = "f1"
@@ -850,7 +846,7 @@ class RenderProcedure(LazyBase):
     def depth_texture(
         cls,
         *,
-        size: tuple[int, int] = (PIXEL_WIDTH, PIXEL_HEIGHT),
+        size: tuple[int, int] = Config.pixel_size,
         samples: int = 0
     ) -> IntermediateDepthTexture:
         return IntermediateDepthTexture(

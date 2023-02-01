@@ -6,6 +6,7 @@ __all__ = [
 
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import lru_cache
 import hashlib
 import os
 import re
@@ -15,7 +16,7 @@ import warnings
 from colour import Color
 import toml
 
-from ..constants import MANIM3_PATH
+from ..config import Config
 from ..custom_typing import (
     ColorType,
     Real,
@@ -40,27 +41,19 @@ class TexTemplate:
     preamble: str
 
 
-#SAVED_TEX_CONFIG = {}
-
-
-def get_tex_dir() -> str:
-    return "C:\\Users\\Michael\\AppData\\Local\\Temp\\Tex"  # TODO
-
-
 def hash_string(string: str) -> str:
     # Truncating at 16 bytes for cleanliness
     hasher = hashlib.sha256(string.encode())
     return hasher.hexdigest()[:16]
 
 
+@lru_cache(maxsize=8)
 def get_tex_template(template_name: str | None) -> TexTemplate:
     default_name = "ctex"  # TODO: set global default
     if template_name is None:
         template_name = default_name
     name = template_name.replace(" ", "_").lower()
-    with open(os.path.join(
-        MANIM3_PATH, "tex_templates.tml"
-    ), encoding="utf-8") as tex_templates_file:
+    with open(Config.tex_templates_path, encoding="utf-8") as tex_templates_file:
         templates_dict = toml.load(tex_templates_file)
     if name not in templates_dict:
         warnings.warn(
@@ -110,7 +103,7 @@ def tex_content_to_svg_file(
     )) + "\n"
 
     svg_file = os.path.join(
-        get_tex_dir(), f"{hash_string(full_tex)}.svg"
+        Config.tex_dir, f"{hash_string(full_tex)}.svg"
     )
     if not os.path.exists(svg_file):
         # If svg doesn't exist, create it

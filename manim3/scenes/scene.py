@@ -3,6 +3,7 @@ __all__ = ["Scene"]
 
 import time
 
+from ..config import Config
 from ..custom_typing import Real
 from ..scenes.child_scene import ChildScene
 from ..utils.render_procedure import RenderProcedure
@@ -21,8 +22,7 @@ class Scene(ChildScene):
         window = RenderProcedure._WINDOW
         #if window is None:
         #    return self  # TODO
-        FPS = 30.0
-        dt = 1.0 / FPS
+        dt = 1.0 / Config.fps
         elapsed_time = 0.0
         timestamp = time.time()
         while not window.is_closing and elapsed_time < t:

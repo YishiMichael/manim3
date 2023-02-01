@@ -4,10 +4,7 @@ __all__ = ["SceneMobject"]
 import moderngl
 import numpy as np
 
-from ..constants import (
-    FRAME_HEIGHT,
-    FRAME_WIDTH
-)
+from ..config import Config
 from ..custom_typing import Real
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
@@ -24,7 +21,7 @@ class SceneMobject(MeshMobject):
         super().__init__()
         self._scene: ChildScene = scene
         self._geometry_ = PlaneGeometry()
-        self.stretch_to_fit_size(np.array((FRAME_WIDTH, FRAME_HEIGHT, 0.0)))
+        self.stretch_to_fit_size(np.array((*Config.frame_size, 0.0)))
 
     def _update_dt(self, dt: Real):
         super()._update_dt(dt)

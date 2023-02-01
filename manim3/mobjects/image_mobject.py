@@ -5,7 +5,7 @@ import moderngl
 import numpy as np
 from PIL import Image
 
-from ..constants import PIXEL_PER_UNIT
+from ..config import Config
 from ..custom_typing import Real
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
@@ -28,8 +28,8 @@ class ImageMobject(MeshMobject):
         self._geometry_ = PlaneGeometry()
 
         self._adjust_frame(
-            image.width / PIXEL_PER_UNIT,
-            image.height / PIXEL_PER_UNIT,
+            image.width / Config.pixel_per_unit,
+            image.height / Config.pixel_per_unit,
             width,
             height,
             frame_scale

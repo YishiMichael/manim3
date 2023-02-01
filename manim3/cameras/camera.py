@@ -3,10 +3,8 @@ __all__ = ["Camera"]
 
 import numpy as np
 
+from ..config import Config
 from ..constants import (
-    CAMERA_ALTITUDE,
-    FRAME_X_RADIUS,
-    FRAME_Y_RADIUS,
     ORIGIN,
     OUT,
     UP
@@ -36,7 +34,7 @@ class Camera(LazyBase):
     @lazy_property_writable
     @staticmethod
     def _eye_() -> Vec3T:
-        return CAMERA_ALTITUDE * OUT
+        return Config.camera_altitude * OUT
 
     @lazy_property_writable
     @staticmethod
@@ -87,7 +85,7 @@ class Camera(LazyBase):
             "u_projection_matrix": projection_matrix.T,
             "u_view_matrix": view_matrix.T,
             "u_view_position": eye,
-            "u_frame_radius": np.array((FRAME_X_RADIUS, FRAME_Y_RADIUS))
+            "u_frame_radius": np.array(Config.frame_size) / 2.0
         })
 
     def set_view(
