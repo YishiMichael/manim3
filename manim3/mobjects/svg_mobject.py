@@ -29,7 +29,7 @@ class SVGMobject(ShapeMobject):
         #shape_mobjects: list[ShapeMobject] = []
         svg = se.SVG.parse(file_path)
         shape_mobjects = [
-            ShapeMobject(shape).set_style(
+            shape_mobject.set_style(
                 color=None if shape.fill is None else shape.fill.hexrgb,
                 #opacity=None if shape.fill is None else shape.fill.opacity
                 #stroke_color=None if shape.stroke is None else shape.stroke.hexrgb,
@@ -38,7 +38,7 @@ class SVGMobject(ShapeMobject):
                 #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape)
+            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(shape))._has_local_sample_points()
         ]
         #for shape in svg.elements():
         #    if not isinstance(shape, se.Shape):

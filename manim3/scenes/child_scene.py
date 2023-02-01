@@ -55,6 +55,8 @@ class ChildScene(Renderable):
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
         for mobject in self._mobject_node.iter_descendants():
+            if not mobject._has_local_sample_points():
+                continue
             if mobject._apply_oit_:
                 transparent_mobjects.append(mobject)
             else:

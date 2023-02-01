@@ -1,6 +1,6 @@
 __all__ = [
     "CommandFlag",
-    "SpanEdgeFlag",
+    "EdgeFlag",
     "StringMobject"
 ]
 
@@ -8,7 +8,6 @@ __all__ = [
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from colour import Color
 import itertools as it
 import re
 from typing import (
@@ -21,21 +20,12 @@ from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
 from ..custom_typing import (
-    ColorType,
     Real,
-    Selector,
-    Span
+    Selector
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
-
-
-#class Span:
-#    def __init__(self, start: int, stop: int):
-#        assert start <= stop
-#        self.start: int = start
-#        self.stop: int = stop
 
 
 class CommandFlag(Enum):
@@ -44,18 +34,28 @@ class CommandFlag(Enum):
     OTHER = 0
 
 
-class SpanEdgeFlag(Enum):
+class EdgeFlag(Enum):
     START = 1
     STOP = -1
 
+    def __neg__(self) -> "EdgeFlag":
+        return EdgeFlag(-self.get_value())
 
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class Label:
-#    value: int
+    def get_value(self) -> int:
+        return self.value
+
+
+class Span:
+    def __init__(self, start: int, stop: int):
+        assert start <= stop, f"Invalid span: ({start}, {stop})"
+        self.start: int = start
+        self.stop: int = stop
+
+    def as_slice(self) -> slice:
+        return slice(self.start, self.stop)
+
+    def get_edge_index(self, edge_flag: EdgeFlag) -> int:
+        return self.start if edge_flag == EdgeFlag.START else self.stop
 
 
 @dataclass(
@@ -96,7 +96,7 @@ class CommandItem:
 
     @property
     def span(self) -> Span:
-        return self.match_obj.span()
+        return Span(*self.match_obj.span())
 
 
 @dataclass(
@@ -117,17 +117,12 @@ class LabelledItem:
 )
 class LabelledInsertionItem:
     labelled_item: LabelledItem
-    edge_flag: SpanEdgeFlag
-    #def __init__(self, *, label: int, edge_flag: SpanEdgeFlag):
-    #    self.label: int = label
-    #    self.edge_flag: SpanEdgeFlag = edge_flag
-    #    #index = labelled_item.span[edge_flag.value < 0]
-    #    #super().__init__(span=(index, index))
+    edge_flag: EdgeFlag
 
     @property
     def span(self) -> Span:
-        index = self.labelled_item.span[self.edge_flag.value < 0]
-        return (index, index)
+        index = self.labelled_item.span.get_edge_index(self.edge_flag)
+        return Span(index, index)
 
 
 @dataclass(
@@ -163,7 +158,7 @@ class ParsingResult:
 
 class StringMobject(SVGMobject):
     """
-    An abstract base class for `MTex` and `MarkupText`
+    An abstract base class for `Tex` and `MarkupText`
 
     This class aims to optimize the logic of "slicing children
     via substrings". This could be much clearer and more user-friendly
@@ -180,7 +175,6 @@ class StringMobject(SVGMobject):
     so that each child of the original `SVGMobject` will be labelled
     by the color of its paired child from the additional `SVGMobject`.
     """
-
     def __init__(
         self,
         *,
@@ -215,63 +209,6 @@ class StringMobject(SVGMobject):
         self._shape_mobjects.extend(shape_mobjects)
         self.add(*shape_mobjects)
 
-    # Toolkits
-
-    @classmethod
-    def _iter_spans_by_selector(cls, selector: Selector, string: str) -> Generator[Span, None, None]:
-        def iter_spans_by_single_selector(sel: str | re.Pattern[str] | slice, string: str) -> Generator[Span, None, None]:
-            if isinstance(sel, str):
-                for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
-                    yield match_obj.span()
-            elif isinstance(sel, re.Pattern):
-                for match_obj in sel.finditer(string):
-                    yield match_obj.span()
-            elif isinstance(sel, slice):
-                start = sel.start
-                stop = sel.stop
-                assert isinstance(start, int | None)
-                assert isinstance(stop, int | None)
-                if start is None or start < 0:
-                    start = 0
-                if stop is None or stop > len(string):
-                    stop = len(string)
-                if start > stop:
-                    warnings.warn(f"Caught a span ({start}, {stop}). Perhaps a typo?")
-                else:
-                    yield (start, stop)
-            else:
-                raise TypeError(f"Invalid selector: '{sel}'")
-
-        if isinstance(selector, str | re.Pattern | slice):
-            yield from iter_spans_by_single_selector(selector, string)
-        else:
-            for sel in selector:
-                yield from iter_spans_by_single_selector(sel, string)
-
-    @classmethod
-    def _span_contains(cls, span_0: Span, span_1: Span) -> bool:
-        return span_0[0] <= span_1[0] and span_0[1] >= span_1[1]
-
-    @classmethod
-    def _color_to_int(cls, color: ColorType) -> int:
-        c = Color()
-        c.rgb, _ = ColorUtils.decompose_color(color)  # TODO
-        return int(c.hex_l[1:], 16)
-
-    #@staticmethod
-    #def color_to_hex(color: RGBAInt) -> str:
-    #    return rgb_to_hex(color_to_rgb(color))
-
-    #@staticmethod
-    #def hex_to_int(rgb_hex: str) -> int:
-    #    return int(rgb_hex[1:], 16)
-
-    @classmethod
-    def _int_to_hex(cls, rgb_int: int) -> str:
-        return f"#{rgb_int:06x}".upper()
-
-    # Parsing
-
     @classmethod
     def _parse(
         cls,
@@ -291,13 +228,12 @@ class StringMobject(SVGMobject):
             protect=protect,
             configured_items_generator=configured_items_generator
         )
-
         replaced_spans = [replaced_item.span for replaced_item in replaced_items]
         original_pieces = [
             string[start:stop]
             for start, stop in zip(
-                [interval_stop for (_, interval_stop) in replaced_spans[:-1]],
-                [interval_start for (interval_start, _) in replaced_spans[1:]]
+                [interval_span.stop for interval_span in replaced_spans[:-1]],
+                [interval_span.start for interval_span in replaced_spans[1:]]
             )
         ]
 
@@ -346,11 +282,12 @@ class StringMobject(SVGMobject):
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None]
     ) -> tuple[list[LabelledItem], list[CommandItem | LabelledInsertionItem]]:
         def get_key(
-            index_item: tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, SpanEdgeFlag, int, int]
+            index_item: tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, EdgeFlag, int, int]
         ) -> tuple[int, int, int, int, int]:
             span_item, edge_flag, priority, i = index_item
-            flag_value = int(edge_flag.value)
-            index, paired_index = span_item.span[::flag_value]
+            flag_value = edge_flag.get_value()
+            index = span_item.span.get_edge_index(edge_flag)
+            paired_index = span_item.span.get_edge_index(-edge_flag)
             return (
                 index,
                 flag_value * (2 if index != paired_index else -1),
@@ -359,7 +296,7 @@ class StringMobject(SVGMobject):
                 flag_value * i
             )
 
-        index_items: list[tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, SpanEdgeFlag, int, int]] = sorted((
+        index_items: list[tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, EdgeFlag, int, int]] = sorted((
             (span_item, edge_flag, priority, i)
             for priority, span_item_iter in enumerate((
                 (ConfiguredItem(span=span, attr_dict=attr_dict) for span, attr_dict in configured_items_generator),
@@ -368,7 +305,7 @@ class StringMobject(SVGMobject):
                 (CommandItem(match_obj=match_obj) for match_obj in cls._iter_command_matches(string))
             ), start=1)
             for i, span_item in enumerate(span_item_iter)
-            for edge_flag in SpanEdgeFlag
+            for edge_flag in EdgeFlag
         ), key=get_key)
 
         labelled_items: list[LabelledItem] = []
@@ -386,19 +323,19 @@ class StringMobject(SVGMobject):
             labelled_items.append(labelled_item)
             replaced_items.insert(pos, LabelledInsertionItem(
                 labelled_item=labelled_item,
-                edge_flag=SpanEdgeFlag.START
+                edge_flag=EdgeFlag.START
             ))
             replaced_items.append(LabelledInsertionItem(
                 labelled_item=labelled_item,
-                edge_flag=SpanEdgeFlag.STOP
+                edge_flag=EdgeFlag.STOP
             ))
 
         for span_item, edge_flag, _, _ in index_items:
             if isinstance(span_item, ProtectedItem | CommandItem):
-                protect_level += edge_flag.value
+                protect_level += edge_flag.get_value()
                 if isinstance(span_item, ProtectedItem):
                     continue
-                if edge_flag == SpanEdgeFlag.START:
+                if edge_flag == EdgeFlag.START:
                     continue
                 command_item = span_item
                 command_flag = cls._get_command_flag(command_item.match_obj)
@@ -418,12 +355,12 @@ class StringMobject(SVGMobject):
                     if attr_dict is not None:
                         add_labelled_item(LabelledItem(
                             label=next(label_counter),
-                            span=(open_command_item.span[1], command_item.span[0]),
+                            span=Span(open_command_item.span.stop, command_item.span.start),
                             attr_dict=attr_dict
                         ), pos)
                     replaced_items.append(command_item)
                 continue
-            if edge_flag == SpanEdgeFlag.START:
+            if edge_flag == EdgeFlag.START:
                 open_stack.append((
                     len(replaced_items), span_item, protect_level, bracket_stack.copy()
                 ))
@@ -445,7 +382,7 @@ class StringMobject(SVGMobject):
             ), pos)
         add_labelled_item(LabelledItem(
             label=0,
-            span=(0, len(string)),
+            span=Span(0, len(string)),
             attr_dict={}
         ), 0)
 
@@ -453,7 +390,7 @@ class StringMobject(SVGMobject):
             warnings.warn(
                 "Partly overlapping substrings detected: {0}".format(
                     ", ".join(
-                        f"'{string[slice(*span)]}'"
+                        f"'{string[span.as_slice()]}'"
                         for span in overlapping_spans
                     )
                 )
@@ -462,7 +399,7 @@ class StringMobject(SVGMobject):
             warnings.warn(
                 "Cannot handle substrings: {0}".format(
                     ", ".join(
-                        f"'{string[slice(*span)]}'"
+                        f"'{string[span.as_slice()]}'"
                         for span in level_mismatched_spans
                     )
                 )
@@ -470,11 +407,39 @@ class StringMobject(SVGMobject):
         return labelled_items, replaced_items
 
     @classmethod
+    def _iter_spans_by_selector(cls, selector: Selector, string: str) -> Generator[Span, None, None]:
+        def iter_spans_by_single_selector(sel: str | re.Pattern[str] | slice, string: str) -> Generator[Span, None, None]:
+            if isinstance(sel, str):
+                for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
+                    yield Span(*match_obj.span())
+            elif isinstance(sel, re.Pattern):
+                for match_obj in sel.finditer(string):
+                    yield Span(*match_obj.span())
+            elif isinstance(sel, slice):
+                start = sel.start
+                stop = sel.stop
+                assert isinstance(start, int | None)
+                assert isinstance(stop, int | None)
+                if start is None or start < 0:
+                    start = 0
+                if stop is None or stop > len(string):
+                    stop = len(string)
+                yield Span(start, stop)
+            else:
+                raise TypeError(f"Invalid selector: '{sel}'")
+
+        if isinstance(selector, str | re.Pattern | slice):
+            yield from iter_spans_by_single_selector(selector, string)
+        else:
+            for sel in selector:
+                yield from iter_spans_by_single_selector(sel, string)
+
+    @classmethod
     def _get_replaced_pieces(
         cls,
         replaced_items: list[CommandItem | LabelledInsertionItem],
         command_replace_func: Callable[[re.Match[str]], str],
-        command_insert_func: Callable[[int, SpanEdgeFlag, dict[str, str]], str]
+        command_insert_func: Callable[[int, EdgeFlag, dict[str, str]], str]
     ) -> list[str]:
         return [
             command_replace_func(replaced_item.match_obj)
@@ -566,14 +531,13 @@ class StringMobject(SVGMobject):
             ]
 
         rearranged_labelled_shapes = cls._rearrange_labelled_shapes_by_positions(plain_shapes, labelled_shapes)
-        unrecognizable_colors: list[int] = []
+        unrecognizable_colors: list[str] = []
         labelled_shape_items: list[LabelledShapeItem] = []
         for plain_shape, labelled_shape in zip(plain_shapes, rearranged_labelled_shapes, strict=True):
-            #mobject_color = mobject._color_
-            #assert not isinstance(mobject_color, Callable)
-            label = cls._color_to_int(labelled_shape._color_)
+            color_hex = ColorUtils.color_to_hex(labelled_shape._color_)
+            label = int(color_hex[1:], 16)
             if label >= labels_count:
-                unrecognizable_colors.append(label)
+                unrecognizable_colors.append(color_hex)
                 label = 0
             labelled_shape_items.append(LabelledShapeItem(
                 label=label,
@@ -583,10 +547,7 @@ class StringMobject(SVGMobject):
         if unrecognizable_colors:
             warnings.warn(
                 "Unrecognizable color labels detected ({0}). The result could be unexpected.".format(
-                    ", ".join(
-                        cls._int_to_hex(color)  # TODO
-                        for color in unrecognizable_colors
-                    )
+                    ", ".join(unrecognizable_colors)
                 )
             )
         return labelled_shape_items
@@ -643,7 +604,7 @@ class StringMobject(SVGMobject):
     ) -> list[tuple[str, list[ShapeMobject]]]:
         return [
             (
-                string[slice(*labelled_item.span)],
+                string[labelled_item.span.as_slice()],
                 cls._get_shape_mobject_list_by_span(labelled_item.span, shape_items)
             )
             for labelled_item in labelled_items
@@ -656,6 +617,10 @@ class StringMobject(SVGMobject):
             for shape_item in shape_items
             if cls._span_contains(arbitrary_span, shape_item.span)
         ]
+
+    @classmethod
+    def _span_contains(cls, span_0: Span, span_1: Span) -> bool:
+        return span_0.start <= span_1.start and span_0.stop >= span_1.stop
 
     @classmethod
     def _get_group_part_items(
@@ -678,26 +643,26 @@ class StringMobject(SVGMobject):
             if isinstance(replaced_item, LabelledInsertionItem)
         }
         start_items = [
-            (group_labels[0], SpanEdgeFlag.START),
+            (group_labels[0], EdgeFlag.START),
             *(
-                (curr_label, SpanEdgeFlag.START)
+                (curr_label, EdgeFlag.START)
                 if cls._span_contains(
                     label_to_span_dict[prev_label], label_to_span_dict[curr_label]
                 )
-                else (prev_label, SpanEdgeFlag.STOP)
+                else (prev_label, EdgeFlag.STOP)
                 for prev_label, curr_label in it.pairwise(group_labels)
             )
         ]
         stop_items = [
             *(
-                (curr_label, SpanEdgeFlag.STOP)
+                (curr_label, EdgeFlag.STOP)
                 if cls._span_contains(
                     label_to_span_dict[next_label], label_to_span_dict[curr_label]
                 )
-                else (next_label, SpanEdgeFlag.START)
+                else (next_label, EdgeFlag.START)
                 for curr_label, next_label in it.pairwise(group_labels)
             ),
-            (group_labels[-1], SpanEdgeFlag.STOP)
+            (group_labels[-1], EdgeFlag.STOP)
         ]
         matching_replaced_pieces = cls._get_replaced_pieces(
             replaced_items=replaced_items,
@@ -720,6 +685,8 @@ class StringMobject(SVGMobject):
             ]
             for part_range in it.pairwise((0, *it.accumulate(range_lens)))
         ]))
+
+    # Implemented in subclasses
 
     @classmethod
     @abstractmethod
@@ -751,7 +718,7 @@ class StringMobject(SVGMobject):
     @classmethod
     @abstractmethod
     def _get_command_string(
-        cls, attr_dict: dict[str, str], edge_flag: SpanEdgeFlag, label: int | None
+        cls, attr_dict: dict[str, str], edge_flag: EdgeFlag, label: int | None
     ) -> str:
         pass
 
@@ -774,7 +741,3 @@ class StringMobject(SVGMobject):
         return ShapeMobject().add(*(
             list(self._iter_shape_mobject_lists_by_selector(selector))[index]
         ))
-
-    def set_parts_color(self, selector: Selector, color: ColorType):
-        self.select_parts(selector).set_fill(color=color)
-        return self

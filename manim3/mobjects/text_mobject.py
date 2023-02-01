@@ -28,9 +28,10 @@ from ..custom_typing import (
 )
 from ..mobjects.string_mobject import (
     CommandFlag,
-    SpanEdgeFlag,
+    EdgeFlag,
     StringMobject
 )
+from ..utils.color import ColorUtils
 
 
 def get_text_dir() -> str:
@@ -124,7 +125,7 @@ class MarkupText(StringMobject):
 
         def get_content_prefix_and_suffix(is_labelled: bool) -> tuple[str, str]:
             global_attr_dict = {
-                "foreground": self._int_to_hex(self._color_to_int(base_color)),
+                "foreground": ColorUtils.color_to_hex(base_color),
                 "font_family": font,
                 "font_style": slant,
                 "font_weight": weight,
@@ -152,7 +153,7 @@ class MarkupText(StringMobject):
                     edge_flag=edge_flag,
                     label=0 if is_labelled else None
                 )
-                for edge_flag in (SpanEdgeFlag.START, SpanEdgeFlag.STOP)
+                for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
             )
 
         def get_svg_path(content: str) -> str:
@@ -311,9 +312,9 @@ class MarkupText(StringMobject):
 
     @classmethod
     def _get_command_string(
-        cls, attr_dict: dict[str, str], edge_flag: SpanEdgeFlag, label: int | None
+        cls, attr_dict: dict[str, str], edge_flag: EdgeFlag, label: int | None
     ) -> str:
-        if edge_flag == SpanEdgeFlag.STOP:
+        if edge_flag == EdgeFlag.STOP:
             return "</span>"
 
         if label is not None:

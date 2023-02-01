@@ -19,14 +19,14 @@ from ..constants import MANIM3_PATH
 from ..custom_typing import (
     ColorType,
     Real,
-    Selector,
-    Span
+    Selector
 )
 from ..mobjects.string_mobject import (
     CommandFlag,
-    SpanEdgeFlag,
+    EdgeFlag,
     StringMobject
 )
+from ..utils.color import ColorUtils
 
 
 @dataclass(
@@ -222,8 +222,9 @@ class TexText(StringMobject):
             prefix_lines: list[str] = []
             suffix_lines: list[str] = []
             if not is_labelled:
+                color_hex = ColorUtils.color_to_hex(base_color)
                 prefix_lines.append(self._get_color_command(
-                    self._color_to_int(base_color)
+                    int(color_hex[1:], 16)
                 ))
             if alignment is not None:
                 prefix_lines.append(alignment)
@@ -244,12 +245,6 @@ class TexText(StringMobject):
                 )
             return file_path
 
-        #self.font_size: Real = font_size
-        #self.alignment: str = alignment
-        #self.tex_environment: str | None = tex_environment
-        #self.template: str = template
-        #self.additional_preamble: str = additional_preamble
-        #self.tex_to_color_map: dict[str, ColorType] = tex_to_color_map
         super().__init__(
             string=string,
             isolate=isolate,
@@ -267,7 +262,7 @@ class TexText(StringMobject):
         )
 
         for selector, color in tex_to_color_map.items():
-            self.set_parts_color(selector, color)
+            self.select_parts(selector).set_fill(color=color)
 
     # Parsing
 
@@ -280,12 +275,12 @@ class TexText(StringMobject):
             |(?P<close>}+)
         """, flags=re.VERBOSE | re.DOTALL)
 
-        def get_match_obj_by_span(span: Span) -> re.Match[str]:
+        def get_match_obj_by_span(span: tuple[int, int]) -> re.Match[str]:
             match_obj = pattern.fullmatch(string, pos=span[0], endpos=span[1])
             assert match_obj is not None
             return match_obj
 
-        open_stack: list[Span] = []
+        open_stack: list[tuple[int, int]] = []
         for match_obj in pattern.finditer(string):
             if not match_obj.group("close"):
                 if not match_obj.group("open"):
@@ -345,11 +340,11 @@ class TexText(StringMobject):
 
     @classmethod
     def _get_command_string(
-        cls, attr_dict: dict[str, str], edge_flag: SpanEdgeFlag, label: int | None
+        cls, attr_dict: dict[str, str], edge_flag: EdgeFlag, label: int | None
     ) -> str:
         if label is None:
             return ""
-        if edge_flag == SpanEdgeFlag.STOP:
+        if edge_flag == EdgeFlag.STOP:
             return "}}"
         return "{{" + cls._get_color_command(label)
 

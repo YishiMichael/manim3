@@ -12,7 +12,6 @@ __all__ = [
     "Mat3sT",
     "Mat4sT",
     "VertexIndexType",
-    "Span",
     "ColorType",
     "Selector"
 ]
@@ -50,6 +49,5 @@ Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
 
 VertexIndexType = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
-Span = tuple[int, int]
 ColorType = Color | str | Vec3T | Vec4T
 Selector = str | re.Pattern[str] | slice | Iterable[str | re.Pattern[str] | slice]

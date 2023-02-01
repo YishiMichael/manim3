@@ -192,6 +192,9 @@ class Mobject(Renderable):
     def _get_world_sample_points(self) -> Vec3sT:
         return self._apply_affine(self._model_matrix_, self._get_local_sample_points())
 
+    def _has_local_sample_points(self) -> bool:
+        return bool(len(self._get_local_sample_points()))
+
     def get_bounding_box(
         self,
         *,
