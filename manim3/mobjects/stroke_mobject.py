@@ -344,7 +344,7 @@ class StrokeMobject(Mobject):
         area = 0.0
         transform = camera._projection_matrix_ @ camera._view_matrix_ @ self._model_matrix_
         for line_string in self._multi_line_string_._children_:
-            coords_2d = self.apply_affine(transform, line_string._coords_)[:, :2]
+            coords_2d = self._apply_affine(transform, line_string._coords_)[:, :2]
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
         return 1.0 if area * self._width_ >= 0.0 else -1.0
 

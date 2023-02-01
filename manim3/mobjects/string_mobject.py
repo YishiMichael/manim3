@@ -143,6 +143,16 @@ class LabelledInsertionItem:
     slots=True
 )
 class LabelledShapeItem:
+    label: int
+    shape_mobject: ShapeMobject
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class ShapeItem:
     span: Span
     shape_mobject: ShapeMobject
 
@@ -153,7 +163,7 @@ class LabelledShapeItem:
     slots=True
 )
 class ParsingResult:
-    labelled_shape_items: list[LabelledShapeItem]
+    shape_items: list[ShapeItem]
     specified_part_items: list[tuple[str, list[ShapeMobject]]]
     group_part_items: list[tuple[str, list[ShapeMobject]]]
 
@@ -220,8 +230,8 @@ class StringMobject(SVGMobject):
         self._string: str = string
         self._parsing_result: ParsingResult = parsing_result
         shape_mobjects = [
-            labelled_shape_item.shape_mobject
-            for labelled_shape_item in parsing_result.labelled_shape_items
+            shape_item.shape_mobject
+            for shape_item in parsing_result.shape_items
         ]
         super().__init__()
         self._shape_mobjects.extend(shape_mobjects)
@@ -341,7 +351,7 @@ class StringMobject(SVGMobject):
                     yield match_obj.span()
             elif isinstance(sel, slice):
                 if sel.start > sel.stop:
-                    warnings.warn(f"Caught a span reading ({sel.start}, {sel.stop}). Perhaps a typo?")
+                    warnings.warn(f"Caught a span ({sel.start}, {sel.stop}). Perhaps a typo?")
                 else:
                     yield (sel.start, sel.stop)
             else:
@@ -732,6 +742,7 @@ class StringMobject(SVGMobject):
         #    for is_labelled in (True, False)
         #)
 
+
         labelled_insertion_item_to_index_dict = {
             (reconstruct_item.labelled_item.label, reconstruct_item.edge_flag): index
             for index, reconstruct_item in enumerate(reconstruct_items)
@@ -867,10 +878,6 @@ class StringMobject(SVGMobject):
         #    Callable[[int, int, dict[str, str]], str]
         #], str] = reconstruct_string
 
-        label_to_span_dict = {
-            labelled_item.label: labelled_item.span
-            for labelled_item in labelled_items
-        }
 
         plain_svg = SVGMobject(
             file_path=get_svg_path(get_content(is_labelled=False)),
@@ -883,7 +890,7 @@ class StringMobject(SVGMobject):
         if labels_count == 1:
             labelled_shape_items = [
                 LabelledShapeItem(
-                    span=label_to_span_dict[0],
+                    label=0,
                     shape_mobject=plain_shape
                 )
                 for plain_shape in plain_svg._shape_mobjects
@@ -912,7 +919,7 @@ class StringMobject(SVGMobject):
                 )
                 labelled_shape_items = [
                     LabelledShapeItem(
-                        span=label_to_span_dict[0],  # TODO: may remove the additional lable
+                        label=0,
                         shape_mobject=plain_shape
                     )
                     for plain_shape in plain_svg._shape_mobjects
@@ -931,7 +938,7 @@ class StringMobject(SVGMobject):
                         unrecognizable_colors.append(label)
                         label = 0
                     labelled_shape_items.append(LabelledShapeItem(
-                        span=label_to_span_dict[label],
+                        label=label,
                         shape_mobject=plain_shape
                     ))
 
@@ -944,21 +951,34 @@ class StringMobject(SVGMobject):
                             )
                         )
                     )
+
+        label_to_span_dict = {
+            labelled_item.label: labelled_item.span
+            for labelled_item in labelled_items
+        }
+        shape_items = [
+            ShapeItem(
+                span=label_to_span_dict[labelled_shape_item.label],
+                shape_mobject=labelled_shape_item.shape_mobject
+            )
+            for labelled_shape_item in labelled_shape_items
+        ]
         specified_part_items = [
             (
                 string[slice(*labelled_item.span)],
-                cls._get_shape_mobject_list_by_span(labelled_item.span, labelled_shape_items)
+                cls._get_shape_mobject_list_by_span(labelled_item.span, shape_items)
             )
             for labelled_item in labelled_items
         ]
 
-        if not labelled_items:
+
+        if not labelled_shape_items:
             group_part_items: list[tuple[str, list[ShapeMobject]]] = []
 
         else:
             range_lens, group_labels = zip(*(
                 (len(list(grouper)), val)
-                for val, grouper in it.groupby(labelled_item.label for labelled_item in labelled_items)
+                for val, grouper in it.groupby(labelled_shape_item.label for labelled_shape_item in labelled_shape_items)
             ))
             #child_indices_lists = [
             #    list(range(*child_range))
@@ -1009,7 +1029,7 @@ class StringMobject(SVGMobject):
             ]))
 
         return ParsingResult(
-            labelled_shape_items=labelled_shape_items,
+            shape_items=shape_items,
             specified_part_items=specified_part_items,
             group_part_items=group_part_items
         )
@@ -1086,11 +1106,11 @@ class StringMobject(SVGMobject):
     #    ]
 
     @classmethod
-    def _get_shape_mobject_list_by_span(cls, arbitrary_span: Span, labelled_shape_items: list[LabelledShapeItem]) -> list[ShapeMobject]:
+    def _get_shape_mobject_list_by_span(cls, arbitrary_span: Span, shape_items: list[ShapeItem]) -> list[ShapeMobject]:
         return [
-            labelled_shape_item.shape_mobject
-            for labelled_shape_item in labelled_shape_items
-            if cls._span_contains(arbitrary_span, labelled_shape_item.span)
+            shape_item.shape_mobject
+            for shape_item in shape_items
+            if cls._span_contains(arbitrary_span, shape_item.span)
         ]
 
     #@classmethod
@@ -1188,7 +1208,7 @@ class StringMobject(SVGMobject):
         return (
             shape_mobject_list
             for span in self._iter_spans_by_selector(selector, self._string)
-            if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.labelled_shape_items))
+            if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.shape_items))
         )
 
     def select_parts(self, selector: Selector) -> ShapeMobject:

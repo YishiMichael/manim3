@@ -153,14 +153,14 @@ class Mobject(Renderable):
 
     @overload
     @staticmethod
-    def apply_affine(matrix: Mat4T, vector: Vec3T) -> Vec3T: ...
+    def _apply_affine(matrix: Mat4T, vector: Vec3T) -> Vec3T: ...
 
     @overload
     @staticmethod
-    def apply_affine(matrix: Mat4T, vector: Vec3sT) -> Vec3sT: ...
+    def _apply_affine(matrix: Mat4T, vector: Vec3sT) -> Vec3sT: ...
 
     @staticmethod
-    def apply_affine(matrix: Mat4T, vector: Vec3T | Vec3sT) -> Vec3T | Vec3sT:
+    def _apply_affine(matrix: Mat4T, vector: Vec3T | Vec3sT) -> Vec3T | Vec3sT:
         if len(vector.shape) == 1:
             v = vector[:, None]
         else:
@@ -189,13 +189,16 @@ class Mobject(Renderable):
         # Implemented in subclasses
         return np.zeros((0, 3))
 
+    def _get_world_sample_points(self) -> Vec3sT:
+        return self._apply_affine(self._model_matrix_, self._get_local_sample_points())
+
     def get_bounding_box(
         self,
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
         points_array = np.concatenate([
-            self.apply_affine(self._model_matrix_, mobject._get_local_sample_points())
+            mobject._get_world_sample_points()
             for mobject in self.iter_descendants(broadcast=broadcast)
         ])
         if not points_array.shape[0]:
@@ -488,25 +491,22 @@ class Mobject(Renderable):
         specified_frame_scale: Real | None
     ):
         # Called when initializing a planar mobject
+        scale_factor = np.ones(2)
         if specified_width is None and specified_height is None:
-            width = original_width
-            height = original_height
             if specified_frame_scale is not None:
-                width *= specified_frame_scale
-                height *= specified_frame_scale
+                scale_factor *= specified_frame_scale
         elif specified_width is not None and specified_height is None:
-            width = specified_width
-            height = specified_width / original_width * original_height
+            scale_factor *= specified_width / original_width
         elif specified_width is None and specified_height is not None:
-            width = specified_height / original_height * original_width
-            height = specified_height
+            scale_factor *= specified_height / original_height
         elif specified_width is not None and specified_height is not None:
-            width = specified_width
-            height = specified_height
+            scale_factor *= np.array((
+                specified_width / original_width,
+                specified_height / original_height
+            ))
         else:
             raise ValueError  # never
-        self.center()
-        self.stretch_to_fit_size(np.array((width, height, 0.0)))
+        self.center().scale(np.append(scale_factor, 1.0))
         return self
 
     # animations
