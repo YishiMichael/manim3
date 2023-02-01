@@ -196,15 +196,6 @@ SCALE_FACTOR_PER_FONT_POINT: float = 0.001
 
 
 class TexText(StringMobject):
-    #CONFIG = {
-    #    "font_size": 48,
-    #    "alignment": "\\centering",
-    #    "tex_environment": "align*",
-    #    "tex_to_color_map": {},
-    #    "template": "",
-    #    "additional_preamble": "",
-    #}
-
     def __init__(
         self,
         string: str,
@@ -245,11 +236,13 @@ class TexText(StringMobject):
             )
 
         def get_svg_path(content: str) -> str:
-            return tex_content_to_svg_file(
-                content=content,
-                template_name=template,
-                additional_preamble=additional_preamble
-            )
+            with display_during_execution(f"Writing \"{string}\""):
+                file_path = tex_content_to_svg_file(
+                    content=content,
+                    template_name=template,
+                    additional_preamble=additional_preamble
+                )
+            return file_path
 
         #self.font_size: Real = font_size
         #self.alignment: str = alignment
@@ -271,35 +264,10 @@ class TexText(StringMobject):
             width=width,
             height=height,
             frame_scale=SCALE_FACTOR_PER_FONT_POINT * font_size
-            #**kwargs
         )
 
         for selector, color in tex_to_color_map.items():
             self.set_parts_color(selector, color)
-
-    #@property
-    #def hash_seed(self) -> tuple:
-    #    return (
-    #        self.__class__.__name__,
-    #        self.svg_default,
-    #        self.path_string_config,
-    #        self.base_color,
-    #        self.isolate,
-    #        self.protect,
-    #        self.tex_string,
-    #        self.alignment,
-    #        self.tex_environment,
-    #        self.tex_to_color_map,
-    #        self.template,
-    #        self.additional_preamble
-    #    )
-
-    #def get_file_path_by_content(self, content: str) -> str:
-    #    with display_during_execution(f"Writing \"{self.string}\""):
-    #        file_path = tex_content_to_svg_file(
-    #            content, self.template, self.additional_preamble
-    #        )
-    #    return file_path
 
     # Parsing
 
@@ -317,9 +285,7 @@ class TexText(StringMobject):
             assert match_obj is not None
             return match_obj
 
-        #result: list[re.Match[str]] = []
         open_stack: list[Span] = []
-        #brace_spans: list[tuple[int, int]] = []
         for match_obj in pattern.finditer(string):
             if not match_obj.group("close"):
                 if not match_obj.group("open"):
@@ -344,7 +310,6 @@ class TexText(StringMobject):
                 break
         if open_stack:
             raise ValueError("Missing '}' inserted")
-        #return result
 
     @classmethod
     def _get_command_flag(cls, match_obj: re.Match[str]) -> CommandFlag:
@@ -387,51 +352,6 @@ class TexText(StringMobject):
         if edge_flag == SpanEdgeFlag.STOP:
             return "}}"
         return "{{" + cls._get_color_command(label)
-
-    #def get_configured_items(self) -> list[ConfiguredItem]:
-    #    return [
-    #        ConfiguredItem(span=span, attr_dict={})
-    #        for selector in self.tex_to_color_map
-    #        for span in self._iter_spans_by_selector(selector, self.string)
-    #    ]
-
-    #def get_content_prefix_and_suffix(
-    #    self, is_labelled: bool
-    #) -> tuple[str, str]:
-    #    prefix_lines = []
-    #    suffix_lines = []
-    #    if not is_labelled:
-    #        prefix_lines.append(self.get_color_command(
-    #            self.color_to_int(self.base_color)
-    #        ))
-    #    if self.alignment:
-    #        prefix_lines.append(self.alignment)
-    #    if self.tex_environment:
-    #        prefix_lines.append(f"\\begin{{{self.tex_environment}}}")
-    #        suffix_lines.append(f"\\end{{{self.tex_environment}}}")
-    #    return (
-    #        "".join((line + "\n" for line in prefix_lines)),
-    #        "".join(("\n" + line for line in suffix_lines))
-    #    )
-
-    # Method alias
-
-    #def get_parts_by_tex(self, selector: Selector) -> VGroup:
-    #    return self.select_parts(selector)
-
-    #def get_part_by_tex(self, selector: Selector, **kwargs) -> VGroup:
-    #    return self.select_part(selector, **kwargs)
-
-    #def set_color_by_tex(self, selector: Selector, color: ManimColor):
-    #    return self.set_parts_color(selector, color)
-
-    #def set_color_by_tex_to_color_map(
-    #    self, color_map: dict[Selector, ManimColor]
-    #):
-    #    return self.set_parts_color_by_dict(color_map)
-
-    #def get_tex(self) -> str:
-    #    return self.get_string()
 
 
 class Tex(TexText):

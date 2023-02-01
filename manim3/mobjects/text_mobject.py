@@ -64,28 +64,6 @@ class _Alignment:
 
 
 class MarkupText(StringMobject):
-    #CONFIG = {
-    #    "font_size": 48,
-    #    "lsh": None,
-    #    "justify": False,
-    #    "indent": 0,
-    #    "alignment": "",
-    #    "line_width": None,
-    #    "font": "",
-    #    "slant": NORMAL,
-    #    "weight": NORMAL,
-    #    "gradient": None,
-    #    "t2c": {},
-    #    "t2f": {},
-    #    "t2g": {},
-    #    "t2s": {},
-    #    "t2w": {},
-    #    "global_config": {},
-    #    "local_configs": {},
-    #    "disable_ligatures": True,
-    #    "isolate": re.compile(r"\w+", flags=re.UNICODE),
-    #}
-
     # See https://docs.gtk.org/Pango/pango_markup.html
     MARKUP_TAGS: ClassVar[dict[str, dict[str, str]]] = {
         "b": {"font_weight": "bold"},
@@ -128,8 +106,6 @@ class MarkupText(StringMobject):
         width: Real | None = None,
         height: Real | None = None
     ):
-        #self.full2short(kwargs)
-        #digest_config(self, kwargs)
         if alignment is None:
             alignment = "LEFT"  # TODO
         if font is None:
@@ -138,18 +114,6 @@ class MarkupText(StringMobject):
             global_config = {}
         if local_configs is None:
             local_configs = {}
-        #self.font_size: Real = font_size
-        #self.line_spacing_height: Real | None = line_spacing_height
-        #self.justify: bool = justify
-        #self.indent: Real = indent
-        #self.alignment: str = alignment
-        #self.line_width: Real | None = line_width
-        #self.font: str = font
-        #self.slant: str = slant
-        #self.weight: str = weight
-        #self.global_config: dict[str, str] = global_config
-        #self.local_configs: dict[str, dict[str, str]] = local_configs
-        #self.disable_ligatures: bool = disable_ligatures
 
         if not isinstance(self, Text):
             self.validate_markup_string(string)
@@ -251,58 +215,6 @@ class MarkupText(StringMobject):
             height=height,
             frame_scale=TEXT_MOB_SCALE_FACTOR
         )
-
-        #if self.t2g:
-        #    log.warning(
-        #        "Manim currently cannot parse gradient from svg. "
-        #        "Please set gradient via `set_color_by_gradient`.",
-        #    )
-        #if self.gradient:
-        #    self.set_color_by_gradient(*self.gradient)
-        #if self.height is None:
-        #    self.scale(TEXT_MOB_SCALE_FACTOR)
-
-    #@property
-    #def hash_seed(self) -> tuple:
-    #    return (
-    #        self.__class__.__name__,
-    #        self.svg_default,
-    #        self.path_string_config,
-    #        self.base_color,
-    #        self.isolate,
-    #        self.protect,
-    #        self.text,
-    #        self.font_size,
-    #        self.lsh,
-    #        self.justify,
-    #        self.indent,
-    #        self.alignment,
-    #        self.line_width,
-    #        self.font,
-    #        self.slant,
-    #        self.weight,
-    #        self.t2c,
-    #        self.t2f,
-    #        self.t2s,
-    #        self.t2w,
-    #        self.global_config,
-    #        self.local_configs,
-    #        self.disable_ligatures
-    #    )
-
-    #def full2short(self, config: dict) -> None:
-    #    conversion_dict = {
-    #        "line_spacing_height": "lsh",
-    #        "text2color": "t2c",
-    #        "text2font": "t2f",
-    #        "text2gradient": "t2g",
-    #        "text2slant": "t2s",
-    #        "text2weight": "t2w"
-    #    }
-    #    for kwargs in [config, self.CONFIG]:
-    #        for long_name, short_name in conversion_dict.items():
-    #            if long_name in kwargs:
-    #                kwargs[short_name] = kwargs.pop(long_name)
 
     @classmethod
     def validate_markup_string(cls, markup_str: str) -> None:
@@ -422,45 +334,6 @@ class MarkupText(StringMobject):
         ])
         return f"<span {attrs_str}>"
 
-    #def get_configured_items(self) -> list[tuple[Span, dict[str, str]]]:
-    #    return [
-    #        #*(
-    #        #    (span, {key: val})
-    #        #    for t2x_dict, key in (
-    #        #        (self.t2c, "foreground"),
-    #        #        (self.t2f, "font_family"),
-    #        #        (self.t2s, "font_style"),
-    #        #        (self.t2w, "font_weight")
-    #        #    )
-    #        #    for selector, val in t2x_dict.items()
-    #        #    for span in self.find_spans_by_selector(selector)
-    #        #),
-    #        #*(
-    #        (span, local_config)
-    #        for selector, local_config in self.local_configs.items()
-    #        for span in self.find_spans_by_selector(selector, self.string)
-    #        #)
-    #    ]
-
-    # Method alias
-
-    #def get_parts_by_text(self, selector: Selector) -> VGroup:
-    #    return self.select_parts(selector)
-
-    #def get_part_by_text(self, selector: Selector, **kwargs) -> VGroup:
-    #    return self.select_part(selector, **kwargs)
-
-    #def set_color_by_text(self, selector: Selector, color: ManimColor):
-    #    return self.set_parts_color(selector, color)
-
-    #def set_color_by_text_to_color_map(
-    #    self, color_map: dict[Selector, ManimColor]
-    #):
-    #    return self.set_parts_color_by_dict(color_map)
-
-    #def get_text(self) -> str:
-    #    return self.get_string()
-
 
 class Text(MarkupText):
     #CONFIG = {
@@ -487,15 +360,6 @@ class Text(MarkupText):
 
 
 class Code(MarkupText):
-    #CONFIG = {
-    #    "font": "Consolas",
-    #    "font_size": 24,
-    #    "lsh": 1.0,
-    #    "language": "python",
-    #    # Visit https://pygments.org/demo/ to have a preview of more styles.
-    #    "code_style": "monokai",
-    #}
-
     def __init__(
         self,
         code: str,
@@ -504,67 +368,46 @@ class Code(MarkupText):
         # Visit https://pygments.org/demo/ to have a preview of more styles.
         code_style: str = "monokai",
         font_size: Real = 24,
-        **kwargs
+        line_spacing_height: Real | None = 1.0,
+        justify: bool = False,
+        indent: Real = 0.0,
+        alignment: str | None = None,
+        line_width: Real | None = None,
+        font: str | None = "Consolas",
+        slant: str = "NORMAL",
+        weight: str = "NORMAL",
+        base_color: ColorType = Color("white"),
+        global_config: dict[str, str] | None = None,
+        local_configs: dict[Selector, dict[str, str]] | None = None,
+        disable_ligatures: bool = True,
+        isolate: Selector = re.compile(r"\w+", flags=re.UNICODE),
+        protect: Selector = (),
+        width: Real | None = None,
+        height: Real | None = None
     ):
-        #digest_config(self, kwargs)
-        #self.code = code
         lexer = pygments.lexers.get_lexer_by_name(language)
         formatter = pygments.formatters.PangoMarkupFormatter(
             style=code_style
         )
-        markup = pygments.highlight(code, lexer, formatter)
-        markup = re.sub(r"</?tt>", "", markup)
-        super().__init__(markup, font_size=font_size, **kwargs)
-
-
-#@contextmanager
-#def register_font(font_file: str | Path):
-#    """Temporarily add a font file to Pango's search path.
-#    This searches for the font_file at various places. The order it searches it described below.
-#    1. Absolute path.
-#    2. Downloads dir.
-
-#    Parameters
-#    ----------
-#    font_file :
-#        The font file to add.
-#    Examples
-#    --------
-#    Use ``with register_font(...)`` to add a font file to search
-#    path.
-#    .. code-block:: python
-#        with register_font("path/to/font_file.ttf"):
-#           a = Text("Hello", font="Custom Font Name")
-#    Raises
-#    ------
-#    FileNotFoundError:
-#        If the font doesn't exists.
-#    AttributeError:
-#        If this method is used on macOS.
-#    Notes
-#    -----
-#    This method of adding font files also works with :class:`CairoText`.
-#    .. important ::
-#        This method is available for macOS for ``ManimPango>=v0.2.3``. Using this
-#        method with previous releases will raise an :class:`AttributeError` on macOS.
-#    """
-
-#    input_folder = Path(get_downloads_dir()).parent.resolve()
-#    possible_paths = [
-#        Path(font_file),
-#        input_folder / font_file,
-#    ]
-#    for path in possible_paths:
-#        path = path.resolve()
-#        if path.exists():
-#            file_path = path
-#            break
-#    else:
-#        error = f"Can't find {font_file}." f"Tried these : {possible_paths}"
-#        raise FileNotFoundError(error)
-
-#    try:
-#        assert manimpango.register_font(str(file_path))
-#        yield
-#    finally:
-#        manimpango.unregister_font(str(file_path))
+        markup_string = pygments.highlight(code, lexer, formatter)
+        markup_string = re.sub(r"</?tt>", "", markup_string)
+        super().__init__(
+            string=markup_string,
+            font_size=font_size,
+            line_spacing_height=line_spacing_height,
+            justify=justify,
+            indent=indent,
+            alignment=alignment,
+            line_width=line_width,
+            font=font,
+            slant=slant,
+            weight=weight,
+            base_color=base_color,
+            global_config=global_config,
+            local_configs=local_configs,
+            disable_ligatures=disable_ligatures,
+            isolate=isolate,
+            protect=protect,
+            width=width,
+            height=height
+        )
