@@ -23,6 +23,8 @@ import shapely.geometry
 import shapely.ops
 import svgelements as se
 
+from manim3.utils.space_ops import SpaceOps
+
 from ..custom_typing import (
     FloatsT,
     Real,
@@ -111,7 +113,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
     def _kind_(coords: _VecsT) -> str:
         if len(coords) == 1:
             return "point"
-        if not np.isclose(np.linalg.norm(coords[-1] - coords[0]), 0.0):
+        if not np.isclose(SpaceOps.norm(coords[-1] - coords[0]), 0.0):
             return "line_string"
         return "linear_ring"
 
@@ -127,11 +129,11 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
     @lazy_property
     @staticmethod
     def _lengths_(coords: _VecsT) -> FloatsT:
-        return np.linalg.norm(coords[1:] - coords[:-1], axis=1)
+        return SpaceOps.norm(coords[1:] - coords[:-1])
 
     @classmethod
     def _lerp(cls, vec_0: _VecT, vec_1: _VecT, alpha: Real) -> _VecT:
-        return (1.0 - alpha) * vec_0 + alpha * vec_1
+        return SpaceOps.lerp(vec_0, vec_1, alpha)
 
     def interpolate_point(self, alpha: Real) -> _VecT:
         index, residue = self._integer_interpolate(self._length_knots_, alpha)
@@ -363,8 +365,7 @@ class Shape(LazyBase):
             if bisect_depth == 4:
                 return samples
             points = curve(samples)
-            directions = points[1:] - points[:-1]
-            directions /= np.linalg.norm(directions, axis=1)[:, None]
+            directions = SpaceOps.normalize(points[1:] - points[:-1])
             angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
             large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
             if not len(large_angle_indices):
@@ -382,7 +383,7 @@ class Shape(LazyBase):
             c=control_points,
             k=order
         )
-        if np.isclose(np.linalg.norm(gamma(1.0) - gamma(0.0)), 0.0):
+        if np.isclose(SpaceOps.norm(gamma(1.0) - gamma(0.0)), 0.0):
             return np.array((gamma(0.0),))
         samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
         return gamma(samples).astype(float)

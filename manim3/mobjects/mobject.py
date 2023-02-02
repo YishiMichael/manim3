@@ -30,10 +30,10 @@ from ..rendering.render_procedure import UniformBlockBuffer
 from ..rendering.renderable import Renderable
 from ..utils.lazy import (
     lazy_property,
-    lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.node import Node
+from ..utils.space_ops import SpaceOps
 
 
 @dataclass(
@@ -133,49 +133,6 @@ class Mobject(Renderable):
 
     # matrix & transform
 
-    @staticmethod
-    def matrix_from_translation(vector: Vec3T) -> Mat4T:
-        m = np.identity(4)
-        m[:3, 3] = vector
-        return m
-
-    @staticmethod
-    def matrix_from_scale(factor: Real | Vec3T) -> Mat4T:
-        m = np.identity(4)
-        m[:3, :3] *= factor
-        return m
-
-    @staticmethod
-    def matrix_from_rotation(rotation: Rotation) -> Mat4T:
-        m = np.identity(4)
-        m[:3, :3] = rotation.as_matrix()
-        return m
-
-    @overload
-    @staticmethod
-    def _apply_affine(matrix: Mat4T, vector: Vec3T) -> Vec3T: ...
-
-    @overload
-    @staticmethod
-    def _apply_affine(matrix: Mat4T, vector: Vec3sT) -> Vec3sT: ...
-
-    @staticmethod
-    def _apply_affine(matrix: Mat4T, vector: Vec3T | Vec3sT) -> Vec3T | Vec3sT:
-        if len(vector.shape) == 1:
-            v = vector[:, None]
-        else:
-            v = vector[:, :].T
-        v = np.concatenate((v, np.ones((1, v.shape[1]))))
-        v = matrix @ v
-        if not np.allclose(v[3], 1.0):
-            v /= v[3]
-        v = v[:3]
-        if len(vector.shape) == 1:
-            result = v.squeeze(axis=1)
-        else:
-            result = v.T
-        return result
-
     @lazy_property_writable
     @staticmethod
     def _model_matrix_() -> Mat4T:
@@ -190,7 +147,7 @@ class Mobject(Renderable):
         return np.zeros((0, 3))
 
     def _get_world_sample_points(self) -> Vec3sT:
-        return self._apply_affine(self._model_matrix_, self._get_local_sample_points())
+        return SpaceOps.apply_affine(self._model_matrix_, self._get_local_sample_points())
 
     def _has_local_sample_points(self) -> bool:
         return bool(len(self._get_local_sample_points()))
@@ -282,9 +239,9 @@ class Mobject(Renderable):
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
         matrix = reduce(np.ndarray.__matmul__, (
-            self.matrix_from_translation(about_point),
+            SpaceOps.matrix_from_translation(about_point),
             matrix,
-            self.matrix_from_translation(-about_point)
+            SpaceOps.matrix_from_translation(-about_point)
         ))
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
@@ -300,7 +257,7 @@ class Mobject(Renderable):
     ):
         if coor_mask is not None:
             vector *= coor_mask
-        matrix = self.matrix_from_translation(vector)
+        matrix = SpaceOps.matrix_from_translation(vector)
         # `about_point` and `about_edge` are meaningless when shifting
         self.apply_relative_transform(
             matrix,
@@ -316,7 +273,7 @@ class Mobject(Renderable):
         about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
-        matrix = self.matrix_from_scale(factor)
+        matrix = SpaceOps.matrix_from_scale(factor)
         self.apply_relative_transform(
             matrix,
             about_point=about_point,
@@ -333,7 +290,7 @@ class Mobject(Renderable):
         about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
-        matrix = self.matrix_from_rotation(rotation)
+        matrix = SpaceOps.matrix_from_rotation(rotation)
         self.apply_relative_transform(
             matrix,
             about_point=about_point,
@@ -514,24 +471,24 @@ class Mobject(Renderable):
 
     # animations
 
-    @lazy_property_updatable
-    @staticmethod
-    def _animations_() -> list["Animation"]:
-        return []
+    #@lazy_property_updatable
+    #@staticmethod
+    #def _animations_() -> list["Animation"]:
+    #    return []
 
-    @_animations_.updater
-    def animate(self, animation: "Animation"):
-        self._animations_.append(animation)
-        animation.start(self)
-        return self
+    #@_animations_.updater
+    #def animate(self, animation: "Animation"):
+    #    self._animations_.append(animation)
+    #    animation.start(self)
+    #    return self
 
-    @_animations_.updater
-    def _update_dt(self, dt: Real):
-        for animation in self._animations_[:]:
-            animation.update_dt(self, dt)
-            if animation.expired():
-                self._animations_.remove(animation)
-        return self
+    #@_animations_.updater
+    #def _update_dt(self, dt: Real):
+    #    for animation in self._animations_[:]:
+    #        animation.update_dt(self, dt)
+    #        if animation.expired():
+    #            self._animations_.remove(animation)
+    #    return self
 
     # render
 

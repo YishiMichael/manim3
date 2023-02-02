@@ -10,6 +10,8 @@ __all__ = [
 
 import numpy as np
 
+from manim3.utils.space_ops import SpaceOps
+
 from ..custom_typing import (
     Mat4T,
     Vec2sT,
@@ -43,10 +45,8 @@ class Polyhedron(ShapeMobject):
         # in order to reduce the chance that they happen to be colinear.
         # The winding order should be counterclockwise.
         origin = vertices[0]
-        x_axis = vertices[1] - vertices[0]
-        x_axis /= np.linalg.norm(x_axis)
-        z_axis = np.cross(x_axis, np.average(vertices, axis=0) - origin)
-        z_axis /= np.linalg.norm(z_axis)
+        x_axis = SpaceOps.normalize(vertices[1] - vertices[0])
+        z_axis = SpaceOps.normalize(np.cross(x_axis, np.average(vertices, axis=0) - origin))
         y_axis = np.cross(z_axis, x_axis)
         rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
 

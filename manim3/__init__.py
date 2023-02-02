@@ -33,12 +33,15 @@ from .rendering.render_procedure import *
 from .rendering.renderable import *
 from .rendering.renderer import *
 
+from .scenes.active_scene_data import *
 from .scenes.scene import *
 from .scenes.scene_config import *
 
 from .utils.color import *
 from .utils.lazy import *
+from .utils.node import *
 from .utils.shape import *
+from .utils.space_ops import *
 
 from .constants import *
 from .custom_colors import *

@@ -6,12 +6,14 @@ import time
 import moderngl
 import numpy as np
 
+from ..animations.animation import Animation
 from ..custom_typing import (
     ColorType,
     Real,
     Vec3T
 )
 from ..mobjects.mobject import Mobject
+from ..scenes.active_scene_data import ActiveSceneDataSingleton
 from ..scenes.scene_config import SceneConfig
 from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import (
@@ -33,8 +35,9 @@ class Scene(Renderable):
         #self._color_texture: moderngl.Texture = color_texture
         #self._framebuffer: moderngl.Framebuffer = framebuffer
         #self._writing_process: sp.Popen | None = writing_process
-        self._mobject_node: Mobject = Mobject()
         self._scene_config: SceneConfig = SceneConfig()
+        self._mobject_node: Mobject = Mobject()
+        self._animations: dict[Animation, float] = {}
         self._frame_floating_index: float = 0.0  # A timer scaled by fps
         self._previous_rendering_timestamp: float | None = None
 
@@ -207,8 +210,7 @@ class Scene(Renderable):
         red, green, blue = scene_config._background_color_
         alpha = scene_config._background_opacity_
 
-        active_scene_data = ConfigSingleton()._active_scene_data
-        assert active_scene_data is not None
+        active_scene_data = ActiveSceneDataSingleton()
         framebuffer = active_scene_data.framebuffer
         framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
         self._render_with_passes(scene_config, framebuffer)
@@ -260,8 +262,40 @@ class Scene(Renderable):
 
     def _update_dt(self, dt: Real):
         assert dt >= 0.0
-        for mobject in self._mobject_node.iter_descendants():
-            mobject._update_dt(dt)
+        for animation in list(self._animations):
+            t = self._animations[animation] + dt
+            self._animations[animation] = t
+            if t < animation._start_time:
+                continue
+
+            animation_expired = False
+            if animation._stop_time is not None and t > animation._stop_time:
+                animation_expired = True
+                t = animation._stop_time
+
+            for add_item in animation._mobject_add_items[:]:
+                t_add, mobject, parent = add_item
+                if t < t_add:
+                    continue
+                if parent is None:
+                    parent = self._mobject_node
+                parent.add(mobject)
+                animation._mobject_add_items.remove(add_item)
+
+            animation._animate_func(t)
+
+            for remove_item in animation._mobject_remove_items[:]:
+                t_remove, mobject, parent = remove_item
+                if t < t_remove:
+                    continue
+                if parent is None:
+                    parent = self._mobject_node
+                parent.remove(mobject)
+                animation._mobject_remove_items.remove(remove_item)
+
+            if animation_expired:
+                self._animations.pop(animation)
+
         return self
 
     def _update_frames(self, frames: Real):
@@ -270,6 +304,20 @@ class Scene(Renderable):
 
     def construct(self) -> None:
         pass
+
+    def prepare(self, *animations: Animation):
+        for animation in animations:
+            self._animations[animation] = 0.0
+        return self
+
+    def play(self, *animations: Animation):
+        self.prepare(*animations)
+        try:
+            wait_time = max(t for animation in animations if (t := animation._stop_time) is not None)
+        except ValueError:
+            wait_time = 0.0
+        self.wait(wait_time)
+        return self
 
     def wait(self, t: Real):
         assert t >= 0.0
@@ -298,41 +346,15 @@ class Scene(Renderable):
             self._render_frame()
             self._previous_rendering_timestamp = time.time()
 
-        for _ in frame_range:
-            if ConfigSingleton().preview and (sleep_t := (1.0 / ConfigSingleton().fps) - (time.time() - self._previous_rendering_timestamp)) > 0.0:
+        for _ in frame_range[:-1]:
+            if ConfigSingleton().preview and (sleep_t := (
+                (1.0 / ConfigSingleton().fps) - (time.time() - self._previous_rendering_timestamp)
+            )) > 0.0:
                 time.sleep(sleep_t)
             self._update_frames(1)
             self._render_frame()
             self._previous_rendering_timestamp = time.time()
         self._update_frames(stop_frame_floating_index - (frame_range.stop - 1))
-        #spf = 1.0 / ConfigSingleton().fps
-        #while t >= spf:
-        #    t -= spf
-        #    timestamp: float = time.time()
-        #    self._update_dt(spf)
-        #    self._render_frame()
-        #    if ConfigSingleton().preview and (sleep_t := spf - (time.time() - timestamp)) > 0.0:
-        #        time.sleep(sleep_t)
-
-
-
-
-        #window = RenderProcedure._WINDOW
-        #if window is None:
-        #    return self  # TODO
-        #dt = 1.0 / ConfigSingleton().fps
-        #elapsed_time = 0.0
-        #timestamp = time.time()
-        #while not window.is_closing and elapsed_time < t:
-        #    elapsed_time += dt
-        #    delta_t = time.time() - timestamp
-        #    if dt > delta_t:
-        #        time.sleep(dt - delta_t)
-        #    timestamp = time.time()
-        #    #window.clear()
-        #    self._update_dt(dt)
-        #    self._render_frame()
-        #    #window.swap_buffers()
         return self
 
     def add(self, *mobjects: Mobject):

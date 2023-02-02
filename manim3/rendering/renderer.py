@@ -6,9 +6,9 @@ import subprocess as sp
 
 from PIL import Image
 
+from ..scenes.active_scene_data import ActiveSceneDataSingleton
 from ..scenes.scene import Scene
 from ..rendering.config import (
-    ActiveSceneData,
     Config,
     ConfigSingleton
 )
@@ -46,20 +46,26 @@ class Renderer:
                     color_attachments=[color_texture],
                     depth_attachment=None
                 ) as framebuffer:
-            scene_instance = scene_cls()
-            ConfigSingleton()._active_scene_data = ActiveSceneData(
+            ActiveSceneDataSingleton.set(
                 color_texture=color_texture,
                 framebuffer=framebuffer,
                 writing_process=writing_process
             )
 
-            scene_instance.construct()
+            scene = scene_cls()
+            scene.construct()
+
+            # Ensure at least one frame is rendered
+            if scene._previous_rendering_timestamp is None:
+                scene._render_frame()
+
             if ConfigSingleton().write_video:
                 assert writing_process is not None and writing_process.stdin is not None
                 writing_process.stdin.close()
                 writing_process.wait()
                 writing_process.terminate()
             if ConfigSingleton().write_last_frame:
+                # TODO: the image is flipped in y direction
                 image = Image.frombytes(
                     "RGBA",
                     ConfigSingleton().pixel_size,

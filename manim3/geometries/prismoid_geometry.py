@@ -12,6 +12,7 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..geometries.shape_geometry import ShapeGeometry
 from ..utils.shape import Shape
+from ..utils.space_ops import SpaceOps
 
 
 class PrismoidGeometry(Geometry):
@@ -29,26 +30,25 @@ class PrismoidGeometry(Geometry):
             points: list[Vec2T] = [coords[0]]
             current_point = coords[0]
             for point in coords:
-                if np.isclose(np.linalg.norm(point - current_point), 0.0):
+                if np.isclose(SpaceOps.norm(point - current_point), 0.0):
                     continue
                 current_point = point
                 points.append(point)
-            if np.isclose(np.linalg.norm(current_point - coords[0]), 0.0):
+            if np.isclose(SpaceOps.norm(current_point - coords[0]), 0.0):
                 points.pop()
             if len(points) <= 1:
                 continue
 
             ip_normal_pairs: list[tuple[int, Vec2T]] = []
+            rotation_mat = np.array([[0.0, 1.0], [-1.0, 0.0]])
             for ip, (p_prev, p, p_next) in enumerate(zip(np.roll(points, 1), points, np.roll(points, -1))):
-                v0 = p - p_prev
-                v1 = p_next - p
-                n0 = np.array((v0[1], -v0[0])) / np.linalg.norm(v0)
-                n1 = np.array((v1[1], -v1[0])) / np.linalg.norm(v1)
+                n0 = rotation_mat @ SpaceOps.normalize(p - p_prev)
+                n1 = rotation_mat @ SpaceOps.normalize(p_next - p)
 
                 angle = abs(np.arccos(np.dot(n0, n1)))
                 if angle <= np.pi / 16.0:
                     n_avg = n0 + n1
-                    ip_normal_pairs.append((ip, n_avg / np.linalg.norm(n_avg)))
+                    ip_normal_pairs.append((ip, SpaceOps.normalize(n_avg)))
                 else:
                     # Vertices shall be duplicated
                     # if its connected faces have significantly different normal vectors.

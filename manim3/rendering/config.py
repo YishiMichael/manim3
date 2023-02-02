@@ -1,16 +1,12 @@
 __all__ = [
-    "ActiveSceneData",
     "Config",
     "ConfigSingleton"
 ]
 
 
-from dataclasses import dataclass
 import os
-import subprocess as sp
 import sys
-
-import moderngl
+from typing import ClassVar
 
 from ..custom_typing import Real
 #from .scenes.scene import Scene
@@ -44,17 +40,6 @@ from ..custom_typing import Real
 #        #    writing_process.terminate()
 
 
-@dataclass(
-    slots=True,
-    kw_only=True,
-    frozen=True
-)
-class ActiveSceneData:
-    color_texture: moderngl.Texture
-    framebuffer: moderngl.Framebuffer
-    writing_process: sp.Popen | None
-
-
 class Config:
     __slots__ = (
         "_camera_altitude",
@@ -70,8 +55,7 @@ class Config:
         "_write_video",
         "_write_last_frame",
         "_preview",
-        "_halt_on_last_frame",
-        "_active_scene_data"
+        "_halt_on_last_frame"
     )
 
     #def __init_subclass__(cls) -> None:
@@ -102,8 +86,6 @@ class Config:
         self._write_last_frame: bool = False
         self._preview: bool = True
         self._halt_on_last_frame: bool = True
-
-        self._active_scene_data: ActiveSceneData | None = None
 
     # paths
 
@@ -314,7 +296,7 @@ class Config:
 
 
 class ConfigSingleton:
-    _INSTANCE: Config | None = None
+    _INSTANCE: ClassVar[Config | None] = None
 
     def __new__(cls) -> Config:
         assert cls._INSTANCE is not None, "Config instance is not provided"
