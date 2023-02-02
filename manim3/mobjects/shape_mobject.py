@@ -37,8 +37,17 @@ class ShapeMobject(MeshMobject):
 
     @lazy_property
     @staticmethod
-    def _geometry_(shape: Shape) -> ShapeGeometry:
-        return ShapeGeometry(shape)
+    def _geometry_o_() -> ShapeGeometry:
+        return ShapeGeometry()
+
+    @lazy_property
+    @staticmethod
+    def _geometry_(
+        geometry_o: ShapeGeometry,
+        shape: Shape
+    ) -> ShapeGeometry:
+        geometry_o._shape_ = shape
+        return geometry_o
 
     #@lazy_property_writable
     #@staticmethod

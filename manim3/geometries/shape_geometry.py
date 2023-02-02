@@ -11,16 +11,30 @@ from ..custom_typing import (
     Vec2sT,
     VertexIndexType
 )
-from ..geometries.geometry import Geometry
+from ..geometries.geometry import (
+    Geometry,
+    GeometryData
+)
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_writable
+)
 from ..utils.shape import Shape
 
 
 class ShapeGeometry(Geometry):
-    def __init__(self, shape: Shape):
-        index, coords = self._get_shape_triangulation(shape)
+    @lazy_property_writable
+    @staticmethod
+    def _shape_() -> Shape:
+        return Shape()
+
+    @lazy_property
+    @staticmethod
+    def _data_(shape: Shape) -> GeometryData:
+        index, coords = ShapeGeometry._get_shape_triangulation(shape)
         position = np.insert(coords, 2, 0.0, axis=1)
         normal = np.repeat(np.array((0.0, 0.0, 1.0))[None], len(position), axis=0)
-        super().__init__(
+        return GeometryData(
             index=index,
             position=position,
             normal=normal,

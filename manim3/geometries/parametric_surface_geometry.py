@@ -8,7 +8,11 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
-from ..geometries.geometry import Geometry
+from ..geometries.geometry import (
+    Geometry,
+    GeometryData
+)
+from ..utils.lazy import lazy_property_writable
 
 
 class ParametricSurfaceGeometry(Geometry):
@@ -20,6 +24,7 @@ class ParametricSurfaceGeometry(Geometry):
         v_range: tuple[Real, Real],
         resolution: tuple[int, int] = (100, 100)
     ):
+        super().__init__()
         u_start, u_stop = u_range
         v_start, v_stop = v_range
         u_len = resolution[0] + 1
@@ -46,9 +51,15 @@ class ParametricSurfaceGeometry(Geometry):
         ), 2).reshape((-1, 2))
         position = np.apply_along_axis(lambda p: func(*p), 1, samples)
         normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
-        super().__init__(
+
+        self._data_ = GeometryData(
             index=index,
             position=position,
             normal=normal,
             uv=uv
         )
+
+    @lazy_property_writable
+    @staticmethod
+    def _data_() -> GeometryData:
+        return NotImplemented

@@ -142,15 +142,24 @@ class Mobject(Renderable):
         self._model_matrix_ = matrix @ self._model_matrix_
         return self
 
-    def _get_local_sample_points(self) -> Vec3sT:
+    @lazy_property
+    @staticmethod
+    def _local_sample_points_() -> Vec3sT:
         # Implemented in subclasses
         return np.zeros((0, 3))
 
-    def _get_world_sample_points(self) -> Vec3sT:
-        return SpaceOps.apply_affine(self._model_matrix_, self._get_local_sample_points())
+    @lazy_property
+    @staticmethod
+    def _world_sample_points_(
+        model_matrix: Mat4T,
+        local_sample_points: Vec3sT
+    ) -> Vec3sT:
+        return SpaceOps.apply_affine(model_matrix, local_sample_points)
 
-    def _has_local_sample_points(self) -> bool:
-        return bool(len(self._get_local_sample_points()))
+    @lazy_property
+    @staticmethod
+    def _has_local_sample_points_(local_sample_points: Vec3sT) -> bool:
+        return bool(len(local_sample_points))
 
     def get_bounding_box(
         self,
@@ -158,7 +167,7 @@ class Mobject(Renderable):
         broadcast: bool = True
     ) -> BoundingBox3D:
         points_array = np.concatenate([
-            mobject._get_world_sample_points()
+            mobject._world_sample_points_
             for mobject in self.iter_descendants(broadcast=broadcast)
         ])
         if not points_array.shape[0]:

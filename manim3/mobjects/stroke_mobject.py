@@ -349,8 +349,10 @@ class StrokeMobject(Mobject):
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
         return 1.0 if area * self._width_ >= 0.0 else -1.0
 
-    def _get_local_sample_points(self) -> Vec3sT:
-        line_strings = self._multi_line_string_._children_
+    @lazy_property
+    @staticmethod
+    def _local_sample_points_(multi_line_string: MultiLineString3D) -> Vec3sT:
+        line_strings = multi_line_string._children_
         if not line_strings:
             return np.zeros((0, 3))
         return np.concatenate([

@@ -38,7 +38,7 @@ class SVGMobject(ShapeMobject):
                 #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(shape))._has_local_sample_points()
+            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(shape))._has_local_sample_points_
         ]
         #for shape in svg.elements():
         #    if not isinstance(shape, se.Shape):

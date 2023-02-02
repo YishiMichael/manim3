@@ -10,7 +10,7 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-from ..geometries.empty_geometry import EmptyGeometry
+#from ..geometries.empty_geometry import EmptyGeometry
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
 from ..rendering.render_procedure import (
@@ -35,7 +35,7 @@ class MeshMobject(Mobject):
     @lazy_property_writable
     @staticmethod
     def _geometry_() -> Geometry:
-        return EmptyGeometry()
+        return Geometry()
 
     @lazy_property_writable
     @staticmethod
@@ -203,5 +203,7 @@ class MeshMobject(Mobject):
             )
         return self
 
-    def _get_local_sample_points(self) -> Vec3sT:
-        return self._geometry_._position_
+    @lazy_property
+    @staticmethod
+    def _local_sample_points_(geometry: Geometry) -> Vec3sT:
+        return geometry._data_.position

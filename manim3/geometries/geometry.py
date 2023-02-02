@@ -1,5 +1,12 @@
-__all__ = ["Geometry"]
+__all__ = [
+    "GeometryData",
+    "Geometry"
+]
 
+
+from dataclasses import dataclass
+
+import numpy as np
 
 from ..custom_typing import (
     Vec2sT,
@@ -12,44 +19,65 @@ from ..rendering.render_procedure import (
 )
 from ..utils.lazy import (
     LazyBase,
-    lazy_property,
-    lazy_property_writable
+    lazy_property
 )
 
 
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class GeometryData:
+    index: VertexIndexType
+    position: Vec3sT
+    normal: Vec3sT
+    uv: Vec2sT
+
+
 class Geometry(LazyBase):
-    def __init__(
-        self,
-        index: VertexIndexType,
-        position: Vec3sT,
-        normal: Vec3sT,
-        uv: Vec2sT
-    ):
-        super().__init__()
-        self._index_ = index
-        self._position_ = position
-        self._normal_ = normal
-        self._uv_ = uv
+    #def __init__(
+    #    self,
+    #    index: VertexIndexType,
+    #    position: Vec3sT,
+    #    normal: Vec3sT,
+    #    uv: Vec2sT
+    #):
+    #    super().__init__()
+    #    self._index_ = index
+    #    self._position_ = position
+    #    self._normal_ = normal
+    #    self._uv_ = uv
 
-    @lazy_property_writable
+    @lazy_property
     @staticmethod
-    def _index_() -> VertexIndexType:
-        return NotImplemented
+    def _data_() -> GeometryData:
+        return GeometryData(
+            index=np.zeros((0,), dtype=np.uint32),
+            position=np.zeros((0, 3)),
+            normal=np.zeros((0, 3)),
+            uv=np.zeros((0, 2))
+        )
 
-    @lazy_property_writable
-    @staticmethod
-    def _position_() -> Vec3sT:
-        return NotImplemented
+    #@lazy_property_writable
+    #@staticmethod
+    #def _index_() -> VertexIndexType:
+    #    return np.zeros((0,), dtype=np.uint32)
 
-    @lazy_property_writable
-    @staticmethod
-    def _normal_() -> Vec3sT:
-        return NotImplemented
+    #@lazy_property_writable
+    #@staticmethod
+    #def _position_() -> Vec3sT:
+    #    return np.zeros((0, 3))
 
-    @lazy_property_writable
-    @staticmethod
-    def _uv_() -> Vec2sT:
-        return NotImplemented
+    #@lazy_property_writable
+    #@staticmethod
+    #def _normal_() -> Vec3sT:
+    #    return np.zeros((0, 3))
+
+    #@lazy_property_writable
+    #@staticmethod
+    #def _uv_() -> Vec2sT:
+    #    return np.zeros((0, 2))
 
     @lazy_property
     @staticmethod
@@ -64,14 +92,12 @@ class Geometry(LazyBase):
     @staticmethod
     def _attributes_(
         attributes_o: AttributesBuffer,
-        position: Vec3sT,
-        normal: Vec3sT,
-        uv: Vec2sT
+        data: GeometryData
     ) -> AttributesBuffer:
         return attributes_o.write({
-            "in_position": position,
-            "in_normal": normal,
-            "in_uv": uv
+            "in_position": data.position,
+            "in_normal": data.normal,
+            "in_uv": data.uv
         })
 
     @lazy_property
@@ -83,6 +109,6 @@ class Geometry(LazyBase):
     @staticmethod
     def _index_buffer_(
         index_buffer_o: IndexBuffer,
-        index: VertexIndexType
+        data: GeometryData
     ) -> IndexBuffer:
-        return index_buffer_o.write(index)
+        return index_buffer_o.write(data.index)

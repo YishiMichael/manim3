@@ -82,7 +82,7 @@ class SceneConfig(LazyBase):
     def _point_lights_() -> list[PointLight]:
         return []
 
-    @lazy_property_writable
+    @lazy_property
     @staticmethod
     def _ub_lights_o_() -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_lights", [

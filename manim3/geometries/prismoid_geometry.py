@@ -9,14 +9,28 @@ from ..custom_typing import (
     Vec2T,
     Vec3T
 )
-from ..geometries.geometry import Geometry
+from ..geometries.geometry import (
+    Geometry,
+    GeometryData
+)
 from ..geometries.shape_geometry import ShapeGeometry
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_writable
+)
 from ..utils.shape import Shape
 from ..utils.space_ops import SpaceOps
 
 
 class PrismoidGeometry(Geometry):
-    def __init__(self, shape: Shape):
+    @lazy_property_writable
+    @staticmethod
+    def _shape_() -> Shape:
+        return Shape()
+
+    @lazy_property
+    @staticmethod
+    def _data_(shape: Shape) -> GeometryData:
         position_list: list[Vec3T] = []
         normal_list: list[Vec3T] = []
         uv_list: list[Vec2T] = []
@@ -83,7 +97,7 @@ class PrismoidGeometry(Geometry):
             index_list.extend(index_offset + shape_index)
             index_offset += n_coords
 
-        super().__init__(
+        return GeometryData(
             index=np.array(index_list),
             position=np.array(position_list),
             normal=np.array(normal_list),

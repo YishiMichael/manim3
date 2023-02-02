@@ -2,6 +2,7 @@ __all__ = ["Scene"]
 
 
 import time
+import warnings
 
 import moderngl
 import numpy as np
@@ -67,7 +68,7 @@ class Scene(Renderable):
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
         for mobject in self._mobject_node.iter_descendants():
-            if not mobject._has_local_sample_points():
+            if not mobject._has_local_sample_points_:
                 continue
             if mobject._apply_oit_:
                 transparent_mobjects.append(mobject)
@@ -294,6 +295,10 @@ class Scene(Renderable):
                 animation._mobject_remove_items.remove(remove_item)
 
             if animation_expired:
+                if animation._mobject_add_items:
+                    warnings.warn("`mobject_add_items` is not empty after the animation finishes")
+                if animation._mobject_remove_items:
+                    warnings.warn("`mobject_remove_items` is not empty after the animation finishes")
                 self._animations.pop(animation)
 
         return self
