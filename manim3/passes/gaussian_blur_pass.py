@@ -4,20 +4,20 @@ __all__ = ["GaussianBlurPass"]
 import moderngl
 import numpy as np
 
-from ..config import Config
 from ..custom_typing import (
     FloatsT,
     Real
 )
-from ..render_passes.render_pass import RenderPass
-from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
-)
-from ..utils.render_procedure import (
+from ..passes.render_pass import RenderPass
+from ..rendering.config import ConfigSingleton
+from ..rendering.render_procedure import (
     UniformBlockBuffer,
     RenderProcedure,
     TextureStorage
+)
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_writable
 )
 
 
@@ -39,7 +39,7 @@ class GaussianBlurPass(RenderPass):
     @lazy_property
     @staticmethod
     def _convolution_core_(sigma_width: Real) -> FloatsT:
-        sigma = sigma_width * Config.pixel_per_unit
+        sigma = sigma_width * ConfigSingleton().pixel_per_unit
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
@@ -59,7 +59,7 @@ class GaussianBlurPass(RenderPass):
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
         return ub_gaussian_blur_o.write({
-            "u_uv_offset": 1.0 / np.array(Config.pixel_size),
+            "u_uv_offset": 1.0 / np.array(ConfigSingleton().pixel_size),
             "u_convolution_core": convolution_core
         })
 

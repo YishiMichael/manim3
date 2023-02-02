@@ -24,7 +24,7 @@ from moderngl_window.context.pyglet.window import Window as PygletWindow
 import numpy as np
 from xxhash import xxh3_64_digest
 
-from ..config import Config
+from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
@@ -34,20 +34,33 @@ from ..utils.lazy import (
 
 
 class ContextSingleton:
-    _WINDOW: PygletWindow = PygletWindow(
-        size=Config.window_pixel_size,
-        fullscreen=False,
-        resizable=True,
-        gl_version=(3, 3),
-        vsync=True,
-        cursor=True
-    )
-    _INSTANCE: moderngl.Context = _WINDOW.ctx
-    #_INSTANCE.gc_mode = "auto"
-    atexit.register(lambda: ContextSingleton._INSTANCE.release())
+    _WINDOW: ClassVar[PygletWindow | None] = None
+    _INSTANCE: ClassVar[moderngl.Context | None] = None
+    _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
 
-    def __new__(cls):
-        return cls._INSTANCE
+    def __new__(cls) -> moderngl.Context:
+        if cls._INSTANCE is not None:
+            return cls._INSTANCE
+        if ConfigSingleton().preview:
+            window = PygletWindow(
+                size=ConfigSingleton().window_pixel_size,
+                fullscreen=False,
+                resizable=True,
+                gl_version=(3, 3),
+                vsync=True,
+                cursor=True
+            )
+            context = window.ctx
+            window_framebuffer = context.detect_framebuffer()
+        else:
+            window = None
+            context = moderngl.create_context(standalone=True)
+            window_framebuffer = None
+        atexit.register(lambda: context.release())
+        cls._WINDOW = window
+        cls._INSTANCE = context
+        cls._WINDOW_FRAMEBUFFER = window_framebuffer
+        return context
 
 
 @dataclass(
@@ -765,29 +778,8 @@ class ContextState:
 class RenderProcedure(LazyBase):
     _SHADER_STRS: ClassVar[dict[str, str]] = {}
 
-    _WINDOW: ClassVar[PygletWindow] = ContextSingleton._WINDOW
-    _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer] = ContextSingleton().detect_framebuffer()
-
-    _FULLSCREEN_ATTRIBUTES: AttributesBuffer = AttributesBuffer([
-        "vec3 in_position",
-        "vec2 in_uv"
-    ]).write({
-        "in_position": np.array([
-            [-1.0, -1.0, 0.0],
-            [1.0, -1.0, 0.0],
-            [1.0, 1.0, 0.0],
-            [-1.0, 1.0, 0.0],
-        ]),
-        "in_uv": np.array([
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [1.0, 1.0],
-            [0.0, 1.0],
-        ])
-    })
-    _FULLSCREEN_INDEX_BUFFER: IndexBuffer = IndexBuffer().write(np.array((
-        0, 1, 2, 3
-    )))
+    #_WINDOW: ClassVar[PygletWindow] = ContextSingleton._WINDOW
+    #_WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer] = ContextSingleton().detect_framebuffer()
 
     def __new__(cls):
         raise NotImplementedError
@@ -799,7 +791,7 @@ class RenderProcedure(LazyBase):
     def read_shader(cls, filename: str) -> str:
         if (content := cls._SHADER_STRS.get(filename)) is not None:
             return content
-        with open(os.path.join(Config.shaders_dir, f"{filename}.glsl")) as shader_file:
+        with open(os.path.join(ConfigSingleton().shaders_dir, f"{filename}.glsl")) as shader_file:
             content = shader_file.read()
         cls._SHADER_STRS[filename] = content
         return content
@@ -830,11 +822,13 @@ class RenderProcedure(LazyBase):
     def texture(
         cls,
         *,
-        size: tuple[int, int] = Config.pixel_size,
+        size: tuple[int, int] | None = None,
         components: int = 4,
         samples: int = 0,
         dtype: str = "f1"
     ) -> IntermediateTexture:
+        if size is None:
+            size = ConfigSingleton().pixel_size
         return IntermediateTexture(
             size=size,
             components=components,
@@ -846,9 +840,11 @@ class RenderProcedure(LazyBase):
     def depth_texture(
         cls,
         *,
-        size: tuple[int, int] = Config.pixel_size,
+        size: tuple[int, int] | None = None,
         samples: int = 0
     ) -> IntermediateDepthTexture:
+        if size is None:
+            size = ConfigSingleton().pixel_size
         return IntermediateDepthTexture(
             size=size,
             samples=samples
@@ -977,6 +973,9 @@ class RenderProcedure(LazyBase):
             vertex_array.render()
 
     # TODO
+    _FULLSCREEN_ATTRIBUTES: ClassVar[AttributesBuffer | None] = None
+    _FULLSCREEN_INDEX_BUFFER: ClassVar[IndexBuffer | None] = None
+
     @classmethod
     def fullscreen_render_step(
         cls,
@@ -988,6 +987,28 @@ class RenderProcedure(LazyBase):
         framebuffer: moderngl.Framebuffer,
         context_state: ContextState
     ) -> None:
+        if cls._FULLSCREEN_ATTRIBUTES is None:
+            cls._FULLSCREEN_ATTRIBUTES = AttributesBuffer([
+                "vec3 in_position",
+                "vec2 in_uv"
+            ]).write({
+                "in_position": np.array([
+                    [-1.0, -1.0, 0.0],
+                    [1.0, -1.0, 0.0],
+                    [1.0, 1.0, 0.0],
+                    [-1.0, 1.0, 0.0],
+                ]),
+                "in_uv": np.array([
+                    [0.0, 0.0],
+                    [1.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 1.0],
+                ])
+            })
+        if cls._FULLSCREEN_INDEX_BUFFER is None:
+            cls._FULLSCREEN_INDEX_BUFFER = IndexBuffer().write(np.array((
+                0, 1, 2, 3
+            )))
         cls.render_step(
             shader_str=shader_str,
             custom_macros=custom_macros,

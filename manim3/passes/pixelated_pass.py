@@ -4,14 +4,14 @@ __all__ = ["PixelatedPass"]
 import moderngl
 import numpy as np
 
-from ..config import Config
 from ..custom_typing import Real
-from ..render_passes.render_pass import RenderPass
-from ..utils.lazy import lazy_property
-from ..utils.render_procedure import (
+from ..passes.render_pass import RenderPass
+from ..rendering.config import ConfigSingleton
+from ..rendering.render_procedure import (
     RenderProcedure,
     TextureStorage
 )
+from ..utils.lazy import lazy_property
 
 
 class PixelatedPass(RenderPass):
@@ -25,7 +25,7 @@ class PixelatedPass(RenderPass):
         return TextureStorage("sampler2D u_color_map")
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        pixel_width = self._pixelated_width * Config.pixel_per_unit
+        pixel_width = self._pixelated_width * ConfigSingleton().pixel_per_unit
         texture_size = (
             int(np.ceil(texture.width / pixel_width)),
             int(np.ceil(texture.height / pixel_width))

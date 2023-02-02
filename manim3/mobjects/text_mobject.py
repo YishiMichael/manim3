@@ -20,7 +20,6 @@ import pygments
 import pygments.formatters
 import pygments.lexers
 
-from ..config import Config
 from ..custom_typing import (
     ColorType,
     Real,
@@ -31,6 +30,7 @@ from ..mobjects.string_mobject import (
     EdgeFlag,
     StringMobject
 )
+from ..rendering.config import ConfigSingleton
 from ..utils.color import ColorUtils
 
 
@@ -161,7 +161,7 @@ class MarkupText(StringMobject):
                 line_width
             ))
             svg_file = os.path.join(
-                Config.text_dir, f"{hash_string(hash_content)}.svg"
+                ConfigSingleton().text_dir, f"{hash_string(hash_content)}.svg"
             )
             if not os.path.exists(svg_file):
                 markup_to_svg(content, svg_file)
@@ -175,7 +175,7 @@ class MarkupText(StringMobject):
             if line_width is None:
                 pango_width = -1
             else:
-                pango_width = line_width * Config.pixel_per_unit
+                pango_width = line_width * ConfigSingleton().pixel_per_unit
 
             return manimpango.MarkupUtils.text2svg(
                 text=markup_str,

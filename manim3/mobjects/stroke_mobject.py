@@ -16,18 +16,18 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..mobjects.mobject import Mobject
-from ..utils.color import ColorUtils
-from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
-)
-from ..utils.render_procedure import (
+from ..rendering.render_procedure import (
     AttributesBuffer,
     IndexBuffer,
     RenderProcedure,
     UniformBlockBuffer
 )
-from ..utils.scene_config import SceneConfig
+from ..scenes.scene_config import SceneConfig
+from ..utils.color import ColorUtils
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_writable
+)
 from ..utils.shape import (
     LineString3D,
     MultiLineString3D

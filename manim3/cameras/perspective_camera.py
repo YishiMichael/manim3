@@ -4,24 +4,34 @@ __all__ = ["PerspectiveCamera"]
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..config import Config
 from ..custom_typing import (
     Mat4T,
     Real
 )
+from ..rendering.config import ConfigSingleton
 from ..utils.lazy import lazy_property, lazy_property_writable
 
 
 class PerspectiveCamera(Camera):
     def __init__(
         self,
-        width: Real = Config.frame_width,
-        height: Real = Config.frame_height,
-        near: Real = Config.camera_near,
-        far: Real = Config.camera_far,
-        altitude: Real = Config.camera_altitude
+        width: Real | None = None,
+        height: Real | None = None,
+        near: Real | None = None,
+        far: Real | None = None,
+        altitude: Real | None = None
     ):
         super().__init__()
+        if width is None:
+            width = ConfigSingleton().frame_width
+        if height is None:
+            height = ConfigSingleton().frame_height
+        if near is None:
+            near = ConfigSingleton().camera_near
+        if far is None:
+            far = ConfigSingleton().camera_far
+        if altitude is None:
+            altitude = ConfigSingleton().camera_altitude
         self._width_ = width
         self._height_ = height
         self._near_ = near

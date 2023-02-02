@@ -13,17 +13,17 @@ from ..custom_typing import (
 from ..geometries.empty_geometry import EmptyGeometry
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
+from ..rendering.render_procedure import (
+    RenderProcedure,
+    TextureStorage,
+    UniformBlockBuffer
+)
+from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     lazy_property,
     lazy_property_writable
 )
-from ..utils.render_procedure import (
-    RenderProcedure,
-    TextureStorage,
-    UniformBlockBuffer
-)
-from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):

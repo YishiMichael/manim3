@@ -16,7 +16,6 @@ import warnings
 from colour import Color
 import toml
 
-from ..config import Config
 from ..custom_typing import (
     ColorType,
     Real,
@@ -27,6 +26,7 @@ from ..mobjects.string_mobject import (
     EdgeFlag,
     StringMobject
 )
+from ..rendering.config import ConfigSingleton
 from ..utils.color import ColorUtils
 
 
@@ -53,7 +53,7 @@ def get_tex_template(template_name: str | None) -> TexTemplate:
     if template_name is None:
         template_name = default_name
     name = template_name.replace(" ", "_").lower()
-    with open(Config.tex_templates_path, encoding="utf-8") as tex_templates_file:
+    with open(ConfigSingleton().tex_templates_path, encoding="utf-8") as tex_templates_file:
         templates_dict = toml.load(tex_templates_file)
     if name not in templates_dict:
         warnings.warn(
@@ -103,7 +103,7 @@ def tex_content_to_svg_file(
     )) + "\n"
 
     svg_file = os.path.join(
-        Config.tex_dir, f"{hash_string(full_tex)}.svg"
+        ConfigSingleton().tex_dir, f"{hash_string(full_tex)}.svg"
     )
     if not os.path.exists(svg_file):
         # If svg doesn't exist, create it

@@ -3,7 +3,6 @@ __all__ = ["Camera"]
 
 import numpy as np
 
-from ..config import Config
 from ..constants import (
     ORIGIN,
     OUT,
@@ -13,7 +12,8 @@ from ..custom_typing import (
     Mat4T,
     Vec3T
 )
-from ..utils.render_procedure import UniformBlockBuffer
+from ..rendering.config import ConfigSingleton
+from ..rendering.render_procedure import UniformBlockBuffer
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
@@ -34,7 +34,7 @@ class Camera(LazyBase):
     @lazy_property_writable
     @staticmethod
     def _eye_() -> Vec3T:
-        return Config.camera_altitude * OUT
+        return ConfigSingleton().camera_altitude * OUT
 
     @lazy_property_writable
     @staticmethod
@@ -85,7 +85,7 @@ class Camera(LazyBase):
             "u_projection_matrix": projection_matrix.T,
             "u_view_matrix": view_matrix.T,
             "u_view_position": eye,
-            "u_frame_radius": np.array(Config.frame_size) / 2.0
+            "u_frame_radius": np.array(ConfigSingleton().frame_size) / 2.0
         })
 
     def set_view(

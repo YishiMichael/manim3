@@ -24,21 +24,22 @@ from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 
-from .render_passes.gaussian_blur_pass import *
-from .render_passes.pixelated_pass import *
-from .render_passes.render_pass import *
+from .passes.gaussian_blur_pass import *
+from .passes.pixelated_pass import *
+from .passes.render_pass import *
 
-from .scenes.child_scene import *
+from .rendering.config import *
+from .rendering.render_procedure import *
+from .rendering.renderable import *
+from .rendering.renderer import *
+
 from .scenes.scene import *
+from .scenes.scene_config import *
 
 from .utils.color import *
 from .utils.lazy import *
-from .utils.render_procedure import *
-from .utils.renderable import *
-from .utils.scene_config import *
 from .utils.shape import *
 
-from .config import *
 from .constants import *
 from .custom_colors import *
 from .custom_typing import *

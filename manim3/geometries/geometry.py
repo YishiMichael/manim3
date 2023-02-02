@@ -6,14 +6,14 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
+from ..rendering.render_procedure import (
+    AttributesBuffer,
+    IndexBuffer
+)
 from ..utils.lazy import (
     LazyBase,
     lazy_property,
     lazy_property_writable
-)
-from ..utils.render_procedure import (
-    AttributesBuffer,
-    IndexBuffer
 )
 
 

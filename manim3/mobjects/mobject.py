@@ -26,14 +26,14 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
+from ..rendering.render_procedure import UniformBlockBuffer
+from ..rendering.renderable import Renderable
 from ..utils.lazy import (
     lazy_property,
     lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.node import Node
-from ..utils.render_procedure import UniformBlockBuffer
-from ..utils.renderable import Renderable
 
 
 @dataclass(

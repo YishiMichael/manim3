@@ -10,6 +10,7 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
+from ..rendering.render_procedure import UniformBlockBuffer
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyBase,
@@ -17,7 +18,6 @@ from ..utils.lazy import (
     lazy_property_updatable,
     lazy_property_writable
 )
-from ..utils.render_procedure import UniformBlockBuffer
 
 
 class PointLight(LazyBase):
