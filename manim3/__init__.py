@@ -40,7 +40,7 @@ from .utils.color import *
 from .utils.lazy import *
 from .utils.node import *
 from .utils.shape import *
-from .utils.space_ops import *
+from .utils.space import *
 
 from .constants import *
 from .custom_colors import *

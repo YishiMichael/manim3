@@ -24,7 +24,7 @@ class SceneMobject(MeshMobject):
         self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
 
     def _update_dt(self, dt: Real):
-        super()._update_dt(dt)
+        super()._update_dt(dt)  # TODO
         self._scene._update_dt(dt)
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:

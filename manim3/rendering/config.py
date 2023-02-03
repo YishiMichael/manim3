@@ -9,35 +9,6 @@ import sys
 from typing import ClassVar
 
 from ..custom_typing import Real
-#from .scenes.scene import Scene
-
-
-#class _Renderer:
-#    @classmethod
-#    def run(cls, scene_cls: "type[Scene]") -> None:
-#        scene_cls._run()
-#        #if Config.write_video:
-#        #    writing_process = sp.Popen([
-#        #        "ffmpeg",
-#        #        "-y",  # overwrite output file if it exists
-#        #        "-f", "rawvideo",
-#        #        "-s", "{}x{}".format(*Config.pixel_size),  # size of one frame
-#        #        "-pix_fmt", "rgba",
-#        #        "-r", str(Config.fps),  # frames per second
-#        #        "-i", "-",  # The input comes from a pipe
-#        #        "-vf", "vflip",
-#        #        "-an",
-#        #        "-vcodec", "libx264",
-#        #        "-pix_fmt", "yuv420p",
-#        #        os.path.join(Config.output_dir, "result.mp4")
-#        #    ], stdin=sp.PIPE)
-#        #else:
-#        #    writing_process = None
-#        #scene_instance = scene_cls()
-#        #if writing_process is not None:
-#        #    writing_process.stdin.close()
-#        #    writing_process.wait()
-#        #    writing_process.terminate()
 
 
 class Config:
@@ -57,17 +28,6 @@ class Config:
         "_preview",
         "_halt_on_last_frame"
     )
-
-    #def __init_subclass__(cls) -> None:
-    #    raise NotImplementedError
-
-    #def __new__(cls):
-    #    # singleton
-    #    if cls._INSTANCE is not None:
-    #        return cls._INSTANCE
-    #    instance = super().__new__(cls)
-    #    cls._INSTANCE = instance
-    #    return instance
 
     def __init__(self) -> None:
         self._camera_altitude: Real = 5.0

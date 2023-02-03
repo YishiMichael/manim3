@@ -33,7 +33,7 @@ from ..utils.lazy import (
     lazy_property_writable
 )
 from ..utils.node import Node
-from ..utils.space_ops import SpaceOps
+from ..utils.space import SpaceUtils
 
 
 @dataclass(
@@ -42,8 +42,19 @@ from ..utils.space_ops import SpaceOps
     slots=True
 )
 class BoundingBox3D:
-    origin: Vec3T
-    radius: Vec3T
+    maximum: Vec3T
+    minimum: Vec3T
+
+    @property
+    def origin(self) -> Vec3T:
+        return (self.maximum + self.minimum) / 2.0
+
+    @property
+    def radius(self) -> Vec3T:
+        radius = (self.maximum - self.minimum) / 2.0
+        # For zero-width dimensions of radius, thicken a little bit to avoid zero division
+        radius[np.isclose(radius, 0.0)] = 1e-8
+        return radius
 
 
 class MobjectNode(Node):
@@ -148,18 +159,33 @@ class Mobject(Renderable):
         # Implemented in subclasses
         return np.zeros((0, 3))
 
-    @lazy_property
-    @staticmethod
-    def _world_sample_points_(
-        model_matrix: Mat4T,
-        local_sample_points: Vec3sT
-    ) -> Vec3sT:
-        return SpaceOps.apply_affine(model_matrix, local_sample_points)
+    #@lazy_property
+    #@staticmethod
+    #def _world_sample_points_(
+    #    model_matrix: Mat4T,
+    #    local_sample_points: Vec3sT
+    #) -> Vec3sT:
+    #    return SpaceUtils.apply_affine(model_matrix, local_sample_points)
 
     @lazy_property
     @staticmethod
     def _has_local_sample_points_(local_sample_points: Vec3sT) -> bool:
         return bool(len(local_sample_points))
+
+    @lazy_property
+    @staticmethod
+    def _local_world_bounding_box_(
+        model_matrix: Mat4T,
+        local_sample_points: Vec3sT,
+        has_local_sample_points: bool
+    ) -> BoundingBox3D | None:
+        if not has_local_sample_points:
+            return None
+        world_sample_points = SpaceUtils.apply_affine(model_matrix, local_sample_points)
+        return BoundingBox3D(
+            maximum=world_sample_points.max(axis=0),
+            minimum=world_sample_points.min(axis=0)
+        )
 
     def get_bounding_box(
         self,
@@ -167,23 +193,20 @@ class Mobject(Renderable):
         broadcast: bool = True
     ) -> BoundingBox3D:
         points_array = np.concatenate([
-            mobject._world_sample_points_
+            (aabb.maximum, aabb.minimum)
             for mobject in self.iter_descendants(broadcast=broadcast)
+            if (aabb := mobject._local_world_bounding_box_) is not None
         ])
-        if not points_array.shape[0]:
+        if not len(points_array):
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
-            origin = ORIGIN
-            radius = ORIGIN
+            maximum = ORIGIN
+            minimum = ORIGIN
         else:
-            minimum = points_array.min(axis=0)
             maximum = points_array.max(axis=0)
-            origin = (maximum + minimum) / 2.0
-            radius = (maximum - minimum) / 2.0
-        # For zero-width dimensions of radius, thicken a little bit to avoid zero division
-        radius[np.isclose(radius, 0.0)] = 1e-8
+            minimum = points_array.min(axis=0)
         return BoundingBox3D(
-            origin=origin,
-            radius=radius
+            maximum=maximum,
+            minimum=minimum
         )
 
     def get_bounding_box_size(
@@ -248,9 +271,9 @@ class Mobject(Renderable):
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
         matrix = reduce(np.ndarray.__matmul__, (
-            SpaceOps.matrix_from_translation(about_point),
+            SpaceUtils.matrix_from_translation(about_point),
             matrix,
-            SpaceOps.matrix_from_translation(-about_point)
+            SpaceUtils.matrix_from_translation(-about_point)
         ))
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
@@ -266,7 +289,7 @@ class Mobject(Renderable):
     ):
         if coor_mask is not None:
             vector *= coor_mask
-        matrix = SpaceOps.matrix_from_translation(vector)
+        matrix = SpaceUtils.matrix_from_translation(vector)
         # `about_point` and `about_edge` are meaningless when shifting
         self.apply_relative_transform(
             matrix,
@@ -282,7 +305,7 @@ class Mobject(Renderable):
         about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
-        matrix = SpaceOps.matrix_from_scale(factor)
+        matrix = SpaceUtils.matrix_from_scale(factor)
         self.apply_relative_transform(
             matrix,
             about_point=about_point,
@@ -299,7 +322,7 @@ class Mobject(Renderable):
         about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
-        matrix = SpaceOps.matrix_from_rotation(rotation)
+        matrix = SpaceUtils.matrix_from_rotation(rotation)
         self.apply_relative_transform(
             matrix,
             about_point=about_point,

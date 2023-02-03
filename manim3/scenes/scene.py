@@ -27,15 +27,7 @@ from ..utils.lazy import lazy_property
 
 
 class Scene(Renderable):
-    def __init__(
-        self
-        #color_texture: moderngl.Texture,
-        #framebuffer: moderngl.Framebuffer,
-        #writing_process: sp.Popen | None
-    ):
-        #self._color_texture: moderngl.Texture = color_texture
-        #self._framebuffer: moderngl.Framebuffer = framebuffer
-        #self._writing_process: sp.Popen | None = writing_process
+    def __init__(self):
         self._scene_config: SceneConfig = SceneConfig()
         self._mobject_node: Mobject = Mobject()
         self._animations: dict[Animation, float] = {}
@@ -264,7 +256,8 @@ class Scene(Renderable):
     def _update_dt(self, dt: Real):
         assert dt >= 0.0
         for animation in list(self._animations):
-            t = self._animations[animation] + dt
+            t0 = self._animations[animation]
+            t = t0 + dt
             self._animations[animation] = t
             if t < animation._start_time:
                 continue
@@ -274,31 +267,31 @@ class Scene(Renderable):
                 animation_expired = True
                 t = animation._stop_time
 
-            for add_item in animation._mobject_add_items[:]:
-                t_add, mobject, parent = add_item
-                if t < t_add:
+            for addition_item in animation._mobject_addition_items[:]:
+                t_addition, mobject, parent = addition_item
+                if t < t_addition:
                     continue
                 if parent is None:
                     parent = self._mobject_node
                 parent.add(mobject)
-                animation._mobject_add_items.remove(add_item)
+                animation._mobject_addition_items.remove(addition_item)
 
-            animation._animate_func(t)
+            animation._animate_func(t0, t)
 
-            for remove_item in animation._mobject_remove_items[:]:
-                t_remove, mobject, parent = remove_item
-                if t < t_remove:
+            for removal_item in animation._mobject_removal_items[:]:
+                t_removal, mobject, parent = removal_item
+                if t < t_removal:
                     continue
                 if parent is None:
                     parent = self._mobject_node
                 parent.remove(mobject)
-                animation._mobject_remove_items.remove(remove_item)
+                animation._mobject_removal_items.remove(removal_item)
 
             if animation_expired:
-                if animation._mobject_add_items:
-                    warnings.warn("`mobject_add_items` is not empty after the animation finishes")
-                if animation._mobject_remove_items:
-                    warnings.warn("`mobject_remove_items` is not empty after the animation finishes")
+                if animation._mobject_addition_items:
+                    warnings.warn("`mobject_addition_items` is not empty after the animation finishes")
+                if animation._mobject_removal_items:
+                    warnings.warn("`mobject_removal_items` is not empty after the animation finishes")
                 self._animations.pop(animation)
 
         return self
@@ -326,17 +319,6 @@ class Scene(Renderable):
 
     def wait(self, t: Real):
         assert t >= 0.0
-        #start_time = ConfigSingleton().start_time
-        #stop_time = ConfigSingleton().stop_time
-        #if stop_time is not None and self._virtual_time > stop_time:
-        #    #self._update_dt(t)
-        #    return
-        #if start_time is not None and self._virtual_time < start_time:
-        #    if self._virtual_time + t < start_time:
-        #        self._update_dt(t)
-        #        return
-        #    t -= start_time - self._virtual_time
-        #    self._update_dt(start_time - self._virtual_time)
         frames = t * ConfigSingleton().fps
         start_frame_floating_index = self._frame_floating_index
         stop_frame_floating_index = start_frame_floating_index + frames

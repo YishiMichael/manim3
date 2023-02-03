@@ -1,4 +1,4 @@
-__all__ = ["SpaceOps"]
+__all__ = ["SpaceUtils"]
 
 
 from typing import overload
@@ -20,7 +20,7 @@ from ..custom_typing import (
 )
 
 
-class SpaceOps:
+class SpaceUtils:
     @classmethod
     def matrix_from_translation(cls, vector: Vec3T) -> Mat4T:
         m = np.identity(4)

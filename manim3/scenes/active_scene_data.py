@@ -1,7 +1,6 @@
 __all__ = ["ActiveSceneDataSingleton"]
 
 
-
 from dataclasses import dataclass
 import subprocess as sp
 from typing import ClassVar

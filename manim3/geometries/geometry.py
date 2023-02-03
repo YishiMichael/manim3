@@ -36,19 +36,6 @@ class GeometryData:
 
 
 class Geometry(LazyBase):
-    #def __init__(
-    #    self,
-    #    index: VertexIndexType,
-    #    position: Vec3sT,
-    #    normal: Vec3sT,
-    #    uv: Vec2sT
-    #):
-    #    super().__init__()
-    #    self._index_ = index
-    #    self._position_ = position
-    #    self._normal_ = normal
-    #    self._uv_ = uv
-
     @lazy_property
     @staticmethod
     def _data_() -> GeometryData:
@@ -58,26 +45,6 @@ class Geometry(LazyBase):
             normal=np.zeros((0, 3)),
             uv=np.zeros((0, 2))
         )
-
-    #@lazy_property_writable
-    #@staticmethod
-    #def _index_() -> VertexIndexType:
-    #    return np.zeros((0,), dtype=np.uint32)
-
-    #@lazy_property_writable
-    #@staticmethod
-    #def _position_() -> Vec3sT:
-    #    return np.zeros((0, 3))
-
-    #@lazy_property_writable
-    #@staticmethod
-    #def _normal_() -> Vec3sT:
-    #    return np.zeros((0, 3))
-
-    #@lazy_property_writable
-    #@staticmethod
-    #def _uv_() -> Vec2sT:
-    #    return np.zeros((0, 2))
 
     @lazy_property
     @staticmethod

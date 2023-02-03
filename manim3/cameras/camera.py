@@ -19,7 +19,7 @@ from ..utils.lazy import (
     lazy_property,
     lazy_property_writable
 )
-from ..utils.space_ops import SpaceOps
+from ..utils.space import SpaceUtils
 
 
 class Camera(LazyBase):
@@ -50,9 +50,9 @@ class Camera(LazyBase):
         target: Vec3T,
         up: Vec3T
     ) -> Mat4T:
-        z = SpaceOps.normalize(eye - target)
-        x = SpaceOps.normalize(np.cross(up, z))
-        y = SpaceOps.normalize(np.cross(z, x))
+        z = SpaceUtils.normalize(eye - target)
+        x = SpaceUtils.normalize(np.cross(up, z))
+        y = SpaceUtils.normalize(np.cross(z, x))
         rot_mat = np.vstack((x, y, z))
 
         m = np.identity(4)
