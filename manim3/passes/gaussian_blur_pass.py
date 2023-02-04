@@ -8,7 +8,10 @@ from ..custom_typing import (
     FloatsT,
     Real
 )
-from ..passes.render_pass import RenderPass
+from ..passes.render_pass import (
+    RenderPass,
+    RenderPassSingleton
+)
 from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import (
     UniformBlockBuffer,
@@ -23,18 +26,24 @@ from ..utils.lazy import (
 
 class GaussianBlurPass(RenderPass):
     def __init__(self, sigma_width: Real = 0.1):
-        super().__init__()
-        self._sigma_width_ = sigma_width
+        self._sigma_width: Real = sigma_width
+
+    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+        instance = GaussianBlurPassSingleton()
+        instance._sigma_width_ = self._sigma_width
+        instance.render(texture, target_framebuffer)
+
+
+class GaussianBlurPassSingleton(RenderPassSingleton):
+    @lazy_property_writable
+    @staticmethod
+    def _sigma_width_() -> Real:
+        return NotImplemented
 
     @lazy_property
     @staticmethod
     def _u_color_map_o_() -> TextureStorage:
         return TextureStorage("sampler2D u_color_map")
-
-    @lazy_property_writable
-    @staticmethod
-    def _sigma_width_() -> Real:
-        return NotImplemented
 
     @lazy_property
     @staticmethod
@@ -63,7 +72,7 @@ class GaussianBlurPass(RenderPass):
             "u_convolution_core": convolution_core
         })
 
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+    def render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         with RenderProcedure.texture() as intermediate_texture, \
                 RenderProcedure.framebuffer(
                     color_attachments=[intermediate_texture],

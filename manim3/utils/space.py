@@ -4,7 +4,10 @@ __all__ = ["SpaceUtils"]
 from typing import overload
 
 import numpy as np
-from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import (
+    Rotation,
+    Slerp
+)
 
 from ..custom_typing import (
     FloatsT,
@@ -118,6 +121,10 @@ class SpaceUtils:
 
     @overload
     @classmethod
+    def lerp(cls, tensor_0: Real, tensor_1: Real, alpha: Real) -> Real: ...
+
+    @overload
+    @classmethod
     def lerp(cls, tensor_0: Vec2T, tensor_1: Vec2T, alpha: Real) -> Vec2T: ...
 
     @overload
@@ -139,8 +146,25 @@ class SpaceUtils:
     @classmethod
     def lerp(
         cls,
-        tensor_0: Vec2T | Vec3T | Vec4T | Mat3T | Mat4T,
-        tensor_1: Vec2T | Vec3T | Vec4T | Mat3T | Mat4T,
+        tensor_0: Real | Vec2T | Vec3T | Vec4T | Mat3T | Mat4T,
+        tensor_1: Real | Vec2T | Vec3T | Vec4T | Mat3T | Mat4T,
         alpha: Real
-    ) -> Vec2T | Vec3T | Vec4T | Mat3T | Mat4T:
+    ) -> Real | Vec2T | Vec3T | Vec4T | Mat3T | Mat4T:
         return (1.0 - alpha) * tensor_0 + alpha * tensor_1
+
+    @classmethod
+    def rotational_interpolate(cls, matrix_0: Mat4T, matrix_1: Mat4T, alpha: Real) -> Mat4T:
+        rotation_part_0 = matrix_0[:3, :3]
+        translation_0 = matrix_0[:3, 3]
+        rotation_0 = Rotation.from_matrix(rotation_part_0)
+        shear_0 = rotation_part_0 @ np.linalg.inv(rotation_0.as_matrix())
+        rotation_part_1 = matrix_1[:3, :3]
+        translation_1 = matrix_1[:3, 3]
+        rotation_1 = Rotation.from_matrix(rotation_part_1)
+        shear_1 = rotation_part_1 @ np.linalg.inv(rotation_1.as_matrix())
+
+        slerp = Slerp([0.0, 1.0], [translation_0, translation_1])
+        m = np.identity(4)
+        m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ slerp(alpha)
+        m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
+        return m

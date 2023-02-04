@@ -5,17 +5,20 @@ __all__ = ["Mobject"]
 from dataclasses import dataclass
 from functools import reduce
 from typing import (
+    Callable,
     Generator,
+    Generic,
     Iterable,
     Iterator,
+    TypeVar,
     overload
 )
 import warnings
 
+import moderngl
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-#from ..animations.animation import Animation
 from ..constants import (
     ORIGIN,
     RIGHT
@@ -26,14 +29,59 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-from ..rendering.render_procedure import UniformBlockBuffer
-from ..rendering.renderable import Renderable
+from ..passes.render_pass import RenderPass
+from ..rendering.render_procedure import (
+    RenderProcedure,
+    UniformBlockBuffer
+)
+#from ..rendering.renderable import Renderable
+from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
+    LazyBase,
     lazy_property,
+    lazy_property_updatable,
     lazy_property_writable
 )
 from ..utils.node import Node
 from ..utils.space import SpaceUtils
+
+
+_T = TypeVar("_T")
+_MobjectT = TypeVar("_MobjectT", bound="Mobject")
+
+
+class MobjectData(Generic[_MobjectT, _T]):
+    def __init__(self, interpolate_method: Callable[[_T, _T, Real], _T], init_value: _T):
+        self.interpolate_method: Callable[[_T, _T, Real], _T] = interpolate_method
+        self.pointer_dict: dict[_MobjectT, int] = {}
+        self.references_dict: dict[int, list[_MobjectT]] = {}
+        self.value_dict: dict[int, _T] = {0: init_value}
+        self.pointer: int = 0
+
+    @overload
+    def __get__(self, instance: None, owner: type[_MobjectT] | None = None) -> "MobjectData[_MobjectT, _T]": ...
+
+    @overload
+    def __get__(self, instance: _MobjectT, owner: type[_MobjectT] | None = None) -> _T: ...
+
+    def __get__(self, instance: _MobjectT | None, owner: type[_MobjectT] | None = None) -> "MobjectData[_MobjectT, _T] | _T":
+        if instance is None:
+            return self
+        return self.value_dict[self.pointer_dict[instance]]
+
+
+class mobject_data(Generic[_MobjectT, _T]):
+    def __init__(self, interpolate_method: Callable[[_T, _T, Real], _T]):
+        self.interpolate_method: Callable[[_T, _T, Real], _T] = interpolate_method
+
+    def __call__(self, init_method: Callable[[], _T]) -> MobjectData[_MobjectT, _T]:
+        init_value = init_method.__func__()
+        return MobjectData(self.interpolate_method, init_value)
+
+
+class mobject_property(Generic[_MobjectT, _T]):
+    def __init__(self, interpolate_method: Callable[[_T, _T, Real], _T], init_value: _T):
+        self.interpolate_method: Callable[[_T, _T, Real], _T] = interpolate_method
 
 
 @dataclass(
@@ -63,7 +111,7 @@ class MobjectNode(Node):
         super().__init__()
 
 
-class Mobject(Renderable):
+class Mobject(LazyBase):
     def __init__(self) -> None:
         self._node: MobjectNode = MobjectNode(self)
         super().__init__()
@@ -158,14 +206,6 @@ class Mobject(Renderable):
     def _local_sample_points_() -> Vec3sT:
         # Implemented in subclasses
         return np.zeros((0, 3))
-
-    #@lazy_property
-    #@staticmethod
-    #def _world_sample_points_(
-    #    model_matrix: Mat4T,
-    #    local_sample_points: Vec3sT
-    #) -> Vec3sT:
-    #    return SpaceUtils.apply_affine(model_matrix, local_sample_points)
 
     @lazy_property
     @staticmethod
@@ -501,27 +541,6 @@ class Mobject(Renderable):
         self.center().scale(np.append(scale_factor, 1.0))
         return self
 
-    # animations
-
-    #@lazy_property_updatable
-    #@staticmethod
-    #def _animations_() -> list["Animation"]:
-    #    return []
-
-    #@_animations_.updater
-    #def animate(self, animation: "Animation"):
-    #    self._animations_.append(animation)
-    #    animation.start(self)
-    #    return self
-
-    #@_animations_.updater
-    #def _update_dt(self, dt: Real):
-    #    for animation in self._animations_[:]:
-    #        animation.update_dt(self, dt)
-    #        if animation.expired():
-    #            self._animations_.remove(animation)
-    #    return self
-
     # render
 
     @lazy_property_writable
@@ -545,6 +564,81 @@ class Mobject(Renderable):
         return ub_model_o.write({
             "u_model_matrix": model_matrix.T
         })
+
+    @lazy_property_writable
+    @staticmethod
+    def _render_samples_() -> int:
+        return 0
+
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        # Implemented in subclasses
+        # This function is not responsible for clearing the `target_framebuffer`.
+        # On the other hand, one shall clear the framebuffer before calling this function.
+        pass
+
+    def _render_with_samples(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        samples = self._render_samples_
+        if not samples:
+            self._render(scene_config, target_framebuffer)
+            return
+
+        with RenderProcedure.texture(samples=4) as msaa_color_texture, \
+                RenderProcedure.depth_texture(samples=4) as msaa_depth_texture, \
+                RenderProcedure.framebuffer(
+                    color_attachments=[msaa_color_texture],
+                    depth_attachment=msaa_depth_texture
+                ) as msaa_framebuffer:
+            self._render(scene_config, msaa_framebuffer)
+            RenderProcedure.downsample_framebuffer(msaa_framebuffer, target_framebuffer)
+
+    def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        render_passes = self._render_passes_
+        if not render_passes:
+            self._render_with_samples(scene_config, target_framebuffer)
+            return
+
+        with RenderProcedure.texture() as intermediate_texture_0, \
+                RenderProcedure.texture() as intermediate_texture_1:
+            textures = (intermediate_texture_0, intermediate_texture_1)
+            target_texture_id = 0
+            with RenderProcedure.framebuffer(
+                        color_attachments=[intermediate_texture_0],
+                        depth_attachment=target_framebuffer.depth_attachment
+                    ) as initial_framebuffer:
+                self._render_with_samples(scene_config, initial_framebuffer)
+            for render_pass in render_passes[:-1]:
+                target_texture_id = 1 - target_texture_id
+                with RenderProcedure.framebuffer(
+                            color_attachments=[textures[target_texture_id]],
+                            depth_attachment=None
+                        ) as intermediate_framebuffer:
+                    render_pass._render(
+                        texture=textures[1 - target_texture_id],
+                        target_framebuffer=intermediate_framebuffer
+                    )
+            target_framebuffer.depth_mask = False  # TODO: shall we disable writing to depth?
+            render_passes[-1]._render(
+                texture=textures[target_texture_id],
+                target_framebuffer=target_framebuffer
+            )
+            target_framebuffer.depth_mask = True
+
+    @lazy_property_updatable
+    @staticmethod
+    def _render_passes_() -> list[RenderPass]:
+        return []
+
+    @_render_passes_.updater
+    def add_pass(self, *render_passes: RenderPass):
+        for render_pass in render_passes:
+            self._render_passes_.append(render_pass)
+        return self
+
+    @_render_passes_.updater
+    def remove_pass(self, *render_passes: RenderPass):
+        for render_pass in render_passes:
+            self._render_passes_.remove(render_pass)
+        return self
 
 
 #class Group(Mobject):

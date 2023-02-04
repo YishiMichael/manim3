@@ -22,14 +22,14 @@ from ..rendering.render_procedure import (
     RenderProcedure,
     TextureStorage
 )
-from ..rendering.renderable import Renderable
+#from ..rendering.renderable import Renderable
 from ..utils.lazy import lazy_property
 
 
-class Scene(Renderable):
+class Scene(Mobject):
     def __init__(self):
         self._scene_config: SceneConfig = SceneConfig()
-        self._mobject_node: Mobject = Mobject()
+        #self._mobject_node: Mobject = Mobject()
         self._animations: dict[Animation, float] = {}
         self._frame_floating_index: float = 0.0  # A timer scaled by fps
         self._previous_rendering_timestamp: float | None = None
@@ -59,7 +59,7 @@ class Scene(Renderable):
         # ./Animations/src/renderer/Renderer.cpp
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
-        for mobject in self._mobject_node.iter_descendants():
+        for mobject in self.iter_descendants():
             if not mobject._has_local_sample_points_:
                 continue
             if mobject._apply_oit_:
@@ -232,7 +232,11 @@ class Scene(Renderable):
                     enable_only=moderngl.NOTHING
                 )
             )
+            if (previous_timestamp := self._previous_rendering_timestamp) is not None and \
+                    (sleep_t := (1.0 / ConfigSingleton().fps) - (time.time() - previous_timestamp)) > 0.0:
+                time.sleep(sleep_t)
             window.swap_buffers()
+        self._previous_rendering_timestamp = time.time()
 
     def _find_frame_range(self, start_frame_floating_index: Real, stop_frame_floating_index: Real) -> range:
         # Find all frame indices in the intersection of
@@ -272,7 +276,7 @@ class Scene(Renderable):
                 if t < t_addition:
                     continue
                 if parent is None:
-                    parent = self._mobject_node
+                    parent = self
                 parent.add(mobject)
                 animation._mobject_addition_items.remove(addition_item)
 
@@ -283,7 +287,7 @@ class Scene(Renderable):
                 if t < t_removal:
                     continue
                 if parent is None:
-                    parent = self._mobject_node
+                    parent = self
                 parent.remove(mobject)
                 animation._mobject_removal_items.remove(removal_item)
 
@@ -317,7 +321,7 @@ class Scene(Renderable):
         self.wait(wait_time)
         return self
 
-    def wait(self, t: Real):
+    def wait(self, t: Real = 1.0):
         assert t >= 0.0
         frames = t * ConfigSingleton().fps
         start_frame_floating_index = self._frame_floating_index
@@ -331,26 +335,20 @@ class Scene(Renderable):
         self._update_frames(frame_range.start - start_frame_floating_index)
         if self._previous_rendering_timestamp is None:
             self._render_frame()
-            self._previous_rendering_timestamp = time.time()
 
         for _ in frame_range[:-1]:
-            if ConfigSingleton().preview and (sleep_t := (
-                (1.0 / ConfigSingleton().fps) - (time.time() - self._previous_rendering_timestamp)
-            )) > 0.0:
-                time.sleep(sleep_t)
             self._update_frames(1)
             self._render_frame()
-            self._previous_rendering_timestamp = time.time()
         self._update_frames(stop_frame_floating_index - (frame_range.stop - 1))
         return self
 
-    def add(self, *mobjects: Mobject):
-        self._mobject_node.add(*mobjects)
-        return self
+    #def add(self, *mobjects: Mobject):
+    #    self._mobject_node.add(*mobjects)
+    #    return self
 
-    def remove(self, *mobjects: Mobject):
-        self._mobject_node.remove(*mobjects)
-        return self
+    #def remove(self, *mobjects: Mobject):
+    #    self._mobject_node.remove(*mobjects)
+    #    return self
 
     def set_view(
         self,

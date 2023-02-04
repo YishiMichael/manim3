@@ -5,7 +5,8 @@ class Demo(Scene):
     def construct(self) -> None:
         text = Text("Example Text")
         self.add(text)
-        self.play(Shift(text, RIGHT))
+        self.play(Scale(text, RIGHT))
+        self.wait()
 
 
 if __name__ == "__main__":

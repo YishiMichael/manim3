@@ -1,4 +1,5 @@
 from .animations.animation import *
+from .animations.movement import *
 
 from .cameras.camera import *
 from .cameras.orthographic_camera import *
@@ -29,7 +30,6 @@ from .passes.render_pass import *
 
 from .rendering.config import *
 from .rendering.render_procedure import *
-from .rendering.renderable import *
 from .rendering.renderer import *
 
 from .scenes.active_scene_data import *

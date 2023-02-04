@@ -5,27 +5,44 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import Real
-from ..passes.render_pass import RenderPass
+from ..passes.render_pass import (
+    RenderPass,
+    RenderPassSingleton
+)
 from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import (
     RenderProcedure,
     TextureStorage
 )
-from ..utils.lazy import lazy_property
+from ..utils.lazy import (
+    lazy_property,
+    lazy_property_writable
+)
 
 
 class PixelatedPass(RenderPass):
     def __init__(self, pixelated_width: Real = 0.1):
-        super().__init__()
         self._pixelated_width: Real = pixelated_width
+
+    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+        instance = PixelatedPassSingleton()
+        instance._pixelated_width_ = self._pixelated_width
+        instance.render(texture, target_framebuffer)
+
+
+class PixelatedPassSingleton(RenderPassSingleton):
+    @lazy_property_writable
+    @staticmethod
+    def _pixelated_width_() -> Real:
+        return NotImplemented
 
     @lazy_property
     @staticmethod
     def _u_color_map_o_() -> TextureStorage:
         return TextureStorage("sampler2D u_color_map")
 
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        pixel_width = self._pixelated_width * ConfigSingleton().pixel_per_unit
+    def render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+        pixel_width = self._pixelated_width_ * ConfigSingleton().pixel_per_unit
         texture_size = (
             int(np.ceil(texture.width / pixel_width)),
             int(np.ceil(texture.height / pixel_width))
