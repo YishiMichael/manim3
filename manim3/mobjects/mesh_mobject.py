@@ -235,4 +235,4 @@ class MeshMobject(Mobject):
     @lazy_property
     @staticmethod
     def _local_sample_points_(geometry: Geometry) -> Vec3sT:
-        return geometry._data_.position
+        return geometry._geometry_data_.position

@@ -98,6 +98,8 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
 
 class LineString(ShapeInterpolant[_VecT, _VecsT]):
     def __new__(cls, coords: _VecsT):
+        #if cls.__name__ == "LineString2D":
+        #    print(coords)
         instance = super().__new__(cls)
         # TODO: shall we first remove redundant adjacent points?
         assert len(coords)
@@ -265,17 +267,25 @@ class Shape(LazyBase):
         else:
             if isinstance(arg, shapely.geometry.base.BaseGeometry):
                 coords_iter = cls._iter_coords_from_shapely_obj(arg)
-            elif isinstance(arg, se.Path):
+            elif isinstance(arg, se.Shape):
                 coords_iter = cls._iter_coords_from_se_shape(arg)
             else:
                 raise TypeError(f"Cannot handle argument in Shape constructor: {arg}")
+            #print(list(coords_iter))
             multi_line_string = MultiLineString2D([
                 LineString2D(coords)
                 for coords in coords_iter
                 if len(coords)
             ])
+            #print(">>>")
+            #for p in cls._iter_coords_from_se_shape(arg):
+            #    print(p)
+            #print("<<<")
+            #for child in multi_line_string._children_:
+            #    print(child._coords_)
+            #print()
         if multi_line_string is not None:
-            instance._multi_line_string_ = multi_line_string
+            instance._multi_line_string_ = LazyData(multi_line_string)
         return instance
 
     def __and__(self, other: "Shape"):
