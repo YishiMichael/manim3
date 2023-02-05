@@ -15,22 +15,22 @@ from ..geometries.geometry import (
 )
 from ..geometries.shape_geometry import ShapeGeometry
 from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
+    lazy_basedata,
+    lazy_property
 )
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
 
 class PrismoidGeometry(Geometry):
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _shape_() -> Shape:
         return Shape()
 
     @lazy_property
     @staticmethod
-    def _data_(shape: Shape) -> GeometryData:
+    def _geometry_data_(shape: Shape) -> GeometryData:
         position_list: list[Vec3T] = []
         normal_list: list[Vec3T] = []
         uv_list: list[Vec2T] = []

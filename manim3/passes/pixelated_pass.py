@@ -5,41 +5,47 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import Real
-from ..passes.render_pass import (
-    RenderPass,
-    RenderPassSingleton
-)
+from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import (
     RenderProcedure,
     TextureStorage
 )
 from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 
 
+#class PixelatedPass(RenderPass):
+#    def __init__(self, pixelated_width: Real = 0.1):
+#        self._pixelated_width: Real = pixelated_width
+#
+#    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+#        instance = PixelatedPassSingleton()
+#        instance._pixelated_width_ = self._pixelated_width
+#        instance.render(texture, target_framebuffer)
+
+
 class PixelatedPass(RenderPass):
-    def __init__(self, pixelated_width: Real = 0.1):
-        self._pixelated_width: Real = pixelated_width
+    def __new__(cls, pixelated_width: Real | None = None):
+        instance = super().__new__(cls)
+        if pixelated_width is not None:
+            instance._pixelated_width_ = LazyData(pixelated_width)
+        return instance
 
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        instance = PixelatedPassSingleton()
-        instance._pixelated_width_ = self._pixelated_width
-        instance.render(texture, target_framebuffer)
-
-
-class PixelatedPassSingleton(RenderPassSingleton):
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _pixelated_width_() -> Real:
-        return NotImplemented
+        return 0.1
 
     @lazy_property
     @staticmethod
     def _u_color_map_o_() -> TextureStorage:
-        return TextureStorage("sampler2D u_color_map")
+        return TextureStorage(
+            "sampler2D u_color_map"
+        )
 
     def render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         pixel_width = self._pixelated_width_ * ConfigSingleton().pixel_per_unit

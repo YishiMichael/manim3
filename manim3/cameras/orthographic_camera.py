@@ -10,52 +10,50 @@ from ..custom_typing import (
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 
 
 class OrthographicCamera(Camera):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         width: Real | None = None,
         height: Real | None = None,
         near: Real | None = None,
         far: Real | None = None
     ):
-        super().__init__()
-        if width is None:
-            width = ConfigSingleton().frame_width
-        if height is None:
-            height = ConfigSingleton().frame_height
-        if near is None:
-            near = ConfigSingleton().camera_near
-        if far is None:
-            far = ConfigSingleton().camera_far
-        self._width_ = width
-        self._height_ = height
-        self._near_ = near
-        self._far_ = far
+        instance = super().__new__(cls)
+        if width is not None:
+            instance._width_ = LazyData(width)
+        if height is not None:
+            instance._height_ = LazyData(height)
+        if near is not None:
+            instance._near_ = LazyData(near)
+        if far is not None:
+            instance._far_ = LazyData(far)
+        return instance
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _width_() -> Real:
-        return NotImplemented
+        return ConfigSingleton().frame_width
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _height_() -> Real:
-        return NotImplemented
+        return ConfigSingleton().frame_height
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _near_() -> Real:
-        return NotImplemented
+        return ConfigSingleton().camera_near
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _far_() -> Real:
-        return NotImplemented
+        return ConfigSingleton().camera_far
 
     @lazy_property
     @staticmethod

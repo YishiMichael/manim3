@@ -5,12 +5,9 @@ __all__ = ["Mobject"]
 from dataclasses import dataclass
 from functools import reduce
 from typing import (
-    Callable,
     Generator,
-    Generic,
     Iterable,
     Iterator,
-    TypeVar,
     overload
 )
 import warnings
@@ -38,50 +35,12 @@ from ..rendering.render_procedure import (
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
     LazyBase,
-    lazy_property,
-    lazy_property_updatable,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
-from ..utils.node import Node
+#from ..utils.node import Node
 from ..utils.space import SpaceUtils
-
-
-_T = TypeVar("_T")
-_MobjectT = TypeVar("_MobjectT", bound="Mobject")
-
-
-class MobjectData(Generic[_MobjectT, _T]):
-    def __init__(self, interpolate_method: Callable[[_T, _T, Real], _T], init_value: _T):
-        self.interpolate_method: Callable[[_T, _T, Real], _T] = interpolate_method
-        self.pointer_dict: dict[_MobjectT, int] = {}
-        self.references_dict: dict[int, list[_MobjectT]] = {}
-        self.value_dict: dict[int, _T] = {0: init_value}
-        self.pointer: int = 0
-
-    @overload
-    def __get__(self, instance: None, owner: type[_MobjectT] | None = None) -> "MobjectData[_MobjectT, _T]": ...
-
-    @overload
-    def __get__(self, instance: _MobjectT, owner: type[_MobjectT] | None = None) -> _T: ...
-
-    def __get__(self, instance: _MobjectT | None, owner: type[_MobjectT] | None = None) -> "MobjectData[_MobjectT, _T] | _T":
-        if instance is None:
-            return self
-        return self.value_dict[self.pointer_dict[instance]]
-
-
-class mobject_data(Generic[_MobjectT, _T]):
-    def __init__(self, interpolate_method: Callable[[_T, _T, Real], _T]):
-        self.interpolate_method: Callable[[_T, _T, Real], _T] = interpolate_method
-
-    def __call__(self, init_method: Callable[[], _T]) -> MobjectData[_MobjectT, _T]:
-        init_value = init_method.__func__()
-        return MobjectData(self.interpolate_method, init_value)
-
-
-class mobject_property(Generic[_MobjectT, _T]):
-    def __init__(self, interpolate_method: Callable[[_T, _T, Real], _T], init_value: _T):
-        self.interpolate_method: Callable[[_T, _T, Real], _T] = interpolate_method
 
 
 @dataclass(
@@ -105,24 +64,24 @@ class BoundingBox3D:
         return radius
 
 
-class MobjectNode(Node):
-    def __init__(self, mobject: "Mobject"):
-        self._mobject: Mobject = mobject
-        super().__init__()
+#class MobjectNode(Node):
+#    def __init__(self, mobject: "Mobject"):
+#        self._mobject: Mobject = mobject
+#        super().__init__()
 
 
 class Mobject(LazyBase):
-    def __init__(self) -> None:
-        self._node: MobjectNode = MobjectNode(self)
-        super().__init__()
+    #def __init__(self) -> None:
+    #    self._node: MobjectNode = MobjectNode(self)
+    #    super().__init__()
 
     #    #self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
     #    self.render_passes: list["RenderPass"] = []
     #    self.animations: list["Animation"] = []  # TODO: circular typing
     #    super().__init__()
 
-    def __iter__(self) -> Iterator["Mobject"]:
-        return self.iter_children()
+    def __iter__(self) -> "Iterator[Mobject]":
+        return iter(self._children_)
 
     @overload
     def __getitem__(self, index: int) -> "Mobject": ...
@@ -131,75 +90,129 @@ class Mobject(LazyBase):
     def __getitem__(self, index: slice) -> "list[Mobject]": ...
 
     def __getitem__(self, index: int | slice) -> "Mobject | list[Mobject]":
-        if isinstance(index, int):
-            return self._node.__getitem__(index)._mobject
-        return [node._mobject for node in self._node.__getitem__(index)]
-
-    #def copy(self):
-    #    return copy.copy(self)  # TODO
+        return self._children_.__getitem__(index)
 
     # family matters
 
-    def iter_parents(self) -> "Generator[Mobject, None, None]":
-        for node in self._node.iter_parents():
-            yield node._mobject
+    @lazy_basedata
+    @staticmethod
+    def _parents_() -> "list[Mobject]":
+        return []
 
-    def iter_children(self) -> "Generator[Mobject, None, None]":
-        for node in self._node.iter_children():
-            yield node._mobject
+    @lazy_basedata
+    @staticmethod
+    def _children_() -> "list[Mobject]":
+        return []
+
+    def iter_parents(self) -> "Iterator[Mobject]":
+        return iter(self._parents_)
+
+    def iter_children(self) -> "Iterator[Mobject]":
+        return iter(self._children_)
+
+    def _iter_ancestors(self) -> "Generator[Mobject, None, None]":
+        yield self
+        for parent_node in self._parents_:
+            yield from parent_node._iter_ancestors()
+
+    def _iter_descendants(self) -> "Generator[Mobject, None, None]":
+        yield self
+        for child_node in self._children_:
+            yield from child_node._iter_descendants()
 
     def iter_ancestors(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
-        for node in self._node.iter_ancestors(broadcast=broadcast):
-            yield node._mobject
+        yield self
+        if not broadcast:
+            return
+        occurred: set[Mobject] = {self}
+        for node in self._iter_ancestors():
+            if node in occurred:
+                continue
+            yield node
+            occurred.add(node)
 
     def iter_descendants(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
-        for node in self._node.iter_descendants(broadcast=broadcast):
-            yield node._mobject
+        yield self
+        if not broadcast:
+            return
+        occurred: set[Mobject] = {self}
+        for node in self._iter_descendants():
+            if node in occurred:
+                continue
+            yield node
+            occurred.add(node)
 
-    def includes(self, mobject: "Mobject") -> bool:
-        return self._node.includes(mobject._node)
+    def includes(self, node: "Mobject") -> bool:
+        return node in self.iter_descendants()
 
-    def index(self, mobject: "Mobject") -> int:
-        return self._node.index(mobject._node)
+    def _bind_child(self, node: "Mobject", *, index: int | None = None) -> None:
+        if node.includes(self):
+            raise ValueError(f"'{node}' has already included '{self}'")
+        children_list = self._children_[:]
+        if index is not None:
+            children_list.insert(index, node)
+        else:
+            children_list.append(node)
+        self._children_ = LazyData(children_list)
+        parents_list = node._parents_[:]
+        parents_list.append(self)
+        node._parents_ = LazyData(parents_list)
 
-    def insert(self, index: int, mobject: "Mobject"):
-        self._node.insert(index, mobject._node)
+    def _unbind_child(self, node: "Mobject") -> None:
+        children_list = self._children_[:]
+        children_list.remove(node)
+        self._children_ = LazyData(children_list)
+        parents_list = node._parents_[:]
+        parents_list.remove(self)
+        node._parents_ = LazyData(parents_list)
+
+    def index(self, node: "Mobject") -> int:
+        return self._children_.index(node)
+
+    def insert(self, index: int, node: "Mobject"):
+        self._bind_child(node, index=index)
         return self
 
-    def add(self, *mobjects: "Mobject"):
-        self._node.add(*(mobject._node for mobject in mobjects))
+    def add(self, *nodes: "Mobject"):
+        for node in nodes:
+            self._bind_child(node)
         return self
 
-    def remove(self, *mobjects: "Mobject"):
-        self._node.remove(*(mobject._node for mobject in mobjects))
+    def remove(self, *nodes: "Mobject"):
+        for node in nodes:
+            self._unbind_child(node)
         return self
 
     def pop(self, index: int = -1):
-        self._node.pop(index=index)
-        return self
+        node = self[index]
+        self._unbind_child(node)
+        return node
 
     def clear(self):
-        self._node.clear()
+        for child in self.iter_children():
+            self._unbind_child(child)
         return self
 
     def clear_parents(self):
-        self._node.clear_parents()
+        for parent in self.iter_parents():
+            parent._unbind_child(self)
         return self
 
-    def set_children(self, mobjects: Iterable["Mobject"]):
-        self._node.set_children(mobject._node for mobject in mobjects)
+    def set_children(self, nodes: "Iterable[Mobject]"):
+        self.clear()
+        self.add(*nodes)
         return self
 
     # matrix & transform
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _model_matrix_() -> Mat4T:
         return np.identity(4)
 
-    def _apply_transform_locally(self, matrix: Mat4T):
-        self._model_matrix_ = matrix @ self._model_matrix_
-        return self
+    #def _apply_transform_locally(self, matrix: Mat4T):
+    #    self._model_matrix_ = LazyData(matrix @ self._model_matrix_)
+    #    return self
 
     @lazy_property
     @staticmethod
@@ -291,8 +304,14 @@ class Mobject(LazyBase):
         *,
         broadcast: bool = True
     ):
+        # Avoid redundant caculations
+        transform_dict: dict[LazyData, LazyData] = {}
         for mobject in self.iter_descendants(broadcast=broadcast):
-            mobject._apply_transform_locally(matrix)
+            transformed_matrix = transform_dict.setdefault(
+                Mobject._model_matrix_._get_data(mobject),
+                LazyData(matrix @ mobject._model_matrix_)
+            )
+            mobject._model_matrix_ = transformed_matrix
         return self
 
     def apply_relative_transform(
@@ -543,29 +562,31 @@ class Mobject(LazyBase):
 
     # render
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _apply_oit_() -> bool:
         return False
 
-    @lazy_property
-    @staticmethod
-    def _ub_model_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_model", [
-            "mat4 u_model_matrix"
-        ])
+    #@lazy_property
+    #@staticmethod
+    #def _ub_model_o_() -> UniformBlockBuffer:
+    #    return UniformBlockBuffer("ub_model", [
+    #        "mat4 u_model_matrix"
+    #    ])
 
     @lazy_property
     @staticmethod
     def _ub_model_(
-        ub_model_o: UniformBlockBuffer,
+        #ub_model_o: UniformBlockBuffer,
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:
-        return ub_model_o.write({
+        return UniformBlockBuffer("ub_model", [
+            "mat4 u_model_matrix"
+        ]).write({
             "u_model_matrix": model_matrix.T
         })
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _render_samples_() -> int:
         return 0
@@ -623,21 +644,22 @@ class Mobject(LazyBase):
             )
             target_framebuffer.depth_mask = True
 
-    @lazy_property_updatable
+    @lazy_basedata
     @staticmethod
     def _render_passes_() -> list[RenderPass]:
         return []
 
-    @_render_passes_.updater
     def add_pass(self, *render_passes: RenderPass):
-        for render_pass in render_passes:
-            self._render_passes_.append(render_pass)
+        passes = self._render_passes_[:]
+        passes.extend(render_passes)
+        self._render_passes_ = LazyData(passes)
         return self
 
-    @_render_passes_.updater
     def remove_pass(self, *render_passes: RenderPass):
+        passes = self._render_passes_[:]
         for render_pass in render_passes:
-            self._render_passes_.remove(render_pass)
+            passes.remove(render_pass)
+        self._render_passes_ = LazyData(passes)
         return self
 
 

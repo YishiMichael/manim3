@@ -8,10 +8,7 @@ from ..custom_typing import (
     FloatsT,
     Real
 )
-from ..passes.render_pass import (
-    RenderPass,
-    RenderPassSingleton
-)
+from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import (
     UniformBlockBuffer,
@@ -19,31 +16,33 @@ from ..rendering.render_procedure import (
     TextureStorage
 )
 from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 
 
+#class GaussianBlurPass(RenderPass):
+#    def __init__(self, sigma_width: Real = 0.1):
+#        self._sigma_width: Real = sigma_width
+#
+#    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+#        instance = GaussianBlurPassSingleton()
+#        instance._sigma_width_ = self._sigma_width
+#        instance.render(texture, target_framebuffer)
+
+
 class GaussianBlurPass(RenderPass):
-    def __init__(self, sigma_width: Real = 0.1):
-        self._sigma_width: Real = sigma_width
+    def __new__(cls, sigma_width: Real | None = None):
+        instance = super().__new__(cls)
+        if sigma_width is not None:
+            instance._sigma_width_ = LazyData(sigma_width)
+        return instance
 
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        instance = GaussianBlurPassSingleton()
-        instance._sigma_width_ = self._sigma_width
-        instance.render(texture, target_framebuffer)
-
-
-class GaussianBlurPassSingleton(RenderPassSingleton):
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _sigma_width_() -> Real:
-        return NotImplemented
-
-    @lazy_property
-    @staticmethod
-    def _u_color_map_o_() -> TextureStorage:
-        return TextureStorage("sampler2D u_color_map")
+        return 0.1
 
     @lazy_property
     @staticmethod
@@ -55,24 +54,34 @@ class GaussianBlurPassSingleton(RenderPassSingleton):
 
     @lazy_property
     @staticmethod
-    def _ub_gaussian_blur_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_gaussian_blur", [
-            "vec2 u_uv_offset",
-            "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
-        ])
+    def _u_color_map_() -> TextureStorage:
+        return TextureStorage(
+            "sampler2D u_color_map"
+        )
+
+    #@lazy_property
+    #@staticmethod
+    #def _ub_gaussian_blur_o_() -> UniformBlockBuffer:
+    #    return UniformBlockBuffer("ub_gaussian_blur", [
+    #        "vec2 u_uv_offset",
+    #        "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
+    #    ])
 
     @lazy_property
     @staticmethod
     def _ub_gaussian_blur_(
-        ub_gaussian_blur_o: UniformBlockBuffer,
+        #ub_gaussian_blur_o: UniformBlockBuffer,
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
-        return ub_gaussian_blur_o.write({
+        return UniformBlockBuffer("ub_gaussian_blur", [
+            "vec2 u_uv_offset",
+            "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
+        ]).write({
             "u_uv_offset": 1.0 / np.array(ConfigSingleton().pixel_size),
             "u_convolution_core": convolution_core
         })
 
-    def render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         with RenderProcedure.texture() as intermediate_texture, \
                 RenderProcedure.framebuffer(
                     color_attachments=[intermediate_texture],
@@ -84,7 +93,7 @@ class GaussianBlurPassSingleton(RenderPassSingleton):
                     "#define blur_subroutine horizontal_dilate"
                 ],
                 texture_storages=[
-                    self._u_color_map_o_.write(
+                    self._u_color_map_.write(
                         np.array(texture)
                     )
                 ],
@@ -102,7 +111,7 @@ class GaussianBlurPassSingleton(RenderPassSingleton):
                     "#define blur_subroutine vertical_dilate"
                 ],
                 texture_storages=[
-                    self._u_color_map_o_.write(
+                    self._u_color_map_.write(
                         np.array(intermediate_texture)
                     )
                 ],

@@ -38,7 +38,7 @@ class GeometryData:
 class Geometry(LazyBase):
     @lazy_property
     @staticmethod
-    def _data_() -> GeometryData:
+    def _geometry_data_() -> GeometryData:
         return GeometryData(
             index=np.zeros((0,), dtype=np.uint32),
             position=np.zeros((0, 3)),
@@ -46,36 +46,40 @@ class Geometry(LazyBase):
             uv=np.zeros((0, 2))
         )
 
-    @lazy_property
-    @staticmethod
-    def _attributes_o_() -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 in_position",
-            "vec3 in_normal",
-            "vec2 in_uv"
-        ])
+    #@lazy_property
+    #@staticmethod
+    #def _attributes_o_() -> AttributesBuffer:
+    #    return AttributesBuffer([
+    #        "vec3 in_position",
+    #        "vec3 in_normal",
+    #        "vec2 in_uv"
+    #    ])
 
     @lazy_property
     @staticmethod
     def _attributes_(
-        attributes_o: AttributesBuffer,
-        data: GeometryData
+        #attributes_o: AttributesBuffer,
+        geometry_data: GeometryData
     ) -> AttributesBuffer:
-        return attributes_o.write({
-            "in_position": data.position,
-            "in_normal": data.normal,
-            "in_uv": data.uv
+        return AttributesBuffer([
+            "vec3 in_position",
+            "vec3 in_normal",
+            "vec2 in_uv"
+        ]).write({
+            "in_position": geometry_data.position,
+            "in_normal": geometry_data.normal,
+            "in_uv": geometry_data.uv
         })
 
-    @lazy_property
-    @staticmethod
-    def _index_buffer_o_() -> IndexBuffer:
-        return IndexBuffer()
+    #@lazy_property
+    #@staticmethod
+    #def _index_buffer_o_() -> IndexBuffer:
+    #    return IndexBuffer()
 
     @lazy_property
     @staticmethod
     def _index_buffer_(
-        index_buffer_o: IndexBuffer,
-        data: GeometryData
+        #index_buffer_o: IndexBuffer,
+        geometry_data: GeometryData
     ) -> IndexBuffer:
-        return index_buffer_o.write(data.index)
+        return IndexBuffer().write(geometry_data.index)

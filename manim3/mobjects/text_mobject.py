@@ -81,8 +81,8 @@ class MarkupText(StringMobject):
         "'": "&apos;"
     }
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         string: str,
         *,
         font_size: Real = 48,
@@ -112,8 +112,8 @@ class MarkupText(StringMobject):
         if local_configs is None:
             local_configs = {}
 
-        if not isinstance(self, Text):
-            self.validate_markup_string(string)
+        if not issubclass(cls, Text):
+            cls._validate_markup_string(string)
         #if not self.font:
         #    self.font = get_customization()["style"]["font"]
         #if not self.alignment:
@@ -144,7 +144,7 @@ class MarkupText(StringMobject):
 
             global_attr_dict.update(global_config)
             return tuple(
-                self._get_command_string(
+                cls._get_command_string(
                     global_attr_dict,
                     edge_flag=edge_flag,
                     label=0 if is_labelled else None
@@ -168,7 +168,7 @@ class MarkupText(StringMobject):
             return svg_file
 
         def markup_to_svg(markup_str: str, file_name: str) -> str:
-            self.validate_markup_string(markup_str)
+            cls._validate_markup_string(markup_str)
 
             # `manimpango` is under construction,
             # so the following code is intended to suit its interface
@@ -197,14 +197,15 @@ class MarkupText(StringMobject):
                 pango_width=pango_width
             )
 
-        super().__init__(
+        return super().__new__(
+            cls,
             string=string,
             isolate=isolate,
             protect=protect,
             configured_items_generator=(
                 (span, local_config)
                 for selector, local_config in local_configs.items()
-                for span in self._iter_spans_by_selector(selector, string)
+                for span in cls._iter_spans_by_selector(selector, string)
             ),
             get_content_prefix_and_suffix=get_content_prefix_and_suffix,
             get_svg_path=get_svg_path,
@@ -214,7 +215,7 @@ class MarkupText(StringMobject):
         )
 
     @classmethod
-    def validate_markup_string(cls, markup_str: str) -> None:
+    def _validate_markup_string(cls, markup_str: str) -> None:
         validate_error = manimpango.MarkupUtils.validate(markup_str)
         if not validate_error:
             return
@@ -357,8 +358,8 @@ class Text(MarkupText):
 
 
 class Code(MarkupText):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         code: str,
         *,
         language: str = "python",
@@ -388,7 +389,8 @@ class Code(MarkupText):
         )
         markup_string = pygments.highlight(code, lexer, formatter)
         markup_string = re.sub(r"</?tt>", "", markup_string)
-        super().__init__(
+        return super().__new__(
+            cls,
             string=markup_string,
             font_size=font_size,
             line_spacing_height=line_spacing_height,

@@ -9,21 +9,24 @@ import svgelements as se
 
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
+from ..utils.lazy import (
+    LazyData,
+    lazy_basedata
+)
 
 
 class SVGMobject(ShapeMobject):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         file_path: str | None = None,
         *,
         width: Real | None = None,
         height: Real | None = None,
         frame_scale: Real | None = None
     ):
-        self._shape_mobjects: list[ShapeMobject] = []
-        super().__init__()
+        instance = super().__new__(cls)
         if file_path is None:
-            return
+            return instance
         #if default_style is None:
         #    default_style = {}
         #shape_mobjects: list[ShapeMobject] = []
@@ -59,16 +62,22 @@ class SVGMobject(ShapeMobject):
         #    #mobject.set_paint(**self.get_paint_settings_from_shape(shape))
         #    shape_mobjects.append(mobject)
 
-        self._shape_mobjects.extend(shape_mobjects)
-        self.add(*shape_mobjects)
-        self._adjust_frame(
+        instance._shape_mobjects_ = LazyData(shape_mobjects)
+        instance.add(*shape_mobjects)
+        instance._adjust_frame(
             svg.width,
             svg.height,
             width,
             height,
             frame_scale
         )
-        self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+        instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+        return instance
+
+    @lazy_basedata
+    @staticmethod
+    def _shape_mobjects_() -> list[ShapeMobject]:
+        return []
 
     #@classmethod
     #def shape_to_path(cls, shape: se.Shape) -> se.Path | None:

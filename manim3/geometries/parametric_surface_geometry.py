@@ -12,19 +12,18 @@ from ..geometries.geometry import (
     Geometry,
     GeometryData
 )
-from ..utils.lazy import lazy_property_writable
+from ..utils.lazy import LazyData
 
 
 class ParametricSurfaceGeometry(Geometry):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         func: Callable[[float, float], Vec3T],
         normal_func: Callable[[float, float], Vec3T],
         u_range: tuple[Real, Real],
         v_range: tuple[Real, Real],
         resolution: tuple[int, int] = (100, 100)
     ):
-        super().__init__()
         u_start, u_stop = u_range
         v_start, v_stop = v_range
         u_len = resolution[0] + 1
@@ -52,14 +51,11 @@ class ParametricSurfaceGeometry(Geometry):
         position = np.apply_along_axis(lambda p: func(*p), 1, samples)
         normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
 
-        self._data_ = GeometryData(
+        instance = super().__new__(cls)
+        instance._geometry_data_ = LazyData(GeometryData(
             index=index,
             position=position,
             normal=normal,
             uv=uv
-        )
-
-    @lazy_property_writable
-    @staticmethod
-    def _data_() -> GeometryData:
-        return NotImplemented
+        ))
+        return instance

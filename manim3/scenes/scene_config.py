@@ -14,24 +14,24 @@ from ..rendering.render_procedure import UniformBlockBuffer
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyBase,
-    lazy_property,
-    lazy_property_updatable,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 
 
 class PointLight(LazyBase):
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _position_() -> Vec3T:
         return np.zeros(3)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _color_() -> Vec3T:
         return np.ones(3)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _opacity_() -> Real:
         return 1.0
@@ -44,47 +44,67 @@ class PointLight(LazyBase):
         opacity: Real | None = None
     ):
         if position is not None:
-            self._position_ = position
+            self._position_ = LazyData(position)
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._color_ = color_component
+            self._color_ = LazyData(color_component)
         if opacity_component is not None:
-            self._opacity_ = opacity_component
+            self._opacity_ = LazyData(opacity_component)
         return self
 
 
 class SceneConfig(LazyBase):
-    def __init__(self):
-        self._camera: Camera = PerspectiveCamera()
+    @lazy_basedata
+    @staticmethod
+    def _camera_() -> Camera:
+        return PerspectiveCamera()
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _background_color_() -> Vec3T:
         return np.zeros(3)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _background_opacity_() -> Real:
         return 1.0
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _ambient_light_color_() -> Vec3T:
         return np.ones(3)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _ambient_light_opacity_() -> Real:
         return 1.0
 
-    @lazy_property_updatable
+    @lazy_basedata
     @staticmethod
     def _point_lights_() -> list[PointLight]:
         return []
 
+    #@lazy_property
+    #@staticmethod
+    #def _ub_lights_o_() -> UniformBlockBuffer:
+    #    return UniformBlockBuffer("ub_lights", [
+    #        "vec4 u_ambient_light_color",
+    #        "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
+    #    ], {
+    #        "PointLight": [
+    #            "vec3 position",
+    #            "vec4 color"
+    #        ]
+    #    })
+
     @lazy_property
     @staticmethod
-    def _ub_lights_o_() -> UniformBlockBuffer:
+    def _ub_lights_(
+        #ub_lights_o: UniformBlockBuffer,
+        ambient_light_color: Vec3T,
+        ambient_light_opacity: Real,
+        point_lights: list[PointLight]
+    ) -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_lights", [
             "vec4 u_ambient_light_color",
             "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
@@ -93,17 +113,7 @@ class SceneConfig(LazyBase):
                 "vec3 position",
                 "vec4 color"
             ]
-        })
-
-    @lazy_property
-    @staticmethod
-    def _ub_lights_(
-        ub_lights_o: UniformBlockBuffer,
-        ambient_light_color: Vec3T,
-        ambient_light_opacity: Real,
-        point_lights: list[PointLight]
-    ) -> UniformBlockBuffer:
-        return ub_lights_o.write({
+        }).write({
             "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
             "u_point_lights": {
                 "position": np.array([
@@ -124,11 +134,12 @@ class SceneConfig(LazyBase):
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
-        self._camera.set_view(
+        self._camera_ = LazyData(self._camera_.set_view(
             eye=eye,
             target=target,
             up=up
-        )
+        ))
+        return self
 
     def set_background(
         self,
@@ -138,9 +149,9 @@ class SceneConfig(LazyBase):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._background_color_ = color_component
+            self._background_color_ = LazyData(color_component)
         if opacity_component is not None:
-            self._background_opacity_ = opacity_component
+            self._background_opacity_ = LazyData(opacity_component)
         return self
 
     def set_ambient_light(
@@ -151,12 +162,11 @@ class SceneConfig(LazyBase):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._ambient_light_color_ = color_component
+            self._ambient_light_color_ = LazyData(color_component)
         if opacity_component is not None:
-            self._ambient_light_opacity_ = opacity_component
+            self._ambient_light_opacity_ = LazyData(opacity_component)
         return self
 
-    @_point_lights_.updater
     def add_point_light(
         self,
         *,
@@ -170,9 +180,9 @@ class SceneConfig(LazyBase):
             color=color,
             opacity=opacity
         )
-        self._point_lights_.append(point_light)
+        self._point_lights_ = LazyData(self._point_lights_ + [point_light])
+        return self
 
-    @_point_lights_.updater
     def set_point_light(
         self,
         *,
@@ -184,11 +194,13 @@ class SceneConfig(LazyBase):
         if self._point_lights_:
             if index is None:
                 index = 0
-            self._point_lights_[index].set_style(
+            point_lights = self._point_lights_[:]
+            point_lights.insert(index, point_lights.pop(index).set_style(
                 position=position,
                 color=color,
                 opacity=opacity
-            )
+            ))
+            self._point_lights_ = LazyData(point_lights)
         else:
             if index is not None:
                 raise IndexError

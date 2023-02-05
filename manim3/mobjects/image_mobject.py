@@ -6,39 +6,54 @@ import numpy as np
 from PIL import Image
 
 from ..custom_typing import Real
+from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import RenderProcedure
 from ..scenes.scene_config import SceneConfig
+from ..utils.lazy import (
+    LazyData,
+    lazy_basedata
+)
 
 
 class ImageMobject(MeshMobject):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         image_path: str,
         *,
         width: Real | None = None,
         height: Real | None = 4.0,
         frame_scale: Real | None = None
     ):
-        super().__init__()
-        image: Image.Image = Image.open(image_path)
-        self._image: Image.Image = image
-        self._geometry_ = PlaneGeometry()
+        instance = super().__new__(cls)
+        image = Image.open(image_path)
+        instance._image_ = LazyData(image)
 
-        self._adjust_frame(
+        instance._adjust_frame(
             image.width / ConfigSingleton().pixel_per_unit,
             image.height / ConfigSingleton().pixel_per_unit,
             width,
             height,
             frame_scale
         )
-        self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+        instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+        return instance
+
+    @lazy_basedata
+    @staticmethod
+    def _image_() -> Image.Image:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _geometry_() -> Geometry:
+        return PlaneGeometry()
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        image = self._image
+        image = self._image_
         with RenderProcedure.texture(size=image.size, components=len(image.getbands())) as color_texture:
             color_texture.write(image.tobytes())
-            self._color_map_texture_ = color_texture
+            self._color_map_texture_ = LazyData(color_texture)
             super()._render(scene_config, target_framebuffer)

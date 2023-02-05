@@ -26,6 +26,7 @@ from ..custom_typing import (
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
+from ..utils.lazy import LazyData, lazy_basedata
 
 
 class CommandFlag(Enum):
@@ -175,8 +176,8 @@ class StringMobject(SVGMobject):
     so that each child of the original `SVGMobject` will be labelled
     by the color of its paired child from the additional `SVGMobject`.
     """
-    def __init__(
-        self,
+    def __new__(
+        cls,
         *,
         string: str,
         isolate: Selector = (),
@@ -188,7 +189,7 @@ class StringMobject(SVGMobject):
         height: Real | None,
         frame_scale: Real | None
     ):
-        parsing_result = self._parse(
+        parsing_result = cls._parse(
             string=string,
             isolate=isolate,
             protect=protect,
@@ -199,15 +200,26 @@ class StringMobject(SVGMobject):
             height=height,
             frame_scale=frame_scale
         )
-        self._string: str = string
-        self._parsing_result: ParsingResult = parsing_result
         shape_mobjects = [
             shape_item.shape_mobject
             for shape_item in parsing_result.shape_items
         ]
-        super().__init__()
-        self._shape_mobjects.extend(shape_mobjects)
-        self.add(*shape_mobjects)
+        instance = super().__new__(cls)
+        instance._string_ = LazyData(string)
+        instance._parsing_result_ = LazyData(parsing_result)
+        instance._shape_mobjects_ = LazyData(shape_mobjects)
+        instance.add(*shape_mobjects)
+        return instance
+
+    @lazy_basedata
+    @staticmethod
+    def _string_() -> str:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _parsing_result_() -> ParsingResult:
+        return NotImplemented
 
     @classmethod
     def _parse(
@@ -504,7 +516,7 @@ class StringMobject(SVGMobject):
             width=width,
             height=height,
             frame_scale=frame_scale
-        )._shape_mobjects
+        )._shape_mobjects_
 
         if labels_count == 1:
             return [
@@ -517,7 +529,7 @@ class StringMobject(SVGMobject):
 
         labelled_shapes = SVGMobject(
             file_path=get_svg_path_by_content(is_labelled=True)
-        )._shape_mobjects
+        )._shape_mobjects_
         if len(plain_shapes) != len(labelled_shapes):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."
@@ -727,8 +739,8 @@ class StringMobject(SVGMobject):
     def _iter_shape_mobject_lists_by_selector(self, selector: Selector) -> Generator[list[ShapeMobject], None, None]:
         return (
             shape_mobject_list
-            for span in self._iter_spans_by_selector(selector, self._string)
-            if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.shape_items))
+            for span in self._iter_spans_by_selector(selector, self._string_)
+            if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result_.shape_items))
         )
 
     def select_parts(self, selector: Selector) -> ShapeMobject:

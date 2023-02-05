@@ -16,21 +16,27 @@ from ..geometries.geometry import (
     GeometryData
 )
 from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 from ..utils.shape import Shape
 
 
 class ShapeGeometry(Geometry):
-    @lazy_property_writable
+    def __new__(cls, shape: Shape):
+        instance = super().__new__(cls)
+        instance._shape_ = LazyData(shape)
+        return instance
+
+    @lazy_basedata
     @staticmethod
     def _shape_() -> Shape:
-        return Shape()
+        return NotImplemented
 
     @lazy_property
     @staticmethod
-    def _data_(shape: Shape) -> GeometryData:
+    def _geometry_data_(shape: Shape) -> GeometryData:
         index, coords = ShapeGeometry._get_shape_triangulation(shape)
         position = np.insert(coords, 2, 0.0, axis=1)
         normal = np.repeat(np.array((0.0, 0.0, 1.0))[None], len(position), axis=0)

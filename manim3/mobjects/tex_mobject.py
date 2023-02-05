@@ -189,8 +189,8 @@ SCALE_FACTOR_PER_FONT_POINT: float = 0.001
 
 
 class TexText(StringMobject):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         string: str,
         *,
         font_size: Real = 48,
@@ -216,7 +216,7 @@ class TexText(StringMobject):
             suffix_lines: list[str] = []
             if not is_labelled:
                 color_hex = ColorUtils.color_to_hex(base_color)
-                prefix_lines.append(self._get_color_command(
+                prefix_lines.append(cls._get_color_command(
                     int(color_hex[1:], 16)
                 ))
             if alignment is not None:
@@ -238,14 +238,15 @@ class TexText(StringMobject):
                 )
             return file_path
 
-        super().__init__(
+        instance = super().__new__(
+            cls,
             string=string,
             isolate=isolate,
             protect=protect,
             configured_items_generator=(
                 (span, {})
                 for selector in tex_to_color_map
-                for span in self._iter_spans_by_selector(selector, string)
+                for span in cls._iter_spans_by_selector(selector, string)
             ),
             get_content_prefix_and_suffix=get_content_prefix_and_suffix,
             get_svg_path=get_svg_path,
@@ -255,7 +256,8 @@ class TexText(StringMobject):
         )
 
         for selector, color in tex_to_color_map.items():
-            self.select_parts(selector).set_fill(color=color)
+            instance.select_parts(selector).set_fill(color=color)
+        return instance
 
     # Parsing
 
@@ -343,11 +345,16 @@ class TexText(StringMobject):
 
 
 class Tex(TexText):
-    def __init__(
-        self,
+    def __new__(
+        cls,
         string: str,
         *,
         tex_environment: str | None = "align*",
         **kwargs
     ):
-        super().__init__(string=string, tex_environment=tex_environment, **kwargs)
+        return super().__new__(
+            cls,
+            string=string,
+            tex_environment=tex_environment,
+            **kwargs
+        )

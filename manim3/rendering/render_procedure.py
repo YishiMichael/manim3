@@ -27,15 +27,15 @@ from xxhash import xxh3_64_digest
 from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
     LazyBase,
-    lazy_property,
-    lazy_property_updatable,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 
 
 class ContextSingleton:
-    _WINDOW: ClassVar[PygletWindow | None] = None
     _INSTANCE: ClassVar[moderngl.Context | None] = None
+    _WINDOW: ClassVar[PygletWindow | None] = None
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
 
     def __new__(cls) -> moderngl.Context:
@@ -113,26 +113,37 @@ class GLSLDynamicStruct(LazyBase):
     }
     _LAYOUT: ClassVar[str] = "packed"
 
-    def __init__(
-        self,
+    def __new__(
+        cls,
         field: str,
         child_structs: dict[str, list[str]] | None = None
     ):
-        super().__init__()
+        instance = super().__new__(cls)
         if child_structs is None:
             child_structs = {}
-        self.field_info: FieldInfo = self._parse_field_str(field)
-        self.child_structs_info: dict[str, list[FieldInfo]] = {
-            name: [self._parse_field_str(child_field) for child_field in child_struct_fields]
+        instance._field_info_ = LazyData(cls._parse_field_str(field))
+        instance._child_structs_info_ = LazyData({
+            name: [cls._parse_field_str(child_field) for child_field in child_struct_fields]
             for name, child_struct_fields in child_structs.items()
-        }
+        })
+        return instance
 
-    @lazy_property_writable
+    @lazy_basedata
+    @staticmethod
+    def _field_info_() -> FieldInfo:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _child_structs_info_() -> dict[str, list[FieldInfo]]:
+        return NotImplemented
+
+    @lazy_basedata
     @staticmethod
     def _data_storage_() -> np.ndarray:
         return NotImplemented
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _dynamic_array_lens_() -> dict[str, int]:
         return NotImplemented
@@ -151,9 +162,9 @@ class GLSLDynamicStruct(LazyBase):
         return self._itemsize_ == 0
 
     def write(self, data: np.ndarray | dict[str, Any]):
-        data_dict = self._flatten_as_data_dict(data, (self.field_info.name,))
+        data_dict = self._flatten_as_data_dict(data, (self._field_info_.name,))
         struct_dtype, dynamic_array_lens = self._build_struct_dtype(
-            [self.field_info], self.child_structs_info, data_dict, 0
+            [self._field_info_], self._child_structs_info_, data_dict, 0
         )
         data_storage = np.zeros((), dtype=struct_dtype)
         for data_key, data_value in data_dict.items():
@@ -164,8 +175,8 @@ class GLSLDynamicStruct(LazyBase):
                 data_ptr = data_ptr[data_key[0]]
                 data_key = data_key[1:]
             data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)  # TODO
-        self._data_storage_ = data_storage
-        self._dynamic_array_lens_ = dynamic_array_lens
+        self._data_storage_ = LazyData(data_storage)
+        self._dynamic_array_lens_ = LazyData(dynamic_array_lens)
         return self
 
     @classmethod
@@ -340,41 +351,60 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
     #def __del__(self):
     #    pass  # TODO: release buffer
 
-    @lazy_property_updatable
+    #@lazy_property_updatable
+    @lazy_basedata
     @staticmethod
     def _buffer_() -> moderngl.Buffer:
         return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
 
-    @_buffer_.updater
+    #@lazy_property
+    #@staticmethod
+    #def _buffer_(
+    #    buffer_o: moderngl.Buffer,
+    #    data_storage: np.ndarray,
+    #    struct_dtype: np.dtype
+    #) -> moderngl.Buffer:
+    #    bytes_data = data_storage.tobytes()
+    #    #assert struct_dtype.itemsize == len(bytes_data)
+    #    if struct_dtype.itemsize == 0:
+    #        buffer_o.clear()
+    #        return buffer_o
+    #    #print(struct_dtype.itemsize)
+    #    buffer_o.orphan(struct_dtype.itemsize)
+    #    buffer_o.write(bytes_data)
+    #    return buffer_o
+
     def write(self, data: np.ndarray | dict[str, Any]):
         super().write(data)
-        bytes_data = self._data_storage_.tobytes()
-        #assert struct_dtype.itemsize == len(bytes_data)
         buffer = self._buffer_
+        bytes_data = self._data_storage_.tobytes()
         struct_dtype = self._struct_dtype_
+        #assert struct_dtype.itemsize == len(bytes_data)
         if struct_dtype.itemsize == 0:
             buffer.clear()
+            self._buffer_ = LazyData(buffer)
             return self
         #print(struct_dtype.itemsize)
         buffer.orphan(struct_dtype.itemsize)
         buffer.write(bytes_data)
+        self._buffer_ = LazyData(buffer)
         return self
 
 
 class TextureStorage(GLSLDynamicStruct):
-    def __init__(self, field: str):
+    def __new__(cls, field: str):
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
         assert field != replaced_field
-        super().__init__(field=replaced_field)
+        return super().__new__(cls, field=replaced_field)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _texture_array_() -> np.ndarray:
         return NotImplemented
 
     def write(self, texture_array: np.ndarray):
         # Note, redundant textures are currently not supported
-        self._texture_array_ = texture_array
+        self._texture_array_ = LazyData(texture_array)
         #texture_list: list[moderngl.Texture] = []
         ## Remove redundancies
         #for texture in textures.flatten():
@@ -398,10 +428,11 @@ class TextureStorage(GLSLDynamicStruct):
 class UniformBlockBuffer(GLSLDynamicBuffer):
     _LAYOUT = "std140"
 
-    def __init__(self, name: str, fields: list[str], child_structs: dict[str, list[str]] | None = None):
+    def __new__(cls, name: str, fields: list[str], child_structs: dict[str, list[str]] | None = None):
         if child_structs is None:
             child_structs = {}
-        super().__init__(
+        return super().__new__(
+            cls,
             field=f"__UniformBlockStruct__ {name}",
             child_structs={
                 "__UniformBlockStruct__": fields,
@@ -410,7 +441,7 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
         )
 
     def _validate(self, uniform_block: moderngl.UniformBlock) -> None:
-        assert uniform_block.name == self.field_info.name
+        assert uniform_block.name == self._field_info_.name
         assert uniform_block.size == self._itemsize_
 
 
@@ -418,9 +449,10 @@ class AttributesBuffer(GLSLDynamicBuffer):
     # Let's keep using std140 layout, hopefully leading to a faster processing speed.
     _LAYOUT = "std140"
 
-    def __init__(self, attributes: list[str]):
+    def __new__(cls, attributes: list[str]):
         # Passing structs to an attribute is not allowed, so we eliminate the parameter.
-        super().__init__(
+        return super().__new__(
+            cls,
             field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
             child_structs={
                 "__VertexStruct__": attributes
@@ -484,8 +516,8 @@ class AttributesBuffer(GLSLDynamicBuffer):
 
 
 class IndexBuffer(GLSLDynamicBuffer):
-    def __init__(self):
-        super().__init__(field="uint __index__[__NUM_INDEX__]")
+    def __new__(cls):
+        return super().__new__(cls, field="uint __index__[__NUM_INDEX__]")
 
 
 class Program(LazyBase):  # TODO: make abstract base class Cachable
@@ -506,23 +538,27 @@ class Program(LazyBase):  # TODO: make abstract base class Cachable
 
         instance = super().__new__(cls)
         moderngl_program = cls._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
-        instance._program_ = moderngl_program
-        instance._texture_binding_offset_dict_ = cls._set_texture_bindings(moderngl_program, texture_storage_shape_dict)
-        instance._uniform_block_binding_dict_ = cls._set_uniform_block_bindings(moderngl_program)
+        instance._program_ = LazyData(moderngl_program)
+        instance._texture_binding_offset_dict_ = LazyData(
+            cls._set_texture_bindings(moderngl_program, texture_storage_shape_dict)
+        )
+        instance._uniform_block_binding_dict_ = LazyData(
+            cls._set_uniform_block_bindings(moderngl_program)
+        )
         cls._CACHE[hash_val] = instance
         return instance
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _program_() -> moderngl.Program:
         return NotImplemented
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _texture_binding_offset_dict_() -> dict[str, int]:
         return NotImplemented
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _uniform_block_binding_dict_() -> dict[str, int]:
         return NotImplemented
@@ -739,6 +775,7 @@ class IntermediateDepthTexture:
                     texture.release()
 
 
+# Create custom BufferBatch classes
 class IntermediateFramebuffer:
     def __init__(
         self,
@@ -901,7 +938,7 @@ class RenderProcedure(LazyBase):
             custom_macros=custom_macros,
             dynamic_array_lens=filtered_array_lens,
             texture_storage_shape_dict={
-                texture_storage.field_info.name: texture_storage._texture_array_.shape
+                texture_storage._field_info_.name: texture_storage._texture_array_.shape
                 for texture_storage in texture_storages
             }
         )
@@ -914,7 +951,7 @@ class RenderProcedure(LazyBase):
 
         # texture storages
         texture_storage_dict = {
-            texture_storage.field_info.name: texture_storage
+            texture_storage._field_info_.name: texture_storage
             for texture_storage in texture_storages
         }
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
@@ -928,7 +965,7 @@ class RenderProcedure(LazyBase):
 
         # uniform blocks
         uniform_block_dict = {
-            uniform_block.field_info.name: uniform_block
+            uniform_block._field_info_.name: uniform_block
             for uniform_block in uniform_blocks
         }
         uniform_block_bindings: list[tuple[moderngl.Buffer, int]] = []

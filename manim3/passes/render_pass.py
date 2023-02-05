@@ -1,6 +1,6 @@
 __all__ = [
     "RenderPass",
-    "RenderPassSingleton"
+    #"RenderPassSingleton"
 ]
 
 
@@ -17,13 +17,17 @@ class RenderPass:
         pass
 
 
-class RenderPassSingleton(LazyBase):
-    _INSTANCES: "dict[type[RenderPassSingleton], RenderPassSingleton]" = {}
-
-    def __new__(cls):
-        if (instance := cls._INSTANCES.get(cls)) is not None:
-            assert isinstance(instance, cls)
-            return instance
-        instance = super().__new__(cls)
-        cls._INSTANCES[cls] = instance
-        return instance
+#class RenderPassSingleton(LazyBase):
+#    _INSTANCE: "RenderPassSingleton | None"
+#
+#    def __init_subclass__(cls) -> None:
+#        super().__init_subclass__()
+#        cls._INSTANCE = None
+#
+#    def __new__(cls):
+#        if (instance := cls._INSTANCE) is not None:
+#            assert isinstance(instance, cls)
+#            return instance
+#        instance = super().__new__(cls)
+#        cls._INSTANCE = instance
+#        return instance

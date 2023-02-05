@@ -33,8 +33,9 @@ from ..custom_typing import (
 )
 from ..utils.lazy import (
     LazyBase,
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 from ..utils.space import SpaceUtils
 
@@ -96,13 +97,14 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
 
 
 class LineString(ShapeInterpolant[_VecT, _VecsT]):
-    def __init__(self, coords: _VecsT):
-        super().__init__()
+    def __new__(cls, coords: _VecsT):
+        instance = super().__new__(cls)
         # TODO: shall we first remove redundant adjacent points?
         assert len(coords)
-        self._coords_ = coords
+        instance._coords_ = LazyData(coords)
+        return instance
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _coords_() -> _VecsT:
         return NotImplemented
@@ -164,10 +166,11 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
 
 
 class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
-    def __init__(self, children: list[LineString[_VecT, _VecsT]] | None = None):
-        super().__init__()
+    def __new__(cls, children: list[LineString[_VecT, _VecsT]] | None = None):
+        instance = super().__new__(cls)
         if children is not None:
-            self._children_.extend(children)
+            instance._children_.extend(children)
+        return instance
 
     @lazy_property
     @staticmethod
@@ -253,17 +256,17 @@ class MultiLineString3D(MultiLineString[Vec3T, Vec3sT]):
 
 
 class Shape(LazyBase):
-    def __init__(self, arg: MultiLineString2D | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
-        super().__init__()
+    def __new__(cls, arg: MultiLineString2D | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
+        instance = super().__new__(cls)
         if arg is None:
             multi_line_string = None
         elif isinstance(arg, MultiLineString2D):
             multi_line_string = arg
         else:
             if isinstance(arg, shapely.geometry.base.BaseGeometry):
-                coords_iter = self._iter_coords_from_shapely_obj(arg)
+                coords_iter = cls._iter_coords_from_shapely_obj(arg)
             elif isinstance(arg, se.Path):
-                coords_iter = self._iter_coords_from_se_shape(arg)
+                coords_iter = cls._iter_coords_from_se_shape(arg)
             else:
                 raise TypeError(f"Cannot handle argument in Shape constructor: {arg}")
             multi_line_string = MultiLineString2D([
@@ -272,7 +275,8 @@ class Shape(LazyBase):
                 if len(coords)
             ])
         if multi_line_string is not None:
-            self._multi_line_string_ = multi_line_string
+            instance._multi_line_string_ = multi_line_string
+        return instance
 
     def __and__(self, other: "Shape"):
         return self.intersection(other)
@@ -286,7 +290,7 @@ class Shape(LazyBase):
     def __xor__(self, other: "Shape"):
         return self.symmetric_difference(other)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _multi_line_string_() -> MultiLineString2D:
         return MultiLineString2D()

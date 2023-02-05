@@ -1,131 +1,143 @@
-__all__ = ["Node"]
+#__all__ = ["Node"]
 
 
-from typing import (
-    Generator,
-    Iterable,
-    Iterator,
-    TypeVar,
-    overload
-)
+#from typing import (
+#    Generator,
+#    Iterable,
+#    Iterator,
+#    TypeVar,
+#    overload
+#)
+
+#from ..utils.lazy import LazyBase, lazy_basedata
 
 
-Self = TypeVar("Self", bound="Node")
+#Self = TypeVar("Self", bound="Node")
 
 
-class Node:
-    def __init__(self) -> None:
-        self.__parents__: list = []
-        self.__children__: list = []
-        super().__init__()
+#class Node(LazyBase):
+#    #def __init__(self) -> None:
+#    #    self.__parents__: list = []
+#    #    self.__children__: list = []
+#    #    super().__init__()
 
-    def __iter__(self: Self) -> Iterator[Self]:
-        return iter(self._children)
+#    def __iter__(self: Self) -> Iterator[Self]:
+#        return iter(self._children_)
 
-    @overload
-    def __getitem__(self: Self, i: int) -> Self: ...
+#    @overload
+#    def __getitem__(self: Self, i: int) -> Self: ...
 
-    @overload
-    def __getitem__(self: Self, i: slice) -> list[Self]: ...
+#    @overload
+#    def __getitem__(self: Self, i: slice) -> list[Self]: ...
 
-    def __getitem__(self: Self, i: int | slice) -> Self | list[Self]:
-        return self._children.__getitem__(i)
+#    def __getitem__(self: Self, i: int | slice) -> Self | list[Self]:
+#        return self._children_.__getitem__(i)
 
-    @property
-    def _parents(self: Self) -> list[Self]:
-        return self.__parents__
+#    @lazy_basedata
+#    @staticmethod
+#    def _parents_() -> list:
+#        return []
 
-    @property
-    def _children(self: Self) -> list[Self]:
-        return self.__children__
+#    @lazy_basedata
+#    @staticmethod
+#    def _children_() -> list:
+#        return []
 
-    def iter_parents(self: Self) -> Iterator[Self]:
-        return iter(self._parents)
+#    #@property
+#    #def _parents(self: Self) -> list[Self]:
+#    #    return self.__parents__
 
-    def iter_children(self: Self) -> Iterator[Self]:
-        return iter(self._children)
+#    #@property
+#    #def _children(self: Self) -> list[Self]:
+#    #    return self.__children__
 
-    def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
-        yield self
-        for parent_node in self._parents:
-            yield from parent_node._iter_ancestors()
+#    def iter_parents(self: Self) -> Iterator[Self]:
+#        return iter(self._parents_)
 
-    def _iter_descendants(self: Self) -> Generator[Self, None, None]:
-        yield self
-        for child_node in self._children:
-            yield from child_node._iter_descendants()
+#    def iter_children(self: Self) -> Iterator[Self]:
+#        return iter(self._children_)
 
-    def iter_ancestors(self: Self, *, broadcast: bool = True) -> Generator[Self, None, None]:
-        yield self
-        if not broadcast:
-            return
-        occurred: set[Self] = {self}
-        for node in self._iter_ancestors():
-            if node in occurred:
-                continue
-            yield node
-            occurred.add(node)
+#    def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
+#        yield self
+#        for parent_node in self._parents_:
+#            yield from parent_node._iter_ancestors()
 
-    def iter_descendants(self: Self, *, broadcast: bool = True) -> Generator[Self, None, None]:
-        yield self
-        if not broadcast:
-            return
-        occurred: set[Self] = {self}
-        for node in self._iter_descendants():
-            if node in occurred:
-                continue
-            yield node
-            occurred.add(node)
+#    def _iter_descendants(self: Self) -> Generator[Self, None, None]:
+#        yield self
+#        for child_node in self._children_:
+#            yield from child_node._iter_descendants()
 
-    def includes(self: Self, node: Self) -> bool:
-        return node in self.iter_descendants()
+#    def iter_ancestors(self: Self, *, broadcast: bool = True) -> Generator[Self, None, None]:
+#        yield self
+#        if not broadcast:
+#            return
+#        occurred: set[Self] = {self}
+#        for node in self._iter_ancestors():
+#            if node in occurred:
+#                continue
+#            yield node
+#            occurred.add(node)
 
-    def _bind_child(self: Self, node: Self, *, index: int | None = None) -> None:
-        if node.includes(self):
-            raise ValueError(f"'{node}' has already included '{self}'")
-        if index is not None:
-            self._children.insert(index, node)
-        else:
-            self._children.append(node)
-        node._parents.append(self)
+#    def iter_descendants(self: Self, *, broadcast: bool = True) -> Generator[Self, None, None]:
+#        yield self
+#        if not broadcast:
+#            return
+#        occurred: set[Self] = {self}
+#        for node in self._iter_descendants():
+#            if node in occurred:
+#                continue
+#            yield node
+#            occurred.add(node)
 
-    def _unbind_child(self: Self, node: Self) -> None:
-        self._children.remove(node)
-        node._parents.remove(self)
+#    def includes(self: Self, node: Self) -> bool:
+#        return node in self.iter_descendants()
 
-    def index(self: Self, node: Self) -> int:
-        return self._children.index(node)
+#    def _bind_child(self: Self, node: Self, *, index: int | None = None) -> None:
+#        if node.includes(self):
+#            raise ValueError(f"'{node}' has already included '{self}'")
+#        if index is not None:
+#            self._children_.insert(index, node)
+#        else:
+#            self._children_.append(node)
+#        node._parents_.append(self)
 
-    def insert(self: Self, index: int, node: Self) -> Self:
-        self._bind_child(node, index=index)
-        return self
+#    def _unbind_child(self: Self, node: Self) -> None:
+#        self._children_.remove(node)
+#        node._parents_.remove(self)
 
-    def add(self: Self, *nodes: Self) -> Self:
-        for node in nodes:
-            self._bind_child(node)
-        return self
+#    def index(self: Self, node: Self) -> int:
+#        return self._children_.index(node)
 
-    def remove(self: Self, *nodes: Self) -> Self:
-        for node in nodes:
-            self._unbind_child(node)
-        return self
+#    def insert(self: Self, index: int, node: Self) -> Self:
+#        self._bind_child(node, index=index)
+#        return self
 
-    def pop(self: Self, index: int = -1) -> Self:
-        node = self[index]
-        self._unbind_child(node)
-        return node
+#    def add(self: Self, *nodes: Self) -> Self:
+#        for node in nodes:
+#            self._bind_child(node)
+#        return self
 
-    def clear(self: Self) -> Self:
-        for child in self.iter_children():
-            self._unbind_child(child)
-        return self
+#    def remove(self: Self, *nodes: Self) -> Self:
+#        for node in nodes:
+#            self._unbind_child(node)
+#        return self
 
-    def clear_parents(self: Self) -> Self:
-        for parent in self.iter_parents():
-            parent._unbind_child(self)
-        return self
+#    def pop(self: Self, index: int = -1) -> Self:
+#        node = self[index]
+#        self._unbind_child(node)
+#        return node
 
-    def set_children(self: Self, nodes: Iterable[Self]) -> Self:
-        self.clear()
-        self.add(*nodes)
-        return self
+#    def clear(self: Self) -> Self:
+#        for child in self.iter_children():
+#            self._unbind_child(child)
+#        return self
+
+#    def clear_parents(self: Self) -> Self:
+#        for parent in self.iter_parents():
+#            parent._unbind_child(self)
+#        return self
+
+#    def set_children(self: Self, nodes: Iterable[Self]) -> Self:
+#        self.clear()
+#        self.add(*nodes)
+#        return self

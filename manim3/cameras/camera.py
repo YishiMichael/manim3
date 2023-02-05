@@ -16,8 +16,9 @@ from ..rendering.config import ConfigSingleton
 from ..rendering.render_procedure import UniformBlockBuffer
 from ..utils.lazy import (
     LazyBase,
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 from ..utils.space import SpaceUtils
 
@@ -28,17 +29,17 @@ class Camera(LazyBase):
     def _projection_matrix_() -> Mat4T:
         return NotImplemented
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _eye_() -> Vec3T:
         return ConfigSingleton().camera_altitude * OUT
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _target_() -> Vec3T:
         return ORIGIN
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _up_() -> Vec3T:
         return UP
@@ -60,25 +61,30 @@ class Camera(LazyBase):
         m[:3, 3] = -rot_mat @ eye
         return m
 
+    #@lazy_property
+    #@staticmethod
+    #def _ub_camera_o_() -> UniformBlockBuffer:
+    #    return UniformBlockBuffer("ub_camera", [
+    #        "mat4 u_projection_matrix",
+    #        "mat4 u_view_matrix",
+    #        "vec3 u_view_position",
+    #        "vec2 u_frame_radius"
+    #    ])
+
     @lazy_property
     @staticmethod
-    def _ub_camera_o_() -> UniformBlockBuffer:
+    def _ub_camera_(
+        #ub_camera_o: UniformBlockBuffer,
+        projection_matrix: Mat4T,
+        view_matrix: Mat4T,
+        eye: Vec3T
+    ) -> UniformBlockBuffer:
         return UniformBlockBuffer("ub_camera", [
             "mat4 u_projection_matrix",
             "mat4 u_view_matrix",
             "vec3 u_view_position",
             "vec2 u_frame_radius"
-        ])
-
-    @lazy_property
-    @staticmethod
-    def _ub_camera_(
-        ub_camera_o: UniformBlockBuffer,
-        projection_matrix: Mat4T,
-        view_matrix: Mat4T,
-        eye: Vec3T
-    ) -> UniformBlockBuffer:
-        return ub_camera_o.write({
+        ]).write({
             "u_projection_matrix": projection_matrix.T,
             "u_view_matrix": view_matrix.T,
             "u_view_position": eye,
@@ -93,9 +99,9 @@ class Camera(LazyBase):
         up: Vec3T | None = None
     ):
         if eye is not None:
-            self._eye_ = eye
+            self._eye_ = LazyData(eye)
         if target is not None:
-            self._target_ = target
+            self._target_ = LazyData(target)
         if up is not None:
-            self._up_ = up
+            self._up_ = LazyData(up)
         return self

@@ -25,8 +25,9 @@ from ..rendering.render_procedure import (
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    lazy_property,
-    lazy_property_writable
+    LazyData,
+    lazy_basedata,
+    lazy_property
 )
 from ..utils.shape import (
     LineString3D,
@@ -36,42 +37,44 @@ from ..utils.space import SpaceUtils
 
 
 class StrokeMobject(Mobject):
-    def __init__(self, multi_line_string: MultiLineString3D):
-        super().__init__()
-        self._multi_line_string_ = multi_line_string
+    def __new__(cls, multi_line_string: MultiLineString3D | None = None):
+        instance = super().__new__(cls)
+        if multi_line_string is not None:
+            instance._multi_line_string_ = LazyData(multi_line_string)
+        return instance
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _multi_line_string_() -> MultiLineString3D:
-        return NotImplemented
+        return MultiLineString3D()
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _width_() -> Real:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _single_sided_() -> bool:
         return False
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _has_linecap_() -> bool:
         return True
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _color_() -> Vec3T:
         return np.ones(3)
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _opacity_() -> Real:
         return 1.0
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _dilate_() -> Real:
         return 0.0
@@ -256,7 +259,7 @@ class StrokeMobject(Mobject):
             StrokeMobject._lump_index_from_getter(StrokeMobject._point_index_getter, multi_line_string)
         )
 
-    @lazy_property_writable
+    @lazy_basedata
     @staticmethod
     def _render_samples_() -> int:
         return 4
@@ -360,39 +363,39 @@ class StrokeMobject(Mobject):
             for line_string in line_strings
         ])
 
-    def _set_style_locally(
-        self,
-        *,
-        width: Real | None = None,
-        single_sided: bool | None = None,
-        has_linecap: bool | None = None,
-        color: ColorType | None = None,
-        opacity: Real | None = None,
-        dilate: Real | None = None,
-        apply_oit: bool | None = None
-    ):
-        if width is not None:
-            self._width_ = width
-        if single_sided is not None:
-            self._single_sided_ = single_sided
-        if has_linecap is not None:
-            self._has_linecap_ = has_linecap
-        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        if color_component is not None:
-            self._color_ = color_component
-        if opacity_component is not None:
-            self._opacity_ = opacity_component
-        if dilate is not None:
-            self._dilate_ = dilate
-        if apply_oit is not None:
-            self._apply_oit_ = apply_oit
-        else:
-            if any(param is not None for param in (
-                opacity_component,
-                dilate
-            )):
-                self._apply_oit_ = True
-        return self
+    #def _set_style_locally(
+    #    self,
+    #    *,
+    #    width: Real | None = None,
+    #    single_sided: bool | None = None,
+    #    has_linecap: bool | None = None,
+    #    color: ColorType | None = None,
+    #    opacity: Real | None = None,
+    #    dilate: Real | None = None,
+    #    apply_oit: bool | None = None
+    #):
+    #    if width is not None:
+    #        self._width_ = width
+    #    if single_sided is not None:
+    #        self._single_sided_ = single_sided
+    #    if has_linecap is not None:
+    #        self._has_linecap_ = has_linecap
+    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+    #    if color_component is not None:
+    #        self._color_ = color_component
+    #    if opacity_component is not None:
+    #        self._opacity_ = opacity_component
+    #    if dilate is not None:
+    #        self._dilate_ = dilate
+    #    if apply_oit is not None:
+    #        self._apply_oit_ = apply_oit
+    #    else:
+    #        if any(param is not None for param in (
+    #            opacity_component,
+    #            dilate
+    #        )):
+    #            self._apply_oit_ = True
+    #    return self
 
     def set_style(
         self,
@@ -406,16 +409,53 @@ class StrokeMobject(Mobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
+        width_data = LazyData(width) if width is not None else None
+        single_sided_data = LazyData(single_sided) if single_sided is not None else None
+        has_linecap_data = LazyData(has_linecap) if has_linecap is not None else None
+        #if width is not None:
+        #    self._width_ = width
+        #if single_sided is not None:
+        #    self._single_sided_ = single_sided
+        #if has_linecap is not None:
+        #    self._has_linecap_ = has_linecap
+        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        color_data = LazyData(color_component) if color_component is not None else None
+        opacity_data = LazyData(opacity_component) if opacity_component is not None else None
+        #if color_component is not None:
+        #    self._color_ = color_component
+        #if opacity_component is not None:
+        #    self._opacity_ = opacity_component
+        dilate_data = LazyData(dilate) if dilate is not None else None
+        apply_oit_data = LazyData(apply_oit) if apply_oit is not None else \
+            LazyData(True) if any(param is not None for param in (
+                opacity_component,
+                dilate
+            )) else None
+        #if dilate is not None:
+        #    self._dilate_ = dilate
+        #if apply_oit is not None:
+        #    self._apply_oit_ = apply_oit
+        #else:
+        #    if any(param is not None for param in (
+        #        opacity_component,
+        #        dilate
+        #    )):
+        #        self._apply_oit_ = True
         for mobject in self.iter_descendants(broadcast=broadcast):
             if not isinstance(mobject, StrokeMobject):
                 continue
-            mobject._set_style_locally(
-                width=width,
-                single_sided=single_sided,
-                has_linecap=has_linecap,
-                color=color,
-                opacity=opacity,
-                dilate=dilate,
-                apply_oit=apply_oit
-            )
+            if width_data is not None:
+                self._width_ = width_data
+            if single_sided_data is not None:
+                self._single_sided_ = single_sided_data
+            if has_linecap_data is not None:
+                self._has_linecap_ = has_linecap_data
+            if color_data is not None:
+                self._color_ = color_data
+            if opacity_data is not None:
+                self._opacity_ = opacity_data
+            if dilate_data is not None:
+                self._dilate_ = dilate_data
+            if apply_oit_data is not None:
+                self._apply_oit_ = apply_oit_data
         return self
