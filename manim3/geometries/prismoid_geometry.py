@@ -91,7 +91,7 @@ class PrismoidGeometry(Geometry):
         shape_index, shape_coords = ShapeGeometry._get_shape_triangulation(shape)
         n_coords = len(shape_coords)
         for sign in (1.0, -1.0):
-            position_list.extend(np.insert(shape_coords, 2, sign, axis=1))
+            position_list.extend(SpaceUtils.increase_dimension(shape_coords, sign))
             normal_list.extend(np.repeat(np.array((0.0, 0.0, sign))[None], n_coords, axis=0))
             uv_list.extend(shape_coords)
             index_list.extend(index_offset + shape_index)

@@ -194,13 +194,13 @@ class SceneConfig(LazyBase):
         if self._point_lights_:
             if index is None:
                 index = 0
-            point_lights = self._point_lights_[:]
-            point_lights.insert(index, point_lights.pop(index).set_style(
+            point_lights_copy = self._point_lights_[:]
+            point_lights_copy.insert(index, point_lights_copy.pop(index).set_style(
                 position=position,
                 color=color,
                 opacity=opacity
             ))
-            self._point_lights_ = LazyData(point_lights)
+            self._point_lights_ = LazyData(point_lights_copy)
         else:
             if index is not None:
                 raise IndexError

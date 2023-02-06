@@ -168,3 +168,10 @@ class SpaceUtils:
         m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ slerp(alpha)
         m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
         return m
+
+    @classmethod
+    def increase_dimension(cls, vectors: Vec2sT, value: Real = 0.0) -> Vec3sT:
+        result = np.zeros((vectors.shape[0], 3))
+        result[:, :2] = vectors
+        result[:, 2] = value
+        return result

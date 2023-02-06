@@ -21,6 +21,7 @@ from ..utils.lazy import (
     lazy_property
 )
 from ..utils.shape import Shape
+from ..utils.space import SpaceUtils
 
 
 class ShapeGeometry(Geometry):
@@ -38,7 +39,7 @@ class ShapeGeometry(Geometry):
     @staticmethod
     def _geometry_data_(shape: Shape) -> GeometryData:
         index, coords = ShapeGeometry._get_shape_triangulation(shape)
-        position = np.insert(coords, 2, 0.0, axis=1)
+        position = SpaceUtils.increase_dimension(coords)
         normal = np.repeat(np.array((0.0, 0.0, 1.0))[None], len(position), axis=0)
         return GeometryData(
             index=index,

@@ -284,11 +284,11 @@ class Scene(Mobject):
 
     def _update_dt(self, dt: Real):
         assert dt >= 0.0
-        animation_dict = self._animation_dict_.copy()
-        for animation in list(animation_dict):
-            t0 = animation_dict[animation]
+        animation_dict_copy = self._animation_dict_.copy()
+        for animation in list(animation_dict_copy):
+            t0 = animation_dict_copy[animation]
             t = t0 + dt
-            animation_dict[animation] = t
+            animation_dict_copy[animation] = t
             if t < animation._start_time:
                 continue
 
@@ -322,9 +322,9 @@ class Scene(Mobject):
                     warnings.warn("`mobject_addition_items` is not empty after the animation finishes")
                 if animation._mobject_removal_items:
                     warnings.warn("`mobject_removal_items` is not empty after the animation finishes")
-                animation_dict.pop(animation)
+                animation_dict_copy.pop(animation)
 
-        self._animation_dict_ = LazyData(animation_dict)
+        self._animation_dict_ = LazyData(animation_dict_copy)
         return self
 
     def _update_frames(self, frames: Real):

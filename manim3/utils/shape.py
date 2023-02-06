@@ -98,11 +98,13 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
 
 class LineString(ShapeInterpolant[_VecT, _VecsT]):
     def __new__(cls, coords: _VecsT):
+        # TODO: shall we first remove redundant adjacent points?
+        assert len(coords)
+        #if coords.shape[1] == 3:
+        #    raise ValueError
         #if cls.__name__ == "LineString2D":
         #    print(coords)
         instance = super().__new__(cls)
-        # TODO: shall we first remove redundant adjacent points?
-        assert len(coords)
         instance._coords_ = LazyData(coords)
         return instance
 
@@ -171,10 +173,12 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
     def __new__(cls, children: list[LineString[_VecT, _VecsT]] | None = None):
         instance = super().__new__(cls)
         if children is not None:
-            instance._children_.extend(children)
+            children_copy = instance._children_[:]
+            children_copy.extend(children)
+            instance._children_ = LazyData(children_copy)
         return instance
 
-    @lazy_property
+    @lazy_basedata
     @staticmethod
     def _children_() -> list[LineString[_VecT, _VecsT]]:
         return []
@@ -282,7 +286,7 @@ class Shape(LazyBase):
             #    print(p)
             #print("<<<")
             #for child in multi_line_string._children_:
-            #    print(child._coords_)
+            #    print(type(child), child._coords_)
             #print()
         if multi_line_string is not None:
             instance._multi_line_string_ = LazyData(multi_line_string)
@@ -309,7 +313,7 @@ class Shape(LazyBase):
     @staticmethod
     def _multi_line_string_3d_(multi_line_string: MultiLineString2D) -> MultiLineString3D:
         return MultiLineString3D([
-            LineString3D(np.insert(line_string._coords_, 2, 0.0, axis=1))
+            LineString3D(SpaceUtils.increase_dimension(line_string._coords_))
             for line_string in multi_line_string._children_
         ])
 
@@ -426,6 +430,10 @@ class Shape(LazyBase):
 
     def partial(self, start: Real, end: Real) -> "Shape":
         return Shape(self._multi_line_string_.partial(start, end))
+
+    @classmethod
+    def interpolate_method(cls, shape_0: "Shape", shape_1: "Shape", alpha: Real) -> "Shape":
+        return shape_0.interpolate_shape(shape_1, alpha)
 
     #@lazy_property
     #@staticmethod

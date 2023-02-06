@@ -309,8 +309,8 @@ class ShapeMobject(MeshMobject):
         if self._stroke_mobjects_:
             if index is None:
                 index = 0
-            stroke_mobjects = self._stroke_mobjects_[:]
-            stroke_mobjects.insert(index, stroke_mobjects.pop(index).set_style(
+            stroke_mobjects_copy = self._stroke_mobjects_[:]
+            stroke_mobjects_copy.insert(index, stroke_mobjects_copy.pop(index).set_style(
                 width=width,
                 single_sided=single_sided,
                 has_linecap=has_linecap,
@@ -320,7 +320,7 @@ class ShapeMobject(MeshMobject):
                 apply_oit=apply_oit,
                 broadcast=broadcast
             ))
-            self._stroke_mobjects_ = LazyData(stroke_mobjects)
+            self._stroke_mobjects_ = LazyData(stroke_mobjects_copy)
         else:
             if index is not None:
                 raise IndexError

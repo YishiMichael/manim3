@@ -49,7 +49,8 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
         self.annotation: _Annotation = inspect.signature(method).return_annotation
         #self.property_descrs: tuple[lazy_property[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_dict: dict[_LazyBaseT, LazyData[_T]] = {}
-        self.basedata_refcnt_dict: dict[LazyData[_T], int] = {}
+        self.basedata_to_instances_dict: dict[LazyData[_T], list[_LazyBaseT]] = {}
+        #self.basedata_refcnt_dict: dict[LazyData[_T], int] = {}
 
     def __repr__(self) -> str:
         return f"<lazy_basedata: {self.name}>"
@@ -67,36 +68,32 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
 
     def __set__(self, instance: _LazyBaseT, basedata: LazyData[_T]) -> None:
         assert isinstance(basedata, LazyData)
-        old_basedata = self.instance_to_basedata_dict.get(instance)
-        if old_basedata is not None:
-            self._decrement_basedata_refcnt(old_basedata)
-        self.instance_to_basedata_dict[instance] = basedata
-        self._increment_basedata_refcnt(basedata)
+        self._set_data(instance, basedata)
 
-        for property_descr in instance.__class__._BASEDATA_DESCR_TO_PROPERTY_DESCRS[self]:
-            basedata_descrs = instance.__class__._PROPERTY_DESCR_TO_BASEDATA_DESCRS[property_descr]
-            if (old_basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(instance, None)) is not None:
-                property_descr._decrement_basedata_tuple_refcnt(old_basedata_tuple)
-            else:
-                old_basedata_tuple = tuple(
-                    basedata_descr.default_basedata
-                    for basedata_descr in basedata_descrs
-                )
+        #for property_descr in instance.__class__._BASEDATA_DESCR_TO_PROPERTY_DESCRS[self]:
+        #    basedata_descrs = instance.__class__._PROPERTY_DESCR_TO_BASEDATA_DESCRS[property_descr]
+        #    if (old_basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(instance, None)) is not None:
+        #        property_descr._decrement_basedata_tuple_refcnt(old_basedata_tuple)
+        #    else:
+        #        old_basedata_tuple = tuple(
+        #            basedata_descr.default_basedata
+        #            for basedata_descr in basedata_descrs
+        #        )
 
-            #index = basedata_descrs.index(self)
-            #print(old_basedata, old_basedata_tuple, index)
-            #assert old_basedata is old_basedata_tuple[index]
-            basedata_list = list(old_basedata_tuple)
-            basedata_list[basedata_descrs.index(self)] = basedata
-            basedata_tuple = tuple(basedata_list)
-            property_descr.instance_to_basedata_tuple_dict[instance] = basedata_tuple
-            property_descr._increment_basedata_tuple_refcnt(basedata_tuple)
+        #    #index = basedata_descrs.index(self)
+        #    #print(old_basedata, old_basedata_tuple, index)
+        #    #assert old_basedata is old_basedata_tuple[index]
+        #    basedata_list = list(old_basedata_tuple)
+        #    basedata_list[basedata_descrs.index(self)] = basedata
+        #    basedata_tuple = tuple(basedata_list)
+        #    property_descr.instance_to_basedata_tuple_dict[instance] = basedata_tuple
+        #    property_descr._increment_basedata_tuple_refcnt(basedata_tuple)
 
-            #data_list = list(old_basedata_tuple)
-            #data_list[index] = data
-            #property_descr.instance_to_basedata_tuple_dict[instance] = tuple(data_list)
-            #if old_basedata_tuple not in property_descr.basedata_tuple_to_property_dict:
-            #    continue
+        #    #data_list = list(old_basedata_tuple)
+        #    #data_list[index] = data
+        #    #property_descr.instance_to_basedata_tuple_dict[instance] = tuple(data_list)
+        #    #if old_basedata_tuple not in property_descr.basedata_tuple_to_property_dict:
+        #    #    continue
 
     @property
     def default_basedata(self) -> LazyData[_T]:
@@ -107,16 +104,23 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
     def _get_data(self, instance: _LazyBaseT) -> LazyData[_T]:
         return self.instance_to_basedata_dict.get(instance, self.default_basedata)
 
-    def _increment_basedata_refcnt(self, basedata: LazyData[_T]) -> None:
-        if basedata not in self.basedata_refcnt_dict:
-            self.basedata_refcnt_dict[basedata] = 0
-        self.basedata_refcnt_dict[basedata] += 1
-
-    def _decrement_basedata_refcnt(self, basedata: LazyData[_T]) -> None:
-        self.basedata_refcnt_dict[basedata] -= 1
-        if self.basedata_refcnt_dict[basedata] != 0:
+    def _set_data(self, instance: _LazyBaseT, basedata: LazyData[_T] | None) -> None:
+        self._clear_instance_basedata(instance)
+        for property_descr in instance.__class__._BASEDATA_DESCR_TO_PROPERTY_DESCRS[self]:
+            property_descr._clear_instance_basedata_tuple(instance)
+        if basedata is None:
             return
-        self.basedata_refcnt_dict.pop(basedata)
+        self.instance_to_basedata_dict[instance] = basedata
+        #self._increment_basedata_refcnt(basedata)
+        self.basedata_to_instances_dict.setdefault(basedata, []).append(instance)
+
+    def _clear_instance_basedata(self, instance: _LazyBaseT) -> None:
+        if (basedata := self.instance_to_basedata_dict.pop(instance, None)) is None:
+            return
+        self.basedata_to_instances_dict[basedata].remove(instance)
+        if self.basedata_to_instances_dict[basedata]:
+            return
+        self.basedata_to_instances_dict.pop(basedata)
         if isinstance(basedata.data, LazyBase):  # TODO
             basedata.data._restock()
 
@@ -133,8 +137,9 @@ class lazy_property(Generic[_LazyBaseT, _T]):
         }
         #self.basedata_descrs: tuple[lazy_basedata[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_tuple_dict: dict[_LazyBaseT, tuple[LazyData[Any], ...]] = {}
-        self.basedata_tuple_to_property_dict: dict[tuple[LazyData[Any], ...], LazyData[_T]] = {}
-        self.basedata_tuple_refcnt_dict: dict[tuple[LazyData[Any], ...], int] = {}
+        self.basedata_tuple_to_instances_dict: dict[tuple[LazyData[Any], ...], list[_LazyBaseT]] = {}
+        self.basedata_tuple_to_property_dict: dict[tuple[LazyData[Any], ...], _T] = {}
+        #self.instance_to_property_dict: dict[_LazyBaseT, _T] = {}
 
     def __repr__(self) -> str:
         return f"<lazy_property: {self.name}>"
@@ -148,7 +153,20 @@ class lazy_property(Generic[_LazyBaseT, _T]):
     def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T] | _T":
         if instance is None:
             return self
-        return self._get_data(instance).data
+        if (basedata_tuple := self.instance_to_basedata_tuple_dict.get(instance)) is None:
+            basedata_tuple = tuple(
+                basedata_descr._get_data(instance)
+                for basedata_descr in instance.__class__._PROPERTY_DESCR_TO_BASEDATA_DESCRS[self]
+            )
+            self.instance_to_basedata_tuple_dict[instance] = basedata_tuple
+            self.basedata_tuple_to_instances_dict.setdefault(basedata_tuple, []).append(instance)
+        return self.basedata_tuple_to_property_dict.setdefault(
+            basedata_tuple,
+            self.method(*(
+                param_descr.__get__(instance)
+                for param_descr in instance.__class__._PROPERTY_DESCR_TO_PARAMETER_DESCRS[self]
+            ))
+        )
         #if (basedata_tuple := self.instance_to_basedata_tuple_dict.setdefault(instance, tuple(
         #    basedata_descr._get_basedata(instance) for basedata_descr in self.basedata_descrs
         #))) in self.basedata_tuple_to_property_dict:
@@ -163,36 +181,35 @@ class lazy_property(Generic[_LazyBaseT, _T]):
         #self.basedata_tuple_to_property_dict[basedata_tuple] = result
         #return result.data
 
-    def __set__(self, instance: _LazyBaseT, basedata: LazyData[_T]) -> None:
+    def __set__(self, instance: _LazyBaseT, value: Any) -> None:
         raise RuntimeError("Attempting to set a readonly lazy property")
 
-    def _get_data(self, instance: _LazyBaseT) -> LazyData[_T]:
-        basedata_tuple = self.instance_to_basedata_tuple_dict.get(instance, tuple(
-            basedata_descr.default_basedata
-            for basedata_descr in instance.__class__._PROPERTY_DESCR_TO_BASEDATA_DESCRS[self]
-        ))
-        return self.basedata_tuple_to_property_dict.setdefault(
-            basedata_tuple,
-            LazyData(self.method(*(
-                param_descr.__get__(instance)
-                for param_descr in instance.__class__._PROPERTY_DESCR_TO_PARAMETER_DESCRS[self]
-            )))
-        )
-
-    def _increment_basedata_tuple_refcnt(self, basedata_tuple: tuple[LazyData[Any], ...]) -> None:
-        if basedata_tuple not in self.basedata_tuple_refcnt_dict:
-            self.basedata_tuple_refcnt_dict[basedata_tuple] = 0
-        self.basedata_tuple_refcnt_dict[basedata_tuple] += 1
-
-    def _decrement_basedata_tuple_refcnt(self, basedata_tuple: tuple[LazyData[Any], ...]) -> None:
-        self.basedata_tuple_refcnt_dict[basedata_tuple] -= 1
-        if self.basedata_tuple_refcnt_dict[basedata_tuple] != 0:
+    def _clear_instance_basedata_tuple(self, instance: _LazyBaseT) -> None:
+        if (basedata_tuple := self.instance_to_basedata_tuple_dict.pop(instance, None)) is None:
             return
-        self.basedata_tuple_refcnt_dict.pop(basedata_tuple)
+        self.basedata_tuple_to_instances_dict[basedata_tuple].remove(instance)
+        if self.basedata_tuple_to_instances_dict[basedata_tuple]:
+            return
+        self.basedata_tuple_to_instances_dict.pop(basedata_tuple)
         if (property_data := self.basedata_tuple_to_property_dict.pop(basedata_tuple, None)) is None:
             return
-        if isinstance(property_data.data, LazyBase):  # TODO
-            property_data.data._restock()
+        if isinstance(property_data, LazyBase):  # TODO
+            property_data._restock()
+
+    #def _increment_basedata_tuple_refcnt(self, basedata_tuple: tuple[LazyData[Any], ...]) -> None:
+    #    if basedata_tuple not in self.basedata_tuple_refcnt_dict:
+    #        self.basedata_tuple_refcnt_dict[basedata_tuple] = 0
+    #    self.basedata_tuple_refcnt_dict[basedata_tuple] += 1
+
+    #def _decrement_basedata_tuple_refcnt(self, basedata_tuple: tuple[LazyData[Any], ...]) -> None:
+    #    self.basedata_tuple_refcnt_dict[basedata_tuple] -= 1
+    #    if self.basedata_tuple_refcnt_dict[basedata_tuple] != 0:
+    #        return
+    #    self.basedata_tuple_refcnt_dict.pop(basedata_tuple)
+    #    if (property_data := self.basedata_tuple_to_property_dict.pop(basedata_tuple, None)) is None:
+    #        return
+    #    if isinstance(property_data, LazyBase):  # TODO
+    #        property_data._restock()
 
 
 class LazyBase(ABC):
@@ -240,7 +257,8 @@ class LazyBase(ABC):
         }
         basedata_descr_to_property_descrs = {
             basedata_descr: tuple(
-                property_descr for property_descr, basedata_descrs in property_descr_to_basedata_descrs.items()
+                property_descr
+                for property_descr, basedata_descrs in property_descr_to_basedata_descrs.items()
                 if basedata_descr in basedata_descrs
             )
             for basedata_descr in descrs.values()
@@ -361,13 +379,14 @@ class LazyBase(ABC):
     def _copy(self):
         result = self.__new__(self.__class__)
         for basedata_descr in self._BASEDATA_DESCR_TO_PROPERTY_DESCRS:
-            if (basedata := basedata_descr.instance_to_basedata_dict.get(self, None)) is not None:
-                basedata_descr.instance_to_basedata_dict[result] = basedata
-                basedata_descr._increment_basedata_refcnt(basedata)
-        for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
-            if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.get(self, None)) is not None:
-                property_descr.instance_to_basedata_tuple_dict[result] = basedata_tuple
-                property_descr._increment_basedata_tuple_refcnt(basedata_tuple)
+            basedata = basedata_descr.instance_to_basedata_dict.get(self, None)
+            basedata_descr._set_data(result, basedata)
+                #basedata_descr.instance_to_basedata_dict[result] = basedata
+                #basedata_descr._increment_basedata_refcnt(basedata)
+        #for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
+        #    if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.get(self, None)) is not None:
+        #        property_descr.instance_to_basedata_tuple_dict[result] = basedata_tuple
+        #        property_descr._increment_basedata_tuple_refcnt(basedata_tuple)
         return result
 
     #def _reinitialize_data(self) -> None:
@@ -376,11 +395,11 @@ class LazyBase(ABC):
 
     def _restock(self) -> None:
         for basedata_descr in self._BASEDATA_DESCR_TO_PROPERTY_DESCRS:
-            if (basedata := basedata_descr.instance_to_basedata_dict.pop(self, None)) is not None:
-                basedata_descr._decrement_basedata_refcnt(basedata)
-        for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
-            if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(self, None)) is not None:
-                property_descr._decrement_basedata_tuple_refcnt(basedata_tuple)
+            basedata_descr._set_data(self, None)
+                #basedata_descr._decrement_basedata_refcnt(basedata)
+        #for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
+        #    if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(self, None)) is not None:
+        #        property_descr._decrement_basedata_tuple_refcnt(basedata_tuple)
         self._VACANT_INSTANCES.append(self)
 
     @classmethod
@@ -391,7 +410,7 @@ class LazyBase(ABC):
                 assert child_annotation == parent_annotation, error_message
             return
 
-        def _to_classes(annotation: _Annotation) -> tuple[type, ...]:
+        def to_classes(annotation: _Annotation) -> tuple[type, ...]:
             return tuple(
                 child.__origin__ if isinstance(child, GenericAlias) else
                 Callable if isinstance(child, Callable) else child
@@ -403,9 +422,9 @@ class LazyBase(ABC):
         assert all(
             any(
                 issubclass(child_cls, parent_cls)
-                for parent_cls in _to_classes(parent_annotation)
+                for parent_cls in to_classes(parent_annotation)
             )
-            for child_cls in _to_classes(child_annotation)
+            for child_cls in to_classes(child_annotation)
         ), error_message
 
 

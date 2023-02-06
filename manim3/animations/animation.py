@@ -1,7 +1,7 @@
 __all__ = [
     "Animation",
     "AlphaAnimation",
-    "SimpleAnimation"
+    #"SimpleAnimation"
 ]
 
 
@@ -55,19 +55,19 @@ class AlphaAnimation(Animation):
         )
 
 
-class SimpleAnimation(AlphaAnimation):
-    # Animation that does not contain any addition or removal of mobjects
-    def __init__(
-        self,
-        *,
-        animate_func: Callable[[Real, Real], None],
-        run_time: Real,
-        rate_func: Callable[[Real], Real] | None = None
-    ):
-        super().__init__(
-            animate_func=animate_func,
-            mobject_addition_items=[],
-            mobject_removal_items=[],
-            run_time=run_time,
-            rate_func=rate_func
-        )
+#class SimpleAnimation(AlphaAnimation):
+#    # Animation that does not contain any addition or removal of mobjects
+#    def __init__(
+#        self,
+#        *,
+#        animate_func: Callable[[Real, Real], None],
+#        run_time: Real,
+#        rate_func: Callable[[Real], Real] | None = None
+#    ):
+#        super().__init__(
+#            animate_func=animate_func,
+#            mobject_addition_items=[],
+#            mobject_removal_items=[],
+#            run_time=run_time,
+#            rate_func=rate_func
+#        )

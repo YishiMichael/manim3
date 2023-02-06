@@ -1,5 +1,5 @@
 from .animations.animation import *
-from .animations.movement import *
+from .animations.transform import *
 
 from .cameras.camera import *
 from .cameras.orthographic_camera import *

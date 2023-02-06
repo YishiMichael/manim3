@@ -92,6 +92,9 @@ class Mobject(LazyBase):
     def __getitem__(self, index: int | slice) -> "Mobject | list[Mobject]":
         return self._children_.__getitem__(index)
 
+    def copy(self):
+        return self._copy()
+
     # family matters
 
     @lazy_basedata
@@ -148,23 +151,23 @@ class Mobject(LazyBase):
     def _bind_child(self, node: "Mobject", *, index: int | None = None) -> None:
         if node.includes(self):
             raise ValueError(f"'{node}' has already included '{self}'")
-        children_list = self._children_[:]
+        children_copy = self._children_[:]
         if index is not None:
-            children_list.insert(index, node)
+            children_copy.insert(index, node)
         else:
-            children_list.append(node)
-        self._children_ = LazyData(children_list)
-        parents_list = node._parents_[:]
-        parents_list.append(self)
-        node._parents_ = LazyData(parents_list)
+            children_copy.append(node)
+        self._children_ = LazyData(children_copy)
+        parents_copy = node._parents_[:]
+        parents_copy.append(self)
+        node._parents_ = LazyData(parents_copy)
 
     def _unbind_child(self, node: "Mobject") -> None:
-        children_list = self._children_[:]
-        children_list.remove(node)
-        self._children_ = LazyData(children_list)
-        parents_list = node._parents_[:]
-        parents_list.remove(self)
-        node._parents_ = LazyData(parents_list)
+        children_copy = self._children_[:]
+        children_copy.remove(node)
+        self._children_ = LazyData(children_copy)
+        parents_copy = node._parents_[:]
+        parents_copy.remove(self)
+        node._parents_ = LazyData(parents_copy)
 
     def index(self, node: "Mobject") -> int:
         return self._children_.index(node)
@@ -650,16 +653,16 @@ class Mobject(LazyBase):
         return []
 
     def add_pass(self, *render_passes: RenderPass):
-        passes = self._render_passes_[:]
-        passes.extend(render_passes)
-        self._render_passes_ = LazyData(passes)
+        render_passes_copy = self._render_passes_[:]
+        render_passes_copy.extend(render_passes)
+        self._render_passes_ = LazyData(render_passes_copy)
         return self
 
     def remove_pass(self, *render_passes: RenderPass):
-        passes = self._render_passes_[:]
+        render_passes_copy = self._render_passes_[:]
         for render_pass in render_passes:
-            passes.remove(render_pass)
-        self._render_passes_ = LazyData(passes)
+            render_passes_copy.remove(render_pass)
+        self._render_passes_ = LazyData(render_passes_copy)
         return self
 
 
