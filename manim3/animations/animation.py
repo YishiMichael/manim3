@@ -48,8 +48,8 @@ class AlphaAnimation(Animation):
             rate_func = RateUtils.smooth
         super().__init__(
             animate_func=lambda t0, t: animate_func(rate_func(t0 / run_time), rate_func(t / run_time)),
-            mobject_addition_items=[(rate_func(t / run_time), mobject, parent) for t, mobject, parent in mobject_addition_items],
-            mobject_removal_items=[(rate_func(t / run_time), mobject, parent) for t, mobject, parent in mobject_removal_items],
+            mobject_addition_items=[(rate_func(alpha) * run_time, mobject, parent) for alpha, mobject, parent in mobject_addition_items],
+            mobject_removal_items=[(rate_func(alpha) * run_time, mobject, parent) for alpha, mobject, parent in mobject_removal_items],
             start_time=0.0,
             stop_time=run_time
         )

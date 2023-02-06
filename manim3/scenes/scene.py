@@ -316,6 +316,7 @@ class Scene(Mobject):
                 animation._mobject_removal_items.remove(removal_item)
 
             if animation_expired:
+                print(animation._stop_time, animation._mobject_addition_items)
                 if animation._mobject_addition_items:
                     warnings.warn("`mobject_addition_items` is not empty after the animation finishes")
                 if animation._mobject_removal_items:

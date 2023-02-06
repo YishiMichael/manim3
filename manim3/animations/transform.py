@@ -34,7 +34,7 @@ class ShapeMobjectTransform(AlphaAnimation):
         start_mobject: ShapeMobject,
         stop_mobject: ShapeMobject,
         *,
-        run_time: Real = 3.0,
+        run_time: Real = 2.0,
         rate_func: Callable[[Real], Real] | None = None
     ):
         intermediate_mobject = stop_mobject.copy()

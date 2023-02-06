@@ -134,7 +134,7 @@ class SceneConfig(LazyBase):
             "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
             "u_point_lights": {
                 "position": point_lights["position"],
-                "color": np.append(point_lights["color"], [point_lights["opacity"]], axis=1)
+                "color": np.append(point_lights["color"], point_lights["opacity"][:, None], axis=1)
             }
         })
 

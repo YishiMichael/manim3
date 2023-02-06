@@ -94,17 +94,6 @@ class Mobject(LazyBase):
     def __getitem__(self, index: int | slice) -> "Mobject | list[Mobject]":
         return self._children.__getitem__(index)
 
-    def copy(self):
-        result = self._copy()
-        result._parents = []
-        result._children = []
-        for parent in self._parents:
-            parent._bind_child(result)
-        for child in self._children:
-            child_copy = child.copy()
-            result._bind_child(child_copy)
-        return result
-
     # family matters
 
     @lazy_slot
@@ -207,6 +196,21 @@ class Mobject(LazyBase):
         self.clear()
         self.add(*nodes)
         return self
+
+    def copy_standalone(self):
+        result = self._copy()
+        result._parents = []
+        result._children = []
+        for child in self._children:
+            child_copy = child.copy_standalone()
+            result._bind_child(child_copy)
+        return result
+
+    def copy(self):
+        result = self.copy_standalone()
+        for parent in self._parents:
+            parent._bind_child(result)
+        return result
 
     # matrix & transform
 
