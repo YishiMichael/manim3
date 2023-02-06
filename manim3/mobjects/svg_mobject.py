@@ -9,10 +9,6 @@ import svgelements as se
 
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.lazy import (
-    LazyData,
-    lazy_basedata
-)
 
 
 class SVGMobject(ShapeMobject):
@@ -62,22 +58,21 @@ class SVGMobject(ShapeMobject):
         #    #mobject.set_paint(**self.get_paint_settings_from_shape(shape))
         #    shape_mobjects.append(mobject)
 
-        instance._shape_mobjects_ = LazyData(shape_mobjects)
-        instance.add(*shape_mobjects)
-        instance._adjust_frame(
-            svg.width,
-            svg.height,
-            width,
-            height,
-            frame_scale
-        )
-        instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+        if shape_mobjects:
+            instance.add(*shape_mobjects)
+            instance._adjust_frame(
+                svg.width,
+                svg.height,
+                width,
+                height,
+                frame_scale
+            )
+            instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
         return instance
 
-    @lazy_basedata
-    @staticmethod
-    def _shape_mobjects_() -> list[ShapeMobject]:
-        return []
+    @property
+    def _shape_mobjects(self) -> list[ShapeMobject]:
+        return [child for child in self._children if isinstance(child, ShapeMobject)]
 
     #@classmethod
     #def shape_to_path(cls, shape: se.Shape) -> se.Path | None:

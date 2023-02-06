@@ -3,7 +3,8 @@ __all__ = ["ShapeMobjectTransform"]
 
 from typing import (
     Any,
-    Callable
+    Callable,
+    ClassVar
 )
 
 from ..animations.animation import AlphaAnimation
@@ -18,6 +19,16 @@ from ..utils.shape import Shape
 
 
 class ShapeMobjectTransform(AlphaAnimation):
+    _INTERPOLATE_METHODS: ClassVar[dict[lazy_basedata[ShapeMobject, Any], Callable[[Any, Any, Real], Any]]] = {
+        ShapeMobject._shape_: Shape.interpolate_method,
+        ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate,
+        ShapeMobject._color_: SpaceUtils.lerp,
+        ShapeMobject._opacity_: SpaceUtils.lerp,
+        ShapeMobject._ambient_strength_: SpaceUtils.lerp,
+        ShapeMobject._specular_strength_: SpaceUtils.lerp,
+        ShapeMobject._shininess_: SpaceUtils.lerp
+    }
+
     def __init__(
         self,
         start_mobject: ShapeMobject,
@@ -26,9 +37,9 @@ class ShapeMobjectTransform(AlphaAnimation):
         run_time: Real = 3.0,
         rate_func: Callable[[Real], Real] | None = None
     ):
-        intermediate_mobject = start_mobject.copy()
+        intermediate_mobject = stop_mobject.copy()
         def animate_func(alpha_0: Real, alpha: Real) -> None:
-            for basedata_descr, interpolate_method in self._get_interpolate_methods().items():
+            for basedata_descr, interpolate_method in self._INTERPOLATE_METHODS.items():
                 if (start_basedata := basedata_descr._get_data(start_mobject)) \
                         is (stop_basedata := basedata_descr._get_data(stop_mobject)):
                     continue
@@ -49,15 +60,3 @@ class ShapeMobjectTransform(AlphaAnimation):
             run_time=run_time,
             rate_func=rate_func
         )
-
-    @classmethod
-    def _get_interpolate_methods(cls) -> dict[lazy_basedata[ShapeMobject, Any], Callable[[Any, Any, Real], Any]]:
-        return {
-            ShapeMobject._shape_: Shape.interpolate_method,
-            ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate,
-            ShapeMobject._color_: SpaceUtils.lerp,
-            ShapeMobject._opacity_: SpaceUtils.lerp,
-            ShapeMobject._ambient_strength_: SpaceUtils.lerp,
-            ShapeMobject._specular_strength_: SpaceUtils.lerp,
-            ShapeMobject._shininess_: SpaceUtils.lerp
-        }

@@ -191,7 +191,7 @@ SCALE_FACTOR_PER_FONT_POINT: float = 0.001
 class TexText(StringMobject):
     def __new__(
         cls,
-        string: str,
+        string: str = "",
         *,
         font_size: Real = 48,
         alignment: str | None = "\\centering",
@@ -347,7 +347,7 @@ class TexText(StringMobject):
 class Tex(TexText):
     def __new__(
         cls,
-        string: str,
+        string: str = "",
         *,
         tex_environment: str | None = "align*",
         **kwargs

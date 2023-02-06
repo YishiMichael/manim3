@@ -4,9 +4,12 @@ from manim3 import *
 class Demo(Scene):
     def construct(self) -> None:
         text = Text("Example Text")
-        self.add(text)
-        self.play(ShapeMobjectTransform(text, text.copy().shift(RIGHT)))
-        self.wait()
+        target = text.copy().shift(RIGHT)
+        for shape, target_shape in zip(text.iter_children(), target.iter_children()):
+            self.add(shape)
+            if isinstance(shape, ShapeMobject) and isinstance(target_shape, ShapeMobject):
+                self.prepare(ShapeMobjectTransform(shape, target_shape))
+        self.wait(5)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,8 @@ __all__ = [
     "LazyData",
     "LazyBase",
     "lazy_basedata",
-    "lazy_property"
+    "lazy_property",
+    "lazy_slot"
 ]
 
 
@@ -44,16 +45,13 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
     def __init__(self, method: Callable[[], _T]):
         self.name: str = method.__name__
         self.method: Callable[..., _T] = method
-        self._default_basedata: LazyData[_T] | None = None
         #self.default_basedata: LazyData[_T] = LazyData(method())
         self.annotation: _Annotation = inspect.signature(method).return_annotation
         #self.property_descrs: tuple[lazy_property[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_dict: dict[_LazyBaseT, LazyData[_T]] = {}
         self.basedata_to_instances_dict: dict[LazyData[_T], list[_LazyBaseT]] = {}
         #self.basedata_refcnt_dict: dict[LazyData[_T], int] = {}
-
-    def __repr__(self) -> str:
-        return f"<lazy_basedata: {self.name}>"
+        self._default_basedata: LazyData[_T] | None = None
 
     @overload
     def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_basedata[_LazyBaseT, _T]": ...
@@ -69,31 +67,6 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
     def __set__(self, instance: _LazyBaseT, basedata: LazyData[_T]) -> None:
         assert isinstance(basedata, LazyData)
         self._set_data(instance, basedata)
-
-        #for property_descr in instance.__class__._BASEDATA_DESCR_TO_PROPERTY_DESCRS[self]:
-        #    basedata_descrs = instance.__class__._PROPERTY_DESCR_TO_BASEDATA_DESCRS[property_descr]
-        #    if (old_basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(instance, None)) is not None:
-        #        property_descr._decrement_basedata_tuple_refcnt(old_basedata_tuple)
-        #    else:
-        #        old_basedata_tuple = tuple(
-        #            basedata_descr.default_basedata
-        #            for basedata_descr in basedata_descrs
-        #        )
-
-        #    #index = basedata_descrs.index(self)
-        #    #print(old_basedata, old_basedata_tuple, index)
-        #    #assert old_basedata is old_basedata_tuple[index]
-        #    basedata_list = list(old_basedata_tuple)
-        #    basedata_list[basedata_descrs.index(self)] = basedata
-        #    basedata_tuple = tuple(basedata_list)
-        #    property_descr.instance_to_basedata_tuple_dict[instance] = basedata_tuple
-        #    property_descr._increment_basedata_tuple_refcnt(basedata_tuple)
-
-        #    #data_list = list(old_basedata_tuple)
-        #    #data_list[index] = data
-        #    #property_descr.instance_to_basedata_tuple_dict[instance] = tuple(data_list)
-        #    #if old_basedata_tuple not in property_descr.basedata_tuple_to_property_dict:
-        #    #    continue
 
     @property
     def default_basedata(self) -> LazyData[_T]:
@@ -111,7 +84,6 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
         if basedata is None:
             return
         self.instance_to_basedata_dict[instance] = basedata
-        #self._increment_basedata_refcnt(basedata)
         self.basedata_to_instances_dict.setdefault(basedata, []).append(instance)
 
     def _clear_instance_basedata(self, instance: _LazyBaseT) -> None:
@@ -141,9 +113,6 @@ class lazy_property(Generic[_LazyBaseT, _T]):
         self.basedata_tuple_to_property_dict: dict[tuple[LazyData[Any], ...], _T] = {}
         #self.instance_to_property_dict: dict[_LazyBaseT, _T] = {}
 
-    def __repr__(self) -> str:
-        return f"<lazy_property: {self.name}>"
-
     @overload
     def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T]": ...
 
@@ -167,19 +136,6 @@ class lazy_property(Generic[_LazyBaseT, _T]):
                 for param_descr in instance.__class__._PROPERTY_DESCR_TO_PARAMETER_DESCRS[self]
             ))
         )
-        #if (basedata_tuple := self.instance_to_basedata_tuple_dict.setdefault(instance, tuple(
-        #    basedata_descr._get_basedata(instance) for basedata_descr in self.basedata_descrs
-        #))) in self.basedata_tuple_to_property_dict:
-        #result = self.basedata_tuple_to_property_dict.setdefault(
-        #    basedata_tuple,
-        #    LazyData(self.method(*(basedata.data for basedata in basedata_tuple)))
-        #)
-        #if basedata_tuple in self.basedata_tuple_to_property_dict:
-        #    return self.basedata_tuple_to_property_dict[basedata_tuple].data
-        ##self.basedata_tuple_refcnt_dict[basedata_tuple] = 1
-        #result = LazyData(self.method(*(basedata.data for basedata in basedata_tuple)))
-        #self.basedata_tuple_to_property_dict[basedata_tuple] = result
-        #return result.data
 
     def __set__(self, instance: _LazyBaseT, value: Any) -> None:
         raise RuntimeError("Attempting to set a readonly lazy property")
@@ -196,20 +152,49 @@ class lazy_property(Generic[_LazyBaseT, _T]):
         if isinstance(property_data, LazyBase):  # TODO
             property_data._restock()
 
-    #def _increment_basedata_tuple_refcnt(self, basedata_tuple: tuple[LazyData[Any], ...]) -> None:
-    #    if basedata_tuple not in self.basedata_tuple_refcnt_dict:
-    #        self.basedata_tuple_refcnt_dict[basedata_tuple] = 0
-    #    self.basedata_tuple_refcnt_dict[basedata_tuple] += 1
 
-    #def _decrement_basedata_tuple_refcnt(self, basedata_tuple: tuple[LazyData[Any], ...]) -> None:
-    #    self.basedata_tuple_refcnt_dict[basedata_tuple] -= 1
-    #    if self.basedata_tuple_refcnt_dict[basedata_tuple] != 0:
-    #        return
-    #    self.basedata_tuple_refcnt_dict.pop(basedata_tuple)
-    #    if (property_data := self.basedata_tuple_to_property_dict.pop(basedata_tuple, None)) is None:
-    #        return
-    #    if isinstance(property_data, LazyBase):  # TODO
-    #        property_data._restock()
+class lazy_slot(Generic[_LazyBaseT, _T]):
+    def __init__(self, method: Callable[[], _T]):
+        self.name: str = method.__name__
+        self.method: Callable[..., _T] = method
+        self.instance_to_value_dict: dict[_LazyBaseT, _T] = {}
+        #self.copy_method: Callable[[_T], _T] | None = None
+        #self._default_value: _T | None = None
+
+    @overload
+    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_slot[_LazyBaseT, _T]": ...
+
+    @overload
+    def __get__(self, instance: _LazyBaseT, owner: type[_LazyBaseT] | None = None) -> _T: ...
+
+    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_slot[_LazyBaseT, _T] | _T":
+        if instance is None:
+            return self
+        if (value := self.instance_to_value_dict.get(instance)) is None:
+            value = self.method()
+            self.instance_to_value_dict[instance] = value
+        return value
+
+    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
+        self.instance_to_value_dict[instance] = value
+
+    #def copier(self, copy_method: Callable[[_T], _T]) -> Callable[[_T], _T]:
+    #    self.copy_method = copy_method
+    #    return copy_method
+
+    def _copy_value(self, instance_src: _LazyBaseT, instance_dst: _LazyBaseT) -> None:
+        if (value := self.instance_to_value_dict.get(instance_src)) is None:
+            self.instance_to_value_dict.pop(instance_dst, None)
+            return
+        #if self.copy_method is not None:
+        #    value = self.copy_method(value)
+        self.instance_to_value_dict[instance_dst] = value
+
+    #@property
+    #def default_value(self) -> _T:
+    #    if self._default_value is None:
+    #        self._default_value = self.method()
+    #    return self._default_value
 
 
 class LazyBase(ABC):
@@ -219,16 +204,22 @@ class LazyBase(ABC):
     _BASEDATA_DESCR_TO_PROPERTY_DESCRS: ClassVar[dict[lazy_basedata, tuple[lazy_property, ...]]]
     _PROPERTY_DESCR_TO_BASEDATA_DESCRS: ClassVar[dict[lazy_property, tuple[lazy_basedata, ...]]]
     _PROPERTY_DESCR_TO_PARAMETER_DESCRS: ClassVar[dict[lazy_property, tuple[lazy_basedata | lazy_property, ...]]]
+    _SLOT_DESCRS: ClassVar[tuple[lazy_slot, ...]] = ()
 
     def __init_subclass__(cls) -> None:
         descrs: dict[str, lazy_basedata | lazy_property] = {}
+        slots: dict[str, lazy_slot] = {}
         for parent_cls in cls.__mro__[::-1]:
             for name, method in parent_cls.__dict__.items():
-                if name in descrs:
-                    assert isinstance(method, lazy_basedata | lazy_property)
-                    cls._check_annotation_matching(method.annotation, descrs[name].annotation)
+                if (covered_descr := descrs.get(name)) is not None:
+                    assert isinstance(covered_descr, lazy_basedata | lazy_property)
+                    cls._check_annotation_matching(method.annotation, covered_descr.annotation)
                 if isinstance(method, lazy_basedata | lazy_property):
                     descrs[name] = method
+                if (covered_slot := slots.get(name)) is not None:
+                    assert isinstance(covered_slot, lazy_slot)
+                if isinstance(method, lazy_slot):
+                    slots[name] = method
 
         property_descr_to_parameter_descrs: dict[lazy_property, tuple[lazy_basedata | lazy_property, ...]] = {}
         for descr in descrs.values():
@@ -270,6 +261,7 @@ class LazyBase(ABC):
         cls._BASEDATA_DESCR_TO_PROPERTY_DESCRS = basedata_descr_to_property_descrs
         cls._PROPERTY_DESCR_TO_BASEDATA_DESCRS = property_descr_to_basedata_descrs
         cls._PROPERTY_DESCR_TO_PARAMETER_DESCRS = property_descr_to_parameter_descrs
+        cls._SLOT_DESCRS = tuple(slots.values())
         return super().__init_subclass__()
 
     def __new__(cls):
@@ -278,109 +270,24 @@ class LazyBase(ABC):
             assert isinstance(instance, cls)
         else:
             instance = super().__new__(cls)
+            instance._init_new_instance()
         return instance
 
     def __delete__(self) -> None:
         self._restock()
 
-    #@classmethod
-    #def _setup_descrs(cls, descrs: dict[str, lazy_basedata | lazy_property]) -> tuple[list[lazy_basedata], list[lazy_property]]:
-    #    
-
-    #    basedata_descr_list: list[lazy_basedata] = []
-    #    for basedata_descr, property_descrs in basedata_descr_to_property_descrs.items():
-    #        basedata_descr.property_descrs = property_descrs
-    #        basedata_descr_list.append(basedata_descr)
-    #    property_descr_list: list[lazy_property] = []
-    #    for property_descr, basedata_descrs in property_descr_to_basedata_descrs.items():
-    #        property_descr.basedata_descrs = basedata_descrs
-    #        property_descr_list.append(property_descr)
-    #    #import pprint
-    #    #print(cls)
-    #    #pprint.pprint(property_descr_to_basedata_descrs)
-    #    #pprint.pprint(basedata_descr_to_property_descrs)
-    #    #print()
-    #    return basedata_descr_list, property_descr_list
-
-
-        ##data_descrs = [descr for _, descr in descrs.items() if isinstance(descr, lazy_data)]
-        ##property_descrs = [descr for _, descr in descrs.items() if isinstance(descr, lazy_property)]
-        #property_descr_to_basedata_descrs: dict[lazy_property, list[lazy_basedata]] = {}
-        #property_descr_to_property_descrs: dict[lazy_property, list[lazy_property]] = {}
-        #for descr in descrs.values():
-        #    if not isinstance(descr, lazy_property):
-        #        continue
-        #    basedata_descrs: list[lazy_basedata] = []
-        #    property_descrs: list[lazy_property] = []
-
-        #    #children: list[lazy_basedata | lazy_property] = []
-        #    for name, param_annotation in descr.parameters.items():
-        #        param_descr = descrs[name]
-        #        cls._check_annotation_matching(param_descr.annotation, param_annotation)
-        #        if isinstance(param_descr, lazy_property):
-        #            if param_descr in property_descr_to_basedata_descrs:
-        #                basedata_descrs.extend(
-        #                    basedata_descr for basedata_descr in property_descr_to_basedata_descrs[param_descr]
-        #                    if basedata_descr not in basedata_descrs
-        #                )
-        #                property_descrs.extend(
-        #                    property_descr for property_descr in property_descr_to_property_descrs[param_descr]
-        #                    if property_descr not in property_descrs
-        #                )
-        #                #children.extend(
-        #                #    child for child in children_dict[param_descr]
-        #                #    if child not in children
-        #                #)
-        #            else:
-        #                if param_descr not in property_descrs:
-        #                    property_descrs.append(param_descr)
-        #        else:
-        #            if param_descr not in basedata_descrs:
-        #                basedata_descrs.append(param_descr)
-        #        #children.update(children_dict.get(descr, {descr}))
-        #        #prop.add(properties[param_name])
-        #    for property_descrs in property_descr_to_property_descrs.values():
-        #        if descr in property_descrs:
-        #            property_descrs.remove(descr)
-        #            property_descrs.extend(descr)
-        #    for property_children in children_dict.values():
-        #        if descr in property_children:
-        #            property_children.remove(descr)
-        #            property_children.extend(
-        #                child for child in children
-        #                if child not in property_children
-        #            )
-        #    #children_dict[descr] = children
-        #    property_descr_to_basedata_descrs[descr] = basedata_descrs
-        #    property_descr_to_property_descrs[descr] = property_descrs
-
-        #property_descrs: list[lazy_property] = []
-        #parents_dict: dict[lazy_basedata, list[lazy_property]] = {
-        #    descr: [] for descr in descrs.values() if isinstance(descr, lazy_basedata)
-        #}
-        #print(cls.__name__)
-        #for property_descr, children in children_dict.items():
-        #    basedata_descrs: list[lazy_basedata] = []
-        #    for basedata_descr in children:
-        #        assert isinstance(basedata_descr, lazy_basedata)
-        #        parents_dict[basedata_descr].append(property_descr)
-        #        basedata_descrs.append(basedata_descr)
-        #    property_descr.basedata_descrs = tuple(basedata_descrs)
-        #    print(property_descr, basedata_descrs)
-        #    property_descrs.append(property_descr)
-        #import pprint
-        #pprint.pprint(parents_dict)
-        #print()
-        #basedata_descrs: list[lazy_basedata] = []
-        #for basedata_descr, parents in parents_dict.items():
-        #    basedata_descr.property_descrs = tuple(parents)
-        #    basedata_descrs.append(basedata_descr)
+    def _init_new_instance(self) -> None:
+        pass
 
     def _copy(self):
         result = self.__new__(self.__class__)
         for basedata_descr in self._BASEDATA_DESCR_TO_PROPERTY_DESCRS:
             basedata = basedata_descr.instance_to_basedata_dict.get(self, None)
             basedata_descr._set_data(result, basedata)
+        for slot_descr in self._SLOT_DESCRS:
+            slot_descr._copy_value(self, result)
+            #if self in slot_descr.instance_to_value_dict:
+            #    slot_descr.__set__(result, slot_descr._copy_value(self))
                 #basedata_descr.instance_to_basedata_dict[result] = basedata
                 #basedata_descr._increment_basedata_refcnt(basedata)
         #for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
@@ -396,6 +303,8 @@ class LazyBase(ABC):
     def _restock(self) -> None:
         for basedata_descr in self._BASEDATA_DESCR_TO_PROPERTY_DESCRS:
             basedata_descr._set_data(self, None)
+        for slot_descr in self._SLOT_DESCRS:
+            slot_descr.instance_to_value_dict.pop(self, None)
                 #basedata_descr._decrement_basedata_refcnt(basedata)
         #for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
         #    if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(self, None)) is not None:

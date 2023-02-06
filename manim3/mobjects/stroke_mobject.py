@@ -27,7 +27,8 @@ from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 from ..utils.shape import (
     LineString3D,
@@ -259,9 +260,9 @@ class StrokeMobject(Mobject):
             StrokeMobject._lump_index_from_getter(StrokeMobject._point_index_getter, multi_line_string)
         )
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _render_samples_() -> int:
+    def _render_samples() -> int:
         return 4
 
     @lazy_property

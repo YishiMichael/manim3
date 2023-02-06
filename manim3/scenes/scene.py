@@ -24,9 +24,8 @@ from ..rendering.render_procedure import (
 )
 #from ..rendering.renderable import Renderable
 from ..utils.lazy import (
-    LazyData,
-    lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 
 
@@ -38,25 +37,25 @@ class Scene(Mobject):
     #    self._frame_floating_index: float = 0.0  # A timer scaled by fps
     #    self._previous_rendering_timestamp: float | None = None
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _scene_config_() -> SceneConfig:
+    def _scene_config() -> SceneConfig:
         return SceneConfig()
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _animation_dict_() -> dict[Animation, float]:
+    def _animation_dict() -> dict[Animation, float]:
         return {}
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _frame_floating_index_() -> float:
+    def _frame_floating_index() -> float:
         # A timer scaled by fps
         return 0.0
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _previous_rendering_timestamp_() -> float | None:
+    def _previous_rendering_timestamp() -> float | None:
         return None
 
     @lazy_property
@@ -224,7 +223,7 @@ class Scene(Mobject):
             )
 
     def _render_frame(self) -> None:
-        scene_config = self._scene_config_
+        scene_config = self._scene_config
         red, green, blue = scene_config._background_color_
         alpha = scene_config._background_opacity_
 
@@ -284,11 +283,10 @@ class Scene(Mobject):
 
     def _update_dt(self, dt: Real):
         assert dt >= 0.0
-        animation_dict_copy = self._animation_dict_.copy()
-        for animation in list(animation_dict_copy):
-            t0 = animation_dict_copy[animation]
+        for animation in list(self._animation_dict):
+            t0 = self._animation_dict[animation]
             t = t0 + dt
-            animation_dict_copy[animation] = t
+            self._animation_dict[animation] = t
             if t < animation._start_time:
                 continue
 
@@ -322,9 +320,8 @@ class Scene(Mobject):
                     warnings.warn("`mobject_addition_items` is not empty after the animation finishes")
                 if animation._mobject_removal_items:
                     warnings.warn("`mobject_removal_items` is not empty after the animation finishes")
-                animation_dict_copy.pop(animation)
+                self._animation_dict.pop(animation)
 
-        self._animation_dict_ = LazyData(animation_dict_copy)
         return self
 
     def _update_frames(self, frames: Real):
@@ -335,10 +332,8 @@ class Scene(Mobject):
         pass
 
     def prepare(self, *animations: Animation):
-        animation_dict = self._animation_dict_.copy()
         for animation in animations:
-            animation_dict[animation] = 0.0
-        self._animation_dict_ = LazyData(animation_dict)
+            self._animation_dict[animation] = 0.0
         return self
 
     def play(self, *animations: Animation):
@@ -386,11 +381,11 @@ class Scene(Mobject):
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
-        self._scene_config_ = LazyData(self._scene_config_.set_view(
+        self._scene_config.set_view(
             eye=eye,
             target=target,
             up=up
-        ))
+        )
         return self
 
     def set_background(
@@ -399,10 +394,10 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config_ = LazyData(self._scene_config_.set_background(
+        self._scene_config.set_background(
             color=color,
             opacity=opacity
-        ))
+        )
         return self
 
     def set_ambient_light(
@@ -411,10 +406,10 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config_ = LazyData(self._scene_config_.set_ambient_light(
+        self._scene_config.set_ambient_light(
             color=color,
             opacity=opacity
-        ))
+        )
         return self
 
     def add_point_light(
@@ -424,11 +419,11 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config_ = LazyData(self._scene_config_.add_point_light(
+        self._scene_config.add_point_light(
             position=position,
             color=color,
             opacity=opacity
-        ))
+        )
         return self
 
     def set_point_light(
@@ -439,12 +434,12 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config_ = LazyData(self._scene_config_.set_point_light(
+        self._scene_config.set_point_light(
             index=index,
             position=position,
             color=color,
             opacity=opacity
-        ))
+        )
         return self
 
     def set_style(
@@ -458,7 +453,7 @@ class Scene(Mobject):
         point_light_color: ColorType | None = None,
         point_light_opacity: Real | None = None
     ):
-        self._scene_config_ = LazyData(self._scene_config_.set_style(
+        self._scene_config.set_style(
             background_color=background_color,
             background_opacity=background_opacity,
             ambient_light_color=ambient_light_color,
@@ -466,5 +461,5 @@ class Scene(Mobject):
             point_light_position=point_light_position,
             point_light_color=point_light_color,
             point_light_opacity=point_light_opacity
-        ))
+        )
         return self

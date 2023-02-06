@@ -163,9 +163,9 @@ class SpaceUtils:
         rotation_1 = Rotation.from_matrix(rotation_part_1)
         shear_1 = rotation_part_1 @ np.linalg.inv(rotation_1.as_matrix())
 
-        slerp = Slerp([0.0, 1.0], [translation_0, translation_1])
+        slerp = Slerp((0.0, 1.0), Rotation.concatenate((rotation_0, rotation_1)))
         m = np.identity(4)
-        m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ slerp(alpha)
+        m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ Rotation.as_matrix(slerp(alpha))
         m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
         return m
 

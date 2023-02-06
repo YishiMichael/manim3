@@ -348,14 +348,15 @@ class GLSLDynamicStruct(LazyBase):
 
 
 class GLSLDynamicBuffer(GLSLDynamicStruct):
-    #def __del__(self):
-    #    pass  # TODO: release buffer
+    _buffer: moderngl.Buffer
 
-    #@lazy_property_updatable
-    @lazy_basedata
-    @staticmethod
-    def _buffer_() -> moderngl.Buffer:
-        return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+    def _init_new_instance(self) -> None:
+        self._buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+
+    #@lazy_basedata
+    #@staticmethod
+    #def _buffer_() -> moderngl.Buffer:
+    #    return 
 
     #@lazy_property
     #@staticmethod
@@ -376,18 +377,18 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 
     def write(self, data: np.ndarray | dict[str, Any]):
         super().write(data)
-        buffer = self._buffer_
+        buffer = self._buffer
         bytes_data = self._data_storage_.tobytes()
         struct_dtype = self._struct_dtype_
         #assert struct_dtype.itemsize == len(bytes_data)
         if struct_dtype.itemsize == 0:
             buffer.clear()
-            self._buffer_ = LazyData(buffer)
+            #self._buffer_ = LazyData(buffer)
             return self
         #print(struct_dtype.itemsize)
         buffer.orphan(struct_dtype.itemsize)
         buffer.write(bytes_data)
-        self._buffer_ = LazyData(buffer)
+        #self._buffer_ = LazyData(buffer)
         return self
 
 
@@ -975,7 +976,7 @@ class RenderProcedure(LazyBase):
             program_uniform_block = program._program_[uniform_block_name]
             assert isinstance(program_uniform_block, moderngl.UniformBlock)
             uniform_block._validate(program_uniform_block)
-            uniform_block_bindings.append((uniform_block._buffer_, binding))
+            uniform_block_bindings.append((uniform_block._buffer, binding))
 
         # subroutines
         #subroutine_indices: list[int] = [
@@ -989,8 +990,8 @@ class RenderProcedure(LazyBase):
         buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))
         vertex_array = context.vertex_array(
             program=program._program_,
-            content=[(attributes._buffer_, buffer_format, *attribute_names)],
-            index_buffer=index_buffer._buffer_,
+            content=[(attributes._buffer, buffer_format, *attribute_names)],
+            index_buffer=index_buffer._buffer,
             mode=mode
         )
 

@@ -38,11 +38,6 @@ class ShapeMobject(MeshMobject):
     def _shape_() -> Shape:
         return Shape()
 
-    @lazy_basedata
-    @staticmethod
-    def _stroke_mobjects_() -> list[StrokeMobject]:
-        return []
-
     #@lazy_property
     #@staticmethod
     #def _geometry_o_() -> ShapeGeometry:
@@ -60,13 +55,17 @@ class ShapeMobject(MeshMobject):
 
     #@lazy_basedata
     #@staticmethod
-    #def _apply_phong_lighting_() -> bool:
+    #def _apply_phong_lighting() -> bool:
     #    return False
+
+    @property
+    def _stroke_mobjects(self) -> list[StrokeMobject]:
+        return [child for child in self._children if isinstance(child, StrokeMobject)]
 
     def set_shape(self, shape: Shape):
         self._shape_ = LazyData(shape)
         multi_line_string_data = LazyData(shape._multi_line_string_3d_)
-        for stroke in self._stroke_mobjects_:
+        for stroke in self._stroke_mobjects:
             stroke._multi_line_string_ = multi_line_string_data
         return self
 
@@ -224,8 +223,8 @@ class ShapeMobject(MeshMobject):
         ambient_strength_data = LazyData(ambient_strength) if ambient_strength is not None else None
         specular_strength_data = LazyData(specular_strength) if specular_strength is not None else None
         shininess_data = LazyData(shininess) if shininess is not None else None
-        apply_phong_lighting_data = LazyData(apply_phong_lighting) if apply_phong_lighting is not None else \
-            LazyData(True) if any(param is not None for param in (
+        apply_phong_lighting = apply_phong_lighting if apply_phong_lighting is not None else \
+            True if any(param is not None for param in (
                 ambient_strength,
                 specular_strength,
                 shininess
@@ -245,8 +244,8 @@ class ShapeMobject(MeshMobject):
                 mobject._specular_strength_ = specular_strength_data
             if shininess_data is not None:
                 mobject._shininess_ = shininess_data
-            if apply_phong_lighting_data is not None:
-                mobject._apply_phong_lighting_ = apply_phong_lighting_data
+            if apply_phong_lighting is not None:
+                mobject._apply_phong_lighting = apply_phong_lighting
         return self
 
     def add_stroke(
@@ -279,7 +278,6 @@ class ShapeMobject(MeshMobject):
             stroke_mobjects.append(stroke)
 
         #self._stroke_mobjects.extend(stroke_mobjects)
-        self._stroke_mobjects_ = LazyData(self._stroke_mobjects_ + stroke_mobjects)
         self.add(*stroke_mobjects)
         StrokeMobject().add(*stroke_mobjects).set_style(
             width=width,
@@ -306,11 +304,10 @@ class ShapeMobject(MeshMobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
-        if self._stroke_mobjects_:
+        if self._stroke_mobjects:
             if index is None:
                 index = 0
-            stroke_mobjects_copy = self._stroke_mobjects_[:]
-            stroke_mobjects_copy.insert(index, stroke_mobjects_copy.pop(index).set_style(
+            self._stroke_mobjects[index].set_style(
                 width=width,
                 single_sided=single_sided,
                 has_linecap=has_linecap,
@@ -319,8 +316,7 @@ class ShapeMobject(MeshMobject):
                 dilate=dilate,
                 apply_oit=apply_oit,
                 broadcast=broadcast
-            ))
-            self._stroke_mobjects_ = LazyData(stroke_mobjects_copy)
+            )
         else:
             if index is not None:
                 raise IndexError

@@ -14,7 +14,8 @@ from ..rendering.render_procedure import RenderProcedure
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
     LazyData,
-    lazy_basedata
+    lazy_basedata,
+    lazy_slot
 )
 
 
@@ -41,9 +42,9 @@ class ImageMobject(MeshMobject):
         instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
         return instance
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _image_() -> Image.Image:
+    def _image() -> Image.Image:
         return NotImplemented
 
     @lazy_basedata
@@ -52,7 +53,7 @@ class ImageMobject(MeshMobject):
         return PlaneGeometry()
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        image = self._image_
+        image = self._image
         with RenderProcedure.texture(size=image.size, components=len(image.getbands())) as color_texture:
             color_texture.write(image.tobytes())
             self._color_map_texture_ = LazyData(color_texture)

@@ -4,6 +4,7 @@ __all__ = ["Mobject"]
 #import copy
 from dataclasses import dataclass
 from functools import reduce
+import itertools as it
 from typing import (
     Generator,
     Iterable,
@@ -37,7 +38,8 @@ from ..utils.lazy import (
     LazyBase,
     LazyData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 #from ..utils.node import Node
 from ..utils.space import SpaceUtils
@@ -81,7 +83,7 @@ class Mobject(LazyBase):
     #    super().__init__()
 
     def __iter__(self) -> "Iterator[Mobject]":
-        return iter(self._children_)
+        return iter(self._children)
 
     @overload
     def __getitem__(self, index: int) -> "Mobject": ...
@@ -90,37 +92,45 @@ class Mobject(LazyBase):
     def __getitem__(self, index: slice) -> "list[Mobject]": ...
 
     def __getitem__(self, index: int | slice) -> "Mobject | list[Mobject]":
-        return self._children_.__getitem__(index)
+        return self._children.__getitem__(index)
 
     def copy(self):
-        return self._copy()
+        result = self._copy()
+        result._parents = []
+        result._children = []
+        for parent in self._parents:
+            parent._bind_child(result)
+        for child in self._children:
+            child_copy = child.copy()
+            result._bind_child(child_copy)
+        return result
 
     # family matters
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _parents_() -> "list[Mobject]":
+    def _parents() -> "list[Mobject]":
         return []
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _children_() -> "list[Mobject]":
+    def _children() -> "list[Mobject]":
         return []
 
     def iter_parents(self) -> "Iterator[Mobject]":
-        return iter(self._parents_)
+        return iter(self._parents)
 
     def iter_children(self) -> "Iterator[Mobject]":
-        return iter(self._children_)
+        return iter(self._children)
 
     def _iter_ancestors(self) -> "Generator[Mobject, None, None]":
         yield self
-        for parent_node in self._parents_:
+        for parent_node in self._parents:
             yield from parent_node._iter_ancestors()
 
     def _iter_descendants(self) -> "Generator[Mobject, None, None]":
         yield self
-        for child_node in self._children_:
+        for child_node in self._children:
             yield from child_node._iter_descendants()
 
     def iter_ancestors(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
@@ -151,26 +161,18 @@ class Mobject(LazyBase):
     def _bind_child(self, node: "Mobject", *, index: int | None = None) -> None:
         if node.includes(self):
             raise ValueError(f"'{node}' has already included '{self}'")
-        children_copy = self._children_[:]
         if index is not None:
-            children_copy.insert(index, node)
+            self._children.insert(index, node)
         else:
-            children_copy.append(node)
-        self._children_ = LazyData(children_copy)
-        parents_copy = node._parents_[:]
-        parents_copy.append(self)
-        node._parents_ = LazyData(parents_copy)
+            self._children.append(node)
+        node._parents.append(self)
 
     def _unbind_child(self, node: "Mobject") -> None:
-        children_copy = self._children_[:]
-        children_copy.remove(node)
-        self._children_ = LazyData(children_copy)
-        parents_copy = node._parents_[:]
-        parents_copy.remove(self)
-        node._parents_ = LazyData(parents_copy)
+        self._children.remove(node)
+        node._parents.remove(self)
 
     def index(self, node: "Mobject") -> int:
-        return self._children_.index(node)
+        return self._children.index(node)
 
     def insert(self, index: int, node: "Mobject"):
         self._bind_child(node, index=index)
@@ -248,11 +250,11 @@ class Mobject(LazyBase):
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
-        points_array = np.concatenate([
+        points_array = np.array(list(it.chain(*(
             (aabb.maximum, aabb.minimum)
             for mobject in self.iter_descendants(broadcast=broadcast)
             if (aabb := mobject._local_world_bounding_box_) is not None
-        ])
+        ))))
         if not len(points_array):
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
             maximum = ORIGIN
@@ -589,9 +591,9 @@ class Mobject(LazyBase):
             "u_model_matrix": model_matrix.T
         })
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _render_samples_() -> int:
+    def _render_samples() -> int:
         return 0
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
@@ -601,7 +603,7 @@ class Mobject(LazyBase):
         pass
 
     def _render_with_samples(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        samples = self._render_samples_
+        samples = self._render_samples
         if not samples:
             self._render(scene_config, target_framebuffer)
             return
@@ -616,7 +618,7 @@ class Mobject(LazyBase):
             RenderProcedure.downsample_framebuffer(msaa_framebuffer, target_framebuffer)
 
     def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        render_passes = self._render_passes_
+        render_passes = self._render_passes
         if not render_passes:
             self._render_with_samples(scene_config, target_framebuffer)
             return
@@ -647,22 +649,18 @@ class Mobject(LazyBase):
             )
             target_framebuffer.depth_mask = True
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _render_passes_() -> list[RenderPass]:
+    def _render_passes() -> list[RenderPass]:
         return []
 
     def add_pass(self, *render_passes: RenderPass):
-        render_passes_copy = self._render_passes_[:]
-        render_passes_copy.extend(render_passes)
-        self._render_passes_ = LazyData(render_passes_copy)
+        self._render_passes.extend(render_passes)
         return self
 
     def remove_pass(self, *render_passes: RenderPass):
-        render_passes_copy = self._render_passes_[:]
         for render_pass in render_passes:
-            render_passes_copy.remove(render_pass)
-        self._render_passes_ = LazyData(render_passes_copy)
+            self._render_passes.remove(render_pass)
         return self
 
 

@@ -173,19 +173,19 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
     def __new__(cls, children: list[LineString[_VecT, _VecsT]] | None = None):
         instance = super().__new__(cls)
         if children is not None:
-            children_copy = instance._children_[:]
-            children_copy.extend(children)
-            instance._children_ = LazyData(children_copy)
+            children_list = list(instance._children_)
+            children_list.extend(children)
+            instance._children_ = LazyData(tuple(children_list))
         return instance
 
     @lazy_basedata
     @staticmethod
-    def _children_() -> list[LineString[_VecT, _VecsT]]:
-        return []
+    def _children_() -> tuple[LineString[_VecT, _VecsT], ...]:
+        return ()
 
     @lazy_property
     @staticmethod
-    def _lengths_(children: list[LineString[_VecT, _VecsT]]) -> FloatsT:
+    def _lengths_(children: tuple[LineString[_VecT, _VecsT], ...]) -> FloatsT:
         return np.array([child._length_ for child in children])
 
     def interpolate_point(self, alpha: Real) -> _VecT:

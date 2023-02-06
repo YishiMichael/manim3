@@ -23,7 +23,8 @@ from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 
 
@@ -63,9 +64,9 @@ class MeshMobject(Mobject):
     def _shininess_() -> Real:
         return 32.0
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _apply_phong_lighting_() -> bool:
+    def _apply_phong_lighting() -> bool:
         return True
 
     #@lazy_property
@@ -118,14 +119,14 @@ class MeshMobject(Mobject):
             "u_shininess": np.array(shininess)
         })
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _render_samples_() -> int:
+    def _render_samples() -> int:
         return 4
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         custom_macros = []
-        if self._apply_phong_lighting_:
+        if self._apply_phong_lighting:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
         RenderProcedure.render_step(
             shader_str=RenderProcedure.read_shader("mesh"),
@@ -177,14 +178,14 @@ class MeshMobject(Mobject):
     #    if shininess is not None:
     #        self._shininess_ = shininess
     #    if apply_phong_lighting is not None:
-    #        self._apply_phong_lighting_ = apply_phong_lighting
+    #        self._apply_phong_lighting = apply_phong_lighting
     #    else:
     #        if any(param is not None for param in (
     #            ambient_strength,
     #            specular_strength,
     #            shininess
     #        )):
-    #            self._apply_phong_lighting_ = True
+    #            self._apply_phong_lighting = True
     #    return self
 
     def set_style(
@@ -207,8 +208,8 @@ class MeshMobject(Mobject):
         ambient_strength_data = LazyData(ambient_strength) if ambient_strength is not None else None
         specular_strength_data = LazyData(specular_strength) if specular_strength is not None else None
         shininess_data = LazyData(shininess) if shininess is not None else None
-        apply_phong_lighting_data = LazyData(apply_phong_lighting) if apply_phong_lighting is not None else \
-            LazyData(True) if any(param is not None for param in (
+        apply_phong_lighting = apply_phong_lighting if apply_phong_lighting is not None else \
+            True if any(param is not None for param in (
                 ambient_strength,
                 specular_strength,
                 shininess
@@ -228,8 +229,8 @@ class MeshMobject(Mobject):
                 mobject._specular_strength_ = specular_strength_data
             if shininess_data is not None:
                 mobject._shininess_ = shininess_data
-            if apply_phong_lighting_data is not None:
-                mobject._apply_phong_lighting_ = apply_phong_lighting_data
+            if apply_phong_lighting is not None:
+                mobject._apply_phong_lighting = apply_phong_lighting
         return self
 
     @lazy_property

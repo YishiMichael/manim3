@@ -83,7 +83,7 @@ class MarkupText(StringMobject):
 
     def __new__(
         cls,
-        string: str,
+        string: str = "",
         *,
         font_size: Real = 48,
         line_spacing_height: Real | None = None,
@@ -360,7 +360,7 @@ class Text(MarkupText):
 class Code(MarkupText):
     def __new__(
         cls,
-        code: str,
+        code: str = "",
         *,
         language: str = "python",
         # Visit https://pygments.org/demo/ to have a preview of more styles.
