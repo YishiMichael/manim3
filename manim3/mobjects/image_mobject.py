@@ -20,6 +20,8 @@ from ..utils.lazy import (
 
 
 class ImageMobject(MeshMobject):
+    __slots__ = ()
+
     def __new__(
         cls,
         image_path: str,
@@ -32,7 +34,7 @@ class ImageMobject(MeshMobject):
         image = Image.open(image_path)
         instance._image = image
 
-        instance._adjust_frame(
+        instance.adjust_frame(
             image.width / ConfigSingleton().pixel_per_unit,
             image.height / ConfigSingleton().pixel_per_unit,
             width,
@@ -42,15 +44,15 @@ class ImageMobject(MeshMobject):
         instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
         return instance
 
-    @lazy_slot
-    @staticmethod
-    def _image() -> Image.Image:
-        return NotImplemented
-
     @lazy_basedata
     @staticmethod
     def _geometry_() -> Geometry:
         return PlaneGeometry()
+
+    @lazy_slot
+    @staticmethod
+    def _image() -> Image.Image:
+        return NotImplemented
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         image = self._image

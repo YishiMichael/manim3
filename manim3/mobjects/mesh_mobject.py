@@ -28,6 +28,8 @@ from ..utils.lazy import (
 
 
 class MeshMobject(Mobject):
+    __slots__ = ()
+
     @lazy_basedata
     @staticmethod
     def _color_map_texture_() -> moderngl.Texture | None:
@@ -63,10 +65,10 @@ class MeshMobject(Mobject):
     def _shininess_() -> Real:
         return 32.0
 
-    @lazy_slot
+    @lazy_property
     @staticmethod
-    def _apply_phong_lighting() -> bool:
-        return True
+    def _local_sample_points_(geometry: Geometry) -> Vec3sT:
+        return geometry._geometry_data_.position
 
     @lazy_property
     @staticmethod
@@ -112,6 +114,11 @@ class MeshMobject(Mobject):
     def _render_samples() -> int:
         return 4
 
+    @lazy_slot
+    @staticmethod
+    def _apply_phong_lighting() -> bool:
+        return True
+
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         custom_macros = []
         if self._apply_phong_lighting:
@@ -152,8 +159,8 @@ class MeshMobject(Mobject):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_data = LazyData(color_component) if color_component is not None else None
         opacity_data = LazyData(opacity_component) if opacity_component is not None else None
-        apply_oit_data = LazyData(apply_oit) if apply_oit is not None else \
-            LazyData(True) if opacity_component is not None else None
+        apply_oit = apply_oit if apply_oit is not None else \
+            True if opacity_component is not None else None
         ambient_strength_data = LazyData(ambient_strength) if ambient_strength is not None else None
         specular_strength_data = LazyData(specular_strength) if specular_strength is not None else None
         shininess_data = LazyData(shininess) if shininess is not None else None
@@ -170,8 +177,8 @@ class MeshMobject(Mobject):
                 mobject._color_ = color_data
             if opacity_data is not None:
                 mobject._opacity_ = opacity_data
-            if apply_oit_data is not None:
-                mobject._apply_oit_ = apply_oit_data
+            if apply_oit is not None:
+                mobject._apply_oit = apply_oit
             if ambient_strength_data is not None:
                 mobject._ambient_strength_ = ambient_strength_data
             if specular_strength_data is not None:
@@ -181,8 +188,3 @@ class MeshMobject(Mobject):
             if apply_phong_lighting is not None:
                 mobject._apply_phong_lighting = apply_phong_lighting
         return self
-
-    @lazy_property
-    @staticmethod
-    def _local_sample_points_(geometry: Geometry) -> Vec3sT:
-        return geometry._geometry_data_.position

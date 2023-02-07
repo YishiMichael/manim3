@@ -176,6 +176,8 @@ class StringMobject(SVGMobject):
     so that each child of the original `SVGMobject` will be labelled
     by the color of its paired child from the additional `SVGMobject`.
     """
+    __slots__ = ()
+
     def __new__(
         cls,
         *,

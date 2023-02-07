@@ -9,6 +9,8 @@ from ..mobjects.shape_mobject import ShapeMobject
 
 
 class SVGMobject(ShapeMobject):
+    __slots__ = ()
+
     def __new__(
         cls,
         file_path: str | None = None,
@@ -57,7 +59,7 @@ class SVGMobject(ShapeMobject):
 
         if shape_mobjects:
             instance.add(*shape_mobjects)
-            instance._adjust_frame(
+            instance.adjust_frame(
                 svg.width,
                 svg.height,
                 width,

@@ -61,6 +61,8 @@ class _Alignment:
 
 
 class MarkupText(StringMobject):
+    __slots__ = ()
+
     # See https://docs.gtk.org/Pango/pango_markup.html
     MARKUP_TAGS: ClassVar[dict[str, dict[str, str]]] = {
         "b": {"font_weight": "bold"},
@@ -358,6 +360,8 @@ class Text(MarkupText):
 
 
 class Code(MarkupText):
+    __slots__ = ()
+
     def __new__(
         cls,
         code: str = "",

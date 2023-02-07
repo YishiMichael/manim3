@@ -31,26 +31,7 @@ from ..utils.lazy import (
 
 
 class Scene(Mobject):
-    @lazy_slot
-    @staticmethod
-    def _scene_config() -> SceneConfig:
-        return SceneConfig()
-
-    @lazy_slot
-    @staticmethod
-    def _animation_dict() -> dict[Animation, float]:
-        return {}
-
-    @lazy_slot
-    @staticmethod
-    def _frame_floating_index() -> float:
-        # A timer scaled by fps
-        return 0.0
-
-    @lazy_slot
-    @staticmethod
-    def _previous_rendering_timestamp() -> float | None:
-        return None
+    __slots__ = ()
 
     @lazy_basedata
     @staticmethod
@@ -112,6 +93,27 @@ class Scene(Mobject):
             texture_array=np.array(depth_map)
         )
 
+    @lazy_slot
+    @staticmethod
+    def _scene_config() -> SceneConfig:
+        return SceneConfig()
+
+    @lazy_slot
+    @staticmethod
+    def _animation_dict() -> dict[Animation, float]:
+        return {}
+
+    @lazy_slot
+    @staticmethod
+    def _frame_floating_index() -> float:
+        # A timer scaled by fps
+        return 0.0
+
+    @lazy_slot
+    @staticmethod
+    def _previous_rendering_timestamp() -> float | None:
+        return None
+
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Inspired from https://github.com/ambrosiogabe/MathAnimation
         # ./Animations/src/renderer/Renderer.cpp
@@ -120,7 +122,7 @@ class Scene(Mobject):
         for mobject in self.iter_descendants():
             if not mobject._has_local_sample_points_:
                 continue
-            if mobject._apply_oit_:
+            if mobject._apply_oit:
                 transparent_mobjects.append(mobject)
             else:
                 opaque_mobjects.append(mobject)

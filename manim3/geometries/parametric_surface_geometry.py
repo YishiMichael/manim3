@@ -16,6 +16,8 @@ from ..utils.lazy import LazyData
 
 
 class ParametricSurfaceGeometry(Geometry):
+    __slots__ = ()
+
     def __new__(
         cls,
         func: Callable[[float, float], Vec3T],

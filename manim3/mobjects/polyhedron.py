@@ -25,6 +25,8 @@ from ..utils.space import SpaceUtils
 
 
 class Polyhedron(ShapeMobject):
+    __slots__ = ()
+
     def __new__(cls, vertices: Vec3sT, faces: np.ndarray[tuple[int, int], np.dtype[np.int_]]):
         instance = super().__new__(cls)
         for face in faces:
@@ -63,6 +65,8 @@ class Polyhedron(ShapeMobject):
 # /manim/mobject/three_d/polyhedra.py
 # All these polyhedrons have all points sitting on the unit sphere.
 class Tetrahedron(Polyhedron):
+    __slots__ = ()
+
     def __new__(cls):
         return super().__new__(
             cls,
@@ -82,6 +86,8 @@ class Tetrahedron(Polyhedron):
 
 
 class Cube(Polyhedron):
+    __slots__ = ()
+
     def __new__(cls):
         return super().__new__(
             cls,
@@ -107,6 +113,8 @@ class Cube(Polyhedron):
 
 
 class Octahedron(Polyhedron):
+    __slots__ = ()
+
     def __new__(cls):
         return super().__new__(
             cls,
@@ -132,6 +140,8 @@ class Octahedron(Polyhedron):
 
 
 class Dodecahedron(Polyhedron):
+    __slots__ = ()
+
     def __new__(cls):
         unit_a = (1.0 + np.sqrt(5.0)) / 2.0
         unit_b = -(1.0 - np.sqrt(5.0)) / 2.0
@@ -177,6 +187,8 @@ class Dodecahedron(Polyhedron):
 
 
 class Icosahedron(Polyhedron):
+    __slots__ = ()
+
     def __new__(cls):
         unit_a = np.sqrt(50.0 + 10.0 * np.sqrt(5.0)) / 10.0
         unit_b = np.sqrt(50.0 - 10.0 * np.sqrt(5.0)) / 10.0

@@ -7,6 +7,8 @@ from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 
 
 class PlaneGeometry(ParametricSurfaceGeometry):
+    __slots__ = ()
+
     def __new__(
         cls,
         width_segments: int = 1,

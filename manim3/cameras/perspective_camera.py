@@ -17,6 +17,8 @@ from ..utils.lazy import (
 
 
 class PerspectiveCamera(Camera):
+    __slots__ = ()
+
     def __new__(
         cls,
         width: Real | None = None,

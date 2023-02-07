@@ -23,6 +23,8 @@ from ..utils.space import SpaceUtils
 
 
 class PrismoidGeometry(Geometry):
+    __slots__ = ()
+
     @lazy_basedata
     @staticmethod
     def _shape_() -> Shape:

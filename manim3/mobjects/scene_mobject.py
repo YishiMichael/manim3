@@ -13,29 +13,32 @@ from ..scenes.scene import Scene
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
     LazyData,
-    lazy_basedata
+    lazy_basedata,
+    lazy_slot
 )
 
 
 class SceneMobject(MeshMobject):
+    __slots__ = ()
+
     def __new__(
         cls,
         scene_cls: type[Scene]
     ):
         instance = super().__new__(cls)
-        instance._scene_ = LazyData(scene_cls())
+        instance._scene = scene_cls()
         instance.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
         return instance
 
     @lazy_basedata
     @staticmethod
-    def _scene_() -> Scene:
-        return NotImplemented
-
-    @lazy_basedata
-    @staticmethod
     def _geometry_() -> Geometry:
         return PlaneGeometry()
+
+    @lazy_slot
+    @staticmethod
+    def _scene() -> Scene:
+        return NotImplemented
 
     #def _update_dt(self, dt: Real):
     #    super()._update_dt(dt)  # TODO
@@ -47,6 +50,6 @@ class SceneMobject(MeshMobject):
                     color_attachments=[color_texture],
                     depth_attachment=None
                 ) as scene_framebuffer:
-            self._scene_._render_with_passes(self._scene_._scene_config, scene_framebuffer)
+            self._scene._render_with_passes(self._scene._scene_config, scene_framebuffer)
             self._color_map_texture_ = LazyData(color_texture)
             super()._render(scene_config, target_framebuffer)

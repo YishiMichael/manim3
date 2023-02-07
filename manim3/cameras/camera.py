@@ -24,6 +24,8 @@ from ..utils.space import SpaceUtils
 
 
 class Camera(LazyBase):
+    __slots__ = ()
+
     @lazy_basedata
     @staticmethod
     def _projection_matrix_() -> Mat4T:

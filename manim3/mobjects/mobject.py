@@ -64,6 +64,8 @@ class BoundingBox3D:
 
 
 class Mobject(LazyBase):
+    __slots__ = ()
+
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children)
 
@@ -89,49 +91,8 @@ class Mobject(LazyBase):
     def _children() -> "list[Mobject]":
         return []
 
-    def iter_parents(self) -> "Iterator[Mobject]":
-        return iter(self._parents)
-
-    def iter_children(self) -> "Iterator[Mobject]":
-        return iter(self._children)
-
-    def _iter_ancestors(self) -> "Generator[Mobject, None, None]":
-        yield self
-        for parent_node in self._parents:
-            yield from parent_node._iter_ancestors()
-
-    def _iter_descendants(self) -> "Generator[Mobject, None, None]":
-        yield self
-        for child_node in self._children:
-            yield from child_node._iter_descendants()
-
-    def iter_ancestors(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
-        yield self
-        if not broadcast:
-            return
-        occurred: set[Mobject] = {self}
-        for node in self._iter_ancestors():
-            if node in occurred:
-                continue
-            yield node
-            occurred.add(node)
-
-    def iter_descendants(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
-        yield self
-        if not broadcast:
-            return
-        occurred: set[Mobject] = {self}
-        for node in self._iter_descendants():
-            if node in occurred:
-                continue
-            yield node
-            occurred.add(node)
-
-    def includes(self, node: "Mobject") -> bool:
-        return node in self.iter_descendants()
-
     def _bind_child(self, node: "Mobject", *, index: int | None = None) -> None:
-        if node.includes(self):
+        if self in node.iter_descendants():
             raise ValueError(f"'{node}' has already included '{self}'")
         if index is not None:
             self._children.insert(index, node)
@@ -142,6 +103,44 @@ class Mobject(LazyBase):
     def _unbind_child(self, node: "Mobject") -> None:
         self._children.remove(node)
         node._parents.remove(self)
+
+    def iter_parents(self) -> "Iterator[Mobject]":
+        return iter(self._parents)
+
+    def iter_children(self) -> "Iterator[Mobject]":
+        return iter(self._children)
+
+    def iter_ancestors_with_duplicates(self) -> "Generator[Mobject, None, None]":
+        yield self
+        for parent_node in self._parents:
+            yield from parent_node.iter_ancestors_with_duplicates()
+
+    def iter_descendants_with_duplicates(self) -> "Generator[Mobject, None, None]":
+        yield self
+        for child_node in self._children:
+            yield from child_node.iter_descendants_with_duplicates()
+
+    def iter_ancestors(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
+        yield self
+        if not broadcast:
+            return
+        occurred: set[Mobject] = {self}
+        for node in self.iter_ancestors_with_duplicates():
+            if node in occurred:
+                continue
+            yield node
+            occurred.add(node)
+
+    def iter_descendants(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
+        yield self
+        if not broadcast:
+            return
+        occurred: set[Mobject] = {self}
+        for node in self.iter_descendants_with_duplicates():
+            if node in occurred:
+                continue
+            yield node
+            occurred.add(node)
 
     def index(self, node: "Mobject") -> int:
         return self._children.index(node)
@@ -207,6 +206,21 @@ class Mobject(LazyBase):
     def _local_sample_points_() -> Vec3sT:
         # Implemented in subclasses
         return np.zeros((0, 3))
+
+    @lazy_property
+    @staticmethod
+    def _ub_model_(
+        model_matrix: Mat4T
+    ) -> UniformBlockBuffer:
+        return UniformBlockBuffer(
+            name="ub_model",
+            fields=[
+                "mat4 u_model_matrix"
+            ],
+            data={
+                "u_model_matrix": model_matrix.T
+            }
+        )
 
     @lazy_property
     @staticmethod
@@ -509,7 +523,7 @@ class Mobject(LazyBase):
         )
         return self
 
-    def _adjust_frame(
+    def adjust_frame(
         self,
         original_width: Real,
         original_height: Real,
@@ -538,30 +552,20 @@ class Mobject(LazyBase):
 
     # render
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _apply_oit_() -> bool:
+    def _apply_oit() -> bool:
         return False
-
-    @lazy_property
-    @staticmethod
-    def _ub_model_(
-        model_matrix: Mat4T
-    ) -> UniformBlockBuffer:
-        return UniformBlockBuffer(
-            name="ub_model",
-            fields=[
-                "mat4 u_model_matrix"
-            ],
-            data={
-                "u_model_matrix": model_matrix.T
-            }
-        )
 
     @lazy_slot
     @staticmethod
     def _render_samples() -> int:
         return 0
+
+    @lazy_slot
+    @staticmethod
+    def _render_passes() -> list[RenderPass]:
+        return []
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Implemented in subclasses
@@ -615,11 +619,6 @@ class Mobject(LazyBase):
                 target_framebuffer=target_framebuffer
             )
             target_framebuffer.depth_mask = True
-
-    @lazy_slot
-    @staticmethod
-    def _render_passes() -> list[RenderPass]:
-        return []
 
     def add_pass(self, *render_passes: RenderPass):
         self._render_passes.extend(render_passes)

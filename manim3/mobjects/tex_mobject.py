@@ -189,6 +189,8 @@ SCALE_FACTOR_PER_FONT_POINT: float = 0.001
 
 
 class TexText(StringMobject):
+    __slots__ = ()
+
     def __new__(
         cls,
         string: str = "",
@@ -345,6 +347,8 @@ class TexText(StringMobject):
 
 
 class Tex(TexText):
+    __slots__ = ()
+
     def __new__(
         cls,
         string: str = "",

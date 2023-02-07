@@ -35,6 +35,8 @@ from ..utils.lazy import (
 
 
 class ContextSingleton:
+    __slots__ = ()
+
     _INSTANCE: ClassVar[moderngl.Context | None] = None
     _WINDOW: ClassVar[PygletWindow | None] = None
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
@@ -86,6 +88,8 @@ class FieldInfo:
 
 
 class GLSLDynamicStruct(LazyBase):
+    __slots__ = ()
+
     _GLSL_DTYPE: ClassVar[dict[str, np.dtype]] = {
         "int":     np.dtype(("i4", ())),
         "ivec2":   np.dtype(("i4", (2,))),
@@ -170,9 +174,9 @@ class GLSLDynamicStruct(LazyBase):
         instance._field_name = field_name
         return instance
 
-    @lazy_slot
+    @lazy_basedata
     @staticmethod
-    def _dynamic_array_lens() -> dict[str, int]:
+    def _struct_dtype_() -> np.dtype:
         return NotImplemented
 
     @lazy_basedata
@@ -192,12 +196,12 @@ class GLSLDynamicStruct(LazyBase):
 
     @lazy_slot
     @staticmethod
-    def _field_name() -> str:
+    def _dynamic_array_lens() -> dict[str, int]:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _struct_dtype_() -> np.dtype:
+    def _field_name() -> str:
         return NotImplemented
 
     @classmethod
@@ -366,6 +370,8 @@ class GLSLDynamicStruct(LazyBase):
 
 
 class GLSLDynamicBuffer(GLSLDynamicStruct):
+    __slots__ = ()
+
     _BUFFER_CACHE: list[moderngl.Buffer] = []
 
     @lazy_property
@@ -395,6 +401,8 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 
 
 class TextureStorage(GLSLDynamicStruct):
+    __slots__ = ()
+
     def __new__(
         cls,
         *,
@@ -421,6 +429,8 @@ class TextureStorage(GLSLDynamicStruct):
 
 
 class UniformBlockBuffer(GLSLDynamicBuffer):
+    __slots__ = ()
+
     _LAYOUT = "std140"
 
     def __new__(
@@ -453,6 +463,8 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
 
 
 class AttributesBuffer(GLSLDynamicBuffer):
+    __slots__ = ()
+
     # Let's keep using std140 layout, hopefully leading to a faster processing speed.
     _LAYOUT = "std140"
 
@@ -535,6 +547,8 @@ class AttributesBuffer(GLSLDynamicBuffer):
 
 
 class IndexBuffer(GLSLDynamicBuffer):
+    __slots__ = ()
+
     def __new__(
         cls,
         *,
@@ -551,6 +565,8 @@ class IndexBuffer(GLSLDynamicBuffer):
 
 
 class Program(LazyBase):  # TODO: make abstract base class Cachable
+    __slots__ = ()
+
     _CACHE: "ClassVar[dict[bytes, Program]]" = {}
 
     def __new__(
@@ -843,10 +859,9 @@ class ContextState:
 
 
 class RenderProcedure(LazyBase):
-    _SHADER_STRS: ClassVar[dict[str, str]] = {}
+    __slots__ = ()
 
-    #_WINDOW: ClassVar[PygletWindow] = ContextSingleton._WINDOW
-    #_WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer] = ContextSingleton().detect_framebuffer()
+    _SHADER_STRS: ClassVar[dict[str, str]] = {}
 
     def __new__(cls):
         raise NotImplementedError

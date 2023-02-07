@@ -38,6 +38,8 @@ from ..utils.space import SpaceUtils
 
 
 class StrokeMobject(Mobject):
+    __slots__ = ()
+
     def __new__(cls, multi_line_string: MultiLineString3D | None = None):
         instance = super().__new__(cls)
         if multi_line_string is not None:
@@ -84,6 +86,17 @@ class StrokeMobject(Mobject):
     @staticmethod
     def _winding_sign_() -> Real:
         return 1.0
+
+    @lazy_property
+    @staticmethod
+    def _local_sample_points_(multi_line_string: MultiLineString3D) -> Vec3sT:
+        line_strings = multi_line_string._children_
+        if not line_strings:
+            return np.zeros((0, 3))
+        return np.concatenate([
+            line_string._coords_
+            for line_string in line_strings
+        ])
 
     @lazy_property
     @staticmethod
@@ -143,6 +156,45 @@ class StrokeMobject(Mobject):
                 "in_position": position
             }
         )
+
+    @lazy_property
+    @staticmethod
+    def _stroke_render_items_(
+        single_sided: bool,
+        has_linecap: bool,
+        multi_line_string: MultiLineString3D
+    ) -> list[tuple[list[str], IndexBuffer, int]]:
+        def get_index_buffer(index_getter: Callable[[LineString3D], list[int]]) -> IndexBuffer:
+            return IndexBuffer(
+                data=StrokeMobject._lump_index_from_getter(index_getter, multi_line_string)
+            )
+
+        subroutine_name = "single_sided" if single_sided else "both_sided"
+        result: list[tuple[list[str], IndexBuffer, int]] = [
+            ([
+                "#define STROKE_LINE",
+                f"#define line_subroutine {subroutine_name}"
+            ], get_index_buffer(StrokeMobject._line_index_getter), moderngl.LINE_STRIP),
+            ([
+                "#define STROKE_JOIN",
+                f"#define join_subroutine {subroutine_name}"
+            ], get_index_buffer(StrokeMobject._join_index_getter), moderngl.TRIANGLES)
+        ]
+        if has_linecap and not single_sided:
+            result.extend([
+                ([
+                    "#define STROKE_CAP"
+                ], get_index_buffer(StrokeMobject._cap_index_getter), moderngl.LINES),
+                ([
+                    "#define STROKE_POINT"
+                ], get_index_buffer(StrokeMobject._point_index_getter), moderngl.POINTS)
+            ])
+        return result
+
+    @lazy_slot
+    @staticmethod
+    def _render_samples() -> int:
+        return 4
 
     @classmethod
     def _lump_index_from_getter(
@@ -209,45 +261,6 @@ class StrokeMobject(Mobject):
             return []
         raise ValueError  # never
 
-    @lazy_slot
-    @staticmethod
-    def _render_samples() -> int:
-        return 4
-
-    @lazy_property
-    @staticmethod
-    def _stroke_render_items_(
-        single_sided: bool,
-        has_linecap: bool,
-        multi_line_string: MultiLineString3D
-    ) -> list[tuple[list[str], IndexBuffer, int]]:
-        def get_index_buffer(index_getter: Callable[[LineString3D], list[int]]) -> IndexBuffer:
-            return IndexBuffer(
-                data=StrokeMobject._lump_index_from_getter(index_getter, multi_line_string)
-            )
-
-        subroutine_name = "single_sided" if single_sided else "both_sided"
-        result: list[tuple[list[str], IndexBuffer, int]] = [
-            ([
-                "#define STROKE_LINE",
-                f"#define line_subroutine {subroutine_name}"
-            ], get_index_buffer(StrokeMobject._line_index_getter), moderngl.LINE_STRIP),
-            ([
-                "#define STROKE_JOIN",
-                f"#define join_subroutine {subroutine_name}"
-            ], get_index_buffer(StrokeMobject._join_index_getter), moderngl.TRIANGLES)
-        ]
-        if has_linecap and not single_sided:
-            result.extend([
-                ([
-                    "#define STROKE_CAP"
-                ], get_index_buffer(StrokeMobject._cap_index_getter), moderngl.LINES),
-                ([
-                    "#define STROKE_POINT"
-                ], get_index_buffer(StrokeMobject._point_index_getter), moderngl.POINTS)
-            ])
-        return result
-
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
         self._winding_sign_ = LazyData(self._calculate_winding_sign(scene_config._camera))
@@ -303,17 +316,6 @@ class StrokeMobject(Mobject):
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
         return 1.0 if area * self._width_ >= 0.0 else -1.0
 
-    @lazy_property
-    @staticmethod
-    def _local_sample_points_(multi_line_string: MultiLineString3D) -> Vec3sT:
-        line_strings = multi_line_string._children_
-        if not line_strings:
-            return np.zeros((0, 3))
-        return np.concatenate([
-            line_string._coords_
-            for line_string in line_strings
-        ])
-
     def set_style(
         self,
         *,
@@ -333,8 +335,8 @@ class StrokeMobject(Mobject):
         color_data = LazyData(color_component) if color_component is not None else None
         opacity_data = LazyData(opacity_component) if opacity_component is not None else None
         dilate_data = LazyData(dilate) if dilate is not None else None
-        apply_oit_data = LazyData(apply_oit) if apply_oit is not None else \
-            LazyData(True) if any(param is not None for param in (
+        apply_oit = apply_oit if apply_oit is not None else \
+            True if any(param is not None for param in (
                 opacity_component,
                 dilate
             )) else None
@@ -353,6 +355,6 @@ class StrokeMobject(Mobject):
                 self._opacity_ = opacity_data
             if dilate_data is not None:
                 self._dilate_ = dilate_data
-            if apply_oit_data is not None:
-                self._apply_oit_ = apply_oit_data
+            if apply_oit is not None:
+                self._apply_oit_ = apply_oit
         return self

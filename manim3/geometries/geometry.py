@@ -37,6 +37,8 @@ class GeometryData:
 
 
 class Geometry(LazyBase):
+    __slots__ = ()
+
     @lazy_basedata
     @staticmethod
     def _geometry_data_() -> GeometryData:

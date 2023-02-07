@@ -23,16 +23,13 @@ from ..utils.lazy import (
 
 
 class SceneConfig(LazyBase):
+    __slots__ = ()
+
     _POINT_LIGHT_DTYPE: ClassVar[np.dtype] = np.dtype([
         ("position", (np.float_, (3,))),
         ("color", (np.float_, (3,))),
         ("opacity", (np.float_)),
     ])
-
-    @lazy_slot
-    @staticmethod
-    def _camera() -> Camera:
-        return PerspectiveCamera()
 
     @lazy_basedata
     @staticmethod
@@ -89,6 +86,11 @@ class SceneConfig(LazyBase):
                 }
             }
         )
+
+    @lazy_slot
+    @staticmethod
+    def _camera() -> Camera:
+        return PerspectiveCamera()
 
     def set_view(
         self,

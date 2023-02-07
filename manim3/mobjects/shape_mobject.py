@@ -21,6 +21,8 @@ from ..utils.shape import Shape
 
 
 class ShapeMobject(MeshMobject):
+    __slots__ = ()
+
     def __new__(cls, shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
         instance = super().__new__(cls)
         if shape is not None:
@@ -76,8 +78,8 @@ class ShapeMobject(MeshMobject):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_data = LazyData(color_component) if color_component is not None else None
         opacity_data = LazyData(opacity_component) if opacity_component is not None else None
-        apply_oit_data = LazyData(apply_oit) if apply_oit is not None else \
-            LazyData(True) if opacity_component is not None else None
+        apply_oit = apply_oit if apply_oit is not None else \
+            True if opacity_component is not None else None
         ambient_strength_data = LazyData(ambient_strength) if ambient_strength is not None else None
         specular_strength_data = LazyData(specular_strength) if specular_strength is not None else None
         shininess_data = LazyData(shininess) if shininess is not None else None
@@ -94,8 +96,8 @@ class ShapeMobject(MeshMobject):
                 mobject._color_ = color_data
             if opacity_data is not None:
                 mobject._opacity_ = opacity_data
-            if apply_oit_data is not None:
-                mobject._apply_oit_ = apply_oit_data
+            if apply_oit is not None:
+                mobject._apply_oit = apply_oit
             if ambient_strength_data is not None:
                 mobject._ambient_strength_ = ambient_strength_data
             if specular_strength_data is not None:

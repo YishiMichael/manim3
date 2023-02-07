@@ -25,6 +25,8 @@ from ..utils.space import SpaceUtils
 
 
 class ShapeGeometry(Geometry):
+    __slots__ = ()
+
     def __new__(cls, shape: Shape | None = None):
         instance = super().__new__(cls)
         if shape is not None:

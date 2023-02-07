@@ -23,6 +23,8 @@ from ..utils.lazy import (
 
 
 class GaussianBlurPass(RenderPass):
+    __slots__ = ()
+
     def __new__(cls, sigma_width: Real | None = None):
         instance = super().__new__(cls)
         if sigma_width is not None:
@@ -34,6 +36,11 @@ class GaussianBlurPass(RenderPass):
     def _sigma_width_() -> Real:
         return 0.1
 
+    @lazy_basedata
+    @staticmethod
+    def _color_map_() -> moderngl.Texture:
+        return NotImplemented
+
     @lazy_property
     @staticmethod
     def _convolution_core_(sigma_width: Real) -> FloatsT:
@@ -41,11 +48,6 @@ class GaussianBlurPass(RenderPass):
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
-
-    @lazy_basedata
-    @staticmethod
-    def _color_map_() -> moderngl.Texture:
-        return NotImplemented
 
     @lazy_property
     @staticmethod

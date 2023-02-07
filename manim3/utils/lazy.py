@@ -1,7 +1,7 @@
 """
 This module implements a basic class with lazy properties.
 
-The functionality of `LazyBase` id to save resource as much as it can.
+The functionality of `LazyBase` is to save resource as much as it can.
 On one hand, all data of `lazy_basedata` and `lazy_property` are shared among
 instances. On the other hand, these data will be restocked (recursively) if
 they themselves are instances of `LazyBase`. One may also define custom
@@ -13,7 +13,7 @@ and all methods shall be sorted in the following way:
 - lazy_basedata
 - lazy_property
 - lazy_slot
-- private classmethods
+- private class methods
 - private methods
 - public methods
 
@@ -26,16 +26,16 @@ should be static methods, and so are their restockers. Type annotation is
 strictly applied to reduce chances of running into unexpected behaviors.
 
 Methods decorated by `lazy_basedata` should be named with underscores appeared
-on both sides, i.e. `_data_`. They should not take any argument and return
+on both sides, i.e. `_data_`. Each should not take any argument and return
 the *initial* value for this data. `NotImplemented` may be an alternative for
 the value returned, as long as the data is initialized in `__new__` method.
 In principle, the data can be of any type including mutable ones, but one must
 keep in mind that data *cannot be mutated* as they are shared. The only way to
 change the value is to reset the data via `__set__`, and the new value shall
 be wrapped up with `LazyData`. This makes it possible to manually share data
-which is not the initial value. Note, the `__get__` method will return
-unwrapped data. One shall use `cls._data_._get_data()` to obtain the wrapped
-data if one wishes to share it with other instances.
+which is not the initial value. Note, the `__get__` method will return the
+unwrapped data. One shall use `instance.__class__._data_._get_data(instance)`
+to obtain the wrapped data if one wishes to share it with other instances.
 
 Methods decorated by `lazy_property` should be named with the same style of
 `lazy_basedata`. They should take *at least one* argument, and all names of
@@ -47,9 +47,11 @@ done when one calls `__get__`.
 
 Methods decorated by `lazy_slot` should be named with an underscore inserted
 at front, i.e. `_data`. They behave like a normal attribute of the class.
-Data can be freely mutated because they are no longer shared (as long as one
-does not do something like `b._data = a._data`). Data wrapping is no
-longer necessary when calling `__set__`.
+Again, each should not take any argument and return the *initial* value for
+this data, with `NotImplemented` as an alternative if the data is set in
+`__new__`. Data can be freely mutated because they are no longer shared
+(as long as one does not do something like `b._data = a._data`). Data wrapping
+is no longer necessary when calling `__set__`.
 """
 
 
@@ -312,7 +314,6 @@ class LazyBase(ABC):
             if isinstance(basedata_descr, lazy_basedata)
         }
 
-        cls.__slots__ = ()  # TODO
         cls._VACANT_INSTANCES = []
         cls._BASEDATA_DESCR_TO_PROPERTY_DESCRS = basedata_descr_to_property_descrs
         cls._PROPERTY_DESCR_TO_BASEDATA_DESCRS = property_descr_to_basedata_descrs

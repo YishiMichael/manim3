@@ -15,6 +15,8 @@ from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 
 
 class SphereGeometry(ParametricSurfaceGeometry):
+    __slots__ = ()
+
     def __new__(
         cls,
         theta_start: Real = 0.0,
