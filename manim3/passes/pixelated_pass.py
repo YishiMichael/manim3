@@ -18,16 +18,6 @@ from ..utils.lazy import (
 )
 
 
-#class PixelatedPass(RenderPass):
-#    def __init__(self, pixelated_width: Real = 0.1):
-#        self._pixelated_width: Real = pixelated_width
-#
-#    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-#        instance = PixelatedPassSingleton()
-#        instance._pixelated_width_ = self._pixelated_width
-#        instance.render(texture, target_framebuffer)
-
-
 class PixelatedPass(RenderPass):
     def __new__(cls, pixelated_width: Real | None = None):
         instance = super().__new__(cls)
@@ -47,7 +37,9 @@ class PixelatedPass(RenderPass):
 
     @lazy_property
     @staticmethod
-    def _u_color_map_(color_map: moderngl.Texture) -> TextureStorage:
+    def _u_color_map_(
+        color_map: moderngl.Texture
+    ) -> TextureStorage:
         return TextureStorage(
             field="sampler2D u_color_map",
             texture_array=np.array(color_map)

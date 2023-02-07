@@ -10,7 +10,6 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-#from ..geometries.empty_geometry import EmptyGeometry
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
 from ..rendering.render_procedure import (
@@ -69,15 +68,9 @@ class MeshMobject(Mobject):
     def _apply_phong_lighting() -> bool:
         return True
 
-    #@lazy_property
-    #@staticmethod
-    #def _u_color_maps_o_() -> TextureStorage:
-    #    return TextureStorage("sampler2D u_color_maps[NUM_U_COLOR_MAPS]")
-
     @lazy_property
     @staticmethod
     def _u_color_maps_(
-        #u_color_maps_o: TextureStorage,
         color_map_texture: moderngl.Texture | None
     ) -> TextureStorage:
         textures = [color_map_texture] if color_map_texture is not None else []
@@ -89,20 +82,9 @@ class MeshMobject(Mobject):
             texture_array=np.array(textures)
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _ub_material_o_() -> UniformBlockBuffer:
-    #    return UniformBlockBuffer("ub_material", [
-    #        "vec4 u_color",
-    #        "float u_ambient_strength",
-    #        "float u_specular_strength",
-    #        "float u_shininess"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _ub_material_(
-        #ub_material_o: UniformBlockBuffer,
         color: Vec3T,
         opacity: Real,
         ambient_strength: Real,
@@ -134,31 +116,6 @@ class MeshMobject(Mobject):
         custom_macros = []
         if self._apply_phong_lighting:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
-        #import pprint
-        #print(self._geometry_._attributes_)
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #a = self._u_color_maps_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #b = scene_config._camera._ub_camera_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #c = self._ub_model_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #d = scene_config._ub_lights_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #e = self._ub_material_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #f = self._geometry_._attributes_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
-        #g = self._geometry_._index_buffer_
-        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
-        #print(self._geometry_._attributes_._is_empty_)
         RenderProcedure.render_step(
             shader_str=RenderProcedure.read_shader("mesh"),
             custom_macros=custom_macros,
@@ -179,45 +136,6 @@ class MeshMobject(Mobject):
             ),
             mode=moderngl.TRIANGLES
         )
-
-    #@_color_.updater
-    #def _set_style_locally(
-    #    self,
-    #    *,
-    #    color: ColorType | None = None,
-    #    opacity: Real | None = None,
-    #    apply_oit: bool | None = None,
-    #    ambient_strength: Real | None = None,
-    #    specular_strength: Real | None = None,
-    #    shininess: Real | None = None,
-    #    apply_phong_lighting: bool | None = None
-    #):
-    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-    #    if color_component is not None:
-    #        self._color_ = color_component
-    #    if opacity_component is not None:
-    #        self._opacity_ = opacity_component
-    #    if apply_oit is not None:
-    #        self._apply_oit_ = apply_oit
-    #    else:
-    #        if opacity_component is not None:
-    #            self._apply_oit_ = True
-    #    if ambient_strength is not None:
-    #        self._ambient_strength_ = ambient_strength
-    #    if specular_strength is not None:
-    #        self._specular_strength_ = specular_strength
-    #    if shininess is not None:
-    #        self._shininess_ = shininess
-    #    if apply_phong_lighting is not None:
-    #        self._apply_phong_lighting = apply_phong_lighting
-    #    else:
-    #        if any(param is not None for param in (
-    #            ambient_strength,
-    #            specular_strength,
-    #            shininess
-    #        )):
-    #            self._apply_phong_lighting = True
-    #    return self
 
     def set_style(
         self,

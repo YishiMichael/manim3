@@ -22,16 +22,6 @@ from ..utils.lazy import (
 )
 
 
-#class GaussianBlurPass(RenderPass):
-#    def __init__(self, sigma_width: Real = 0.1):
-#        self._sigma_width: Real = sigma_width
-#
-#    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-#        instance = GaussianBlurPassSingleton()
-#        instance._sigma_width_ = self._sigma_width
-#        instance.render(texture, target_framebuffer)
-
-
 class GaussianBlurPass(RenderPass):
     def __new__(cls, sigma_width: Real | None = None):
         instance = super().__new__(cls)
@@ -59,24 +49,17 @@ class GaussianBlurPass(RenderPass):
 
     @lazy_property
     @staticmethod
-    def _u_color_map_(color_map: moderngl.Texture) -> TextureStorage:
+    def _u_color_map_(
+        color_map: moderngl.Texture
+    ) -> TextureStorage:
         return TextureStorage(
             field="sampler2D u_color_map",
             texture_array=np.array(color_map)
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _ub_gaussian_blur_o_() -> UniformBlockBuffer:
-    #    return UniformBlockBuffer("ub_gaussian_blur", [
-    #        "vec2 u_uv_offset",
-    #        "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _ub_gaussian_blur_(
-        #ub_gaussian_blur_o: UniformBlockBuffer,
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(

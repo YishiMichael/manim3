@@ -22,7 +22,6 @@ from ..rendering.render_procedure import (
     RenderProcedure,
     TextureStorage
 )
-#from ..rendering.renderable import Renderable
 from ..utils.lazy import (
     LazyData,
     lazy_basedata,
@@ -32,13 +31,6 @@ from ..utils.lazy import (
 
 
 class Scene(Mobject):
-    #def __init__(self):
-    #    self._scene_config: SceneConfig = SceneConfig()
-    #    #self._mobject_node: Mobject = Mobject()
-    #    self._animations: dict[Animation, float] = {}
-    #    self._frame_floating_index: float = 0.0  # A timer scaled by fps
-    #    self._previous_rendering_timestamp: float | None = None
-
     @lazy_slot
     @staticmethod
     def _scene_config() -> SceneConfig:
@@ -82,7 +74,9 @@ class Scene(Mobject):
 
     @lazy_property
     @staticmethod
-    def _u_color_map_(color_map: moderngl.Texture) -> TextureStorage:
+    def _u_color_map_(
+        color_map: moderngl.Texture
+    ) -> TextureStorage:
         return TextureStorage(
             field="sampler2D u_color_map",
             texture_array=np.array(color_map)
@@ -90,7 +84,9 @@ class Scene(Mobject):
 
     @lazy_property
     @staticmethod
-    def _u_accum_map_(accum_map: moderngl.Texture) -> TextureStorage:
+    def _u_accum_map_(
+        accum_map: moderngl.Texture
+    ) -> TextureStorage:
         return TextureStorage(
             field="sampler2D u_accum_map",
             texture_array=np.array(accum_map)
@@ -98,7 +94,9 @@ class Scene(Mobject):
 
     @lazy_property
     @staticmethod
-    def _u_revealage_map_(revealage_map: moderngl.Texture) -> TextureStorage:
+    def _u_revealage_map_(
+        revealage_map: moderngl.Texture
+    ) -> TextureStorage:
         return TextureStorage(
             field="sampler2D u_revealage_map",
             texture_array=np.array(revealage_map)
@@ -106,7 +104,9 @@ class Scene(Mobject):
 
     @lazy_property
     @staticmethod
-    def _u_depth_map_(depth_map: moderngl.Texture) -> TextureStorage:
+    def _u_depth_map_(
+        depth_map: moderngl.Texture
+    ) -> TextureStorage:
         return TextureStorage(
             field="sampler2D u_depth_map",
             texture_array=np.array(depth_map)
@@ -388,14 +388,6 @@ class Scene(Mobject):
             self._render_frame()
         self._update_frames(stop_frame_floating_index - (frame_range.stop - 1))
         return self
-
-    #def add(self, *mobjects: Mobject):
-    #    self._mobject_node.add(*mobjects)
-    #    return self
-
-    #def remove(self, *mobjects: Mobject):
-    #    self._mobject_node.remove(*mobjects)
-    #    return self
 
     def set_view(
         self,

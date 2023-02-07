@@ -38,20 +38,20 @@ class ShapeMobject(MeshMobject):
     def _shape_() -> Shape:
         return Shape()
 
-    @lazy_basedata
-    @staticmethod
-    def _geometry_o_() -> ShapeGeometry:
-        return ShapeGeometry()
+    #@lazy_basedata
+    #@staticmethod
+    #def _geometry_o_() -> ShapeGeometry:
+    #    return ShapeGeometry()
 
     @lazy_property
     @staticmethod
     def _geometry_(
-        geometry_o: ShapeGeometry,
+        #geometry_o: ShapeGeometry,
         shape: Shape
     ) -> ShapeGeometry:
-        #return ShapeGeometry(shape)
-        geometry_o._shape_ = LazyData(shape)
-        return geometry_o
+        return ShapeGeometry(shape)
+        #geometry_o._shape_ = LazyData(shape)
+        #return geometry_o
 
     #@lazy_basedata
     #@staticmethod

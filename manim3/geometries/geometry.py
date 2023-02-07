@@ -1,6 +1,6 @@
 __all__ = [
-    "GeometryData",
-    "Geometry"
+    "Geometry",
+    "GeometryData"
 ]
 
 
@@ -47,19 +47,9 @@ class Geometry(LazyBase):
             uv=np.zeros((0, 2))
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _attributes_o_() -> AttributesBuffer:
-    #    return AttributesBuffer([
-    #        "vec3 in_position",
-    #        "vec3 in_normal",
-    #        "vec2 in_uv"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _attributes_(
-        #attributes_o: AttributesBuffer,
         geometry_data: GeometryData
     ) -> AttributesBuffer:
         return AttributesBuffer(
@@ -76,15 +66,9 @@ class Geometry(LazyBase):
             }
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _index_buffer_o_() -> IndexBuffer:
-    #    return IndexBuffer()
-
     @lazy_property
     @staticmethod
     def _index_buffer_(
-        #index_buffer_o: IndexBuffer,
         geometry_data: GeometryData
     ) -> IndexBuffer:
         return IndexBuffer(

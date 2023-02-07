@@ -45,9 +45,7 @@ class _lazy_descriptor(Generic[_LazyBaseT, _T]):
     def __init__(self, method: Callable[..., _T]):
         self.name: str = method.__name__
         self.method: Callable[..., _T] = method
-        #self.default_basedata: LazyData[_T] = LazyData(method())
         self.signature: inspect.Signature = inspect.signature(method)
-        #self.annotation: _Annotation = inspect.signature(method).return_annotation
         self.restock_method: Callable[[_T], None] | None = None
 
     @property
@@ -76,15 +74,8 @@ class lazy_basedata(_lazy_descriptor[_LazyBaseT, _T]):
     def __init__(self, method: Callable[[], _T]):
         super().__init__(method)
         assert not self.parameters
-        #self.name: str = method.__name__
-        #self.method: Callable[..., _T] = method
-        #self.default_basedata: LazyData[_T] = LazyData(method())
-        #self.annotation: _Annotation = inspect.signature(method).return_annotation
-        #self.restock_method: Callable[[_T], None] | None = None
-        #self.property_descrs: tuple[lazy_property[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_dict: dict[_LazyBaseT, LazyData[_T]] = {}
         self.basedata_to_instances_dict: dict[LazyData[_T], list[_LazyBaseT]] = {}
-        #self.basedata_refcnt_dict: dict[LazyData[_T], int] = {}
         self._default_basedata: LazyData[_T] | None = None
 
     @overload
@@ -117,14 +108,10 @@ class lazy_basedata(_lazy_descriptor[_LazyBaseT, _T]):
             property_descr._clear_instance_basedata_tuple(instance)
         if basedata is None:
             return
-        #if self.name == "_field_info_":
-        #    print(f"Set {self.name} {instance} {basedata}")
         self.instance_to_basedata_dict[instance] = basedata
         self.basedata_to_instances_dict.setdefault(basedata, []).append(instance)
 
     def _clear_instance_basedata(self, instance: _LazyBaseT) -> None:
-        #if self.name == "_field_info_":
-        #    print(f"Pop {self.name} {instance}")
         if (basedata := self.instance_to_basedata_dict.pop(instance, None)) is None:
             return
         self.basedata_to_instances_dict[basedata].remove(instance)
@@ -180,24 +167,13 @@ class lazy_property(_lazy_descriptor[_LazyBaseT, _T]):
         raise RuntimeError("Attempting to set a readonly lazy property")
 
     def _clear_instance_basedata_tuple(self, instance: _LazyBaseT) -> None:
-        #import pprint
-        #if self.name == "_attributes_":
-        #    print(instance)
-        #    pprint.pprint(self.basedata_tuple_to_instances_dict)
-        #    pprint.pprint(self.instance_to_basedata_tuple_dict)
         if (basedata_tuple := self.instance_to_basedata_tuple_dict.pop(instance, None)) is None:
-            #if self.name == "_attributes_":
-            #    print(1)
             return
         self.basedata_tuple_to_instances_dict[basedata_tuple].remove(instance)
         if self.basedata_tuple_to_instances_dict[basedata_tuple]:
-            #if self.name == "_attributes_":
-            #    print(2)
             return
         self.basedata_tuple_to_instances_dict.pop(basedata_tuple)
         if (property_data := self.basedata_tuple_to_property_dict.pop(basedata_tuple, None)) is None:
-            #if self.name == "_attributes_":
-            #    print(3)
             return
         self._restock(property_data)
 
@@ -206,11 +182,7 @@ class lazy_slot(_lazy_descriptor[_LazyBaseT, _T]):
     def __init__(self, method: Callable[[], _T]):
         super().__init__(method)
         assert not self.parameters
-        #self.name: str = method.__name__
-        #self.method: Callable[..., _T] = method
         self.instance_to_value_dict: dict[_LazyBaseT, _T] = {}
-        #self.copy_method: Callable[[_T], _T] | None = None
-        #self._default_value: _T | None = None
 
     @overload
     def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_slot[_LazyBaseT, _T]": ...
@@ -229,23 +201,11 @@ class lazy_slot(_lazy_descriptor[_LazyBaseT, _T]):
     def __set__(self, instance: _LazyBaseT, value: _T) -> None:
         self.instance_to_value_dict[instance] = value
 
-    #def copier(self, copy_method: Callable[[_T], _T]) -> Callable[[_T], _T]:
-    #    self.copy_method = copy_method
-    #    return copy_method
-
     def _copy_value(self, instance_src: _LazyBaseT, instance_dst: _LazyBaseT) -> None:
         if (value := self.instance_to_value_dict.get(instance_src)) is None:
             self.instance_to_value_dict.pop(instance_dst, None)
             return
-        #if self.copy_method is not None:
-        #    value = self.copy_method(value)
         self.instance_to_value_dict[instance_dst] = value
-
-    #@property
-    #def default_value(self) -> _T:
-    #    if self._default_value is None:
-    #        self._default_value = self.method()
-    #    return self._default_value
 
 
 class LazyBase(ABC):
@@ -356,10 +316,6 @@ class LazyBase(ABC):
             basedata_descr._set_data(self, None)
         for slot_descr in self._SLOT_DESCRS:
             slot_descr.instance_to_value_dict.pop(self, None)
-                #basedata_descr._decrement_basedata_refcnt(basedata)
-        #for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
-        #    if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.pop(self, None)) is not None:
-        #        property_descr._decrement_basedata_tuple_refcnt(basedata_tuple)
         self._VACANT_INSTANCES.append(self)
 
     @classmethod
@@ -386,145 +342,6 @@ class LazyBase(ABC):
             )
             for child_cls in to_classes(child_annotation)
         ), error_message
-
-
-
-
-#class lazy_property(Generic[_LazyBaseT, _T], Node):
-#    def __init__(self, static_method: Callable[..., _T]):
-#        #assert isinstance(method, staticmethod)
-#        method = static_method.__func__
-#        self.method: Callable[..., _T] = method
-#        signature = inspect.signature(method)
-#        self.name: str = method.__name__
-#        self.annotation: _Annotation = signature.return_annotation
-#        self.parameters: dict[str, _Annotation] = {
-#            f"_{parameter.name}_": parameter.annotation
-#            for parameter in list(signature.parameters.values())
-#        }
-#        self.ancestors: list[lazy_property[_LazyBaseT, _T]] = []
-#        self.value_dict: dict[_LazyBaseT, _T] = {}
-#        self.requires_update: dict[_LazyBaseT, bool] = {}
-#        #self.release_method: Callable[[_T], None] | None = None
-#        super().__init__()
-
-#    @overload
-#    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T]": ...
-
-#    @overload
-#    def __get__(self, instance: _LazyBaseT, owner: type[_LazyBaseT] | None = None) -> _T: ...
-
-#    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T] | _T":
-#        if instance is None:
-#            return self
-#        if not self.requires_update[instance]:
-#            return self.value_dict[instance]
-#        #if self.release_method is not None:
-#        #if instance in self.value_dict:
-#        #    del self.value_dict[instance]
-#                #self.release_method(self.value_dict[instance])
-#        value = self.method(*(
-#            instance.__getattribute__(parameter)
-#            for parameter in self.parameters
-#        ))
-#        self.value_dict[instance] = value
-#        self.requires_update[instance] = False
-#        return value
-
-#    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
-#        raise ValueError("Attempting to set a readonly lazy property")
-
-#    #@property
-#    #def stripped_name(self) -> str:
-#    #    return self.name.strip("_")
-
-#    #def releaser(self, release_method: Callable[[_T], None]) -> Callable[[_T], None]:
-#    #    self.release_method = release_method
-#    #    return release_method
-
-#    def add_instance(self, instance: _LazyBaseT) -> None:
-#        self.requires_update[instance] = True
-
-#    def update_ancestors_cache(self) -> None:
-#        self.ancestors = list(self.iter_ancestors())
-
-#    def expire_instance(self, instance: _LazyBaseT) -> None:
-#        for expired_prop in self.ancestors:
-#            expired_prop.requires_update[instance] = True
-
-
-#class lazy_property_updatable(lazy_property[_LazyBaseT, _T]):
-#    @overload
-#    def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_updatable[_LazyBaseT, _T]": ...
-
-#    @overload
-#    def __get__(self, instance: _LazyBaseT, owner: type[_LazyBaseT] | None = None) -> _T: ...
-
-#    def __get__(self, instance: _LazyBaseT | None, owner: type[_LazyBaseT] | None = None) -> "lazy_property_updatable[_LazyBaseT, _T] | _T":
-#        if instance is None:
-#            return self
-#        return self.value_dict[instance]
-
-#    def add_instance(self, instance: _LazyBaseT) -> None:
-#        self.value_dict[instance] = self.method()
-
-#    def updater(self, update_method: Callable[Concatenate[_LazyBaseT, _P], _R]) -> Callable[Concatenate[_LazyBaseT, _P], _R]:
-#        def new_update_method(instance: _LazyBaseT, *args: _P.args, **kwargs: _P.kwargs) -> _R:
-#            self.expire_instance(instance)
-#            return update_method(instance, *args, **kwargs)
-#        return new_update_method
-
-
-#class lazy_property_writable(lazy_property_updatable[_LazyBaseT, _T]):
-#    def __set__(self, instance: _LazyBaseT, value: _T) -> None:
-#        self.expire_instance(instance)
-#        self.value_dict[instance] = value
-
-
-#class LazyBase(ABC):
-#    _PROPERTIES: ClassVar[list[lazy_property]]
-
-#    def __init_subclass__(cls) -> None:
-#        properties: dict[str, lazy_property] = {}
-#        for parent_cls in cls.__mro__[::-1]:
-#            for name, method in parent_cls.__dict__.items():
-#                if name not in properties:
-#                    if isinstance(method, lazy_property):
-#                        properties[name] = method
-#                    continue
-#                assert isinstance(method, lazy_property)
-#                cls._check_annotation_matching(method.annotation, properties[name].annotation)
-#                properties[name] = method
-
-#        for prop in properties.values():
-#            if isinstance(prop, lazy_property_updatable):
-#                assert not prop.parameters
-#                continue
-#            for param_name, param_annotation in prop.parameters.items():
-#                cls._check_annotation_matching(properties[param_name].annotation, param_annotation)
-#                prop.add(properties[param_name])
-#        for prop in properties.values():
-#            prop.update_ancestors_cache()
-
-#        cls._PROPERTIES = list(properties.values())
-#        return super().__init_subclass__()
-
-#    def __new__(cls, *args, **kwargs):
-#        instance = super().__new__(cls)
-#        for prop in cls._PROPERTIES:
-#            prop.add_instance(instance)
-#        return instance
-
-#    #def __init__(self) -> None:
-#    #    for prop in self._PROPERTIES:
-#    #        prop.add_instance(self)
-#    #        #print(self.__class__.__name__, prop.name, len(prop.value_dict))
-#    #    super().__init__()
-
-#    #def __del__(self) -> None:
-#    #    for prop in self._PROPERTIES:
-#    #        print(prop.name, len(prop.value_dict))
-#    #    super().__del__(self)
 
 
 """

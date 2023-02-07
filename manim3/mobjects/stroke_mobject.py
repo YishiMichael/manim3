@@ -85,19 +85,9 @@ class StrokeMobject(Mobject):
     def _winding_sign_() -> Real:
         return 1.0
 
-    #@lazy_property
-    #@staticmethod
-    #def _ub_stroke_o_() -> UniformBlockBuffer:
-    #    return UniformBlockBuffer("ub_stroke", [
-    #        "float u_width",
-    #        "vec4 u_color",
-    #        "float u_dilate"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _ub_stroke_(
-        #ub_stroke_o: UniformBlockBuffer,
         width: Real,
         color: Vec3T,
         opacity: Real,
@@ -132,17 +122,9 @@ class StrokeMobject(Mobject):
             }
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _attributes_o_() -> AttributesBuffer:
-    #    return AttributesBuffer([
-    #        "vec3 in_position"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _attributes_(
-        #attributes_o: AttributesBuffer,
         multi_line_string: MultiLineString3D
     ) -> AttributesBuffer:
         if not multi_line_string._children_:
@@ -188,21 +170,6 @@ class StrokeMobject(Mobject):
             return [*range(n_points - 1), 0]
         raise ValueError  # never
 
-    #@lazy_property
-    #@staticmethod
-    #def _line_index_buffer_o_() -> IndexBuffer:
-    #    return IndexBuffer()
-
-    #@lazy_property
-    #@staticmethod
-    #def _line_index_buffer_(
-    #    #line_index_buffer_o: IndexBuffer,
-    #    multi_line_string: MultiLineString3D
-    #) -> IndexBuffer:
-    #    return IndexBuffer(
-    #        data=StrokeMobject._lump_index_from_getter(StrokeMobject._line_index_getter, multi_line_string)
-    #    )
-
     @classmethod
     def _join_index_getter(cls, line_string: LineString3D) -> list[int]:
         if line_string._kind_ == "point":
@@ -221,21 +188,6 @@ class StrokeMobject(Mobject):
             ))))
         raise ValueError  # never
 
-    #@lazy_property
-    #@staticmethod
-    #def _join_index_buffer_o_() -> IndexBuffer:
-    #    return IndexBuffer()
-
-    #@lazy_property
-    #@staticmethod
-    #def _join_index_buffer_(
-    #    #join_index_buffer_o: IndexBuffer,
-    #    multi_line_string: MultiLineString3D
-    #) -> IndexBuffer:
-    #    return IndexBuffer().write(
-    #        StrokeMobject._lump_index_from_getter(StrokeMobject._join_index_getter, multi_line_string)
-    #    )
-
     @classmethod
     def _cap_index_getter(cls, line_string: LineString3D) -> list[int]:
         if line_string._kind_ in "point":
@@ -247,21 +199,6 @@ class StrokeMobject(Mobject):
             return []
         raise ValueError  # never
 
-    #@lazy_property
-    #@staticmethod
-    #def _cap_index_buffer_o_() -> IndexBuffer:
-    #    return IndexBuffer()
-
-    #@lazy_property
-    #@staticmethod
-    #def _cap_index_buffer_(
-    #    #cap_index_buffer_o: IndexBuffer,
-    #    multi_line_string: MultiLineString3D
-    #) -> IndexBuffer:
-    #    return IndexBuffer().write(
-    #        StrokeMobject._lump_index_from_getter(StrokeMobject._cap_index_getter, multi_line_string)
-    #    )
-
     @classmethod
     def _point_index_getter(cls, line_string: LineString3D) -> list[int]:
         if line_string._kind_ in "point":
@@ -271,21 +208,6 @@ class StrokeMobject(Mobject):
         if line_string._kind_ == "linear_ring":
             return []
         raise ValueError  # never
-
-    #@lazy_property
-    #@staticmethod
-    #def _point_index_buffer_o_() -> IndexBuffer:
-    #    return IndexBuffer()
-
-    #@lazy_property
-    #@staticmethod
-    #def _point_index_buffer_(
-    #    #point_index_buffer_o: IndexBuffer,
-    #    multi_line_string: MultiLineString3D
-    #) -> IndexBuffer:
-    #    return IndexBuffer().write(
-    #        StrokeMobject._lump_index_from_getter(StrokeMobject._point_index_getter, multi_line_string)
-    #    )
 
     @lazy_slot
     @staticmethod
@@ -297,11 +219,7 @@ class StrokeMobject(Mobject):
     def _stroke_render_items_(
         single_sided: bool,
         has_linecap: bool,
-        multi_line_string: MultiLineString3D,
-        #line_index_buffer: IndexBuffer,
-        #join_index_buffer: IndexBuffer,
-        #cap_index_buffer: IndexBuffer,
-        #point_index_buffer: IndexBuffer
+        multi_line_string: MultiLineString3D
     ) -> list[tuple[list[str], IndexBuffer, int]]:
         def get_index_buffer(index_getter: Callable[[LineString3D], list[int]]) -> IndexBuffer:
             return IndexBuffer(
@@ -396,40 +314,6 @@ class StrokeMobject(Mobject):
             for line_string in line_strings
         ])
 
-    #def _set_style_locally(
-    #    self,
-    #    *,
-    #    width: Real | None = None,
-    #    single_sided: bool | None = None,
-    #    has_linecap: bool | None = None,
-    #    color: ColorType | None = None,
-    #    opacity: Real | None = None,
-    #    dilate: Real | None = None,
-    #    apply_oit: bool | None = None
-    #):
-    #    if width is not None:
-    #        self._width_ = width
-    #    if single_sided is not None:
-    #        self._single_sided_ = single_sided
-    #    if has_linecap is not None:
-    #        self._has_linecap_ = has_linecap
-    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-    #    if color_component is not None:
-    #        self._color_ = color_component
-    #    if opacity_component is not None:
-    #        self._opacity_ = opacity_component
-    #    if dilate is not None:
-    #        self._dilate_ = dilate
-    #    if apply_oit is not None:
-    #        self._apply_oit_ = apply_oit
-    #    else:
-    #        if any(param is not None for param in (
-    #            opacity_component,
-    #            dilate
-    #        )):
-    #            self._apply_oit_ = True
-    #    return self
-
     def set_style(
         self,
         *,
@@ -445,35 +329,15 @@ class StrokeMobject(Mobject):
         width_data = LazyData(width) if width is not None else None
         single_sided_data = LazyData(single_sided) if single_sided is not None else None
         has_linecap_data = LazyData(has_linecap) if has_linecap is not None else None
-        #if width is not None:
-        #    self._width_ = width
-        #if single_sided is not None:
-        #    self._single_sided_ = single_sided
-        #if has_linecap is not None:
-        #    self._has_linecap_ = has_linecap
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_data = LazyData(color_component) if color_component is not None else None
         opacity_data = LazyData(opacity_component) if opacity_component is not None else None
-        #if color_component is not None:
-        #    self._color_ = color_component
-        #if opacity_component is not None:
-        #    self._opacity_ = opacity_component
         dilate_data = LazyData(dilate) if dilate is not None else None
         apply_oit_data = LazyData(apply_oit) if apply_oit is not None else \
             LazyData(True) if any(param is not None for param in (
                 opacity_component,
                 dilate
             )) else None
-        #if dilate is not None:
-        #    self._dilate_ = dilate
-        #if apply_oit is not None:
-        #    self._apply_oit_ = apply_oit
-        #else:
-        #    if any(param is not None for param in (
-        #        opacity_component,
-        #        dilate
-        #    )):
-        #        self._apply_oit_ = True
         for mobject in self.iter_descendants(broadcast=broadcast):
             if not isinstance(mobject, StrokeMobject):
                 continue

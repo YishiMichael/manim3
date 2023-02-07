@@ -22,39 +22,6 @@ from ..utils.lazy import (
 )
 
 
-#class PointLight(LazyBase):
-#    @lazy_basedata
-#    @staticmethod
-#    def _position_() -> Vec3T:
-#        return np.zeros(3)
-
-#    @lazy_basedata
-#    @staticmethod
-#    def _color_() -> Vec3T:
-#        return np.ones(3)
-
-#    @lazy_basedata
-#    @staticmethod
-#    def _opacity_() -> Real:
-#        return 1.0
-
-#    def set_style(
-#        self,
-#        *,
-#        position: Vec3T | None = None,
-#        color: ColorType | None = None,
-#        opacity: Real | None = None
-#    ):
-#        if position is not None:
-#            self._position_ = LazyData(position)
-#        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-#        if color_component is not None:
-#            self._color_ = LazyData(color_component)
-#        if opacity_component is not None:
-#            self._opacity_ = LazyData(opacity_component)
-#        return self
-
-
 class SceneConfig(LazyBase):
     _POINT_LIGHT_DTYPE: ClassVar[np.dtype] = np.dtype([
         ("position", (np.float_, (3,))),
@@ -92,33 +59,9 @@ class SceneConfig(LazyBase):
     def _point_lights_() -> np.ndarray:
         return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
 
-    #@lazy_basedata
-    #@staticmethod
-    #def _point_light_colors_() -> Vec3sT:
-    #    return np.zeros((0, 3))
-
-    #@lazy_basedata
-    #@staticmethod
-    #def _point_light_opacities_() -> FloatsT:
-    #    return np.zeros(0)
-
-    #@lazy_property
-    #@staticmethod
-    #def _ub_lights_o_() -> UniformBlockBuffer:
-    #    return UniformBlockBuffer("ub_lights", [
-    #        "vec4 u_ambient_light_color",
-    #        "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
-    #    ], {
-    #        "PointLight": [
-    #            "vec3 position",
-    #            "vec4 color"
-    #        ]
-    #    })
-
     @lazy_property
     @staticmethod
     def _ub_lights_(
-        #ub_lights_o: UniformBlockBuffer,
         ambient_light_color: Vec3T,
         ambient_light_opacity: Real,
         point_lights: np.ndarray
@@ -202,16 +145,6 @@ class SceneConfig(LazyBase):
         ), dtype=self._POINT_LIGHT_DTYPE)
         self._point_lights_ = LazyData(np.append(self._point_lights_, point_light))
         return self
-        #point_light = PointLight()
-        #point_light.set_style(
-        #    position=position,
-        #    color=color,
-        #    opacity=opacity
-        #)
-        #point_lights_list = list(self._point_lights_)
-        #point_lights_list.append(point_light)
-        #self._point_lights_ = LazyData(tuple(point_lights_list))
-        #return self
 
     def set_point_light(
         self,

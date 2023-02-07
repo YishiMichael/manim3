@@ -100,10 +100,6 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
     def __new__(cls, coords: _VecsT):
         # TODO: shall we first remove redundant adjacent points?
         assert len(coords)
-        #if coords.shape[1] == 3:
-        #    raise ValueError
-        #if cls.__name__ == "LineString2D":
-        #    print(coords)
         instance = super().__new__(cls)
         instance._coords_ = LazyData(coords)
         return instance
@@ -275,19 +271,11 @@ class Shape(LazyBase):
                 coords_iter = cls._iter_coords_from_se_shape(arg)
             else:
                 raise TypeError(f"Cannot handle argument in Shape constructor: {arg}")
-            #print(list(coords_iter))
             multi_line_string = MultiLineString2D([
                 LineString2D(coords)
                 for coords in coords_iter
                 if len(coords)
             ])
-            #print(">>>")
-            #for p in cls._iter_coords_from_se_shape(arg):
-            #    print(p)
-            #print("<<<")
-            #for child in multi_line_string._children_:
-            #    print(type(child), child._coords_)
-            #print()
         if multi_line_string is not None:
             instance._multi_line_string_ = LazyData(multi_line_string)
         return instance
@@ -317,10 +305,6 @@ class Shape(LazyBase):
             for line_string in multi_line_string._children_
         ])
 
-    #@classmethod
-    #def _get_multi_line_string_from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> MultiLineString2D:
-    #    return MultiLineString2D(list(cls._iter_line_strings_from_shapely_obj(shapely_obj)))
-
     @classmethod
     def _iter_coords_from_shapely_obj(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> Generator[Vec2sT, None, None]:
         if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
@@ -338,23 +322,18 @@ class Shape(LazyBase):
 
     @classmethod
     def _iter_coords_from_se_shape(cls, se_shape: se.Shape) -> Generator[Vec2sT, None, None]:
-        #if isinstance(se_shape, str):
-        #    se_shape = se.Path(se_shape)
         se_path = se.Path(se_shape.segments(transformed=True))
         se_path.approximate_arcs_with_cubics()
-        #point_lists: list[list[Vec2T]] = []
         coords_list: list[Vec2T] = []
         current_path_start_point: Vec2T = np.zeros(2)
         for segment in se_path.segments(transformed=True):
             if isinstance(segment, se.Move):
                 yield np.array(coords_list)
-                #point_lists.append(coords_list)
                 current_path_start_point = np.array(segment.end)
                 coords_list = [current_path_start_point]
             elif isinstance(segment, se.Close):
                 coords_list.append(current_path_start_point)
                 yield np.array(coords_list)
-                #point_lists.append(coords_list)
                 coords_list = []
             elif isinstance(segment, se.Line):
                 coords_list.append(np.array(segment.end))
@@ -367,12 +346,6 @@ class Shape(LazyBase):
                     raise ValueError(f"Cannot handle path segment type: {type(segment)}")
                 coords_list.extend(cls._get_bezier_sample_points(np.array(control_points))[1:])
         yield np.array(coords_list)
-        #point_lists.append(coords)
-
-        #return MultiLineString2D([
-        #    LineString2D(np.array(coords))
-        #    for coords in point_lists if coords
-        #])
 
     @classmethod
     def _get_bezier_sample_points(cls, control_points: Vec2sT) -> Vec2sT:
@@ -410,11 +383,6 @@ class Shape(LazyBase):
     def _shapely_obj_(multi_line_string: MultiLineString2D) -> shapely.geometry.base.BaseGeometry:
         return Shape._to_shapely_object(multi_line_string)
 
-    #@lazy_property
-    #@staticmethod
-    #def _shapely_boundary_(polygons: Polygons) -> list[shapely.geometry.LineString]:
-    #    return polygons._shapely_boundary_
-
     @classmethod
     def _to_shapely_object(cls, multi_line_string: MultiLineString2D) -> shapely.geometry.base.BaseGeometry:
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, [
@@ -434,11 +402,6 @@ class Shape(LazyBase):
     @classmethod
     def interpolate_method(cls, shape_0: "Shape", shape_1: "Shape", alpha: Real) -> "Shape":
         return shape_0.interpolate_shape(shape_1, alpha)
-
-    #@lazy_property
-    #@staticmethod
-    #def _triangulation_(polygons: Polygons) -> tuple[VertexIndexType, Vec2sT]:
-    #    return polygons._triangulation_
 
     # operations ported from shapely
 

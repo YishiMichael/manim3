@@ -61,20 +61,9 @@ class Camera(LazyBase):
         m[:3, 3] = -rot_mat @ eye
         return m
 
-    #@lazy_property
-    #@staticmethod
-    #def _ub_camera_o_() -> UniformBlockBuffer:
-    #    return UniformBlockBuffer("ub_camera", [
-    #        "mat4 u_projection_matrix",
-    #        "mat4 u_view_matrix",
-    #        "vec3 u_view_position",
-    #        "vec2 u_frame_radius"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _ub_camera_(
-        #ub_camera_o: UniformBlockBuffer,
         projection_matrix: Mat4T,
         view_matrix: Mat4T,
         eye: Vec3T

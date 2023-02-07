@@ -1,6 +1,6 @@
 __all__ = [
-    "Animation",
     "AlphaAnimation",
+    "Animation",
     #"SimpleAnimation"
 ]
 

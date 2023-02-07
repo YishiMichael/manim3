@@ -1,7 +1,6 @@
 __all__ = ["Mobject"]
 
 
-#import copy
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
@@ -32,7 +31,6 @@ from ..rendering.render_procedure import (
     RenderProcedure,
     UniformBlockBuffer
 )
-#from ..rendering.renderable import Renderable
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
     LazyBase,
@@ -79,6 +77,7 @@ class Mobject(LazyBase):
         return self._children.__getitem__(index)
 
     # family matters
+    # These methods implement a double-directed, loop-free graph
 
     @lazy_slot
     @staticmethod
@@ -278,18 +277,6 @@ class Mobject(LazyBase):
         broadcast: bool = True
     ) -> Vec3T:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
-
-    #def apply_matrix_directly(
-    #    self,
-    #    matrix: Mat4T,
-    #    *,
-    #    broadcast: bool = True
-    #):
-    #    #if np.isclose(np.linalg.det(matrix), 0.0):
-    #    #    warnings.warn("Applying a singular matrix transform")
-    #    for mobject in self.get_descendants(broadcast=broadcast):
-    #        mobject.apply_relative_transform(matrix)
-    #    return self
 
     def apply_transform(
         self,
@@ -560,17 +547,9 @@ class Mobject(LazyBase):
     def _apply_oit_() -> bool:
         return False
 
-    #@lazy_property
-    #@staticmethod
-    #def _ub_model_o_() -> UniformBlockBuffer:
-    #    return UniformBlockBuffer("ub_model", [
-    #        "mat4 u_model_matrix"
-    #    ])
-
     @lazy_property
     @staticmethod
     def _ub_model_(
-        #ub_model_o: UniformBlockBuffer,
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
