@@ -1,3 +1,58 @@
+"""
+This module implements a basic class with lazy properties.
+
+The functionality of `LazyBase` id to save resource as much as it can.
+On one hand, all data of `lazy_basedata` and `lazy_property` are shared among
+instances. On the other hand, these data will be restocked (recursively) if
+they themselves are instances of `LazyBase`. One may also define custom
+restockers for individual data.
+
+Every child class of `LazyBase` shall be declared with an empty `__slots__`,
+and all methods shall be sorted in the following way:
+- magic methods
+- lazy_basedata
+- lazy_property
+- lazy_slot
+- private classmethods
+- private methods
+- public methods
+
+The instantiation process shall be done in `__new__` method. If one wants to
+make use of the functionality of `_copy()`, a default construction shall be
+provided (that is, to provide default values for all arguments).
+
+All methods decorated by any of `lazy_basedata`, `lazy_property`, `lazy_slot`
+should be static methods, and so are their restockers. Type annotation is
+strictly applied to reduce chances of running into unexpected behaviors.
+
+Methods decorated by `lazy_basedata` should be named with underscores appeared
+on both sides, i.e. `_data_`. They should not take any argument and return
+the *initial* value for this data. `NotImplemented` may be an alternative for
+the value returned, as long as the data is initialized in `__new__` method.
+In principle, the data can be of any type including mutable ones, but one must
+keep in mind that data *cannot be mutated* as they are shared. The only way to
+change the value is to reset the data via `__set__`, and the new value shall
+be wrapped up with `LazyData`. This makes it possible to manually share data
+which is not the initial value. Note, the `__get__` method will return
+unwrapped data. One shall use `cls._data_._get_data()` to obtain the wrapped
+data if one wishes to share it with other instances.
+
+Methods decorated by `lazy_property` should be named with the same style of
+`lazy_basedata`. They should take *at least one* argument, and all names of
+arguments should be matched with any `lazy_basedata` or other `lazy_property`.
+Data is immutable, and calling `__set__` method will trigger an exception.
+As the name `lazy` suggests, if any correlated `lazy_basedata` is altered,
+as long as the calculation is never done before, the recalculation will be
+done when one calls `__get__`.
+
+Methods decorated by `lazy_slot` should be named with an underscore inserted
+at front, i.e. `_data`. They behave like a normal attribute of the class.
+Data can be freely mutated because they are no longer shared (as long as one
+does not do something like `b._data = a._data`). Data wrapping is no
+longer necessary when calling `__set__`.
+"""
+
+
 __all__ = [
     "LazyData",
     "LazyBase",
@@ -316,25 +371,3 @@ class LazyBase(ABC):
             )
             for child_cls in to_classes(child_annotation)
         ), error_message
-
-
-"""
-class A(LazyBase):
-    @lazy_property
-    @staticmethod
-    def _p_(q: str) -> int:
-        return int(q)
-    @lazy_basedata
-    @staticmethod
-    def _q_() -> str:
-        return "2"
-
-class B(A):
-    pass
-
-
-a = B()
-s = a._p_ + 3
-#a._q_ + "8"
-print(s, a._p_)
-"""

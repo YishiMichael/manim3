@@ -202,10 +202,6 @@ class Mobject(LazyBase):
     def _model_matrix_() -> Mat4T:
         return np.identity(4)
 
-    #def _apply_transform_locally(self, matrix: Mat4T):
-    #    self._model_matrix_ = LazyData(matrix @ self._model_matrix_)
-    #    return self
-
     @lazy_basedata
     @staticmethod
     def _local_sample_points_() -> Vec3sT:
