@@ -1,9 +1,6 @@
 __all__ = ["SVGMobject"]
 
 
-#from typing import Any
-#import warnings
-
 import numpy as np
 import svgelements as se
 

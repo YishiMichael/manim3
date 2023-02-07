@@ -22,7 +22,6 @@ from ..utils.shape import Shape
 
 class ShapeMobject(MeshMobject):
     def __new__(cls, shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
-        #self._stroke_mobjects: list[StrokeMobject] = []
         instance = super().__new__(cls)
         if shape is not None:
             if isinstance(shape, Shape):
@@ -38,20 +37,12 @@ class ShapeMobject(MeshMobject):
     def _shape_() -> Shape:
         return Shape()
 
-    #@lazy_basedata
-    #@staticmethod
-    #def _geometry_o_() -> ShapeGeometry:
-    #    return ShapeGeometry()
-
     @lazy_property
     @staticmethod
     def _geometry_(
-        #geometry_o: ShapeGeometry,
         shape: Shape
     ) -> ShapeGeometry:
         return ShapeGeometry(shape)
-        #geometry_o._shape_ = LazyData(shape)
-        #return geometry_o
 
     #@lazy_basedata
     #@staticmethod
@@ -68,139 +59,6 @@ class ShapeMobject(MeshMobject):
         for stroke in self._stroke_mobjects:
             stroke._multi_line_string_ = multi_line_string_data
         return self
-
-    #def _set_fill_locally(
-    #    self,
-    #    *,
-    #    color: ColorType | None = None,
-    #    opacity: Real | None = None,
-    #    apply_oit: bool | None = None,
-    #    ambient_strength: Real | None = None,
-    #    specular_strength: Real | None = None,
-    #    shininess: Real | None = None,
-    #    apply_phong_lighting: bool | None = None
-    #):
-    #    super()._set_style_locally(
-    #        color=color,
-    #        opacity=opacity,
-    #        apply_oit=apply_oit,
-    #        ambient_strength=ambient_strength,
-    #        specular_strength=specular_strength,
-    #        shininess=shininess,
-    #        apply_phong_lighting=apply_phong_lighting
-    #    )
-
-    #def _add_stroke_locally(
-    #    self,
-    #    *,
-    #    width: Real | None = None,
-    #    single_sided: bool | None = None,
-    #    has_linecap: bool | None = None,
-    #    color: ColorType | None = None,
-    #    opacity: Real | None = None,
-    #    dilate: Real | None = None,
-    #    apply_oit: bool | None = None
-    #):
-    #    stroke = StrokeMobject(self._shape_._multi_line_string_3d_)
-    #    stroke.apply_transform(self._model_matrix_)
-    #    stroke._set_style_locally(
-    #        width=width,
-    #        single_sided=single_sided,
-    #        has_linecap=has_linecap,
-    #        color=color,
-    #        opacity=opacity,
-    #        dilate=dilate,
-    #        apply_oit=apply_oit
-    #    )
-    #    self._stroke_mobjects.append(stroke)
-    #    self.add(stroke)
-    #    return self
-
-    #def _set_stroke_locally(
-    #    self,
-    #    *,
-    #    index: int | None = None,
-    #    width: Real | None = None,
-    #    single_sided: bool | None = None,
-    #    has_linecap: bool | None = None,
-    #    color: ColorType | None = None,
-    #    opacity: Real | None = None,
-    #    dilate: Real | None = None,
-    #    apply_oit: bool | None = None
-    #):
-    #    if self._stroke_mobjects:
-    #        if index is None:
-    #            index = 0
-    #        self._stroke_mobjects[index]._set_style_locally(
-    #            width=width,
-    #            single_sided=single_sided,
-    #            has_linecap=has_linecap,
-    #            color=color,
-    #            opacity=opacity,
-    #            dilate=dilate,
-    #            apply_oit=apply_oit
-    #        )
-    #    else:
-    #        if index is not None:
-    #            raise IndexError
-    #        if any(param is not None for param in (
-    #            width,
-    #            single_sided,
-    #            has_linecap,
-    #            color,
-    #            opacity,
-    #            dilate,
-    #            apply_oit
-    #        )):
-    #            self._add_stroke_locally(
-    #                width=width,
-    #                single_sided=single_sided,
-    #                has_linecap=has_linecap,
-    #                color=color,
-    #                opacity=opacity,
-    #                dilate=dilate,
-    #                apply_oit=apply_oit
-    #            )
-    #    return self
-
-    #def _set_style_locally(
-    #    self,
-    #    *,
-    #    color: ColorType | None = None,
-    #    opacity: Real | None = None,
-    #    apply_oit: bool | None = None,
-    #    ambient_strength: Real | None = None,
-    #    specular_strength: Real | None = None,
-    #    shininess: Real | None = None,
-    #    apply_phong_lighting: bool | None = None,
-    #    stroke_width: Real | None = None,
-    #    stroke_single_sided: bool | None = None,
-    #    stroke_has_linecap: bool | None = None,
-    #    stroke_color: ColorType | None = None,
-    #    stroke_opacity: Real | None = None,
-    #    stroke_dilate: Real | None = None,
-    #    stroke_apply_oit: bool | None = None
-    #):
-    #    self._set_fill_locally(
-    #        color=color,
-    #        opacity=opacity,
-    #        apply_oit=apply_oit,
-    #        ambient_strength=ambient_strength,
-    #        specular_strength=specular_strength,
-    #        shininess=shininess,
-    #        apply_phong_lighting=apply_phong_lighting
-    #    )
-    #    self._set_stroke_locally(
-    #        index=None,
-    #        width=stroke_width,
-    #        single_sided=stroke_single_sided,
-    #        has_linecap=stroke_has_linecap,
-    #        color=stroke_color,
-    #        opacity=stroke_opacity,
-    #        dilate=stroke_dilate,
-    #        apply_oit=stroke_apply_oit
-    #    )
-    #    return self
 
     def set_fill(
         self,
@@ -266,18 +124,8 @@ class ShapeMobject(MeshMobject):
                 continue
             stroke = StrokeMobject(self._shape_._multi_line_string_3d_)
             stroke.apply_transform(self._model_matrix_)
-            #mobject._add_stroke_locally(
-            #    width=width,
-            #    single_sided=single_sided,
-            #    has_linecap=has_linecap,
-            #    color=color,
-            #    opacity=opacity,
-            #    dilate=dilate,
-            #    apply_oit=apply_oit
-            #)
             stroke_mobjects.append(stroke)
 
-        #self._stroke_mobjects.extend(stroke_mobjects)
         self.add(*stroke_mobjects)
         StrokeMobject().add(*stroke_mobjects).set_style(
             width=width,

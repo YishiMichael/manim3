@@ -344,35 +344,6 @@ class GLSLDynamicStruct(LazyBase):
     def _int_prod(cls, shape: tuple[int, ...]) -> int:
         return reduce(op.mul, shape, 1)
 
-    #@classmethod
-    #def _align_atomic_dtype(cls, child_dtype: np.dtype | None, shape: tuple[int, ...]) -> tuple[int, bool]:
-    #    if cls._LAYOUT == "packed":
-    #        base_alignment = 0
-    #        pad_tail = False
-    #    elif cls._LAYOUT == "std140":
-    #        if child_dtype is None:
-    #            base_alignment = 16
-    #            pad_tail = True
-    #        elif not shape and len(child_dtype.shape) <= 1:
-    #            if child_dtype.shape == ():
-    #                base_alignment_units = 1
-    #            elif child_dtype.shape == (2,):
-    #                base_alignment_units = 2
-    #            elif child_dtype.shape == (3,):
-    #                base_alignment_units = 4
-    #            elif child_dtype.shape == (4,):
-    #                base_alignment_units = 4
-    #            else:
-    #                raise
-    #            base_alignment = base_alignment_units * child_dtype.base.itemsize
-    #            pad_tail = False
-    #        else:
-    #            base_alignment = 4 * child_dtype.base.itemsize
-    #            pad_tail = True
-    #    else:
-    #        raise NotImplementedError
-    #    return base_alignment, pad_tail
-
     @classmethod
     def _align_atomic_dtype(cls, atomic_dtype: np.dtype, zero_dimensional: bool) -> np.dtype:
         base = atomic_dtype.base
@@ -396,16 +367,6 @@ class GLSLDynamicStruct(LazyBase):
 
 class GLSLDynamicBuffer(GLSLDynamicStruct):
     _BUFFER_CACHE: list[moderngl.Buffer] = []
-    #_buffer: moderngl.Buffer
-
-    #def _init_new_instance(self) -> None:
-    #    self._buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
-    #    print(self._buffer)
-
-    #@lazy_basedata
-    #@staticmethod
-    #def _buffer_o_() -> moderngl.Buffer:
-    #    return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
 
     @lazy_property
     @staticmethod

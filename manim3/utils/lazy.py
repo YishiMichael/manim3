@@ -125,19 +125,9 @@ class lazy_property(_lazy_descriptor[_LazyBaseT, _T]):
     def __init__(self, method: Callable[..., _T]):
         super().__init__(method)
         assert self.parameters
-        #signature = inspect.signature(method)
-        #self.name: str = method.__name__
-        #self.method: Callable[..., _T] = method
-        #self.annotation: _Annotation = signature.return_annotation
-        #self.parameters: dict[str, _Annotation] = {
-        #    f"_{parameter.name}_": parameter.annotation
-        #    for parameter in list(signature.parameters.values())
-        #}
-        #self.basedata_descrs: tuple[lazy_basedata[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_tuple_dict: dict[_LazyBaseT, tuple[LazyData[Any], ...]] = {}
         self.basedata_tuple_to_instances_dict: dict[tuple[LazyData[Any], ...], list[_LazyBaseT]] = {}
         self.basedata_tuple_to_property_dict: dict[tuple[LazyData[Any], ...], _T] = {}
-        #self.instance_to_property_dict: dict[_LazyBaseT, _T] = {}
 
     @overload
     def __get__(self, instance: None, owner: type[_LazyBaseT] | None = None) -> "lazy_property[_LazyBaseT, _T]": ...
@@ -155,13 +145,13 @@ class lazy_property(_lazy_descriptor[_LazyBaseT, _T]):
             )
             self.instance_to_basedata_tuple_dict[instance] = basedata_tuple
             self.basedata_tuple_to_instances_dict.setdefault(basedata_tuple, []).append(instance)
-        return self.basedata_tuple_to_property_dict.setdefault(
-            basedata_tuple,
-            self.method(*(
+        if (result := self.basedata_tuple_to_property_dict.get(basedata_tuple)) is None:
+            result = self.method(*(
                 param_descr.__get__(instance)
                 for param_descr in instance.__class__._PROPERTY_DESCR_TO_PARAMETER_DESCRS[self]
             ))
-        )
+            self.basedata_tuple_to_property_dict[basedata_tuple] = result
+        return result
 
     def __set__(self, instance: _LazyBaseT, value: Any) -> None:
         raise RuntimeError("Attempting to set a readonly lazy property")
@@ -281,14 +271,10 @@ class LazyBase(ABC):
             assert isinstance(instance, cls)
         else:
             instance = super().__new__(cls)
-            #instance._init_new_instance()
         return instance
 
     #def __delete__(self) -> None:
     #    self._restock()
-
-    #def _init_new_instance(self) -> None:
-    #    pass
 
     def _copy(self):
         result = self.__new__(self.__class__)
@@ -297,19 +283,7 @@ class LazyBase(ABC):
             basedata_descr._set_data(result, basedata)
         for slot_descr in self._SLOT_DESCRS:
             slot_descr._copy_value(self, result)
-            #if self in slot_descr.instance_to_value_dict:
-            #    slot_descr.__set__(result, slot_descr._copy_value(self))
-                #basedata_descr.instance_to_basedata_dict[result] = basedata
-                #basedata_descr._increment_basedata_refcnt(basedata)
-        #for property_descr in self._PROPERTY_DESCR_TO_BASEDATA_DESCRS:
-        #    if (basedata_tuple := property_descr.instance_to_basedata_tuple_dict.get(self, None)) is not None:
-        #        property_descr.instance_to_basedata_tuple_dict[result] = basedata_tuple
-        #        property_descr._increment_basedata_tuple_refcnt(basedata_tuple)
         return result
-
-    #def _reinitialize_data(self) -> None:
-    #    for basedata_descr in self._LAZY_BASEDATA_DESCRS:
-    #        basedata_descr.instance_to_basedata_dict.pop(self, None)
 
     def _restock(self) -> None:
         for basedata_descr in self._BASEDATA_DESCR_TO_PROPERTY_DESCRS:
