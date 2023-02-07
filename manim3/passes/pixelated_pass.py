@@ -40,11 +40,17 @@ class PixelatedPass(RenderPass):
     def _pixelated_width_() -> Real:
         return 0.1
 
+    @lazy_basedata
+    @staticmethod
+    def _color_map_() -> moderngl.Texture:
+        return NotImplemented
+
     @lazy_property
     @staticmethod
-    def _u_color_map_o_() -> TextureStorage:
+    def _u_color_map_(color_map: moderngl.Texture) -> TextureStorage:
         return TextureStorage(
-            "sampler2D u_color_map"
+            field="sampler2D u_color_map",
+            texture_array=np.array(color_map)
         )
 
     def render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
@@ -59,13 +65,12 @@ class PixelatedPass(RenderPass):
                     depth_attachment=None
                 ) as intermediate_framebuffer:
             intermediate_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+            self._color_map_ = LazyData(texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("copy"),
                 custom_macros=[],
                 texture_storages=[
-                    self._u_color_map_o_.write(
-                        np.array(texture)
-                    )
+                    self._u_color_map_
                 ],
                 uniform_blocks=[],
                 framebuffer=intermediate_framebuffer,
@@ -73,13 +78,12 @@ class PixelatedPass(RenderPass):
                     enable_only=moderngl.NOTHING
                 )
             )
+            self._color_map_ = LazyData(intermediate_texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("copy"),
                 custom_macros=[],
                 texture_storages=[
-                    self._u_color_map_o_.write(
-                        np.array(intermediate_texture)
-                    )
+                    self._u_color_map_
                 ],
                 uniform_blocks=[],
                 framebuffer=target_framebuffer,

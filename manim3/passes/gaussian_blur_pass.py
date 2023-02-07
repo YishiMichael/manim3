@@ -52,11 +52,17 @@ class GaussianBlurPass(RenderPass):
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
+    @lazy_basedata
+    @staticmethod
+    def _color_map_() -> moderngl.Texture:
+        return NotImplemented
+
     @lazy_property
     @staticmethod
-    def _u_color_map_() -> TextureStorage:
+    def _u_color_map_(color_map: moderngl.Texture) -> TextureStorage:
         return TextureStorage(
-            "sampler2D u_color_map"
+            field="sampler2D u_color_map",
+            texture_array=np.array(color_map)
         )
 
     #@lazy_property
@@ -73,13 +79,17 @@ class GaussianBlurPass(RenderPass):
         #ub_gaussian_blur_o: UniformBlockBuffer,
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_gaussian_blur", [
-            "vec2 u_uv_offset",
-            "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
-        ]).write({
-            "u_uv_offset": 1.0 / np.array(ConfigSingleton().pixel_size),
-            "u_convolution_core": convolution_core
-        })
+        return UniformBlockBuffer(
+            name="ub_gaussian_blur",
+            fields=[
+                "vec2 u_uv_offset",
+                "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
+            ],
+            data={
+                "u_uv_offset": 1.0 / np.array(ConfigSingleton().pixel_size),
+                "u_convolution_core": convolution_core
+            }
+        )
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         with RenderProcedure.texture() as intermediate_texture, \
@@ -87,15 +97,14 @@ class GaussianBlurPass(RenderPass):
                     color_attachments=[intermediate_texture],
                     depth_attachment=None
                 ) as intermediate_framebuffer:
+            self._color_map_ = LazyData(texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("gaussian_blur"),
                 custom_macros=[
                     "#define blur_subroutine horizontal_dilate"
                 ],
                 texture_storages=[
-                    self._u_color_map_.write(
-                        np.array(texture)
-                    )
+                    self._u_color_map_
                 ],
                 uniform_blocks=[
                     self._ub_gaussian_blur_
@@ -105,15 +114,14 @@ class GaussianBlurPass(RenderPass):
                     enable_only=moderngl.NOTHING
                 )
             )
+            self._color_map_ = LazyData(intermediate_texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("gaussian_blur"),
                 custom_macros=[
                     "#define blur_subroutine vertical_dilate"
                 ],
                 texture_storages=[
-                    self._u_color_map_.write(
-                        np.array(intermediate_texture)
-                    )
+                    self._u_color_map_
                 ],
                 uniform_blocks=[
                     self._ub_gaussian_blur_

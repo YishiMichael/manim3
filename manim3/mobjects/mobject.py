@@ -41,7 +41,6 @@ from ..utils.lazy import (
     lazy_property,
     lazy_slot
 )
-#from ..utils.node import Node
 from ..utils.space import SpaceUtils
 
 
@@ -66,22 +65,7 @@ class BoundingBox3D:
         return radius
 
 
-#class MobjectNode(Node):
-#    def __init__(self, mobject: "Mobject"):
-#        self._mobject: Mobject = mobject
-#        super().__init__()
-
-
 class Mobject(LazyBase):
-    #def __init__(self) -> None:
-    #    self._node: MobjectNode = MobjectNode(self)
-    #    super().__init__()
-
-    #    #self.matrix: pyrr.Matrix44 = pyrr.Matrix44.identity()
-    #    self.render_passes: list["RenderPass"] = []
-    #    self.animations: list["Animation"] = []  # TODO: circular typing
-    #    super().__init__()
-
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children)
 
@@ -223,7 +207,7 @@ class Mobject(LazyBase):
     #    self._model_matrix_ = LazyData(matrix @ self._model_matrix_)
     #    return self
 
-    @lazy_property
+    @lazy_basedata
     @staticmethod
     def _local_sample_points_() -> Vec3sT:
         # Implemented in subclasses
@@ -589,11 +573,15 @@ class Mobject(LazyBase):
         #ub_model_o: UniformBlockBuffer,
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_model", [
-            "mat4 u_model_matrix"
-        ]).write({
-            "u_model_matrix": model_matrix.T
-        })
+        return UniformBlockBuffer(
+            name="ub_model",
+            fields=[
+                "mat4 u_model_matrix"
+            ],
+            data={
+                "u_model_matrix": model_matrix.T
+            }
+        )
 
     @lazy_slot
     @staticmethod

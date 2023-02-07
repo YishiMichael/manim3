@@ -19,6 +19,7 @@ from ..rendering.render_procedure import (
 )
 from ..utils.lazy import (
     LazyBase,
+    lazy_basedata,
     lazy_property
 )
 
@@ -36,7 +37,7 @@ class GeometryData:
 
 
 class Geometry(LazyBase):
-    @lazy_property
+    @lazy_basedata
     @staticmethod
     def _geometry_data_() -> GeometryData:
         return GeometryData(
@@ -61,15 +62,19 @@ class Geometry(LazyBase):
         #attributes_o: AttributesBuffer,
         geometry_data: GeometryData
     ) -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 in_position",
-            "vec3 in_normal",
-            "vec2 in_uv"
-        ]).write({
-            "in_position": geometry_data.position,
-            "in_normal": geometry_data.normal,
-            "in_uv": geometry_data.uv
-        })
+        return AttributesBuffer(
+            fields=[
+                "vec3 in_position",
+                "vec3 in_normal",
+                "vec2 in_uv"
+            ],
+            num_vertex=len(geometry_data.position),
+            data={
+                "in_position": geometry_data.position,
+                "in_normal": geometry_data.normal,
+                "in_uv": geometry_data.uv
+            }
+        )
 
     #@lazy_property
     #@staticmethod
@@ -82,4 +87,6 @@ class Geometry(LazyBase):
         #index_buffer_o: IndexBuffer,
         geometry_data: GeometryData
     ) -> IndexBuffer:
-        return IndexBuffer().write(geometry_data.index)
+        return IndexBuffer(
+            data=geometry_data.index
+        )

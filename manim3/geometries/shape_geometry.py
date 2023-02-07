@@ -25,15 +25,16 @@ from ..utils.space import SpaceUtils
 
 
 class ShapeGeometry(Geometry):
-    def __new__(cls, shape: Shape):
+    def __new__(cls, shape: Shape | None = None):
         instance = super().__new__(cls)
-        instance._shape_ = LazyData(shape)
+        if shape is not None:
+            instance._shape_ = LazyData(shape)
         return instance
 
     @lazy_basedata
     @staticmethod
     def _shape_() -> Shape:
-        return NotImplemented
+        return Shape()
 
     @lazy_property
     @staticmethod

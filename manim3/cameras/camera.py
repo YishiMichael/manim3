@@ -24,7 +24,7 @@ from ..utils.space import SpaceUtils
 
 
 class Camera(LazyBase):
-    @lazy_property
+    @lazy_basedata
     @staticmethod
     def _projection_matrix_() -> Mat4T:
         return NotImplemented
@@ -79,17 +79,21 @@ class Camera(LazyBase):
         view_matrix: Mat4T,
         eye: Vec3T
     ) -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_camera", [
-            "mat4 u_projection_matrix",
-            "mat4 u_view_matrix",
-            "vec3 u_view_position",
-            "vec2 u_frame_radius"
-        ]).write({
-            "u_projection_matrix": projection_matrix.T,
-            "u_view_matrix": view_matrix.T,
-            "u_view_position": eye,
-            "u_frame_radius": np.array(ConfigSingleton().frame_size) / 2.0
-        })
+        return UniformBlockBuffer(
+            name="ub_camera",
+            fields=[
+                "mat4 u_projection_matrix",
+                "mat4 u_view_matrix",
+                "vec3 u_view_position",
+                "vec2 u_frame_radius"
+            ],
+            data={
+                "u_projection_matrix": projection_matrix.T,
+                "u_view_matrix": view_matrix.T,
+                "u_view_position": eye,
+                "u_frame_radius": np.array(ConfigSingleton().frame_size) / 2.0
+            }
+        )
 
     def set_view(
         self,

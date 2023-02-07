@@ -25,8 +25,8 @@ from typing import (
 
 
 _T = TypeVar("_T")
-_Annotation = Any
 _LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
+_Annotation = Any
 
 
 class LazyData(Generic[_T]):
@@ -41,12 +41,46 @@ class LazyData(Generic[_T]):
         return self._data
 
 
-class lazy_basedata(Generic[_LazyBaseT, _T]):
-    def __init__(self, method: Callable[[], _T]):
+class _lazy_descriptor(Generic[_LazyBaseT, _T]):
+    def __init__(self, method: Callable[..., _T]):
         self.name: str = method.__name__
         self.method: Callable[..., _T] = method
         #self.default_basedata: LazyData[_T] = LazyData(method())
-        self.annotation: _Annotation = inspect.signature(method).return_annotation
+        self.signature: inspect.Signature = inspect.signature(method)
+        #self.annotation: _Annotation = inspect.signature(method).return_annotation
+        self.restock_method: Callable[[_T], None] | None = None
+
+    @property
+    def parameters(self) -> dict[str, _Annotation]:
+        return {
+            f"_{parameter.name}_": parameter.annotation
+            for parameter in list(self.signature.parameters.values())
+        }
+
+    @property
+    def return_annotation(self) -> _Annotation:
+        return self.signature.return_annotation
+
+    def _restock(self, data: _T) -> None:
+        if self.restock_method is not None:
+            self.restock_method(data)
+        elif isinstance(data, LazyBase):
+            data._restock()
+
+    def restocker(self, restock_method: Callable[[_T], None]) -> Callable[[_T], None]:
+        self.restock_method = restock_method
+        return restock_method
+
+
+class lazy_basedata(_lazy_descriptor[_LazyBaseT, _T]):
+    def __init__(self, method: Callable[[], _T]):
+        super().__init__(method)
+        assert not self.parameters
+        #self.name: str = method.__name__
+        #self.method: Callable[..., _T] = method
+        #self.default_basedata: LazyData[_T] = LazyData(method())
+        #self.annotation: _Annotation = inspect.signature(method).return_annotation
+        #self.restock_method: Callable[[_T], None] | None = None
         #self.property_descrs: tuple[lazy_property[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_dict: dict[_LazyBaseT, LazyData[_T]] = {}
         self.basedata_to_instances_dict: dict[LazyData[_T], list[_LazyBaseT]] = {}
@@ -83,30 +117,35 @@ class lazy_basedata(Generic[_LazyBaseT, _T]):
             property_descr._clear_instance_basedata_tuple(instance)
         if basedata is None:
             return
+        #if self.name == "_field_info_":
+        #    print(f"Set {self.name} {instance} {basedata}")
         self.instance_to_basedata_dict[instance] = basedata
         self.basedata_to_instances_dict.setdefault(basedata, []).append(instance)
 
     def _clear_instance_basedata(self, instance: _LazyBaseT) -> None:
+        #if self.name == "_field_info_":
+        #    print(f"Pop {self.name} {instance}")
         if (basedata := self.instance_to_basedata_dict.pop(instance, None)) is None:
             return
         self.basedata_to_instances_dict[basedata].remove(instance)
         if self.basedata_to_instances_dict[basedata]:
             return
         self.basedata_to_instances_dict.pop(basedata)
-        if isinstance(basedata.data, LazyBase):  # TODO
-            basedata.data._restock()
+        self._restock(basedata.data)
 
 
-class lazy_property(Generic[_LazyBaseT, _T]):
+class lazy_property(_lazy_descriptor[_LazyBaseT, _T]):
     def __init__(self, method: Callable[..., _T]):
-        signature = inspect.signature(method)
-        self.name: str = method.__name__
-        self.method: Callable[..., _T] = method
-        self.annotation: _Annotation = signature.return_annotation
-        self.parameters: dict[str, _Annotation] = {
-            f"_{parameter.name}_": parameter.annotation
-            for parameter in list(signature.parameters.values())
-        }
+        super().__init__(method)
+        assert self.parameters
+        #signature = inspect.signature(method)
+        #self.name: str = method.__name__
+        #self.method: Callable[..., _T] = method
+        #self.annotation: _Annotation = signature.return_annotation
+        #self.parameters: dict[str, _Annotation] = {
+        #    f"_{parameter.name}_": parameter.annotation
+        #    for parameter in list(signature.parameters.values())
+        #}
         #self.basedata_descrs: tuple[lazy_basedata[_LazyBaseT, Any], ...] = ()
         self.instance_to_basedata_tuple_dict: dict[_LazyBaseT, tuple[LazyData[Any], ...]] = {}
         self.basedata_tuple_to_instances_dict: dict[tuple[LazyData[Any], ...], list[_LazyBaseT]] = {}
@@ -141,22 +180,34 @@ class lazy_property(Generic[_LazyBaseT, _T]):
         raise RuntimeError("Attempting to set a readonly lazy property")
 
     def _clear_instance_basedata_tuple(self, instance: _LazyBaseT) -> None:
+        #import pprint
+        #if self.name == "_attributes_":
+        #    print(instance)
+        #    pprint.pprint(self.basedata_tuple_to_instances_dict)
+        #    pprint.pprint(self.instance_to_basedata_tuple_dict)
         if (basedata_tuple := self.instance_to_basedata_tuple_dict.pop(instance, None)) is None:
+            #if self.name == "_attributes_":
+            #    print(1)
             return
         self.basedata_tuple_to_instances_dict[basedata_tuple].remove(instance)
         if self.basedata_tuple_to_instances_dict[basedata_tuple]:
+            #if self.name == "_attributes_":
+            #    print(2)
             return
         self.basedata_tuple_to_instances_dict.pop(basedata_tuple)
         if (property_data := self.basedata_tuple_to_property_dict.pop(basedata_tuple, None)) is None:
+            #if self.name == "_attributes_":
+            #    print(3)
             return
-        if isinstance(property_data, LazyBase):  # TODO
-            property_data._restock()
+        self._restock(property_data)
 
 
-class lazy_slot(Generic[_LazyBaseT, _T]):
+class lazy_slot(_lazy_descriptor[_LazyBaseT, _T]):
     def __init__(self, method: Callable[[], _T]):
-        self.name: str = method.__name__
-        self.method: Callable[..., _T] = method
+        super().__init__(method)
+        assert not self.parameters
+        #self.name: str = method.__name__
+        #self.method: Callable[..., _T] = method
         self.instance_to_value_dict: dict[_LazyBaseT, _T] = {}
         #self.copy_method: Callable[[_T], _T] | None = None
         #self._default_value: _T | None = None
@@ -212,8 +263,8 @@ class LazyBase(ABC):
         for parent_cls in cls.__mro__[::-1]:
             for name, method in parent_cls.__dict__.items():
                 if (covered_descr := descrs.get(name)) is not None:
-                    assert isinstance(covered_descr, lazy_basedata | lazy_property)
-                    cls._check_annotation_matching(method.annotation, covered_descr.annotation)
+                    assert isinstance(method, lazy_basedata | lazy_property)
+                    cls._check_annotation_matching(method.return_annotation, covered_descr.return_annotation)
                 if isinstance(method, lazy_basedata | lazy_property):
                     descrs[name] = method
                 if (covered_slot := slots.get(name)) is not None:
@@ -228,7 +279,7 @@ class LazyBase(ABC):
             param_descrs: list[lazy_basedata | lazy_property] = []
             for name, param_annotation in descr.parameters.items():
                 param_descr = descrs[name]
-                cls._check_annotation_matching(param_descr.annotation, param_annotation)
+                cls._check_annotation_matching(param_descr.return_annotation, param_annotation)
                 param_descrs.append(param_descr)
             property_descr_to_parameter_descrs[descr] = tuple(param_descrs)
 
@@ -270,14 +321,14 @@ class LazyBase(ABC):
             assert isinstance(instance, cls)
         else:
             instance = super().__new__(cls)
-            instance._init_new_instance()
+            #instance._init_new_instance()
         return instance
 
-    def __delete__(self) -> None:
-        self._restock()
+    #def __delete__(self) -> None:
+    #    self._restock()
 
-    def _init_new_instance(self) -> None:
-        pass
+    #def _init_new_instance(self) -> None:
+    #    pass
 
     def _copy(self):
         result = self.__new__(self.__class__)

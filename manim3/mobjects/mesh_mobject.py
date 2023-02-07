@@ -82,9 +82,11 @@ class MeshMobject(Mobject):
     ) -> TextureStorage:
         textures = [color_map_texture] if color_map_texture is not None else []
         return TextureStorage(
-            "sampler2D u_color_maps[NUM_U_COLOR_MAPS]"
-        ).write(
-            np.array(textures)
+            field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
+            dynamic_array_lens={
+                "NUM_U_COLOR_MAPS": len(textures)
+            },
+            texture_array=np.array(textures)
         )
 
     #@lazy_property
@@ -107,17 +109,21 @@ class MeshMobject(Mobject):
         specular_strength: Real,
         shininess: Real
     ) -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_material", [
-            "vec4 u_color",
-            "float u_ambient_strength",
-            "float u_specular_strength",
-            "float u_shininess"
-        ]).write({
-            "u_color": np.append(color, opacity),
-            "u_ambient_strength": np.array(ambient_strength),
-            "u_specular_strength": np.array(specular_strength),
-            "u_shininess": np.array(shininess)
-        })
+        return UniformBlockBuffer(
+            name="ub_material",
+            fields=[
+                "vec4 u_color",
+                "float u_ambient_strength",
+                "float u_specular_strength",
+                "float u_shininess"
+            ],
+            data={
+                "u_color": np.append(color, opacity),
+                "u_ambient_strength": np.array(ambient_strength),
+                "u_specular_strength": np.array(specular_strength),
+                "u_shininess": np.array(shininess)
+            }
+        )
 
     @lazy_slot
     @staticmethod
@@ -128,6 +134,31 @@ class MeshMobject(Mobject):
         custom_macros = []
         if self._apply_phong_lighting:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
+        #import pprint
+        #print(self._geometry_._attributes_)
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #a = self._u_color_maps_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #b = scene_config._camera._ub_camera_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #c = self._ub_model_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #d = scene_config._ub_lights_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #e = self._ub_material_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #f = self._geometry_._attributes_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
+        #g = self._geometry_._index_buffer_
+        #pprint.pprint(self._geometry_._attributes_.__class__._field_info_.instance_to_basedata_dict)
+        #print(self._geometry_._attributes_._is_empty_)
         RenderProcedure.render_step(
             shader_str=RenderProcedure.read_shader("mesh"),
             custom_macros=custom_macros,
@@ -135,7 +166,7 @@ class MeshMobject(Mobject):
                 self._u_color_maps_
             ],
             uniform_blocks=[
-                scene_config._camera_._ub_camera_,
+                scene_config._camera._ub_camera_,
                 self._ub_model_,
                 scene_config._ub_lights_,
                 self._ub_material_

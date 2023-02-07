@@ -30,7 +30,7 @@ class ImageMobject(MeshMobject):
     ):
         instance = super().__new__(cls)
         image = Image.open(image_path)
-        instance._image_ = LazyData(image)
+        instance._image = image
 
         instance._adjust_frame(
             image.width / ConfigSingleton().pixel_per_unit,

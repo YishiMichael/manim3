@@ -45,7 +45,7 @@ _VecsT = TypeVar("_VecsT", bound=Vec2sT | Vec3sT)
 
 
 class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
-    @lazy_property
+    @lazy_basedata
     @staticmethod
     def _lengths_() -> FloatsT:
         return NotImplemented

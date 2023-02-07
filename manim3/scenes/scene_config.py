@@ -17,7 +17,8 @@ from ..utils.lazy import (
     LazyBase,
     LazyData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 
 
@@ -61,9 +62,9 @@ class SceneConfig(LazyBase):
         ("opacity", (np.float_)),
     ])
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _camera_() -> Camera:
+    def _camera() -> Camera:
         return PerspectiveCamera()
 
     @lazy_basedata
@@ -122,21 +123,29 @@ class SceneConfig(LazyBase):
         ambient_light_opacity: Real,
         point_lights: np.ndarray
     ) -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_lights", [
-            "vec4 u_ambient_light_color",
-            "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
-        ], {
-            "PointLight": [
-                "vec3 position",
-                "vec4 color"
-            ]
-        }).write({
-            "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
-            "u_point_lights": {
-                "position": point_lights["position"],
-                "color": np.append(point_lights["color"], point_lights["opacity"][:, None], axis=1)
+        return UniformBlockBuffer(
+            name="ub_lights",
+            fields=[
+                "vec4 u_ambient_light_color",
+                "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
+            ],
+            child_structs={
+                "PointLight": [
+                    "vec3 position",
+                    "vec4 color"
+                ]
+            },
+            dynamic_array_lens={
+                "NUM_U_POINT_LIGHTS": len(point_lights)
+            },
+            data={
+                "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
+                "u_point_lights": {
+                    "position": point_lights["position"],
+                    "color": np.append(point_lights["color"], point_lights["opacity"][:, None], axis=1)
+                }
             }
-        })
+        )
 
     def set_view(
         self,
@@ -145,11 +154,11 @@ class SceneConfig(LazyBase):
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
-        self._camera_ = LazyData(self._camera_.set_view(
+        self._camera.set_view(
             eye=eye,
             target=target,
             up=up
-        ))
+        )
         return self
 
     def set_background(

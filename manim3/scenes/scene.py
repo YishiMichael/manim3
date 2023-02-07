@@ -24,6 +24,8 @@ from ..rendering.render_procedure import (
 )
 #from ..rendering.renderable import Renderable
 from ..utils.lazy import (
+    LazyData,
+    lazy_basedata,
     lazy_property,
     lazy_slot
 )
@@ -58,25 +60,57 @@ class Scene(Mobject):
     def _previous_rendering_timestamp() -> float | None:
         return None
 
-    @lazy_property
+    @lazy_basedata
     @staticmethod
-    def _u_color_map_o_() -> TextureStorage:
-        return TextureStorage("sampler2D u_color_map")
+    def _color_map_() -> moderngl.Texture:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _accum_map_() -> moderngl.Texture:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _revealage_map_() -> moderngl.Texture:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _depth_map_() -> moderngl.Texture:
+        return NotImplemented
 
     @lazy_property
     @staticmethod
-    def _u_accum_map_o_() -> TextureStorage:
-        return TextureStorage("sampler2D u_accum_map")
+    def _u_color_map_(color_map: moderngl.Texture) -> TextureStorage:
+        return TextureStorage(
+            field="sampler2D u_color_map",
+            texture_array=np.array(color_map)
+        )
 
     @lazy_property
     @staticmethod
-    def _u_revealage_map_o_() -> TextureStorage:
-        return TextureStorage("sampler2D u_revealage_map")
+    def _u_accum_map_(accum_map: moderngl.Texture) -> TextureStorage:
+        return TextureStorage(
+            field="sampler2D u_accum_map",
+            texture_array=np.array(accum_map)
+        )
 
     @lazy_property
     @staticmethod
-    def _u_depth_map_o_() -> TextureStorage:
-        return TextureStorage("sampler2D u_depth_map")
+    def _u_revealage_map_(revealage_map: moderngl.Texture) -> TextureStorage:
+        return TextureStorage(
+            field="sampler2D u_revealage_map",
+            texture_array=np.array(revealage_map)
+        )
+
+    @lazy_property
+    @staticmethod
+    def _u_depth_map_(depth_map: moderngl.Texture) -> TextureStorage:
+        return TextureStorage(
+            field="sampler2D u_depth_map",
+            texture_array=np.array(depth_map)
+        )
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Inspired from https://github.com/ambrosiogabe/MathAnimation
@@ -116,18 +150,16 @@ class Scene(Mobject):
                             depth_attachment=component_depth_texture
                         ) as component_framebuffer:
                     mobject._render_with_passes(scene_config, component_framebuffer)
+                    self._color_map_ = LazyData(component_texture)
+                    self._depth_map_ = LazyData(component_depth_texture)
                     RenderProcedure.fullscreen_render_step(
                         shader_str=RenderProcedure.read_shader("copy"),
                         custom_macros=[
                             "#define COPY_DEPTH"
                         ],
                         texture_storages=[
-                            self._u_color_map_o_.write(
-                                np.array(component_texture)
-                            ),
-                            self._u_depth_map_o_.write(
-                                np.array(component_depth_texture)
-                            )
+                            self._u_color_map_,
+                            self._u_depth_map_
                         ],
                         uniform_blocks=[],
                         framebuffer=opaque_framebuffer,
@@ -149,18 +181,14 @@ class Scene(Mobject):
                             depth_attachment=component_depth_texture
                         ) as component_framebuffer:
                     mobject._render_with_passes(scene_config, component_framebuffer)
-                    u_color_map = self._u_color_map_o_.write(
-                        np.array(component_texture)
-                    )
-                    u_depth_map = self._u_depth_map_o_.write(
-                        np.array(component_depth_texture)
-                    )
+                    self._color_map_ = LazyData(component_texture)
+                    self._depth_map_ = LazyData(component_depth_texture)
                     RenderProcedure.fullscreen_render_step(
                         shader_str=RenderProcedure.read_shader("oit_accum"),
                         custom_macros=[],
                         texture_storages=[
-                            u_color_map,
-                            u_depth_map
+                            self._u_color_map_,
+                            self._u_depth_map_
                         ],
                         uniform_blocks=[],
                         framebuffer=accum_framebuffer,
@@ -173,8 +201,8 @@ class Scene(Mobject):
                         shader_str=RenderProcedure.read_shader("oit_revealage"),
                         custom_macros=[],
                         texture_storages=[
-                            u_color_map,
-                            u_depth_map
+                            self._u_color_map_,
+                            self._u_depth_map_
                         ],
                         uniform_blocks=[],
                         framebuffer=revealage_framebuffer,
@@ -184,18 +212,16 @@ class Scene(Mobject):
                         )
                     )
 
+            self._color_map_ = LazyData(opaque_texture)
+            self._depth_map_ = LazyData(depth_texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("copy"),
                 custom_macros=[
                     "#define COPY_DEPTH"
                 ],
                 texture_storages=[
-                    self._u_color_map_o_.write(
-                        np.array(opaque_texture)
-                    ),
-                    self._u_depth_map_o_.write(
-                        np.array(depth_texture)
-                    )
+                    self._u_color_map_,
+                    self._u_depth_map_
                 ],
                 uniform_blocks=[],
                 framebuffer=target_framebuffer,
@@ -204,16 +230,14 @@ class Scene(Mobject):
                     blend_func=(moderngl.ONE, moderngl.ZERO)
                 )
             )
+            self._accum_map_ = LazyData(accum_texture)
+            self._revealage_map_ = LazyData(revealage_texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("oit_compose"),
                 custom_macros=[],
                 texture_storages=[
-                    self._u_accum_map_o_.write(
-                        np.array(accum_texture)
-                    ),
-                    self._u_revealage_map_o_.write(
-                        np.array(revealage_texture)
-                    )
+                    self._u_accum_map_,
+                    self._u_revealage_map_
                 ],
                 uniform_blocks=[],
                 framebuffer=target_framebuffer,
@@ -242,13 +266,12 @@ class Scene(Mobject):
             assert (window := ContextSingleton._WINDOW) is not None
             assert (window_framebuffer := ContextSingleton._WINDOW_FRAMEBUFFER) is not None
             window.clear()
+            self._color_map_ = LazyData(active_scene_data.color_texture)
             RenderProcedure.fullscreen_render_step(
                 shader_str=RenderProcedure.read_shader("copy"),
                 custom_macros=[],
                 texture_storages=[
-                    self._u_color_map_o_.write(
-                        np.array(active_scene_data.color_texture)
-                    )
+                    self._u_color_map_
                 ],
                 uniform_blocks=[],
                 framebuffer=window_framebuffer,
@@ -316,7 +339,6 @@ class Scene(Mobject):
                 animation._mobject_removal_items.remove(removal_item)
 
             if animation_expired:
-                print(animation._stop_time, animation._mobject_addition_items)
                 if animation._mobject_addition_items:
                     warnings.warn("`mobject_addition_items` is not empty after the animation finishes")
                 if animation._mobject_removal_items:

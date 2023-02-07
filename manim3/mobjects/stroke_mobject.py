@@ -80,48 +80,69 @@ class StrokeMobject(Mobject):
     def _dilate_() -> Real:
         return 0.0
 
-    @lazy_property
+    @lazy_basedata
     @staticmethod
-    def _ub_stroke_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_stroke", [
-            "float u_width",
-            "vec4 u_color",
-            "float u_dilate"
-        ])
+    def _winding_sign_() -> Real:
+        return 1.0
+
+    #@lazy_property
+    #@staticmethod
+    #def _ub_stroke_o_() -> UniformBlockBuffer:
+    #    return UniformBlockBuffer("ub_stroke", [
+    #        "float u_width",
+    #        "vec4 u_color",
+    #        "float u_dilate"
+    #    ])
 
     @lazy_property
     @staticmethod
     def _ub_stroke_(
-        ub_stroke_o: UniformBlockBuffer,
+        #ub_stroke_o: UniformBlockBuffer,
         width: Real,
         color: Vec3T,
         opacity: Real,
         dilate: Real
     ) -> UniformBlockBuffer:
-        return ub_stroke_o.write({
-            "u_width": np.array(abs(width)),
-            "u_color": np.append(color, opacity),
-            "u_dilate": np.array(dilate)
-        })
+        return UniformBlockBuffer(
+            name="ub_stroke",
+            fields=[
+                "float u_width",
+                "vec4 u_color",
+                "float u_dilate"
+            ],
+            data={
+                "u_width": np.array(abs(width)),
+                "u_color": np.append(color, opacity),
+                "u_dilate": np.array(dilate)
+            }
+        )
 
     @lazy_property
     @staticmethod
-    def _ub_winding_sign_o_() -> UniformBlockBuffer:
-        return UniformBlockBuffer("ub_winding_sign", [
-            "float u_winding_sign"
-        ])
+    def _ub_winding_sign_(
+        winding_sign: Real
+    ) -> UniformBlockBuffer:
+        return UniformBlockBuffer(
+            name="ub_winding_sign",
+            fields=[
+                "float u_winding_sign"
+            ],
+            data={
+                "u_winding_sign": winding_sign
+            }
+        )
 
-    @lazy_property
-    @staticmethod
-    def _attributes_o_() -> AttributesBuffer:
-        return AttributesBuffer([
-            "vec3 in_position"
-        ])
+    #@lazy_property
+    #@staticmethod
+    #def _attributes_o_() -> AttributesBuffer:
+    #    return AttributesBuffer([
+    #        "vec3 in_position"
+    #    ])
 
     @lazy_property
     @staticmethod
     def _attributes_(
-        attributes_o: AttributesBuffer,
+        #attributes_o: AttributesBuffer,
         multi_line_string: MultiLineString3D
     ) -> AttributesBuffer:
         if not multi_line_string._children_:
@@ -131,9 +152,15 @@ class StrokeMobject(Mobject):
                 line_string._coords_
                 for line_string in multi_line_string._children_
             ])
-        return attributes_o.write({
-            "in_position": position
-        })
+        return AttributesBuffer(
+            fields=[
+                "vec3 in_position"
+            ],
+            num_vertex=len(position),
+            data={
+                "in_position": position
+            }
+        )
 
     @classmethod
     def _lump_index_from_getter(
@@ -161,20 +188,20 @@ class StrokeMobject(Mobject):
             return [*range(n_points - 1), 0]
         raise ValueError  # never
 
-    @lazy_property
-    @staticmethod
-    def _line_index_buffer_o_() -> IndexBuffer:
-        return IndexBuffer()
+    #@lazy_property
+    #@staticmethod
+    #def _line_index_buffer_o_() -> IndexBuffer:
+    #    return IndexBuffer()
 
-    @lazy_property
-    @staticmethod
-    def _line_index_buffer_(
-        line_index_buffer_o: IndexBuffer,
-        multi_line_string: MultiLineString3D
-    ) -> IndexBuffer:
-        return line_index_buffer_o.write(
-            StrokeMobject._lump_index_from_getter(StrokeMobject._line_index_getter, multi_line_string)
-        )
+    #@lazy_property
+    #@staticmethod
+    #def _line_index_buffer_(
+    #    #line_index_buffer_o: IndexBuffer,
+    #    multi_line_string: MultiLineString3D
+    #) -> IndexBuffer:
+    #    return IndexBuffer(
+    #        data=StrokeMobject._lump_index_from_getter(StrokeMobject._line_index_getter, multi_line_string)
+    #    )
 
     @classmethod
     def _join_index_getter(cls, line_string: LineString3D) -> list[int]:
@@ -194,20 +221,20 @@ class StrokeMobject(Mobject):
             ))))
         raise ValueError  # never
 
-    @lazy_property
-    @staticmethod
-    def _join_index_buffer_o_() -> IndexBuffer:
-        return IndexBuffer()
+    #@lazy_property
+    #@staticmethod
+    #def _join_index_buffer_o_() -> IndexBuffer:
+    #    return IndexBuffer()
 
-    @lazy_property
-    @staticmethod
-    def _join_index_buffer_(
-        join_index_buffer_o: IndexBuffer,
-        multi_line_string: MultiLineString3D
-    ) -> IndexBuffer:
-        return join_index_buffer_o.write(
-            StrokeMobject._lump_index_from_getter(StrokeMobject._join_index_getter, multi_line_string)
-        )
+    #@lazy_property
+    #@staticmethod
+    #def _join_index_buffer_(
+    #    #join_index_buffer_o: IndexBuffer,
+    #    multi_line_string: MultiLineString3D
+    #) -> IndexBuffer:
+    #    return IndexBuffer().write(
+    #        StrokeMobject._lump_index_from_getter(StrokeMobject._join_index_getter, multi_line_string)
+    #    )
 
     @classmethod
     def _cap_index_getter(cls, line_string: LineString3D) -> list[int]:
@@ -220,20 +247,20 @@ class StrokeMobject(Mobject):
             return []
         raise ValueError  # never
 
-    @lazy_property
-    @staticmethod
-    def _cap_index_buffer_o_() -> IndexBuffer:
-        return IndexBuffer()
+    #@lazy_property
+    #@staticmethod
+    #def _cap_index_buffer_o_() -> IndexBuffer:
+    #    return IndexBuffer()
 
-    @lazy_property
-    @staticmethod
-    def _cap_index_buffer_(
-        cap_index_buffer_o: IndexBuffer,
-        multi_line_string: MultiLineString3D
-    ) -> IndexBuffer:
-        return cap_index_buffer_o.write(
-            StrokeMobject._lump_index_from_getter(StrokeMobject._cap_index_getter, multi_line_string)
-        )
+    #@lazy_property
+    #@staticmethod
+    #def _cap_index_buffer_(
+    #    #cap_index_buffer_o: IndexBuffer,
+    #    multi_line_string: MultiLineString3D
+    #) -> IndexBuffer:
+    #    return IndexBuffer().write(
+    #        StrokeMobject._lump_index_from_getter(StrokeMobject._cap_index_getter, multi_line_string)
+    #    )
 
     @classmethod
     def _point_index_getter(cls, line_string: LineString3D) -> list[int]:
@@ -245,20 +272,20 @@ class StrokeMobject(Mobject):
             return []
         raise ValueError  # never
 
-    @lazy_property
-    @staticmethod
-    def _point_index_buffer_o_() -> IndexBuffer:
-        return IndexBuffer()
+    #@lazy_property
+    #@staticmethod
+    #def _point_index_buffer_o_() -> IndexBuffer:
+    #    return IndexBuffer()
 
-    @lazy_property
-    @staticmethod
-    def _point_index_buffer_(
-        point_index_buffer_o: IndexBuffer,
-        multi_line_string: MultiLineString3D
-    ) -> IndexBuffer:
-        return point_index_buffer_o.write(
-            StrokeMobject._lump_index_from_getter(StrokeMobject._point_index_getter, multi_line_string)
-        )
+    #@lazy_property
+    #@staticmethod
+    #def _point_index_buffer_(
+    #    #point_index_buffer_o: IndexBuffer,
+    #    multi_line_string: MultiLineString3D
+    #) -> IndexBuffer:
+    #    return IndexBuffer().write(
+    #        StrokeMobject._lump_index_from_getter(StrokeMobject._point_index_getter, multi_line_string)
+    #    )
 
     @lazy_slot
     @staticmethod
@@ -270,42 +297,47 @@ class StrokeMobject(Mobject):
     def _stroke_render_items_(
         single_sided: bool,
         has_linecap: bool,
-        line_index_buffer: IndexBuffer,
-        join_index_buffer: IndexBuffer,
-        cap_index_buffer: IndexBuffer,
-        point_index_buffer: IndexBuffer
+        multi_line_string: MultiLineString3D,
+        #line_index_buffer: IndexBuffer,
+        #join_index_buffer: IndexBuffer,
+        #cap_index_buffer: IndexBuffer,
+        #point_index_buffer: IndexBuffer
     ) -> list[tuple[list[str], IndexBuffer, int]]:
+        def get_index_buffer(index_getter: Callable[[LineString3D], list[int]]) -> IndexBuffer:
+            return IndexBuffer(
+                data=StrokeMobject._lump_index_from_getter(index_getter, multi_line_string)
+            )
+
         subroutine_name = "single_sided" if single_sided else "both_sided"
         result: list[tuple[list[str], IndexBuffer, int]] = [
             ([
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
-            ], line_index_buffer, moderngl.LINE_STRIP),
+            ], get_index_buffer(StrokeMobject._line_index_getter), moderngl.LINE_STRIP),
             ([
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
-            ], join_index_buffer, moderngl.TRIANGLES)
+            ], get_index_buffer(StrokeMobject._join_index_getter), moderngl.TRIANGLES)
         ]
         if has_linecap and not single_sided:
             result.extend([
                 ([
                     "#define STROKE_CAP"
-                ], cap_index_buffer, moderngl.LINES),
+                ], get_index_buffer(StrokeMobject._cap_index_getter), moderngl.LINES),
                 ([
                     "#define STROKE_POINT"
-                ], point_index_buffer, moderngl.POINTS)
+                ], get_index_buffer(StrokeMobject._point_index_getter), moderngl.POINTS)
             ])
         return result
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
+        self._winding_sign_ = LazyData(self._calculate_winding_sign(scene_config._camera))
         uniform_blocks = [
             scene_config._camera._ub_camera_,
             self._ub_model_,
             self._ub_stroke_,
-            self._ub_winding_sign_o_.write({
-                "u_winding_sign": np.array(self._calculate_winding_sign(scene_config._camera))
-            })
+            self._ub_winding_sign_
         ]
         # Render color
         target_framebuffer.depth_mask = False

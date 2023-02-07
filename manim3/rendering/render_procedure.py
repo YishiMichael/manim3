@@ -29,7 +29,8 @@ from ..utils.lazy import (
     LazyBase,
     LazyData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 
 
@@ -74,6 +75,16 @@ class FieldInfo:
     array_shape: list[int | str]
 
 
+#@dataclass(
+#    frozen=True,
+#    kw_only=True,
+#    slots=True
+#)
+#class DataInfo:
+#    data_storage: np.ndarray
+#    dynamic_array_lens: dict[str, int]
+
+
 class GLSLDynamicStruct(LazyBase):
     _GLSL_DTYPE: ClassVar[dict[str, np.dtype]] = {
         "int":     np.dtype(("i4", ())),
@@ -112,61 +123,66 @@ class GLSLDynamicStruct(LazyBase):
         "dmat4":   np.dtype(("f8", (4, 4))),
     }
     _LAYOUT: ClassVar[str] = "packed"
+    _STRUCT_DTYPE_CACHE: ClassVar[dict[bytes, LazyData[np.dtype]]] = {}
+    #_FIELD_INFO_CACHE: ClassVar[dict[str, LazyData[FieldInfo]]] = {}
+    #_CHILD_STRUCTS_INFO_CACHE: ClassVar[dict[tuple[tuple[str, ...], ...], LazyData[dict[str, list[FieldInfo]]]]] = {}
+    #_DYNAMIC_ARRAY_LENS_CACHE: ClassVar[dict[tuple[tuple[str, int], ...], LazyData[dict[str, int]]]] = {}
 
     def __new__(
         cls,
+        *,
         field: str,
-        child_structs: dict[str, list[str]] | None = None
+        child_structs: dict[str, list[str]] | None = None,
+        dynamic_array_lens: dict[str, int] | None = None,
+        data: np.ndarray | dict[str, Any]
     ):
         instance = super().__new__(cls)
+        #instance._data_ = LazyData(data)
         if child_structs is None:
             child_structs = {}
-        instance._field_info_ = LazyData(cls._parse_field_str(field))
-        instance._child_structs_info_ = LazyData({
-            name: [cls._parse_field_str(child_field) for child_field in child_struct_fields]
-            for name, child_struct_fields in child_structs.items()
-        })
-        return instance
-
-    @lazy_basedata
-    @staticmethod
-    def _field_info_() -> FieldInfo:
-        return NotImplemented
-
-    @lazy_basedata
-    @staticmethod
-    def _child_structs_info_() -> dict[str, list[FieldInfo]]:
-        return NotImplemented
-
-    @lazy_basedata
-    @staticmethod
-    def _data_storage_() -> np.ndarray:
-        return NotImplemented
-
-    @lazy_basedata
-    @staticmethod
-    def _dynamic_array_lens_() -> dict[str, int]:
-        return NotImplemented
-
-    @lazy_property
-    @staticmethod
-    def _struct_dtype_(data_storage: np.ndarray) -> np.dtype:
-        return data_storage.dtype
-
-    @lazy_property
-    @staticmethod
-    def _itemsize_(struct_dtype: np.dtype) -> int:
-        return struct_dtype.itemsize
-
-    def _is_empty(self) -> bool:
-        return self._itemsize_ == 0
-
-    def write(self, data: np.ndarray | dict[str, Any]):
-        data_dict = self._flatten_as_data_dict(data, (self._field_info_.name,))
-        struct_dtype, dynamic_array_lens = self._build_struct_dtype(
-            [self._field_info_], self._child_structs_info_, data_dict, 0
+        if dynamic_array_lens is None:
+            dynamic_array_lens = {}
+        hash_val = Program._hash_items(
+            field,
+            tuple(
+                (name, *child_struct_fields)
+                for name, child_struct_fields in child_structs.items()
+            ),
+            tuple(dynamic_array_lens.items())
         )
-        data_storage = np.zeros((), dtype=struct_dtype)
+        struct_dtype = cls._STRUCT_DTYPE_CACHE.setdefault(hash_val, LazyData(cls._build_struct_dtype(
+            [cls._parse_field_str(field)],
+            {
+                name: [cls._parse_field_str(child_field) for child_field in child_struct_fields]
+                for name, child_struct_fields in child_structs.items()
+            },
+            dynamic_array_lens,
+            0
+        )))
+        instance._struct_dtype_ = struct_dtype
+        instance._dynamic_array_lens = dynamic_array_lens
+        #instance._field_info_ = cls._FIELD_INFO_CACHE.setdefault(
+        #    field, LazyData(cls._parse_field_str(field))
+        #)
+        #instance._child_structs_info_ = cls._CHILD_STRUCTS_INFO_CACHE.setdefault(
+        #    tuple(
+        #        (name, *child_struct_fields)
+        #        for name, child_struct_fields in child_structs.items()
+        #    ),
+        #    LazyData({
+        #        name: [cls._parse_field_str(child_field) for child_field in child_struct_fields]
+        #        for name, child_struct_fields in child_structs.items()
+        #    })
+        #)
+        #if dynamic_array_lens is not None:
+        #    instance._dynamic_array_lens_ = LazyData(dynamic_array_lens)
+
+        assert (field_names := struct_dtype.data.names) is not None
+        field_name = field_names[0]
+        instance._field_name = field_name
+
+        data_dict = cls._flatten_as_data_dict(data, (field_name,))
+        data_storage = np.zeros((), dtype=struct_dtype.data)
         for data_key, data_value in data_dict.items():
             if not data_value.size:
                 continue
@@ -175,9 +191,103 @@ class GLSLDynamicStruct(LazyBase):
                 data_ptr = data_ptr[data_key[0]]
                 data_key = data_key[1:]
             data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)  # TODO
-        self._data_storage_ = LazyData(data_storage)
-        self._dynamic_array_lens_ = LazyData(dynamic_array_lens)
-        return self
+        instance._data_storage_ = LazyData(data_storage)
+        #instance._dynamic_array_lens_ = cls._DYNAMIC_ARRAY_LENS_CACHE.setdefault(
+        #    tuple(dynamic_array_lens.items()),
+        #    LazyData(dynamic_array_lens)
+        #)
+        return instance
+
+    #@lazy_basedata
+    #@staticmethod
+    #def _field_info_() -> FieldInfo:
+    #    return NotImplemented
+
+    #@lazy_basedata
+    #@staticmethod
+    #def _child_structs_info_() -> dict[str, list[FieldInfo]]:
+    #    return NotImplemented
+
+    @lazy_slot
+    @staticmethod
+    def _dynamic_array_lens() -> dict[str, int]:
+        return NotImplemented
+
+    @lazy_slot
+    @staticmethod
+    def _field_name() -> str:
+        return NotImplemented
+
+    #@lazy_basedata
+    #@staticmethod
+    #def _data_() -> np.ndarray | dict[str, Any]:
+    #    return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _struct_dtype_() -> np.dtype:
+        return NotImplemented
+
+    @lazy_basedata
+    @staticmethod
+    def _data_storage_() -> np.ndarray:
+        return NotImplemented
+
+    @lazy_property
+    @staticmethod
+    def _itemsize_(struct_dtype: np.dtype) -> int:
+        return struct_dtype.itemsize
+
+    @lazy_property
+    @staticmethod
+    def _is_empty_(itemsize: int) -> bool:
+        return itemsize == 0
+
+    #@lazy_property
+    #@staticmethod
+    #def _data_info_(
+    #    data: np.ndarray | dict[str, Any],
+    #    field_info: FieldInfo,
+    #    child_structs_info: dict[str, list[FieldInfo]]
+    #) -> DataInfo:
+    #    data_dict = GLSLDynamicStruct._flatten_as_data_dict(data, (field_info.name,))
+    #    struct_dtype, dynamic_array_lens = GLSLDynamicStruct._build_struct_dtype(
+    #        data_dict, [field_info], child_structs_info, 0
+    #    )
+    #    data_storage = np.zeros((), dtype=struct_dtype)
+    #    for data_key, data_value in data_dict.items():
+    #        if not data_value.size:
+    #            continue
+    #        data_ptr = data_storage
+    #        while data_key:
+    #            data_ptr = data_ptr[data_key[0]]
+    #            data_key = data_key[1:]
+    #        data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)  # TODO
+    #    return DataInfo(
+    #        data_storage=data_storage,
+    #        dynamic_array_lens=dynamic_array_lens
+    #    )
+
+    #def write(
+    #    self,
+    #    *,
+    #    data: np.ndarray | dict[str, Any],
+    #    dynamic_array_lens: dict[str, int] | None = None
+    #):
+    #    if dynamic_array_lens is not None:
+    #        self._dynamic_array_lens_ = LazyData(dynamic_array_lens)
+    #    data_dict = self._flatten_as_data_dict(data, (self._field_info_.name,))
+    #    data_storage = np.zeros((), dtype=self._struct_dtype_)
+    #    for data_key, data_value in data_dict.items():
+    #        if not data_value.size:
+    #            continue
+    #        data_ptr = data_storage
+    #        while data_key:
+    #            data_ptr = data_ptr[data_key[0]]
+    #            data_key = data_key[1:]
+    #        data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)  # TODO
+    #    self._data_storage_ = LazyData(data_storage)
+    #    return self
 
     @classmethod
     def _flatten_as_data_dict(
@@ -197,9 +307,9 @@ class GLSLDynamicStruct(LazyBase):
         cls,
         fields_info: list[FieldInfo],
         child_structs_info: dict[str, list[FieldInfo]],
-        data_dict: dict[tuple[str, ...], np.ndarray],
+        dynamic_array_lens: dict[str, int],
         depth: int
-    ) -> tuple[np.dtype, dict[str, int]]:
+    ) -> np.dtype:
         names: list[str] = []
         formats: list[tuple[np.dtype, tuple[int, ...]]] = []
         offsets: list[int] = []
@@ -209,7 +319,7 @@ class GLSLDynamicStruct(LazyBase):
             formats.append((child_dtype, shape))
             offsets.append(offset)
 
-        dynamic_array_lens: dict[str, int] = {}
+        #dynamic_array_lens: dict[str, int] = {}
         offset = 0
 
         for field_info in fields_info:
@@ -218,43 +328,50 @@ class GLSLDynamicStruct(LazyBase):
             array_shape = field_info.array_shape
             next_depth = depth + len(array_shape)
 
-            child_data: dict[tuple[str, ...], np.ndarray] = {}
-            node_dynamic_array_lens: dict[str, int] = {}
-            for data_key, data_value in data_dict.items():
-                if data_key[0] != name:
-                    continue
-                if data_value.size:
-                    data_array_shape = data_value.shape[depth:next_depth]
-                else:
-                    data_array_shape = tuple(0 for _ in array_shape)
-                for array_len, data_array_len in zip(array_shape, data_array_shape, strict=True):
-                    if isinstance(array_len, int):
-                        assert array_len == data_array_len
-                    else:
-                        # Rewrite if the recorded array length is 0
-                        if node_dynamic_array_lens.get(array_len, 0) and data_array_len:
-                            assert node_dynamic_array_lens[array_len] == data_array_len
-                        else:
-                            node_dynamic_array_lens[array_len] = data_array_len
-                child_data[data_key[1:]] = data_value
-            dynamic_array_lens.update(node_dynamic_array_lens)
+            #child_data: dict[tuple[str, ...], np.ndarray] = {}
+            #node_dynamic_array_lens: dict[str, int] = {}
+            #for data_key, data_value in data_dict.items():
+            #    if data_key[0] != name:
+            #        continue
+            #    if data_value.size:
+            #        data_array_shape = data_value.shape[depth:next_depth]
+            #    else:
+            #        data_array_shape = tuple(0 for _ in array_shape)
+            #    for array_len, data_array_len in zip(array_shape, data_array_shape, strict=True):
+            #        if isinstance(array_len, int):
+            #            assert array_len == data_array_len
+            #        else:
+            #            # Rewrite if the recorded array length is 0
+            #            if node_dynamic_array_lens.get(array_len, 0) and data_array_len:
+            #                assert node_dynamic_array_lens[array_len] == data_array_len
+            #            else:
+            #                node_dynamic_array_lens[array_len] = data_array_len
+            #    child_data[data_key[1:]] = data_value
+            #dynamic_array_lens.update(node_dynamic_array_lens)
+            #shape = tuple(
+            #    array_len if isinstance(array_len, int) else node_dynamic_array_lens[array_len]
+            #    for array_len in array_shape
+            #)
             shape = tuple(
-                array_len if isinstance(array_len, int) else node_dynamic_array_lens[array_len]
+                array_len if isinstance(array_len, int) else dynamic_array_lens[array_len]
                 for array_len in array_shape
             )
 
             if (child_struct_fields_info := child_structs_info.get(dtype_str)) is not None:
-                child_dtype, child_dynamic_array_lens = cls._build_struct_dtype(
-                    child_struct_fields_info, child_structs_info, child_data, next_depth
+                #child_dtype, child_dynamic_array_lens = cls._build_struct_dtype(
+                #    child_data, child_struct_fields_info, child_structs_info, next_depth
+                #)
+                #dynamic_array_lens.update(child_dynamic_array_lens)
+                child_dtype = cls._build_struct_dtype(
+                    child_struct_fields_info, child_structs_info, dynamic_array_lens, next_depth
                 )
-                dynamic_array_lens.update(child_dynamic_array_lens)
                 base_alignment = 16
             else:
                 atomic_dtype = cls._GLSL_DTYPE[dtype_str]
-                assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
-                if not data_value.size:
-                    continue
-                assert atomic_dtype.shape == data_value.shape[next_depth:]
+                #assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
+                #if not data_value.size:
+                #    continue
+                #assert atomic_dtype.shape == data_value.shape[next_depth:]
                 child_dtype = cls._align_atomic_dtype(atomic_dtype, not shape)
                 base_alignment = child_dtype.base.itemsize
 
@@ -272,7 +389,7 @@ class GLSLDynamicStruct(LazyBase):
             "formats": formats,
             "offsets": offsets,
             "itemsize": offset
-        }), dynamic_array_lens
+        })
 
     @classmethod
     def _parse_field_str(cls, field_str: str) -> FieldInfo:
@@ -348,74 +465,108 @@ class GLSLDynamicStruct(LazyBase):
 
 
 class GLSLDynamicBuffer(GLSLDynamicStruct):
-    _buffer: moderngl.Buffer
+    _BUFFER_CACHE: list[moderngl.Buffer] = []
+    #_buffer: moderngl.Buffer
 
-    def _init_new_instance(self) -> None:
-        self._buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+    #def _init_new_instance(self) -> None:
+    #    self._buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+    #    print(self._buffer)
 
     #@lazy_basedata
     #@staticmethod
-    #def _buffer_() -> moderngl.Buffer:
-    #    return 
+    #def _buffer_o_() -> moderngl.Buffer:
+    #    return ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
 
-    #@lazy_property
-    #@staticmethod
-    #def _buffer_(
-    #    buffer_o: moderngl.Buffer,
-    #    data_storage: np.ndarray,
-    #    struct_dtype: np.dtype
-    #) -> moderngl.Buffer:
-    #    bytes_data = data_storage.tobytes()
-    #    #assert struct_dtype.itemsize == len(bytes_data)
-    #    if struct_dtype.itemsize == 0:
-    #        buffer_o.clear()
-    #        return buffer_o
-    #    #print(struct_dtype.itemsize)
-    #    buffer_o.orphan(struct_dtype.itemsize)
-    #    buffer_o.write(bytes_data)
-    #    return buffer_o
+    @lazy_property
+    @staticmethod
+    def _buffer_(
+        #buffer_o: moderngl.Buffer,
+        data_storage: np.ndarray,
+        struct_dtype: np.dtype
+    ) -> moderngl.Buffer:
+        if GLSLDynamicBuffer._BUFFER_CACHE:
+            buffer = GLSLDynamicBuffer._BUFFER_CACHE.pop()
+        else:
+            buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
 
-    def write(self, data: np.ndarray | dict[str, Any]):
-        super().write(data)
-        buffer = self._buffer
-        bytes_data = self._data_storage_.tobytes()
-        struct_dtype = self._struct_dtype_
+        bytes_data = data_storage.tobytes()
         #assert struct_dtype.itemsize == len(bytes_data)
         if struct_dtype.itemsize == 0:
             buffer.clear()
-            #self._buffer_ = LazyData(buffer)
-            return self
+            return buffer
         #print(struct_dtype.itemsize)
         buffer.orphan(struct_dtype.itemsize)
         buffer.write(bytes_data)
-        #self._buffer_ = LazyData(buffer)
-        return self
+        return buffer
+
+    @_buffer_.restocker
+    @staticmethod
+    def _buffer_restocker(buffer: moderngl.Buffer) -> None:
+        GLSLDynamicBuffer._BUFFER_CACHE.append(buffer)
+
+    #def write(self, data: np.ndarray | dict[str, Any]):
+    #    super().write(data)
+    #    buffer = self._buffer
+    #    bytes_data = self._data_storage_.tobytes()
+    #    struct_dtype = self._struct_dtype_
+    #    #assert struct_dtype.itemsize == len(bytes_data)
+    #    if struct_dtype.itemsize == 0:
+    #        buffer.clear()
+    #        #self._buffer_ = LazyData(buffer)
+    #        return self
+    #    #print(struct_dtype.itemsize)
+    #    buffer.orphan(struct_dtype.itemsize)
+    #    buffer.write(bytes_data)
+    #    #self._buffer_ = LazyData(buffer)
+    #    return self
 
 
 class TextureStorage(GLSLDynamicStruct):
-    def __new__(cls, field: str):
+    def __new__(
+        cls,
+        *,
+        field: str,
+        dynamic_array_lens: dict[str, int] | None = None,
+        texture_array: np.ndarray
+    ):
+        # Note, redundant textures are currently not supported
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
         assert field != replaced_field
-        return super().__new__(cls, field=replaced_field)
+        instance = super().__new__(
+            cls,
+            field=replaced_field,
+            dynamic_array_lens=dynamic_array_lens,
+            data=np.zeros(texture_array.shape, dtype=np.uint32)
+        )
+        instance._texture_array = texture_array
+        return instance
 
-    @lazy_basedata
+    @lazy_slot
     @staticmethod
-    def _texture_array_() -> np.ndarray:
+    def _texture_array() -> np.ndarray:
         return NotImplemented
 
-    def write(self, texture_array: np.ndarray):
-        # Note, redundant textures are currently not supported
-        self._texture_array_ = LazyData(texture_array)
-        #texture_list: list[moderngl.Texture] = []
-        ## Remove redundancies
-        #for texture in textures.flatten():
-        #    assert isinstance(texture, moderngl.Texture)
-        #    if texture not in texture_list:
-        #        texture_list.append(texture)
-        #self._texture_list_ = texture_list
-        #data = np.vectorize(lambda texture: texture_list.index(texture), otypes=[np.uint32])(textures)
-        super().write(np.zeros(texture_array.shape, dtype=np.uint32))
-        return self
+    #def write(
+    #    self,
+    #    *,
+    #    texture_array: np.ndarray,
+    #    dynamic_array_lens: dict[str, int] | None = None
+    #):
+    #    
+    #    self._texture_array = texture_array
+    #    #texture_list: list[moderngl.Texture] = []
+    #    ## Remove redundancies
+    #    #for texture in textures.flatten():
+    #    #    assert isinstance(texture, moderngl.Texture)
+    #    #    if texture not in texture_list:
+    #    #        texture_list.append(texture)
+    #    #self._texture_list_ = texture_list
+    #    #data = np.vectorize(lambda texture: texture_list.index(texture), otypes=[np.uint32])(textures)
+    #    super().write(
+    #        data=np.zeros(texture_array.shape, dtype=np.uint32),
+    #        dynamic_array_lens=dynamic_array_lens
+    #    )
+    #    return self
 
     #def _get_indices(self) -> list[int]:
     #    return list(np.frombuffer(self._buffer_.read(), np.uint32))
@@ -429,20 +580,32 @@ class TextureStorage(GLSLDynamicStruct):
 class UniformBlockBuffer(GLSLDynamicBuffer):
     _LAYOUT = "std140"
 
-    def __new__(cls, name: str, fields: list[str], child_structs: dict[str, list[str]] | None = None):
+    def __new__(
+        cls,
+        *,
+        name: str,
+        fields: list[str],
+        child_structs: dict[str, list[str]] | None = None,
+        dynamic_array_lens: dict[str, int] | None = None,
+        data: np.ndarray | dict[str, Any]
+    ):
         if child_structs is None:
             child_structs = {}
+        if dynamic_array_lens is None:
+            dynamic_array_lens = {}
         return super().__new__(
             cls,
             field=f"__UniformBlockStruct__ {name}",
             child_structs={
                 "__UniformBlockStruct__": fields,
                 **child_structs
-            }
+            },
+            dynamic_array_lens=dynamic_array_lens,
+            data=data
         )
 
     def _validate(self, uniform_block: moderngl.UniformBlock) -> None:
-        assert uniform_block.name == self._field_info_.name
+        assert uniform_block.name == self._field_name
         assert uniform_block.size == self._itemsize_
 
 
@@ -450,14 +613,26 @@ class AttributesBuffer(GLSLDynamicBuffer):
     # Let's keep using std140 layout, hopefully leading to a faster processing speed.
     _LAYOUT = "std140"
 
-    def __new__(cls, attributes: list[str]):
-        # Passing structs to an attribute is not allowed, so we eliminate the parameter.
+    def __new__(
+        cls,
+        *,
+        fields: list[str],
+        num_vertex: int,
+        dynamic_array_lens: dict[str, int] | None = None,
+        data: np.ndarray | dict[str, Any],
+    ):
+        # Passing structs to an attribute is not allowed, so we eliminate the parameter `child_structs`.
+        if dynamic_array_lens is None:
+            dynamic_array_lens = {}
+        dynamic_array_lens["__NUM_VERTEX__"] = num_vertex
         return super().__new__(
             cls,
             field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
             child_structs={
-                "__VertexStruct__": attributes
-            }
+                "__VertexStruct__": fields
+            },
+            dynamic_array_lens=dynamic_array_lens,
+            data=data,
         )
 
     @lazy_property
@@ -517,8 +692,19 @@ class AttributesBuffer(GLSLDynamicBuffer):
 
 
 class IndexBuffer(GLSLDynamicBuffer):
-    def __new__(cls):
-        return super().__new__(cls, field="uint __index__[__NUM_INDEX__]")
+    def __new__(
+        cls,
+        *,
+        data: np.ndarray,
+    ):
+        return super().__new__(
+            cls,
+            field="uint __index__[__NUM_INDEX__]",
+            dynamic_array_lens={
+                "__NUM_INDEX__": len(data)
+            },
+            data=data
+        )
 
 
 class Program(LazyBase):  # TODO: make abstract base class Cachable
@@ -918,15 +1104,18 @@ class RenderProcedure(LazyBase):
         context_state: ContextState,
         mode: int
     ) -> None:
-        if attributes._is_empty() or index_buffer._is_empty():
+        #import pprint
+        #pprint.pprint(attributes.__class__._field_info_.instance_to_basedata_dict)
+        #print(attributes._is_empty_)
+        if attributes._is_empty_ or index_buffer._is_empty_:
             return
 
         dynamic_array_lens: dict[str, int] = {}
         for texture_storage in texture_storages:
-            dynamic_array_lens.update(texture_storage._dynamic_array_lens_)
+            dynamic_array_lens.update(texture_storage._dynamic_array_lens)
         for uniform_block in uniform_blocks:
-            dynamic_array_lens.update(uniform_block._dynamic_array_lens_)
-        dynamic_array_lens.update(attributes._dynamic_array_lens_)
+            dynamic_array_lens.update(uniform_block._dynamic_array_lens)
+        dynamic_array_lens.update(attributes._dynamic_array_lens)
         filtered_array_lens = {
             array_len_name: array_len
             for array_len_name, array_len in dynamic_array_lens.items()
@@ -939,7 +1128,7 @@ class RenderProcedure(LazyBase):
             custom_macros=custom_macros,
             dynamic_array_lens=filtered_array_lens,
             texture_storage_shape_dict={
-                texture_storage._field_info_.name: texture_storage._texture_array_.shape
+                texture_storage._field_name: texture_storage._texture_array.shape
                 for texture_storage in texture_storages
             }
         )
@@ -952,31 +1141,31 @@ class RenderProcedure(LazyBase):
 
         # texture storages
         texture_storage_dict = {
-            texture_storage._field_info_.name: texture_storage
+            texture_storage._field_name: texture_storage
             for texture_storage in texture_storages
         }
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
         for texture_storage_name, binding_offset in program._texture_binding_offset_dict_.items():
             texture_storage = texture_storage_dict[texture_storage_name]
-            assert not texture_storage._is_empty()
+            assert not texture_storage._is_empty_
             texture_bindings.extend(
                 (texture, binding)
-                for binding, texture in enumerate(texture_storage._texture_array_.flat, start=binding_offset)
+                for binding, texture in enumerate(texture_storage._texture_array.flat, start=binding_offset)
             )
 
         # uniform blocks
         uniform_block_dict = {
-            uniform_block._field_info_.name: uniform_block
+            uniform_block._field_name: uniform_block
             for uniform_block in uniform_blocks
         }
         uniform_block_bindings: list[tuple[moderngl.Buffer, int]] = []
         for uniform_block_name, binding in program._uniform_block_binding_dict_.items():
             uniform_block = uniform_block_dict[uniform_block_name]
-            assert not uniform_block._is_empty()
+            assert not uniform_block._is_empty_
             program_uniform_block = program._program_[uniform_block_name]
             assert isinstance(program_uniform_block, moderngl.UniformBlock)
             uniform_block._validate(program_uniform_block)
-            uniform_block_bindings.append((uniform_block._buffer, binding))
+            uniform_block_bindings.append((uniform_block._buffer_, binding))
 
         # subroutines
         #subroutine_indices: list[int] = [
@@ -990,8 +1179,8 @@ class RenderProcedure(LazyBase):
         buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))
         vertex_array = context.vertex_array(
             program=program._program_,
-            content=[(attributes._buffer, buffer_format, *attribute_names)],
-            index_buffer=index_buffer._buffer,
+            content=[(attributes._buffer_, buffer_format, *attribute_names)],
+            index_buffer=index_buffer._buffer_,
             mode=mode
         )
 
@@ -1026,27 +1215,33 @@ class RenderProcedure(LazyBase):
         context_state: ContextState
     ) -> None:
         if cls._FULLSCREEN_ATTRIBUTES is None:
-            cls._FULLSCREEN_ATTRIBUTES = AttributesBuffer([
-                "vec3 in_position",
-                "vec2 in_uv"
-            ]).write({
-                "in_position": np.array([
-                    [-1.0, -1.0, 0.0],
-                    [1.0, -1.0, 0.0],
-                    [1.0, 1.0, 0.0],
-                    [-1.0, 1.0, 0.0],
-                ]),
-                "in_uv": np.array([
-                    [0.0, 0.0],
-                    [1.0, 0.0],
-                    [1.0, 1.0],
-                    [0.0, 1.0],
-                ])
-            })
+            cls._FULLSCREEN_ATTRIBUTES = AttributesBuffer(
+                fields=[
+                    "vec3 in_position",
+                    "vec2 in_uv"
+                ],
+                num_vertex=4,
+                data={
+                    "in_position": np.array((
+                        [-1.0, -1.0, 0.0],
+                        [1.0, -1.0, 0.0],
+                        [1.0, 1.0, 0.0],
+                        [-1.0, 1.0, 0.0],
+                    )),
+                    "in_uv": np.array((
+                        [0.0, 0.0],
+                        [1.0, 0.0],
+                        [1.0, 1.0],
+                        [0.0, 1.0],
+                    ))
+                }
+            )
         if cls._FULLSCREEN_INDEX_BUFFER is None:
-            cls._FULLSCREEN_INDEX_BUFFER = IndexBuffer().write(np.array((
-                0, 1, 2, 3
-            )))
+            cls._FULLSCREEN_INDEX_BUFFER = IndexBuffer(
+                data=np.array((
+                    0, 1, 2, 3
+                ))
+            )
         cls.render_step(
             shader_str=shader_str,
             custom_macros=custom_macros,
