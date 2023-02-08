@@ -7,7 +7,6 @@ import warnings
 import moderngl
 import numpy as np
 
-
 from ..animations.animation import Animation
 from ..custom_typing import (
     ColorType,
@@ -136,111 +135,6 @@ class Scene(Mobject):
             texture_array=np.array(depth_map)
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _copy_renderable_(
-    #    u_color_map: TextureStorage,
-    #    u_depth_map: TextureStorage,
-    #    attributes: AttributesBuffer,
-    #    index_buffer: IndexBuffer
-    #) -> Renderable:
-    #    return Renderable(
-    #        shader_filename="copy",
-    #        custom_macros=[
-    #            "#define COPY_DEPTH"
-    #        ],
-    #        texture_storages=[
-    #            u_color_map,
-    #            u_depth_map
-    #        ],
-    #        uniform_blocks=[],
-    #        attributes=attributes,
-    #        index_buffer=index_buffer,
-    #        #mode=moderngl.TRIANGLE_FAN
-    #    )
-
-    #@lazy_property
-    #@staticmethod
-    #def _oit_accum_renderable_(
-    #    u_color_map: TextureStorage,
-    #    u_depth_map: TextureStorage,
-    #    attributes: AttributesBuffer,
-    #    index_buffer: IndexBuffer
-    #) -> Renderable:
-    #    return Renderable(
-    #        shader_filename="oit_accum",
-    #        custom_macros=[],
-    #        texture_storages=[
-    #            u_color_map,
-    #            u_depth_map
-    #        ],
-    #        uniform_blocks=[],
-    #        attributes=attributes,
-    #        index_buffer=index_buffer,
-    #        #mode=moderngl.TRIANGLE_FAN
-    #    )
-
-    #@lazy_property
-    #@staticmethod
-    #def _oit_revealage_renderable_(
-    #    u_color_map: TextureStorage,
-    #    u_depth_map: TextureStorage,
-    #    attributes: AttributesBuffer,
-    #    index_buffer: IndexBuffer
-    #) -> Renderable:
-    #    return Renderable(
-    #        shader_filename="oit_revealage",
-    #        custom_macros=[],
-    #        texture_storages=[
-    #            u_color_map,
-    #            u_depth_map
-    #        ],
-    #        uniform_blocks=[],
-    #        attributes=attributes,
-    #        index_buffer=index_buffer,
-    #        #mode=moderngl.TRIANGLE_FAN
-    #    )
-
-    #@lazy_property
-    #@staticmethod
-    #def _oit_compose_renderable_(
-    #    u_accum_map: TextureStorage,
-    #    u_revealage_map: TextureStorage,
-    #    attributes: AttributesBuffer,
-    #    index_buffer: IndexBuffer
-    #) -> Renderable:
-    #    return Renderable(
-    #        shader_filename="oit_compose",
-    #        custom_macros=[],
-    #        texture_storages=[
-    #            u_accum_map,
-    #            u_revealage_map
-    #        ],
-    #        uniform_blocks=[],
-    #        attributes=attributes,
-    #        index_buffer=index_buffer,
-    #        #mode=moderngl.TRIANGLE_FAN
-    #    )
-
-    #@lazy_property
-    #@staticmethod
-    #def _color_copy_renderable_(
-    #    u_color_map: TextureStorage,
-    #    attributes: AttributesBuffer,
-    #    index_buffer: IndexBuffer
-    #) -> Renderable:
-    #    return Renderable(
-    #        shader_filename="copy",
-    #        custom_macros=[],
-    #        texture_storages=[
-    #            u_color_map
-    #        ],
-    #        uniform_blocks=[],
-    #        attributes=attributes,
-    #        index_buffer=index_buffer,
-    #        #mode=moderngl.TRIANGLE_FAN
-    #    )
-
     @lazy_slot
     @staticmethod
     def _scene_config() -> SceneConfig:
@@ -281,13 +175,6 @@ class Scene(Mobject):
                     mobject._render_with_passes(scene_config, batch.framebuffer)
                     self._color_map_ = NewData(batch.color_texture)
                     self._depth_map_ = NewData(batch.depth_texture)
-                    #self._copy_renderable_.render(
-                    #    framebuffer=scene_batch.opaque_framebuffer,
-                    #    context_state=ContextState(
-                    #        enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                    #        blend_func=(moderngl.ONE, moderngl.ZERO)
-                    #    )
-                    #)
                     self._vertex_array_.render(
                         shader_filename="copy",
                         custom_macros=[
@@ -298,14 +185,11 @@ class Scene(Mobject):
                             self._u_depth_map_
                         ],
                         uniform_blocks=[],
-                        #attributes=self._attributes_,
-                        #index_buffer=self._index_buffer_,
                         framebuffer=scene_batch.opaque_framebuffer,
                         context_state=ContextState(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=(moderngl.ONE, moderngl.ZERO)
-                        ),
-                        #mode=moderngl.TRIANGLE_FAN
+                        )
                     )
 
             for mobject in transparent_mobjects:
@@ -313,13 +197,6 @@ class Scene(Mobject):
                     mobject._render_with_passes(scene_config, batch.framebuffer)
                     self._color_map_ = NewData(batch.color_texture)
                     self._depth_map_ = NewData(batch.depth_texture)
-                    #self._oit_accum_renderable_.render(
-                    #    framebuffer=scene_batch.accum_framebuffer,
-                    #    context_state=ContextState(
-                    #        enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                    #        blend_func=moderngl.ADDITIVE_BLENDING
-                    #    )
-                    #)
                     self._vertex_array_.render(
                         shader_filename="oit_accum",
                         custom_macros=[],
@@ -328,22 +205,12 @@ class Scene(Mobject):
                             self._u_depth_map_
                         ],
                         uniform_blocks=[],
-                        #attributes=self._attributes_,
-                        #index_buffer=self._index_buffer_,
                         framebuffer=scene_batch.accum_framebuffer,
                         context_state=ContextState(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=moderngl.ADDITIVE_BLENDING
-                        ),
-                        #mode=moderngl.TRIANGLE_FAN
+                        )
                     )
-                    #self._oit_revealage_renderable_.render(
-                    #    framebuffer=scene_batch.revealage_framebuffer,
-                    #    context_state=ContextState(
-                    #        enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                    #        blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
-                    #    )
-                    #)
                     self._vertex_array_.render(
                         shader_filename="oit_revealage",
                         custom_macros=[],
@@ -352,25 +219,15 @@ class Scene(Mobject):
                             self._u_depth_map_
                         ],
                         uniform_blocks=[],
-                        #attributes=self._attributes_,
-                        #index_buffer=self._index_buffer_,
                         framebuffer=scene_batch.revealage_framebuffer,
                         context_state=ContextState(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
-                        ),
-                        #mode=moderngl.TRIANGLE_FAN
+                        )
                     )
 
             self._color_map_ = NewData(scene_batch.opaque_texture)
             self._depth_map_ = NewData(scene_batch.depth_texture)
-            #self._copy_renderable_.render(
-            #    framebuffer=target_framebuffer,
-            #    context_state=ContextState(
-            #        enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-            #        blend_func=(moderngl.ONE, moderngl.ZERO)
-            #    )
-            #)
             self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[
@@ -381,23 +238,14 @@ class Scene(Mobject):
                     self._u_depth_map_
                 ],
                 uniform_blocks=[],
-                #attributes=self._attributes_,
-                #index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                     blend_func=(moderngl.ONE, moderngl.ZERO)
-                ),
-                #mode=moderngl.TRIANGLE_FAN
+                )
             )
             self._accum_map_ = NewData(scene_batch.accum_texture)
             self._revealage_map_ = NewData(scene_batch.revealage_texture)
-            #self._oit_compose_renderable_.render(
-            #    framebuffer=target_framebuffer,
-            #    context_state=ContextState(
-            #        enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
-            #    )
-            #)
             self._vertex_array_.render(
                 shader_filename="oit_compose",
                 custom_macros=[],
@@ -406,13 +254,10 @@ class Scene(Mobject):
                     self._u_revealage_map_
                 ],
                 uniform_blocks=[],
-                #attributes=self._attributes_,
-                #index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
-                ),
-                #mode=moderngl.TRIANGLE_FAN
+                )
             )
 
     def _render_frame(self) -> None:
@@ -436,12 +281,6 @@ class Scene(Mobject):
             assert (window_framebuffer := ContextSingleton._WINDOW_FRAMEBUFFER) is not None
             window.clear()
             self._color_map_ = NewData(active_scene_data.color_texture)
-            #self._color_copy_renderable_.render(
-            #    framebuffer=window_framebuffer,
-            #    context_state=ContextState(
-            #        enable_only=moderngl.NOTHING
-            #    )
-            #)
             self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[],
@@ -449,13 +288,10 @@ class Scene(Mobject):
                     self._u_color_map_
                 ],
                 uniform_blocks=[],
-                #attributes=self._attributes_,
-                #index_buffer=self._index_buffer_,
                 framebuffer=window_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING
-                ),
-                #mode=moderngl.TRIANGLE_FAN
+                )
             )
             if (previous_timestamp := self._previous_rendering_timestamp) is not None and \
                     (sleep_t := (1.0 / ConfigSingleton().fps) - (time.time() - previous_timestamp)) > 0.0:

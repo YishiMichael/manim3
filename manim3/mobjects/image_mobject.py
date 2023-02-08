@@ -5,7 +5,6 @@ import moderngl
 import numpy as np
 from PIL import Image
 
-
 from ..custom_typing import Real
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry

@@ -109,36 +109,6 @@ class MeshMobject(Mobject):
             }
         )
 
-    #@lazy_property
-    #@staticmethod
-    #def _renderable_(
-    #    apply_phong_lighting: bool,
-    #    u_color_maps: TextureStorage,
-    #    scene_config: SceneConfig,
-    #    ub_model: UniformBlockBuffer,
-    #    ub_material: UniformBlockBuffer,
-    #    geometry: Geometry
-    #) -> VertexArray:
-    #    custom_macros = []
-    #    if apply_phong_lighting:
-    #        custom_macros.append("#define APPLY_PHONG_LIGHTING")
-    #    return VertexArray(
-    #        shader_filename="mesh",
-    #        custom_macros=custom_macros,
-    #        texture_storages=[
-    #            u_color_maps
-    #        ],
-    #        uniform_blocks=[
-    #            scene_config._camera._ub_camera_,
-    #            ub_model,
-    #            scene_config._ub_lights_,
-    #            ub_material
-    #        ],
-    #        attributes=geometry._attributes_,
-    #        index_buffer=geometry._index_buffer_,
-    #        mode=moderngl.TRIANGLES
-    #    )
-
     @lazy_slot
     @staticmethod
     def _render_samples() -> int:
