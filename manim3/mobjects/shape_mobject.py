@@ -13,7 +13,7 @@ from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -56,8 +56,8 @@ class ShapeMobject(MeshMobject):
         return [child for child in self._children if isinstance(child, StrokeMobject)]
 
     def set_shape(self, shape: Shape):
-        self._shape_ = LazyData(shape)
-        multi_line_string_data = LazyData(shape._multi_line_string_3d_)
+        self._shape_ = NewData(shape)
+        multi_line_string_data = NewData(shape._multi_line_string_3d_)
         for stroke in self._stroke_mobjects:
             stroke._multi_line_string_ = multi_line_string_data
         return self
@@ -76,13 +76,13 @@ class ShapeMobject(MeshMobject):
     ):
         # TODO: almost completely redundant with MeshMobject.set_style
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_data = LazyData(color_component) if color_component is not None else None
-        opacity_data = LazyData(opacity_component) if opacity_component is not None else None
+        color_data = NewData(color_component) if color_component is not None else None
+        opacity_data = NewData(opacity_component) if opacity_component is not None else None
         apply_oit = apply_oit if apply_oit is not None else \
             True if opacity_component is not None else None
-        ambient_strength_data = LazyData(ambient_strength) if ambient_strength is not None else None
-        specular_strength_data = LazyData(specular_strength) if specular_strength is not None else None
-        shininess_data = LazyData(shininess) if shininess is not None else None
+        ambient_strength_data = NewData(ambient_strength) if ambient_strength is not None else None
+        specular_strength_data = NewData(specular_strength) if specular_strength is not None else None
+        shininess_data = NewData(shininess) if shininess is not None else None
         apply_phong_lighting = apply_phong_lighting if apply_phong_lighting is not None else \
             True if any(param is not None for param in (
                 ambient_strength,

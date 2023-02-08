@@ -16,16 +16,16 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..mobjects.mobject import Mobject
-from ..rendering.render_procedure import (
+from ..rendering.glsl_variables import (
     AttributesBuffer,
     IndexBuffer,
-    RenderProcedure,
     UniformBlockBuffer
 )
+from ..rendering.render_procedure import RenderProcedure
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property,
     lazy_slot
@@ -43,7 +43,7 @@ class StrokeMobject(Mobject):
     def __new__(cls, multi_line_string: MultiLineString3D | None = None):
         instance = super().__new__(cls)
         if multi_line_string is not None:
-            instance._multi_line_string_ = LazyData(multi_line_string)
+            instance._multi_line_string_ = NewData(multi_line_string)
         return instance
 
     @lazy_basedata
@@ -263,7 +263,7 @@ class StrokeMobject(Mobject):
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
-        self._winding_sign_ = LazyData(self._calculate_winding_sign(scene_config._camera))
+        self._winding_sign_ = NewData(self._calculate_winding_sign(scene_config._camera))
         uniform_blocks = [
             scene_config._camera._ub_camera_,
             self._ub_model_,
@@ -274,7 +274,7 @@ class StrokeMobject(Mobject):
         target_framebuffer.depth_mask = False
         for custom_macros, index_buffer, mode in self._stroke_render_items_:
             RenderProcedure.render_step(
-                shader_str=RenderProcedure.read_shader("stroke"),
+                shader_filename="stroke",
                 custom_macros=custom_macros,
                 texture_storages=[],
                 uniform_blocks=uniform_blocks,
@@ -293,7 +293,7 @@ class StrokeMobject(Mobject):
         target_framebuffer.color_mask = (False, False, False, False)
         for custom_macros, index_buffer, mode in self._stroke_render_items_:
             RenderProcedure.render_step(
-                shader_str=RenderProcedure.read_shader("stroke"),
+                shader_filename="stroke",
                 custom_macros=custom_macros,
                 texture_storages=[],
                 uniform_blocks=uniform_blocks,
@@ -328,13 +328,13 @@ class StrokeMobject(Mobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
-        width_data = LazyData(width) if width is not None else None
-        single_sided_data = LazyData(single_sided) if single_sided is not None else None
-        has_linecap_data = LazyData(has_linecap) if has_linecap is not None else None
+        width_data = NewData(width) if width is not None else None
+        single_sided_data = NewData(single_sided) if single_sided is not None else None
+        has_linecap_data = NewData(has_linecap) if has_linecap is not None else None
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_data = LazyData(color_component) if color_component is not None else None
-        opacity_data = LazyData(opacity_component) if opacity_component is not None else None
-        dilate_data = LazyData(dilate) if dilate is not None else None
+        color_data = NewData(color_component) if color_component is not None else None
+        opacity_data = NewData(opacity_component) if opacity_component is not None else None
+        dilate_data = NewData(dilate) if dilate is not None else None
         apply_oit = apply_oit if apply_oit is not None else \
             True if any(param is not None for param in (
                 opacity_component,

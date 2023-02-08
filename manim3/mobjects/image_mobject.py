@@ -5,15 +5,16 @@ import moderngl
 import numpy as np
 from PIL import Image
 
+
 from ..custom_typing import Real
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_slot
 )
@@ -56,7 +57,7 @@ class ImageMobject(MeshMobject):
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         image = self._image
-        with RenderProcedure.texture(size=image.size, components=len(image.getbands())) as color_texture:
-            color_texture.write(image.tobytes())
-            self._color_map_texture_ = LazyData(color_texture)
+        with ColorFramebufferBatch() as batch:
+            batch.color_texture.write(image.tobytes())
+            self._color_map_texture_ = NewData(batch.color_texture)
             super()._render(scene_config, target_framebuffer)

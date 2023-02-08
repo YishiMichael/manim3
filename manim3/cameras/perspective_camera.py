@@ -10,7 +10,7 @@ from ..custom_typing import (
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -29,15 +29,15 @@ class PerspectiveCamera(Camera):
     ):
         instance = super().__new__(cls)
         if width is not None:
-            instance._width_ = LazyData(width)
+            instance._width_ = NewData(width)
         if height is not None:
-            instance._height_ = LazyData(height)
+            instance._height_ = NewData(height)
         if near is not None:
-            instance._near_ = LazyData(near)
+            instance._near_ = NewData(near)
         if far is not None:
-            instance._far_ = LazyData(far)
+            instance._far_ = NewData(far)
         if altitude is not None:
-            instance._altitude_ = LazyData(altitude)
+            instance._altitude_ = NewData(altitude)
         return instance
 
     @lazy_basedata

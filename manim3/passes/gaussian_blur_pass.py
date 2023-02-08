@@ -10,13 +10,14 @@ from ..custom_typing import (
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
-from ..rendering.render_procedure import (
+from ..rendering.framebuffer_batches import ColorFramebufferBatch
+from ..rendering.glsl_variables import (
     UniformBlockBuffer,
-    RenderProcedure,
     TextureStorage
 )
+from ..rendering.render_procedure import RenderProcedure
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -28,7 +29,7 @@ class GaussianBlurPass(RenderPass):
     def __new__(cls, sigma_width: Real | None = None):
         instance = super().__new__(cls)
         if sigma_width is not None:
-            instance._sigma_width_ = LazyData(sigma_width)
+            instance._sigma_width_ = NewData(sigma_width)
         return instance
 
     @lazy_basedata
@@ -77,14 +78,10 @@ class GaussianBlurPass(RenderPass):
         )
 
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
-        with RenderProcedure.texture() as intermediate_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[intermediate_texture],
-                    depth_attachment=None
-                ) as intermediate_framebuffer:
-            self._color_map_ = LazyData(texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("gaussian_blur"),
+        with ColorFramebufferBatch() as batch:
+            self._color_map_ = NewData(texture)
+            RenderProcedure.render_step(
+                shader_filename="gaussian_blur",
                 custom_macros=[
                     "#define blur_subroutine horizontal_dilate"
                 ],
@@ -94,14 +91,17 @@ class GaussianBlurPass(RenderPass):
                 uniform_blocks=[
                     self._ub_gaussian_blur_
                 ],
-                framebuffer=intermediate_framebuffer,
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
+                framebuffer=batch.framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )
-            self._color_map_ = LazyData(intermediate_texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("gaussian_blur"),
+            self._color_map_ = NewData(batch.color_texture)
+            RenderProcedure.render_step(
+                shader_filename="gaussian_blur",
                 custom_macros=[
                     "#define blur_subroutine vertical_dilate"
                 ],
@@ -111,8 +111,11 @@ class GaussianBlurPass(RenderPass):
                 uniform_blocks=[
                     self._ub_gaussian_blur_
                 ],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )

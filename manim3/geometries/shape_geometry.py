@@ -16,7 +16,7 @@ from ..geometries.geometry import (
     GeometryData
 )
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -30,7 +30,7 @@ class ShapeGeometry(Geometry):
     def __new__(cls, shape: Shape | None = None):
         instance = super().__new__(cls)
         if shape is not None:
-            instance._shape_ = LazyData(shape)
+            instance._shape_ = NewData(shape)
         return instance
 
     @lazy_basedata

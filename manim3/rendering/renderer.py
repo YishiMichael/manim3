@@ -6,13 +6,14 @@ import subprocess as sp
 
 from PIL import Image
 
+
 from ..scenes.active_scene_data import ActiveSceneDataSingleton
 from ..scenes.scene import Scene
 from ..rendering.config import (
     Config,
     ConfigSingleton
 )
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.framebuffer_batches import SimpleFramebufferBatch
 
 
 class Renderer:
@@ -41,14 +42,10 @@ class Renderer:
         else:
             writing_process = None
 
-        with RenderProcedure.texture() as color_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[color_texture],
-                    depth_attachment=None
-                ) as framebuffer:
+        with SimpleFramebufferBatch() as batch:
             ActiveSceneDataSingleton.set(
-                color_texture=color_texture,
-                framebuffer=framebuffer,
+                color_texture=batch.color_texture,
+                framebuffer=batch.framebuffer,
                 writing_process=writing_process
             )
 

@@ -33,7 +33,7 @@ from ..custom_typing import (
 )
 from ..utils.lazy import (
     LazyBase,
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -101,7 +101,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         # TODO: shall we first remove redundant adjacent points?
         assert len(coords)
         instance = super().__new__(cls)
-        instance._coords_ = LazyData(coords)
+        instance._coords_ = NewData(coords)
         return instance
 
     @lazy_basedata
@@ -171,7 +171,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         if children is not None:
             children_list = list(instance._children_)
             children_list.extend(children)
-            instance._children_ = LazyData(tuple(children_list))
+            instance._children_ = NewData(tuple(children_list))
         return instance
 
     @lazy_basedata
@@ -277,7 +277,7 @@ class Shape(LazyBase):
                 if len(coords)
             ])
         if multi_line_string is not None:
-            instance._multi_line_string_ = LazyData(multi_line_string)
+            instance._multi_line_string_ = NewData(multi_line_string)
         return instance
 
     def __and__(self, other: "Shape"):

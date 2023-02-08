@@ -13,10 +13,10 @@ from ..custom_typing import (
     Vec3T
 )
 from ..rendering.config import ConfigSingleton
-from ..rendering.render_procedure import UniformBlockBuffer
+from ..rendering.glsl_variables import UniformBlockBuffer
 from ..utils.lazy import (
     LazyBase,
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -94,9 +94,9 @@ class Camera(LazyBase):
         up: Vec3T | None = None
     ):
         if eye is not None:
-            self._eye_ = LazyData(eye)
+            self._eye_ = NewData(eye)
         if target is not None:
-            self._target_ = LazyData(target)
+            self._target_ = NewData(target)
         if up is not None:
-            self._up_ = LazyData(up)
+            self._up_ = NewData(up)
         return self

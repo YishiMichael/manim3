@@ -7,12 +7,11 @@ import numpy as np
 from ..custom_typing import Real
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
-from ..rendering.render_procedure import (
-    RenderProcedure,
-    TextureStorage
-)
+from ..rendering.framebuffer_batches import ColorFramebufferBatch
+from ..rendering.glsl_variables import TextureStorage
+from ..rendering.render_procedure import RenderProcedure
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property
 )
@@ -24,7 +23,7 @@ class PixelatedPass(RenderPass):
     def __new__(cls, pixelated_width: Real | None = None):
         instance = super().__new__(cls)
         if pixelated_width is not None:
-            instance._pixelated_width_ = LazyData(pixelated_width)
+            instance._pixelated_width_ = NewData(pixelated_width)
         return instance
 
     @lazy_basedata
@@ -53,35 +52,37 @@ class PixelatedPass(RenderPass):
             int(np.ceil(texture.width / pixel_width)),
             int(np.ceil(texture.height / pixel_width))
         )
-        with RenderProcedure.texture(size=texture_size) as intermediate_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[intermediate_texture],
-                    depth_attachment=None
-                ) as intermediate_framebuffer:
-            intermediate_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
-            self._color_map_ = LazyData(texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("copy"),
+        with ColorFramebufferBatch(size=texture_size) as batch:
+            batch.color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+            self._color_map_ = NewData(texture)
+            RenderProcedure.render_step(
+                shader_filename="copy",
                 custom_macros=[],
                 texture_storages=[
                     self._u_color_map_
                 ],
                 uniform_blocks=[],
-                framebuffer=intermediate_framebuffer,
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
+                framebuffer=batch.framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )
-            self._color_map_ = LazyData(intermediate_texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("copy"),
+            self._color_map_ = NewData(batch.color_texture)
+            RenderProcedure.render_step(
+                shader_filename="copy",
                 custom_macros=[],
                 texture_storages=[
                     self._u_color_map_
                 ],
                 uniform_blocks=[],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )

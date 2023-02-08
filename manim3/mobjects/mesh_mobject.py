@@ -12,15 +12,15 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import Geometry
 from ..mobjects.mobject import Mobject
-from ..rendering.render_procedure import (
-    RenderProcedure,
+from ..rendering.glsl_variables import (
     TextureStorage,
     UniformBlockBuffer
 )
+from ..rendering.render_procedure import RenderProcedure
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property,
     lazy_slot
@@ -124,7 +124,7 @@ class MeshMobject(Mobject):
         if self._apply_phong_lighting:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
         RenderProcedure.render_step(
-            shader_str=RenderProcedure.read_shader("mesh"),
+            shader_filename="mesh",
             custom_macros=custom_macros,
             texture_storages=[
                 self._u_color_maps_
@@ -157,13 +157,13 @@ class MeshMobject(Mobject):
         broadcast: bool = True
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_data = LazyData(color_component) if color_component is not None else None
-        opacity_data = LazyData(opacity_component) if opacity_component is not None else None
+        color_data = NewData(color_component) if color_component is not None else None
+        opacity_data = NewData(opacity_component) if opacity_component is not None else None
         apply_oit = apply_oit if apply_oit is not None else \
             True if opacity_component is not None else None
-        ambient_strength_data = LazyData(ambient_strength) if ambient_strength is not None else None
-        specular_strength_data = LazyData(specular_strength) if specular_strength is not None else None
-        shininess_data = LazyData(shininess) if shininess is not None else None
+        ambient_strength_data = NewData(ambient_strength) if ambient_strength is not None else None
+        specular_strength_data = NewData(specular_strength) if specular_strength is not None else None
+        shininess_data = NewData(shininess) if shininess is not None else None
         apply_phong_lighting = apply_phong_lighting if apply_phong_lighting is not None else \
             True if any(param is not None for param in (
                 ambient_strength,

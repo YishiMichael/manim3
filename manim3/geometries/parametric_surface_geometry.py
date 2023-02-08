@@ -12,7 +12,7 @@ from ..geometries.geometry import (
     Geometry,
     GeometryData
 )
-from ..utils.lazy import LazyData
+from ..utils.lazy import NewData
 
 
 class ParametricSurfaceGeometry(Geometry):
@@ -54,7 +54,7 @@ class ParametricSurfaceGeometry(Geometry):
         normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
 
         instance = super().__new__(cls)
-        instance._geometry_data_ = LazyData(GeometryData(
+        instance._geometry_data_ = NewData(GeometryData(
             index=index,
             position=position,
             normal=normal,

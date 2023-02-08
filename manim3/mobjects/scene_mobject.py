@@ -4,15 +4,16 @@ __all__ = ["SceneMobject"]
 import moderngl
 import numpy as np
 
+
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..scenes.scene import Scene
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_slot
 )
@@ -45,11 +46,7 @@ class SceneMobject(MeshMobject):
     #    self._scene._update_dt(dt)
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-        with RenderProcedure.texture() as color_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[color_texture],
-                    depth_attachment=None
-                ) as scene_framebuffer:
-            self._scene._render_with_passes(self._scene._scene_config, scene_framebuffer)
-            self._color_map_texture_ = LazyData(color_texture)
+        with ColorFramebufferBatch() as batch:
+            self._scene._render_with_passes(self._scene._scene_config, batch.framebuffer)
+            self._color_map_texture_ = NewData(batch.color_texture)
             super()._render(scene_config, target_framebuffer)

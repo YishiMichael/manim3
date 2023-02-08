@@ -11,15 +11,15 @@ from ..animations.animation import AlphaAnimation
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
 from ..utils.lazy import (
-    LazyData,
-    lazy_basedata
+    NewData,
+    LazyBasedata
 )
 from ..utils.space import SpaceUtils
 from ..utils.shape import Shape
 
 
 class ShapeMobjectTransform(AlphaAnimation):
-    _INTERPOLATE_METHODS: ClassVar[dict[lazy_basedata[ShapeMobject, Any], Callable[[Any, Any, Real], Any]]] = {
+    _INTERPOLATE_METHODS: ClassVar[dict[LazyBasedata[ShapeMobject, Any], Callable[[Any, Any, Real], Any]]] = {
         ShapeMobject._shape_: Shape.interpolate_method,
         ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate,
         ShapeMobject._color_: SpaceUtils.lerp,
@@ -43,7 +43,7 @@ class ShapeMobjectTransform(AlphaAnimation):
                 if (start_basedata := basedata_descr._get_data(start_mobject)) \
                         is (stop_basedata := basedata_descr._get_data(stop_mobject)):
                     continue
-                basedata_descr.__set__(intermediate_mobject, LazyData(interpolate_method(
+                basedata_descr.__set__(intermediate_mobject, NewData(interpolate_method(
                     start_basedata.data, stop_basedata.data, alpha
                 )))
 

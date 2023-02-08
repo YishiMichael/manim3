@@ -13,7 +13,7 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
-from ..rendering.render_procedure import (
+from ..rendering.glsl_variables import (
     AttributesBuffer,
     IndexBuffer
 )

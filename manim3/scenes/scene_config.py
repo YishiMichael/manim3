@@ -11,11 +11,11 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
-from ..rendering.render_procedure import UniformBlockBuffer
+from ..rendering.glsl_variables import UniformBlockBuffer
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyBase,
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property,
     lazy_slot
@@ -114,9 +114,9 @@ class SceneConfig(LazyBase):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._background_color_ = LazyData(color_component)
+            self._background_color_ = NewData(color_component)
         if opacity_component is not None:
-            self._background_opacity_ = LazyData(opacity_component)
+            self._background_opacity_ = NewData(opacity_component)
         return self
 
     def set_ambient_light(
@@ -127,9 +127,9 @@ class SceneConfig(LazyBase):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._ambient_light_color_ = LazyData(color_component)
+            self._ambient_light_color_ = NewData(color_component)
         if opacity_component is not None:
-            self._ambient_light_opacity_ = LazyData(opacity_component)
+            self._ambient_light_opacity_ = NewData(opacity_component)
         return self
 
     def add_point_light(
@@ -145,7 +145,7 @@ class SceneConfig(LazyBase):
             color_component if color_component is not None else np.ones(3),
             opacity_component if opacity_component is not None else 1.0
         ), dtype=self._POINT_LIGHT_DTYPE)
-        self._point_lights_ = LazyData(np.append(self._point_lights_, point_light))
+        self._point_lights_ = NewData(np.append(self._point_lights_, point_light))
         return self
 
     def set_point_light(
@@ -166,7 +166,7 @@ class SceneConfig(LazyBase):
                 color_component if color_component is not None else point_lights[index]["color"],
                 opacity_component if opacity_component is not None else point_lights[index]["opacity"]
             ), dtype=self._POINT_LIGHT_DTYPE)
-            self._point_lights_ = LazyData(np.concatenate(
+            self._point_lights_ = NewData(np.concatenate(
                 (point_lights[:index], [point_light], point_lights[index + 1:])
             ))
         else:

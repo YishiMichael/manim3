@@ -27,14 +27,16 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..passes.render_pass import RenderPass
-from ..rendering.render_procedure import (
-    RenderProcedure,
-    UniformBlockBuffer
+from ..rendering.framebuffer_batches import (
+    ColorFramebufferBatch,
+    SimpleFramebufferBatch
 )
+from ..rendering.glsl_variables import UniformBlockBuffer
+from ..rendering.render_procedure import RenderProcedure
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
     LazyBase,
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property,
     lazy_slot
@@ -295,12 +297,12 @@ class Mobject(LazyBase):
         broadcast: bool = True
     ):
         # Avoid redundant caculations
-        transform_dict: dict[LazyData, LazyData] = {}
+        transform_dict: dict[NewData[Mat4T], NewData[Mat4T]] = {}
         for mobject in self.iter_descendants(broadcast=broadcast):
-            transformed_matrix = transform_dict.setdefault(
-                Mobject._model_matrix_._get_data(mobject),
-                LazyData(matrix @ mobject._model_matrix_)
-            )
+            original_matrix = Mobject._model_matrix_._get_data(mobject)
+            if (transformed_matrix := transform_dict.get(original_matrix)) is None:
+                transformed_matrix = NewData(matrix @ mobject._model_matrix_)
+                transform_dict[original_matrix] = transformed_matrix
             mobject._model_matrix_ = transformed_matrix
         return self
 
@@ -579,14 +581,9 @@ class Mobject(LazyBase):
             self._render(scene_config, target_framebuffer)
             return
 
-        with RenderProcedure.texture(samples=4) as msaa_color_texture, \
-                RenderProcedure.depth_texture(samples=4) as msaa_depth_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[msaa_color_texture],
-                    depth_attachment=msaa_depth_texture
-                ) as msaa_framebuffer:
-            self._render(scene_config, msaa_framebuffer)
-            RenderProcedure.downsample_framebuffer(msaa_framebuffer, target_framebuffer)
+        with SimpleFramebufferBatch(samples=samples) as msaa_batch:
+            self._render(scene_config, msaa_batch.framebuffer)
+            RenderProcedure.downsample_framebuffer(msaa_batch.framebuffer, target_framebuffer)
 
     def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         render_passes = self._render_passes
@@ -594,28 +591,19 @@ class Mobject(LazyBase):
             self._render_with_samples(scene_config, target_framebuffer)
             return
 
-        with RenderProcedure.texture() as intermediate_texture_0, \
-                RenderProcedure.texture() as intermediate_texture_1:
-            textures = (intermediate_texture_0, intermediate_texture_1)
-            target_texture_id = 0
-            with RenderProcedure.framebuffer(
-                        color_attachments=[intermediate_texture_0],
-                        depth_attachment=target_framebuffer.depth_attachment
-                    ) as initial_framebuffer:
-                self._render_with_samples(scene_config, initial_framebuffer)
+        with ColorFramebufferBatch() as batch_0, ColorFramebufferBatch() as batch_1:
+            batches = (batch_0, batch_1)
+            target_id = 0
+            self._render_with_samples(scene_config, batch_0.framebuffer)
             for render_pass in render_passes[:-1]:
-                target_texture_id = 1 - target_texture_id
-                with RenderProcedure.framebuffer(
-                            color_attachments=[textures[target_texture_id]],
-                            depth_attachment=None
-                        ) as intermediate_framebuffer:
-                    render_pass._render(
-                        texture=textures[1 - target_texture_id],
-                        target_framebuffer=intermediate_framebuffer
-                    )
+                target_id = 1 - target_id
+                render_pass._render(
+                    texture=batches[1 - target_id].color_texture,
+                    target_framebuffer=batches[target_id].framebuffer
+                )
             target_framebuffer.depth_mask = False  # TODO: shall we disable writing to depth?
             render_passes[-1]._render(
-                texture=textures[target_texture_id],
+                texture=batches[target_id].color_texture,
                 target_framebuffer=target_framebuffer
             )
             target_framebuffer.depth_mask = True

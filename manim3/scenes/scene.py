@@ -7,6 +7,7 @@ import warnings
 import moderngl
 import numpy as np
 
+
 from ..animations.animation import Animation
 from ..custom_typing import (
     ColorType,
@@ -17,13 +18,19 @@ from ..mobjects.mobject import Mobject
 from ..scenes.active_scene_data import ActiveSceneDataSingleton
 from ..scenes.scene_config import SceneConfig
 from ..rendering.config import ConfigSingleton
-from ..rendering.render_procedure import (
-    ContextSingleton,
-    RenderProcedure,
+from ..rendering.context import ContextSingleton
+from ..rendering.glsl_variables import (
+    AttributesBuffer,
+    IndexBuffer,
     TextureStorage
 )
+from ..rendering.framebuffer_batches import (
+    SceneFramebufferBatch,
+    SimpleFramebufferBatch
+)
+from ..rendering.render_procedure import RenderProcedure
 from ..utils.lazy import (
-    LazyData,
+    NewData,
     lazy_basedata,
     lazy_property,
     lazy_slot
@@ -93,6 +100,40 @@ class Scene(Mobject):
             texture_array=np.array(depth_map)
         )
 
+    @lazy_basedata
+    @staticmethod
+    def _attributes_() -> AttributesBuffer:
+        return AttributesBuffer(
+            fields=[
+                "vec3 in_position",
+                "vec2 in_uv"
+            ],
+            num_vertex=4,
+            data={
+                "in_position": np.array((
+                    [-1.0, -1.0, 0.0],
+                    [1.0, -1.0, 0.0],
+                    [1.0, 1.0, 0.0],
+                    [-1.0, 1.0, 0.0],
+                )),
+                "in_uv": np.array((
+                    [0.0, 0.0],
+                    [1.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 1.0],
+                ))
+            }
+        )
+
+    @lazy_basedata
+    @staticmethod
+    def _index_buffer_() -> IndexBuffer:
+        return IndexBuffer(
+            data=np.array((
+                0, 1, 2, 3
+            ))
+        )
+
     @lazy_slot
     @staticmethod
     def _scene_config() -> SceneConfig:
@@ -127,35 +168,14 @@ class Scene(Mobject):
             else:
                 opaque_mobjects.append(mobject)
 
-        with RenderProcedure.texture() as opaque_texture, \
-                RenderProcedure.texture(dtype="f2") as accum_texture, \
-                RenderProcedure.texture(components=1) as revealage_texture, \
-                RenderProcedure.depth_texture() as depth_texture, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[opaque_texture],
-                    depth_attachment=depth_texture
-                ) as opaque_framebuffer, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[accum_texture],
-                    depth_attachment=depth_texture
-                ) as accum_framebuffer, \
-                RenderProcedure.framebuffer(
-                    color_attachments=[revealage_texture],
-                    depth_attachment=depth_texture
-                ) as revealage_framebuffer:
-
+        with SceneFramebufferBatch() as scene_batch:
             for mobject in opaque_mobjects:
-                with RenderProcedure.texture() as component_texture, \
-                        RenderProcedure.depth_texture() as component_depth_texture, \
-                        RenderProcedure.framebuffer(
-                            color_attachments=[component_texture],
-                            depth_attachment=component_depth_texture
-                        ) as component_framebuffer:
-                    mobject._render_with_passes(scene_config, component_framebuffer)
-                    self._color_map_ = LazyData(component_texture)
-                    self._depth_map_ = LazyData(component_depth_texture)
-                    RenderProcedure.fullscreen_render_step(
-                        shader_str=RenderProcedure.read_shader("copy"),
+                with SimpleFramebufferBatch() as batch:
+                    mobject._render_with_passes(scene_config, batch.framebuffer)
+                    self._color_map_ = NewData(batch.color_texture)
+                    self._depth_map_ = NewData(batch.depth_texture)
+                    RenderProcedure.render_step(
+                        shader_filename="copy",
                         custom_macros=[
                             "#define COPY_DEPTH"
                         ],
@@ -164,60 +184,60 @@ class Scene(Mobject):
                             self._u_depth_map_
                         ],
                         uniform_blocks=[],
-                        framebuffer=opaque_framebuffer,
+                        attributes=self._attributes_,
+                        index_buffer=self._index_buffer_,
+                        framebuffer=scene_batch.opaque_framebuffer,
                         context_state=RenderProcedure.context_state(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=(moderngl.ONE, moderngl.ZERO)
-                        )
+                        ),
+                        mode=moderngl.TRIANGLE_FAN
                     )
 
-            # Test against each fragment by the depth buffer, but never write to it.
-            accum_framebuffer.depth_mask = False
-            revealage_framebuffer.depth_mask = False
-            revealage_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0
             for mobject in transparent_mobjects:
-                with RenderProcedure.texture() as component_texture, \
-                        RenderProcedure.depth_texture() as component_depth_texture, \
-                        RenderProcedure.framebuffer(
-                            color_attachments=[component_texture],
-                            depth_attachment=component_depth_texture
-                        ) as component_framebuffer:
-                    mobject._render_with_passes(scene_config, component_framebuffer)
-                    self._color_map_ = LazyData(component_texture)
-                    self._depth_map_ = LazyData(component_depth_texture)
-                    RenderProcedure.fullscreen_render_step(
-                        shader_str=RenderProcedure.read_shader("oit_accum"),
+                with SimpleFramebufferBatch() as batch:
+                    mobject._render_with_passes(scene_config, batch.framebuffer)
+                    self._color_map_ = NewData(batch.color_texture)
+                    self._depth_map_ = NewData(batch.depth_texture)
+                    RenderProcedure.render_step(
+                        shader_filename="oit_accum",
                         custom_macros=[],
                         texture_storages=[
                             self._u_color_map_,
                             self._u_depth_map_
                         ],
                         uniform_blocks=[],
-                        framebuffer=accum_framebuffer,
+                        attributes=self._attributes_,
+                        index_buffer=self._index_buffer_,
+                        framebuffer=scene_batch.accum_framebuffer,
                         context_state=RenderProcedure.context_state(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=moderngl.ADDITIVE_BLENDING
-                        )
+                        ),
+                        mode=moderngl.TRIANGLE_FAN
                     )
-                    RenderProcedure.fullscreen_render_step(
-                        shader_str=RenderProcedure.read_shader("oit_revealage"),
+                    RenderProcedure.render_step(
+                        shader_filename="oit_revealage",
                         custom_macros=[],
                         texture_storages=[
                             self._u_color_map_,
                             self._u_depth_map_
                         ],
                         uniform_blocks=[],
-                        framebuffer=revealage_framebuffer,
+                        attributes=self._attributes_,
+                        index_buffer=self._index_buffer_,
+                        framebuffer=scene_batch.revealage_framebuffer,
                         context_state=RenderProcedure.context_state(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                             blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
-                        )
+                        ),
+                        mode=moderngl.TRIANGLE_FAN
                     )
 
-            self._color_map_ = LazyData(opaque_texture)
-            self._depth_map_ = LazyData(depth_texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("copy"),
+            self._color_map_ = NewData(scene_batch.opaque_texture)
+            self._depth_map_ = NewData(scene_batch.depth_texture)
+            RenderProcedure.render_step(
+                shader_filename="copy",
                 custom_macros=[
                     "#define COPY_DEPTH"
                 ],
@@ -226,26 +246,32 @@ class Scene(Mobject):
                     self._u_depth_map_
                 ],
                 uniform_blocks=[],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
                     blend_func=(moderngl.ONE, moderngl.ZERO)
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )
-            self._accum_map_ = LazyData(accum_texture)
-            self._revealage_map_ = LazyData(revealage_texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("oit_compose"),
+            self._accum_map_ = NewData(scene_batch.accum_texture)
+            self._revealage_map_ = NewData(scene_batch.revealage_texture)
+            RenderProcedure.render_step(
+                shader_filename="oit_compose",
                 custom_macros=[],
                 texture_storages=[
                     self._u_accum_map_,
                     self._u_revealage_map_
                 ],
                 uniform_blocks=[],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )
 
     def _render_frame(self) -> None:
@@ -268,18 +294,21 @@ class Scene(Mobject):
             assert (window := ContextSingleton._WINDOW) is not None
             assert (window_framebuffer := ContextSingleton._WINDOW_FRAMEBUFFER) is not None
             window.clear()
-            self._color_map_ = LazyData(active_scene_data.color_texture)
-            RenderProcedure.fullscreen_render_step(
-                shader_str=RenderProcedure.read_shader("copy"),
+            self._color_map_ = NewData(active_scene_data.color_texture)
+            RenderProcedure.render_step(
+                shader_filename="copy",
                 custom_macros=[],
                 texture_storages=[
                     self._u_color_map_
                 ],
                 uniform_blocks=[],
+                attributes=self._attributes_,
+                index_buffer=self._index_buffer_,
                 framebuffer=window_framebuffer,
                 context_state=RenderProcedure.context_state(
                     enable_only=moderngl.NOTHING
-                )
+                ),
+                mode=moderngl.TRIANGLE_FAN
             )
             if (previous_timestamp := self._previous_rendering_timestamp) is not None and \
                     (sleep_t := (1.0 / ConfigSingleton().fps) - (time.time() - previous_timestamp)) > 0.0:
