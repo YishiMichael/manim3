@@ -15,7 +15,7 @@ from ..rendering.glsl_variables import (
     UniformBlockBuffer,
     TextureStorage
 )
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.vertex_array import ContextState
 from ..utils.lazy import (
     NewData,
     lazy_basedata,
@@ -71,6 +71,9 @@ class GaussianBlurPass(RenderPass):
                 "vec2 u_uv_offset",
                 "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
             ],
+            dynamic_array_lens={
+                "CONVOLUTION_CORE_SIZE": len(convolution_core)
+            },
             data={
                 "u_uv_offset": 1.0 / np.array(ConfigSingleton().pixel_size),
                 "u_convolution_core": convolution_core
@@ -80,10 +83,10 @@ class GaussianBlurPass(RenderPass):
     def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
         with ColorFramebufferBatch() as batch:
             self._color_map_ = NewData(texture)
-            RenderProcedure.render_step(
+            self._vertex_array_.render(
                 shader_filename="gaussian_blur",
                 custom_macros=[
-                    "#define blur_subroutine horizontal_dilate"
+                    f"#define blur_subroutine horizontal_dilate"
                 ],
                 texture_storages=[
                     self._u_color_map_
@@ -91,19 +94,16 @@ class GaussianBlurPass(RenderPass):
                 uniform_blocks=[
                     self._ub_gaussian_blur_
                 ],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=batch.framebuffer,
-                context_state=RenderProcedure.context_state(
+                context_state=ContextState(
                     enable_only=moderngl.NOTHING
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )
             self._color_map_ = NewData(batch.color_texture)
-            RenderProcedure.render_step(
+            self._vertex_array_.render(
                 shader_filename="gaussian_blur",
                 custom_macros=[
-                    "#define blur_subroutine vertical_dilate"
+                    f"#define blur_subroutine vertical_dilate"
                 ],
                 texture_storages=[
                     self._u_color_map_
@@ -111,11 +111,8 @@ class GaussianBlurPass(RenderPass):
                 uniform_blocks=[
                     self._ub_gaussian_blur_
                 ],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
-                context_state=RenderProcedure.context_state(
+                context_state=ContextState(
                     enable_only=moderngl.NOTHING
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )

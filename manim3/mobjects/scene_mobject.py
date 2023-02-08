@@ -48,5 +48,5 @@ class SceneMobject(MeshMobject):
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         with ColorFramebufferBatch() as batch:
             self._scene._render_with_passes(self._scene._scene_config, batch.framebuffer)
-            self._color_map_texture_ = NewData(batch.color_texture)
+            self._color_map_ = NewData(batch.color_texture)
             super()._render(scene_config, target_framebuffer)

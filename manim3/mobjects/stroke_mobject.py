@@ -21,12 +21,16 @@ from ..rendering.glsl_variables import (
     IndexBuffer,
     UniformBlockBuffer
 )
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.vertex_array import (
+    ContextState,
+    VertexArray
+)
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     NewData,
     lazy_basedata,
+    lazy_basedata_cached,
     lazy_property,
     lazy_slot
 )
@@ -45,6 +49,17 @@ class StrokeMobject(Mobject):
         if multi_line_string is not None:
             instance._multi_line_string_ = NewData(multi_line_string)
         return instance
+
+    @staticmethod
+    def __winding_sign_cacher(
+        winding_sign: bool
+    ) -> bool:
+        return winding_sign
+
+    @lazy_basedata_cached(__winding_sign_cacher)
+    @staticmethod
+    def _winding_sign_() -> bool:
+        return NotImplemented
 
     @lazy_basedata
     @staticmethod
@@ -82,11 +97,6 @@ class StrokeMobject(Mobject):
     def _dilate_() -> Real:
         return 0.0
 
-    @lazy_basedata
-    @staticmethod
-    def _winding_sign_() -> Real:
-        return 1.0
-
     @lazy_property
     @staticmethod
     def _local_sample_points_(multi_line_string: MultiLineString3D) -> Vec3sT:
@@ -123,7 +133,7 @@ class StrokeMobject(Mobject):
     @lazy_property
     @staticmethod
     def _ub_winding_sign_(
-        winding_sign: Real
+        winding_sign: bool
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_winding_sign",
@@ -131,7 +141,7 @@ class StrokeMobject(Mobject):
                 "float u_winding_sign"
             ],
             data={
-                "u_winding_sign": winding_sign
+                "u_winding_sign": np.array(1.0 if winding_sign else -1.0)
             }
         )
 
@@ -159,37 +169,50 @@ class StrokeMobject(Mobject):
 
     @lazy_property
     @staticmethod
-    def _stroke_render_items_(
+    def _vertex_array_items_(
+        multi_line_string: MultiLineString3D,
         single_sided: bool,
         has_linecap: bool,
-        multi_line_string: MultiLineString3D
-    ) -> list[tuple[list[str], IndexBuffer, int]]:
-        def get_index_buffer(index_getter: Callable[[LineString3D], list[int]]) -> IndexBuffer:
-            return IndexBuffer(
-                data=StrokeMobject._lump_index_from_getter(index_getter, multi_line_string)
+        attributes: AttributesBuffer
+    ) -> list[tuple[VertexArray, list[str]]]:
+        def get_vertex_array(index_getter: Callable[[LineString3D], list[int]], mode: int) -> VertexArray:
+            return VertexArray(
+                attributes=attributes,
+                index_buffer=IndexBuffer(
+                    data=StrokeMobject._lump_index_from_getter(index_getter, multi_line_string)
+                ),
+                mode=mode
             )
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
-        result: list[tuple[list[str], IndexBuffer, int]] = [
-            ([
+        result: list[tuple[VertexArray, list[str]]] = [
+            (get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINE_STRIP), [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
-            ], get_index_buffer(StrokeMobject._line_index_getter), moderngl.LINE_STRIP),
-            ([
+            ]),
+            (get_vertex_array(StrokeMobject._join_index_getter, moderngl.TRIANGLES), [
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
-            ], get_index_buffer(StrokeMobject._join_index_getter), moderngl.TRIANGLES)
+            ])
         ]
         if has_linecap and not single_sided:
             result.extend([
-                ([
+                (get_vertex_array(StrokeMobject._cap_index_getter, moderngl.LINES), [
                     "#define STROKE_CAP"
-                ], get_index_buffer(StrokeMobject._cap_index_getter), moderngl.LINES),
-                ([
+                ]),
+                (get_vertex_array(StrokeMobject._point_index_getter, moderngl.POINTS), [
                     "#define STROKE_POINT"
-                ], get_index_buffer(StrokeMobject._point_index_getter), moderngl.POINTS)
+                ])
             ])
         return result
+
+    @_vertex_array_items_.restocker
+    @staticmethod
+    def _vertex_array_items_restocker(
+        vertex_array_items: list[tuple[VertexArray, list[str]]]
+    ) -> None:
+        for vertex_array, _ in vertex_array_items:
+            vertex_array._restock()
 
     @lazy_slot
     @staticmethod
@@ -263,7 +286,7 @@ class StrokeMobject(Mobject):
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
-        self._winding_sign_ = NewData(self._calculate_winding_sign(scene_config._camera))
+        self._winding_sign_ = self._calculate_winding_sign(scene_config._camera)
         uniform_blocks = [
             scene_config._camera._ub_camera_,
             self._ub_model_,
@@ -272,49 +295,43 @@ class StrokeMobject(Mobject):
         ]
         # Render color
         target_framebuffer.depth_mask = False
-        for custom_macros, index_buffer, mode in self._stroke_render_items_:
-            RenderProcedure.render_step(
+        for vertex_array, custom_macros in self._vertex_array_items_:
+            vertex_array.render(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
                 texture_storages=[],
                 uniform_blocks=uniform_blocks,
-                attributes=self._attributes_,
-                index_buffer=index_buffer,
                 framebuffer=target_framebuffer,
-                context_state=RenderProcedure.context_state(
+                context_state=ContextState(
                     enable_only=moderngl.BLEND,
                     blend_func=moderngl.ADDITIVE_BLENDING,
                     blend_equation=moderngl.MAX
-                ),
-                mode=mode
+                )
             )
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
-        for custom_macros, index_buffer, mode in self._stroke_render_items_:
-            RenderProcedure.render_step(
+        for vertex_array, custom_macros in self._vertex_array_items_:
+            vertex_array.render(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
                 texture_storages=[],
                 uniform_blocks=uniform_blocks,
-                attributes=self._attributes_,
-                index_buffer=index_buffer,
                 framebuffer=target_framebuffer,
-                context_state=RenderProcedure.context_state(
+                context_state=ContextState(
                     enable_only=moderngl.DEPTH_TEST
-                ),
-                mode=mode
+                )
             )
         target_framebuffer.color_mask = (True, True, True, True)
 
-    def _calculate_winding_sign(self, camera: Camera) -> float:
+    def _calculate_winding_sign(self, camera: Camera) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...
         area = 0.0
         transform = camera._projection_matrix_ @ camera._view_matrix_ @ self._model_matrix_
         for line_string in self._multi_line_string_._children_:
             coords_2d = SpaceUtils.apply_affine(transform, line_string._coords_)[:, :2]
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
-        return 1.0 if area * self._width_ >= 0.0 else -1.0
+        return area * self._width_ >= 0.0
 
     def set_style(
         self,

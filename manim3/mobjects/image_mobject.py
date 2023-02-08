@@ -59,5 +59,5 @@ class ImageMobject(MeshMobject):
         image = self._image
         with ColorFramebufferBatch() as batch:
             batch.color_texture.write(image.tobytes())
-            self._color_map_texture_ = NewData(batch.color_texture)
+            self._color_map_ = NewData(batch.color_texture)
             super()._render(scene_config, target_framebuffer)

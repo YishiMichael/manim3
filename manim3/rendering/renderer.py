@@ -66,7 +66,7 @@ class Renderer:
                 image = Image.frombytes(
                     "RGBA",
                     ConfigSingleton().pixel_size,
-                    framebuffer.read(components=4),
+                    batch.framebuffer.read(components=4),
                     "raw"
                 )
                 image.save(os.path.join(ConfigSingleton().output_dir, "result.png"))

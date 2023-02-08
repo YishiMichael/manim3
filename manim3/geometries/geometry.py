@@ -6,6 +6,7 @@ __all__ = [
 
 from dataclasses import dataclass
 
+import moderngl
 import numpy as np
 
 from ..custom_typing import (
@@ -17,6 +18,7 @@ from ..rendering.glsl_variables import (
     AttributesBuffer,
     IndexBuffer
 )
+from ..rendering.vertex_array import VertexArray
 from ..utils.lazy import (
     LazyBase,
     lazy_basedata,
@@ -75,4 +77,16 @@ class Geometry(LazyBase):
     ) -> IndexBuffer:
         return IndexBuffer(
             data=geometry_data.index
+        )
+
+    @lazy_property
+    @staticmethod
+    def _vertex_array_(
+        attributes: AttributesBuffer,
+        index_buffer: IndexBuffer
+    ) -> VertexArray:
+        return VertexArray(
+            attributes=attributes,
+            index_buffer=index_buffer,
+            mode=moderngl.TRIANGLES
         )

@@ -20,7 +20,6 @@ import moderngl
 import numpy as np
 
 from ..rendering.context import ContextSingleton
-#from ..utils.cache import CacheUtils
 from ..utils.lazy import (
     LazyBase,
     NewData,
@@ -86,8 +85,6 @@ class GLSLDynamicStruct(LazyBase):
         "dmat4x3": np.dtype(("f8", (4, 3))),
         "dmat4":   np.dtype(("f8", (4, 4))),
     }
-    #_LAYOUT: ClassVar[GLSLVariableLayout] = GLSLVariableLayout.PACKED
-    #_STRUCT_DTYPE_CACHE: ClassVar[dict[bytes, NewData[np.dtype]]] = {}
 
     def __new__(
         cls,
@@ -108,34 +105,6 @@ class GLSLDynamicStruct(LazyBase):
         instance._dynamic_array_lens_ = dynamic_array_lens
         instance._layout_ = layout
         instance._data_ = NewData(data)
-        #hash_val = CacheUtils.hash_items(
-        #    field,
-        #    tuple(
-        #        (name, *child_struct_fields)
-        #        for name, child_struct_fields in child_structs.items()
-        #    ),
-        #    tuple(dynamic_array_lens.items())
-        #)
-        #if (struct_dtype := cls._STRUCT_DTYPE_CACHE.get(hash_val)) is None:
-        #    struct_dtype = NewData(cls._build_struct_dtype(
-        #        [cls._parse_field_str(field)],
-        #        {
-        #            name: [cls._parse_field_str(child_field) for child_field in child_struct_fields]
-        #            for name, child_struct_fields in child_structs.items()
-        #        },
-        #        dynamic_array_lens,
-        #        0
-        #    ))
-        #    cls._STRUCT_DTYPE_CACHE[hash_val] = struct_dtype
-
-        #assert (field_names := struct_dtype.data.names) is not None
-        #field_name = field_names[0]
-        #data_storage = cls._write_data(data, struct_dtype.data, field_name)
-
-        #instance._struct_dtype_ = struct_dtype
-        #instance._data_storage_ = NewData(data_storage)
-        #instance._dynamic_array_lens = dynamic_array_lens
-        #instance._field_name = field_name
         return instance
 
     @staticmethod
@@ -235,7 +204,7 @@ class GLSLDynamicStruct(LazyBase):
             while data_key:
                 data_ptr = data_ptr[data_key[0]]
                 data_key = data_key[1:]
-            data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)  # TODO
+            data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)
         return data_storage
 
     @lazy_property
@@ -272,67 +241,24 @@ class GLSLDynamicStruct(LazyBase):
         names: list[str] = []
         formats: list[tuple[np.dtype, tuple[int, ...]]] = []
         offsets: list[int] = []
-
-        #dynamic_array_lens: dict[str, int] = {}
         offset = 0
 
         for field_info in fields_info:
-            dtype_str = field_info.dtype_str
-            name = field_info.name
             shape = field_info.shape
-            next_depth = depth + len(shape)
-
-            #child_data: dict[tuple[str, ...], np.ndarray] = {}
-            #node_dynamic_array_lens: dict[str, int] = {}
-            #for data_key, data_value in data_dict.items():
-            #    if data_key[0] != name:
-            #        continue
-            #    if data_value.size:
-            #        data_array_shape = data_value.shape[depth:next_depth]
-            #    else:
-            #        data_array_shape = tuple(0 for _ in array_shape)
-            #    for array_len, data_array_len in zip(array_shape, data_array_shape, strict=True):
-            #        if isinstance(array_len, int):
-            #            assert array_len == data_array_len
-            #        else:
-            #            # Rewrite if the recorded array length is 0
-            #            if node_dynamic_array_lens.get(array_len, 0) and data_array_len:
-            #                assert node_dynamic_array_lens[array_len] == data_array_len
-            #            else:
-            #                node_dynamic_array_lens[array_len] = data_array_len
-            #    child_data[data_key[1:]] = data_value
-            #dynamic_array_lens.update(node_dynamic_array_lens)
-            #shape = tuple(
-            #    array_len if isinstance(array_len, int) else node_dynamic_array_lens[array_len]
-            #    for array_len in array_shape
-            #)
-            #shape = tuple(
-            #    array_len if isinstance(array_len, int) else dynamic_array_lens[array_len]
-            #    for array_len in array_shape
-            #)
-
-            if (child_struct_fields_info := child_structs_info.get(dtype_str)) is not None:
-                #child_dtype, child_dynamic_array_lens = cls._build_struct_dtype(
-                #    child_data, child_struct_fields_info, child_structs_info, next_depth
-                #)
-                #dynamic_array_lens.update(child_dynamic_array_lens)
+            if (child_struct_fields_info := child_structs_info.get(field_info.dtype_str)) is not None:
                 child_dtype = cls._build_struct_dtype(
-                    child_struct_fields_info, child_structs_info, layout, next_depth
+                    child_struct_fields_info, child_structs_info, layout, depth + len(shape)
                 )
                 base_alignment = 16
             else:
-                atomic_dtype = cls._GLSL_DTYPE[dtype_str]
-                #assert len(child_data) == 1 and (data_value := child_data.get(())) is not None
-                #if not data_value.size:
-                #    continue
-                #assert atomic_dtype.shape == data_value.shape[next_depth:]
+                atomic_dtype = cls._GLSL_DTYPE[field_info.dtype_str]
                 child_dtype = cls._align_atomic_dtype(atomic_dtype, layout, not shape)
                 base_alignment = child_dtype.base.itemsize
 
             if layout == GLSLVariableLayout.STD140:
                 assert child_dtype.itemsize % base_alignment == 0
                 offset += (-offset) % base_alignment
-            names.append(name)
+            names.append(field_info.name)
             formats.append((child_dtype, shape))
             offsets.append(offset)
             offset += cls._int_prod(shape) * child_dtype.itemsize
@@ -554,12 +480,6 @@ class AttributesBuffer(GLSLDynamicBuffer):
         vertex_dtype = self._vertex_dtype_
         for attribute_name, attribute in attributes.items():
             field_dtype = vertex_dtype[attribute_name]
-            #if any(atomic_dtype is field_dtype for atomic_dtype in self._GLSL_DTYPE.values()):
-            #    array_shape = ()
-            #    atomic_dtype = field_dtype
-            #else:
-            #    array_shape = field_dtype.shape
-            #    atomic_dtype = field_dtype.base
             assert attribute.array_length == self._int_prod(field_dtype.shape)
             assert attribute.dimension == self._int_prod(field_dtype.base.shape) * self._int_prod(field_dtype.base["_"].shape)
             assert attribute.shape == field_dtype.base["_"].base.kind.replace("u", "I")

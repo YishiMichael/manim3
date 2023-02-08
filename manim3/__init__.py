@@ -33,9 +33,8 @@ from .rendering.context import *
 from .rendering.framebuffer_batch import *
 from .rendering.framebuffer_batches import *
 from .rendering.glsl_variables import *
-from .rendering.render_procedure import *
 from .rendering.renderer import *
-from .rendering.temporary_resource import *
+from .rendering.vertex_array import *
 
 from .scenes.active_scene_data import *
 from .scenes.scene import *

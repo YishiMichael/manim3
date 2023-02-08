@@ -114,6 +114,10 @@ class FramebufferBatch(TemporaryResource[_ParamsT, _T]):
         return framebuffer
 
     @classmethod
+    def downsample_framebuffer(cls, src: moderngl.Framebuffer, dst: moderngl.Framebuffer) -> None:
+        ContextSingleton().copy_framebuffer(dst=dst, src=src)
+
+    @classmethod
     def _new_instance(cls, parameters: tuple[tuple[int, int], int, int, str]) -> _T:
         size, components, samples, dtype = parameters
         return cls._new_batch(

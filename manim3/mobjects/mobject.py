@@ -27,12 +27,12 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..passes.render_pass import RenderPass
+from ..rendering.framebuffer_batch import FramebufferBatch
 from ..rendering.framebuffer_batches import (
     ColorFramebufferBatch,
     SimpleFramebufferBatch
 )
 from ..rendering.glsl_variables import UniformBlockBuffer
-from ..rendering.render_procedure import RenderProcedure
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
     LazyBase,
@@ -583,7 +583,7 @@ class Mobject(LazyBase):
 
         with SimpleFramebufferBatch(samples=samples) as msaa_batch:
             self._render(scene_config, msaa_batch.framebuffer)
-            RenderProcedure.downsample_framebuffer(msaa_batch.framebuffer, target_framebuffer)
+            FramebufferBatch.downsample_framebuffer(msaa_batch.framebuffer, target_framebuffer)
 
     def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         render_passes = self._render_passes

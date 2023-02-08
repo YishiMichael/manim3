@@ -9,7 +9,7 @@ from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..rendering.glsl_variables import TextureStorage
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.vertex_array import ContextState
 from ..utils.lazy import (
     NewData,
     lazy_basedata,
@@ -55,34 +55,28 @@ class PixelatedPass(RenderPass):
         with ColorFramebufferBatch(size=texture_size) as batch:
             batch.color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
             self._color_map_ = NewData(texture)
-            RenderProcedure.render_step(
+            self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[],
-                texture_storages=[
+                texture_storages = [
                     self._u_color_map_
                 ],
                 uniform_blocks=[],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=batch.framebuffer,
-                context_state=RenderProcedure.context_state(
+                context_state=ContextState(
                     enable_only=moderngl.NOTHING
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )
             self._color_map_ = NewData(batch.color_texture)
-            RenderProcedure.render_step(
+            self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[],
-                texture_storages=[
+                texture_storages = [
                     self._u_color_map_
                 ],
                 uniform_blocks=[],
-                attributes=self._attributes_,
-                index_buffer=self._index_buffer_,
                 framebuffer=target_framebuffer,
-                context_state=RenderProcedure.context_state(
+                context_state=ContextState(
                     enable_only=moderngl.NOTHING
-                ),
-                mode=moderngl.TRIANGLE_FAN
+                )
             )

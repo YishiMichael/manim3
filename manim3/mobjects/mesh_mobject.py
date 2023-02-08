@@ -16,7 +16,7 @@ from ..rendering.glsl_variables import (
     TextureStorage,
     UniformBlockBuffer
 )
-from ..rendering.render_procedure import RenderProcedure
+from ..rendering.vertex_array import ContextState
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
@@ -32,7 +32,7 @@ class MeshMobject(Mobject):
 
     @lazy_basedata
     @staticmethod
-    def _color_map_texture_() -> moderngl.Texture | None:
+    def _color_map_() -> moderngl.Texture | None:
         return None
 
     @lazy_basedata
@@ -73,9 +73,9 @@ class MeshMobject(Mobject):
     @lazy_property
     @staticmethod
     def _u_color_maps_(
-        color_map_texture: moderngl.Texture | None
+        color_map: moderngl.Texture | None
     ) -> TextureStorage:
-        textures = [color_map_texture] if color_map_texture is not None else []
+        textures = [color_map] if color_map is not None else []
         return TextureStorage(
             field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
             dynamic_array_lens={
@@ -109,6 +109,36 @@ class MeshMobject(Mobject):
             }
         )
 
+    #@lazy_property
+    #@staticmethod
+    #def _renderable_(
+    #    apply_phong_lighting: bool,
+    #    u_color_maps: TextureStorage,
+    #    scene_config: SceneConfig,
+    #    ub_model: UniformBlockBuffer,
+    #    ub_material: UniformBlockBuffer,
+    #    geometry: Geometry
+    #) -> VertexArray:
+    #    custom_macros = []
+    #    if apply_phong_lighting:
+    #        custom_macros.append("#define APPLY_PHONG_LIGHTING")
+    #    return VertexArray(
+    #        shader_filename="mesh",
+    #        custom_macros=custom_macros,
+    #        texture_storages=[
+    #            u_color_maps
+    #        ],
+    #        uniform_blocks=[
+    #            scene_config._camera._ub_camera_,
+    #            ub_model,
+    #            scene_config._ub_lights_,
+    #            ub_material
+    #        ],
+    #        attributes=geometry._attributes_,
+    #        index_buffer=geometry._index_buffer_,
+    #        mode=moderngl.TRIANGLES
+    #    )
+
     @lazy_slot
     @staticmethod
     def _render_samples() -> int:
@@ -123,7 +153,7 @@ class MeshMobject(Mobject):
         custom_macros = []
         if self._apply_phong_lighting:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
-        RenderProcedure.render_step(
+        self._geometry_._vertex_array_.render(
             shader_filename="mesh",
             custom_macros=custom_macros,
             texture_storages=[
@@ -135,13 +165,10 @@ class MeshMobject(Mobject):
                 scene_config._ub_lights_,
                 self._ub_material_
             ],
-            attributes=self._geometry_._attributes_,
-            index_buffer=self._geometry_._index_buffer_,
             framebuffer=target_framebuffer,
-            context_state=RenderProcedure.context_state(
+            context_state=ContextState(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
-            ),
-            mode=moderngl.TRIANGLES
+            )
         )
 
     def set_style(

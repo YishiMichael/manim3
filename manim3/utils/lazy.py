@@ -105,8 +105,8 @@ class NewData(Generic[_T]):
     def __init__(self, data: _T):
         self._data: _T = data
 
-    #def __repr__(self) -> str:
-    #    return f"<NewData: {self._data}>"
+    def __repr__(self) -> str:
+        return f"<NewData: {self._data}>"
 
     @property
     def data(self) -> _T:
@@ -175,6 +175,8 @@ class LazyBasedata(LazyDescriptor[_LazyBaseT, _T]):
         return self.instance_to_basedata_dict.get(instance, self.default_basedata)
 
     def _set_data(self, instance: _LazyBaseT, basedata: NewData[_T] | None) -> None:
+        if self.instance_to_basedata_dict.get(instance) is basedata:
+            return
         self._clear_instance_basedata(instance)
         for property_descr in instance.__class__._BASEDATA_DESCR_TO_PROPERTY_DESCRS[self]:
             property_descr._clear_instance_basedata_tuple(instance)
@@ -190,7 +192,7 @@ class LazyBasedata(LazyDescriptor[_LazyBaseT, _T]):
         if self.basedata_to_instances_dict[basedata]:
             return
         self.basedata_to_instances_dict.pop(basedata)
-        self._restock(basedata.data)
+        #self._restock(basedata.data)  # TODO
 
 
 class LazyBasedataCached(Generic[_LazyBaseT, _T, _R], LazyBasedata[_LazyBaseT, _T]):
@@ -200,10 +202,10 @@ class LazyBasedataCached(Generic[_LazyBaseT, _T, _R], LazyBasedata[_LazyBaseT, _
         self.hash_to_basedata_dict: dict[_R, NewData[_T]] = {}
 
     def __set__(self, instance: _LazyBaseT, basedata: _T) -> None:
-        hashed_value = self.hasher(basedata)
-        if (cached_basedata := self.hash_to_basedata_dict.get(hashed_value)) is None:
+        hash_value = self.hasher(basedata)
+        if (cached_basedata := self.hash_to_basedata_dict.get(hash_value)) is None:
             cached_basedata = NewData(basedata)
-            self.hash_to_basedata_dict[hashed_value] = cached_basedata
+            self.hash_to_basedata_dict[hash_value] = cached_basedata
         super().__set__(instance, cached_basedata)
 
 
@@ -230,7 +232,7 @@ class LazyProperty(LazyDescriptor[_LazyBaseT, _T]):
                 for basedata_descr in instance.__class__._PROPERTY_DESCR_TO_BASEDATA_DESCRS[self]
             )
             self.instance_to_basedata_tuple_dict[instance] = basedata_tuple
-            self.basedata_tuple_to_instances_dict.setdefault(basedata_tuple, []).append(instance)
+        self.basedata_tuple_to_instances_dict.setdefault(basedata_tuple, []).append(instance)
         if (result := self.basedata_tuple_to_property_dict.get(basedata_tuple)) is None:
             result = self.method(*(
                 param_descr.__get__(instance)
