@@ -16,8 +16,8 @@ layout (std140) uniform ub_winding_sign {
     float u_winding_sign;
 };
 
-const float PI = acos(-1.0);
-const float PI_HALF = PI / 2.0;
+const float PI_HALF = acos(0.0);
+const float PI = PI_HALF * 2.0;
 
 
 /***********************/

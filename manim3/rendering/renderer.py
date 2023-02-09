@@ -37,7 +37,8 @@ class Renderer:
                 "-an",
                 "-vcodec", "libx264",
                 "-pix_fmt", "yuv420p",
-                os.path.join(ConfigSingleton().output_dir, "result.mp4")
+                "-loglevel", "error",
+                os.path.join(ConfigSingleton().output_dir, f"{scene_cls.__name__}.mp4")
             ], stdin=sp.PIPE)
         else:
             writing_process = None

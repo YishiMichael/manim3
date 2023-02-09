@@ -328,8 +328,13 @@ class Mobject(LazyBase):
         ))
         #if np.isclose(np.linalg.det(matrix), 0.0):
         #    warnings.warn("Applying a singular matrix transform")
-        self.apply_transform(matrix, broadcast=broadcast)
+        self.apply_transform(
+            matrix=matrix,
+            broadcast=broadcast
+        )
         return self
+
+    # shift relatives
 
     def shift(
         self,
@@ -343,41 +348,7 @@ class Mobject(LazyBase):
         matrix = SpaceUtils.matrix_from_translation(vector)
         # `about_point` and `about_edge` are meaningless when shifting
         self.apply_relative_transform(
-            matrix,
-            broadcast=broadcast
-        )
-        return self
-
-    def scale(
-        self,
-        factor: Real | Vec3T,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        matrix = SpaceUtils.matrix_from_scale(factor)
-        self.apply_relative_transform(
-            matrix,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
-        )
-        return self
-
-    def rotate(
-        self,
-        rotation: Rotation,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        matrix = SpaceUtils.matrix_from_rotation(rotation)
-        self.apply_relative_transform(
-            matrix,
-            about_point=about_point,
-            about_edge=about_edge,
+            matrix=matrix,
             broadcast=broadcast
         )
         return self
@@ -397,7 +368,7 @@ class Mobject(LazyBase):
         point_to_align = self.get_bounding_box_point(aligned_edge, broadcast=broadcast)
         vector = target_point - point_to_align
         self.shift(
-            vector,
+            vector=vector,
             coor_mask=coor_mask,
             broadcast=broadcast
         )
@@ -410,7 +381,7 @@ class Mobject(LazyBase):
         broadcast: bool = True
     ):
         self.move_to(
-            ORIGIN,
+            mobject_or_point=ORIGIN,
             coor_mask=coor_mask,
             broadcast=broadcast
         )
@@ -432,8 +403,27 @@ class Mobject(LazyBase):
         point_to_align = self.get_bounding_box_point(-direction, broadcast=broadcast)
         vector = target_point - point_to_align + buff * direction
         self.shift(
-            vector,
+            vector=vector,
             coor_mask=coor_mask,
+            broadcast=broadcast
+        )
+        return self
+
+    # scale relatives
+
+    def scale(
+        self,
+        factor: Real | Vec3T,
+        *,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
+        broadcast: bool = True
+    ):
+        matrix = SpaceUtils.matrix_from_scale(factor)
+        self.apply_relative_transform(
+            matrix=matrix,
+            about_point=about_point,
+            about_edge=about_edge,
             broadcast=broadcast
         )
         return self
@@ -448,7 +438,7 @@ class Mobject(LazyBase):
     ):
         factor_vector = target_size / self.get_bounding_box_size(broadcast=broadcast)
         self.scale(
-            factor_vector,
+            factor=factor_vector,
             about_point=about_point,
             about_edge=about_edge,
             broadcast=broadcast
@@ -467,7 +457,7 @@ class Mobject(LazyBase):
         factor_vector = np.ones(3)
         factor_vector[dim] = target_length / self.get_bounding_box_size(broadcast=broadcast)[dim]
         self.scale(
-            factor_vector,
+            factor=factor_vector,
             about_point=about_point,
             about_edge=about_edge,
             broadcast=broadcast
@@ -483,8 +473,8 @@ class Mobject(LazyBase):
         broadcast: bool = True
     ):
         self.stretch_to_fit_dim(
-            target_length,
-            0,
+            target_length=target_length,
+            dim=0,
             about_point=about_point,
             about_edge=about_edge,
             broadcast=broadcast
@@ -500,8 +490,8 @@ class Mobject(LazyBase):
         broadcast: bool = True
     ):
         self.stretch_to_fit_dim(
-            target_length,
-            1,
+            target_length=target_length,
+            dim=1,
             about_point=about_point,
             about_edge=about_edge,
             broadcast=broadcast
@@ -517,8 +507,8 @@ class Mobject(LazyBase):
         broadcast: bool = True
     ):
         self.stretch_to_fit_dim(
-            target_length,
-            2,
+            target_length=target_length,
+            dim=2,
             about_point=about_point,
             about_edge=about_edge,
             broadcast=broadcast
@@ -550,6 +540,38 @@ class Mobject(LazyBase):
         else:
             raise ValueError  # never
         self.center().scale(np.append(scale_factor, 1.0))
+        return self
+
+    # rotate relatives
+
+    def rotate(
+        self,
+        rotation: Rotation,
+        *,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
+        broadcast: bool = True
+    ):
+        matrix = SpaceUtils.matrix_from_rotation(rotation)
+        self.apply_relative_transform(
+            matrix=matrix,
+            about_point=about_point,
+            about_edge=about_edge,
+            broadcast=broadcast
+        )
+        return self
+
+    def rotate_about_origin(
+        self,
+        rotation: Rotation,
+        *,
+        broadcast: bool = True
+    ):
+        self.rotate(
+            rotation=rotation,
+            about_point=ORIGIN,
+            broadcast=broadcast
+        )
         return self
 
     # render

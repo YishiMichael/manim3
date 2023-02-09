@@ -14,6 +14,7 @@ from typing import (
     Callable,
     Generator,
     Generic,
+    Iterable,
     TypeVar
 )
 
@@ -35,7 +36,8 @@ from ..utils.lazy import (
     LazyBase,
     NewData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 from ..utils.space import SpaceUtils
 
@@ -69,7 +71,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
         pass
 
     @abstractmethod
-    def partial(self, start: Real, end: Real) -> "ShapeInterpolant":
+    def partial(self, start: Real, stop: Real) -> "ShapeInterpolant":
         pass
 
     @classmethod
@@ -137,6 +139,8 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         return SpaceUtils.lerp(vec_0, vec_1, alpha)
 
     def interpolate_point(self, alpha: Real) -> _VecT:
+        if self._kind_ == "point":
+            return self._coords_[0]
         index, residue = self._integer_interpolate(self._length_knots_, alpha)
         return self._lerp(self._coords_[index], self._coords_[index + 1], residue)
 
@@ -147,21 +151,24 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
             for knot in all_knots
         ]))
 
-    def partial(self, start: Real, end: Real) -> "LineString":
+    def partial(self, start: Real, stop: Real) -> "LineString":
         coords = self._coords_
-        knots = self._length_knots_
-        start_index, start_residue = self._integer_interpolate(knots, start)
-        end_index, end_residue = self._integer_interpolate(knots, end)
-        if start_index == end_index and start_residue == end_residue:
-            new_coords = [
-                self._lerp(coords[start_index], coords[start_index + 1], start_residue)
-            ]
+        if self._kind_ == "point":
+            new_coords = [coords[0]]
         else:
-            new_coords = [
-                self._lerp(coords[start_index], coords[start_index + 1], start_residue),
-                *coords[start_index + 1:end_index + 1],
-                self._lerp(coords[end_index], coords[end_index + 1], end_residue)
-            ]
+            knots = self._length_knots_
+            start_index, start_residue = self._integer_interpolate(knots, start)
+            stop_index, stop_residue = self._integer_interpolate(knots, stop)
+            if start_index == stop_index and start_residue == stop_residue:
+                new_coords = [
+                    self._lerp(coords[start_index], coords[start_index + 1], start_residue)
+                ]
+            else:
+                new_coords = [
+                    self._lerp(coords[start_index], coords[start_index + 1], start_residue),
+                    *coords[start_index + 1:stop_index + 1],
+                    self._lerp(coords[stop_index], coords[stop_index + 1], stop_residue)
+                ]
         return LineString(np.array(new_coords))
 
 
@@ -189,7 +196,8 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         return self._children_[index].interpolate_point(residue)
 
     def interpolate_shape(self, other: "MultiLineString[_VecT, _VecsT]", alpha: Real):
-        children = self._children_
+        children_0 = self._children_
+        children_1 = other._children_
         knots_0 = self._length_knots_
         knots_1 = other._length_knots_
         current_knot = 0.0
@@ -202,43 +210,50 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
             knot_0 = knots_0[ptr_0]
             knot_1 = knots_1[ptr_1]
             next_knot = min(knot_0, knot_1)
-            end_0 = (next_knot - current_knot) / (knot_0 - current_knot)
-            end_1 = (next_knot - current_knot) / (knot_1 - current_knot)
-            child_0 = children[ptr_0].partial(start_0, end_0)
-            child_1 = children[ptr_1].partial(start_1, end_1)
+            stop_0 = (next_knot - current_knot) / (knot_0 - current_knot)
+            stop_1 = (next_knot - current_knot) / (knot_1 - current_knot)
+            child_0 = children_0[ptr_0].partial(start_0, stop_0)
+            child_1 = children_1[ptr_1].partial(start_1, stop_1)
             new_children.append(child_0.interpolate_shape(child_1, alpha))
 
             if knot_0 == next_knot:
                 start_0 = 0.0
                 ptr_0 += 1
             else:
-                start_0 = end_0
+                start_0 = stop_0
             if knot_1 == next_knot:
                 start_1 = 0.0
                 ptr_1 += 1
             else:
-                start_1 = end_1
+                start_1 = stop_1
             current_knot = next_knot
-
         return self.__class__(new_children)
 
-    def partial(self, start: Real, end: Real):
+    def partial(self, start: Real, stop: Real):
         children = self._children_
         if not children:
             return self.__class__()
 
         knots = self._length_knots_
         start_index, start_residue = self._integer_interpolate(knots, start)
-        end_index, end_residue = self._integer_interpolate(knots, end)
-        if start_index == end_index:
-            new_children = [children[start_index].partial(start_residue, end_residue)]
+        stop_index, stop_residue = self._integer_interpolate(knots, stop)
+        if start_index == stop_index:
+            new_children = [children[start_index].partial(start_residue, stop_residue)]
         else:
             new_children = [
                 children[start_index].partial(start_residue, 1.0),
-                *children[start_index + 1:end_index],
-                children[end_index].partial(0.0, end_residue)
+                *children[start_index + 1:stop_index],
+                children[stop_index].partial(0.0, stop_residue)
             ]
         return self.__class__(new_children)
+
+    @classmethod
+    def concatenate(cls, multi_line_strings: "Iterable[MultiLineString[_VecT, _VecsT]]"):
+        return cls([
+            line_string
+            for multi_line_string in multi_line_strings
+            for line_string in multi_line_string._children_
+        ])
 
 
 class LineString2D(LineString[Vec2T, Vec2sT]):
@@ -325,14 +340,14 @@ class Shape(LazyBase):
         se_path = se.Path(se_shape.segments(transformed=True))
         se_path.approximate_arcs_with_cubics()
         coords_list: list[Vec2T] = []
-        current_path_start_point: Vec2T = np.zeros(2)
+        current_contour_start_point: Vec2T = np.zeros(2)
         for segment in se_path.segments(transformed=True):
             if isinstance(segment, se.Move):
                 yield np.array(coords_list)
-                current_path_start_point = np.array(segment.end)
-                coords_list = [current_path_start_point]
+                current_contour_start_point = np.array(segment.end)
+                coords_list = [current_contour_start_point]
             elif isinstance(segment, se.Close):
-                coords_list.append(current_path_start_point)
+                coords_list.append(current_contour_start_point)
                 yield np.array(coords_list)
                 coords_list = []
             elif isinstance(segment, se.Line):
@@ -386,7 +401,7 @@ class Shape(LazyBase):
     @classmethod
     def _to_shapely_object(cls, multi_line_string: MultiLineString2D) -> shapely.geometry.base.BaseGeometry:
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, [
-            line_string._shapely_component_
+            line_string._shapely_component_.buffer(0.0)
             for line_string in multi_line_string._children_
         ], shapely.geometry.GeometryCollection())
 
@@ -396,8 +411,15 @@ class Shape(LazyBase):
     def interpolate_shape(self, other: "Shape", alpha: Real) -> "Shape":
         return Shape(self._multi_line_string_.interpolate_shape(other._multi_line_string_, alpha))
 
-    def partial(self, start: Real, end: Real) -> "Shape":
-        return Shape(self._multi_line_string_.partial(start, end))
+    def partial(self, start: Real, stop: Real) -> "Shape":
+        return Shape(self._multi_line_string_.partial(start, stop))
+
+    @classmethod
+    def concatenate(cls, shapes: "Iterable[Shape]") -> "Shape":
+        return Shape(MultiLineString2D.concatenate(
+            shape._multi_line_string_
+            for shape in shapes
+        ))
 
     @classmethod
     def interpolate_method(cls, shape_0: "Shape", shape_1: "Shape", alpha: Real) -> "Shape":

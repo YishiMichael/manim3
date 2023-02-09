@@ -17,7 +17,7 @@ from ..utils.lazy import (
     lazy_basedata,
     lazy_property
 )
-from ..utils.shape import Shape
+from ..utils.shape import LineString2D, LineString3D, Shape
 
 
 class ShapeMobject(MeshMobject):
@@ -59,7 +59,7 @@ class ShapeMobject(MeshMobject):
         self._shape_ = NewData(shape)
         multi_line_string_data = NewData(shape._multi_line_string_3d_)
         for stroke in self._stroke_mobjects:
-            stroke._multi_line_string_ = multi_line_string_data
+            stroke._multi_line_string_3d_ = multi_line_string_data
         return self
 
     def set_fill(

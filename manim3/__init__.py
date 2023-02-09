@@ -15,10 +15,11 @@ from .geometries.sphere_geometry import *
 from .mobjects.image_mobject import *
 from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
-from .mobjects.polyhedron import *
+from .mobjects.polyhedrons import *
 from .mobjects.scene_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.shape_mobject import *
+from .mobjects.shapes import *
 from .mobjects.stroke_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *

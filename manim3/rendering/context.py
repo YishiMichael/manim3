@@ -36,7 +36,7 @@ class ContextSingleton:
             context = moderngl.create_context(standalone=True)
             window_framebuffer = None
         atexit.register(lambda: context.release())
-        cls._WINDOW = window
         cls._INSTANCE = context
+        cls._WINDOW = window
         cls._WINDOW_FRAMEBUFFER = window_framebuffer
         return context
