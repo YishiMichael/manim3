@@ -185,7 +185,7 @@ class StrokeMobject(Mobject):
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
         result: list[tuple[VertexArray, list[str]]] = [
-            (get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINE_STRIP), [
+            (get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINES), [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
             ]),
@@ -239,9 +239,16 @@ class StrokeMobject(Mobject):
             return []
         n_points = len(line_string._coords_)
         if line_string._kind_ == "line_string":
-            return list(range(n_points))
+            # (0, 1, 1, 2, ..., n-2, n-1)
+            return list(it.chain(*zip(*(
+                range(i, n_points - 1 + i)
+                for i in range(2)
+            ))))
         if line_string._kind_ == "linear_ring":
-            return [*range(n_points - 1), 0]
+            return list(it.chain(*zip(*(
+                np.roll(range(n_points - 1), -i)
+                for i in range(2)
+            ))))
         raise ValueError  # never
 
     @classmethod
@@ -360,17 +367,17 @@ class StrokeMobject(Mobject):
             if not isinstance(mobject, StrokeMobject):
                 continue
             if width_data is not None:
-                self._width_ = width_data
+                mobject._width_ = width_data
             if single_sided_data is not None:
-                self._single_sided_ = single_sided_data
+                mobject._single_sided_ = single_sided_data
             if has_linecap_data is not None:
-                self._has_linecap_ = has_linecap_data
+                mobject._has_linecap_ = has_linecap_data
             if color_data is not None:
-                self._color_ = color_data
+                mobject._color_ = color_data
             if opacity_data is not None:
-                self._opacity_ = opacity_data
+                mobject._opacity_ = opacity_data
             if dilate_data is not None:
-                self._dilate_ = dilate_data
+                mobject._dilate_ = dilate_data
             if apply_oit is not None:
-                self._apply_oit_ = apply_oit
+                mobject._apply_oit = apply_oit
         return self

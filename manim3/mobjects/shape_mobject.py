@@ -1,6 +1,7 @@
 __all__ = ["ShapeMobject"]
 
 
+import moderngl
 import shapely.geometry
 import svgelements as se
 
@@ -11,11 +12,13 @@ from ..custom_typing import (
 from ..geometries.shape_geometry import ShapeGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
+from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     NewData,
     lazy_basedata,
-    lazy_property
+    lazy_property,
+    lazy_slot
 )
 from ..utils.shape import Shape
 
@@ -48,9 +51,15 @@ class ShapeMobject(MeshMobject):
     #def _apply_phong_lighting() -> bool:
     #    return False
 
-    @property
-    def _stroke_mobjects(self) -> list[StrokeMobject]:
-        return [child for child in self._children if isinstance(child, StrokeMobject)]
+    @lazy_slot
+    @staticmethod
+    def _stroke_mobjects() -> list[StrokeMobject]:
+        return []
+
+    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+        super()._render(scene_config, target_framebuffer)
+        for stroke_mobject in self._stroke_mobjects:
+            stroke_mobject._render(scene_config, target_framebuffer)
 
     def set_shape(self, shape: Shape):
         self._shape_ = NewData(shape)
@@ -124,8 +133,8 @@ class ShapeMobject(MeshMobject):
             stroke = StrokeMobject(self._shape_._multi_line_string_3d_)
             stroke.apply_transform(self._model_matrix_)
             stroke_mobjects.append(stroke)
+            mobject._stroke_mobjects.append(stroke)
 
-        self.add(*stroke_mobjects)
         StrokeMobject().add(*stroke_mobjects).set_style(
             width=width,
             single_sided=single_sided,
@@ -134,7 +143,7 @@ class ShapeMobject(MeshMobject):
             opacity=opacity,
             dilate=dilate,
             apply_oit=apply_oit,
-            broadcast=broadcast
+            broadcast=True
         )
         return self
 
@@ -151,32 +160,13 @@ class ShapeMobject(MeshMobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
-        if self._stroke_mobjects:
-            if index is None:
-                index = 0
-            self._stroke_mobjects[index].set_style(
-                width=width,
-                single_sided=single_sided,
-                has_linecap=has_linecap,
-                color=color,
-                opacity=opacity,
-                dilate=dilate,
-                apply_oit=apply_oit,
-                broadcast=broadcast
-            )
-        else:
-            if index is not None:
-                raise IndexError
-            if any(param is not None for param in (
-                width,
-                single_sided,
-                has_linecap,
-                color,
-                opacity,
-                dilate,
-                apply_oit
-            )):
-                self.add_stroke(
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if not isinstance(mobject, ShapeMobject):
+                continue
+            if mobject._stroke_mobjects:
+                if index is None:
+                    index = 0
+                mobject._stroke_mobjects[index].set_style(
                     width=width,
                     single_sided=single_sided,
                     has_linecap=has_linecap,
@@ -184,8 +174,30 @@ class ShapeMobject(MeshMobject):
                     opacity=opacity,
                     dilate=dilate,
                     apply_oit=apply_oit,
-                    broadcast=broadcast
+                    broadcast=False
                 )
+            else:
+                if index is not None:
+                    raise IndexError
+                if any(param is not None for param in (
+                    width,
+                    single_sided,
+                    has_linecap,
+                    color,
+                    opacity,
+                    dilate,
+                    apply_oit
+                )):
+                    mobject.add_stroke(
+                        width=width,
+                        single_sided=single_sided,
+                        has_linecap=has_linecap,
+                        color=color,
+                        opacity=opacity,
+                        dilate=dilate,
+                        apply_oit=apply_oit,
+                        broadcast=False
+                    )
         return self
 
     def set_style(

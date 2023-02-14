@@ -75,14 +75,6 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
     def interpolate_points(self, alphas: Iterable[Real]) -> _VecsT:
         return np.array([self.interpolate_point(alpha) for alpha in alphas])
 
-    @abstractmethod
-    def interpolate_shape(self, other: "ShapeInterpolant", alpha: Real) -> "ShapeInterpolant":
-        pass
-
-    @abstractmethod
-    def partial(self, start: Real, stop: Real) -> "ShapeInterpolant":
-        pass
-
     @classmethod
     def _get_residue(cls, target: Real, array: FloatsT, index: int) -> float:
         try:
@@ -203,61 +195,66 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         index, residue = self._integer_interpolate(alpha)
         return self._children_[index - 1].interpolate_point(residue)
 
-    def interpolate_shape(self, other: "MultiLineString[_VecT, _VecsT]", alpha: Real):
+    def interpolate_shape(
+        self,
+        other: "MultiLineString[_VecT, _VecsT]",
+        alpha: Real,
+        *,
+        has_mending: bool
+    ):
+        children_0 = self._children_
+        children_1 = other._children_
         knots_0 = self._length_knots_
         knots_1 = other._length_knots_
         index_0 = 0
         index_1 = 0
         all_knots = np.unique(np.concatenate((knots_0, knots_1)))
-        new_line_strings: list[LineString[_VecT, _VecsT]] = []
+        line_strings: list[LineString[_VecT, _VecsT]] = []
         for start_knot, stop_knot in it.pairwise(all_knots):
 
             start_residue_0 = self._get_residue(start_knot, knots_0, index_0)
             stop_residue_0 = self._get_residue(stop_knot, knots_0, index_0)
-            child_0 = self._children_[index_0].partial(start_residue_0, stop_residue_0)
+            child_0 = children_0[index_0].partial(start_residue_0, stop_residue_0)
 
             start_residue_1 = self._get_residue(start_knot, knots_1, index_1)
             stop_residue_1 = self._get_residue(stop_knot, knots_1, index_1)
-            child_1 = other._children_[index_1].partial(start_residue_1, stop_residue_1)
-            #start_index_1, start_residue_1 = other._integer_interpolate(start_knot, side="right")
-            #stop_index_1, stop_residue_1 = other._integer_interpolate(stop_knot, side="left")
-            #assert start_index_1 == stop_index_1
-            #child_1 = other._children_[stop_index_1 - 1].partial(start_residue_1, stop_residue_1)
+            child_1 = children_1[index_1].partial(start_residue_1, stop_residue_1)
 
-            new_line_strings.append(child_0.interpolate_shape(child_1, alpha))
+            line_strings.append(child_0.interpolate_shape(child_1, alpha))
 
             if knots_0[index_0 + 1] == stop_knot:
                 index_0 += 1
             if knots_1[index_1 + 1] == stop_knot:
                 index_1 += 1
 
-        for index, (line_string, (start_knot, stop_knot)) in enumerate(
-            zip(self._children_, it.pairwise(self._length_knots_), strict=True)
-        ):
-            coords = line_string.interpolate_points(
-                self._get_residue(knot, self._length_knots_, index)
-                for knot in all_knots
-                if start_knot <= knot <= stop_knot
-            )
-            if len(coords) == 2:
-                continue
-            coords_center = np.average(coords, axis=0)
-            new_line_strings.append(LineString(SpaceUtils.lerp(coords, coords_center, alpha)))
+        if has_mending:
+            for index, (line_string, (start_knot, stop_knot)) in enumerate(
+                zip(children_0, it.pairwise(knots_0), strict=True)
+            ):
+                coords = line_string.interpolate_points(
+                    self._get_residue(knot, knots_0, index)
+                    for knot in all_knots
+                    if start_knot <= knot <= stop_knot
+                )
+                if len(coords) == 2:
+                    continue
+                coords_center = np.average(coords, axis=0)
+                line_strings.append(LineString(SpaceUtils.lerp(coords, coords_center, alpha)))
 
-        for index, (line_string, (start_knot, stop_knot)) in enumerate(
-            zip(other._children_, it.pairwise(other._length_knots_), strict=True)
-        ):
-            coords = line_string.interpolate_points(
-                self._get_residue(knot, other._length_knots_, index)
-                for knot in all_knots
-                if start_knot <= knot <= stop_knot
-            )
-            if len(coords) == 2:
-                continue
-            coords_center = np.average(coords, axis=0)
-            new_line_strings.append(LineString(SpaceUtils.lerp(coords_center, coords, alpha)))
+            for index, (line_string, (start_knot, stop_knot)) in enumerate(
+                zip(children_1, it.pairwise(knots_1), strict=True)
+            ):
+                coords = line_string.interpolate_points(
+                    self._get_residue(knot, knots_1, index)
+                    for knot in all_knots
+                    if start_knot <= knot <= stop_knot
+                )
+                if len(coords) == 2:
+                    continue
+                coords_center = np.average(coords, axis=0)
+                line_strings.append(LineString(SpaceUtils.lerp(coords_center, coords, alpha)))
 
-        return self.__class__(new_line_strings)
+        return self.__class__(line_strings)
 
     def partial(self, start: Real, stop: Real):
         children = self._children_
@@ -438,8 +435,18 @@ class Shape(LazyBase):
     def interpolate_point(self, alpha: Real) -> Vec2T:
         return self._multi_line_string_.interpolate_point(alpha)
 
-    def interpolate_shape(self, other: "Shape", alpha: Real) -> "Shape":
-        multi_line_string = self._multi_line_string_.interpolate_shape(other._multi_line_string_, alpha)
+    def interpolate_shape(
+        self,
+        other: "Shape",
+        alpha: Real,
+        *,
+        has_mending: bool
+    ) -> "Shape":
+        multi_line_string = self._multi_line_string_.interpolate_shape(
+            other._multi_line_string_,
+            alpha,
+            has_mending=has_mending
+        )
         return Shape(Shape._to_shapely_object(multi_line_string))
 
     def partial(self, start: Real, stop: Real) -> "Shape":
@@ -452,9 +459,9 @@ class Shape(LazyBase):
             for shape in shapes
         ))
 
-    @classmethod
-    def interpolate_method(cls, shape_0: "Shape", shape_1: "Shape", alpha: Real) -> "Shape":
-        return shape_0.interpolate_shape(shape_1, alpha)
+    #@classmethod
+    #def interpolate_method(cls, shape_0: "Shape", shape_1: "Shape", alpha: Real) -> "Shape":
+    #    return shape_0.interpolate_shape(shape_1, alpha)
 
     # operations ported from shapely
 

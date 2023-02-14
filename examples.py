@@ -10,7 +10,7 @@ class TextExample(Scene):
         for shape, target_shape in zip(text.iter_children(), target.iter_children()):
             self.add(shape)
             if isinstance(shape, ShapeMobject) and isinstance(target_shape, ShapeMobject):
-                self.prepare(ShapeMobjectTransform(shape, target_shape))
+                self.prepare(Transform(shape, target_shape))
 
 
 class ShapeTransformExample(Scene):
@@ -23,7 +23,7 @@ class ShapeTransformExample(Scene):
         #self.play(ShowCreation(square))
         self.add(square)
         self.wait()
-        self.play(ShapeMobjectTransform(square, circle))
+        self.play(Transform(square, circle))
         self.wait(5)
 
 
@@ -32,11 +32,11 @@ class TexTransformExample(Scene):
         tex = TexText("TexText").scale(3)
         tex_concatenated = ShapeMobject(Shape.concatenate(
             glyph._shape_ for glyph in tex._shape_mobjects
-        )).apply_transform(tex._shape_mobjects[0]._model_matrix_)
+        )).apply_transform(tex._shape_mobjects[0]._model_matrix_).set_fill(color=BLUE).set_stroke(width=0.2, color=RED)
         text = Text("Text").scale(3)
         text_concatenated = ShapeMobject(Shape.concatenate(
             glyph._shape_ for glyph in text._shape_mobjects
-        )).apply_transform(text._shape_mobjects[0]._model_matrix_)
+        )).apply_transform(text._shape_mobjects[0]._model_matrix_).set_fill(color=PINK).set_stroke(width=0.1, color=GREEN)
         #tex_concatenated.set_shape(Shape.interpolate_shape(tex_concatenated._shape_, text_concatenated._shape_, 0.01))
         #tex_concatenated = ShapeMobject(Shape(MultiLineString2D([
         #    #LineString2D(np.array([(0,0),(1,0),(1,1),(-1,1),(-1,-2),(1,-2),(1,-1),(0,-1),(0,0)])),
@@ -55,7 +55,7 @@ class TexTransformExample(Scene):
         #text_concatenated.set_shape(Shape.interpolate_shape(tex_concatenated._shape_, text_concatenated._shape_, 0.96))
         self.add(tex_concatenated)
         self.wait()
-        self.play(ShapeMobjectTransform(tex_concatenated, text_concatenated, run_time=5))
+        self.play(Transform(tex_concatenated, text_concatenated))
         self.wait()
 
 
