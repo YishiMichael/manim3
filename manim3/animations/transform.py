@@ -25,40 +25,38 @@ from ..utils.shape import (
 
 class Transform(AlphaAnimation):
     @staticmethod
-    def shape_interpolate_method(
+    def __shape_interpolate_callback(
         shape_0: Shape,
-        shape_1: Shape,
-        alpha: Real
-    ) -> Shape:
-        return shape_0.interpolate_shape(shape_1, alpha, has_mending=True)
+        shape_1: Shape
+    ) -> Callable[[Real], Shape]:
+        return shape_0.interpolate_shape_callback(shape_1, has_mending=True)
 
     @staticmethod
-    def stroke_interpolate_method(
+    def __stroke_interpolate_callback(
         multi_line_string_0: MultiLineString3D,
-        multi_line_string_1: MultiLineString3D,
-        alpha: Real
-    ) -> MultiLineString3D:
-        return multi_line_string_0.interpolate_shape(multi_line_string_1, alpha, has_mending=False)
+        multi_line_string_1: MultiLineString3D
+    ) -> Callable[[Real], MultiLineString3D]:
+        return multi_line_string_0.interpolate_shape_callback(multi_line_string_1, has_mending=False)
 
-    _SHAPE_INTERPOLATE_METHODS: ClassVar[dict[LazyBasedata[ShapeMobject, Any], Callable[[Any, Any, Real], Any]]] = {
-        ShapeMobject._shape_: shape_interpolate_method,
-        ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate,
-        ShapeMobject._color_: SpaceUtils.lerp,
-        ShapeMobject._opacity_: SpaceUtils.lerp,
-        ShapeMobject._ambient_strength_: SpaceUtils.lerp,
-        ShapeMobject._specular_strength_: SpaceUtils.lerp,
-        ShapeMobject._shininess_: SpaceUtils.lerp
+    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyBasedata[ShapeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+        ShapeMobject._shape_: __shape_interpolate_callback,
+        ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
+        ShapeMobject._color_: SpaceUtils.lerp_callback,
+        ShapeMobject._opacity_: SpaceUtils.lerp_callback,
+        ShapeMobject._ambient_strength_: SpaceUtils.lerp_callback,
+        ShapeMobject._specular_strength_: SpaceUtils.lerp_callback,
+        ShapeMobject._shininess_: SpaceUtils.lerp_callback
     }
 
-    _STROKE_INTERPOLATE_METHODS: ClassVar[dict[LazyBasedata[StrokeMobject, Any], Callable[[Any, Any, Real], Any]]] = {
-        StrokeMobject._multi_line_string_3d_: stroke_interpolate_method,
-        StrokeMobject._model_matrix_: SpaceUtils.rotational_interpolate,
-        StrokeMobject._color_: SpaceUtils.lerp,
-        StrokeMobject._opacity_: SpaceUtils.lerp,
-        StrokeMobject._width_: SpaceUtils.lerp,
-        StrokeMobject._color_: SpaceUtils.lerp,
-        StrokeMobject._opacity_: SpaceUtils.lerp,
-        StrokeMobject._dilate_: SpaceUtils.lerp
+    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyBasedata[StrokeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+        StrokeMobject._multi_line_string_3d_: __stroke_interpolate_callback,
+        StrokeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
+        StrokeMobject._color_: SpaceUtils.lerp_callback,
+        StrokeMobject._opacity_: SpaceUtils.lerp_callback,
+        StrokeMobject._width_: SpaceUtils.lerp_callback,
+        StrokeMobject._color_: SpaceUtils.lerp_callback,
+        StrokeMobject._opacity_: SpaceUtils.lerp_callback,
+        StrokeMobject._dilate_: SpaceUtils.lerp_callback
     }
 
     def __init__(
@@ -87,25 +85,33 @@ class Transform(AlphaAnimation):
             for stroke_mobject in stop_stroke_mobjects
         ]
 
-        def animate_func(alpha_0: Real, alpha: Real) -> None:
-            for basedata_descr, interpolate_method in self._SHAPE_INTERPOLATE_METHODS.items():
-                if (start_basedata := basedata_descr._get_data(start_mobject)) \
-                        is (stop_basedata := basedata_descr._get_data(stop_mobject)):
-                    continue
-                basedata_descr.__set__(intermediate_mobject, NewData(interpolate_method(
-                    start_basedata.data, stop_basedata.data, alpha
-                )))
+        shape_callbacks = {
+            basedata_descr: interpolate_method(start_basedata.data, stop_basedata.data)
+            for basedata_descr, interpolate_method in self._SHAPE_INTERPOLATE_CALLBACKS.items()
+            if (start_basedata := basedata_descr._get_data(start_mobject)) \
+                is not (stop_basedata := basedata_descr._get_data(stop_mobject))
+        }
+        stroke_callbacks_list = [
+            {
+                basedata_descr: interpolate_method(start_basedata.data, stop_basedata.data)
+                for basedata_descr, interpolate_method in self._STROKE_INTERPOLATE_CALLBACKS.items()
+                if (start_basedata := basedata_descr._get_data(start_stroke_mobject)) \
+                    is not (stop_basedata := basedata_descr._get_data(stop_stroke_mobject))
+            }
+            for start_stroke_mobject, stop_stroke_mobject in zip(
+                start_stroke_mobjects, stop_stroke_mobjects, strict=True
+            )
+        ]
 
-            for start_stroke_mobject, stop_stroke_mobject, intermediate_stroke_mobject in zip(
-                start_stroke_mobjects, stop_stroke_mobjects, intermediate_mobject._stroke_mobjects, strict=True
+        def animate_func(alpha_0: Real, alpha: Real) -> None:
+            for basedata_descr, callback in shape_callbacks.items():
+                basedata_descr.__set__(intermediate_mobject, NewData(callback(alpha)))
+
+            for callbacks, intermediate_stroke_mobject in zip(
+                stroke_callbacks_list, intermediate_mobject._stroke_mobjects, strict=True
             ):
-                for basedata_descr, interpolate_method in self._STROKE_INTERPOLATE_METHODS.items():
-                    if (start_basedata := basedata_descr._get_data(start_stroke_mobject)) \
-                            is (stop_basedata := basedata_descr._get_data(stop_stroke_mobject)):
-                        continue
-                    basedata_descr.__set__(intermediate_stroke_mobject, NewData(interpolate_method(
-                        start_basedata.data, stop_basedata.data, alpha
-                    )))
+                for basedata_descr, callback in callbacks.items():
+                    basedata_descr.__set__(intermediate_stroke_mobject, NewData(callback(alpha)))
 
         super().__init__(
             animate_func=animate_func,

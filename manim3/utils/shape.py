@@ -77,10 +77,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
 
     @classmethod
     def _get_residue(cls, target: Real, array: FloatsT, index: int) -> float:
-        try:
-            return (target - array[index]) / (array[index + 1] - array[index])
-        except ZeroDivisionError:
-            return 0.0
+        return (target - array[index]) / (array[index + 1] - array[index])
 
     def _integer_interpolate(
         self,
@@ -89,18 +86,61 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyBase):
         side: Literal["left", "right"] = "right"
     ) -> tuple[int, float]:
         """
-        Assumed that `array` is non-empty and already sorted, and that `0 = array[0] <= target <= array[-1]`
+        Assumed that `array` has at least 2 elements and already sorted, and that `0 = array[0] <= target <= array[-1]`
         Returns `(i, (target - array[i - 1]) / (array[i] - array[i - 1]))` such that
         `1 <= i <= len(array) - 1` and `array[i - 1] <= target <= array[i]`.
         """
         array = self._length_knots_
-        assert len(array)
+        assert len(array) >= 2
         index = int(np.searchsorted(array, target, side=side))
         if index == 0:
             return 1, 0.0
         if index == len(array):
             return len(array) - 1, 1.0
         return index, self._get_residue(target, array, index - 1)
+
+    @classmethod
+    def _zip_knots(
+        cls,
+        *knots_lists: FloatsT
+    ) -> tuple[tuple[list[list[float]], ...], list[tuple[tuple[int, float, float], ...]]]:
+        all_knots = np.concatenate(knots_lists)
+        all_list_indices = np.repeat(np.arange(len(knots_lists)), [
+            len(knots) for knots in knots_lists
+        ])
+        unique_knots, unique_inverse, unique_counts = np.unique(all_knots, return_inverse=True, return_counts=True)
+        unique_inverse_argsorted = np.argsort(unique_inverse)
+        list_indices_groups = [
+            all_list_indices[unique_inverse_argsorted[slice(*span)]]
+            for span in it.pairwise(np.cumsum(unique_counts))
+        ]
+        assert len(list_indices_groups) >= 2
+        assert len(list_indices_groups[-1]) == len(knots_lists)
+        knot_indices = np.zeros(len(knots_lists), dtype=np.int_)
+        residue_list = [0.0 for _ in knots_lists]
+        residue_list_tuple = tuple([0.0] for _ in knots_lists)
+        residue_list_list_tuple: tuple[list[list[float]]] = tuple([] for _ in knots_lists)
+        triplet_tuple_list: list[tuple[tuple[int, float, float], ...]] = []
+        for knot, list_indices in zip(unique_knots[1:], list_indices_groups, strict=True):
+            triplet_list: list[tuple[int, float, float]] = []
+            for index in range(len(knots_lists)):
+                if index in list_indices:
+                    stop_residue = 1.0
+                else:
+                    stop_residue = cls._get_residue(knot, knots_lists[index], knot_indices[index])
+                residue_list_tuple[index].append(stop_residue)
+                triplet_list.append((knot_indices[index], residue_list[index], stop_residue))
+                if index in list_indices:
+                    residue_list_list_tuple[index].append(residue_list_tuple[index][:])
+                    residue_list_tuple[index].clear()
+                    residue_list_tuple[index].append(0.0)
+                    next_residue = 0.0
+                    knot_indices[index] += 1
+                else:
+                    next_residue = stop_residue
+                residue_list[index] = next_residue
+            triplet_tuple_list.append(tuple(triplet_list))
+        return residue_list_list_tuple, triplet_tuple_list
 
 
 class LineString(ShapeInterpolant[_VecT, _VecsT]):
@@ -148,20 +188,13 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         index, residue = self._integer_interpolate(alpha)
         return self._lerp(self._coords_[index - 1], self._coords_[index], residue)
 
-    def interpolate_shape(self, other: "LineString", alpha: Real) -> "LineString":
-        all_knots = np.unique(np.concatenate((self._length_knots_, other._length_knots_)))
-        return LineString(np.array([
-            self._lerp(self.interpolate_point(knot), other.interpolate_point(knot), alpha)
-            for knot in all_knots
-        ]))
-
     def partial(self, start: Real, stop: Real) -> "LineString":
         coords = self._coords_
         if self._kind_ == "point":
             new_coords = [coords[0]]
         else:
-            start_index, start_residue = self._integer_interpolate(start)
-            stop_index, stop_residue = self._integer_interpolate(stop)
+            start_index, start_residue = self._integer_interpolate(start, side="right")
+            stop_index, stop_residue = self._integer_interpolate(stop, side="left")
             if start_index == stop_index and start_residue == stop_residue:
                 new_coords = [
                     self._lerp(coords[start_index - 1], coords[start_index], start_residue)
@@ -173,6 +206,20 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
                     self._lerp(coords[stop_index - 1], coords[stop_index], stop_residue)
                 ]
         return LineString(np.array(new_coords))
+
+    def interpolate_shape_callback(self, other: "LineString") -> "Callable[[Real], LineString]":
+        all_knots = np.unique(np.concatenate((self._length_knots_, other._length_knots_)))
+        lerp_callbacks: list[Callable[[Real], _VecT]] = [
+            SpaceUtils.lerp_callback(self.interpolate_point(knot), other.interpolate_point(knot))
+            for knot in all_knots
+        ]
+
+        def callback(alpha: Real) -> LineString:
+            return LineString(np.array([
+                lerp_callback(alpha)
+                for lerp_callback in lerp_callbacks
+            ]))
+        return callback
 
 
 class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
@@ -192,69 +239,10 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         return np.maximum(np.array([child._length_ for child in children]), 1e-6)
 
     def interpolate_point(self, alpha: Real) -> _VecT:
+        if not self._children_:
+            raise ValueError("Attempting to call interpolate_point from an empty MultiLineString")
         index, residue = self._integer_interpolate(alpha)
         return self._children_[index - 1].interpolate_point(residue)
-
-    def interpolate_shape(
-        self,
-        other: "MultiLineString[_VecT, _VecsT]",
-        alpha: Real,
-        *,
-        has_mending: bool
-    ):
-        children_0 = self._children_
-        children_1 = other._children_
-        knots_0 = self._length_knots_
-        knots_1 = other._length_knots_
-        index_0 = 0
-        index_1 = 0
-        all_knots = np.unique(np.concatenate((knots_0, knots_1)))
-        line_strings: list[LineString[_VecT, _VecsT]] = []
-        for start_knot, stop_knot in it.pairwise(all_knots):
-
-            start_residue_0 = self._get_residue(start_knot, knots_0, index_0)
-            stop_residue_0 = self._get_residue(stop_knot, knots_0, index_0)
-            child_0 = children_0[index_0].partial(start_residue_0, stop_residue_0)
-
-            start_residue_1 = self._get_residue(start_knot, knots_1, index_1)
-            stop_residue_1 = self._get_residue(stop_knot, knots_1, index_1)
-            child_1 = children_1[index_1].partial(start_residue_1, stop_residue_1)
-
-            line_strings.append(child_0.interpolate_shape(child_1, alpha))
-
-            if knots_0[index_0 + 1] == stop_knot:
-                index_0 += 1
-            if knots_1[index_1 + 1] == stop_knot:
-                index_1 += 1
-
-        if has_mending:
-            for index, (line_string, (start_knot, stop_knot)) in enumerate(
-                zip(children_0, it.pairwise(knots_0), strict=True)
-            ):
-                coords = line_string.interpolate_points(
-                    self._get_residue(knot, knots_0, index)
-                    for knot in all_knots
-                    if start_knot <= knot <= stop_knot
-                )
-                if len(coords) == 2:
-                    continue
-                coords_center = np.average(coords, axis=0)
-                line_strings.append(LineString(SpaceUtils.lerp(coords, coords_center, alpha)))
-
-            for index, (line_string, (start_knot, stop_knot)) in enumerate(
-                zip(children_1, it.pairwise(knots_1), strict=True)
-            ):
-                coords = line_string.interpolate_points(
-                    self._get_residue(knot, knots_1, index)
-                    for knot in all_knots
-                    if start_knot <= knot <= stop_knot
-                )
-                if len(coords) == 2:
-                    continue
-                coords_center = np.average(coords, axis=0)
-                line_strings.append(LineString(SpaceUtils.lerp(coords_center, coords, alpha)))
-
-        return self.__class__(line_strings)
 
     def partial(self, start: Real, stop: Real):
         children = self._children_
@@ -272,6 +260,53 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
                 children[stop_index - 1].partial(0.0, stop_residue)
             ]
         return self.__class__(new_children)
+
+    def interpolate_shape_callback(
+        self,
+        other: "MultiLineString[_VecT, _VecsT]",
+        *,
+        has_mending: bool
+    ) -> "Callable[[Real], MultiLineString[_VecT, _VecsT]]":
+        children_0 = self._children_
+        children_1 = other._children_
+        if not children_0 or not children_1:
+            raise ValueError("Attempting to call interpolate_shape_callback from an empty MultiLineString")
+
+        (residue_list_list_0, residue_list_list_1), triplet_tuple_list = self._zip_knots(self._length_knots_, other._length_knots_)
+        line_string_callbacks: list[Callable[[Real], LineString[_VecT, _VecsT]]] = [
+            children_0[index_0].partial(start_residue_0, stop_residue_0).interpolate_shape_callback(
+                children_1[index_1].partial(start_residue_1, stop_residue_1)
+            )
+            for (index_0, start_residue_0, stop_residue_0), (index_1, start_residue_1, stop_residue_1) in triplet_tuple_list
+        ]
+
+        mending_callbacks: list[Callable[[Real], _VecsT]] = []
+        for index_0, residues in enumerate(residue_list_list_0):
+            coords = children_0[index_0].interpolate_points(residues)
+            if len(coords) == 2:
+                continue
+            coords_center = np.average(coords, axis=0)
+            mending_callbacks.append(SpaceUtils.lerp_callback(coords, coords_center))
+
+        for index_1, residues in enumerate(residue_list_list_1):
+            coords = children_1[index_1].interpolate_points(residues)
+            if len(coords) == 2:
+                continue
+            coords_center = np.average(coords, axis=0)
+            mending_callbacks.append(SpaceUtils.lerp_callback(coords_center, coords))
+
+        def callback(alpha: Real) -> MultiLineString[_VecT, _VecsT]:
+            line_strings = [
+                line_string_callback(alpha)
+                for line_string_callback in line_string_callbacks
+            ]
+            if has_mending:
+                line_strings.extend(
+                    LineString(callback(alpha))
+                    for callback in mending_callbacks
+                )
+            return self.__class__(line_strings)
+        return callback
 
     @classmethod
     def concatenate(cls, multi_line_strings: "Iterable[MultiLineString[_VecT, _VecsT]]"):
@@ -435,22 +470,24 @@ class Shape(LazyBase):
     def interpolate_point(self, alpha: Real) -> Vec2T:
         return self._multi_line_string_.interpolate_point(alpha)
 
-    def interpolate_shape(
-        self,
-        other: "Shape",
-        alpha: Real,
-        *,
-        has_mending: bool
-    ) -> "Shape":
-        multi_line_string = self._multi_line_string_.interpolate_shape(
-            other._multi_line_string_,
-            alpha,
-            has_mending=has_mending
-        )
-        return Shape(Shape._to_shapely_object(multi_line_string))
-
     def partial(self, start: Real, stop: Real) -> "Shape":
         return Shape(self._multi_line_string_.partial(start, stop))
+
+    def interpolate_shape_callback(
+        self,
+        other: "Shape",
+        *,
+        has_mending: bool
+    ) -> "Callable[[Real], Shape]":
+        multi_line_string_callback = self._multi_line_string_.interpolate_shape_callback(
+            other._multi_line_string_,
+            has_mending=has_mending
+        )
+
+        def callback(alpha: Real) -> Shape:
+            multi_line_string = multi_line_string_callback(alpha)
+            return Shape(Shape._to_shapely_object(multi_line_string))
+        return callback
 
     @classmethod
     def concatenate(cls, shapes: "Iterable[Shape]") -> "Shape":
