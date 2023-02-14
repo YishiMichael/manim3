@@ -17,22 +17,21 @@ from ..utils.lazy import (
     lazy_basedata,
     lazy_property
 )
-from ..utils.shape import LineString2D, LineString3D, Shape
+from ..utils.shape import Shape
 
 
 class ShapeMobject(MeshMobject):
     __slots__ = ()
 
-    def __new__(cls, shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
-        instance = super().__new__(cls)
+    def __init__(self, shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
+        super().__init__()
         if shape is not None:
             if isinstance(shape, Shape):
                 shape_obj = shape
             else:
                 shape_obj = Shape(shape)
-            instance.set_shape(shape_obj)
-        instance.set_style(apply_phong_lighting=False)
-        return instance
+            self.set_shape(shape_obj)
+        self.set_style(apply_phong_lighting=False)
 
     @lazy_basedata
     @staticmethod
@@ -41,9 +40,7 @@ class ShapeMobject(MeshMobject):
 
     @lazy_property
     @staticmethod
-    def _geometry_(
-        shape: Shape
-    ) -> ShapeGeometry:
+    def _geometry_(shape: Shape) -> ShapeGeometry:
         return ShapeGeometry(shape)
 
     #@lazy_basedata

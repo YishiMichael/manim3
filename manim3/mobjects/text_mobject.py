@@ -83,9 +83,9 @@ class MarkupText(StringMobject):
         "'": "&apos;"
     }
 
-    def __new__(
-        cls,
-        string: str = "",
+    def __init__(
+        self,
+        string: str,
         *,
         font_size: Real = 48,
         line_spacing_height: Real | None = None,
@@ -114,8 +114,8 @@ class MarkupText(StringMobject):
         if local_configs is None:
             local_configs = {}
 
-        if not issubclass(cls, Text):
-            cls._validate_markup_string(string)
+        if not isinstance(self, Text):
+            self._validate_markup_string(string)
         #if not self.font:
         #    self.font = get_customization()["style"]["font"]
         #if not self.alignment:
@@ -146,7 +146,7 @@ class MarkupText(StringMobject):
 
             global_attr_dict.update(global_config)
             return tuple(
-                cls._get_command_string(
+                self._get_command_string(
                     global_attr_dict,
                     edge_flag=edge_flag,
                     label=0 if is_labelled else None
@@ -170,7 +170,7 @@ class MarkupText(StringMobject):
             return svg_file
 
         def markup_to_svg(markup_str: str, file_name: str) -> str:
-            cls._validate_markup_string(markup_str)
+            self._validate_markup_string(markup_str)
 
             # `manimpango` is under construction,
             # so the following code is intended to suit its interface
@@ -199,8 +199,7 @@ class MarkupText(StringMobject):
                 pango_width=pango_width
             )
 
-        return super().__new__(
-            cls,
+        super().__init__(
             string=string,
             isolate=isolate,
             protect=protect,
@@ -362,9 +361,9 @@ class Text(MarkupText):
 class Code(MarkupText):
     __slots__ = ()
 
-    def __new__(
-        cls,
-        code: str = "",
+    def __init__(
+        self,
+        code: str,
         *,
         language: str = "python",
         # Visit https://pygments.org/demo/ to have a preview of more styles.
@@ -393,8 +392,7 @@ class Code(MarkupText):
         )
         markup_string = pygments.highlight(code, lexer, formatter)
         markup_string = re.sub(r"</?tt>", "", markup_string)
-        return super().__new__(
-            cls,
+        return super().__init__(
             string=markup_string,
             font_size=font_size,
             line_spacing_height=line_spacing_height,

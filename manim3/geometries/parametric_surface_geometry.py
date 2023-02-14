@@ -18,8 +18,9 @@ from ..utils.lazy import NewData
 class ParametricSurfaceGeometry(Geometry):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
+        *,
         func: Callable[[float, float], Vec3T],
         normal_func: Callable[[float, float], Vec3T],
         u_range: tuple[Real, Real],
@@ -53,11 +54,10 @@ class ParametricSurfaceGeometry(Geometry):
         position = np.apply_along_axis(lambda p: func(*p), 1, samples)
         normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
 
-        instance = super().__new__(cls)
-        instance._geometry_data_ = NewData(GeometryData(
+        super().__init__()
+        self._geometry_data_ = NewData(GeometryData(
             index=index,
             position=position,
             normal=normal,
             uv=uv
         ))
-        return instance

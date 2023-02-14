@@ -11,21 +11,45 @@ from ..mobjects.shape_mobject import ShapeMobject
 class SVGMobject(ShapeMobject):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         file_path: str | None = None,
         *,
         width: Real | None = None,
         height: Real | None = None,
         frame_scale: Real | None = None
     ):
-        instance = super().__new__(cls)
+        super().__init__()
         if file_path is None:
-            return instance
+            return
+
+        svg: se.SVG = se.SVG.parse(file_path)
+        bbox: tuple[float, float, float, float] | None = svg.bbox()
+        if bbox is None:
+            return
+
+        # Handle transform before constructing ShapeGeometry
+        # so that the center of the geometry falls on the origin.
+        x_min, y_min, x_max, y_max = bbox
+        x_scale, y_scale = self._get_frame_scale_vector(
+            x_max - x_min,
+            y_max - y_min,
+            width,
+            height,
+            frame_scale
+        )
+        transform = se.Matrix(
+            x_scale,
+            0.0,
+            0.0,
+            y_scale,
+            -(x_max + x_min) * x_scale / 2.0,
+            -(y_max + y_min) * y_scale / 2.0
+        )
+
         #if default_style is None:
         #    default_style = {}
         #shape_mobjects: list[ShapeMobject] = []
-        svg = se.SVG.parse(file_path)
         shape_mobjects = [
             shape_mobject.set_style(
                 color=None if shape.fill is None else shape.fill.hexrgb,
@@ -36,8 +60,11 @@ class SVGMobject(ShapeMobject):
                 #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(shape))._has_local_sample_points_
+            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(shape * transform))._has_local_sample_points_
         ]
+        #if shape_mobjects:
+        #    return
+
         #for shape in svg.elements():
         #    if not isinstance(shape, se.Shape):
         #        continue
@@ -57,17 +84,15 @@ class SVGMobject(ShapeMobject):
         #    #mobject.set_paint(**self.get_paint_settings_from_shape(shape))
         #    shape_mobjects.append(mobject)
 
-        if shape_mobjects:
-            instance.add(*shape_mobjects)
-            instance.adjust_frame(
-                svg.width,
-                svg.height,
-                width,
-                height,
-                frame_scale
-            )
-            instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
-        return instance
+        self.add(*shape_mobjects)
+        #self.adjust_frame(
+        #    svg.width,
+        #    svg.height,
+        #    width,
+        #    height,
+        #    frame_scale
+        #)
+        self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
 
     @property
     def _shape_mobjects(self) -> list[ShapeMobject]:

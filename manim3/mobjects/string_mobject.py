@@ -178,10 +178,10 @@ class StringMobject(SVGMobject):
     """
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
-        string: str = "",
+        string: str,
         isolate: Selector = (),
         protect: Selector = (),
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
@@ -191,7 +191,7 @@ class StringMobject(SVGMobject):
         height: Real | None,
         frame_scale: Real | None
     ):
-        parsing_result = cls._parse(
+        parsing_result = self._parse(
             string=string,
             isolate=isolate,
             protect=protect,
@@ -206,12 +206,12 @@ class StringMobject(SVGMobject):
             shape_item.shape_mobject
             for shape_item in parsing_result.shape_items
         ]
-        instance = super().__new__(cls)
-        instance._string = string
-        instance._parsing_result = parsing_result
-        #instance._shape_mobjects.extend(shape_mobjects)
-        instance.add(*shape_mobjects)
-        return instance
+        
+        super().__init__()
+        self._string = string
+        self._parsing_result = parsing_result
+        #self._shape_mobjects.extend(shape_mobjects)
+        self.add(*shape_mobjects)
 
     @lazy_slot
     @staticmethod

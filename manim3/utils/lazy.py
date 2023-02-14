@@ -18,10 +18,6 @@ and all methods shall be sorted in the following way:
 - private methods
 - public methods
 
-The instantiation process shall be done in `__new__` method. If one wants to
-make use of the functionality of `_copy()`, a default construction shall be
-provided (that is, to provide default values for all arguments).
-
 All methods decorated by any of `lazy_basedata`, `lazy_basedata_cached`,
 `lazy_property` and `lazy_slot` should be static methods, and so are their
 restockers. Type annotation is strictly applied to reduce chances of running
@@ -374,7 +370,7 @@ class LazyBase(ABC):
         cls._SLOT_DESCRS = tuple(slots.values())
         return super().__init_subclass__()
 
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if (instances := cls._VACANT_INSTANCES):
             instance = instances.pop()
             assert isinstance(instance, cls)

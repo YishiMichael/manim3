@@ -125,7 +125,23 @@ class SpaceUtils:
 
     @overload
     @classmethod
+    def lerp(cls, tensor_0: FloatsT, tensor_1: Real, alpha: Real) -> FloatsT: ...
+
+    @overload
+    @classmethod
+    def lerp(cls, tensor_0: Real, tensor_1: FloatsT, alpha: Real) -> FloatsT: ...
+
+    @overload
+    @classmethod
     def lerp(cls, tensor_0: Vec2T, tensor_1: Vec2T, alpha: Real) -> Vec2T: ...
+
+    @overload
+    @classmethod
+    def lerp(cls, tensor_0: Vec2sT, tensor_1: Vec2T, alpha: Real) -> Vec2sT: ...
+
+    @overload
+    @classmethod
+    def lerp(cls, tensor_0: Vec2T, tensor_1: Vec2sT, alpha: Real) -> Vec2sT: ...
 
     @overload
     @classmethod
@@ -133,7 +149,23 @@ class SpaceUtils:
 
     @overload
     @classmethod
+    def lerp(cls, tensor_0: Vec3sT, tensor_1: Vec3T, alpha: Real) -> Vec3sT: ...
+
+    @overload
+    @classmethod
+    def lerp(cls, tensor_0: Vec3T, tensor_1: Vec3sT, alpha: Real) -> Vec3sT: ...
+
+    @overload
+    @classmethod
     def lerp(cls, tensor_0: Vec4T, tensor_1: Vec4T, alpha: Real) -> Vec4T: ...
+
+    @overload
+    @classmethod
+    def lerp(cls, tensor_0: Vec4sT, tensor_1: Vec4T, alpha: Real) -> Vec4sT: ...
+
+    @overload
+    @classmethod
+    def lerp(cls, tensor_0: Vec4T, tensor_1: Vec4sT, alpha: Real) -> Vec4sT: ...
 
     @overload
     @classmethod
@@ -146,10 +178,10 @@ class SpaceUtils:
     @classmethod
     def lerp(
         cls,
-        tensor_0: Real | Vec2T | Vec3T | Vec4T | Mat3T | Mat4T,
-        tensor_1: Real | Vec2T | Vec3T | Vec4T | Mat3T | Mat4T,
+        tensor_0: Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
+        tensor_1: Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
         alpha: Real
-    ) -> Real | Vec2T | Vec3T | Vec4T | Mat3T | Mat4T:
+    ) -> Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T:
         return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
     @classmethod

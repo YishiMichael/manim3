@@ -22,14 +22,10 @@ from ..utils.lazy import (
 class SceneMobject(MeshMobject):
     __slots__ = ()
 
-    def __new__(
-        cls,
-        scene_cls: type[Scene]
-    ):
-        instance = super().__new__(cls)
-        instance._scene = scene_cls()
-        instance.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
-        return instance
+    def __init__(self, scene_cls: type[Scene]):
+        super().__init__()
+        self._scene = scene_cls()
+        self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
 
     @lazy_basedata
     @staticmethod

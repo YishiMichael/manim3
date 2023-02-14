@@ -22,27 +22,26 @@ from ..utils.lazy import (
 class ImageMobject(MeshMobject):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         image_path: str,
         *,
         width: Real | None = None,
         height: Real | None = 4.0,
         frame_scale: Real | None = None
     ):
-        instance = super().__new__(cls)
+        super().__init__()
         image = Image.open(image_path)
-        instance._image = image
+        self._image = image
 
-        instance.adjust_frame(
+        x_scale, y_scale = self._get_frame_scale_vector(
             image.width / ConfigSingleton().pixel_per_unit,
             image.height / ConfigSingleton().pixel_per_unit,
             width,
             height,
             frame_scale
         )
-        instance.scale(np.array((1.0, -1.0, 1.0)))  # flip y
-        return instance
+        self.scale(np.array((x_scale, -y_scale, 1.0)))  # flip y
 
     @lazy_basedata
     @staticmethod

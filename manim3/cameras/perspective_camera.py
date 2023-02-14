@@ -19,26 +19,26 @@ from ..utils.lazy import (
 class PerspectiveCamera(Camera):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
+        *,
         width: Real | None = None,
         height: Real | None = None,
         near: Real | None = None,
         far: Real | None = None,
         altitude: Real | None = None
     ):
-        instance = super().__new__(cls)
+        super().__init__()
         if width is not None:
-            instance._width_ = NewData(width)
+            self._width_ = NewData(width)
         if height is not None:
-            instance._height_ = NewData(height)
+            self._height_ = NewData(height)
         if near is not None:
-            instance._near_ = NewData(near)
+            self._near_ = NewData(near)
         if far is not None:
-            instance._far_ = NewData(far)
+            self._far_ = NewData(far)
         if altitude is not None:
-            instance._altitude_ = NewData(altitude)
-        return instance
+            self._altitude_ = NewData(altitude)
 
     @lazy_basedata
     @staticmethod

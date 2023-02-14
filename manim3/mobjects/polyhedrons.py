@@ -27,17 +27,16 @@ from ..utils.space import SpaceUtils
 class Polyhedron(ShapeMobject):
     __slots__ = ()
 
-    def __new__(cls, vertices: Vec3sT, faces: np.ndarray[tuple[int, int], np.dtype[np.int_]]):
-        instance = super().__new__(cls)
+    def __init__(self, vertices: Vec3sT, faces: np.ndarray[tuple[int, int], np.dtype[np.int_]]):
+        super().__init__()
         for face in faces:
-            matrix, coords = cls._convert_coplanar_vertices(vertices[face])
+            matrix, coords = self._convert_coplanar_vertices(vertices[face])
             # Append the last point to form a closed ring
             ring_coords = np.append(coords, coords[0, None], axis=0)
             shape = ShapeMobject(Shape(MultiLineString2D([LineString2D(ring_coords)])))
             shape.apply_transform(matrix)
-            instance.add(shape)
-        instance.set_style(apply_phong_lighting=True)
-        return instance
+            self.add(shape)
+        self.set_style(apply_phong_lighting=True)
 
     @classmethod
     def _convert_coplanar_vertices(cls, vertices: Vec3sT) -> tuple[Mat4T, Vec2sT]:
@@ -67,9 +66,8 @@ class Polyhedron(ShapeMobject):
 class Tetrahedron(Polyhedron):
     __slots__ = ()
 
-    def __new__(cls):
-        return super().__new__(
-            cls,
+    def __init__(self):
+        super().__init__(
             vertices=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
                 (1.0, -1.0, -1.0),
@@ -88,9 +86,8 @@ class Tetrahedron(Polyhedron):
 class Cube(Polyhedron):
     __slots__ = ()
 
-    def __new__(cls):
-        return super().__new__(
-            cls,
+    def __init__(self):
+        super().__init__(
             vertices=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
                 (1.0, 1.0, -1.0),
@@ -115,9 +112,8 @@ class Cube(Polyhedron):
 class Octahedron(Polyhedron):
     __slots__ = ()
 
-    def __new__(cls):
-        return super().__new__(
-            cls,
+    def __init__(self):
+        super().__init__(
             vertices=np.array((
                 (1.0, 0.0, 0.0),
                 (-1.0, 0.0, 0.0),
@@ -142,11 +138,10 @@ class Octahedron(Polyhedron):
 class Dodecahedron(Polyhedron):
     __slots__ = ()
 
-    def __new__(cls):
+    def __init__(self):
         unit_a = (1.0 + np.sqrt(5.0)) / 2.0
         unit_b = -(1.0 - np.sqrt(5.0)) / 2.0
-        return super().__new__(
-            cls,
+        super().__init__(
             vertices=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
                 (1.0, 1.0, -1.0),
@@ -189,11 +184,10 @@ class Dodecahedron(Polyhedron):
 class Icosahedron(Polyhedron):
     __slots__ = ()
 
-    def __new__(cls):
+    def __init__(self):
         unit_a = np.sqrt(50.0 + 10.0 * np.sqrt(5.0)) / 10.0
         unit_b = np.sqrt(50.0 - 10.0 * np.sqrt(5.0)) / 10.0
-        return super().__new__(
-            cls,
+        super().__init__(
             vertices=np.array((
                 (0.0, unit_a, unit_b),
                 (0.0, unit_a, -unit_b),

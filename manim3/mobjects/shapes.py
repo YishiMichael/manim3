@@ -33,79 +33,51 @@ from ..utils.shape import (
 
 
 class Polyline(ShapeMobject):
-    def __new__(
-        cls,
-        coords: Vec2sT | None = None
-    ):
-        if coords is None:
-            coords = np.zeros((1, 2))
-        return super().__new__(cls, Shape(MultiLineString2D([LineString2D(coords)])))
+    def __init__(self, coords: Vec2sT):
+        super().__init__(Shape(MultiLineString2D([LineString2D(coords)])))
 
 
 class Point(Polyline):
-    def __new__(
-        cls,
-        point: Vec2T | None = None
-    ):
-        if point is None:
-            point = np.zeros(2)
-        return super().__new__(cls, np.array((point,)))
+    def __init__(self, point: Vec2T):
+        super().__init__(np.array((point,)))
 
 
 class Line(Polyline):
-    def __new__(
-        cls,
-        start_point: Vec2T | None = None,
-        stop_point: Vec2T | None = None
-    ):
-        if start_point is None:
-            start_point = np.array((-1.0, 0.0))
-        if stop_point is None:
-            stop_point = np.array((1.0, 0.0))
-        return super().__new__(cls, np.array((start_point, stop_point)))
+    def __init__(self, start_point: Vec2T, stop_point: Vec2T):
+        super().__init__(np.array((start_point, stop_point)))
 
 
 class Arc(Polyline):
-    def __new__(
-        cls,
-        start_angle: Real = 0.0,
-        sweep_angle: Real = PI / 2.0
-    ):
+    def __init__(self, start_angle: Real, sweep_angle: Real):
         n_segments = int(np.ceil(sweep_angle / TAU * 64.0))
         complex_coords = np.exp(1.0j * (start_angle + np.linspace(0.0, sweep_angle, n_segments + 1)))
-        return super().__new__(cls, np.vstack((complex_coords.real, complex_coords.imag)).T)
+        super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)
 
 
 class Circle(Arc):
-    def __new__(cls):
-        return super().__new__(cls, 0.0, TAU)
+    def __init__(self):
+        super().__init__(0.0, TAU)
 
 
 class Polygon(Polyline):
-    def __new__(
-        cls,
-        coords: Vec2sT | None = None
-    ):
-        if coords is None:
-            coords = np.zeros((1, 2))
-        return super().__new__(cls, np.append(coords, np.array((coords[0],)), axis=0))
+    def __init__(self, coords: Vec2sT):
+        super().__init__(np.append(coords, np.array((coords[0],)), axis=0))
 
 
 class RegularPolygon(Polygon):
-    def __new__(
-        cls,
-        n: int = 3
-    ):
+    def __init__(self, n: int):
         # By default, one vertex is at (1, 0)
         complex_coords = np.exp(1.0j * np.linspace(0.0, TAU, n, endpoint=False))
-        return super().__new__(cls, np.vstack((complex_coords.real, complex_coords.imag)).T)
+        super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)
 
 
 class Triangle(RegularPolygon):
-    def __new__(cls):
-        return super().__new__(cls, 3).rotate_about_origin(Rotation.from_rotvec(OUT * PI / 2.0))
+    def __init__(self):
+        super().__init__(3)
+        self.rotate_about_origin(Rotation.from_rotvec(OUT * PI / 2.0))
 
 
 class Square(RegularPolygon):
-    def __new__(cls):
-        return super().__new__(cls, 4).rotate_about_origin(Rotation.from_rotvec(OUT * PI / 4.0))
+    def __init__(self):
+        super().__init__(4)
+        self.rotate_about_origin(Rotation.from_rotvec(OUT * PI / 4.0))

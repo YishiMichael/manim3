@@ -59,18 +59,17 @@ class ProgramData:
 class VertexArray(LazyBase):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
         attributes: AttributesBuffer,
         index_buffer: IndexBuffer,
         mode: int
     ):
-        instance = super().__new__(cls)
-        instance._attributes_ = NewData(attributes)
-        instance._index_buffer_ = NewData(index_buffer)
-        instance._mode_ = mode
-        return instance
+        super().__init__()
+        self._attributes_ = NewData(attributes)
+        self._index_buffer_ = NewData(index_buffer)
+        self._mode_ = mode
 
     @staticmethod
     def __shader_filename_cacher(

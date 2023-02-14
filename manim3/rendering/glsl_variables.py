@@ -86,8 +86,8 @@ class GLSLDynamicStruct(LazyBase):
         "dmat4":   np.dtype(("f8", (4, 4))),
     }
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
         field: str,
         child_structs: dict[str, list[str]] | None = None,
@@ -99,13 +99,12 @@ class GLSLDynamicStruct(LazyBase):
             child_structs = {}
         if dynamic_array_lens is None:
             dynamic_array_lens = {}
-        instance = super().__new__(cls)
-        instance._field_ = field
-        instance._child_structs_ = child_structs
-        instance._dynamic_array_lens_ = dynamic_array_lens
-        instance._layout_ = layout
-        instance._data_ = NewData(data)
-        return instance
+        super().__init__()
+        self._field_ = field
+        self._child_structs_ = child_structs
+        self._dynamic_array_lens_ = dynamic_array_lens
+        self._layout_ = layout
+        self._data_ = NewData(data)
 
     @staticmethod
     def __field_cacher(
@@ -349,8 +348,8 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 class TextureStorage(GLSLDynamicStruct):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
         field: str,
         dynamic_array_lens: dict[str, int] | None = None,
@@ -359,15 +358,13 @@ class TextureStorage(GLSLDynamicStruct):
         # Note, redundant textures are currently not supported
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
         assert field != replaced_field
-        instance = super().__new__(
-            cls,
+        super().__init__(
             field=replaced_field,
             dynamic_array_lens=dynamic_array_lens,
             layout=GLSLVariableLayout.PACKED,
             data=np.zeros(texture_array.shape, dtype=np.uint32)
         )
-        instance._texture_array = texture_array
-        return instance
+        self._texture_array = texture_array
 
     @lazy_slot
     @staticmethod
@@ -378,8 +375,8 @@ class TextureStorage(GLSLDynamicStruct):
 class UniformBlockBuffer(GLSLDynamicBuffer):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
         name: str,
         fields: list[str],
@@ -391,8 +388,7 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
             child_structs = {}
         if dynamic_array_lens is None:
             dynamic_array_lens = {}
-        return super().__new__(
-            cls,
+        super().__init__(
             field=f"__UniformBlockStruct__ {name}",
             child_structs={
                 "__UniformBlockStruct__": fields,
@@ -411,8 +407,8 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
 class AttributesBuffer(GLSLDynamicBuffer):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
         fields: list[str],
         num_vertex: int,
@@ -423,8 +419,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
         if dynamic_array_lens is None:
             dynamic_array_lens = {}
         dynamic_array_lens["__NUM_VERTEX__"] = num_vertex
-        return super().__new__(
-            cls,
+        super().__init__(
             field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
             child_structs={
                 "__VertexStruct__": fields
@@ -488,13 +483,12 @@ class AttributesBuffer(GLSLDynamicBuffer):
 class IndexBuffer(GLSLDynamicBuffer):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         *,
         data: np.ndarray,
     ):
-        return super().__new__(
-            cls,
+        super().__init__(
             field="uint __index__[__NUM_INDEX__]",
             dynamic_array_lens={
                 "__NUM_INDEX__": len(data)

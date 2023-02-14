@@ -26,11 +26,10 @@ from ..utils.lazy import (
 class GaussianBlurPass(RenderPass):
     __slots__ = ()
 
-    def __new__(cls, sigma_width: Real | None = None):
-        instance = super().__new__(cls)
+    def __init__(self, sigma_width: Real | None = None):
+        super().__init__()
         if sigma_width is not None:
-            instance._sigma_width_ = NewData(sigma_width)
-        return instance
+            self._sigma_width_ = NewData(sigma_width)
 
     @lazy_basedata
     @staticmethod

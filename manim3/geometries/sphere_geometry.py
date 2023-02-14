@@ -17,8 +17,8 @@ from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 class SphereGeometry(ParametricSurfaceGeometry):
     __slots__ = ()
 
-    def __new__(
-        cls,
+    def __init__(
+        self,
         theta_start: Real = 0.0,
         theta_sweep: Real = TAU,
         phi_start: Real = 0.0,
@@ -29,8 +29,7 @@ class SphereGeometry(ParametricSurfaceGeometry):
         def func(theta: float, phi: float) -> Vec3T:
             return np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
 
-        return super().__new__(
-            cls,
+        super().__init__(
             func=func,
             normal_func=func,
             u_range=(theta_start, theta_start + theta_sweep),

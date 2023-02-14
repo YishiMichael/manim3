@@ -23,6 +23,7 @@ from ..constants import (
 from ..custom_typing import (
     Mat4T,
     Real,
+    Vec2T,
     Vec3T,
     Vec3sT
 )
@@ -428,6 +429,19 @@ class Mobject(LazyBase):
         )
         return self
 
+    def scale_about_origin(
+        self,
+        factor: Real | Vec3T,
+        *,
+        broadcast: bool = True
+    ):
+        self.scale(
+            factor=factor,
+            about_point=ORIGIN,
+            broadcast=broadcast
+        )
+        return self
+
     def stretch_to_fit_size(
         self,
         target_size: Vec3T,
@@ -515,14 +529,15 @@ class Mobject(LazyBase):
         )
         return self
 
-    def adjust_frame(
-        self,
+    @classmethod
+    def _get_frame_scale_vector(
+        cls,
         original_width: Real,
         original_height: Real,
         specified_width: Real | None,
         specified_height: Real | None,
         specified_frame_scale: Real | None
-    ):
+    ) -> Vec2T:
         # Called when initializing a planar mobject
         scale_factor = np.ones(2)
         if specified_width is None and specified_height is None:
@@ -539,8 +554,9 @@ class Mobject(LazyBase):
             ))
         else:
             raise ValueError  # never
-        self.center().scale(np.append(scale_factor, 1.0))
-        return self
+        return scale_factor
+        #self.center().scale(np.append(scale_factor, 1.0))
+        #return self
 
     # rotate relatives
 

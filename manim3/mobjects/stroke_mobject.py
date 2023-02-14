@@ -44,11 +44,10 @@ from ..utils.space import SpaceUtils
 class StrokeMobject(Mobject):
     __slots__ = ()
 
-    def __new__(cls, multi_line_string_3d: MultiLineString3D | None = None):
-        instance = super().__new__(cls)
+    def __init__(self, multi_line_string_3d: MultiLineString3D | None = None):
+        super().__init__()
         if multi_line_string_3d is not None:
-            instance._multi_line_string_3d_ = NewData(multi_line_string_3d)
-        return instance
+            self._multi_line_string_3d_ = NewData(multi_line_string_3d)
 
     @staticmethod
     def __winding_sign_cacher(

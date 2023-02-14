@@ -20,11 +20,10 @@ from ..utils.lazy import (
 class PixelatedPass(RenderPass):
     __slots__ = ()
 
-    def __new__(cls, pixelated_width: Real | None = None):
-        instance = super().__new__(cls)
+    def __init__(self, pixelated_width: Real | None = None):
+        super().__init__()
         if pixelated_width is not None:
-            instance._pixelated_width_ = NewData(pixelated_width)
-        return instance
+            self._pixelated_width_ = NewData(pixelated_width)
 
     @lazy_basedata
     @staticmethod
