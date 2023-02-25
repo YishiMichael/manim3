@@ -101,7 +101,6 @@ from typing import (
     Iterator,
     #Iterator,
     #Never,
-    Self,
     TypeVar,
     Union,
     overload
@@ -165,7 +164,11 @@ class LazyBase(ABC):
     _VACANT_INSTANCES: "ClassVar[list[LazyBase]]"
     #_VARIABLE_DESCRS: "ClassVar[list[LazyObjectDescriptor]]"
 
-    def __new__(cls: type[Self], *args, **kwargs) -> Self:
+    def __init_subclass__(cls) -> None:
+        cls._VACANT_INSTANCES = []
+        #return super().__init_subclass__()
+
+    def __new__(cls, *args, **kwargs):
         if (instances := cls._VACANT_INSTANCES):
             instance = instances.pop()
             assert isinstance(instance, cls)
@@ -173,37 +176,37 @@ class LazyBase(ABC):
             instance = super().__new__(cls)
         return instance
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self._dependency_node: LazyNode = LazyNode(self)
         self._parameter_node: LazyNode = LazyNode(self)
         #self._readonly: bool = False
-        self._restock_callbacks: list[Callable[[Self], None]] | None = []
+        self._restock_callbacks: list[Callable[[LazyBase], None]] | None = []
 
-    def _iter_dependency_children(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_dependency_children(self) -> "Generator[LazyBase, None, None]":
         for child in self._dependency_node._children:
             yield child._ref
 
-    def _iter_dependency_parents(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_dependency_parents(self) -> "Generator[LazyBase, None, None]":
         for parent in self._dependency_node._parents:
             yield parent._ref
 
-    def _iter_dependency_descendants(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_dependency_descendants(self) -> "Generator[LazyBase, None, None]":
         for descendant in self._dependency_node._iter_descendants():
             yield descendant._ref
 
-    def _iter_dependency_ancestors(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_dependency_ancestors(self) -> "Generator[LazyBase, None, None]":
         for ancestor in self._dependency_node._iter_ancestors():
             yield ancestor._ref
 
-    def _bind_dependency_children(self: Self, *instances: "LazyBase") -> Self:
+    def _bind_dependency_children(self, *instances: "LazyBase"):
         self._dependency_node._bind_children(*(
             instance._dependency_node
             for instance in instances
         ))
         return self
 
-    def _unbind_dependency_children(self: Self, *instances: "LazyBase") -> Self:
+    def _unbind_dependency_children(self, *instances: "LazyBase"):
         self._dependency_node._unbind_children(*(
             instance._dependency_node
             for instance in instances
@@ -213,37 +216,37 @@ class LazyBase(ABC):
                 instance._restock()
         return self
 
-    def _iter_parameter_children(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_parameter_children(self) -> "Generator[LazyBase, None, None]":
         for child in self._parameter_node._children:
             yield child._ref
 
-    def _iter_parameter_parents(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_parameter_parents(self) -> "Generator[LazyBase, None, None]":
         for parent in self._parameter_node._parents:
             yield parent._ref
 
-    def _iter_parameter_descendants(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_parameter_descendants(self) -> "Generator[LazyBase, None, None]":
         for descendant in self._parameter_node._iter_descendants():
             yield descendant._ref
 
-    def _iter_parameter_ancestors(self: Self) -> "Generator[LazyBase, None, None]":
+    def _iter_parameter_ancestors(self) -> "Generator[LazyBase, None, None]":
         for ancestor in self._parameter_node._iter_ancestors():
             yield ancestor._ref
 
-    def _bind_parameter_children(self: Self, *instances: "LazyBase") -> Self:
+    def _bind_parameter_children(self, *instances: "LazyBase"):
         self._parameter_node._bind_children(*(
             instance._parameter_node
             for instance in instances
         ))
         return self
 
-    def _unbind_parameter_children(self: Self, *instances: "LazyBase") -> Self:
+    def _unbind_parameter_children(self, *instances: "LazyBase"):
         self._parameter_node._unbind_children(*(
             instance._parameter_node
             for instance in instances
         ))
         return self
 
-    def _restock(self: Self) -> None:
+    def _restock(self) -> None:
         # TODO: check refcnt
         for instance in self._iter_dependency_descendants():
             if (callbacks := instance._restock_callbacks) is None:
@@ -253,7 +256,7 @@ class LazyBase(ABC):
             callbacks.clear()
             instance.__class__._VACANT_INSTANCES.append(instance)
 
-    def _at_restock(self: Self, callback: Callable[[Self], None]) -> None:
+    def _at_restock(self, callback: "Callable[[LazyBase], None]") -> None:
         if (callbacks := self._restock_callbacks) is not None:
             callbacks.append(callback)
 
@@ -261,13 +264,13 @@ class LazyBase(ABC):
 class LazyEntity(LazyBase):
     __slots__ = ()
 
-    def _is_readonly(self: Self) -> bool:
+    def _is_readonly(self) -> bool:
         return not any(
             isinstance(instance, LazyProperty)
             for instance in self._iter_dependency_ancestors()
         )
 
-    def _expire_properties(self: Self) -> None:
+    def _expire_properties(self) -> None:
         assert not self._is_readonly()
         for expired_property in self._iter_parameter_ancestors():
             if not isinstance(expired_property, LazyProperty):
@@ -359,12 +362,13 @@ class LazyObject(LazyEntity):
 
             #descr._setup_callables(descrs)
 
+        super().__init_subclass__()
         cls._OBJECT_DESCRIPTORS = list(object_descriptors.values())
         cls._COLLECTION_DESCRIPTORS = list(collection_descriptors.values())
         cls._PARAMETER_DESCRIPTORS = list(parameter_descriptors.values())
         cls._PROPERTY_DESCRIPTORS = list(property_descriptors.values())
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
         cls = self.__class__
@@ -391,7 +395,7 @@ class LazyObject(LazyEntity):
         #        children.append(default_collection)
         #self._bind_dependency_children(*children)
 
-    def _copy(self: Self) -> Self:
+    def _copy(self):
         cls = self.__class__
         result = cls.__new__(cls)
         for object_descriptor in cls._OBJECT_DESCRIPTORS:
@@ -408,30 +412,30 @@ class LazyObject(LazyEntity):
 class LazyCollection(Generic[_LazyEntityT], LazyEntity):
     __slots__ = ("_entities",)
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self._entities: list[_LazyEntityT] = []
 
-    def __iter__(self: Self) -> Iterator[_LazyEntityT]:
+    def __iter__(self) -> Iterator[_LazyEntityT]:
         return self._entities.__iter__()
 
-    def __len__(self: Self) -> int:
+    def __len__(self) -> int:
         return self._entities.__len__()
 
     @overload
-    def __getitem__(self: Self, index: int) -> _LazyEntityT:
+    def __getitem__(self, index: int) -> _LazyEntityT:
         ...
 
     @overload
-    def __getitem__(self: Self, index: slice) -> list[_LazyEntityT]:
+    def __getitem__(self, index: slice) -> list[_LazyEntityT]:
         ...
 
-    def __getitem__(self: Self, index: int | slice) -> _LazyEntityT | list[_LazyEntityT]:
+    def __getitem__(self, index: int | slice) -> _LazyEntityT | list[_LazyEntityT]:
         #if isinstance(index, int):
         #    return self._reference_node._children.__getitem__(index)._instance
         return self._entities.__getitem__(index)
 
-    def add(self: Self, *entities: _LazyEntityT) -> Self:
+    def add(self, *entities: _LazyEntityT):
         if not entities:
             return self
         self._expire_properties()
@@ -439,7 +443,7 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
         self._bind_dependency_children(*entities)
         return self
 
-    def remove(self: Self, *entities: _LazyEntityT) -> Self:
+    def remove(self, *entities: _LazyEntityT):
         if not entities:
             return self
         self._expire_properties()
@@ -452,21 +456,21 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
 class LazyParameter(Generic[_ParameterElementsT], LazyBase):
     __slots__ = ("_elements",)
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self._elements: _ParameterElementsT | None = None
 
-    def _get(self: Self) -> _ParameterElementsT | None:
+    def _get(self) -> _ParameterElementsT | None:
         return self._elements
 
-    def _set(self: Self, elements: _ParameterElementsT | None) -> None:
+    def _set(self, elements: _ParameterElementsT | None) -> None:
         self._elements = elements
 
-    #def _bind_entities(self: Self, *entities: LazyEntity) -> Self:
+    #def _bind_entities(self, *entities: LazyEntity):
     #    self._bind_parameter_children(*entities)
     #    return self
 
-    #def _bind_properties(self: Self, *properties: "LazyProperty") -> Self:
+    #def _bind_properties(self, *properties: "LazyProperty"):
     #    self._bind_parameter_children(*properties)
     #    return self
 
@@ -475,18 +479,18 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
     #__slots__ = ()
     __slots__ = ("_entity",)
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self._entity: _LazyEntityT | None = None
 
-    def _get(self: Self) -> _LazyEntityT | None:
+    def _get(self) -> _LazyEntityT | None:
         return self._entity
         #try:
         #    return next(self._iter_reference_children())
         #except StopIteration:
         #    return None
 
-    def _set(self: Self, entity: _LazyEntityT | None) -> None:
+    def _set(self, entity: _LazyEntityT | None) -> None:
         self._entity = entity
         #old_entity = self._entity
         #if old_entity is entity:
@@ -497,7 +501,7 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
         #if entity is not None:
         #    self._bind_dependency_children(entity)
 
-    #def _bind_parameters(self, *parameters: LazyParameter) -> Self:
+    #def _bind_parameters(self, *parameters: LazyParameter):
     #    self._bind_parameter_children(*parameters)
     #    return self
 
@@ -508,29 +512,29 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
 #        "values_dict"
 #    )
 
-#    def __init__(self: Self, name: str) -> None:
+#    def __init__(self, name: str) -> None:
 #        self.name: str = name
 #        self.values_dict: dict[_ObjT, _LazyInstanceT] = {}
 
 #    @overload
 #    def __get__(
-#        self: Self,
+#        self,
 #        obj: None,
 #        owner: type[_ObjT] | None = None
-#    ) -> Self: ...
+#    ): ...
 
 #    @overload
 #    def __get__(
-#        self: Self,
+#        self,
 #        obj: _ObjT,
 #        owner: type[_ObjT] | None = None
 #    ) -> _LazyInstanceT: ...
 
 #    def __get__(
-#        self: Self,
+#        self,
 #        obj: _ObjT | None,
 #        owner: type[_ObjT] | None = None
-#    ) -> Self | _LazyInstanceT:
+#    )  | _LazyInstanceT:
 #        if obj is None:
 #            return self
 #        if (value := self.get(obj)) is None:
@@ -539,14 +543,14 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
 #        return value
 
 #    def __set__(
-#        self: Self,
+#        self,
 #        obj: _ObjT,
 #        value: _LazyInstanceT
 #    ) -> None:
 #        self.values_dict[obj] = value
 
 #    def initialize(
-#        self: Self,
+#        self,
 #        obj: _ObjT,
 #        value: _LazyInstanceT
 #    ) -> None:
@@ -554,19 +558,19 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
 #        self.values_dict[obj] = value
 
 #    def pop(
-#        self: Self,
+#        self,
 #        obj: _ObjT
 #    ) -> _LazyInstanceT:
 #        return self.values_dict.pop(obj)
 
 #    def get(
-#        self: Self,
+#        self,
 #        obj: _ObjT
 #    ) -> _LazyInstanceT | None:
 #        return self.values_dict.get(obj)
 
 #    def missing(
-#        self: Self,
+#        self,
 #        obj: _ObjT
 #    ) -> _LazyInstanceT:
 #        raise KeyError
@@ -580,7 +584,7 @@ class LazyObjectDescriptor(Generic[_LazyObjectT, _InstanceT]):
     )
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[[], _LazyObjectT]
     ) -> None:
         #super().__init__(method.__name__)
@@ -590,29 +594,29 @@ class LazyObjectDescriptor(Generic[_LazyObjectT, _InstanceT]):
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: None,
         owner: type[_InstanceT] | None = None
-    ) -> Self: ...
+    ) -> "LazyObjectDescriptor[_LazyObjectT, _InstanceT]": ...  # TODO: typing
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT,
         owner: type[_InstanceT] | None = None
     ) -> _LazyObjectT: ...
 
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT | None,
         owner: type[_InstanceT] | None = None
-    ) -> Self | _LazyObjectT:
+    ) -> "LazyObjectDescriptor[_LazyObjectT, _InstanceT] | _LazyObjectT":
         if instance is None:
             return self
         return self.instance_to_object_dict[instance]
 
     def __set__(
-        self: Self,
+        self,
         instance: _InstanceT,
         lazy_object: _LazyObjectT
     ) -> None:
@@ -623,7 +627,7 @@ class LazyObjectDescriptor(Generic[_LazyObjectT, _InstanceT]):
         instance._bind_dependency_children(lazy_object)
 
     def initialize(
-        self: Self,
+        self,
         instance: _InstanceT
     ) -> None:
         if (default_object := self._default_object) is None:
@@ -634,7 +638,7 @@ class LazyObjectDescriptor(Generic[_LazyObjectT, _InstanceT]):
         instance._bind_dependency_children(default_object)
 
     def copy_initialize(
-        self: Self,
+        self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
@@ -650,7 +654,7 @@ class LazyCollectionDescriptor(Generic[_LazyEntityT, _InstanceT]):
     )
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[[], LazyCollection[_LazyEntityT]]
     ) -> None:
         #super().__init__(method.__name__)
@@ -659,29 +663,29 @@ class LazyCollectionDescriptor(Generic[_LazyEntityT, _InstanceT]):
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: None,
         owner: type[_InstanceT] | None = None
-    ) -> Self: ...
+    ) -> "LazyCollectionDescriptor[_LazyEntityT, _InstanceT]": ...
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT,
         owner: type[_InstanceT] | None = None
     ) -> LazyCollection[_LazyEntityT]: ...
 
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT | None,
         owner: type[_InstanceT] | None = None
-    ) -> Self | LazyCollection[_LazyEntityT]:
+    ) -> "LazyCollectionDescriptor[_LazyEntityT, _InstanceT] | LazyCollection[_LazyEntityT]":
         if instance is None:
             return self
         return self.instance_to_collection_dict[instance]
 
     def initialize(
-        self: Self,
+        self,
         instance: _InstanceT
     ) -> None:
         default_object = self.method()
@@ -689,7 +693,7 @@ class LazyCollectionDescriptor(Generic[_LazyEntityT, _InstanceT]):
         instance._bind_dependency_children(default_object)
 
     def copy_initialize(
-        self: Self,
+        self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
@@ -697,7 +701,7 @@ class LazyCollectionDescriptor(Generic[_LazyEntityT, _InstanceT]):
         self.instance_to_collection_dict[dst].add(*self.instance_to_collection_dict[src])
 
     #def __set__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT,
     #    value: Never
     #) -> None:
@@ -711,7 +715,7 @@ class LazyParameterDescriptor(Generic[_ParameterElementsT, _InstanceT]):
         "instance_to_parameter_dict"
     )
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         self.descriptor_chain: tuple[Union[
             LazyObjectDescriptor[LazyObject, _InstanceT],
             LazyCollectionDescriptor[LazyEntity, _InstanceT],
@@ -723,23 +727,23 @@ class LazyParameterDescriptor(Generic[_ParameterElementsT, _InstanceT]):
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: None,
         owner: type[_InstanceT] | None = None
-    ) -> Self: ...
+    ) -> "LazyParameterDescriptor[_ParameterElementsT, _InstanceT]": ...
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT,
         owner: type[_InstanceT] | None = None
     ) -> _ParameterElementsT: ...
 
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT | None,
         owner: type[_InstanceT] | None = None
-    ) -> Self | _ParameterElementsT:
+    ) -> "LazyParameterDescriptor[_ParameterElementsT, _InstanceT] | _ParameterElementsT":
         if instance is None:
             return self
 
@@ -782,13 +786,13 @@ class LazyParameterDescriptor(Generic[_ParameterElementsT, _InstanceT]):
         return elements
 
     def initialize(
-        self: Self,
+        self,
         instance: _InstanceT
     ) -> None:
         self.instance_to_parameter_dict[instance] = LazyParameter()
 
     def copy_initialize(
-        self: Self,
+        self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
@@ -805,7 +809,7 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
     )
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[..., _LazyEntityT]
     ) -> None:
         self.method: Callable[..., _LazyEntityT] = method
@@ -822,23 +826,23 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: None,
         owner: type[_InstanceT] | None = None
-    ) -> Self: ...
+    ) -> "LazyPropertyDescriptor[_LazyEntityT, _InstanceT]": ...
 
     @overload
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT,
         owner: type[_InstanceT] | None = None
     ) -> _LazyEntityT: ...
 
     def __get__(
-        self: Self,
+        self,
         instance: _InstanceT | None,
         owner: type[_InstanceT] | None = None
-    ) -> Self | _LazyEntityT:
+    ) -> "LazyPropertyDescriptor[_LazyEntityT, _InstanceT] | _LazyEntityT":
         if instance is None:
             return self
 
@@ -924,7 +928,7 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
     #    #return result
 
     def initialize(
-        self: Self,
+        self,
         instance: _InstanceT
     ) -> None:
         prop = LazyProperty()
@@ -935,7 +939,7 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
         self.instance_to_property_dict[instance] = prop
 
     def copy_initialize(
-        self: Self,
+        self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
@@ -943,13 +947,13 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
         self.instance_to_property_dict[dst]._set(self.instance_to_property_dict[src]._get())
 
     def handle_new_property(
-        self: Self,
+        self,
         entity: _LazyEntityT
     ) -> _LazyEntityT:
         return entity
 
     #def missing(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT
     #) -> _DAGNodeT:
     #    def flatten_deepest(obj: tuple | DAGNode) -> Generator[DAGNode, None, None]:
@@ -979,7 +983,7 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
     #) -> None:
     #    raise RuntimeError("Attempting to set a readonly lazy property")
 
-    #def _setup_callables(self: Self, descrs: dict[str, LazyDescriptor]) -> None:
+    #def _setup_callables(self, descrs: dict[str, LazyDescriptor]) -> None:
     #    #parameter_names = list(inspect.signature(self.method).parameters)
     #    parameter_items: list[tuple[tuple[LazyDescriptor, ...], bool]] = [
     #        (tuple(
@@ -1051,11 +1055,12 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
 class LazyWrapper(Generic[_T], LazyObject):
     __slots__ = ("__value",)
 
-    def __init__(self: Self, value: _T):
+    def __init__(self, value: _T):
+        super().__init__()
         self.__value: _T = value
 
     @property
-    def value(self: Self) -> _T:
+    def value(self) -> _T:
         return self.__value
 
 
@@ -1063,7 +1068,7 @@ class LazyObjectRawDescriptor(Generic[_T, _InstanceT], LazyObjectDescriptor[Lazy
     __slots__ = ()
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[[], _T]
     ) -> None:
         @wraps(method)
@@ -1080,7 +1085,7 @@ class LazyObjectSharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyObjectRawDe
     )
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[[], _T],
         key: Callable[[_T], _KeyT]
     ) -> None:
@@ -1089,7 +1094,7 @@ class LazyObjectSharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyObjectRawDe
         self.key_to_object_bidict: bidict[_KeyT, LazyWrapper[_T]] = bidict()
 
     def __set__(
-        self: Self,
+        self,
         instance: _InstanceT,
         obj: _T
     ) -> None:
@@ -1109,7 +1114,7 @@ class LazyPropertyRawDescriptor(Generic[_T, _InstanceT], LazyPropertyDescriptor[
     __slots__ = ("restock_methods",)
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[..., _T]
     ) -> None:
         @wraps(method)
@@ -1124,7 +1129,7 @@ class LazyPropertyRawDescriptor(Generic[_T, _InstanceT], LazyPropertyDescriptor[
         return restock_method
 
     def handle_new_property(
-        self: Self,
+        self,
         entity: LazyWrapper[_T]
     ) -> LazyWrapper[_T]:
         for restock_method in self.restock_methods:
@@ -1139,7 +1144,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
     )
 
     def __init__(
-        self: Self,
+        self,
         method: Callable[[], _T],
         key: Callable[[_T], _KeyT]
     ) -> None:
@@ -1148,7 +1153,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
         self.key_to_object_bidict: bidict[_KeyT, LazyWrapper[_T]] = bidict()
 
     def handle_new_property(
-        self: Self,
+        self,
         entity: LazyWrapper[_T]
     ) -> LazyWrapper[_T]:
 
@@ -1249,7 +1254,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #    #    #cls._SLOT_DESCRS = tuple(slots.values())
 #    #    return super().__init_subclass__()
 
-#    def __new__(cls: type[Self], *args, **kwargs) -> Self:
+#    def __new__(cls: type[Self], *args, **kwargs):
 #        if (instances := cls._VACANT_INSTANCES):
 #            instance = instances.pop()
 #            assert isinstance(instance, cls)
@@ -1257,7 +1262,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #            instance = super().__new__(cls)
 #        return instance
 
-#    def __init__(self: Self) -> None:
+#    def __init__(self) -> None:
 #        super().__init__()
 #        #self._nodes: list[LazyObjectNode] = []
 #        self._node_children: list[DAGNode] = []
@@ -1271,7 +1276,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #    #def __delete__(self) -> None:
 #    #    self._restock()
 
-#    def _iter_descendants(self: Self) -> "Generator[DAGNode, None, None]":
+#    def _iter_descendants(self) -> "Generator[DAGNode, None, None]":
 #        occurred: set[DAGNode] = set()
 
 #        def iter_descendants(node: DAGNode) -> Generator[DAGNode, None, None]:
@@ -1292,7 +1297,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #        #    occurred.add(node)
 #        #    stack.extend(reversed(node._node_children))
 
-#    def _iter_ancestors(self: Self) -> "Generator[DAGNode, None, None]":
+#    def _iter_ancestors(self) -> "Generator[DAGNode, None, None]":
 #        occurred: set[DAGNode] = set()
 
 #        def iter_ancestors(node: DAGNode) -> Generator[DAGNode, None, None]:
@@ -1340,7 +1345,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #    #        for child_cls in to_classes(child_annotation)
 #    #    ), error_message
 
-#    def _bind_children(self: Self, *nodes: "DAGNode") -> Self:
+#    def _bind_children(self, *nodes: "DAGNode"):
 #        if (invalid_nodes := [
 #            node for node in self._iter_ancestors()
 #            if node in nodes
@@ -1355,7 +1360,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #            #    descendant._node_ancestors.append(self)
 #        return self
 
-#    def _unbind_children(self: Self, *nodes: "DAGNode") -> Self:
+#    def _unbind_children(self, *nodes: "DAGNode"):
 #        if (invalid_nodes := [
 #            node for node in nodes
 #            if node not in self._node_children
@@ -1385,7 +1390,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #    #    #    slot_descr._copy_value(self, result)
 #    #    return result
 
-#    def _restock(self: Self) -> None:
+#    def _restock(self) -> None:
 #        #for variable_descr in self._VARIABLE_DESCR_TO_PROPERTY_DESCRS:
 #        #    variable_descr.__set__(self, None)
 #        #for slot_descr in self._SLOT_DESCRS:
@@ -1398,7 +1403,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #            callbacks.clear()
 #            node.__class__._VACANT_INSTANCES.append(node)
 
-#    def _at_restock(self: Self, callback: Callable[[Self], None]) -> None:
+#    def _at_restock(self, callback: Callable[[Self], None]) -> None:
 #        if (callbacks := self._restock_callbacks) is not None:
 #            callbacks.append(callback)
 
@@ -1452,7 +1457,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #        #    slots=True
 #        #)
 
-#    def __init__(self: Self) -> None:
+#    def __init__(self) -> None:
 #        super().__init__()
 #        #self._lazy_data: Any = self._LAZY_DATACLASS()
 
@@ -1474,19 +1479,19 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
     #@overload
     #def _descr_get(
-    #    self: Self,
+    #    self,
     #    descr: "LazyObjectDescriptor[_LazyObjectT, _InstanceT]"
     #) -> _LazyObjectT: ...
 
     #@overload
     #def _descr_get(
-    #    self: Self,
+    #    self,
     #    descr: "LazyCollectionDescriptor[_DAGNodeT, _InstanceT]"
     #) -> "LazyCollection[_DAGNodeT]": ...
 
     #@overload
     #def _descr_get(
-    #    self: Self,
+    #    self,
     #    descr: "LazyPropertyDescriptor[_DAGNodeT, _InstanceT]"
     #) -> "LazyPropertyRecord[_DAGNodeT]": ...
 
@@ -1506,7 +1511,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
     ##@overload
     #def set_object(
-    #    self: Self,
+    #    self,
     #    descr: "LazyObjectDescriptor[_LazyObjectT, _InstanceT]",
     #    value: _LazyObjectT
     #) -> None:
@@ -1514,14 +1519,14 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
     #@overload
     #def set_object(
-    #    self: Self,
+    #    self,
     #    descr: "LazyCollectionDescriptor[_DAGNodeT, _InstanceT]",
     #    value: "LazyCollection[_DAGNodeT]"
     #) -> None: ...
 
     #@overload
     #def set_object(
-    #    self: Self,
+    #    self,
     #    descr: "LazyPropertyDescriptor[_DAGNodeT, _InstanceT]",
     #    value: "LazyPropertyRecord[_DAGNodeT]"
     #) -> None: ...
@@ -1543,25 +1548,25 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #class LazyCollection(Generic[_DAGNodeT], DAGNode):
 #    __slots__ = ()
 #
-#    def __len__(self: Self) -> int:
+#    def __len__(self) -> int:
 #        return self._node_children.__len__()
 #
 #    @overload
-#    def __getitem__(self: Self, index: slice) -> list[_DAGNodeT]:
+#    def __getitem__(self, index: slice) -> list[_DAGNodeT]:
 #        ...
 #
 #    @overload
-#    def __getitem__(self: Self, index: int) -> _DAGNodeT:
+#    def __getitem__(self, index: int) -> _DAGNodeT:
 #        ...
 #
-#    def __getitem__(self: Self, index: slice | int) -> list[_DAGNodeT] | _DAGNodeT:
+#    def __getitem__(self, index: slice | int) -> list[_DAGNodeT] | _DAGNodeT:
 #        return self._node_children.__getitem__(index)
 #
-#    def add(self: Self, *nodes: _DAGNodeT) -> Self:
+#    def add(self, *nodes: _DAGNodeT):
 #        self._bind_children(*nodes)
 #        return self
 #
-#    def remove(self: Self, *nodes: _DAGNodeT) -> Self:
+#    def remove(self, *nodes: _DAGNodeT):
 #        self._unbind_children(*nodes)
 #        return self
 
@@ -1570,28 +1575,28 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #    #__slots__ = ()
 #    __slots__ = ("_slot",)
 #
-#    def __init__(self: Self) -> None:
+#    def __init__(self) -> None:
 #        self._slot: _DAGNodeT | None = None
 
-    #def get(self: Self) -> _DAGNodeT | None:
+    #def get(self) -> _DAGNodeT | None:
     #    if not self._node_children:
     #        return None
     #    return self._node_children[0]
 
-    #def set(self: Self, node: _DAGNodeT) -> None:
+    #def set(self, node: _DAGNodeT) -> None:
     #    if self.get() is node:
     #        return
     #    if self._node_children:
     #        self._unbind_children(self._node_children[0])
     #    self._bind_children(node)
 
-    #def bind(self: Self, *nodes: DAGNode) -> None:
+    #def bind(self, *nodes: DAGNode) -> None:
     #    self._bind_children(*nodes)
 
-    #def expire(self: Self) -> None:
+    #def expire(self) -> None:
     #    self._unbind_children(*self._node_children)
 
-    #def __init__(self: Self) -> None:
+    #def __init__(self) -> None:
     #    self._node: _DAGNodeT | None = None
     #    #self._expired: bool = True
 
@@ -1656,7 +1661,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
 
 #class LazyDescriptor(Generic[_DAGNodeT, _InstanceT]):
-#    def __init__(self: Self, name: str) -> None:
+#    def __init__(self, name: str) -> None:
 #        self.name: str = name
 #        #self.default_factory: Callable[..., _DAGNodeT] = default_factory
 #        #self.name: str = init_method.__name__
@@ -1664,23 +1669,23 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
 #    @overload
 #    def __get__(
-#        self: Self,
+#        self,
 #        instance: None,
 #        owner: type[_InstanceT] | None = None
-#    ) -> Self: ...  # TODO: typing
+#    ): ...  # TODO: typing
 
 #    @overload
 #    def __get__(
-#        self: Self,
+#        self,
 #        instance: _InstanceT,
 #        owner: type[_InstanceT] | None = None
 #    ) -> _DAGNodeT: ...
 
 #    def __get__(
-#        self: Self,
+#        self,
 #        instance: _InstanceT | None,
 #        owner: type[_InstanceT] | None = None
-#    ) -> Self | _DAGNodeT:
+#    )  | _DAGNodeT:
 #        if instance is None:
 #            return self
 #        if (node := self.get(instance)) is None:
@@ -1689,14 +1694,14 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #        return node
 
 #    def __set__(
-#        self: Self,
+#        self,
 #        instance: _InstanceT,
 #        value: _DAGNodeT
 #    ) -> None:
 #        self.instance_to_node_dict[instance] = value
 
 #    def initialize(
-#        self: Self,
+#        self,
 #        instance: _InstanceT,
 #        value: _DAGNodeT
 #    ) -> None:
@@ -1704,30 +1709,30 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 #        self.instance_to_node_dict[instance] = value
 
 #    def pop(
-#        self: Self,
+#        self,
 #        instance: _InstanceT
 #    ) -> _DAGNodeT:
 #        return self.instance_to_node_dict.pop(instance)
 
 #    def get(
-#        self: Self,
+#        self,
 #        instance: _InstanceT
 #    ) -> _DAGNodeT | None:
 #        return self.instance_to_node_dict.get(instance)
 
 #    def missing(
-#        self: Self,
+#        self,
 #        instance: _InstanceT
 #    ) -> _DAGNodeT:
 #        raise KeyError
 
-#    #def get_field(self: Self) -> Any:
+#    #def get_field(self) -> Any:
 #    #    pass
 
 
 #class LazyObjectDescriptor(LazyDescriptor[_LazyObjectT, _InstanceT]):
 #    def __init__(
-#        self: Self,
+#        self,
 #        method: Callable[[], _LazyObjectT]
 #    ) -> None:
 #        super().__init__(method.__name__)
@@ -1753,23 +1758,23 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
     #@overload
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: None,
     #    owner: type[_InstanceT] | None = None
-    #) -> Self: ...  # TODO: typing
+    #): ...  # TODO: typing
 
     #@overload
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT,
     #    owner: type[_InstanceT] | None = None
     #) -> _LazyObjectT: ...
 
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT | None,
     #    owner: type[_InstanceT] | None = None
-    #) -> Self | _LazyObjectT:
+    #)  | _LazyObjectT:
     #    if instance is None:
     #        return self
     #    return instance._descr_get(self)
@@ -1780,7 +1785,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
     #    #return self.instance_to_object_dict.get(instance, self.default_variable)
 
     #def __set__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT,
     #    lazy_object: _LazyObjectT
     #) -> None:
@@ -1810,7 +1815,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
         #self.instance_to_object_dict[instance] = variable
         #self.variable_to_instances_dict.setdefault(variable, []).append(instance)
 
-    #def get_field(self: Self) -> Any:
+    #def get_field(self) -> Any:
     #    def factory() -> _LazyObjectT:
     #        if (default_object := self._default_object) is None:
     #            default_object = self.method()
@@ -1819,7 +1824,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
     #        return default_object
     #    return field(default_factory=factory)
 
-    #def _get_default_object(self: Self) -> _LazyObjectT:
+    #def _get_default_object(self) -> _LazyObjectT:
     #    if (default_object := self._default_object) is None:
     #        default_object = self.method()
     #        self._default_object = default_object
@@ -1858,7 +1863,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
 #class LazyCollectionDescriptor(Generic[_DAGNodeT, _InstanceT], LazyDescriptor[LazyCollection[_DAGNodeT], _InstanceT]):
 #    def __init__(
-#        self: Self,
+#        self,
 #        method: Callable[[], LazyCollection[_DAGNodeT]]
 #    ) -> None:
 #        super().__init__(method.__name__)
@@ -1870,35 +1875,35 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
     #@overload
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: None,
     #    owner: type[_InstanceT] | None = None
-    #) -> Self: ...  # TODO: typing
+    #): ...  # TODO: typing
 
     #@overload
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT,
     #    owner: type[_InstanceT] | None = None
     #) -> LazyCollection[_DAGNodeT]: ...
 
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT | None,
     #    owner: type[_InstanceT] | None = None
-    #) -> Self | LazyCollection[_DAGNodeT]:
+    #)  | LazyCollection[_DAGNodeT]:
     #    if instance is None:
     #        return self
     #    return instance._descr_get(self)
 
     #def __set__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT,
     #    value: Never
     #) -> None:
     #    raise RuntimeError("Attempting to set a collection object directly")
 
-    #def get_field(self: Self) -> Any:
+    #def get_field(self) -> Any:
     #    def factory() -> LazyCollection[_DAGNodeT]:
     #        return self.method()
     #    return field(default_factory=factory)
@@ -1906,7 +1911,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
 #class LazyPropertyDescriptor(LazyDescriptor[_DAGNodeT, _InstanceT]):
     #def __init__(
-    #    self: Self,
+    #    self,
     #    method: Callable[..., _DAGNodeT]
     #) -> None:
     #    #def default_factory() -> LazyPropertyRecord[_DAGNodeT]:
@@ -1946,23 +1951,23 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
 
     #@overload
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: None,
     #    owner: type[_InstanceT] | None = None
-    #) -> Self: ...
+    #): ...
 
     #@overload
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT,
     #    owner: type[_InstanceT] | None = None
     #) -> _DAGNodeT: ...
 
     #def __get__(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT | None,
     #    owner: type[_InstanceT] | None = None
-    #) -> Self | _DAGNodeT:
+    #)  | _DAGNodeT:
     #    if instance is None:
     #        return self
 
@@ -2011,7 +2016,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
     #    #return result
 
     #def missing(
-    #    self: Self,
+    #    self,
     #    instance: _InstanceT
     #) -> _DAGNodeT:
     #    def flatten_deepest(obj: tuple | DAGNode) -> Generator[DAGNode, None, None]:
@@ -2041,7 +2046,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
     #) -> None:
     #    raise RuntimeError("Attempting to set a readonly lazy property")
 
-    #def _setup_callables(self: Self, descrs: dict[str, LazyDescriptor]) -> None:
+    #def _setup_callables(self, descrs: dict[str, LazyDescriptor]) -> None:
     #    #parameter_names = list(inspect.signature(self.method).parameters)
     #    parameter_items: list[tuple[tuple[LazyDescriptor, ...], bool]] = [
     #        (tuple(
@@ -2122,7 +2127,7 @@ class LazyPropertySharedDescriptor(Generic[_T, _InstanceT, _KeyT], LazyPropertyR
     #    property_._restock()
     #    #self._restock(property_)
 
-    #def get_field(self: Self) -> Any:
+    #def get_field(self) -> Any:
     #    def factory() -> LazyPropertyRecord[_DAGNodeT]:
     #        return LazyPropertyRecord()
     #    return field(default_factory=factory)

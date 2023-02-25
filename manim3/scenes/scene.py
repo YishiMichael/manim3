@@ -2,7 +2,6 @@ __all__ = ["Scene"]
 
 
 import time
-from typing import Self
 import warnings
 
 import moderngl
@@ -47,7 +46,7 @@ class Scene(Mobject):
         "_previous_rendering_timestamp"
     )
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         self._animation_dict: dict[Animation, float] = {}
         # A timer scaled by fps
         self._frame_floating_index: float = 0.0

@@ -4,10 +4,12 @@ __all__ = ["DAGNode"]
 #from abc import ABC
 from typing import (
     Generator,
-    Self,
+    TypeVar
 )
 
 #from ordered_set import OrderedSet
+
+Self = TypeVar("Self", bound="DAGNode")
 
 
 class DAGNode:
@@ -17,17 +19,17 @@ class DAGNode:
         "_parents"
     )
 
-    def __init__(self: Self) -> None:
+    def __init__(self) -> None:
         super().__init__()
         #self._nodes: list[LazyObjectNode] = []
-        self._children: list[Self] = []
+        self._children: list = []
         #self._node_descendants: list[LazyObject] = [self]
-        self._parents: list[Self] = []
+        self._parents: list = []
 
-    def _iter_descendants(self: Self) -> Generator[Self, None, None]:
+    def _iter_descendants(self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_descendants(node: Self) -> Generator[Self, None, None]:
+        def iter_descendants(node) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
@@ -37,10 +39,10 @@ class DAGNode:
 
         yield from iter_descendants(self)
 
-    def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
+    def _iter_ancestors(self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_ancestors(node: Self) -> Generator[Self, None, None]:
+        def iter_ancestors(node) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
@@ -50,7 +52,7 @@ class DAGNode:
 
         yield from iter_ancestors(self)
 
-    def _bind_children(self: Self, *nodes: Self) -> Self:
+    def _bind_children(self, *nodes):
         if (invalid_nodes := [
             node for node in self._iter_ancestors()
             if node in nodes
@@ -68,7 +70,7 @@ class DAGNode:
             #    descendant._node_ancestors.append(self)
         return self
 
-    def _unbind_children(self: Self, *nodes: Self) -> Self:
+    def _unbind_children(self, *nodes):
         if (invalid_nodes := [
             node for node in nodes
             if node not in self._children
@@ -95,46 +97,46 @@ class DAGNode:
 #        "_node_ancestors"
 #    )
 
-#    def __init__(self: Self) -> None:
+#    def __init__(self) -> None:
 #        self._node_children: OrderedSet[Self] = OrderedSet(())
 #        self._node_descendants: OrderedSet[Self] = OrderedSet((self,))
 #        self._node_parents: OrderedSet[Self] = OrderedSet(())
 #        self._node_ancestors: OrderedSet[Self] = OrderedSet((self,))
 
-#    def __len__(self: Self) -> int:
+#    def __len__(self) -> int:
 #        return self._node_children.__len__()
 
 #    @overload
-#    def __getitem__(self: Self, index: slice) -> OrderedSet[Self]:
+#    def __getitem__(self, index: slice) -> OrderedSet[Self]:
 #        ...
 
 #    @overload
-#    def __getitem__(self: Self, index: Sequence[int]) -> list[Self]:
+#    def __getitem__(self, index: Sequence[int]) -> list[Self]:
 #        ...
 
 #    @overload
-#    def __getitem__(self: Self, index: int) -> Self:
+#    def __getitem__(self, index: int):
 #        ...
 
 #    def __getitem__(
-#        self: Self,
+#        self,
 #        index: slice | Sequence[int] | int
 #    ) -> OrderedSet[Self] | list[Self] | Self:
 #        return self._node_children.__getitem__(index)
 
-#    #def iter_node_children(self: Self) -> Iterator[Self]:
+#    #def iter_node_children(self) -> Iterator[Self]:
 #    #    return iter(self._node_children)
 
-#    #def iter_node_descendants(self: Self) -> Iterator[Self]:
+#    #def iter_node_descendants(self) -> Iterator[Self]:
 #    #    return iter(self._node_descendants)
 
-#    #def iter_node_parents(self: Self) -> Iterator[Self]:
+#    #def iter_node_parents(self) -> Iterator[Self]:
 #    #    return iter(self._node_parents)
 
-#    #def iter_node_ancestors(self: Self) -> Iterator[Self]:
+#    #def iter_node_ancestors(self) -> Iterator[Self]:
 #    #    return iter(self._node_ancestors)
 
-#    def bind_children(self: Self, *nodes: Self) -> Self:
+#    def bind_children(self, *nodes):
 #        if (invalid_nodes := self._node_ancestors.intersection(nodes)):
 #            raise ValueError(f"Nodes `{invalid_nodes}` have already included `{self}`")
 #        self._node_children.update(nodes)
@@ -146,7 +148,7 @@ class DAGNode:
 #                descendant._node_ancestors.append(self)
 #        return self
 
-#    def unbind_children(self: Self, *nodes: Self) -> Self:
+#    def unbind_children(self, *nodes):
 #        if (invalid_nodes := OrderedSet(nodes).difference(self._node_children)):
 #            raise ValueError(f"Nodes `{invalid_nodes}` are not children of `{self}`")
 #        self._node_children.difference_update(nodes)

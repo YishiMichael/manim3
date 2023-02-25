@@ -7,7 +7,6 @@ import itertools as it
 from typing import (
     Generator,
     Iterator,
-    Self,
     overload
 )
 import warnings
@@ -228,7 +227,7 @@ class Mobject(LazyObject):
     #        result._bind_child(child_copy)
     #    return result
 
-    def copy(self: Self) -> Self:
+    def copy(self):
         return self._copy()
 
     #def copy(self):

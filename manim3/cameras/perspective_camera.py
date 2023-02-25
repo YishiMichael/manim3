@@ -1,7 +1,6 @@
 __all__ = ["PerspectiveCamera"]
 
 
-from typing import Self
 import numpy as np
 
 from ..cameras.camera import Camera
@@ -21,7 +20,7 @@ class PerspectiveCamera(Camera):
     __slots__ = ()
 
     def __init__(
-        self: Self,
+        self,
         *,
         width: Real | None = None,
         height: Real | None = None,

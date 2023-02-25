@@ -1,7 +1,6 @@
 __all__ = ["Camera"]
 
 
-from typing import Self
 import numpy as np
 
 from ..constants import (
@@ -89,12 +88,12 @@ class Camera(LazyObject):
         )
 
     def set_view(
-        self: Self,
+        self,
         *,
         eye: Vec3T | None = None,
         target: Vec3T | None = None,
         up: Vec3T | None = None
-    ) -> Self:
+    ):
         if eye is not None:
             self._eye_ = LazyWrapper(eye)
         if target is not None:
