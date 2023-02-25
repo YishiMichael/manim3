@@ -26,10 +26,10 @@ class DAGNode:
         #self._node_descendants: list[LazyObject] = [self]
         self._parents: list = []
 
-    def _iter_descendants(self) -> Generator[Self, None, None]:
+    def _iter_descendants(self: Self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_descendants(node) -> Generator[Self, None, None]:
+        def iter_descendants(node: Self) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
@@ -39,10 +39,10 @@ class DAGNode:
 
         yield from iter_descendants(self)
 
-    def _iter_ancestors(self) -> Generator[Self, None, None]:
+    def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_ancestors(node) -> Generator[Self, None, None]:
+        def iter_ancestors(node: Self) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
@@ -52,7 +52,7 @@ class DAGNode:
 
         yield from iter_ancestors(self)
 
-    def _bind_children(self, *nodes):
+    def _bind_children(self: Self, *nodes: Self) -> Self:
         if (invalid_nodes := [
             node for node in self._iter_ancestors()
             if node in nodes
@@ -70,7 +70,7 @@ class DAGNode:
             #    descendant._node_ancestors.append(self)
         return self
 
-    def _unbind_children(self, *nodes):
+    def _unbind_children(self: Self, *nodes: Self) -> Self:
         if (invalid_nodes := [
             node for node in nodes
             if node not in self._children
