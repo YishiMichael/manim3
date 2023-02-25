@@ -16,8 +16,8 @@ from ..geometries.geometry import (
     GeometryData
 )
 from ..utils.lazy import (
-    NewData,
-    lazy_basedata,
+    LazyWrapper,
+    lazy_object,
     lazy_property
 )
 from ..utils.shape import Shape
@@ -30,31 +30,33 @@ class ShapeGeometry(Geometry):
     def __init__(self, shape: Shape | None = None):
         super().__init__()
         if shape is not None:
-            self._shape_ = NewData(shape)
+            self._shape_ = shape
 
-    @lazy_basedata
+    @lazy_object
     @staticmethod
     def _shape_() -> Shape:
         return Shape()
 
     @lazy_property
     @staticmethod
-    def _geometry_data_(shape: Shape) -> GeometryData:
-        index, coords = ShapeGeometry._get_shape_triangulation(shape)
+    def _geometry_data_(
+        _shape_: Shape
+    ) -> LazyWrapper[GeometryData]:
+        index, coords = ShapeGeometry._get_shape_triangulation(_shape_)
         position = SpaceUtils.increase_dimension(coords)
         normal = np.repeat(np.array((0.0, 0.0, 1.0))[None], len(position), axis=0)
-        return GeometryData(
+        return LazyWrapper(GeometryData(
             index=index,
             position=position,
             normal=normal,
             uv=coords
-        )
+        ))
 
     @classmethod
     def _get_shape_triangulation(cls, shape: Shape) -> tuple[VertexIndexType, Vec2sT]:
         item_list: list[tuple[VertexIndexType, Vec2sT]] = []
         coords_len = 0
-        for polygon in cls._get_shapely_polygons(shape._shapely_obj_):
+        for polygon in cls._get_shapely_polygons(shape._shapely_obj_.value):
             index, coords = cls._get_polygon_triangulation(polygon)
             item_list.append((index + coords_len, coords))
             coords_len += len(coords)

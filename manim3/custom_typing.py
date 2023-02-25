@@ -1,19 +1,19 @@
 __all__ = [
+    "ColorType",
+    "FloatsT",
+    "Mat3T",
+    "Mat4T",
+    "Mat3sT",
+    "Mat4sT",
     "Real",
+    "Selector",
     "Vec2T",
     "Vec3T",
     "Vec4T",
-    "Mat3T",
-    "Mat4T",
-    "FloatsT",
     "Vec2sT",
     "Vec3sT",
     "Vec4sT",
-    "Mat3sT",
-    "Mat4sT",
-    "VertexIndexType",
-    "ColorType",
-    "Selector"
+    "VertexIndexType"
 ]
 
 

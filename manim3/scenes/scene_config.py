@@ -11,18 +11,55 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
-from ..rendering.glsl_variables import UniformBlockBuffer
+from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    LazyBase,
-    NewData,
-    lazy_basedata,
-    lazy_property,
-    lazy_slot
+    LazyCollection,
+    LazyObject,
+    LazyWrapper,
+    lazy_collection,
+    lazy_object,
+    lazy_object_raw,
+    lazy_property
 )
 
 
-class SceneConfig(LazyBase):
+class PointLight(LazyObject):
+    __slots__ = ()
+
+    @lazy_object_raw
+    @staticmethod
+    def _position_() -> Vec3T:
+        return np.ones(3)
+
+    @lazy_object_raw
+    @staticmethod
+    def _color_() -> Vec3T:
+        return np.ones(3)
+
+    @lazy_object_raw
+    @staticmethod
+    def _opacity_() -> Real:
+        return 1.0
+
+    def set_style(
+        self,
+        *,
+        position: Vec3T | None = None,
+        color: ColorType | None = None,
+        opacity: Real | None = None
+    ):
+        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        if position is not None:
+            self._position_ = LazyWrapper(position)
+        if color_component is not None:
+            self._color_ = LazyWrapper(color_component)
+        if opacity_component is not None:
+            self._opacity_ = LazyWrapper(opacity_component)
+        return self
+
+
+class SceneConfig(LazyObject):
     __slots__ = ()
 
     _POINT_LIGHT_DTYPE: ClassVar[np.dtype] = np.dtype([
@@ -31,37 +68,38 @@ class SceneConfig(LazyBase):
         ("opacity", (np.float_)),
     ])
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _background_color_() -> Vec3T:
         return np.zeros(3)
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _background_opacity_() -> Real:
         return 1.0
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _ambient_light_color_() -> Vec3T:
         return np.ones(3)
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _ambient_light_opacity_() -> Real:
         return 1.0
 
-    @lazy_basedata
+    @lazy_collection
     @staticmethod
-    def _point_lights_() -> np.ndarray:
-        return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
+    def _point_lights_() -> LazyCollection[PointLight]:
+        return LazyCollection()
+        #return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
 
     @lazy_property
     @staticmethod
     def _ub_lights_(
         ambient_light_color: Vec3T,
         ambient_light_opacity: Real,
-        point_lights: np.ndarray
+        point_lights: LazyCollection[PointLight]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_lights",
@@ -81,15 +119,21 @@ class SceneConfig(LazyBase):
             data={
                 "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
                 "u_point_lights": {
-                    "position": point_lights["position"],
-                    "color": np.append(point_lights["color"], point_lights["opacity"][:, None], axis=1)
+                    "position": np.array([
+                        point_light._position_.value
+                        for point_light in point_lights
+                    ]),
+                    "color": np.array([
+                        np.append(point_light._color_.value, point_light._opacity_.value)
+                        for point_light in point_lights
+                    ])#np.append(point_lights["color"], point_lights["opacity"][:, None], axis=1)
                 }
             }
         )
 
-    @lazy_slot
+    @lazy_object
     @staticmethod
-    def _camera() -> Camera:
+    def _camera_() -> Camera:
         return PerspectiveCamera()
 
     def set_view(
@@ -99,7 +143,7 @@ class SceneConfig(LazyBase):
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
-        self._camera.set_view(
+        self._camera_.set_view(
             eye=eye,
             target=target,
             up=up
@@ -114,9 +158,9 @@ class SceneConfig(LazyBase):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._background_color_ = NewData(color_component)
+            self._background_color_ = LazyWrapper(color_component)
         if opacity_component is not None:
-            self._background_opacity_ = NewData(opacity_component)
+            self._background_opacity_ = LazyWrapper(opacity_component)
         return self
 
     def set_ambient_light(
@@ -127,9 +171,9 @@ class SceneConfig(LazyBase):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._ambient_light_color_ = NewData(color_component)
+            self._ambient_light_color_ = LazyWrapper(color_component)
         if opacity_component is not None:
-            self._ambient_light_opacity_ = NewData(opacity_component)
+            self._ambient_light_opacity_ = LazyWrapper(opacity_component)
         return self
 
     def add_point_light(
@@ -139,13 +183,17 @@ class SceneConfig(LazyBase):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        point_light = np.array((
-            position if position is not None else np.zeros(3),
-            color_component if color_component is not None else np.ones(3),
-            opacity_component if opacity_component is not None else 1.0
-        ), dtype=self._POINT_LIGHT_DTYPE)
-        self._point_lights_ = NewData(np.append(self._point_lights_, point_light))
+        #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        #point_light = np.array((
+        #    position if position is not None else np.zeros(3),
+        #    color_component if color_component is not None else np.ones(3),
+        #    opacity_component if opacity_component is not None else 1.0
+        #), dtype=self._POINT_LIGHT_DTYPE)
+        self._point_lights_.add(PointLight().set_style(
+            position=position,
+            color=color,
+            opacity=opacity
+        ))
         return self
 
     def set_point_light(
@@ -159,16 +207,21 @@ class SceneConfig(LazyBase):
         if self._point_lights_:
             if index is None:
                 index = 0
-            point_lights = self._point_lights_
-            color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-            point_light = np.array((
-                position if position is not None else point_lights[index]["position"],
-                color_component if color_component is not None else point_lights[index]["color"],
-                opacity_component if opacity_component is not None else point_lights[index]["opacity"]
-            ), dtype=self._POINT_LIGHT_DTYPE)
-            self._point_lights_ = NewData(np.concatenate(
-                (point_lights[:index], [point_light], point_lights[index + 1:])
-            ))
+            self._point_lights_[index].set_style(
+                position=position,
+                color=color,
+                opacity=opacity
+            )
+            #point_lights = self._point_lights_
+            #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+            #point_light = np.array((
+            #    position if position is not None else point_lights[index]["position"],
+            #    color_component if color_component is not None else point_lights[index]["color"],
+            #    opacity_component if opacity_component is not None else point_lights[index]["opacity"]
+            #), dtype=self._POINT_LIGHT_DTYPE)
+            #self._point_lights_ = LazyWrapper(np.concatenate(
+            #    (point_lights[:index], [point_light], point_lights[index + 1:])
+            #))
         else:
             if index is not None:
                 raise IndexError

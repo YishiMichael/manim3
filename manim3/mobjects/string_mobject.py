@@ -26,7 +26,6 @@ from ..custom_typing import (
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
-from ..utils.lazy import lazy_slot
 
 
 class CommandFlag(Enum):
@@ -176,7 +175,10 @@ class StringMobject(SVGMobject):
     so that each child of the original `SVGMobject` will be labelled
     by the color of its paired child from the additional `SVGMobject`.
     """
-    __slots__ = ()
+    __slots__ = (
+        "_string",
+        "_parsing_result"
+    )
 
     def __init__(
         self,
@@ -208,20 +210,20 @@ class StringMobject(SVGMobject):
         ]
         
         super().__init__()
-        self._string = string
-        self._parsing_result = parsing_result
+        self._string: str = string
+        self._parsing_result: ParsingResult = parsing_result
         #self._shape_mobjects.extend(shape_mobjects)
         self.add(*shape_mobjects)
 
-    @lazy_slot
-    @staticmethod
-    def _string() -> str:
-        return NotImplemented
+    #@lazy_slot
+    #@staticmethod
+    #def _string() -> str:
+    #    return NotImplemented
 
-    @lazy_slot
-    @staticmethod
-    def _parsing_result() -> ParsingResult:
-        return NotImplemented
+    #@lazy_slot
+    #@staticmethod
+    #def _parsing_result() -> ParsingResult:
+    #    return NotImplemented
 
     @classmethod
     def _parse(
@@ -548,7 +550,7 @@ class StringMobject(SVGMobject):
         unrecognizable_colors: list[str] = []
         labelled_shape_items: list[LabelledShapeItem] = []
         for plain_shape, labelled_shape in zip(plain_shapes, rearranged_labelled_shapes, strict=True):
-            color_hex = ColorUtils.color_to_hex(labelled_shape._color_)
+            color_hex = ColorUtils.color_to_hex(labelled_shape._color_.value)
             label = int(color_hex[1:], 16)
             if label >= labels_count:
                 unrecognizable_colors.append(color_hex)

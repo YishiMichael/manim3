@@ -13,14 +13,13 @@ from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..scenes.scene_config import SceneConfig
 from ..utils.lazy import (
-    NewData,
-    lazy_basedata,
-    lazy_slot
+    LazyWrapper,
+    lazy_object
 )
 
 
 class ImageMobject(MeshMobject):
-    __slots__ = ()
+    __slots__ = ("_image",)
 
     def __init__(
         self,
@@ -32,7 +31,7 @@ class ImageMobject(MeshMobject):
     ):
         super().__init__()
         image = Image.open(image_path)
-        self._image = image
+        self._image: Image.Image = image
 
         x_scale, y_scale = self._get_frame_scale_vector(
             image.width / ConfigSingleton().pixel_per_unit,
@@ -43,19 +42,14 @@ class ImageMobject(MeshMobject):
         )
         self.scale(np.array((x_scale, -y_scale, 1.0)))  # flip y
 
-    @lazy_basedata
+    @lazy_object
     @staticmethod
     def _geometry_() -> Geometry:
         return PlaneGeometry()
-
-    @lazy_slot
-    @staticmethod
-    def _image() -> Image.Image:
-        return NotImplemented
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         image = self._image
         with ColorFramebufferBatch() as batch:
             batch.color_texture.write(image.tobytes())
-            self._color_map_ = NewData(batch.color_texture)
+            self._color_map_ = LazyWrapper(batch.color_texture)
             super()._render(scene_config, target_framebuffer)

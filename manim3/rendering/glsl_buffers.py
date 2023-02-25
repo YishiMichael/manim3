@@ -21,16 +21,15 @@ import numpy as np
 
 from ..rendering.context import ContextSingleton
 from ..utils.lazy import (
-    LazyBase,
-    NewData,
-    lazy_basedata,
-    lazy_basedata_cached,
-    lazy_property,
-    lazy_slot
+    LazyObject,
+    LazyWrapper,
+    lazy_object_raw,
+    lazy_object_shared,
+    lazy_property_raw
 )
 
 
-class GLSLVariableLayout(Enum):
+class GLSLBufferLayout(Enum):
     PACKED = 0
     STD140 = 1
 
@@ -46,7 +45,7 @@ class FieldInfo:
     shape: tuple[int, ...]
 
 
-class GLSLDynamicStruct(LazyBase):
+class GLSLDynamicStruct(LazyObject):
     __slots__ = ()
 
     _GLSL_DTYPE: ClassVar[dict[str, np.dtype]] = {
@@ -92,7 +91,7 @@ class GLSLDynamicStruct(LazyBase):
         field: str,
         child_structs: dict[str, list[str]] | None = None,
         dynamic_array_lens: dict[str, int] | None = None,
-        layout: GLSLVariableLayout,
+        layout: GLSLBufferLayout,
         data: np.ndarray | dict[str, Any]
     ):
         if child_structs is None:
@@ -104,7 +103,7 @@ class GLSLDynamicStruct(LazyBase):
         self._child_structs_ = child_structs
         self._dynamic_array_lens_ = dynamic_array_lens
         self._layout_ = layout
-        self._data_ = NewData(data)
+        self._data_ = LazyWrapper(data)
 
     @staticmethod
     def __field_cacher(
@@ -112,7 +111,7 @@ class GLSLDynamicStruct(LazyBase):
     ) -> str:
         return field
 
-    @lazy_basedata_cached(__field_cacher)
+    @lazy_object_shared(__field_cacher)
     @staticmethod
     def _field_() -> str:
         return NotImplemented
@@ -126,7 +125,7 @@ class GLSLDynamicStruct(LazyBase):
             for name, child_struct_fields in child_structs.items()
         )
 
-    @lazy_basedata_cached(__child_structs_cacher)
+    @lazy_object_shared(__child_structs_cacher)
     @staticmethod
     def _child_structs_() -> dict[str, list[str]]:
         return NotImplemented
@@ -137,34 +136,34 @@ class GLSLDynamicStruct(LazyBase):
     ) -> tuple[tuple[str, int], ...]:
         return tuple(dynamic_array_lens.items())
 
-    @lazy_basedata_cached(__dynamic_array_lens_cacher)
+    @lazy_object_shared(__dynamic_array_lens_cacher)
     @staticmethod
     def _dynamic_array_lens_() -> dict[str, int]:
         return NotImplemented
 
     @staticmethod
     def __layout_cacher(
-        layout: GLSLVariableLayout
-    ) -> GLSLVariableLayout:
+        layout: GLSLBufferLayout
+    ) -> GLSLBufferLayout:
         return layout
 
-    @lazy_basedata_cached(__layout_cacher)
+    @lazy_object_shared(__layout_cacher)
     @staticmethod
-    def _layout_() -> GLSLVariableLayout:
+    def _layout_() -> GLSLBufferLayout:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _data_() -> np.ndarray | dict[str, Any]:
         return NotImplemented
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _struct_dtype_(
         field: str,
         child_structs: dict[str, list[str]],
         dynamic_array_lens: dict[str, int],
-        layout: GLSLVariableLayout
+        layout: GLSLBufferLayout
     ) -> np.dtype:
         return GLSLDynamicStruct._build_struct_dtype(
             [GLSLDynamicStruct._parse_field_str(field, dynamic_array_lens)],
@@ -179,7 +178,7 @@ class GLSLDynamicStruct(LazyBase):
             0
         )
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _field_name_(
         struct_dtype: np.dtype
@@ -187,7 +186,7 @@ class GLSLDynamicStruct(LazyBase):
         assert (field_names := struct_dtype.names) is not None
         return field_names[0]
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _data_storage_(
         data: np.ndarray | dict[str, Any],
@@ -206,12 +205,12 @@ class GLSLDynamicStruct(LazyBase):
             data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)
         return data_storage
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _itemsize_(struct_dtype: np.dtype) -> int:
         return struct_dtype.itemsize
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _is_empty_(itemsize: int) -> bool:
         return itemsize == 0
@@ -234,7 +233,7 @@ class GLSLDynamicStruct(LazyBase):
         cls,
         fields_info: list[FieldInfo],
         child_structs_info: dict[str, list[FieldInfo]],
-        layout: GLSLVariableLayout,
+        layout: GLSLBufferLayout,
         depth: int
     ) -> np.dtype:
         names: list[str] = []
@@ -254,7 +253,7 @@ class GLSLDynamicStruct(LazyBase):
                 child_dtype = cls._align_atomic_dtype(atomic_dtype, layout, not shape)
                 base_alignment = child_dtype.base.itemsize
 
-            if layout == GLSLVariableLayout.STD140:
+            if layout == GLSLBufferLayout.STD140:
                 assert child_dtype.itemsize % base_alignment == 0
                 offset += (-offset) % base_alignment
             names.append(field_info.name)
@@ -262,7 +261,7 @@ class GLSLDynamicStruct(LazyBase):
             offsets.append(offset)
             offset += cls._int_prod(shape) * child_dtype.itemsize
 
-        if layout == GLSLVariableLayout.STD140:
+        if layout == GLSLBufferLayout.STD140:
             offset += (-offset) % 16
 
         return np.dtype({
@@ -292,14 +291,14 @@ class GLSLDynamicStruct(LazyBase):
         )
 
     @classmethod
-    def _align_atomic_dtype(cls, atomic_dtype: np.dtype, layout: GLSLVariableLayout, zero_dimensional: bool) -> np.dtype:
+    def _align_atomic_dtype(cls, atomic_dtype: np.dtype, layout: GLSLBufferLayout, zero_dimensional: bool) -> np.dtype:
         base = atomic_dtype.base
         shape = atomic_dtype.shape
         assert len(shape) <= 2 and all(2 <= l <= 4 for l in shape)
         shape_dict = dict(enumerate(shape))
         n_col = shape_dict.get(0, 1)
         n_row = shape_dict.get(1, 1)
-        if layout == GLSLVariableLayout.STD140:
+        if layout == GLSLBufferLayout.STD140:
             itemsize = (n_col if zero_dimensional and n_col <= 2 and n_row == 1 else 4) * base.itemsize
         else:
             itemsize = n_col * base.itemsize
@@ -319,7 +318,7 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 
     _BUFFER_CACHE: list[moderngl.Buffer] = []
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _buffer_(
         data_storage: np.ndarray,
@@ -361,14 +360,14 @@ class TextureStorage(GLSLDynamicStruct):
         super().__init__(
             field=replaced_field,
             dynamic_array_lens=dynamic_array_lens,
-            layout=GLSLVariableLayout.PACKED,
+            layout=GLSLBufferLayout.PACKED,
             data=np.zeros(texture_array.shape, dtype=np.uint32)
         )
-        self._texture_array = texture_array
+        self._texture_array_ = LazyWrapper(texture_array)
 
-    @lazy_slot
+    @lazy_object_raw
     @staticmethod
-    def _texture_array() -> np.ndarray:
+    def _texture_array_() -> np.ndarray:
         return NotImplemented
 
 
@@ -395,7 +394,7 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
                 **child_structs
             },
             dynamic_array_lens=dynamic_array_lens,
-            layout=GLSLVariableLayout.STD140,
+            layout=GLSLBufferLayout.STD140,
             data=data
         )
 
@@ -426,18 +425,18 @@ class AttributesBuffer(GLSLDynamicBuffer):
             },
             dynamic_array_lens=dynamic_array_lens,
             # Let's keep using std140 layout, hopefully leading to a faster processing speed.
-            layout=GLSLVariableLayout.STD140,
+            layout=GLSLBufferLayout.STD140,
             data=data,
         )
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _vertex_dtype_(struct_dtype: np.dtype) -> np.dtype:
         return struct_dtype["__vertex__"].base
 
     def _get_buffer_format(self, attribute_name_set: set[str]) -> tuple[str, list[str]]:
         # TODO: This may require refactory
-        vertex_dtype = self._vertex_dtype_
+        vertex_dtype = self._vertex_dtype_.value
         vertex_fields = vertex_dtype.fields
         assert vertex_fields is not None
         dtype_stack: list[tuple[np.dtype, int]] = []
@@ -472,7 +471,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
         return " ".join(components), attribute_names
 
     def _validate(self, attributes: dict[str, moderngl.Attribute]) -> None:
-        vertex_dtype = self._vertex_dtype_
+        vertex_dtype = self._vertex_dtype_.value
         for attribute_name, attribute in attributes.items():
             field_dtype = vertex_dtype[attribute_name]
             assert attribute.array_length == self._int_prod(field_dtype.shape)
@@ -493,6 +492,6 @@ class IndexBuffer(GLSLDynamicBuffer):
             dynamic_array_lens={
                 "__NUM_INDEX__": len(data)
             },
-            layout=GLSLVariableLayout.PACKED,
+            layout=GLSLBufferLayout.PACKED,
             data=data
         )

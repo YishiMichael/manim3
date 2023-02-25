@@ -1,6 +1,7 @@
 __all__ = ["PerspectiveCamera"]
 
 
+from typing import Self
 import numpy as np
 
 from ..cameras.camera import Camera
@@ -10,9 +11,9 @@ from ..custom_typing import (
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
-    NewData,
-    lazy_basedata,
-    lazy_property
+    LazyWrapper,
+    lazy_object_raw,
+    lazy_property_raw
 )
 
 
@@ -20,52 +21,52 @@ class PerspectiveCamera(Camera):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         width: Real | None = None,
         height: Real | None = None,
         near: Real | None = None,
         far: Real | None = None,
         altitude: Real | None = None
-    ):
+    ) -> None:
         super().__init__()
         if width is not None:
-            self._width_ = NewData(width)
+            self._width_ = LazyWrapper(width)
         if height is not None:
-            self._height_ = NewData(height)
+            self._height_ = LazyWrapper(height)
         if near is not None:
-            self._near_ = NewData(near)
+            self._near_ = LazyWrapper(near)
         if far is not None:
-            self._far_ = NewData(far)
+            self._far_ = LazyWrapper(far)
         if altitude is not None:
-            self._altitude_ = NewData(altitude)
+            self._altitude_ = LazyWrapper(altitude)
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _width_() -> Real:
         return ConfigSingleton().frame_width
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _height_() -> Real:
         return ConfigSingleton().frame_height
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _near_() -> Real:
         return ConfigSingleton().camera_near
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _far_() -> Real:
         return ConfigSingleton().camera_far
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _altitude_() -> Real:
         return ConfigSingleton().camera_altitude
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _projection_matrix_(
         width: Real,

@@ -15,10 +15,12 @@ from ..mobjects.stroke_mobject import StrokeMobject
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    NewData,
-    lazy_basedata,
-    lazy_property,
-    lazy_slot
+    LazyCollection,
+    LazyWrapper,
+    lazy_collection,
+    lazy_object,
+    #lazy_value,
+    lazy_property
 )
 from ..utils.shape import Shape
 
@@ -36,36 +38,38 @@ class ShapeMobject(MeshMobject):
             self.set_shape(shape_obj)
         self.set_style(apply_phong_lighting=False)
 
-    @lazy_basedata
+    @lazy_object
     @staticmethod
     def _shape_() -> Shape:
         return Shape()
 
     @lazy_property
     @staticmethod
-    def _geometry_(shape: Shape) -> ShapeGeometry:
-        return ShapeGeometry(shape)
+    def _geometry_(
+        _shape_: Shape
+    ) -> ShapeGeometry:
+        return ShapeGeometry(_shape_)
 
-    #@lazy_basedata
+    #@lazy_value
     #@staticmethod
     #def _apply_phong_lighting() -> bool:
     #    return False
 
-    @lazy_slot
+    @lazy_collection
     @staticmethod
-    def _stroke_mobjects() -> list[StrokeMobject]:
-        return []
+    def _stroke_mobjects_() -> LazyCollection[StrokeMobject]:
+        return LazyCollection()
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         super()._render(scene_config, target_framebuffer)
-        for stroke_mobject in self._stroke_mobjects:
+        for stroke_mobject in self._stroke_mobjects_:
+            stroke_mobject._model_matrix_ = self._model_matrix_  # TODO: should it live here???
             stroke_mobject._render(scene_config, target_framebuffer)
 
     def set_shape(self, shape: Shape):
-        self._shape_ = NewData(shape)
-        multi_line_string_data = NewData(shape._multi_line_string_3d_)
-        for stroke in self._stroke_mobjects:
-            stroke._multi_line_string_3d_ = multi_line_string_data
+        self._shape_ = shape
+        for stroke in self._stroke_mobjects_:
+            stroke._multi_line_string_3d_ = shape._multi_line_string_3d_
         return self
 
     def set_fill(
@@ -82,15 +86,15 @@ class ShapeMobject(MeshMobject):
     ):
         # TODO: almost completely redundant with MeshMobject.set_style
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_data = NewData(color_component) if color_component is not None else None
-        opacity_data = NewData(opacity_component) if opacity_component is not None else None
-        apply_oit = apply_oit if apply_oit is not None else \
-            True if opacity_component is not None else None
-        ambient_strength_data = NewData(ambient_strength) if ambient_strength is not None else None
-        specular_strength_data = NewData(specular_strength) if specular_strength is not None else None
-        shininess_data = NewData(shininess) if shininess is not None else None
-        apply_phong_lighting = apply_phong_lighting if apply_phong_lighting is not None else \
-            True if any(param is not None for param in (
+        color_value = LazyWrapper(color_component) if color_component is not None else None
+        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
+        apply_oit_value = LazyWrapper(apply_oit) if apply_oit is not None else \
+            LazyWrapper(True) if opacity_component is not None else None
+        ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
+        specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
+        shininess_value = LazyWrapper(shininess) if shininess is not None else None
+        apply_phong_lighting_value = LazyWrapper(apply_phong_lighting) if apply_phong_lighting is not None else \
+            LazyWrapper(True) if any(param is not None for param in (
                 ambient_strength,
                 specular_strength,
                 shininess
@@ -98,20 +102,20 @@ class ShapeMobject(MeshMobject):
         for mobject in self.iter_descendants(broadcast=broadcast):
             if not isinstance(mobject, ShapeMobject):
                 continue
-            if color_data is not None:
-                mobject._color_ = color_data
-            if opacity_data is not None:
-                mobject._opacity_ = opacity_data
-            if apply_oit is not None:
-                mobject._apply_oit = apply_oit
-            if ambient_strength_data is not None:
-                mobject._ambient_strength_ = ambient_strength_data
-            if specular_strength_data is not None:
-                mobject._specular_strength_ = specular_strength_data
-            if shininess_data is not None:
-                mobject._shininess_ = shininess_data
-            if apply_phong_lighting is not None:
-                mobject._apply_phong_lighting = apply_phong_lighting
+            if color_value is not None:
+                mobject._color_ = color_value
+            if opacity_value is not None:
+                mobject._opacity_ = opacity_value
+            if apply_oit_value is not None:
+                mobject._apply_oit_ = apply_oit_value
+            if ambient_strength_value is not None:
+                mobject._ambient_strength_ = ambient_strength_value
+            if specular_strength_value is not None:
+                mobject._specular_strength_ = specular_strength_value
+            if shininess_value is not None:
+                mobject._shininess_ = shininess_value
+            if apply_phong_lighting_value is not None:
+                mobject._apply_phong_lighting_ = apply_phong_lighting_value
         return self
 
     def add_stroke(
@@ -131,9 +135,9 @@ class ShapeMobject(MeshMobject):
             if not isinstance(mobject, ShapeMobject):
                 continue
             stroke = StrokeMobject(self._shape_._multi_line_string_3d_)
-            stroke.apply_transform(self._model_matrix_)
+            #stroke.apply_transform(self._model_matrix_)
             stroke_mobjects.append(stroke)
-            mobject._stroke_mobjects.append(stroke)
+            mobject._stroke_mobjects_.add(stroke)
 
         StrokeMobject().add(*stroke_mobjects).set_style(
             width=width,
@@ -163,10 +167,10 @@ class ShapeMobject(MeshMobject):
         for mobject in self.iter_descendants(broadcast=broadcast):
             if not isinstance(mobject, ShapeMobject):
                 continue
-            if mobject._stroke_mobjects:
+            if mobject._stroke_mobjects_:
                 if index is None:
                     index = 0
-                mobject._stroke_mobjects[index].set_style(
+                mobject._stroke_mobjects_[index].set_style(
                     width=width,
                     single_sided=single_sided,
                     has_linecap=has_linecap,

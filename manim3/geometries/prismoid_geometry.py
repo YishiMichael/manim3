@@ -15,7 +15,8 @@ from ..geometries.geometry import (
 )
 from ..geometries.shape_geometry import ShapeGeometry
 from ..utils.lazy import (
-    lazy_basedata,
+    LazyWrapper,
+    lazy_object,
     lazy_property
 )
 from ..utils.shape import Shape
@@ -25,21 +26,23 @@ from ..utils.space import SpaceUtils
 class PrismoidGeometry(Geometry):
     __slots__ = ()
 
-    @lazy_basedata
+    @lazy_object
     @staticmethod
     def _shape_() -> Shape:
         return Shape()
 
     @lazy_property
     @staticmethod
-    def _geometry_data_(shape: Shape) -> GeometryData:
+    def _geometry_data_(
+        _shape_: Shape
+    ) -> LazyWrapper[GeometryData]:
         position_list: list[Vec3T] = []
         normal_list: list[Vec3T] = []
         uv_list: list[Vec2T] = []
         index_list: list[int] = []
         index_offset = 0
-        for line_string in shape._multi_line_string_._children_:
-            coords = line_string._coords_
+        for line_string in _shape_._multi_line_string_._children_:
+            coords = line_string._coords_.value
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths.
             # TODO: Shall we normalize winding?
@@ -90,7 +93,7 @@ class PrismoidGeometry(Geometry):
             index_offset += 2 * len(ip_normal_pairs)
 
         # Assemble top and bottom faces
-        shape_index, shape_coords = ShapeGeometry._get_shape_triangulation(shape)
+        shape_index, shape_coords = ShapeGeometry._get_shape_triangulation(_shape_)
         n_coords = len(shape_coords)
         for sign in (1.0, -1.0):
             position_list.extend(SpaceUtils.increase_dimension(shape_coords, sign))
@@ -99,9 +102,9 @@ class PrismoidGeometry(Geometry):
             index_list.extend(index_offset + shape_index)
             index_offset += n_coords
 
-        return GeometryData(
+        return LazyWrapper(GeometryData(
             index=np.array(index_list),
             position=np.array(position_list),
             normal=np.array(normal_list),
             uv=np.array(uv_list)
-        )
+        ))

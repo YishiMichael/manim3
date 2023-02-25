@@ -1,6 +1,7 @@
 __all__ = ["Camera"]
 
 
+from typing import Self
 import numpy as np
 
 from ..constants import (
@@ -13,40 +14,41 @@ from ..custom_typing import (
     Vec3T
 )
 from ..rendering.config import ConfigSingleton
-from ..rendering.glsl_variables import UniformBlockBuffer
+from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.lazy import (
-    LazyBase,
-    NewData,
-    lazy_basedata,
-    lazy_property
+    LazyObject,
+    LazyWrapper,
+    lazy_property,
+    lazy_object_raw,
+    lazy_property_raw
 )
 from ..utils.space import SpaceUtils
 
 
-class Camera(LazyBase):
+class Camera(LazyObject):
     __slots__ = ()
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _projection_matrix_() -> Mat4T:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _eye_() -> Vec3T:
         return ConfigSingleton().camera_altitude * OUT
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _target_() -> Vec3T:
         return ORIGIN
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _up_() -> Vec3T:
         return UP
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _view_matrix_(
         eye: Vec3T,
@@ -87,16 +89,16 @@ class Camera(LazyBase):
         )
 
     def set_view(
-        self,
+        self: Self,
         *,
         eye: Vec3T | None = None,
         target: Vec3T | None = None,
         up: Vec3T | None = None
-    ):
+    ) -> Self:
         if eye is not None:
-            self._eye_ = NewData(eye)
+            self._eye_ = LazyWrapper(eye)
         if target is not None:
-            self._target_ = NewData(target)
+            self._target_ = LazyWrapper(target)
         if up is not None:
-            self._up_ = NewData(up)
+            self._up_ = LazyWrapper(up)
         return self

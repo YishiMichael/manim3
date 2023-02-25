@@ -14,14 +14,14 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
-from ..rendering.glsl_variables import (
+from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer
 )
 from ..rendering.vertex_array import VertexArray
 from ..utils.lazy import (
-    LazyBase,
-    lazy_basedata,
+    LazyObject,
+    lazy_object_raw,
     lazy_property
 )
 
@@ -38,10 +38,10 @@ class GeometryData:
     uv: Vec2sT
 
 
-class Geometry(LazyBase):
+class Geometry(LazyObject):
     __slots__ = ()
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _geometry_data_() -> GeometryData:
         return GeometryData(

@@ -6,21 +6,21 @@ from abc import abstractmethod
 import moderngl
 import numpy as np
 
-from ..rendering.glsl_variables import (
+from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer
 )
 from ..rendering.vertex_array import VertexArray
 from ..utils.lazy import (
-    LazyBase,
-    lazy_basedata
+    LazyObject,
+    lazy_property
 )
 
 
-class RenderPass(LazyBase):
+class RenderPass(LazyObject):
     __slots__ = ()
 
-    @lazy_basedata
+    @lazy_property
     @staticmethod
     def _vertex_array_() -> VertexArray:
         return VertexArray(

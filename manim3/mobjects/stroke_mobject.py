@@ -16,7 +16,7 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..mobjects.mobject import Mobject
-from ..rendering.glsl_variables import (
+from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer,
     UniformBlockBuffer
@@ -28,14 +28,16 @@ from ..rendering.vertex_array import (
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    NewData,
-    lazy_basedata,
-    lazy_basedata_cached,
-    lazy_property,
-    lazy_slot
+    LazyWrapper,
+    lazy_object,
+    lazy_object_raw,
+    lazy_property_raw,
+    lazy_object_shared,
+    lazy_property
 )
 from ..utils.shape import (
     LineString3D,
+    LineStringKind,
     MultiLineString3D
 )
 from ..utils.space import SpaceUtils
@@ -47,7 +49,7 @@ class StrokeMobject(Mobject):
     def __init__(self, multi_line_string_3d: MultiLineString3D | None = None):
         super().__init__()
         if multi_line_string_3d is not None:
-            self._multi_line_string_3d_ = NewData(multi_line_string_3d)
+            self._multi_line_string_3d_ = multi_line_string_3d
 
     @staticmethod
     def __winding_sign_cacher(
@@ -55,55 +57,55 @@ class StrokeMobject(Mobject):
     ) -> bool:
         return winding_sign
 
-    @lazy_basedata_cached(__winding_sign_cacher)
+    @lazy_object_shared(__winding_sign_cacher)
     @staticmethod
     def _winding_sign_() -> bool:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object
     @staticmethod
     def _multi_line_string_3d_() -> MultiLineString3D:
         return MultiLineString3D()
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _width_() -> Real:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _single_sided_() -> bool:
         return False
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _has_linecap_() -> bool:
         return True
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _color_() -> Vec3T:
         return np.ones(3)
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _opacity_() -> Real:
         return 1.0
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _dilate_() -> Real:
         return 0.0
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _local_sample_points_(multi_line_string_3d: MultiLineString3D) -> Vec3sT:
         line_strings = multi_line_string_3d._children_
         if not line_strings:
             return np.zeros((0, 3))
         return np.concatenate([
-            line_string._coords_
+            line_string._coords_.value
             for line_string in line_strings
         ])
 
@@ -153,7 +155,7 @@ class StrokeMobject(Mobject):
             position = np.zeros((0, 3))
         else:
             position = np.concatenate([
-                line_string._coords_
+                line_string._coords_.value
                 for line_string in multi_line_string_3d._children_
             ])
         return AttributesBuffer(
@@ -166,7 +168,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property
+    @lazy_property_raw
     @staticmethod
     def _vertex_array_items_(
         multi_line_string_3d: MultiLineString3D,
@@ -213,10 +215,10 @@ class StrokeMobject(Mobject):
         for vertex_array, _ in vertex_array_items:
             vertex_array._restock()
 
-    @lazy_slot
-    @staticmethod
-    def _render_samples() -> int:
-        return 4
+    #@lazy_slot
+    #@staticmethod
+    #def _render_samples() -> int:
+    #    return 4
 
     @classmethod
     def _lump_index_from_getter(
@@ -228,23 +230,23 @@ class StrokeMobject(Mobject):
         index_arrays: list[VertexIndexType] = []
         for line_string in multi_line_string_3d._children_:
             index_arrays.append(np.array(index_getter(line_string), dtype=np.uint32) + offset)
-            offset += len(line_string._coords_)
+            offset += len(line_string._coords_.value)
         if not index_arrays:
             return np.zeros(0, dtype=np.uint32)
         return np.concatenate(index_arrays, dtype=np.uint32)
 
     @classmethod
     def _line_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_ == "point":
+        if line_string._kind_.value == LineStringKind.POINT:
             return []
-        n_points = len(line_string._coords_)
-        if line_string._kind_ == "line_string":
+        n_points = len(line_string._coords_.value)
+        if line_string._kind_.value == LineStringKind.LINE_STRING:
             # (0, 1, 1, 2, ..., n-2, n-1)
             return list(it.chain(*zip(*(
                 range(i, n_points - 1 + i)
                 for i in range(2)
             ))))
-        if line_string._kind_ == "linear_ring":
+        if line_string._kind_.value == LineStringKind.LINEAR_RING:
             return list(it.chain(*zip(*(
                 np.roll(range(n_points - 1), -i)
                 for i in range(2)
@@ -253,16 +255,16 @@ class StrokeMobject(Mobject):
 
     @classmethod
     def _join_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_ == "point":
+        if line_string._kind_.value == LineStringKind.POINT:
             return []
-        n_points = len(line_string._coords_)
-        if line_string._kind_ == "line_string":
+        n_points = len(line_string._coords_.value)
+        if line_string._kind_.value == LineStringKind.LINE_STRING:
             # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
             return list(it.chain(*zip(*(
                 range(i, n_points - 2 + i)
                 for i in range(3)
             ))))
-        if line_string._kind_ == "linear_ring":
+        if line_string._kind_.value == LineStringKind.LINEAR_RING:
             return list(it.chain(*zip(*(
                 np.roll(range(n_points - 1), -i)
                 for i in range(3)
@@ -271,37 +273,37 @@ class StrokeMobject(Mobject):
 
     @classmethod
     def _cap_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_ in "point":
+        if line_string._kind_.value == LineStringKind.POINT:
             return []
-        n_points = len(line_string._coords_)
-        if line_string._kind_ == "line_string":
+        n_points = len(line_string._coords_.value)
+        if line_string._kind_.value == LineStringKind.LINE_STRING:
             return [0, 1, n_points - 1, n_points - 2]
-        if line_string._kind_ == "linear_ring":
+        if line_string._kind_.value == LineStringKind.LINEAR_RING:
             return []
         raise ValueError  # never
 
     @classmethod
     def _point_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_ in "point":
+        if line_string._kind_.value == LineStringKind.POINT:
             return [0]
-        if line_string._kind_ == "line_string":
+        if line_string._kind_.value == LineStringKind.LINE_STRING:
             return []
-        if line_string._kind_ == "linear_ring":
+        if line_string._kind_.value == LineStringKind.LINEAR_RING:
             return []
         raise ValueError  # never
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # TODO: Is this already the best practice?
-        self._winding_sign_ = self._calculate_winding_sign(scene_config._camera)
+        self._winding_sign_ = self._calculate_winding_sign(scene_config._camera_)
         uniform_blocks = [
-            scene_config._camera._ub_camera_,
+            scene_config._camera_._ub_camera_,
             self._ub_model_,
             self._ub_stroke_,
             self._ub_winding_sign_
         ]
         # Render color
         target_framebuffer.depth_mask = False
-        for vertex_array, custom_macros in self._vertex_array_items_:
+        for vertex_array, custom_macros in self._vertex_array_items_.value:
             vertex_array.render(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
@@ -317,7 +319,7 @@ class StrokeMobject(Mobject):
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
-        for vertex_array, custom_macros in self._vertex_array_items_:
+        for vertex_array, custom_macros in self._vertex_array_items_.value:
             vertex_array.render(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
@@ -333,11 +335,11 @@ class StrokeMobject(Mobject):
     def _calculate_winding_sign(self, camera: Camera) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...
         area = 0.0
-        transform = camera._projection_matrix_ @ camera._view_matrix_ @ self._model_matrix_
+        transform = camera._projection_matrix_.value @ camera._view_matrix_.value @ self._model_matrix_.value
         for line_string in self._multi_line_string_3d_._children_:
-            coords_2d = SpaceUtils.apply_affine(transform, line_string._coords_)[:, :2]
+            coords_2d = SpaceUtils.apply_affine(transform, line_string._coords_.value)[:, :2]
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
-        return area * self._width_ >= 0.0
+        return area * self._width_.value >= 0.0
 
     def set_style(
         self,
@@ -351,33 +353,33 @@ class StrokeMobject(Mobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
-        width_data = NewData(width) if width is not None else None
-        single_sided_data = NewData(single_sided) if single_sided is not None else None
-        has_linecap_data = NewData(has_linecap) if has_linecap is not None else None
+        width_value = LazyWrapper(width) if width is not None else None
+        single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
+        has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_data = NewData(color_component) if color_component is not None else None
-        opacity_data = NewData(opacity_component) if opacity_component is not None else None
-        dilate_data = NewData(dilate) if dilate is not None else None
-        apply_oit = apply_oit if apply_oit is not None else \
-            True if any(param is not None for param in (
+        color_value = LazyWrapper(color_component) if color_component is not None else None
+        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
+        dilate_value = LazyWrapper(dilate) if dilate is not None else None
+        apply_oit_value = LazyWrapper(apply_oit) if apply_oit is not None else \
+            LazyWrapper(True) if any(param is not None for param in (
                 opacity_component,
                 dilate
             )) else None
         for mobject in self.iter_descendants(broadcast=broadcast):
             if not isinstance(mobject, StrokeMobject):
                 continue
-            if width_data is not None:
-                mobject._width_ = width_data
-            if single_sided_data is not None:
-                mobject._single_sided_ = single_sided_data
-            if has_linecap_data is not None:
-                mobject._has_linecap_ = has_linecap_data
-            if color_data is not None:
-                mobject._color_ = color_data
-            if opacity_data is not None:
-                mobject._opacity_ = opacity_data
-            if dilate_data is not None:
-                mobject._dilate_ = dilate_data
-            if apply_oit is not None:
-                mobject._apply_oit = apply_oit
+            if width_value is not None:
+                mobject._width_ = width_value
+            if single_sided_value is not None:
+                mobject._single_sided_ = single_sided_value
+            if has_linecap_value is not None:
+                mobject._has_linecap_ = has_linecap_value
+            if color_value is not None:
+                mobject._color_ = color_value
+            if opacity_value is not None:
+                mobject._opacity_ = opacity_value
+            if dilate_value is not None:
+                mobject._dilate_ = dilate_value
+            if apply_oit_value is not None:
+                mobject._apply_oit_ = apply_oit_value
         return self

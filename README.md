@@ -9,7 +9,7 @@
 
 
 ## Requirements
-Manim3 runs on Python 3.10.
+Manim3 runs on Python 3.11.
 
 
 ## License

@@ -1,9 +1,11 @@
+bidict
 colour
 manimpango
 mapbox-earcut
 moderngl
 moderngl_window
 numpy
+pillow
 pygments
 scipy
 shapely

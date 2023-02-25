@@ -1,21 +1,21 @@
 __all__ = [
-    "ORIGIN",
-    "RIGHT",
-    "LEFT",
-    "UP",
+    "DEGREES",
+    "DL",
     "DOWN",
-    "OUT",
+    "DR",
     "IN",
+    "LEFT",
+    "OUT",
+    "ORIGIN",
+    "PI",
+    "RIGHT",
+    "TAU",
+    "UL",
+    "UP",
+    "UR",
     "X_AXIS",
     "Y_AXIS",
-    "Z_AXIS",
-    "UR",
-    "UL",
-    "DL",
-    "DR",
-    "PI",
-    "TAU",
-    "DEGREES"
+    "Z_AXIS"
 ]
 
 

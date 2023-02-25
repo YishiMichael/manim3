@@ -33,7 +33,7 @@ from .rendering.config import *
 from .rendering.context import *
 from .rendering.framebuffer_batch import *
 from .rendering.framebuffer_batches import *
-from .rendering.glsl_variables import *
+from .rendering.glsl_buffers import *
 from .rendering.renderer import *
 from .rendering.vertex_array import *
 
@@ -43,6 +43,7 @@ from .scenes.scene_config import *
 
 from .utils.cache import *
 from .utils.color import *
+from .utils.dag import *
 from .utils.lazy import *
 from .utils.rate import *
 from .utils.shape import *

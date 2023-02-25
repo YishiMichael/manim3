@@ -2,6 +2,7 @@ __all__ = ["Scene"]
 
 
 import time
+from typing import Self
 import warnings
 
 import moderngl
@@ -18,7 +19,7 @@ from ..scenes.active_scene_data import ActiveSceneDataSingleton
 from ..scenes.scene_config import SceneConfig
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextSingleton
-from ..rendering.glsl_variables import (
+from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer,
     TextureStorage
@@ -32,37 +33,47 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.lazy import (
-    NewData,
-    lazy_basedata,
-    lazy_property,
-    lazy_slot
+    LazyWrapper,
+    lazy_object,
+    lazy_object_raw,
+    lazy_property
 )
 
 
 class Scene(Mobject):
-    __slots__ = ()
+    __slots__ = (
+        "_animation_dict",
+        "_frame_floating_index",
+        "_previous_rendering_timestamp"
+    )
 
-    @lazy_basedata
+    def __init__(self: Self) -> None:
+        self._animation_dict: dict[Animation, float] = {}
+        # A timer scaled by fps
+        self._frame_floating_index: float = 0.0
+        self._previous_rendering_timestamp: float | None = None
+
+    @lazy_object_raw
     @staticmethod
     def _color_map_() -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _accum_map_() -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _revealage_map_() -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object_raw
     @staticmethod
     def _depth_map_() -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_basedata
+    @lazy_object
     @staticmethod
     def _vertex_array_() -> VertexArray:
         return VertexArray(
@@ -135,26 +146,10 @@ class Scene(Mobject):
             texture_array=np.array(depth_map)
         )
 
-    @lazy_slot
+    @lazy_object
     @staticmethod
-    def _scene_config() -> SceneConfig:
+    def _scene_config_() -> SceneConfig:
         return SceneConfig()
-
-    @lazy_slot
-    @staticmethod
-    def _animation_dict() -> dict[Animation, float]:
-        return {}
-
-    @lazy_slot
-    @staticmethod
-    def _frame_floating_index() -> float:
-        # A timer scaled by fps
-        return 0.0
-
-    @lazy_slot
-    @staticmethod
-    def _previous_rendering_timestamp() -> float | None:
-        return None
 
     def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
         # Inspired from https://github.com/ambrosiogabe/MathAnimation
@@ -162,9 +157,9 @@ class Scene(Mobject):
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
         for mobject in self.iter_descendants():
-            if not mobject._has_local_sample_points_:
+            if not mobject._has_local_sample_points_.value:
                 continue
-            if mobject._apply_oit:
+            if mobject._apply_oit_.value:
                 transparent_mobjects.append(mobject)
             else:
                 opaque_mobjects.append(mobject)
@@ -173,8 +168,8 @@ class Scene(Mobject):
             for mobject in opaque_mobjects:
                 with SimpleFramebufferBatch() as batch:
                     mobject._render_with_passes(scene_config, batch.framebuffer)
-                    self._color_map_ = NewData(batch.color_texture)
-                    self._depth_map_ = NewData(batch.depth_texture)
+                    self._color_map_ = LazyWrapper(batch.color_texture)
+                    self._depth_map_ = LazyWrapper(batch.depth_texture)
                     self._vertex_array_.render(
                         shader_filename="copy",
                         custom_macros=[
@@ -195,8 +190,8 @@ class Scene(Mobject):
             for mobject in transparent_mobjects:
                 with SimpleFramebufferBatch() as batch:
                     mobject._render_with_passes(scene_config, batch.framebuffer)
-                    self._color_map_ = NewData(batch.color_texture)
-                    self._depth_map_ = NewData(batch.depth_texture)
+                    self._color_map_ = LazyWrapper(batch.color_texture)
+                    self._depth_map_ = LazyWrapper(batch.depth_texture)
                     self._vertex_array_.render(
                         shader_filename="oit_accum",
                         custom_macros=[],
@@ -226,8 +221,8 @@ class Scene(Mobject):
                         )
                     )
 
-            self._color_map_ = NewData(scene_batch.opaque_texture)
-            self._depth_map_ = NewData(scene_batch.depth_texture)
+            self._color_map_ = LazyWrapper(scene_batch.opaque_texture)
+            self._depth_map_ = LazyWrapper(scene_batch.depth_texture)
             self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[
@@ -244,8 +239,8 @@ class Scene(Mobject):
                     blend_func=(moderngl.ONE, moderngl.ZERO)
                 )
             )
-            self._accum_map_ = NewData(scene_batch.accum_texture)
-            self._revealage_map_ = NewData(scene_batch.revealage_texture)
+            self._accum_map_ = LazyWrapper(scene_batch.accum_texture)
+            self._revealage_map_ = LazyWrapper(scene_batch.revealage_texture)
             self._vertex_array_.render(
                 shader_filename="oit_compose",
                 custom_macros=[],
@@ -261,9 +256,9 @@ class Scene(Mobject):
             )
 
     def _render_frame(self) -> None:
-        scene_config = self._scene_config
-        red, green, blue = scene_config._background_color_
-        alpha = scene_config._background_opacity_
+        scene_config = self._scene_config_
+        red, green, blue = scene_config._background_color_.value
+        alpha = scene_config._background_opacity_.value
 
         active_scene_data = ActiveSceneDataSingleton()
         framebuffer = active_scene_data.framebuffer
@@ -280,7 +275,7 @@ class Scene(Mobject):
             assert (window := ContextSingleton._WINDOW) is not None
             assert (window_framebuffer := ContextSingleton._WINDOW_FRAMEBUFFER) is not None
             window.clear()
-            self._color_map_ = NewData(active_scene_data.color_texture)
+            self._color_map_ = LazyWrapper(active_scene_data.color_texture)
             self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[],
@@ -410,7 +405,7 @@ class Scene(Mobject):
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
-        self._scene_config.set_view(
+        self._scene_config_.set_view(
             eye=eye,
             target=target,
             up=up
@@ -423,7 +418,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config.set_background(
+        self._scene_config_.set_background(
             color=color,
             opacity=opacity
         )
@@ -435,7 +430,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config.set_ambient_light(
+        self._scene_config_.set_ambient_light(
             color=color,
             opacity=opacity
         )
@@ -448,7 +443,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config.add_point_light(
+        self._scene_config_.add_point_light(
             position=position,
             color=color,
             opacity=opacity
@@ -463,7 +458,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: Real | None = None
     ):
-        self._scene_config.set_point_light(
+        self._scene_config_.set_point_light(
             index=index,
             position=position,
             color=color,
@@ -482,7 +477,7 @@ class Scene(Mobject):
         point_light_color: ColorType | None = None,
         point_light_opacity: Real | None = None
     ):
-        self._scene_config.set_style(
+        self._scene_config_.set_style(
             background_color=background_color,
             background_opacity=background_opacity,
             ambient_light_color=ambient_light_color,
