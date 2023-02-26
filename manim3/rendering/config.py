@@ -50,7 +50,10 @@ class Config:
     # paths
 
     @classmethod
-    def _ensure_directory_exists(cls, folder_path: str) -> str:
+    def _ensure_directory_exists(
+        cls,
+        folder_path: str
+    ) -> str:
         if not os.path.exists(folder_path):
             os.mkdir(folder_path)
         return folder_path
@@ -102,7 +105,10 @@ class Config:
         return self._fps
 
     @fps.setter
-    def fps(self, fps: int) -> None:
+    def fps(
+        self,
+        fps: int
+    ) -> None:
         self._fps = fps
 
     # size & resolution
@@ -152,23 +158,35 @@ class Config:
         return (int(self.window_pixel_width), int(self.window_pixel_height))
 
     @aspect_ratio.setter
-    def aspect_ratio(self, aspect_ratio: Real) -> None:
+    def aspect_ratio(
+        self,
+        aspect_ratio: Real
+    ) -> None:
         self._aspect_ratio = aspect_ratio
 
     @frame_size.setter
-    def frame_size(self, frame_size: tuple[Real, Real]) -> None:
+    def frame_size(
+        self,
+        frame_size: tuple[Real, Real]
+    ) -> None:
         width, height = frame_size
         self._aspect_ratio = width / height
         self._frame_height = height
 
     @pixel_size.setter
-    def pixel_size(self, pixel_size: tuple[Real, Real]) -> None:
+    def pixel_size(
+        self,
+        pixel_size: tuple[Real, Real]
+    ) -> None:
         width, height = pixel_size
         self._aspect_ratio = width / height
         self._pixel_height = height
 
     @window_pixel_size.setter
-    def window_pixel_size(self, window_pixel_size: tuple[Real, Real]) -> None:
+    def window_pixel_size(
+        self,
+        window_pixel_size: tuple[Real, Real]
+    ) -> None:
         width, height = window_pixel_size
         self._aspect_ratio = width / height
         self._window_pixel_height = height
@@ -212,25 +230,38 @@ class Config:
         return self._halt_on_last_frame
 
     @classmethod
-    def _validate_frame_index_span(cls, start_frame_index: int | None, stop_frame_index: int | None) -> None:
+    def _validate_frame_index_span(
+        cls,
+        start_frame_index: int | None,
+        stop_frame_index: int | None
+    ) -> None:
         assert (start_frame_index is None or start_frame_index >= 0) and (
             start_frame_index is None or stop_frame_index is None or start_frame_index <= stop_frame_index
         )
 
     @start_time.setter
-    def start_time(self, start_time: Real | None) -> None:
+    def start_time(
+        self,
+        start_time: Real | None
+    ) -> None:
         start_frame_index = None if start_time is None else int(start_time * self.fps)
         self._validate_frame_index_span(start_frame_index, self.stop_frame_index)
         self._start_frame_index = start_frame_index
 
     @stop_time.setter
-    def stop_time(self, stop_time: Real | None) -> None:
+    def stop_time(
+        self,
+        stop_time: Real | None
+    ) -> None:
         stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
         self._validate_frame_index_span(self.start_frame_index, stop_frame_index)
         self._stop_frame_index = stop_frame_index
 
     @time_span.setter
-    def time_span(self, time_span: tuple[Real | None, Real | None]) -> None:
+    def time_span(
+        self,
+        time_span: tuple[Real | None, Real | None]
+    ) -> None:
         start_time, stop_time = time_span
         start_frame_index = None if start_time is None else int(start_time * self.fps)
         stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
@@ -239,19 +270,31 @@ class Config:
         self._stop_frame_index = stop_frame_index
 
     @write_video.setter
-    def write_video(self, write_video: bool) -> None:
+    def write_video(
+        self,
+        write_video: bool
+    ) -> None:
         self._write_video = write_video
 
     @write_last_frame.setter
-    def write_last_frame(self, write_last_frame: bool) -> None:
+    def write_last_frame(
+        self,
+        write_last_frame: bool
+    ) -> None:
         self._write_last_frame = write_last_frame
 
     @preview.setter
-    def preview(self, preview: bool) -> None:
+    def preview(
+        self,
+        preview: bool
+    ) -> None:
         self._preview = preview
 
     @halt_on_last_frame.setter
-    def halt_on_last_frame(self, halt_on_last_frame: bool) -> None:
+    def halt_on_last_frame(
+        self,
+        halt_on_last_frame: bool
+    ) -> None:
         self._halt_on_last_frame = halt_on_last_frame
 
 
@@ -263,5 +306,8 @@ class ConfigSingleton:
         return cls._INSTANCE
 
     @classmethod
-    def set(cls, config: Config) -> None:
+    def set(
+        cls,
+        config: Config
+    ) -> None:
         cls._INSTANCE = config

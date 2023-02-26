@@ -47,7 +47,11 @@ class ImageMobject(MeshMobject):
     def _geometry_() -> Geometry:
         return PlaneGeometry()
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         image = self._image
         with ColorFramebufferBatch() as batch:
             batch.color_texture.write(image.tobytes())

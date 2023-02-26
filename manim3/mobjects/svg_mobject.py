@@ -4,6 +4,8 @@ __all__ = ["SVGMobject"]
 import numpy as np
 import svgelements as se
 
+from manim3.utils.lazy import LazyCollection, lazy_collection
+
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
 
@@ -60,7 +62,8 @@ class SVGMobject(ShapeMobject):
                 #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(shape * transform))._has_local_sample_points_
+            if isinstance(shape, se.Shape)
+            and (shape_mobject := ShapeMobject(shape * transform))._has_local_sample_points_.value
         ]
         #if shape_mobjects:
         #    return
@@ -84,6 +87,7 @@ class SVGMobject(ShapeMobject):
         #    #mobject.set_paint(**self.get_paint_settings_from_shape(shape))
         #    shape_mobjects.append(mobject)
 
+        self._shape_mobjects_.add(*shape_mobjects)
         self.add(*shape_mobjects)
         #self.adjust_frame(
         #    svg.width,
@@ -94,9 +98,10 @@ class SVGMobject(ShapeMobject):
         #)
         self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
 
-    @property
-    def _shape_mobjects(self) -> list[ShapeMobject]:
-        return [child for child in self._children if isinstance(child, ShapeMobject)]
+    @lazy_collection
+    @staticmethod
+    def _shape_mobjects_() -> LazyCollection[ShapeMobject]:
+        return LazyCollection()
 
     #@classmethod
     #def shape_to_path(cls, shape: se.Shape) -> se.Path | None:

@@ -20,7 +20,10 @@ from ..utils.lazy import (
 class PixelatedPass(RenderPass):
     __slots__ = ()
 
-    def __init__(self, pixelated_width: Real | None = None):
+    def __init__(
+        self,
+        pixelated_width: Real | None = None
+    ):
         super().__init__()
         if pixelated_width is not None:
             self._pixelated_width_ = LazyWrapper(pixelated_width)
@@ -45,7 +48,11 @@ class PixelatedPass(RenderPass):
             texture_array=np.array(color_map)
         )
 
-    def render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+    def render(
+        self,
+        texture: moderngl.Texture,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         pixel_width = self._pixelated_width_.value * ConfigSingleton().pixel_per_unit
         texture_size = (
             int(np.ceil(texture.width / pixel_width)),

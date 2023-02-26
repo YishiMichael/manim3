@@ -21,7 +21,10 @@ from ..utils.lazy import (
 class SceneMobject(MeshMobject):
     __slots__ = ("_scene",)
 
-    def __init__(self, scene_cls: type[Scene]):
+    def __init__(
+        self,
+        scene_cls: type[Scene]
+    ):
         super().__init__()
         self._scene: Scene = scene_cls()
         self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
@@ -40,7 +43,11 @@ class SceneMobject(MeshMobject):
     #    super()._update_dt(dt)  # TODO
     #    self._scene._update_dt(dt)
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         with ColorFramebufferBatch() as batch:
             self._scene._render_with_passes(self._scene._scene_config_, batch.framebuffer)
             self._color_map_ = LazyWrapper(batch.color_texture)

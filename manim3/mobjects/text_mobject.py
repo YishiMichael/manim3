@@ -34,7 +34,9 @@ from ..rendering.config import ConfigSingleton
 from ..utils.color import ColorUtils
 
 
-def hash_string(string: str) -> str:  # TODO: redundant with tex_mobject.py
+def hash_string(
+    string: str
+) -> str:  # TODO: redundant with tex_mobject.py
     # Truncating at 16 bytes for cleanliness
     hasher = hashlib.sha256(string.encode())
     return hasher.hexdigest()[:16]
@@ -56,7 +58,10 @@ class _Alignment:
         "RIGHT": 2
     }
 
-    def __init__(self, s: str):
+    def __init__(
+        self,
+        s: str
+    ):
         self.value = _Alignment.VAL_DICT[s.upper()]
 
 
@@ -121,7 +126,9 @@ class MarkupText(StringMobject):
         #if not self.alignment:
         #    self.alignment = get_customization()["style"]["text_alignment"]
 
-        def get_content_prefix_and_suffix(is_labelled: bool) -> tuple[str, str]:
+        def get_content_prefix_and_suffix(
+            is_labelled: bool
+        ) -> tuple[str, str]:
             global_attr_dict = {
                 "foreground": ColorUtils.color_to_hex(base_color),
                 "font_family": font,
@@ -154,7 +161,9 @@ class MarkupText(StringMobject):
                 for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
             )
 
-        def get_svg_path(content: str) -> str:
+        def get_svg_path(
+            content: str
+        ) -> str:
             hash_content = str((
                 content,
                 justify,
@@ -169,7 +178,10 @@ class MarkupText(StringMobject):
                 markup_to_svg(content, svg_file)
             return svg_file
 
-        def markup_to_svg(markup_str: str, file_name: str) -> str:
+        def markup_to_svg(
+            markup_str: str,
+            file_name: str
+        ) -> str:
             self._validate_markup_string(markup_str)
 
             # `manimpango` is under construction,
@@ -216,7 +228,10 @@ class MarkupText(StringMobject):
         )
 
     @classmethod
-    def _validate_markup_string(cls, markup_str: str) -> None:
+    def _validate_markup_string(
+        cls,
+        markup_str: str
+    ) -> None:
         validate_error = manimpango.MarkupUtils.validate(markup_str)
         if not validate_error:
             return
@@ -228,11 +243,17 @@ class MarkupText(StringMobject):
     # Toolkits
 
     @classmethod
-    def _escape_markup_char(cls, substr: str) -> str:
+    def _escape_markup_char(
+        cls,
+        substr: str
+    ) -> str:
         return cls.MARKUP_ENTITY_DICT.get(substr, substr)
 
     @classmethod
-    def _unescape_markup_char(cls, substr: str) -> str:
+    def _unescape_markup_char(
+        cls,
+        substr: str
+    ) -> str:
         return {
             v: k
             for k, v in cls.MARKUP_ENTITY_DICT.items()
@@ -241,7 +262,10 @@ class MarkupText(StringMobject):
     # Parsing
 
     @classmethod
-    def _iter_command_matches(cls, string: str) -> Generator[re.Match[str], None, None]:
+    def _iter_command_matches(
+        cls,
+        string: str
+    ) -> Generator[re.Match[str], None, None]:
         pattern = re.compile(r"""
             (?P<tag>
                 <
@@ -260,7 +284,10 @@ class MarkupText(StringMobject):
         yield from pattern.finditer(string)
 
     @classmethod
-    def _get_command_flag(cls, match_obj: re.Match[str]) -> CommandFlag:
+    def _get_command_flag(
+        cls,
+        match_obj: re.Match[str]
+    ) -> CommandFlag:
         if match_obj.group("tag"):
             if match_obj.group("close_slash"):
                 return CommandFlag.CLOSE
@@ -269,7 +296,10 @@ class MarkupText(StringMobject):
         return CommandFlag.OTHER
 
     @classmethod
-    def _replace_for_content(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_content(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         if match_obj.group("tag"):
             return ""
         if match_obj.group("char"):
@@ -277,7 +307,10 @@ class MarkupText(StringMobject):
         return match_obj.group()
 
     @classmethod
-    def _replace_for_matching(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_matching(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         if match_obj.group("tag") or match_obj.group("passthrough"):
             return ""
         if match_obj.group("entity"):
@@ -291,7 +324,9 @@ class MarkupText(StringMobject):
 
     @classmethod
     def _get_attr_dict_from_command_pair(
-        cls, open_command: re.Match[str], close_command: re.Match[str]
+        cls,
+        open_command: re.Match[str],
+        close_command: re.Match[str]
     ) -> dict[str, str] | None:
         pattern = r"""
             (?P<attr_name>\w+)
@@ -310,7 +345,10 @@ class MarkupText(StringMobject):
 
     @classmethod
     def _get_command_string(
-        cls, attr_dict: dict[str, str], edge_flag: EdgeFlag, label: int | None
+        cls,
+        attr_dict: dict[str, str],
+        edge_flag: EdgeFlag,
+        label: int | None
     ) -> str:
         if edge_flag == EdgeFlag.STOP:
             return "</span>"
@@ -341,20 +379,32 @@ class Text(MarkupText):
     #}
 
     @classmethod
-    def _iter_command_matches(cls, string: str) -> Generator[re.Match[str], None, None]:
+    def _iter_command_matches(
+        cls,
+        string: str
+    ) -> Generator[re.Match[str], None, None]:
         pattern = re.compile(r"""[<>&"']""")
         yield from pattern.finditer(string)
 
     @classmethod
-    def _get_command_flag(cls, match_obj: re.Match[str]) -> CommandFlag:
+    def _get_command_flag(
+        cls,
+        match_obj: re.Match[str]
+    ) -> CommandFlag:
         return CommandFlag.OTHER
 
     @classmethod
-    def _replace_for_content(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_content(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         return cls._escape_markup_char(match_obj.group())
 
     @classmethod
-    def _replace_for_matching(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_matching(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         return match_obj.group()
 
 

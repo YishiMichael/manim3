@@ -17,12 +17,18 @@ from ..rendering.framebuffer_batches import SimpleFramebufferBatch
 
 
 class Renderer:
-    def __init__(self, config: Config | None = None) -> None:
+    def __init__(
+        self,
+        config: Config | None = None
+    ) -> None:
         if config is None:
             config = Config()
         self._config: Config = config
 
-    def run(self, scene_cls: type[Scene]) -> None:
+    def run(
+        self,
+        scene_cls: type[Scene]
+    ) -> None:
         ConfigSingleton.set(self._config)
         if ConfigSingleton().write_video:
             writing_process = sp.Popen([

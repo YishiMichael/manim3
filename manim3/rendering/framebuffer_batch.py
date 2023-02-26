@@ -27,7 +27,10 @@ class TemporaryResource(Generic[_ParamsT, _T], ABC):
     def __init_subclass__(cls) -> None:
         cls._VACANT_INSTANCES = {}
 
-    def __init__(self, parameters: _ParamsT):
+    def __init__(
+        self,
+        parameters: _ParamsT
+    ):
         if (vacant_instances := self._VACANT_INSTANCES.get(parameters)) is not None and vacant_instances:
             instance = vacant_instances.pop()
         else:
@@ -39,17 +42,28 @@ class TemporaryResource(Generic[_ParamsT, _T], ABC):
     def __enter__(self) -> _T:
         return self._instance
 
-    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+    def __exit__(
+        self,
+        exc_type,
+        exc_value,
+        exc_traceback
+    ) -> None:
         self._VACANT_INSTANCES.setdefault(self._parameters, []).append(self._instance)
 
     @classmethod
     @abstractmethod
-    def _new_instance(cls, parameters: _ParamsT) -> _T:
+    def _new_instance(
+        cls,
+        parameters: _ParamsT
+    ) -> _T:
         pass
 
     @classmethod
     @abstractmethod
-    def _init_instance(cls, instance: _T) -> None:
+    def _init_instance(
+        cls,
+        instance: _T
+    ) -> None:
         pass
 
 
@@ -113,12 +127,19 @@ class FramebufferBatch(TemporaryResource[_ParamsT, _T]):
         atexit.register(lambda: framebuffer.release())
         return framebuffer
 
-    @classmethod
-    def downsample_framebuffer(cls, src: moderngl.Framebuffer, dst: moderngl.Framebuffer) -> None:
-        ContextSingleton().copy_framebuffer(dst=dst, src=src)
+    #@classmethod
+    #def downsample_framebuffer(
+    #    cls,
+    #    src: moderngl.Framebuffer,
+    #    dst: moderngl.Framebuffer
+    #) -> None:
+    #    ContextSingleton().copy_framebuffer(dst=dst, src=src)
 
     @classmethod
-    def _new_instance(cls, parameters: tuple[tuple[int, int], int, int, str]) -> _T:
+    def _new_instance(
+        cls,
+        parameters: tuple[tuple[int, int], int, int, str]
+    ) -> _T:
         size, components, samples, dtype = parameters
         return cls._new_batch(
             size=size,

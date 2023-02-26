@@ -27,7 +27,10 @@ from ..utils.lazy import (
 class GaussianBlurPass(RenderPass):
     __slots__ = ()
 
-    def __init__(self, sigma_width: Real | None = None):
+    def __init__(
+        self,
+        sigma_width: Real | None = None
+    ):
         super().__init__()
         if sigma_width is not None:
             self._sigma_width_ = LazyWrapper(sigma_width)
@@ -44,7 +47,9 @@ class GaussianBlurPass(RenderPass):
 
     @lazy_property_raw
     @staticmethod
-    def _convolution_core_(sigma_width: Real) -> FloatsT:
+    def _convolution_core_(
+        sigma_width: Real
+    ) -> FloatsT:
         sigma = sigma_width * ConfigSingleton().pixel_per_unit
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
@@ -80,7 +85,11 @@ class GaussianBlurPass(RenderPass):
             }
         )
 
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        texture: moderngl.Texture,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         with ColorFramebufferBatch() as batch:
             self._color_map_ = LazyWrapper(texture)
             self._vertex_array_.render(

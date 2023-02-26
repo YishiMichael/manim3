@@ -134,7 +134,11 @@ class MeshMobject(Mobject):
     #def _apply_phong_lighting() -> bool:
     #    return True
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         custom_macros = []
         if self._apply_phong_lighting_.value:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")

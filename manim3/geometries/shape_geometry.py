@@ -27,7 +27,10 @@ from ..utils.space import SpaceUtils
 class ShapeGeometry(Geometry):
     __slots__ = ()
 
-    def __init__(self, shape: Shape | None = None):
+    def __init__(
+        self,
+        shape: Shape | None = None
+    ):
         super().__init__()
         if shape is not None:
             self._shape_ = shape
@@ -53,7 +56,10 @@ class ShapeGeometry(Geometry):
         ))
 
     @classmethod
-    def _get_shape_triangulation(cls, shape: Shape) -> tuple[VertexIndexType, Vec2sT]:
+    def _get_shape_triangulation(
+        cls,
+        shape: Shape
+    ) -> tuple[VertexIndexType, Vec2sT]:
         item_list: list[tuple[VertexIndexType, Vec2sT]] = []
         coords_len = 0
         for polygon in cls._get_shapely_polygons(shape._shapely_obj_.value):
@@ -68,7 +74,10 @@ class ShapeGeometry(Geometry):
         return np.concatenate(index_list), np.concatenate(coords_list)
 
     @classmethod
-    def _get_shapely_polygons(cls, shapely_obj: shapely.geometry.base.BaseGeometry) -> Generator[shapely.geometry.Polygon, None, None]:
+    def _get_shapely_polygons(
+        cls,
+        shapely_obj: shapely.geometry.base.BaseGeometry
+    ) -> Generator[shapely.geometry.Polygon, None, None]:
         if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
             pass
         elif isinstance(shapely_obj, shapely.geometry.Polygon):
@@ -80,7 +89,10 @@ class ShapeGeometry(Geometry):
             raise TypeError
 
     @classmethod
-    def _get_polygon_triangulation(cls, polygon: shapely.geometry.Polygon) -> tuple[VertexIndexType, Vec2sT]:
+    def _get_polygon_triangulation(
+        cls,
+        polygon: shapely.geometry.Polygon
+    ) -> tuple[VertexIndexType, Vec2sT]:
         ring_coords_list = [
             np.array(boundary.coords, dtype=np.float32)
             for boundary in [polygon.exterior, *polygon.interiors]

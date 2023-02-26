@@ -30,41 +30,70 @@ from ..custom_typing import (
 
 class SpaceUtils:
     @classmethod
-    def matrix_from_translation(cls, vector: Vec3T) -> Mat4T:
+    def matrix_from_translation(
+        cls,
+        vector: Vec3T
+    ) -> Mat4T:
         m = np.identity(4)
         m[:3, 3] = vector
         return m
 
     @classmethod
-    def matrix_from_scale(cls, factor: Real | Vec3T) -> Mat4T:
+    def matrix_from_scale(
+        cls,
+        factor: Real | Vec3T
+    ) -> Mat4T:
         m = np.identity(4)
         m[:3, :3] *= factor
         return m
 
     @classmethod
-    def matrix_from_rotation(cls, rotation: Rotation) -> Mat4T:
+    def matrix_from_rotation(
+        cls,
+        rotation: Rotation
+    ) -> Mat4T:
         m = np.identity(4)
         m[:3, :3] = rotation.as_matrix()
         return m
 
     @overload
     @classmethod
-    def apply_affine(cls, matrix: Mat3T, vector: Vec2T) -> Vec2T: ...
+    def apply_affine(
+        cls,
+        matrix: Mat3T,
+        vector: Vec2T
+    ) -> Vec2T: ...
 
     @overload
     @classmethod
-    def apply_affine(cls, matrix: Mat4T, vector: Vec3T) -> Vec3T: ...
+    def apply_affine(
+        cls,
+        matrix: Mat4T,
+        vector: Vec3T
+    ) -> Vec3T: ...
 
     @overload
     @classmethod
-    def apply_affine(cls, matrix: Mat3T, vector: Vec2sT) -> Vec2sT: ...
+    def apply_affine(
+        cls,
+        matrix: Mat3T,
+        vector: Vec2sT
+    ) -> Vec2sT: ...
 
     @overload
     @classmethod
-    def apply_affine(cls, matrix: Mat4T, vector: Vec3sT) -> Vec3sT: ...
+    def apply_affine(
+        cls,
+        matrix: Mat4T,
+        vector: Vec3sT
+    ) -> Vec3sT: ...
 
     @classmethod
-    def apply_affine(cls, matrix: Mat3T | Mat4T, vector: Vec2T | Vec3T | Vec2sT | Vec3sT) -> Vec2T | Vec3T | Vec2sT | Vec3sT:
+    def apply_affine(
+        cls,
+        matrix: Mat3T | Mat4T,
+        vector: Vec2T | Vec3T | Vec2sT | Vec3sT
+    ) -> Vec2T | Vec3T | Vec2sT | Vec3sT:
         if vector.ndim == 1:
             v = vector[:, None]
         else:
@@ -82,103 +111,203 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def norm(cls, vector: Vec2T | Vec3T | Vec4T) -> float: ...
+    def norm(
+        cls,
+        vector: Vec2T | Vec3T | Vec4T
+    ) -> float: ...
 
     @overload
     @classmethod
-    def norm(cls, vector: Vec2sT | Vec3sT | Vec4sT) -> FloatsT: ...
+    def norm(
+        cls,
+        vector: Vec2sT | Vec3sT | Vec4sT
+    ) -> FloatsT: ...
 
     @classmethod
-    def norm(cls, vector: Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT) -> float | FloatsT:
+    def norm(
+        cls,
+        vector: Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT
+    ) -> float | FloatsT:
         if vector.ndim == 1:
             return float(np.linalg.norm(vector))
         return np.linalg.norm(vector, axis=1)
 
     @overload
     @classmethod
-    def normalize(cls, vector: Vec2T) -> Vec2T: ...
+    def normalize(
+        cls,
+        vector: Vec2T
+    ) -> Vec2T: ...
 
     @overload
     @classmethod
-    def normalize(cls, vector: Vec3T) -> Vec3T: ...
+    def normalize(
+        cls,
+        vector: Vec3T
+    ) -> Vec3T: ...
 
     @overload
     @classmethod
-    def normalize(cls, vector: Vec4T) -> Vec4T: ...
+    def normalize(
+        cls,
+        vector: Vec4T
+    ) -> Vec4T: ...
 
     @overload
     @classmethod
-    def normalize(cls, vector: Vec2sT) -> Vec2sT: ...
+    def normalize(
+        cls,
+        vector: Vec2sT
+    ) -> Vec2sT: ...
 
     @overload
     @classmethod
-    def normalize(cls, vector: Vec3sT) -> Vec3sT: ...
+    def normalize(
+        cls,
+        vector: Vec3sT
+    ) -> Vec3sT: ...
 
     @overload
     @classmethod
-    def normalize(cls, vector: Vec4sT) -> Vec4sT: ...
+    def normalize(
+        cls,
+        vector: Vec4sT
+    ) -> Vec4sT: ...
 
     @classmethod
-    def normalize(cls, vector: Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT) -> Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT:
+    def normalize(
+        cls,
+        vector: Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT
+    ) -> Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT:
         if vector.ndim == 1:
             return vector / np.linalg.norm(vector)
         return vector / np.linalg.norm(vector, axis=1)[:, None]
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Real, tensor_1: Real, alpha: Real) -> Real: ...
+    def lerp(
+        cls,
+        tensor_0: Real,
+        tensor_1: Real,
+        alpha: Real
+    ) -> Real: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: FloatsT, tensor_1: Real, alpha: Real) -> FloatsT: ...
+    def lerp(
+        cls,
+        tensor_0: FloatsT,
+        tensor_1: Real,
+        alpha: Real
+    ) -> FloatsT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Real, tensor_1: FloatsT, alpha: Real) -> FloatsT: ...
+    def lerp(
+        cls,
+        tensor_0: Real,
+        tensor_1: FloatsT,
+        alpha: Real
+    ) -> FloatsT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec2T, tensor_1: Vec2T, alpha: Real) -> Vec2T: ...
+    def lerp(
+        cls,
+        tensor_0: Vec2T,
+        tensor_1: Vec2T,
+        alpha: Real
+    ) -> Vec2T: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec2sT, tensor_1: Vec2T, alpha: Real) -> Vec2sT: ...
+    def lerp(
+        cls,
+        tensor_0: Vec2sT,
+        tensor_1: Vec2T,
+        alpha: Real
+    ) -> Vec2sT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec2T, tensor_1: Vec2sT, alpha: Real) -> Vec2sT: ...
+    def lerp(
+        cls,
+        tensor_0: Vec2T,
+        tensor_1: Vec2sT,
+        alpha: Real
+    ) -> Vec2sT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec3T, tensor_1: Vec3T, alpha: Real) -> Vec3T: ...
+    def lerp(
+        cls,
+        tensor_0: Vec3T,
+        tensor_1: Vec3T,
+        alpha: Real
+    ) -> Vec3T: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec3sT, tensor_1: Vec3T, alpha: Real) -> Vec3sT: ...
+    def lerp(
+        cls,
+        tensor_0: Vec3sT,
+        tensor_1: Vec3T,
+        alpha: Real
+    ) -> Vec3sT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec3T, tensor_1: Vec3sT, alpha: Real) -> Vec3sT: ...
+    def lerp(
+        cls,
+        tensor_0: Vec3T,
+        tensor_1: Vec3sT,
+        alpha: Real
+    ) -> Vec3sT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec4T, tensor_1: Vec4T, alpha: Real) -> Vec4T: ...
+    def lerp(
+        cls,
+        tensor_0: Vec4T,
+        tensor_1: Vec4T,
+        alpha: Real
+    ) -> Vec4T: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec4sT, tensor_1: Vec4T, alpha: Real) -> Vec4sT: ...
+    def lerp(
+        cls,
+        tensor_0: Vec4sT,
+        tensor_1: Vec4T,
+        alpha: Real
+    ) -> Vec4sT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Vec4T, tensor_1: Vec4sT, alpha: Real) -> Vec4sT: ...
+    def lerp(
+        cls,
+        tensor_0: Vec4T,
+        tensor_1: Vec4sT,
+        alpha: Real
+    ) -> Vec4sT: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Mat3T, tensor_1: Mat3T, alpha: Real) -> Mat3T: ...
+    def lerp(
+        cls,
+        tensor_0: Mat3T,
+        tensor_1: Mat3T,
+        alpha: Real
+    ) -> Mat3T: ...
 
     @overload
     @classmethod
-    def lerp(cls, tensor_0: Mat4T, tensor_1: Mat4T, alpha: Real) -> Mat4T: ...
+    def lerp(
+        cls,
+        tensor_0: Mat4T,
+        tensor_1: Mat4T,
+        alpha: Real
+    ) -> Mat4T: ...
 
     @classmethod
     def lerp(
@@ -191,59 +320,115 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Real, tensor_1: Real) -> Callable[[Real], Real]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Real,
+        tensor_1: Real
+    ) -> Callable[[Real], Real]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: FloatsT, tensor_1: Real) -> Callable[[Real], FloatsT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: FloatsT,
+        tensor_1: Real
+    ) -> Callable[[Real], FloatsT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Real, tensor_1: FloatsT) -> Callable[[Real], FloatsT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Real,
+        tensor_1: FloatsT
+    ) -> Callable[[Real], FloatsT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec2T, tensor_1: Vec2T) -> Callable[[Real], Vec2T]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec2T,
+        tensor_1: Vec2T
+    ) -> Callable[[Real], Vec2T]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec2sT, tensor_1: Vec2T) -> Callable[[Real], Vec2sT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec2sT,
+        tensor_1: Vec2T
+    ) -> Callable[[Real], Vec2sT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec2T, tensor_1: Vec2sT) -> Callable[[Real], Vec2sT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec2T,
+        tensor_1: Vec2sT
+    ) -> Callable[[Real], Vec2sT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec3T, tensor_1: Vec3T) -> Callable[[Real], Vec3T]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec3T,
+        tensor_1: Vec3T
+    ) -> Callable[[Real], Vec3T]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec3sT, tensor_1: Vec3T) -> Callable[[Real], Vec3sT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec3sT,
+        tensor_1: Vec3T
+    ) -> Callable[[Real], Vec3sT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec3T, tensor_1: Vec3sT) -> Callable[[Real], Vec3sT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec3T,
+        tensor_1: Vec3sT
+    ) -> Callable[[Real], Vec3sT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec4T, tensor_1: Vec4T) -> Callable[[Real], Vec4T]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec4T,
+        tensor_1: Vec4T
+    ) -> Callable[[Real], Vec4T]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec4sT, tensor_1: Vec4T) -> Callable[[Real], Vec4sT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec4sT,
+        tensor_1: Vec4T
+    ) -> Callable[[Real], Vec4sT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Vec4T, tensor_1: Vec4sT) -> Callable[[Real], Vec4sT]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Vec4T,
+        tensor_1: Vec4sT
+    ) -> Callable[[Real], Vec4sT]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Mat3T, tensor_1: Mat3T) -> Callable[[Real], Mat3T]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Mat3T,
+        tensor_1: Mat3T
+    ) -> Callable[[Real], Mat3T]: ...
 
     @overload
     @classmethod
-    def lerp_callback(cls, tensor_0: Mat4T, tensor_1: Mat4T) -> Callable[[Real], Mat4T]: ...
+    def lerp_callback(
+        cls,
+        tensor_0: Mat4T,
+        tensor_1: Mat4T
+    ) -> Callable[[Real], Mat4T]: ...
 
     @classmethod
     def lerp_callback(
@@ -265,7 +450,11 @@ class SpaceUtils:
         return partial(cls.lerp, tensor_0, tensor_1)
 
     @classmethod
-    def rotational_interpolate_callback(cls, matrix_0: Mat4T, matrix_1: Mat4T) -> Callable[[Real], Mat4T]:
+    def rotational_interpolate_callback(
+        cls,
+        matrix_0: Mat4T,
+        matrix_1: Mat4T
+    ) -> Callable[[Real], Mat4T]:
         rotation_part_0 = matrix_0[:3, :3]
         translation_0 = matrix_0[:3, 3]
         rotation_0 = Rotation.from_matrix(rotation_part_0)
@@ -284,7 +473,11 @@ class SpaceUtils:
         return callback
 
     @classmethod
-    def increase_dimension(cls, vectors: Vec2sT, value: Real = 0.0) -> Vec3sT:
+    def increase_dimension(
+        cls,
+        vectors: Vec2sT,
+        value: Real = 0.0
+    ) -> Vec3sT:
         result = np.zeros((vectors.shape[0], 3))
         result[:, :2] = vectors
         result[:, 2] = value

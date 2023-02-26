@@ -33,22 +33,36 @@ from ..utils.shape import (
 
 
 class Polyline(ShapeMobject):
-    def __init__(self, coords: Vec2sT):
+    def __init__(
+        self,
+        coords: Vec2sT
+    ):
         super().__init__(Shape(MultiLineString2D([LineString2D(coords)])))
 
 
 class Point(Polyline):
-    def __init__(self, point: Vec2T):
+    def __init__(
+        self,
+        point: Vec2T
+    ):
         super().__init__(np.array((point,)))
 
 
 class Line(Polyline):
-    def __init__(self, start_point: Vec2T, stop_point: Vec2T):
+    def __init__(
+        self,
+        start_point: Vec2T,
+        stop_point: Vec2T
+    ):
         super().__init__(np.array((start_point, stop_point)))
 
 
 class Arc(Polyline):
-    def __init__(self, start_angle: Real, sweep_angle: Real):
+    def __init__(
+        self,
+        start_angle: Real,
+        sweep_angle: Real
+    ):
         n_segments = int(np.ceil(sweep_angle / TAU * 64.0))
         complex_coords = np.exp(1.0j * (start_angle + np.linspace(0.0, sweep_angle, n_segments + 1)))
         super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)
@@ -60,12 +74,18 @@ class Circle(Arc):
 
 
 class Polygon(Polyline):
-    def __init__(self, coords: Vec2sT):
+    def __init__(
+        self,
+        coords: Vec2sT
+    ):
         super().__init__(np.append(coords, np.array((coords[0],)), axis=0))
 
 
 class RegularPolygon(Polygon):
-    def __init__(self, n: int):
+    def __init__(
+        self,
+        n: int
+    ):
         # By default, one vertex is at (1, 0)
         complex_coords = np.exp(1.0j * np.linspace(0.0, TAU, n, endpoint=False))
         super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)

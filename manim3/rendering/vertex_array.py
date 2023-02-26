@@ -71,56 +71,56 @@ class VertexArray(LazyObject):
         self._mode_ = mode
 
     @staticmethod
-    def __shader_filename_cacher(
+    def __shader_filename_key(
         shader_filename: str
     ) -> str:
         return shader_filename
 
-    @lazy_object_shared(__shader_filename_cacher)
+    @lazy_object_shared(__shader_filename_key)
     @staticmethod
     def _shader_filename_() -> str:
         return NotImplemented
 
     @staticmethod
-    def __custom_macros_cacher(
+    def __custom_macros_key(
         custom_macros: list[str]
     ) -> tuple[str, ...]:
         return tuple(custom_macros)
 
-    @lazy_object_shared(__custom_macros_cacher)
+    @lazy_object_shared(__custom_macros_key)
     @staticmethod
     def _custom_macros_() -> list[str]:
         return NotImplemented
 
     @staticmethod
-    def __dynamic_array_lens_cacher(
+    def __dynamic_array_lens_key(
         dynamic_array_lens: dict[str, int]
     ) -> tuple[tuple[str, int], ...]:
         return tuple(dynamic_array_lens.items())
 
-    @lazy_object_shared(__dynamic_array_lens_cacher)
+    @lazy_object_shared(__dynamic_array_lens_key)
     @staticmethod
     def _dynamic_array_lens_() -> dict[str, int]:
         return NotImplemented
 
     @staticmethod
-    def __texture_storage_shape_dict_cacher(
+    def __texture_storage_shape_dict_key(
         texture_storage_shape_dict: dict[str, tuple[int, ...]]
     ) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return tuple(texture_storage_shape_dict.items())
 
-    @lazy_object_shared(__texture_storage_shape_dict_cacher)
+    @lazy_object_shared(__texture_storage_shape_dict_key)
     @staticmethod
     def _texture_storage_shape_dict_() -> dict[str, tuple[int, ...]]:
         return NotImplemented
 
     @staticmethod
-    def __mode_cacher(
+    def __mode_key(
         mode: int
     ) -> int:
         return mode
 
-    @lazy_object_shared(__mode_cacher)
+    @lazy_object_shared(__mode_key)
     @staticmethod
     def _mode_() -> int:
         return NotImplemented
@@ -158,11 +158,11 @@ class VertexArray(LazyObject):
     @staticmethod
     def _vertex_array_(
         program_data: ProgramData,
-        attributes: AttributesBuffer,
-        index_buffer: IndexBuffer,
+        _attributes_: AttributesBuffer,
+        _index_buffer_: IndexBuffer,
         mode: int
     ) -> moderngl.VertexArray | None:
-        if attributes._is_empty_ or index_buffer._is_empty_:
+        if _attributes_._is_empty_.value or _index_buffer_._is_empty_.value:
             return None
 
         moderngl_program = program_data.program
@@ -171,18 +171,20 @@ class VertexArray(LazyObject):
             for name in moderngl_program
             if isinstance(member := moderngl_program[name], moderngl.Attribute)
         }
-        attributes._validate(program_attributes)
-        buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))
+        _attributes_._validate(program_attributes)
+        buffer_format, attribute_names = _attributes_._get_buffer_format(set(program_attributes))
         return ContextSingleton().vertex_array(
             program=moderngl_program,
-            content=[(attributes._buffer_, buffer_format, *attribute_names)],
-            index_buffer=index_buffer._buffer_,
+            content=[(_attributes_._buffer_.value, buffer_format, *attribute_names)],
+            index_buffer=_index_buffer_._buffer_.value,
             mode=mode
         )
 
     @_vertex_array_.restocker
     @staticmethod
-    def _vertex_array_restocker(vertex_array: moderngl.VertexArray | None) -> None:
+    def _vertex_array_restocker(
+        vertex_array: moderngl.VertexArray | None
+    ) -> None:
         if vertex_array is not None:
             vertex_array.release()
 
@@ -269,7 +271,10 @@ class VertexArray(LazyObject):
         return texture_binding_offset_dict
 
     @classmethod
-    def _set_uniform_block_bindings(cls, program: moderngl.Program) -> dict[str, int]:
+    def _set_uniform_block_bindings(
+        cls,
+        program: moderngl.Program
+    ) -> dict[str, int]:
         uniform_block_binding_dict: dict[str, int] = {}
         binding = 0
         for name in program:
@@ -284,7 +289,10 @@ class VertexArray(LazyObject):
         return uniform_block_binding_dict
 
     @classmethod
-    def _int_prod(cls, shape: tuple[int, ...]) -> int:
+    def _int_prod(
+        cls,
+        shape: tuple[int, ...]
+    ) -> int:
         return reduce(op.mul, shape, 1)  # TODO: redundant with the one in glsl_buffers.py
 
     def render(

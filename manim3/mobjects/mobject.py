@@ -85,12 +85,21 @@ class Mobject(LazyObject):
         return iter(self._children_)
 
     @overload
-    def __getitem__(self, index: int) -> "Mobject": ...
+    def __getitem__(
+        self,
+        index: int
+    ) -> "Mobject": ...
 
     @overload
-    def __getitem__(self, index: slice) -> "list[Mobject]": ...
+    def __getitem__(
+        self,
+        index: slice
+    ) -> "list[Mobject]": ...
 
-    def __getitem__(self, index: int | slice) -> "Mobject | list[Mobject]":
+    def __getitem__(
+        self,
+        index: int | slice
+    ) -> "Mobject | list[Mobject]":
         return self._children_.__getitem__(index)
 
     # family matters
@@ -137,7 +146,11 @@ class Mobject(LazyObject):
     #    for child_node in self._children_:
     #        yield from child_node.iter_descendants_with_duplicates()
 
-    def iter_descendants(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
+    def iter_descendants(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> "Generator[Mobject, None, None]":
         yield self
         if broadcast:
             yield from self._real_descendants_
@@ -148,7 +161,11 @@ class Mobject(LazyObject):
         #    yield node
         #    occurred.add(node)
 
-    def iter_ancestors(self, *, broadcast: bool = True) -> "Generator[Mobject, None, None]":
+    def iter_ancestors(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> "Generator[Mobject, None, None]":
         yield self
         if broadcast:
             yield from self._real_ancestors
@@ -159,7 +176,10 @@ class Mobject(LazyObject):
         #    yield node
         #    occurred.add(node)
 
-    def add(self, *mobjects: "Mobject"):
+    def add(
+        self,
+        *mobjects: "Mobject"
+    ):
         #for mobject in mobjects:
         #    if self in mobject.iter_descendants():
         #        raise ValueError(f"'{mobject}' has already included '{self}'")
@@ -167,12 +187,15 @@ class Mobject(LazyObject):
         for ancestor_mobject in self.iter_ancestors():
             ancestor_mobject._real_descendants_.add(*mobjects)
         for mobject in mobjects:
-            mobject._parents.remove(self)
+            mobject._parents.append(self)
             for descendant_mobject in self.iter_descendants():
-                descendant_mobject._real_ancestors.remove(self)
+                descendant_mobject._real_ancestors.append(self)
         return self
 
-    def remove(self, *mobjects: "Mobject"):
+    def remove(
+        self,
+        *mobjects: "Mobject"
+    ):
         self._children_.remove(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
             ancestor_mobject._real_descendants_.remove(*mobjects)
@@ -199,10 +222,10 @@ class Mobject(LazyObject):
     #        self._unbind_child(node)
     #    return self
 
-    def pop(self, index: int = -1):
-        node = self[index]
-        self.remove(node)
-        return node
+    #def pop(self, index: int = -1):
+    #    node = self[index]
+    #    self.remove(node)
+    #    return node
 
     def clear(self):
         self.remove(*self.iter_children())
@@ -674,7 +697,11 @@ class Mobject(LazyObject):
     def _render_passes_() -> LazyCollection[RenderPass]:
         return LazyCollection()
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         # Implemented in subclasses
         # This function is not responsible for clearing the `target_framebuffer`.
         # On the other hand, one shall clear the framebuffer before calling this function.
@@ -690,7 +717,11 @@ class Mobject(LazyObject):
     #        self._render(scene_config, msaa_batch.framebuffer)
     #        FramebufferBatch.downsample_framebuffer(msaa_batch.framebuffer, target_framebuffer)
 
-    def _render_with_passes(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render_with_passes(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         render_passes = self._render_passes_
         if not render_passes:
             self._render(scene_config, target_framebuffer)
@@ -713,11 +744,17 @@ class Mobject(LazyObject):
             )
             target_framebuffer.depth_mask = True
 
-    def add_pass(self, *render_passes: RenderPass):
+    def add_pass(
+        self,
+        *render_passes: RenderPass
+    ):
         self._render_passes_.add(*render_passes)
         return self
 
-    def remove_pass(self, *render_passes: RenderPass):
+    def remove_pass(
+        self,
+        *render_passes: RenderPass
+    ):
         self._render_passes_.remove(*render_passes)
         return self
 

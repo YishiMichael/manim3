@@ -41,14 +41,18 @@ class TexTemplate:
     preamble: str
 
 
-def hash_string(string: str) -> str:
+def hash_string(
+    string: str
+) -> str:
     # Truncating at 16 bytes for cleanliness
     hasher = hashlib.sha256(string.encode())
     return hasher.hexdigest()[:16]
 
 
 @lru_cache(maxsize=8)
-def get_tex_template(template_name: str | None) -> TexTemplate:
+def get_tex_template(
+    template_name: str | None
+) -> TexTemplate:
     default_name = "ctex"  # TODO: set global default
     if template_name is None:
         template_name = default_name
@@ -86,7 +90,9 @@ def get_tex_template(template_name: str | None) -> TexTemplate:
 
 
 def tex_content_to_svg_file(
-    content: str, template_name: str | None, additional_preamble: str | None
+    content: str,
+    template_name: str | None,
+    additional_preamble: str | None
 ) -> str:
     template = get_tex_template(template_name)
     compiler = template.compiler
@@ -111,7 +117,11 @@ def tex_content_to_svg_file(
     return svg_file
 
 
-def create_tex_svg(full_tex: str, svg_file: str, compiler: str) -> None:
+def create_tex_svg(
+    full_tex: str,
+    svg_file: str,
+    compiler: str
+) -> None:
     if compiler == "latex":
         program = "latex"
         dvi_ext = ".dvi"
@@ -168,7 +178,9 @@ def create_tex_svg(full_tex: str, svg_file: str, compiler: str) -> None:
 
 # TODO, perhaps this should live elsewhere
 @contextmanager
-def display_during_execution(message: str) -> Generator[None, None, None]:
+def display_during_execution(
+    message: str
+) -> Generator[None, None, None]:
     # Merge into a single line
     to_print = message.replace("\n", " ")
     max_characters = 78
@@ -213,7 +225,9 @@ class TexText(StringMobject):
         if tex_to_color_map is None:
             tex_to_color_map = {}
 
-        def get_content_prefix_and_suffix(is_labelled: bool) -> tuple[str, str]:
+        def get_content_prefix_and_suffix(
+            is_labelled: bool
+        ) -> tuple[str, str]:
             prefix_lines: list[str] = []
             suffix_lines: list[str] = []
             if not is_labelled:
@@ -231,7 +245,9 @@ class TexText(StringMobject):
                 "".join(("\n" + line for line in suffix_lines))
             )
 
-        def get_svg_path(content: str) -> str:
+        def get_svg_path(
+            content: str
+        ) -> str:
             with display_during_execution(f"Writing \"{string}\""):
                 file_path = tex_content_to_svg_file(
                     content=content,
@@ -262,7 +278,10 @@ class TexText(StringMobject):
     # Parsing
 
     @classmethod
-    def _iter_command_matches(cls, string: str) -> Generator[re.Match[str], None, None]:
+    def _iter_command_matches(
+        cls,
+        string: str
+    ) -> Generator[re.Match[str], None, None]:
         # Lump together adjacent brace pairs
         pattern = re.compile(r"""
             (?P<command>\\(?:[a-zA-Z]+|.))
@@ -270,7 +289,9 @@ class TexText(StringMobject):
             |(?P<close>}+)
         """, flags=re.VERBOSE | re.DOTALL)
 
-        def get_match_obj_by_span(span: tuple[int, int]) -> re.Match[str]:
+        def get_match_obj_by_span(
+            span: tuple[int, int]
+        ) -> re.Match[str]:
             match_obj = pattern.fullmatch(string, pos=span[0], endpos=span[1])
             assert match_obj is not None
             return match_obj
@@ -302,7 +323,10 @@ class TexText(StringMobject):
             raise ValueError("Missing '}' inserted")
 
     @classmethod
-    def _get_command_flag(cls, match_obj: re.Match[str]) -> CommandFlag:
+    def _get_command_flag(
+        cls,
+        match_obj: re.Match[str]
+    ) -> CommandFlag:
         if match_obj.group("open"):
             return CommandFlag.OPEN
         if match_obj.group("close"):
@@ -310,32 +334,46 @@ class TexText(StringMobject):
         return CommandFlag.OTHER
 
     @classmethod
-    def _replace_for_content(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_content(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         return match_obj.group()
 
     @classmethod
-    def _replace_for_matching(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_matching(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         if match_obj.group("command"):
             return match_obj.group()
         return ""
 
     @classmethod
     def _get_attr_dict_from_command_pair(
-        cls, open_command: re.Match[str], close_command: re.Match[str]
+        cls,
+        open_command: re.Match[str],
+        close_command: re.Match[str]
     ) -> dict[str, str] | None:
         if len(open_command.group()) >= 2:
             return {}
         return None
 
     @classmethod
-    def _get_color_command(cls, rgb: int) -> str:
+    def _get_color_command(
+        cls,
+        rgb: int
+    ) -> str:
         rg, b = divmod(rgb, 256)
         r, g = divmod(rg, 256)
         return f"\\color[RGB]{{{r}, {g}, {b}}}"
 
     @classmethod
     def _get_command_string(
-        cls, attr_dict: dict[str, str], edge_flag: EdgeFlag, label: int | None
+        cls,
+        attr_dict: dict[str, str],
+        edge_flag: EdgeFlag,
+        label: int | None
     ) -> str:
         if label is None:
             return ""

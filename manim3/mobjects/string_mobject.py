@@ -46,7 +46,11 @@ class EdgeFlag(Enum):
 
 
 class Span:
-    def __init__(self, start: int, stop: int):
+    def __init__(
+        self,
+        start: int,
+        stop: int
+    ):
         assert start <= stop, f"Invalid span: ({start}, {stop})"
         self.start: int = start
         self.stop: int = stop
@@ -54,7 +58,10 @@ class Span:
     def as_slice(self) -> slice:
         return slice(self.start, self.stop)
 
-    def get_edge_index(self, edge_flag: EdgeFlag) -> int:
+    def get_edge_index(
+        self,
+        edge_flag: EdgeFlag
+    ) -> int:
         return self.start if edge_flag == EdgeFlag.START else self.stop
 
 
@@ -212,7 +219,7 @@ class StringMobject(SVGMobject):
         super().__init__()
         self._string: str = string
         self._parsing_result: ParsingResult = parsing_result
-        #self._shape_mobjects.extend(shape_mobjects)
+        self._shape_mobjects_.add(*shape_mobjects)
         self.add(*shape_mobjects)
 
     #@lazy_slot
@@ -335,7 +342,10 @@ class StringMobject(SVGMobject):
         open_command_stack: list[tuple[int, CommandItem]] = []
         open_stack: list[tuple[int, ConfiguredItem | IsolatedItem, int, list[int]]] = []
 
-        def add_labelled_item(labelled_item: LabelledItem, pos: int) -> None:
+        def add_labelled_item(
+            labelled_item: LabelledItem,
+            pos: int
+        ) -> None:
             labelled_items.append(labelled_item)
             replaced_items.insert(pos, LabelledInsertionItem(
                 labelled_item=labelled_item,
@@ -423,8 +433,15 @@ class StringMobject(SVGMobject):
         return labelled_items, replaced_items
 
     @classmethod
-    def _iter_spans_by_selector(cls, selector: Selector, string: str) -> Generator[Span, None, None]:
-        def iter_spans_by_single_selector(sel: str | re.Pattern[str] | slice, string: str) -> Generator[Span, None, None]:
+    def _iter_spans_by_selector(
+        cls,
+        selector: Selector,
+        string: str
+    ) -> Generator[Span, None, None]:
+        def iter_spans_by_single_selector(
+            sel: str | re.Pattern[str] | slice,
+            string: str
+        ) -> Generator[Span, None, None]:
             if isinstance(sel, str):
                 for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
                     yield Span(*match_obj.span())
@@ -495,7 +512,9 @@ class StringMobject(SVGMobject):
         frame_scale: Real | None
     ) -> list[LabelledShapeItem]:
 
-        def get_svg_path_by_content(is_labelled: bool) -> str:
+        def get_svg_path_by_content(
+            is_labelled: bool
+        ) -> str:
             content_replaced_pieces = cls._get_replaced_pieces(
                 replaced_items=replaced_items,
                 command_replace_func=cls._replace_for_content,
@@ -515,12 +534,12 @@ class StringMobject(SVGMobject):
             content = "".join((prefix, body, suffix))
             return get_svg_path(content)
 
-        plain_shapes = SVGMobject(
+        plain_shapes = list(SVGMobject(
             file_path=get_svg_path_by_content(is_labelled=False),
             width=width,
             height=height,
             frame_scale=frame_scale
-        )._shape_mobjects
+        )._shape_mobjects_)
 
         if labels_count == 1:
             return [
@@ -531,9 +550,9 @@ class StringMobject(SVGMobject):
                 for plain_shape in plain_shapes
             ]
 
-        labelled_shapes = SVGMobject(
+        labelled_shapes = list(SVGMobject(
             file_path=get_svg_path_by_content(is_labelled=True)
-        )._shape_mobjects
+        )._shape_mobjects_)
         if len(plain_shapes) != len(labelled_shapes):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."
@@ -627,7 +646,11 @@ class StringMobject(SVGMobject):
         ]
 
     @classmethod
-    def _get_shape_mobject_list_by_span(cls, arbitrary_span: Span, shape_items: list[ShapeItem]) -> list[ShapeMobject]:
+    def _get_shape_mobject_list_by_span(
+        cls,
+        arbitrary_span: Span,
+        shape_items: list[ShapeItem]
+    ) -> list[ShapeMobject]:
         return [
             shape_item.shape_mobject
             for shape_item in shape_items
@@ -635,7 +658,11 @@ class StringMobject(SVGMobject):
         ]
 
     @classmethod
-    def _span_contains(cls, span_0: Span, span_1: Span) -> bool:
+    def _span_contains(
+        cls,
+        span_0: Span,
+        span_1: Span
+    ) -> bool:
         return span_0.start <= span_1.start and span_0.stop >= span_1.stop
 
     @classmethod
@@ -706,54 +733,81 @@ class StringMobject(SVGMobject):
 
     @classmethod
     @abstractmethod
-    def _iter_command_matches(cls, string: str) -> Generator[re.Match[str], None, None]:
+    def _iter_command_matches(
+        cls,
+        string: str
+    ) -> Generator[re.Match[str], None, None]:
         pass
 
     @classmethod
     @abstractmethod
-    def _get_command_flag(cls, match_obj: re.Match[str]) -> CommandFlag:
+    def _get_command_flag(
+        cls,
+        match_obj: re.Match[str]
+    ) -> CommandFlag:
         pass
 
     @classmethod
     @abstractmethod
-    def _replace_for_content(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_content(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         pass
 
     @classmethod
     @abstractmethod
-    def _replace_for_matching(cls, match_obj: re.Match[str]) -> str:
+    def _replace_for_matching(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
         pass
 
     @classmethod
     @abstractmethod
     def _get_attr_dict_from_command_pair(
-        cls, open_command: re.Match[str], close_command: re.Match[str],
+        cls,
+        open_command: re.Match[str],
+        close_command: re.Match[str],
     ) -> dict[str, str] | None:
         pass
 
     @classmethod
     @abstractmethod
     def _get_command_string(
-        cls, attr_dict: dict[str, str], edge_flag: EdgeFlag, label: int | None
+        cls,
+        attr_dict: dict[str, str],
+        edge_flag: EdgeFlag,
+        label: int | None
     ) -> str:
         pass
 
     # Selector
 
-    def _iter_shape_mobject_lists_by_selector(self, selector: Selector) -> Generator[list[ShapeMobject], None, None]:
+    def _iter_shape_mobject_lists_by_selector(
+        self,
+        selector: Selector
+    ) -> Generator[list[ShapeMobject], None, None]:
         return (
             shape_mobject_list
             for span in self._iter_spans_by_selector(selector, self._string)
             if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.shape_items))
         )
 
-    def select_parts(self, selector: Selector) -> ShapeMobject:
+    def select_parts(
+        self,
+        selector: Selector
+    ) -> ShapeMobject:
         return ShapeMobject().add(*(
             ShapeMobject().add(*shape_mobject_list)
             for shape_mobject_list in self._iter_shape_mobject_lists_by_selector(selector)
         ))
 
-    def select_part(self, selector: Selector, index: int = 0) -> ShapeMobject:
+    def select_part(
+        self,
+        selector: Selector,
+        index: int = 0
+    ) -> ShapeMobject:
         return ShapeMobject().add(*(
             list(self._iter_shape_mobject_lists_by_selector(selector))[index]
         ))

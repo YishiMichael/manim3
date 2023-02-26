@@ -54,5 +54,9 @@ class RenderPass(LazyObject):
         )
 
     @abstractmethod
-    def _render(self, texture: moderngl.Texture, target_framebuffer: moderngl.Framebuffer) -> moderngl.Texture:
+    def _render(
+        self,
+        texture: moderngl.Texture,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> moderngl.Texture:
         pass

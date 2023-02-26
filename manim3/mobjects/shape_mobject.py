@@ -28,7 +28,10 @@ from ..utils.shape import Shape
 class ShapeMobject(MeshMobject):
     __slots__ = ()
 
-    def __init__(self, shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None):
+    def __init__(
+        self,
+        shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None
+    ):
         super().__init__()
         if shape is not None:
             if isinstance(shape, Shape):
@@ -60,13 +63,20 @@ class ShapeMobject(MeshMobject):
     def _stroke_mobjects_() -> LazyCollection[StrokeMobject]:
         return LazyCollection()
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         super()._render(scene_config, target_framebuffer)
         for stroke_mobject in self._stroke_mobjects_:
             stroke_mobject._model_matrix_ = self._model_matrix_  # TODO: should it live here???
             stroke_mobject._render(scene_config, target_framebuffer)
 
-    def set_shape(self, shape: Shape):
+    def set_shape(
+        self,
+        shape: Shape
+    ):
         self._shape_ = shape
         for stroke in self._stroke_mobjects_:
             stroke._multi_line_string_3d_ = shape._multi_line_string_3d_

@@ -46,18 +46,21 @@ from ..utils.space import SpaceUtils
 class StrokeMobject(Mobject):
     __slots__ = ()
 
-    def __init__(self, multi_line_string_3d: MultiLineString3D | None = None):
+    def __init__(
+        self,
+        multi_line_string_3d: MultiLineString3D | None = None
+    ):
         super().__init__()
         if multi_line_string_3d is not None:
             self._multi_line_string_3d_ = multi_line_string_3d
 
     @staticmethod
-    def __winding_sign_cacher(
+    def __winding_sign_key(
         winding_sign: bool
     ) -> bool:
         return winding_sign
 
-    @lazy_object_shared(__winding_sign_cacher)
+    @lazy_object_shared(__winding_sign_key)
     @staticmethod
     def _winding_sign_() -> bool:
         return NotImplemented
@@ -100,8 +103,10 @@ class StrokeMobject(Mobject):
 
     @lazy_property_raw
     @staticmethod
-    def _local_sample_points_(multi_line_string_3d: MultiLineString3D) -> Vec3sT:
-        line_strings = multi_line_string_3d._children_
+    def _local_sample_points_(
+        _multi_line_string_3d_: MultiLineString3D
+    ) -> Vec3sT:
+        line_strings = _multi_line_string_3d_._children_
         if not line_strings:
             return np.zeros((0, 3))
         return np.concatenate([
@@ -149,14 +154,14 @@ class StrokeMobject(Mobject):
     @lazy_property
     @staticmethod
     def _attributes_(
-        multi_line_string_3d: MultiLineString3D
+        _multi_line_string_3d_: MultiLineString3D
     ) -> AttributesBuffer:
-        if not multi_line_string_3d._children_:
+        if not _multi_line_string_3d_._children_:
             position = np.zeros((0, 3))
         else:
             position = np.concatenate([
                 line_string._coords_.value
-                for line_string in multi_line_string_3d._children_
+                for line_string in _multi_line_string_3d_._children_
             ])
         return AttributesBuffer(
             fields=[
@@ -171,16 +176,16 @@ class StrokeMobject(Mobject):
     @lazy_property_raw
     @staticmethod
     def _vertex_array_items_(
-        multi_line_string_3d: MultiLineString3D,
+        _multi_line_string_3d_: MultiLineString3D,
         single_sided: bool,
         has_linecap: bool,
-        attributes: AttributesBuffer
+        _attributes_: AttributesBuffer
     ) -> list[tuple[VertexArray, list[str]]]:
-        def get_vertex_array(index_getter: Callable[[LineString3D], list[int]], mode: int) -> VertexArray:
+        def get_vertex_array(index_getter: Callable[[int, LineStringKind], list[int]], mode: int) -> VertexArray:
             return VertexArray(
-                attributes=attributes,
+                attributes=_attributes_,
                 index_buffer=IndexBuffer(
-                    data=StrokeMobject._lump_index_from_getter(index_getter, multi_line_string_3d)
+                    data=StrokeMobject._lump_index_from_getter(index_getter, _multi_line_string_3d_)
                 ),
                 mode=mode
             )
@@ -223,76 +228,98 @@ class StrokeMobject(Mobject):
     @classmethod
     def _lump_index_from_getter(
         cls,
-        index_getter: Callable[[LineString3D], list[int]],
+        index_getter: Callable[[int, LineStringKind], list[int]],
         multi_line_string_3d: MultiLineString3D
     ) -> VertexIndexType:
         offset = 0
         index_arrays: list[VertexIndexType] = []
         for line_string in multi_line_string_3d._children_:
-            index_arrays.append(np.array(index_getter(line_string), dtype=np.uint32) + offset)
-            offset += len(line_string._coords_.value)
+            coords_len = len(line_string._coords_.value)
+            kind = line_string._kind_.value
+            index_arrays.append(np.array(index_getter(coords_len, kind), dtype=np.uint32) + offset)
+            offset += coords_len
         if not index_arrays:
             return np.zeros(0, dtype=np.uint32)
         return np.concatenate(index_arrays, dtype=np.uint32)
 
     @classmethod
-    def _line_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_.value == LineStringKind.POINT:
+    def _line_index_getter(
+        cls,
+        coords_len: int,
+        kind: LineStringKind
+    ) -> list[int]:
+        if kind == LineStringKind.POINT:
             return []
-        n_points = len(line_string._coords_.value)
-        if line_string._kind_.value == LineStringKind.LINE_STRING:
+        #n_points = len(line_string._coords_.value)
+        if kind == LineStringKind.LINE_STRING:
             # (0, 1, 1, 2, ..., n-2, n-1)
             return list(it.chain(*zip(*(
-                range(i, n_points - 1 + i)
+                range(i, coords_len - 1 + i)
                 for i in range(2)
             ))))
-        if line_string._kind_.value == LineStringKind.LINEAR_RING:
+        if kind == LineStringKind.LINEAR_RING:
             return list(it.chain(*zip(*(
-                np.roll(range(n_points - 1), -i)
+                np.roll(range(coords_len - 1), -i)
                 for i in range(2)
             ))))
         raise ValueError  # never
 
     @classmethod
-    def _join_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_.value == LineStringKind.POINT:
+    def _join_index_getter(
+        cls,
+        coords_len: int,
+        kind: LineStringKind
+    ) -> list[int]:
+        if kind == LineStringKind.POINT:
             return []
-        n_points = len(line_string._coords_.value)
-        if line_string._kind_.value == LineStringKind.LINE_STRING:
+        #n_points = len(line_string._coords_.value)
+        if kind == LineStringKind.LINE_STRING:
             # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
             return list(it.chain(*zip(*(
-                range(i, n_points - 2 + i)
+                range(i, coords_len - 2 + i)
                 for i in range(3)
             ))))
-        if line_string._kind_.value == LineStringKind.LINEAR_RING:
+        if kind == LineStringKind.LINEAR_RING:
             return list(it.chain(*zip(*(
-                np.roll(range(n_points - 1), -i)
+                np.roll(range(coords_len - 1), -i)
                 for i in range(3)
             ))))
         raise ValueError  # never
 
     @classmethod
-    def _cap_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_.value == LineStringKind.POINT:
+    def _cap_index_getter(
+        cls,
+        coords_len: int,
+        kind: LineStringKind
+    ) -> list[int]:
+        if kind == LineStringKind.POINT:
             return []
-        n_points = len(line_string._coords_.value)
-        if line_string._kind_.value == LineStringKind.LINE_STRING:
-            return [0, 1, n_points - 1, n_points - 2]
-        if line_string._kind_.value == LineStringKind.LINEAR_RING:
+        #n_points = len(line_string._coords_.value)
+        if kind == LineStringKind.LINE_STRING:
+            return [0, 1, coords_len - 1, coords_len - 2]
+        if kind == LineStringKind.LINEAR_RING:
             return []
         raise ValueError  # never
 
     @classmethod
-    def _point_index_getter(cls, line_string: LineString3D) -> list[int]:
-        if line_string._kind_.value == LineStringKind.POINT:
+    def _point_index_getter(
+        cls,
+        coords_len: int,
+        kind: LineStringKind
+    ) -> list[int]:
+        if kind == LineStringKind.POINT:
             return [0]
-        if line_string._kind_.value == LineStringKind.LINE_STRING:
+        if kind == LineStringKind.LINE_STRING:
             return []
-        if line_string._kind_.value == LineStringKind.LINEAR_RING:
+        if kind == LineStringKind.LINEAR_RING:
             return []
         raise ValueError  # never
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         # TODO: Is this already the best practice?
         self._winding_sign_ = self._calculate_winding_sign(scene_config._camera_)
         uniform_blocks = [
@@ -332,7 +359,10 @@ class StrokeMobject(Mobject):
             )
         target_framebuffer.color_mask = (True, True, True, True)
 
-    def _calculate_winding_sign(self, camera: Camera) -> bool:
+    def _calculate_winding_sign(
+        self,
+        camera: Camera
+    ) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...
         area = 0.0
         transform = camera._projection_matrix_.value @ camera._view_matrix_.value @ self._model_matrix_.value

@@ -26,7 +26,10 @@ class SphereGeometry(ParametricSurfaceGeometry):
         theta_segments: int = 32,
         phi_segments: int = 16
     ):
-        def func(theta: float, phi: float) -> Vec3T:
+        def func(
+            theta: float,
+            phi: float
+        ) -> Vec3T:
             return np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
 
         super().__init__(

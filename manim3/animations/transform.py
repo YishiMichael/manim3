@@ -104,7 +104,10 @@ class Transform(AlphaAnimation):
             )
         ]
 
-        def animate_func(alpha_0: Real, alpha: Real) -> None:
+        def animate_func(
+            alpha_0: Real,
+            alpha: Real
+        ) -> None:
             for variable_descr, callback in shape_callbacks.items():
                 variable_descr.__set__(intermediate_mobject, LazyWrapper(callback(alpha)))
 

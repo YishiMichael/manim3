@@ -31,8 +31,8 @@ class TexTransformExample(Scene):
     def construct(self) -> None:
         tex = TexText("TexText").scale(3)
         tex_concatenated = ShapeMobject(Shape.concatenate(
-            glyph._shape_ for glyph in tex._shape_mobjects
-        )).apply_transform(tex._shape_mobjects[0]._model_matrix_.value).set_fill(color=BLUE).set_stroke(width=0.2, color=RED)
+            glyph._shape_ for glyph in tex._shape_mobjects_
+        )).apply_transform(tex._shape_mobjects_[0]._model_matrix_.value).set_fill(color=BLUE).set_stroke(width=0.2, color=RED)
         #text = Text("Text").scale(3)
         #text_concatenated = ShapeMobject(Shape.concatenate(
         #    glyph._shape_ for glyph in text._shape_mobjects

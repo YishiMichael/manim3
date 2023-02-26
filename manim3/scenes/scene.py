@@ -47,6 +47,7 @@ class Scene(Mobject):
     )
 
     def __init__(self) -> None:
+        super().__init__()
         self._animation_dict: dict[Animation, float] = {}
         # A timer scaled by fps
         self._frame_floating_index: float = 0.0
@@ -150,7 +151,11 @@ class Scene(Mobject):
     def _scene_config_() -> SceneConfig:
         return SceneConfig()
 
-    def _render(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
+    def _render(
+        self,
+        scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
         # Inspired from https://github.com/ambrosiogabe/MathAnimation
         # ./Animations/src/renderer/Renderer.cpp
         opaque_mobjects: list[Mobject] = []
@@ -293,7 +298,12 @@ class Scene(Mobject):
             window.swap_buffers()
         self._previous_rendering_timestamp = time.time()
 
-    def _find_frame_range(self, start_frame_floating_index: Real, stop_frame_floating_index: Real) -> range:
+    @classmethod
+    def _find_frame_range(
+        cls,
+        start_frame_floating_index: Real,
+        stop_frame_floating_index: Real
+    ) -> range:
         # Find all frame indices in the intersection of
         # (start_frame_floating_index, stop_frame_floating_index]
         # and [ConfigSingleton().start_frame_index, ConfigSingleton().stop_frame_index]
@@ -312,7 +322,10 @@ class Scene(Mobject):
             start_frame_index += 1
         return range(start_frame_index, stop_frame_index + 1)
 
-    def _update_dt(self, dt: Real):
+    def _update_dt(
+        self,
+        dt: Real
+    ):
         assert dt >= 0.0
         for animation in list(self._animation_dict):
             t0 = self._animation_dict[animation]
@@ -355,19 +368,28 @@ class Scene(Mobject):
 
         return self
 
-    def _update_frames(self, frames: Real):
+    def _update_frames(
+        self,
+        frames: Real
+    ):
         self._update_dt(frames / ConfigSingleton().fps)
         return self
 
     def construct(self) -> None:
         pass
 
-    def prepare(self, *animations: Animation):
+    def prepare(
+        self,
+        *animations: Animation
+    ):
         for animation in animations:
             self._animation_dict[animation] = 0.0
         return self
 
-    def play(self, *animations: Animation):
+    def play(
+        self,
+        *animations: Animation
+    ):
         self.prepare(*animations)
         try:
             wait_time = max(t for animation in animations if (t := animation._stop_time) is not None)
@@ -376,7 +398,10 @@ class Scene(Mobject):
         self.wait(wait_time)
         return self
 
-    def wait(self, t: Real = 1.0):
+    def wait(
+        self,
+        t: Real = 1.0
+    ):
         assert t >= 0.0
         frames = t * ConfigSingleton().fps
         start_frame_floating_index = self._frame_floating_index

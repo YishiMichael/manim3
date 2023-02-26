@@ -29,30 +29,33 @@ class DAGNode:
     def _iter_descendants(self: Self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_descendants(node: Self) -> Generator[Self, None, None]:
+        def iter_descendants_atom(node: Self) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
             yield node
             for child in node._children:
-                yield from iter_descendants(child)
+                yield from iter_descendants_atom(child)
 
-        yield from iter_descendants(self)
+        yield from iter_descendants_atom(self)
 
     def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_ancestors(node: Self) -> Generator[Self, None, None]:
+        def iter_ancestors_atom(node: Self) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
             yield node
             for child in node._parents:
-                yield from iter_ancestors(child)
+                yield from iter_ancestors_atom(child)
 
-        yield from iter_ancestors(self)
+        yield from iter_ancestors_atom(self)
 
-    def _bind_children(self: Self, *nodes: Self) -> Self:
+    def _bind_children(
+        self: Self,
+        *nodes: Self
+    ) -> Self:
         if (invalid_nodes := [
             node for node in self._iter_ancestors()
             if node in nodes
@@ -62,7 +65,9 @@ class DAGNode:
         #    ancestor._node_descendants.update(nodes)
         for node in nodes:
             if node in self._children:
-                raise ValueError(f"Node `{node}` is already one of children of `{self}`")
+                #print(self._children)
+                #print(nodes)
+                raise ValueError(f"Node `{node}` is already a child of `{self}`")
             else:
                 self._children.append(node)
             node._parents.append(self)
@@ -70,7 +75,10 @@ class DAGNode:
             #    descendant._node_ancestors.append(self)
         return self
 
-    def _unbind_children(self: Self, *nodes: Self) -> Self:
+    def _unbind_children(
+        self: Self,
+        *nodes: Self
+    ) -> Self:
         if (invalid_nodes := [
             node for node in nodes
             if node not in self._children

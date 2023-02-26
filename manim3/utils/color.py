@@ -15,7 +15,10 @@ from ..custom_typing import (
 
 class ColorUtils:
     @classmethod
-    def decompose_color(cls, color: ColorType) -> tuple[Vec3T, float | None]:
+    def decompose_color(
+        cls,
+        color: ColorType
+    ) -> tuple[Vec3T, float | None]:
         error_message = f"Invalid color: {color}"
         if isinstance(color, Color):
             return np.array(color.rgb), None
@@ -42,12 +45,19 @@ class ColorUtils:
         raise TypeError(error_message)
 
     @classmethod
-    def color_to_hex(cls, color: ColorType) -> str:
+    def color_to_hex(
+        cls,
+        color: ColorType
+    ) -> str:
         rgb, _ = cls.decompose_color(color)
         return "#{:02x}{:02x}{:02x}".format(*(rgb * 255.0).astype(int))
 
     @classmethod
-    def normalize_color_input(cls, color: ColorType | None, opacity: Real | None) -> tuple[Vec3T | None, Real | None]:
+    def normalize_color_input(
+        cls,
+        color: ColorType | None,
+        opacity: Real | None
+    ) -> tuple[Vec3T | None, Real | None]:
         color_component = None
         opacity_component = None
         if color is not None:

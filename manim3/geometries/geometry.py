@@ -82,11 +82,11 @@ class Geometry(LazyObject):
     @lazy_property
     @staticmethod
     def _vertex_array_(
-        attributes: AttributesBuffer,
-        index_buffer: IndexBuffer
+        _attributes_: AttributesBuffer,
+        _index_buffer_: IndexBuffer
     ) -> VertexArray:
         return VertexArray(
-            attributes=attributes,
-            index_buffer=index_buffer,
+            attributes=_attributes_,
+            index_buffer=_index_buffer_,
             mode=moderngl.TRIANGLES
         )

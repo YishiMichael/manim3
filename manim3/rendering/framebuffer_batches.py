@@ -54,7 +54,10 @@ class SimpleFramebufferBatch(FramebufferBatch[tuple[tuple[int, int], int, int, s
         )
 
     @classmethod
-    def _init_instance(cls, instance: SimpleFramebufferBatchStruct) -> None:
+    def _init_instance(
+        cls,
+        instance: SimpleFramebufferBatchStruct
+    ) -> None:
         instance.framebuffer.clear()
 
 
@@ -94,7 +97,10 @@ class ColorFramebufferBatch(FramebufferBatch[tuple[tuple[int, int], int, int, st
         )
 
     @classmethod
-    def _init_instance(cls, instance: ColorFramebufferBatchStruct) -> None:
+    def _init_instance(
+        cls,
+        instance: ColorFramebufferBatchStruct
+    ) -> None:
         instance.framebuffer.clear()
 
 
@@ -168,7 +174,10 @@ class SceneFramebufferBatch(FramebufferBatch[tuple[tuple[int, int], int, int, st
         )
 
     @classmethod
-    def _init_instance(cls, instance: SceneFramebufferBatchStruct) -> None:
+    def _init_instance(
+        cls,
+        instance: SceneFramebufferBatchStruct
+    ) -> None:
         instance.opaque_framebuffer.clear()
         instance.accum_framebuffer.clear()
         instance.revealage_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0

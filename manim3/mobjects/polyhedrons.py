@@ -27,7 +27,11 @@ from ..utils.space import SpaceUtils
 class Polyhedron(ShapeMobject):
     __slots__ = ()
 
-    def __init__(self, vertices: Vec3sT, faces: np.ndarray[tuple[int, int], np.dtype[np.int_]]):
+    def __init__(
+        self,
+        vertices: Vec3sT,
+        faces: np.ndarray[tuple[int, int], np.dtype[np.int_]]
+    ):
         super().__init__()
         for face in faces:
             matrix, coords = self._convert_coplanar_vertices(vertices[face])
@@ -39,7 +43,10 @@ class Polyhedron(ShapeMobject):
         self.set_style(apply_phong_lighting=True)
 
     @classmethod
-    def _convert_coplanar_vertices(cls, vertices: Vec3sT) -> tuple[Mat4T, Vec2sT]:
+    def _convert_coplanar_vertices(
+        cls,
+        vertices: Vec3sT
+    ) -> tuple[Mat4T, Vec2sT]:
         assert len(vertices) >= 3
         # We first choose three points that define the plane.
         # Instead of choosing `vertices[:3]`, we choose `vertices[:2]` and the geometric centroid,
