@@ -294,11 +294,12 @@ class LazyEntity(LazyBase):
         )
 
     def _expire_properties(self) -> None:
-        for expired_property in self._iter_parameter_ancestors():
-            if not isinstance(expired_property, LazyProperty):
-                continue
-            expired_property._unbind_parameter_children(*expired_property._iter_parameter_children())
-            expired_property._set(None)
+        for expired in self._iter_parameter_ancestors():
+            if isinstance(expired, LazyParameter):
+                expired._unbind_parameter_children(*expired._iter_parameter_children())
+                expired._set(None)
+            elif isinstance(expired, LazyProperty):
+                expired._set(None)
 
 
 class LazyObject(LazyEntity):
@@ -499,6 +500,9 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
         assert not self._is_readonly()
         if not entities:
             return self
+        #for entity in self._iter_dependency_ancestors():
+        #    assert isinstance(entity, LazyEntity)
+        #    entity._expire_properties()
         self._expire_properties()
         self._entities.extend(entities)
         self._bind_dependency_children(*entities)
@@ -511,6 +515,9 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
         assert not self._is_readonly()
         if not entities:
             return self
+        #for entity in self._iter_dependency_ancestors():
+        #    assert isinstance(entity, LazyEntity)
+        #    entity._expire_properties()
         self._expire_properties()
         for entity in entities:
             self._entities.remove(entity)
@@ -689,16 +696,23 @@ class LazyObjectDescriptor(Generic[_LazyObjectT, _InstanceT]):
     def __set__(
         self,
         instance: _InstanceT,
-        lazy_object: _LazyObjectT
+        new_object: _LazyObjectT
     ) -> None:
         old_object = self.instance_to_object_dict[instance]
         assert not old_object._is_readonly()
+        if old_object is new_object:
+            return
+        #old_object._expire_properties()
+        #instance._expire_properties(old_object)
         for entity in old_object._iter_dependency_descendants():
             assert isinstance(entity, LazyEntity)
             entity._expire_properties()
+        for entity in instance._iter_dependency_ancestors():
+            assert isinstance(entity, LazyEntity)
+            entity._expire_properties()
         instance._unbind_dependency_children(old_object)
-        self.instance_to_object_dict[instance] = lazy_object
-        instance._bind_dependency_children(lazy_object)
+        self.instance_to_object_dict[instance] = new_object
+        instance._bind_dependency_children(new_object)
 
     def initialize(
         self,
@@ -853,16 +867,17 @@ class LazyParameterDescriptor(Generic[_ParameterElementsT, _InstanceT]):
         parameter = self.instance_to_parameter_dict[instance]
         if (elements := parameter._get()) is None:
             elements = instance
-            requires_parameter_binding = True
+            binding_completed = False
             for descriptor in self.descriptor_chain:
-                if requires_parameter_binding:
-                    parameter._bind_parameter_children(*yield_deepest(elements))
                 if isinstance(descriptor, LazyCollectionDescriptor):
                     elements = apply_deepest(lambda obj: tuple(descriptor.__get__(obj)), elements)
                 else:
                     elements = apply_deepest(lambda obj: descriptor.__get__(obj), elements)
                     if isinstance(descriptor, LazyPropertyDescriptor):
-                        requires_parameter_binding = False
+                        parameter._bind_parameter_children(*yield_deepest(elements))
+                        binding_completed = True
+            if not binding_completed:
+                parameter._bind_parameter_children(*yield_deepest(elements))
             #if self.is_lazy_value:
             #    elements = apply_deepest(lambda obj: obj.value, elements)
             parameter._set(elements)
@@ -1106,12 +1121,12 @@ class LazyPropertyDescriptor(Generic[_LazyEntityT, _InstanceT]):
         self,
         instance: _InstanceT
     ) -> None:
-        #prop = LazyProperty()
-        #prop._bind_parameter_children(*(
-        #    parameter_descriptor.__get__(instance)
-        #    for parameter_descriptor in self.parameter_descriptors
-        #))
-        self.instance_to_property_dict[instance] = LazyProperty()
+        prop = LazyProperty()
+        prop._bind_parameter_children(*(
+            parameter_descriptor.__get__(instance)
+            for parameter_descriptor in self.parameter_descriptors[type(instance)]
+        ))
+        self.instance_to_property_dict[instance] = prop
 
     def copy_initialize(
         self,

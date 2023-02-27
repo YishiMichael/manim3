@@ -143,6 +143,10 @@ class VertexArray(LazyObject):
         dynamic_array_lens: dict[str, int],
         texture_storage_shape_dict: dict[str, tuple[int, ...]]
     ) -> ProgramData:
+        print(shader_filename
+            ,custom_macros
+            ,dynamic_array_lens
+            ,texture_storage_shape_dict)
         with open(os.path.join(ConfigSingleton().shaders_dir, f"{shader_filename}.glsl")) as shader_file:
             shader_str = shader_file.read()
         program = VertexArray._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
@@ -327,13 +331,25 @@ class VertexArray(LazyObject):
         if self._vertex_array_.value is None:
             return
 
+        print()
+        print(111)
+        print(
+            self._shader_filename_.value,
+            self._custom_macros_.value,
+            self._dynamic_array_lens_.value,
+            self._texture_storage_shape_dict_.value
+        )
         program_data = self._program_data_.value
+        print(program_data)
 
         # texture storages
         texture_storage_dict = {
             texture_storage._field_name_.value: texture_storage
             for texture_storage in texture_storages
         }
+        #print(texture_storage_dict)
+        #print(program_data)
+        #print(program_data.texture_binding_offset_dict)
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
         for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
             texture_storage = texture_storage_dict[texture_storage_name]

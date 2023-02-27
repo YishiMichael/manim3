@@ -76,7 +76,7 @@ class Renderer:
                     batch.framebuffer.read(components=4),
                     "raw"
                 )
-                image.save(os.path.join(ConfigSingleton().output_dir, "result.png"))
+                image.save(os.path.join(ConfigSingleton().output_dir, f"{scene_cls.__name__}.png"))
             #if ConfigSingleton().halt_on_last_frame and ConfigSingleton().preview:
             #    assert (window := ContextSingleton._WINDOW) is not None
             #    spf = 1.0 / ConfigSingleton().fps
