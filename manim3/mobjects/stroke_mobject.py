@@ -28,15 +28,15 @@ from ..rendering.vertex_array import (
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    LazyWrapper,
+    #LazyWrapper,
     lazy_object,
-    lazy_object_raw,
-    lazy_property_raw,
+    #lazy_object_raw,
+    #lazy_property_raw,
     lazy_object_shared,
     lazy_property
 )
 from ..utils.shape import (
-    LineString3D,
+    #LineString3D,
     LineStringKind,
     MultiLineString3D
 )
@@ -54,56 +54,57 @@ class StrokeMobject(Mobject):
         if multi_line_string_3d is not None:
             self._multi_line_string_3d_ = multi_line_string_3d
 
-    @staticmethod
-    def __winding_sign_key(
-        winding_sign: bool
-    ) -> bool:
-        return winding_sign
+    #@staticmethod
+    #def __winding_sign_key(
+    #    winding_sign: bool
+    #) -> bool:
+    #    return winding_sign
 
-    @lazy_object_shared(__winding_sign_key)
-    @staticmethod
-    def _winding_sign_() -> bool:
+    @lazy_object_shared
+    @classmethod
+    def _winding_sign_(cls) -> bool:
         return NotImplemented
 
     @lazy_object
-    @staticmethod
-    def _multi_line_string_3d_() -> MultiLineString3D:
+    @classmethod
+    def _multi_line_string_3d_(cls) -> MultiLineString3D:
         return MultiLineString3D()
 
-    @lazy_object_raw
-    @staticmethod
-    def _width_() -> Real:
+    @lazy_object
+    @classmethod
+    def _width_(cls) -> Real:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
-    @lazy_object_raw
-    @staticmethod
-    def _single_sided_() -> bool:
+    @lazy_object
+    @classmethod
+    def _single_sided_(cls) -> bool:
         return False
 
-    @lazy_object_raw
-    @staticmethod
-    def _has_linecap_() -> bool:
+    @lazy_object
+    @classmethod
+    def _has_linecap_(cls) -> bool:
         return True
 
-    @lazy_object_raw
-    @staticmethod
-    def _color_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_raw
-    @staticmethod
-    def _opacity_() -> Real:
+    @lazy_object
+    @classmethod
+    def _opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object_raw
-    @staticmethod
-    def _dilate_() -> Real:
+    @lazy_object
+    @classmethod
+    def _dilate_(cls) -> Real:
         return 0.0
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _local_sample_points_(
+        cls,
         _multi_line_string_3d_: MultiLineString3D
     ) -> Vec3sT:
         line_strings = _multi_line_string_3d_._children_
@@ -115,8 +116,9 @@ class StrokeMobject(Mobject):
         ])
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_stroke_(
+        cls,
         width: Real,
         color: Vec3T,
         opacity: Real,
@@ -137,8 +139,9 @@ class StrokeMobject(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_winding_sign_(
+        cls,
         winding_sign: bool
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
@@ -152,8 +155,9 @@ class StrokeMobject(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _attributes_(
+        cls,
         _multi_line_string_3d_: MultiLineString3D
     ) -> AttributesBuffer:
         if not _multi_line_string_3d_._children_:
@@ -173,9 +177,10 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _vertex_array_items_(
+        cls,
         _multi_line_string_3d_: MultiLineString3D,
         single_sided: bool,
         has_linecap: bool,
@@ -383,15 +388,15 @@ class StrokeMobject(Mobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
-        width_value = LazyWrapper(width) if width is not None else None
-        single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
-        has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
+        width_value = width if width is not None else None
+        single_sided_value = single_sided if single_sided is not None else None
+        has_linecap_value = has_linecap if has_linecap is not None else None
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = LazyWrapper(color_component) if color_component is not None else None
-        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
-        dilate_value = LazyWrapper(dilate) if dilate is not None else None
-        apply_oit_value = LazyWrapper(apply_oit) if apply_oit is not None else \
-            LazyWrapper(True) if any(param is not None for param in (
+        color_value = color_component if color_component is not None else None
+        opacity_value = opacity_component if opacity_component is not None else None
+        dilate_value = dilate if dilate is not None else None
+        apply_oit_value = apply_oit if apply_oit is not None else \
+            True if any(param is not None for param in (
                 opacity_component,
                 dilate
             )) else None

@@ -12,10 +12,7 @@ from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..scenes.scene import Scene
 from ..scenes.scene_config import SceneConfig
-from ..utils.lazy import (
-    LazyWrapper,
-    lazy_object
-)
+from ..utils.lazy import lazy_object
 
 
 class SceneMobject(MeshMobject):
@@ -30,8 +27,8 @@ class SceneMobject(MeshMobject):
         self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
 
     @lazy_object
-    @staticmethod
-    def _geometry_() -> Geometry:
+    @classmethod
+    def _geometry_(cls) -> Geometry:
         return PlaneGeometry()
 
     #@lazy_slot
@@ -50,5 +47,5 @@ class SceneMobject(MeshMobject):
     ) -> None:
         with ColorFramebufferBatch() as batch:
             self._scene._render_with_passes(self._scene._scene_config_, batch.framebuffer)
-            self._color_map_ = LazyWrapper(batch.color_texture)
+            self._color_map_ = batch.color_texture
             super()._render(scene_config, target_framebuffer)

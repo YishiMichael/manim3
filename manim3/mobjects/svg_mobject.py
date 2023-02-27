@@ -4,10 +4,12 @@ __all__ = ["SVGMobject"]
 import numpy as np
 import svgelements as se
 
-from manim3.utils.lazy import LazyCollection, lazy_collection
-
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
+from ..utils.lazy import (
+    LazyCollection,
+    lazy_object
+)
 
 
 class SVGMobject(ShapeMobject):
@@ -98,9 +100,9 @@ class SVGMobject(ShapeMobject):
         #)
         self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
 
-    @lazy_collection
-    @staticmethod
-    def _shape_mobjects_() -> LazyCollection[ShapeMobject]:
+    @lazy_object
+    @classmethod
+    def _shape_mobjects_(cls) -> LazyCollection[ShapeMobject]:
         return LazyCollection()
 
     #@classmethod

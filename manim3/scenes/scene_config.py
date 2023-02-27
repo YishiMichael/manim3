@@ -16,10 +16,10 @@ from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyCollection,
     LazyObject,
-    LazyWrapper,
-    lazy_collection,
+    #LazyWrapper,
+    #lazy_collection,
     lazy_object,
-    lazy_object_raw,
+    #lazy_object_raw,
     lazy_property
 )
 
@@ -27,19 +27,19 @@ from ..utils.lazy import (
 class PointLight(LazyObject):
     __slots__ = ()
 
-    @lazy_object_raw
-    @staticmethod
-    def _position_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _position_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_raw
-    @staticmethod
-    def _color_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_raw
-    @staticmethod
-    def _opacity_() -> Real:
+    @lazy_object
+    @classmethod
+    def _opacity_(cls) -> Real:
         return 1.0
 
     def set_style(
@@ -51,11 +51,11 @@ class PointLight(LazyObject):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if position is not None:
-            self._position_ = LazyWrapper(position)
+            self._position_ = position
         if color_component is not None:
-            self._color_ = LazyWrapper(color_component)
+            self._color_ = color_component
         if opacity_component is not None:
-            self._opacity_ = LazyWrapper(opacity_component)
+            self._opacity_ = opacity_component
         return self
 
 
@@ -68,35 +68,36 @@ class SceneConfig(LazyObject):
         ("opacity", (np.float_)),
     ])
 
-    @lazy_object_raw
-    @staticmethod
-    def _background_color_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _background_color_(cls) -> Vec3T:
         return np.zeros(3)
 
-    @lazy_object_raw
-    @staticmethod
-    def _background_opacity_() -> Real:
+    @lazy_object
+    @classmethod
+    def _background_opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object_raw
-    @staticmethod
-    def _ambient_light_color_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _ambient_light_color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_raw
-    @staticmethod
-    def _ambient_light_opacity_() -> Real:
+    @lazy_object
+    @classmethod
+    def _ambient_light_opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_collection
-    @staticmethod
-    def _point_lights_() -> LazyCollection[PointLight]:
+    @lazy_object
+    @classmethod
+    def _point_lights_(cls) -> LazyCollection[PointLight]:
         return LazyCollection()
         #return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_lights_(
+        cls,
         ambient_light_color: Vec3T,
         ambient_light_opacity: Real,
         point_lights: LazyCollection[PointLight]
@@ -132,8 +133,8 @@ class SceneConfig(LazyObject):
         )
 
     @lazy_object
-    @staticmethod
-    def _camera_() -> Camera:
+    @classmethod
+    def _camera_(cls) -> Camera:
         return PerspectiveCamera()
 
     def set_view(
@@ -158,9 +159,9 @@ class SceneConfig(LazyObject):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._background_color_ = LazyWrapper(color_component)
+            self._background_color_ = color_component
         if opacity_component is not None:
-            self._background_opacity_ = LazyWrapper(opacity_component)
+            self._background_opacity_ = opacity_component
         return self
 
     def set_ambient_light(
@@ -171,9 +172,9 @@ class SceneConfig(LazyObject):
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
-            self._ambient_light_color_ = LazyWrapper(color_component)
+            self._ambient_light_color_ = color_component
         if opacity_component is not None:
-            self._ambient_light_opacity_ = LazyWrapper(opacity_component)
+            self._ambient_light_opacity_ = opacity_component
         return self
 
     def add_point_light(

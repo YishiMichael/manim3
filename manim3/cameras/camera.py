@@ -17,9 +17,10 @@ from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.lazy import (
     LazyObject,
     LazyWrapper,
-    lazy_property,
-    lazy_object_raw,
-    lazy_property_raw
+    lazy_object,
+    lazy_property
+    #lazy_object_raw,
+    #lazy_property_raw
 )
 from ..utils.space import SpaceUtils
 
@@ -27,29 +28,30 @@ from ..utils.space import SpaceUtils
 class Camera(LazyObject):
     __slots__ = ()
 
-    @lazy_object_raw
-    @staticmethod
-    def _projection_matrix_() -> Mat4T:
+    @lazy_object
+    @classmethod
+    def _projection_matrix_(cls) -> Mat4T:
         return NotImplemented
 
-    @lazy_object_raw
-    @staticmethod
-    def _eye_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _eye_(cls) -> Vec3T:
         return ConfigSingleton().camera_altitude * OUT
 
-    @lazy_object_raw
-    @staticmethod
-    def _target_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _target_(cls) -> Vec3T:
         return ORIGIN
 
-    @lazy_object_raw
-    @staticmethod
-    def _up_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _up_(cls) -> Vec3T:
         return UP
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _view_matrix_(
+        cls,
         eye: Vec3T,
         target: Vec3T,
         up: Vec3T
@@ -65,8 +67,9 @@ class Camera(LazyObject):
         return m
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_camera_(
+        cls,
         projection_matrix: Mat4T,
         view_matrix: Mat4T,
         eye: Vec3T

@@ -38,8 +38,9 @@ from ..utils.lazy import (
     LazyCollection,
     LazyObject,
     LazyWrapper,
-    lazy_collection,
-    lazy_object_raw,
+    #lazy_collection,
+    #lazy_object_raw,
+    lazy_object,
     lazy_property
 )
 from ..utils.space import SpaceUtils
@@ -64,6 +65,9 @@ class BoundingBox3D:
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division
         radius[np.isclose(radius, 0.0)] = 1e-8
         return radius
+
+
+class Mobject(LazyObject): ...
 
 
 class Mobject(LazyObject):
@@ -110,9 +114,9 @@ class Mobject(LazyObject):
     #def _parents() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
 
-    @lazy_collection
-    @staticmethod
-    def _children_() -> "LazyCollection[Mobject]":
+    @lazy_object
+    @classmethod
+    def _children_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
     #@lazy_collection
@@ -120,9 +124,9 @@ class Mobject(LazyObject):
     #def _parents_() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
 
-    @lazy_collection
-    @staticmethod
-    def _real_descendants_() -> "LazyCollection[Mobject]":
+    @lazy_object
+    @classmethod
+    def _real_descendants_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
     #@lazy_collection
@@ -281,20 +285,21 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
-    @lazy_object_raw
-    @staticmethod
-    def _model_matrix_() -> Mat4T:
+    @lazy_object
+    @classmethod
+    def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @lazy_object_raw
-    @staticmethod
-    def _local_sample_points_() -> Vec3sT:
+    @lazy_object
+    @classmethod
+    def _local_sample_points_(cls) -> Vec3sT:
         # Implemented in subclasses
         return np.zeros((0, 3))
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_model_(
+        cls,
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
@@ -308,26 +313,28 @@ class Mobject(LazyObject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _has_local_sample_points_(
+        cls,
         local_sample_points: Vec3sT
-    ) -> LazyWrapper[bool]:
-        return LazyWrapper(bool(len(local_sample_points)))
+    ) -> bool:
+        return bool(len(local_sample_points))
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _local_world_bounding_box_(
+        cls,
         model_matrix: Mat4T,
         local_sample_points: Vec3sT,
         has_local_sample_points: bool
-    ) -> LazyWrapper[BoundingBox3D | None]:
+    ) -> BoundingBox3D | None:
         if not has_local_sample_points:
-            return LazyWrapper(None)
+            return None
         world_sample_points = SpaceUtils.apply_affine(model_matrix, local_sample_points)
-        return LazyWrapper(BoundingBox3D(
+        return BoundingBox3D(
             maximum=world_sample_points.max(axis=0),
             minimum=world_sample_points.min(axis=0)
-        ))
+        )
 
     # TODO: Can we lazyfy bounding_box, as long as _children_ is lazified...?
     def get_bounding_box(
@@ -677,9 +684,9 @@ class Mobject(LazyObject):
 
     # render
 
-    @lazy_object_raw
-    @staticmethod
-    def _apply_oit_() -> bool:
+    @lazy_object
+    @classmethod
+    def _apply_oit_(cls) -> bool:
         return False
 
     #@lazy_slot
@@ -692,9 +699,9 @@ class Mobject(LazyObject):
     #def _render_samples() -> int:
     #    return 0
 
-    @lazy_collection
-    @staticmethod
-    def _render_passes_() -> LazyCollection[RenderPass]:
+    @lazy_object
+    @classmethod
+    def _render_passes_(cls) -> LazyCollection[RenderPass]:
         return LazyCollection()
 
     def _render(

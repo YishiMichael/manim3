@@ -16,8 +16,8 @@ from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyCollection,
-    LazyWrapper,
-    lazy_collection,
+    #LazyWrapper,
+    #lazy_collection,
     lazy_object,
     #lazy_value,
     lazy_property
@@ -42,25 +42,26 @@ class ShapeMobject(MeshMobject):
         self.set_style(apply_phong_lighting=False)
 
     @lazy_object
-    @staticmethod
-    def _shape_() -> Shape:
+    @classmethod
+    def _shape_(cls) -> Shape:
         return Shape()
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _geometry_(
+        cls,
         _shape_: Shape
     ) -> ShapeGeometry:
         return ShapeGeometry(_shape_)
 
     #@lazy_value
-    #@staticmethod
+    #@classmethod
     #def _apply_phong_lighting() -> bool:
     #    return False
 
-    @lazy_collection
-    @staticmethod
-    def _stroke_mobjects_() -> LazyCollection[StrokeMobject]:
+    @lazy_object
+    @classmethod
+    def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
         return LazyCollection()
 
     def _render(
@@ -96,15 +97,15 @@ class ShapeMobject(MeshMobject):
     ):
         # TODO: almost completely redundant with MeshMobject.set_style
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = LazyWrapper(color_component) if color_component is not None else None
-        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
-        apply_oit_value = LazyWrapper(apply_oit) if apply_oit is not None else \
-            LazyWrapper(True) if opacity_component is not None else None
-        ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
-        specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
-        shininess_value = LazyWrapper(shininess) if shininess is not None else None
-        apply_phong_lighting_value = LazyWrapper(apply_phong_lighting) if apply_phong_lighting is not None else \
-            LazyWrapper(True) if any(param is not None for param in (
+        color_value = color_component if color_component is not None else None
+        opacity_value = opacity_component if opacity_component is not None else None
+        apply_oit_value = apply_oit if apply_oit is not None else \
+            True if opacity_component is not None else None
+        ambient_strength_value = ambient_strength if ambient_strength is not None else None
+        specular_strength_value = specular_strength if specular_strength is not None else None
+        shininess_value = shininess if shininess is not None else None
+        apply_phong_lighting_value = apply_phong_lighting if apply_phong_lighting is not None else \
+            True if any(param is not None for param in (
                 ambient_strength,
                 specular_strength,
                 shininess

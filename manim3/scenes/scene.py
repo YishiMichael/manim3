@@ -32,9 +32,9 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.lazy import (
-    LazyWrapper,
+    #LazyWrapper,
     lazy_object,
-    lazy_object_raw,
+    #lazy_object_raw,
     lazy_property
 )
 
@@ -53,29 +53,29 @@ class Scene(Mobject):
         self._frame_floating_index: float = 0.0
         self._previous_rendering_timestamp: float | None = None
 
-    @lazy_object_raw
-    @staticmethod
-    def _color_map_() -> moderngl.Texture:
-        return NotImplemented
-
-    @lazy_object_raw
-    @staticmethod
-    def _accum_map_() -> moderngl.Texture:
-        return NotImplemented
-
-    @lazy_object_raw
-    @staticmethod
-    def _revealage_map_() -> moderngl.Texture:
-        return NotImplemented
-
-    @lazy_object_raw
-    @staticmethod
-    def _depth_map_() -> moderngl.Texture:
+    @lazy_object
+    @classmethod
+    def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @lazy_object
-    @staticmethod
-    def _vertex_array_() -> VertexArray:
+    @classmethod
+    def _accum_map_(cls) -> moderngl.Texture:
+        return NotImplemented
+
+    @lazy_object
+    @classmethod
+    def _revealage_map_(cls) -> moderngl.Texture:
+        return NotImplemented
+
+    @lazy_object
+    @classmethod
+    def _depth_map_(cls) -> moderngl.Texture:
+        return NotImplemented
+
+    @lazy_object
+    @classmethod
+    def _vertex_array_(cls) -> VertexArray:
         return VertexArray(
             attributes=AttributesBuffer(
                 fields=[
@@ -107,8 +107,9 @@ class Scene(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _u_color_map_(
+        cls,
         color_map: moderngl.Texture
     ) -> TextureStorage:
         return TextureStorage(
@@ -117,8 +118,9 @@ class Scene(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _u_accum_map_(
+        cls,
         accum_map: moderngl.Texture
     ) -> TextureStorage:
         return TextureStorage(
@@ -127,8 +129,9 @@ class Scene(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _u_revealage_map_(
+        cls,
         revealage_map: moderngl.Texture
     ) -> TextureStorage:
         return TextureStorage(
@@ -137,8 +140,9 @@ class Scene(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _u_depth_map_(
+        cls,
         depth_map: moderngl.Texture
     ) -> TextureStorage:
         return TextureStorage(
@@ -147,8 +151,8 @@ class Scene(Mobject):
         )
 
     @lazy_object
-    @staticmethod
-    def _scene_config_() -> SceneConfig:
+    @classmethod
+    def _scene_config_(cls) -> SceneConfig:
         return SceneConfig()
 
     def _render(
@@ -172,8 +176,8 @@ class Scene(Mobject):
             for mobject in opaque_mobjects:
                 with SimpleFramebufferBatch() as batch:
                     mobject._render_with_passes(scene_config, batch.framebuffer)
-                    self._color_map_ = LazyWrapper(batch.color_texture)
-                    self._depth_map_ = LazyWrapper(batch.depth_texture)
+                    self._color_map_ = batch.color_texture
+                    self._depth_map_ = batch.depth_texture
                     self._vertex_array_.render(
                         shader_filename="copy",
                         custom_macros=[
@@ -194,8 +198,8 @@ class Scene(Mobject):
             for mobject in transparent_mobjects:
                 with SimpleFramebufferBatch() as batch:
                     mobject._render_with_passes(scene_config, batch.framebuffer)
-                    self._color_map_ = LazyWrapper(batch.color_texture)
-                    self._depth_map_ = LazyWrapper(batch.depth_texture)
+                    self._color_map_ = batch.color_texture
+                    self._depth_map_ = batch.depth_texture
                     self._vertex_array_.render(
                         shader_filename="oit_accum",
                         custom_macros=[],
@@ -225,8 +229,8 @@ class Scene(Mobject):
                         )
                     )
 
-            self._color_map_ = LazyWrapper(scene_batch.opaque_texture)
-            self._depth_map_ = LazyWrapper(scene_batch.depth_texture)
+            self._color_map_ = scene_batch.opaque_texture
+            self._depth_map_ = scene_batch.depth_texture
             self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[
@@ -243,8 +247,8 @@ class Scene(Mobject):
                     blend_func=(moderngl.ONE, moderngl.ZERO)
                 )
             )
-            self._accum_map_ = LazyWrapper(scene_batch.accum_texture)
-            self._revealage_map_ = LazyWrapper(scene_batch.revealage_texture)
+            self._accum_map_ = scene_batch.accum_texture
+            self._revealage_map_ = scene_batch.revealage_texture
             self._vertex_array_.render(
                 shader_filename="oit_compose",
                 custom_macros=[],
@@ -279,7 +283,7 @@ class Scene(Mobject):
             assert (window := ContextSingleton._WINDOW) is not None
             assert (window_framebuffer := ContextSingleton._WINDOW_FRAMEBUFFER) is not None
             window.clear()
-            self._color_map_ = LazyWrapper(active_scene_data.color_texture)
+            self._color_map_ = active_scene_data.color_texture
             self._vertex_array_.render(
                 shader_filename="copy",
                 custom_macros=[],

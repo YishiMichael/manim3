@@ -24,8 +24,8 @@ from ..rendering.glsl_buffers import (
 from ..utils.lazy import (
     LazyObject,
     lazy_object,
-    lazy_property_raw,
-    lazy_object_shared
+    lazy_object_shared,
+    lazy_property
 )
 
 
@@ -70,87 +70,88 @@ class VertexArray(LazyObject):
         self._index_buffer_ = index_buffer
         self._mode_ = mode
 
-    @staticmethod
-    def __shader_filename_key(
-        shader_filename: str
-    ) -> str:
-        return shader_filename
+    #@staticmethod
+    #def __shader_filename_key(
+    #    shader_filename: str
+    #) -> str:
+    #    return shader_filename
 
-    @lazy_object_shared(__shader_filename_key)
-    @staticmethod
-    def _shader_filename_() -> str:
+    @lazy_object_shared
+    @classmethod
+    def _shader_filename_(cls) -> str:
         return NotImplemented
 
-    @staticmethod
-    def __custom_macros_key(
-        custom_macros: list[str]
-    ) -> tuple[str, ...]:
-        return tuple(custom_macros)
+    #@staticmethod
+    #def __custom_macros_key(
+    #    custom_macros: list[str]
+    #) -> tuple[str, ...]:
+    #    return tuple(custom_macros)
 
-    @lazy_object_shared(__custom_macros_key)
-    @staticmethod
-    def _custom_macros_() -> list[str]:
+    @lazy_object_shared
+    @classmethod
+    def _custom_macros_(cls) -> tuple[str, ...]:
         return NotImplemented
 
-    @staticmethod
-    def __dynamic_array_lens_key(
-        dynamic_array_lens: dict[str, int]
-    ) -> tuple[tuple[str, int], ...]:
-        return tuple(dynamic_array_lens.items())
+    #@staticmethod
+    #def __dynamic_array_lens_key(
+    #    dynamic_array_lens: dict[str, int]
+    #) -> tuple[tuple[str, int], ...]:
+    #    return tuple(dynamic_array_lens.items())
 
-    @lazy_object_shared(__dynamic_array_lens_key)
-    @staticmethod
-    def _dynamic_array_lens_() -> dict[str, int]:
+    @lazy_object_shared
+    @classmethod
+    def _dynamic_array_lens_(cls) -> tuple[tuple[str, int], ...]:
         return NotImplemented
 
-    @staticmethod
-    def __texture_storage_shape_dict_key(
-        texture_storage_shape_dict: dict[str, tuple[int, ...]]
-    ) -> tuple[tuple[str, tuple[int, ...]], ...]:
-        return tuple(texture_storage_shape_dict.items())
+    #@staticmethod
+    #def __texture_storage_shapes_key(
+    #    texture_storage_shapes: dict[str, tuple[int, ...]]
+    #) -> tuple[tuple[str, tuple[int, ...]], ...]:
+    #    return tuple(texture_storage_shapes.items())
 
-    @lazy_object_shared(__texture_storage_shape_dict_key)
-    @staticmethod
-    def _texture_storage_shape_dict_() -> dict[str, tuple[int, ...]]:
+    @lazy_object_shared
+    @classmethod
+    def _texture_storage_shapes_(cls) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return NotImplemented
 
-    @staticmethod
-    def __mode_key(
-        mode: int
-    ) -> int:
-        return mode
+    #@staticmethod
+    #def __mode_key(
+    #    mode: int
+    #) -> int:
+    #    return mode
 
-    @lazy_object_shared(__mode_key)
-    @staticmethod
-    def _mode_() -> int:
-        return NotImplemented
-
-    @lazy_object
-    @staticmethod
-    def _attributes_() -> AttributesBuffer:
+    @lazy_object_shared
+    @classmethod
+    def _mode_(cls) -> int:
         return NotImplemented
 
     @lazy_object
-    @staticmethod
-    def _index_buffer_() -> IndexBuffer:
+    @classmethod
+    def _attributes_(cls) -> AttributesBuffer:
         return NotImplemented
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_object
+    @classmethod
+    def _index_buffer_(cls) -> IndexBuffer:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
     def _program_data_(
+        cls,
         shader_filename: str,
-        custom_macros: list[str],
-        dynamic_array_lens: dict[str, int],
-        texture_storage_shape_dict: dict[str, tuple[int, ...]]
+        custom_macros: tuple[str, ...],
+        dynamic_array_lens: tuple[tuple[str, int], ...],
+        texture_storage_shapes: tuple[tuple[str, tuple[int, ...]], ...]
     ) -> ProgramData:
-        print(shader_filename
-            ,custom_macros
-            ,dynamic_array_lens
-            ,texture_storage_shape_dict)
+        #print(shader_filename
+        #    ,custom_macros
+        #    ,dynamic_array_lens
+        #    ,texture_storage_shapes)
         with open(os.path.join(ConfigSingleton().shaders_dir, f"{shader_filename}.glsl")) as shader_file:
             shader_str = shader_file.read()
         program = VertexArray._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
-        texture_binding_offset_dict = VertexArray._set_texture_bindings(program, texture_storage_shape_dict)
+        texture_binding_offset_dict = VertexArray._set_texture_bindings(program, texture_storage_shapes)
         uniform_block_binding_dict = VertexArray._set_uniform_block_bindings(program)
         return ProgramData(
             program=program,
@@ -158,9 +159,10 @@ class VertexArray(LazyObject):
             uniform_block_binding_dict=uniform_block_binding_dict
         )
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _vertex_array_(
+        cls,
         program_data: ProgramData,
         _attributes_: AttributesBuffer,
         _index_buffer_: IndexBuffer,
@@ -196,13 +198,13 @@ class VertexArray(LazyObject):
     def _construct_moderngl_program(
         cls,
         shader_str: str,
-        custom_macros: list[str],
-        dynamic_array_lens: dict[str, int]
+        custom_macros: tuple[str, ...],
+        dynamic_array_lens: tuple[tuple[str, int], ...]
     ) -> moderngl.Program:
         version_string = f"#version {ContextSingleton().version_code} core"
         array_len_macros = [
             f"#define {array_len_name} {array_len}"
-            for array_len_name, array_len in dynamic_array_lens.items()
+            for array_len_name, array_len in dynamic_array_lens
         ]
         shaders = {
             shader_type: "\n".join([
@@ -236,8 +238,9 @@ class VertexArray(LazyObject):
     def _set_texture_bindings(
         cls,
         program: moderngl.Program,
-        texture_storage_shape_dict: dict[str, tuple[int, ...]]
+        texture_storage_shapes: tuple[tuple[str, tuple[int, ...]], ...]
     ) -> dict[str, int]:
+        texture_storage_shape_dict = dict(texture_storage_shapes)
         texture_binding_offset_dict: dict[str, int] = {}
         binding_offset = 1
         texture_uniform_match_pattern = re.compile(r"""
@@ -317,30 +320,30 @@ class VertexArray(LazyObject):
         dynamic_array_lens.update(self._attributes_._dynamic_array_lens_.value)
 
         self._shader_filename_ = shader_filename
-        self._custom_macros_ = custom_macros
-        self._dynamic_array_lens_ = {
-            array_len_name: array_len
+        self._custom_macros_ = tuple(custom_macros)
+        self._dynamic_array_lens_ = tuple(
+            (array_len_name, array_len)
             for array_len_name, array_len in dynamic_array_lens.items()
             if not re.fullmatch(r"__\w+__", array_len_name)
-        }
-        self._texture_storage_shape_dict_ = {
-            texture_storage._field_name_.value: texture_storage._texture_array_.value.shape
+        )
+        self._texture_storage_shapes_ = tuple(
+            (texture_storage._field_name_.value, texture_storage._texture_array_.value.shape)
             for texture_storage in texture_storages
-        }
+        )
 
         if self._vertex_array_.value is None:
             return
 
-        print()
-        print(111)
-        print(
-            self._shader_filename_.value,
-            self._custom_macros_.value,
-            self._dynamic_array_lens_.value,
-            self._texture_storage_shape_dict_.value
-        )
+        #print()
+        #print(111)
+        #print(
+        #    self._shader_filename_.value,
+        #    self._custom_macros_.value,
+        #    self._dynamic_array_lens_.value,
+        #    self._texture_storage_shapes_.value
+        #)
         program_data = self._program_data_.value
-        print(program_data)
+        #print(program_data)
 
         # texture storages
         texture_storage_dict = {

@@ -17,10 +17,11 @@ from ..rendering.glsl_buffers import (
 )
 from ..rendering.vertex_array import ContextState
 from ..utils.lazy import (
-    LazyWrapper,
-    lazy_object_raw,
-    lazy_property,
-    lazy_property_raw
+    #LazyWrapper,
+    lazy_object,
+    #lazy_object_raw,
+    lazy_property
+    #lazy_property_raw
 )
 
 
@@ -33,21 +34,22 @@ class GaussianBlurPass(RenderPass):
     ):
         super().__init__()
         if sigma_width is not None:
-            self._sigma_width_ = LazyWrapper(sigma_width)
+            self._sigma_width_ = sigma_width
 
-    @lazy_object_raw
-    @staticmethod
-    def _sigma_width_() -> Real:
+    @lazy_object
+    @classmethod
+    def _sigma_width_(cls) -> Real:
         return 0.1
 
-    @lazy_object_raw
-    @staticmethod
-    def _color_map_() -> moderngl.Texture:
+    @lazy_object
+    @classmethod
+    def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _convolution_core_(
+        cls,
         sigma_width: Real
     ) -> FloatsT:
         sigma = sigma_width * ConfigSingleton().pixel_per_unit
@@ -56,8 +58,9 @@ class GaussianBlurPass(RenderPass):
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _u_color_map_(
+        cls,
         color_map: moderngl.Texture
     ) -> TextureStorage:
         return TextureStorage(
@@ -66,8 +69,9 @@ class GaussianBlurPass(RenderPass):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_gaussian_blur_(
+        cls,
         convolution_core: FloatsT
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
@@ -91,7 +95,7 @@ class GaussianBlurPass(RenderPass):
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         with ColorFramebufferBatch() as batch:
-            self._color_map_ = LazyWrapper(texture)
+            self._color_map_ = texture
             self._vertex_array_.render(
                 shader_filename="gaussian_blur",
                 custom_macros=[
@@ -108,7 +112,7 @@ class GaussianBlurPass(RenderPass):
                     enable_only=moderngl.NOTHING
                 )
             )
-            self._color_map_ = LazyWrapper(batch.color_texture)
+            self._color_map_ = batch.color_texture
             self._vertex_array_.render(
                 shader_filename="gaussian_blur",
                 custom_macros=[

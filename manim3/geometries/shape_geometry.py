@@ -16,7 +16,6 @@ from ..geometries.geometry import (
     GeometryData
 )
 from ..utils.lazy import (
-    LazyWrapper,
     lazy_object,
     lazy_property
 )
@@ -36,24 +35,25 @@ class ShapeGeometry(Geometry):
             self._shape_ = shape
 
     @lazy_object
-    @staticmethod
-    def _shape_() -> Shape:
+    @classmethod
+    def _shape_(cls) -> Shape:
         return Shape()
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _geometry_data_(
+        cls,
         _shape_: Shape
-    ) -> LazyWrapper[GeometryData]:
-        index, coords = ShapeGeometry._get_shape_triangulation(_shape_)
+    ) -> GeometryData:
+        index, coords = cls._get_shape_triangulation(_shape_)
         position = SpaceUtils.increase_dimension(coords)
         normal = np.repeat(np.array((0.0, 0.0, 1.0))[None], len(position), axis=0)
-        return LazyWrapper(GeometryData(
+        return GeometryData(
             index=index,
             position=position,
             normal=normal,
             uv=coords
-        ))
+        )
 
     @classmethod
     def _get_shape_triangulation(

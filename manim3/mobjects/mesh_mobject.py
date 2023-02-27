@@ -20,9 +20,7 @@ from ..rendering.vertex_array import ContextState
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
-    LazyWrapper,
     lazy_object,
-    lazy_object_raw,
     lazy_property
 )
 
@@ -39,55 +37,57 @@ class MeshMobject(Mobject):
     #    self._apply_phong_lighting: bool = True
 
     @lazy_object
-    @staticmethod
-    def _geometry_() -> Geometry:
+    @classmethod
+    def _geometry_(cls) -> Geometry:
         return Geometry()
 
-    @lazy_object_raw
-    @staticmethod
-    def _color_map_() -> moderngl.Texture | None:
+    @lazy_object
+    @classmethod
+    def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
-    @lazy_object_raw
-    @staticmethod
-    def _color_() -> Vec3T:
+    @lazy_object
+    @classmethod
+    def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_raw
-    @staticmethod
-    def _opacity_() -> Real:
+    @lazy_object
+    @classmethod
+    def _opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object_raw
-    @staticmethod
-    def _ambient_strength_() -> Real:
+    @lazy_object
+    @classmethod
+    def _ambient_strength_(cls) -> Real:
         return 1.0
 
-    @lazy_object_raw
-    @staticmethod
-    def _specular_strength_() -> Real:
+    @lazy_object
+    @classmethod
+    def _specular_strength_(cls) -> Real:
         return 0.5
 
-    @lazy_object_raw
-    @staticmethod
-    def _shininess_() -> Real:
+    @lazy_object
+    @classmethod
+    def _shininess_(cls) -> Real:
         return 32.0
 
-    @lazy_object_raw
-    @staticmethod
-    def _apply_phong_lighting_() -> bool:
+    @lazy_object
+    @classmethod
+    def _apply_phong_lighting_(cls) -> bool:
         return True
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _local_sample_points_(
+        cls,
         _geometry_: Geometry
-    ) -> LazyWrapper[Vec3sT]:
-        return LazyWrapper(_geometry_._geometry_data_.value.position)
+    ) -> Vec3sT:
+        return _geometry_._geometry_data_.value.position
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _u_color_maps_(
+        cls,
         color_map: moderngl.Texture | None
     ) -> TextureStorage:
         textures = [color_map] if color_map is not None else []
@@ -100,8 +100,9 @@ class MeshMobject(Mobject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _ub_material_(
+        cls,
         color: Vec3T,
         opacity: Real,
         ambient_strength: Real,
@@ -173,15 +174,15 @@ class MeshMobject(Mobject):
         broadcast: bool = True
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = LazyWrapper(color_component) if color_component is not None else None
-        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
-        apply_oit_value = LazyWrapper(apply_oit) if apply_oit is not None else \
-            LazyWrapper(True) if opacity_component is not None else None
-        ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
-        specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
-        shininess_value = LazyWrapper(shininess) if shininess is not None else None
-        apply_phong_lighting_value = LazyWrapper(apply_phong_lighting) if apply_phong_lighting is not None else \
-            LazyWrapper(True) if any(param is not None for param in (
+        color_value = color_component if color_component is not None else None
+        opacity_value = opacity_component if opacity_component is not None else None
+        apply_oit_value = apply_oit if apply_oit is not None else \
+            True if opacity_component is not None else None
+        ambient_strength_value = ambient_strength if ambient_strength is not None else None
+        specular_strength_value = specular_strength if specular_strength is not None else None
+        shininess_value = shininess if shininess is not None else None
+        apply_phong_lighting_value = apply_phong_lighting if apply_phong_lighting is not None else \
+            True if any(param is not None for param in (
                 ambient_strength,
                 specular_strength,
                 shininess

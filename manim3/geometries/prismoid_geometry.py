@@ -27,13 +27,14 @@ class PrismoidGeometry(Geometry):
     __slots__ = ()
 
     @lazy_object
-    @staticmethod
-    def _shape_() -> Shape:
+    @classmethod
+    def _shape_(cls) -> Shape:
         return Shape()
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _geometry_data_(
+        cls,
         _shape_: Shape
     ) -> LazyWrapper[GeometryData]:
         position_list: list[Vec3T] = []
@@ -93,7 +94,7 @@ class PrismoidGeometry(Geometry):
             index_offset += 2 * len(ip_normal_pairs)
 
         # Assemble top and bottom faces
-        shape_index, shape_coords = ShapeGeometry._get_shape_triangulation(_shape_)
+        shape_index, shape_coords = ShapeGeometry._get_shape_triangulation(_shape_)  # TODO
         n_coords = len(shape_coords)
         for sign in (1.0, -1.0):
             position_list.extend(SpaceUtils.increase_dimension(shape_coords, sign))

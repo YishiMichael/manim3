@@ -39,12 +39,12 @@ from ..custom_typing import (
 from ..utils.lazy import (
     LazyCollection,
     LazyObject,
-    LazyWrapper,
-    lazy_collection,
+    #LazyWrapper,
+    #lazy_collection,
     lazy_object,
-    lazy_object_raw,
+    #lazy_object_raw,
     lazy_property,
-    lazy_property_raw
+    #lazy_property_raw
 )
 from ..utils.space import SpaceUtils
 
@@ -60,22 +60,24 @@ class LineStringKind(Enum):
 
 
 class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
-    @lazy_object_raw
-    @staticmethod
-    def _lengths_() -> FloatsT:
+    @lazy_object
+    @classmethod
+    def _lengths_(cls) -> FloatsT:
         # Make sure all entries are non-zero to avoid zero divisions
         return NotImplemented
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _length_(
+        cls,
         lengths: FloatsT
     ) -> float:
         return lengths.sum()
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _length_knots_(
+        cls,
         lengths: FloatsT
     ) -> FloatsT:
         if not len(lengths):
@@ -178,16 +180,17 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         # TODO: shall we first remove redundant adjacent points?
         assert len(coords)
         super().__init__()
-        self._coords_ = LazyWrapper(coords)
+        self._coords_ = coords
 
-    @lazy_object_raw
-    @staticmethod
-    def _coords_() -> _VecsT:
+    @lazy_object
+    @classmethod
+    def _coords_(cls) -> _VecsT:
         return NotImplemented
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _kind_(
+        cls,
         coords: _VecsT
     ) -> LineStringKind:
         if len(coords) == 1:
@@ -196,9 +199,10 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
             return LineStringKind.LINEAR_RING
         return LineStringKind.LINE_STRING
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _shapely_component_(
+        cls,
         kind: str,
         coords: _VecsT
     ) -> shapely.geometry.base.BaseGeometry:
@@ -208,9 +212,10 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
             return shapely.geometry.LineString(coords)
         return shapely.validation.make_valid(shapely.geometry.Polygon(coords))
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _lengths_(
+        cls,
         coords: _VecsT
     ) -> FloatsT:
         return np.maximum(SpaceUtils.norm(coords[1:] - coords[:-1]), 1e-6)
@@ -286,14 +291,15 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         if children is not None:
             self._children_.add(*children)
 
-    @lazy_collection
-    @staticmethod
-    def _children_() -> LazyCollection[LineString[_VecT, _VecsT]]:
+    @lazy_object
+    @classmethod
+    def _children_(cls) -> LazyCollection[LineString[_VecT, _VecsT]]:
         return LazyCollection()
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _lengths_(
+        cls,
         children: tuple[LineString[_VecT, _VecsT], ...]
     ) -> FloatsT:
         return np.maximum(np.array([child._length_ for child in children]), 1e-6)
@@ -458,13 +464,14 @@ class Shape(LazyObject):
         return self.symmetric_difference(other)
 
     @lazy_object
-    @staticmethod
-    def _multi_line_string_() -> MultiLineString2D:
+    @classmethod
+    def _multi_line_string_(cls) -> MultiLineString2D:
         return MultiLineString2D()
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _multi_line_string_3d_(
+        cls,
         _multi_line_string_: MultiLineString2D
     ) -> MultiLineString3D:
         return MultiLineString3D([
@@ -559,9 +566,10 @@ class Shape(LazyObject):
         samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
         return gamma(samples).astype(float)
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _shapely_obj_(
+        cls,
         _multi_line_string_: MultiLineString2D
     ) -> shapely.geometry.base.BaseGeometry:
         return Shape._to_shapely_object(_multi_line_string_)

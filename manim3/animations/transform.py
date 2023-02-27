@@ -14,8 +14,7 @@ from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..utils.lazy import (
     LazyCollection,
-    LazyObjectDescriptor,
-    LazyWrapper
+    LazyObjectDescriptor
 )
 from ..utils.space import SpaceUtils
 from ..utils.shape import (
@@ -39,7 +38,7 @@ class Transform(AlphaAnimation):
     ) -> Callable[[Real], MultiLineString3D]:
         return multi_line_string_0.interpolate_shape_callback(multi_line_string_1, has_inlay=False)
 
-    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectDescriptor[Any, ShapeMobject], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectDescriptor[ShapeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
         ShapeMobject._shape_: __shape_interpolate_callback,
         ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
         ShapeMobject._color_: SpaceUtils.lerp_callback,
@@ -49,7 +48,7 @@ class Transform(AlphaAnimation):
         ShapeMobject._shininess_: SpaceUtils.lerp_callback
     }
 
-    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectDescriptor[Any, StrokeMobject], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
         StrokeMobject._multi_line_string_3d_: __stroke_interpolate_callback,
         StrokeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
         StrokeMobject._color_: SpaceUtils.lerp_callback,
@@ -81,20 +80,20 @@ class Transform(AlphaAnimation):
                 assert start_stroke is not None
                 stop_stroke_mobjects.add(start_stroke.copy().set_style(width=0.0))
 
-        intermediate_mobject._stroke_mobjects = [
-            stroke_mobject.copy()
-            for stroke_mobject in stop_stroke_mobjects
-        ]
+        #intermediate_mobject._stroke_mobjects_.add(
+        #    stroke_mobject.copy()
+        #    for stroke_mobject in stop_stroke_mobjects
+        #)
 
         shape_callbacks = {
-            variable_descr: interpolate_method(start_variable.data, stop_variable.data)
+            variable_descr: interpolate_method(start_variable.value, stop_variable.value)
             for variable_descr, interpolate_method in self._SHAPE_INTERPOLATE_CALLBACKS.items()
             if (start_variable := variable_descr.__get__(start_mobject)) \
                 is not (stop_variable := variable_descr.__get__(stop_mobject))
         }
         stroke_callbacks_list = [
             {
-                variable_descr: interpolate_method(start_variable.data, stop_variable.data)
+                variable_descr: interpolate_method(start_variable.value, stop_variable.value)
                 for variable_descr, interpolate_method in self._STROKE_INTERPOLATE_CALLBACKS.items()
                 if (start_variable := variable_descr.__get__(start_stroke_mobject)) \
                     is not (stop_variable := variable_descr.__get__(stop_stroke_mobject))
@@ -109,13 +108,13 @@ class Transform(AlphaAnimation):
             alpha: Real
         ) -> None:
             for variable_descr, callback in shape_callbacks.items():
-                variable_descr.__set__(intermediate_mobject, LazyWrapper(callback(alpha)))
+                variable_descr.__set__(intermediate_mobject, callback(alpha))
 
             for callbacks, intermediate_stroke_mobject in zip(
-                stroke_callbacks_list, intermediate_mobject._stroke_mobjects, strict=True
+                stroke_callbacks_list, intermediate_mobject._stroke_mobjects_, strict=True
             ):
                 for variable_descr, callback in callbacks.items():
-                    variable_descr.__set__(intermediate_stroke_mobject, LazyWrapper(callback(alpha)))
+                    variable_descr.__set__(intermediate_stroke_mobject, callback(alpha))
 
         super().__init__(
             animate_func=animate_func,

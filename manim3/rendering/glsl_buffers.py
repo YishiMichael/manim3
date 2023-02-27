@@ -22,10 +22,12 @@ import numpy as np
 from ..rendering.context import ContextSingleton
 from ..utils.lazy import (
     LazyObject,
-    LazyWrapper,
-    lazy_object_raw,
+    #LazyWrapper,
+    #lazy_object_raw,
+    lazy_object,
     lazy_object_shared,
-    lazy_property_raw
+    #lazy_property_raw
+    lazy_property
 )
 
 
@@ -100,95 +102,102 @@ class GLSLDynamicStruct(LazyObject):
             dynamic_array_lens = {}
         super().__init__()
         self._field_ = field
-        self._child_structs_ = child_structs
-        self._dynamic_array_lens_ = dynamic_array_lens
-        self._layout_ = layout
-        self._data_ = LazyWrapper(data)
-
-    @staticmethod
-    def __field_key(
-        field: str
-    ) -> str:
-        return field
-
-    @lazy_object_shared(__field_key)
-    @staticmethod
-    def _field_() -> str:
-        return NotImplemented
-
-    @staticmethod
-    def __child_structs_key(
-        child_structs: dict[str, list[str]]
-    ) -> tuple[tuple[str, tuple[str, ...]], ...]:
-        return tuple(
+        self._child_structs_ = tuple(
             (name, tuple(child_struct_fields))
             for name, child_struct_fields in child_structs.items()
         )
+        self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
+        self._layout_ = layout
+        self._data_ = data
 
-    @lazy_object_shared(__child_structs_key)
-    @staticmethod
-    def _child_structs_() -> dict[str, list[str]]:
+    #@staticmethod
+    #def __field_key(
+    #    field: str
+    #) -> str:
+    #    return field
+
+    @lazy_object_shared
+    @classmethod
+    def _field_(cls) -> str:
         return NotImplemented
 
-    @staticmethod
-    def __dynamic_array_lens_key(
-        dynamic_array_lens: dict[str, int]
-    ) -> tuple[tuple[str, int], ...]:
-        return tuple(dynamic_array_lens.items())
+    #@staticmethod
+    #def __child_structs_key(
+    #    child_structs: dict[str, list[str]]
+    #) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    #    return tuple(
+    #        (name, tuple(child_struct_fields))
+    #        for name, child_struct_fields in child_structs.items()
+    #    )
 
-    @lazy_object_shared(__dynamic_array_lens_key)
-    @staticmethod
-    def _dynamic_array_lens_() -> dict[str, int]:
+    @lazy_object_shared
+    @classmethod
+    def _child_structs_(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         return NotImplemented
 
-    @staticmethod
-    def __layout_key(
-        layout: GLSLBufferLayout
-    ) -> GLSLBufferLayout:
-        return layout
+    #@staticmethod
+    #def __dynamic_array_lens_key(
+    #    dynamic_array_lens: dict[str, int]
+    #) -> tuple[tuple[str, int], ...]:
+    #    return tuple(dynamic_array_lens.items())
 
-    @lazy_object_shared(__layout_key)
-    @staticmethod
-    def _layout_() -> GLSLBufferLayout:
+    @lazy_object_shared
+    @classmethod
+    def _dynamic_array_lens_(cls) -> tuple[tuple[str, int], ...]:
         return NotImplemented
 
-    @lazy_object_raw
-    @staticmethod
-    def _data_() -> np.ndarray | dict[str, Any]:
+    #@staticmethod
+    #def __layout_key(
+    #    layout: GLSLBufferLayout
+    #) -> GLSLBufferLayout:
+    #    return layout
+
+    @lazy_object_shared
+    @classmethod
+    def _layout_(cls) -> GLSLBufferLayout:
         return NotImplemented
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_object
+    @classmethod
+    def _data_(cls) -> np.ndarray | dict[str, Any]:
+        return NotImplemented
+
+    @lazy_property
+    @classmethod
     def _struct_dtype_(
+        cls,
         field: str,
-        child_structs: dict[str, list[str]],
-        dynamic_array_lens: dict[str, int],
+        child_structs: tuple[tuple[str, tuple[str, ...]], ...],
+        dynamic_array_lens: tuple[tuple[str, int], ...],
         layout: GLSLBufferLayout
     ) -> np.dtype:
+        dynamic_array_lens_dict = dict(dynamic_array_lens)
         return GLSLDynamicStruct._build_struct_dtype(
-            [GLSLDynamicStruct._parse_field_str(field, dynamic_array_lens)],
+            [GLSLDynamicStruct._parse_field_str(field, dynamic_array_lens_dict)],
             {
                 name: [
-                    GLSLDynamicStruct._parse_field_str(child_field, dynamic_array_lens)
+                    GLSLDynamicStruct._parse_field_str(child_field, dynamic_array_lens_dict)
                     for child_field in child_struct_fields
                 ]
-                for name, child_struct_fields in child_structs.items()
+                for name, child_struct_fields in child_structs
             },
             layout,
             0
         )
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _field_name_(
+        cls,
         struct_dtype: np.dtype
     ) -> str:
         assert (field_names := struct_dtype.names) is not None
         return field_names[0]
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _data_storage_(
+        cls,
         data: np.ndarray | dict[str, Any],
         struct_dtype: np.dtype,
         field_name: str
@@ -205,16 +214,18 @@ class GLSLDynamicStruct(LazyObject):
             data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)
         return data_storage
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _itemsize_(
+        cls,
         struct_dtype: np.dtype
     ) -> int:
         return struct_dtype.itemsize
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _is_empty_(
+        cls,
         itemsize: int
     ) -> bool:
         return itemsize == 0
@@ -334,9 +345,10 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 
     _BUFFER_CACHE: list[moderngl.Buffer] = []
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _buffer_(
+        cls,
         data_storage: np.ndarray,
         struct_dtype: np.dtype
     ) -> moderngl.Buffer:
@@ -381,11 +393,11 @@ class TextureStorage(GLSLDynamicStruct):
             layout=GLSLBufferLayout.PACKED,
             data=np.zeros(texture_array.shape, dtype=np.uint32)
         )
-        self._texture_array_ = LazyWrapper(texture_array)
+        self._texture_array_ = texture_array
 
-    @lazy_object_raw
-    @staticmethod
-    def _texture_array_() -> np.ndarray:
+    @lazy_object
+    @classmethod
+    def _texture_array_(cls) -> np.ndarray:
         return NotImplemented
 
 
@@ -450,9 +462,10 @@ class AttributesBuffer(GLSLDynamicBuffer):
             data=data,
         )
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _vertex_dtype_(
+        cls,
         struct_dtype: np.dtype
     ) -> np.dtype:
         return struct_dtype["__vertex__"].base

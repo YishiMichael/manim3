@@ -21,8 +21,8 @@ class RenderPass(LazyObject):
     __slots__ = ()
 
     @lazy_property
-    @staticmethod
-    def _vertex_array_() -> VertexArray:
+    @classmethod
+    def _vertex_array_(cls) -> VertexArray:
         return VertexArray(
             attributes=AttributesBuffer(
                 fields=[

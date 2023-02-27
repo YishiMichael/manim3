@@ -10,9 +10,8 @@ from ..custom_typing import (
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
-    LazyWrapper,
-    lazy_object_raw,
-    lazy_property_raw
+    lazy_object,
+    lazy_property
 )
 
 
@@ -30,44 +29,45 @@ class PerspectiveCamera(Camera):
     ) -> None:
         super().__init__()
         if width is not None:
-            self._width_ = LazyWrapper(width)
+            self._width_ = width
         if height is not None:
-            self._height_ = LazyWrapper(height)
+            self._height_ = height
         if near is not None:
-            self._near_ = LazyWrapper(near)
+            self._near_ = near
         if far is not None:
-            self._far_ = LazyWrapper(far)
+            self._far_ = far
         if altitude is not None:
-            self._altitude_ = LazyWrapper(altitude)
+            self._altitude_ = altitude
 
-    @lazy_object_raw
-    @staticmethod
-    def _width_() -> Real:
+    @lazy_object
+    @classmethod
+    def _width_(cls) -> Real:
         return ConfigSingleton().frame_width
 
-    @lazy_object_raw
-    @staticmethod
-    def _height_() -> Real:
+    @lazy_object
+    @classmethod
+    def _height_(cls) -> Real:
         return ConfigSingleton().frame_height
 
-    @lazy_object_raw
-    @staticmethod
-    def _near_() -> Real:
+    @lazy_object
+    @classmethod
+    def _near_(cls) -> Real:
         return ConfigSingleton().camera_near
 
-    @lazy_object_raw
-    @staticmethod
-    def _far_() -> Real:
+    @lazy_object
+    @classmethod
+    def _far_(cls) -> Real:
         return ConfigSingleton().camera_far
 
-    @lazy_object_raw
-    @staticmethod
-    def _altitude_() -> Real:
+    @lazy_object
+    @classmethod
+    def _altitude_(cls) -> Real:
         return ConfigSingleton().camera_altitude
 
-    @lazy_property_raw
-    @staticmethod
+    @lazy_property
+    @classmethod
     def _projection_matrix_(
+        cls,
         width: Real,
         height: Real,
         near: Real,

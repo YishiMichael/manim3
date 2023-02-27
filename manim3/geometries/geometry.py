@@ -21,7 +21,7 @@ from ..rendering.glsl_buffers import (
 from ..rendering.vertex_array import VertexArray
 from ..utils.lazy import (
     LazyObject,
-    lazy_object_raw,
+    lazy_object,
     lazy_property
 )
 
@@ -41,9 +41,9 @@ class GeometryData:
 class Geometry(LazyObject):
     __slots__ = ()
 
-    @lazy_object_raw
-    @staticmethod
-    def _geometry_data_() -> GeometryData:
+    @lazy_object
+    @classmethod
+    def _geometry_data_(cls) -> GeometryData:
         return GeometryData(
             index=np.zeros((0,), dtype=np.uint32),
             position=np.zeros((0, 3)),
@@ -52,8 +52,9 @@ class Geometry(LazyObject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _attributes_(
+        cls,
         geometry_data: GeometryData
     ) -> AttributesBuffer:
         return AttributesBuffer(
@@ -71,8 +72,9 @@ class Geometry(LazyObject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _index_buffer_(
+        cls,
         geometry_data: GeometryData
     ) -> IndexBuffer:
         return IndexBuffer(
@@ -80,8 +82,9 @@ class Geometry(LazyObject):
         )
 
     @lazy_property
-    @staticmethod
+    @classmethod
     def _vertex_array_(
+        cls,
         _attributes_: AttributesBuffer,
         _index_buffer_: IndexBuffer
     ) -> VertexArray:
