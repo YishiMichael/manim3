@@ -15,12 +15,17 @@ from ..rendering.glsl_buffers import (
     UniformBlockBuffer,
     TextureStorage
 )
-from ..rendering.vertex_array import ContextState
+from ..rendering.vertex_array import (
+    ContextState,
+    IndexedAttributesBuffer,
+    VertexArray
+)
 from ..utils.lazy import (
     #LazyWrapper,
-    lazy_object,
+    lazy_object_unwrapped,
     #lazy_object_raw,
-    lazy_property
+    lazy_property,
+    lazy_property_unwrapped
     #lazy_property_raw
 )
 
@@ -36,17 +41,17 @@ class GaussianBlurPass(RenderPass):
         if sigma_width is not None:
             self._sigma_width_ = sigma_width
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _sigma_width_(cls) -> Real:
         return 0.1
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _convolution_core_(
         cls,
@@ -89,6 +94,53 @@ class GaussianBlurPass(RenderPass):
             }
         )
 
+    @lazy_property
+    @classmethod
+    def _horizontal_vertex_array_(
+        cls,
+        _u_color_map_: TextureStorage,
+        _ub_gaussian_blur_: UniformBlockBuffer,
+        _indexed_attributes_buffer_: IndexedAttributesBuffer
+    ) -> VertexArray:
+        return VertexArray(
+            shader_filename="gaussian_blur",
+            custom_macros=[
+                f"#define blur_subroutine horizontal_dilate"
+            ],
+            texture_storages=[
+                _u_color_map_
+            ],
+            uniform_blocks=[
+                _ub_gaussian_blur_
+            ],
+            indexed_attributes=_indexed_attributes_buffer_
+        )
+
+    @lazy_property
+    @classmethod
+    def _vertical_vertex_array_(
+        cls,
+        _u_color_map_: TextureStorage,
+        _ub_gaussian_blur_: UniformBlockBuffer,
+        _indexed_attributes_buffer_: IndexedAttributesBuffer
+    ) -> VertexArray:
+        return VertexArray(
+            shader_filename="gaussian_blur",
+            custom_macros=[
+                f"#define blur_subroutine vertical_dilate"
+            ],
+            texture_storages=[
+                _u_color_map_
+            ],
+            uniform_blocks=[
+                _ub_gaussian_blur_
+            ],
+            indexed_attributes=_indexed_attributes_buffer_
+            #attributes=_attributes_buffer_,
+            #index_buffer=_index_buffer_,
+            #mode=moderngl.TRIANGLE_FAN
+        )
+
     def _render(
         self,
         texture: moderngl.Texture,
@@ -96,34 +148,34 @@ class GaussianBlurPass(RenderPass):
     ) -> None:
         with ColorFramebufferBatch() as batch:
             self._color_map_ = texture
-            self._vertex_array_.render(
-                shader_filename="gaussian_blur",
-                custom_macros=[
-                    f"#define blur_subroutine horizontal_dilate"
-                ],
-                texture_storages=[
-                    self._u_color_map_
-                ],
-                uniform_blocks=[
-                    self._ub_gaussian_blur_
-                ],
+            self._horizontal_vertex_array_.render(
+                #shader_filename="gaussian_blur",
+                #custom_macros=[
+                #    f"#define blur_subroutine horizontal_dilate"
+                #],
+                #texture_storages=[
+                #    self._u_color_map_
+                #],
+                #uniform_blocks=[
+                #    self._ub_gaussian_blur_
+                #],
                 framebuffer=batch.framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING
                 )
             )
             self._color_map_ = batch.color_texture
-            self._vertex_array_.render(
-                shader_filename="gaussian_blur",
-                custom_macros=[
-                    f"#define blur_subroutine vertical_dilate"
-                ],
-                texture_storages=[
-                    self._u_color_map_
-                ],
-                uniform_blocks=[
-                    self._ub_gaussian_blur_
-                ],
+            self._vertical_vertex_array_.render(
+                #shader_filename="gaussian_blur",
+                #custom_macros=[
+                #    f"#define blur_subroutine vertical_dilate"
+                #],
+                #texture_storages=[
+                #    self._u_color_map_
+                #],
+                #uniform_blocks=[
+                #    self._ub_gaussian_blur_
+                #],
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING

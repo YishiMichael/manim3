@@ -7,9 +7,9 @@ from typing import Callable
 import moderngl
 import numpy as np
 
-from ..cameras.camera import Camera
 from ..custom_typing import (
     ColorType,
+    Mat4T,
     Real,
     Vec3T,
     Vec3sT,
@@ -23,17 +23,21 @@ from ..rendering.glsl_buffers import (
 )
 from ..rendering.vertex_array import (
     ContextState,
+    IndexedAttributesBuffer,
     VertexArray
 )
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     #LazyWrapper,
+    #LazyCollection,
     lazy_object,
     #lazy_object_raw,
     #lazy_property_raw,
-    lazy_object_shared,
-    lazy_property
+    #lazy_object_shared,
+    lazy_object_unwrapped,
+    lazy_property,
+    lazy_property_unwrapped
 )
 from ..utils.shape import (
     #LineString3D,
@@ -60,48 +64,61 @@ class StrokeMobject(Mobject):
     #) -> bool:
     #    return winding_sign
 
-    @lazy_object_shared
-    @classmethod
-    def _winding_sign_(cls) -> bool:
-        return NotImplemented
-
     @lazy_object
     @classmethod
     def _multi_line_string_3d_(cls) -> MultiLineString3D:
         return MultiLineString3D()
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _width_(cls) -> Real:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _dilate_(cls) -> Real:
         return 0.0
 
-    @lazy_property
+    @lazy_property_unwrapped
+    @classmethod
+    def _winding_sign_(
+        cls,
+        scene_config__camera__projection_matrix: Mat4T,
+        scene_config__camera__view_matrix: Mat4T,
+        model_matrix: Mat4T,
+        multi_line_string_3d__children__coords: tuple[Vec3sT, ...],
+        width: Real
+    ) -> bool:
+        # TODO: The calculation here is somehow redundant with what shader does...
+        transform = scene_config__camera__projection_matrix @ scene_config__camera__view_matrix @ model_matrix
+        area = 0.0
+        for coords in multi_line_string_3d__children__coords:
+            coords_2d = SpaceUtils.apply_affine(transform, coords)[:, :2]
+            area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
+        return area * width >= 0.0
+
+    @lazy_property_unwrapped
     @classmethod
     def _local_sample_points_(
         cls,
@@ -177,41 +194,62 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _vertex_array_items_(
         cls,
+        scene_config__camera__ub_camera: UniformBlockBuffer,
+        ub_model: UniformBlockBuffer,
+        ub_stroke: UniformBlockBuffer,
+        ub_winding_sign: UniformBlockBuffer,
         _multi_line_string_3d_: MultiLineString3D,
         single_sided: bool,
         has_linecap: bool,
         _attributes_: AttributesBuffer
-    ) -> list[tuple[VertexArray, list[str]]]:
-        def get_vertex_array(index_getter: Callable[[int, LineStringKind], list[int]], mode: int) -> VertexArray:
+    ) -> list[VertexArray]:
+        uniform_blocks = [
+            scene_config__camera__ub_camera,
+            ub_model,
+            ub_stroke,
+            ub_winding_sign
+        ]
+
+        def get_vertex_array(
+            index_getter: Callable[[int, LineStringKind], list[int]],
+            mode: int,
+            custom_macros: list[str]
+        ) -> VertexArray:
             return VertexArray(
-                attributes=_attributes_,
-                index_buffer=IndexBuffer(
-                    data=StrokeMobject._lump_index_from_getter(index_getter, _multi_line_string_3d_)
-                ),
-                mode=mode
+                shader_filename="stroke",
+                custom_macros=custom_macros,
+                texture_storages=[],
+                uniform_blocks=uniform_blocks,
+                indexed_attributes=IndexedAttributesBuffer(
+                    attributes=_attributes_,
+                    index_buffer=IndexBuffer(
+                        data=StrokeMobject._lump_index_from_getter(index_getter, _multi_line_string_3d_)
+                    ),
+                    mode=mode
+                )
             )
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
-        result: list[tuple[VertexArray, list[str]]] = [
-            (get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINES), [
+        result: list[VertexArray] = [
+            get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINES, [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
             ]),
-            (get_vertex_array(StrokeMobject._join_index_getter, moderngl.TRIANGLES), [
+            get_vertex_array(StrokeMobject._join_index_getter, moderngl.TRIANGLES, [
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
             ])
         ]
         if has_linecap and not single_sided:
             result.extend([
-                (get_vertex_array(StrokeMobject._cap_index_getter, moderngl.LINES), [
+                get_vertex_array(StrokeMobject._cap_index_getter, moderngl.LINES, [
                     "#define STROKE_CAP"
                 ]),
-                (get_vertex_array(StrokeMobject._point_index_getter, moderngl.POINTS), [
+                get_vertex_array(StrokeMobject._point_index_getter, moderngl.POINTS, [
                     "#define STROKE_POINT"
                 ])
             ])
@@ -220,9 +258,9 @@ class StrokeMobject(Mobject):
     @_vertex_array_items_.restocker
     @staticmethod
     def _vertex_array_items_restocker(
-        vertex_array_items: list[tuple[VertexArray, list[str]]]
+        vertex_array_items: list[VertexArray]
     ) -> None:
-        for vertex_array, _ in vertex_array_items:
+        for vertex_array in vertex_array_items:
             vertex_array._restock()
 
     #@lazy_slot
@@ -320,27 +358,33 @@ class StrokeMobject(Mobject):
             return []
         raise ValueError  # never
 
+    @lazy_object
+    @classmethod
+    def _scene_config_(cls) -> SceneConfig:
+        return NotImplemented
+
     def _render(
         self,
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
+        self._scene_config_ = scene_config
         # TODO: Is this already the best practice?
-        self._winding_sign_ = self._calculate_winding_sign(scene_config._camera_)
-        uniform_blocks = [
-            scene_config._camera_._ub_camera_,
-            self._ub_model_,
-            self._ub_stroke_,
-            self._ub_winding_sign_
-        ]
+        #self._winding_sign_ = self._calculate_winding_sign(scene_config._camera_)
+        #uniform_blocks = [
+        #    scene_config._camera_._ub_camera_,
+        #    self._ub_model_,
+        #    self._ub_stroke_,
+        #    self._ub_winding_sign_
+        #]
         # Render color
         target_framebuffer.depth_mask = False
-        for vertex_array, custom_macros in self._vertex_array_items_.value:
+        for vertex_array in self._vertex_array_items_.value:
             vertex_array.render(
-                shader_filename="stroke",
-                custom_macros=custom_macros,
-                texture_storages=[],
-                uniform_blocks=uniform_blocks,
+                #shader_filename="stroke",
+                #custom_macros=custom_macros,
+                #texture_storages=[],
+                #uniform_blocks=uniform_blocks,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND,
@@ -351,12 +395,12 @@ class StrokeMobject(Mobject):
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
-        for vertex_array, custom_macros in self._vertex_array_items_.value:
+        for vertex_array in self._vertex_array_items_.value:
             vertex_array.render(
-                shader_filename="stroke",
-                custom_macros=custom_macros,
-                texture_storages=[],
-                uniform_blocks=uniform_blocks,
+                #shader_filename="stroke",
+                #custom_macros=custom_macros,
+                #texture_storages=[],
+                #uniform_blocks=uniform_blocks,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.DEPTH_TEST
@@ -364,17 +408,17 @@ class StrokeMobject(Mobject):
             )
         target_framebuffer.color_mask = (True, True, True, True)
 
-    def _calculate_winding_sign(
-        self,
-        camera: Camera
-    ) -> bool:
-        # TODO: The calculation here is somehow redundant with what shader does...
-        area = 0.0
-        transform = camera._projection_matrix_.value @ camera._view_matrix_.value @ self._model_matrix_.value
-        for line_string in self._multi_line_string_3d_._children_:
-            coords_2d = SpaceUtils.apply_affine(transform, line_string._coords_.value)[:, :2]
-            area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
-        return area * self._width_.value >= 0.0
+    #def _calculate_winding_sign(
+    #    self,
+    #    camera: Camera
+    #) -> bool:
+    #    # TODO: The calculation here is somehow redundant with what shader does...
+    #    area = 0.0
+    #    transform = camera._projection_matrix_.value @ camera._view_matrix_.value @ self._model_matrix_.value
+    #    for line_string in self._multi_line_string_3d_._children_:
+    #        coords_2d = SpaceUtils.apply_affine(transform, line_string._coords_.value)[:, :2]
+    #        area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
+    #    return area * self._width_.value >= 0.0
 
     def set_style(
         self,

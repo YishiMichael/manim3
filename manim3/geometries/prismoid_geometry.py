@@ -15,9 +15,8 @@ from ..geometries.geometry import (
 )
 from ..geometries.shape_geometry import ShapeGeometry
 from ..utils.lazy import (
-    LazyWrapper,
     lazy_object,
-    lazy_property
+    lazy_property_unwrapped
 )
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
@@ -31,12 +30,12 @@ class PrismoidGeometry(Geometry):
     def _shape_(cls) -> Shape:
         return Shape()
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _geometry_data_(
         cls,
         _shape_: Shape
-    ) -> LazyWrapper[GeometryData]:
+    ) -> GeometryData:
         position_list: list[Vec3T] = []
         normal_list: list[Vec3T] = []
         uv_list: list[Vec2T] = []
@@ -103,9 +102,9 @@ class PrismoidGeometry(Geometry):
             index_list.extend(index_offset + shape_index)
             index_offset += n_coords
 
-        return LazyWrapper(GeometryData(
+        return GeometryData(
             index=np.array(index_list),
             position=np.array(position_list),
             normal=np.array(normal_list),
             uv=np.array(uv_list)
-        ))
+        )

@@ -10,8 +10,8 @@ from ..custom_typing import (
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.lazy import (
-    lazy_object,
-    lazy_property
+    lazy_object_unwrapped,
+    lazy_property_unwrapped
 )
 
 
@@ -36,27 +36,27 @@ class OrthographicCamera(Camera):
         if far is not None:
             self._far_ = far
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _width_(cls) -> Real:
         return ConfigSingleton().frame_width
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _height_(cls) -> Real:
         return ConfigSingleton().frame_height
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _near_(cls) -> Real:
         return ConfigSingleton().camera_near
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _far_(cls) -> Real:
         return ConfigSingleton().camera_far
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _projection_matrix_(
         cls,

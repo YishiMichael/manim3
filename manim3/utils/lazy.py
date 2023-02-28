@@ -66,19 +66,19 @@ __all__ = [
     #"LazyCollectionDescriptor",
     "LazyObject",
     "LazyObjectDescriptor",
-    "LazyPropertyDescriptor",
+    #"LazyPropertyDescriptor",
     "LazyWrapper",
-    #"lazy_collection",
+    "lazy_collection",
     "lazy_object",
     "lazy_object_shared",
-    #"lazy_object_raw",
+    "lazy_object_unwrapped",
     "lazy_property",
     "lazy_property_shared",
-    #"lazy_property_raw"
+    "lazy_property_unwrapped"
 ]
 
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from functools import wraps
 #from abc import (
 #    ABC,
@@ -90,8 +90,9 @@ from functools import wraps
 #)
 import inspect
 import re
-#from types import MappingProxyType
 from types import GenericAlias
+#from types import MappingProxyType
+#from types import GenericAlias
 from typing import (
     Any,
     Callable,
@@ -121,11 +122,12 @@ _T = TypeVar("_T")
 #_LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
 _LazyEntityT = TypeVar("_LazyEntityT", bound="LazyEntity")
 _LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
-_ParameterElementsT = TypeVar("_ParameterElementsT", bound=Hashable)
+#_ParameterElementsT = TypeVar("_ParameterElementsT", bound=Hashable)
 #_ObjT = TypeVar("_ObjT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 _HashableT = TypeVar("_HashableT", bound=Hashable)
 _ParameterSpec = ParamSpec("_ParameterSpec")
+_LazyDescriptorT = TypeVar("_LazyDescriptorT", bound="LazyDescriptor")
 #_Annotation = Any
 
 
@@ -295,21 +297,24 @@ class LazyEntity(LazyBase):
 
     def _expire_properties(self) -> None:
         for expired in self._iter_parameter_ancestors():
-            if isinstance(expired, LazyParameter | LazyProperty):
+            if isinstance(expired, LazyParameter):
+                #print(expired)
                 expired._unbind_parameter_children(*expired._iter_parameter_children())
                 expired._set(None)
-            #elif isinstance(expired, LazyProperty):
-            #    expired._set(None)
+            elif isinstance(expired, LazyProperty):
+                expired._unbind_parameter_children(*expired._iter_parameter_children())
+                expired._unbind_dependency_children(*expired._iter_dependency_children())
+                expired._set(None)
 
 
 class LazyObject(LazyEntity):
     __slots__ = ()
 
-    #_LAZY_DESCRIPTORS: "ClassVar[list[LazyDescriptor[LazyEntity, LazyObject]]]"
-    _OBJECT_DESCRIPTORS: "ClassVar[list[LazyObjectDescriptor]]"
-    _COLLECTION_DESCRIPTORS: "ClassVar[list[LazyCollectionDescriptor]]"
-    _PARAMETER_DESCRIPTORS: "ClassVar[list[LazyParameterDescriptor]]"
-    _PROPERTY_DESCRIPTORS: "ClassVar[list[LazyPropertyDescriptor]]"
+    _LAZY_DESCRIPTORS: "ClassVar[list[LazyDescriptor]]"
+    #_OBJECT_DESCRIPTORS: "ClassVar[list[LazyObjectDescriptor]]"
+    #_COLLECTION_DESCRIPTORS: "ClassVar[list[LazyCollectionDescriptor]]"
+    #_PARAMETER_DESCRIPTORS: "ClassVar[list[LazyParameterDescriptor]]"
+    #_PROPERTY_DESCRIPTORS: "ClassVar[list[LazyPropertyDescriptor]]"
 
     def __init_subclass__(cls) -> None:
         attrs: dict[str, Any] = {
@@ -341,6 +346,28 @@ class LazyObject(LazyEntity):
             re.fullmatch(r"_\w+_", name)
             for name in descriptors
         )
+
+        for object_descriptor in object_descriptors.values():
+            return_annotation = inspect.signature(object_descriptor.method)
+            if isinstance(return_annotation, type):
+                object_type = return_annotation
+            elif isinstance(return_annotation, str) and return_annotation == cls.__name__:
+                object_type = cls
+            else:
+                raise TypeError
+            object_descriptor.object_type = object_type
+
+        for collection_descriptor in collection_descriptors.values():
+            return_annotation = inspect.signature(collection_descriptor.method)
+            if isinstance(return_annotation, GenericAlias):
+                object_type = return_annotation.__origin__
+            elif isinstance(return_annotation, str) and return_annotation == f"LazyCollection[{cls.__name__}]":
+                object_type = cls
+            else:
+                raise TypeError
+            collection_descriptor.object_type = object_type
+
+
 
         #def construct_obj_from_descriptor_chain(
         #    descriptor_chain: tuple[LazyObjectDescriptor | LazyCollectionDescriptor | LazyPropertyDescriptor, ...],
@@ -414,21 +441,22 @@ class LazyObject(LazyEntity):
         #cls.__dict__ = MappingProxyType({**cls.__dict__, **descriptors})
         cls._OBJECT_DESCRIPTORS = list(object_descriptors.values())
         cls._COLLECTION_DESCRIPTORS = list(collection_descriptors.values())
-        cls._PARAMETER_DESCRIPTORS = list(parameter_descriptors.values())
+        #cls._PARAMETER_DESCRIPTORS = list(parameter_descriptors.values())
         cls._PROPERTY_DESCRIPTORS = list(property_descriptors.values())
 
     def __init__(self) -> None:
         super().__init__()
-
         cls = self.__class__
-        for object_descriptor in cls._OBJECT_DESCRIPTORS:
-            object_descriptor.initialize(self)
-        for collection_descriptor in cls._COLLECTION_DESCRIPTORS:
-            collection_descriptor.initialize(self)
-        for parameter_descriptor in cls._PARAMETER_DESCRIPTORS:
-            parameter_descriptor.initialize(self)
-        for property_descriptor in cls._PROPERTY_DESCRIPTORS:
-            property_descriptor.initialize(self)
+        for descriptor in cls._LAZY_DESCRIPTORS:
+            descriptor.initialize(self)
+        #for object_descriptor in cls._OBJECT_DESCRIPTORS:
+        #    object_descriptor.initialize(self)
+        #for collection_descriptor in cls._COLLECTION_DESCRIPTORS:
+        #    collection_descriptor.initialize(self)
+        ##for parameter_descriptor in cls._PARAMETER_DESCRIPTORS:
+        ##    parameter_descriptor.initialize(self)
+        #for property_descriptor in cls._PROPERTY_DESCRIPTORS:
+        #    property_descriptor.initialize(self)
             
         #for descr in self.__class__._LAZY_DESCRIPTORS:
         #    if isinstance(descr, LazyObjectDescriptor):
@@ -447,14 +475,16 @@ class LazyObject(LazyEntity):
     def _copy(self: _LazyObjectT) -> _LazyObjectT:
         cls = self.__class__
         result = cls.__new__(cls)
-        for object_descriptor in cls._OBJECT_DESCRIPTORS:
-            object_descriptor.copy_initialize(result, self)
-        for collection_descriptor in cls._COLLECTION_DESCRIPTORS:
-            collection_descriptor.copy_initialize(result, self)
-        for parameter_descriptor in cls._PARAMETER_DESCRIPTORS:
-            parameter_descriptor.copy_initialize(result, self)
-        for property_descriptor in cls._PROPERTY_DESCRIPTORS:
-            property_descriptor.copy_initialize(result, self)
+        for descriptor in cls._LAZY_DESCRIPTORS:
+            descriptor.copy_initialize(result, self)
+        #for object_descriptor in cls._OBJECT_DESCRIPTORS:
+        #    object_descriptor.copy_initialize(result, self)
+        #for collection_descriptor in cls._COLLECTION_DESCRIPTORS:
+        #    collection_descriptor.copy_initialize(result, self)
+        ##for parameter_descriptor in cls._PARAMETER_DESCRIPTORS:
+        ##    parameter_descriptor.copy_initialize(result, self)
+        #for property_descriptor in cls._PROPERTY_DESCRIPTORS:
+        #    property_descriptor.copy_initialize(result, self)
         return result
 
 
@@ -500,10 +530,10 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
         assert not self._is_readonly()
         if not entities:
             return self
-        #for entity in self._iter_dependency_ancestors():
-        #    assert isinstance(entity, LazyEntity)
-        #    entity._expire_properties()
-        self._expire_properties()
+        for entity in self._iter_dependency_ancestors():
+            assert isinstance(entity, LazyEntity)
+            entity._expire_properties()
+        #self._expire_properties()
         self._entities.extend(entities)
         self._bind_dependency_children(*entities)
         return self
@@ -515,10 +545,10 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
         assert not self._is_readonly()
         if not entities:
             return self
-        #for entity in self._iter_dependency_ancestors():
-        #    assert isinstance(entity, LazyEntity)
-        #    entity._expire_properties()
-        self._expire_properties()
+        for entity in self._iter_dependency_ancestors():
+            assert isinstance(entity, LazyEntity)
+            entity._expire_properties()
+        #self._expire_properties()
         for entity in entities:
             self._entities.remove(entity)
         self._unbind_dependency_children(*entities)
@@ -526,20 +556,20 @@ class LazyCollection(Generic[_LazyEntityT], LazyEntity):
 
 
 class LazyParameter(Generic[_ParameterElementsT], LazyBase):
-    __slots__ = ("_elements",)
+    __slots__ = ("_wrapped_elements",)
 
     def __init__(self) -> None:
         super().__init__()
-        self._elements: _ParameterElementsT | None = None
+        self._wrapped_elements: LazyWrapper[_ParameterElementsT] | None = None
 
-    def _get(self) -> _ParameterElementsT | None:
-        return self._elements
+    def _get(self) -> "LazyWrapper[_ParameterElementsT] | None":
+        return self._wrapped_elements
 
     def _set(
         self,
-        elements: _ParameterElementsT | None
+        wrapped_elements: "LazyWrapper[_ParameterElementsT] | None"
     ) -> None:
-        self._elements = elements
+        self._wrapped_elements = wrapped_elements
 
     #def _bind_entities(self, *entities: LazyEntity):
     #    self._bind_parameter_children(*entities)
@@ -654,8 +684,56 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
 #        raise KeyError
 
 
-class LazyObjectDescriptor(Generic[_InstanceT, _LazyObjectT]):
+class LazyDescriptor(Generic[_InstanceT, _LazyEntityT], ABC):
+    @overload
+    def __get__(
+        self: _LazyDescriptorT,
+        instance: None,
+        owner: type[_InstanceT] | None = None
+    ) -> _LazyDescriptorT: ...  # TODO: typing
+
+    @overload
+    def __get__(
+        self,
+        instance: _InstanceT,
+        owner: type[_InstanceT] | None = None
+    ) -> _LazyEntityT: ...
+
+    def __get__(
+        self: _LazyDescriptorT,
+        instance: _InstanceT | None,
+        owner: type[_InstanceT] | None = None
+    ) -> _LazyDescriptorT | _LazyEntityT:
+        if instance is None:
+            return self
+        return self.instance_get(instance)
+
+    @abstractmethod
+    def instance_get(
+        self,
+        instance: _InstanceT
+    ) -> _LazyEntityT:
+        pass
+
+    @abstractmethod
+    def initialize(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def copy_initialize(
+        self,
+        dst: _InstanceT,
+        src: _InstanceT
+    ) -> None:
+        pass
+
+
+class LazyObjectDescriptor(LazyDescriptor[_InstanceT, _LazyObjectT]):
     __slots__ = (
+        "object_type",
         "method",
         "instance_to_object_dict",
         "_default_object"
@@ -666,53 +744,61 @@ class LazyObjectDescriptor(Generic[_InstanceT, _LazyObjectT]):
         method: Callable[[type[_InstanceT]], _LazyObjectT]
     ) -> None:
         #super().__init__(method.__name__)
+        self.object_type: type = NotImplemented
         self.method: Callable[[type[_InstanceT]], _LazyObjectT] = method
         self.instance_to_object_dict: dict[_InstanceT, _LazyObjectT] = {}
         self._default_object: _LazyObjectT | None = None
 
-    @overload
-    def __get__(
-        self,
-        instance: None,
-        owner: type[_InstanceT] | None = None
-    ) -> "LazyObjectDescriptor[_InstanceT, _LazyObjectT]": ...  # TODO: typing
+    #@overload
+    #def __get__(
+    #    self,
+    #    instance: None,
+    #    owner: type[_InstanceT] | None = None
+    #) -> "LazyObjectDescriptor[_InstanceT, _LazyObjectT]": ...  # TODO: typing
 
-    @overload
-    def __get__(
-        self,
-        instance: _InstanceT,
-        owner: type[_InstanceT] | None = None
-    ) -> _LazyObjectT: ...
+    #@overload
+    #def __get__(
+    #    self,
+    #    instance: _InstanceT,
+    #    owner: type[_InstanceT] | None = None
+    #) -> _LazyObjectT: ...
 
-    def __get__(
-        self,
-        instance: _InstanceT | None,
-        owner: type[_InstanceT] | None = None
-    ) -> "LazyObjectDescriptor[_InstanceT, _LazyObjectT] | _LazyObjectT":
-        if instance is None:
-            return self
-        return self.instance_to_object_dict[instance]
+    #def __get__(
+    #    self,
+    #    instance: _InstanceT | None,
+    #    owner: type[_InstanceT] | None = None
+    #) -> "LazyObjectDescriptor[_InstanceT, _LazyObjectT] | _LazyObjectT":
+    #    if instance is None:
+    #        return self
+    #    return self.instance_to_object_dict[instance]
 
     def __set__(
         self,
         instance: _InstanceT,
         new_object: _LazyObjectT
     ) -> None:
-        if (old_object := self.instance_to_object_dict[instance]) is not NotImplemented:
-            assert not old_object._is_readonly()
-            if old_object is new_object:
-                return
-            #old_object._expire_properties()
-            #instance._expire_properties(old_object)
-            for entity in old_object._iter_dependency_descendants():
-                assert isinstance(entity, LazyEntity)
-                entity._expire_properties()
-            instance._unbind_dependency_children(old_object)
+        #if (old_object := self.instance_to_object_dict[instance]) is not NotImplemented:
+        assert not instance._is_readonly()
+        old_object = self.instance_to_object_dict[instance]
+        if old_object is new_object:
+            return
+        #old_object._expire_properties()
+        #instance._expire_properties(old_object)
+        for entity in old_object._iter_dependency_descendants():
+            assert isinstance(entity, LazyEntity)
+            entity._expire_properties()
+        instance._unbind_dependency_children(old_object)
         for entity in instance._iter_dependency_ancestors():
             assert isinstance(entity, LazyEntity)
             entity._expire_properties()
         self.instance_to_object_dict[instance] = new_object
         instance._bind_dependency_children(new_object)
+
+    def instance_get(
+        self,
+        instance: _InstanceT
+    ) -> _LazyObjectT:
+        return self.instance_to_object_dict[instance]
 
     def initialize(
         self,
@@ -722,12 +808,13 @@ class LazyObjectDescriptor(Generic[_InstanceT, _LazyObjectT]):
             default_object = self.method(type(instance))
             #if default_object is NotImplemented:  # TODO
             #    default_object = LazyObjectNotImplemented()
-            if default_object is not NotImplemented:
-                default_object._restock_callbacks = None  # Never restock
+            if default_object is NotImplemented:
+                default_object = LazyWrapper(NotImplemented)
+            default_object._restock_callbacks = None  # Never restock
             self._default_object = default_object
         self.instance_to_object_dict[instance] = default_object
-        if default_object is not NotImplemented:
-            instance._bind_dependency_children(default_object)
+        #if default_object is not NotImplemented:
+        instance._bind_dependency_children(default_object)
 
     def copy_initialize(
         self,
@@ -739,8 +826,9 @@ class LazyObjectDescriptor(Generic[_InstanceT, _LazyObjectT]):
         dst._bind_dependency_children(self.instance_to_object_dict[src])
 
 
-class LazyCollectionDescriptor(Generic[_InstanceT, _LazyEntityT]):
+class LazyCollectionDescriptor(Generic[_InstanceT, _LazyEntityT], LazyDescriptor[_InstanceT, LazyCollection[_LazyEntityT]]):
     __slots__ = (
+        "object_type",
         "method",
         "instance_to_collection_dict"
     )
@@ -750,30 +838,37 @@ class LazyCollectionDescriptor(Generic[_InstanceT, _LazyEntityT]):
         method: Callable[[type[_InstanceT]], LazyCollection[_LazyEntityT]]
     ) -> None:
         #super().__init__(method.__name__)
+        self.object_type: type = NotImplemented
         self.method: Callable[[type[_InstanceT]], LazyCollection[_LazyEntityT]] = method
         self.instance_to_collection_dict: dict[_InstanceT, LazyCollection[_LazyEntityT]] = {}
 
-    @overload
-    def __get__(
-        self,
-        instance: None,
-        owner: type[_InstanceT] | None = None
-    ) -> "LazyCollectionDescriptor[_InstanceT, _LazyEntityT]": ...
+    #@overload
+    #def __get__(
+    #    self,
+    #    instance: None,
+    #    owner: type[_InstanceT] | None = None
+    #) -> "LazyCollectionDescriptor[_InstanceT, _LazyEntityT]": ...
 
-    @overload
-    def __get__(
-        self,
-        instance: _InstanceT,
-        owner: type[_InstanceT] | None = None
-    ) -> LazyCollection[_LazyEntityT]: ...
+    #@overload
+    #def __get__(
+    #    self,
+    #    instance: _InstanceT,
+    #    owner: type[_InstanceT] | None = None
+    #) -> LazyCollection[_LazyEntityT]: ...
 
-    def __get__(
+    #def __get__(
+    #    self,
+    #    instance: _InstanceT | None,
+    #    owner: type[_InstanceT] | None = None
+    #) -> "LazyCollectionDescriptor[_InstanceT, _LazyEntityT] | LazyCollection[_LazyEntityT]":
+    #    if instance is None:
+    #        return self
+    #    return self.instance_to_collection_dict[instance]
+
+    def instance_get(
         self,
-        instance: _InstanceT | None,
-        owner: type[_InstanceT] | None = None
-    ) -> "LazyCollectionDescriptor[_InstanceT, _LazyEntityT] | LazyCollection[_LazyEntityT]":
-        if instance is None:
-            return self
+        instance: _InstanceT
+    ) -> LazyCollection[_LazyEntityT]:
         return self.instance_to_collection_dict[instance]
 
     def initialize(
@@ -822,7 +917,7 @@ class LazyParameterDescriptor(Generic[_InstanceT, _ParameterElementsT]):
         ], ...] = descriptor_chain
         #self.is_lazy_value: bool = NotImplemented
         #self.get_parameter_from_instance: Callable[[_InstanceT], _ParameterElementsT] = NotImplemented
-        self.instance_to_parameter_dict: dict[_InstanceT, LazyParameter[_ParameterElementsT]] = {}
+        self.instance_to_parameter_dict: dict[_InstanceT, LazyParameter[LazyWrapper[_ParameterElementsT]]] = {}
 
     @overload
     def __get__(
@@ -836,13 +931,13 @@ class LazyParameterDescriptor(Generic[_InstanceT, _ParameterElementsT]):
         self,
         instance: _InstanceT,
         owner: type[_InstanceT] | None = None
-    ) -> _ParameterElementsT: ...
+    ) -> "LazyWrapper[_ParameterElementsT]": ...
 
     def __get__(
         self,
         instance: _InstanceT | None,
         owner: type[_InstanceT] | None = None
-    ) -> "LazyParameterDescriptor[_InstanceT, _ParameterElementsT] | _ParameterElementsT":
+    ) -> "LazyParameterDescriptor[_InstanceT, _ParameterElementsT] | LazyWrapper[_ParameterElementsT]":
         if instance is None:
             return self
 
@@ -867,7 +962,7 @@ class LazyParameterDescriptor(Generic[_InstanceT, _ParameterElementsT]):
                     yield from yield_deepest(child_obj)
 
         parameter = self.instance_to_parameter_dict[instance]
-        if (elements := parameter._get()) is None:
+        if (wrapped_elements := parameter._get()) is None:
             elements = instance
             binding_completed = False
             for descriptor in self.descriptor_chain:
@@ -882,8 +977,9 @@ class LazyParameterDescriptor(Generic[_InstanceT, _ParameterElementsT]):
                 parameter._bind_parameter_children(*yield_deepest(elements))
             #if self.is_lazy_value:
             #    elements = apply_deepest(lambda obj: obj.value, elements)
-            parameter._set(elements)
-        return elements
+            wrapped_elements = LazyWrapper(elements)
+            parameter._set(wrapped_elements)
+        return wrapped_elements
 
     def initialize(
         self,
@@ -900,11 +996,13 @@ class LazyParameterDescriptor(Generic[_InstanceT, _ParameterElementsT]):
         self.instance_to_parameter_dict[dst]._set(self.instance_to_parameter_dict[src]._get())
 
 
-class LazyPropertyDescriptor(Generic[_InstanceT, _ParameterSpec, _LazyEntityT]):
+class LazyPropertyDescriptor(Generic[_InstanceT, _ParameterSpec, _LazyEntityT], LazyDescriptor[_InstanceT, _LazyEntityT]):
     __slots__ = (
+        "object_type",
         "method",
-        "parameter_descriptors",
-        "requires_unwrapping_tuple",
+        #"parameter_descriptors",
+        #"requires_unwrapping_tuple",
+        "parameter_items",
         "instance_to_property_dict",
         "parameters_to_entity_bidict"
     )
@@ -913,6 +1011,7 @@ class LazyPropertyDescriptor(Generic[_InstanceT, _ParameterSpec, _LazyEntityT]):
         self,
         method: Callable[Concatenate[type[_InstanceT], _ParameterSpec], _LazyEntityT]
     ) -> None:
+        self.object_type: type = NotImplemented
         self.method: Callable[Concatenate[type[_InstanceT], _ParameterSpec], _LazyEntityT] = method
         #self.parameter_items: dict[type, tuple[tuple[tuple[Union[
         #    LazyObjectDescriptor[LazyObject, _InstanceT],
@@ -920,11 +1019,12 @@ class LazyPropertyDescriptor(Generic[_InstanceT, _ParameterSpec, _LazyEntityT]):
         #    LazyPropertyDescriptor[LazyEntity, _InstanceT]
         #], ...], bool], ...]] = {}
         #self.require_unwrapping: bool = NotImplemented
-        self.parameter_descriptors: dict[type, tuple[LazyParameterDescriptor, ...]] = {}
-        self.requires_unwrapping_tuple: tuple[bool, ...] = tuple(
-            re.fullmatch(r"_\w+_", parameter_name) is None
-            for parameter_name in tuple(inspect.signature(method).parameters)[1:]  # TODO
-        )
+        #self.parameter_descriptors: dict[type, tuple[LazyParameterDescriptor, ...]] = {}
+        #self.requires_unwrapping_tuple: tuple[bool, ...] = tuple(
+        #    re.fullmatch(r"_\w+_", parameter_name) is None
+        #    for parameter_name in tuple(inspect.signature(method).parameters)[1:]  # TODO
+        #)
+        self.parameter_items: dict[type, tuple[tuple[tuple[LazyDescriptor, ...], bool], ...]] = {}
         #self.get_entity_from_parameters: Callable[[tuple], _LazyEntityT] = NotImplemented
         #self.parameters: tuple[str, ...] = parameter_tuple
         self.instance_to_property_dict: dict[_InstanceT, LazyProperty[_LazyEntityT]] = {}
@@ -935,27 +1035,32 @@ class LazyPropertyDescriptor(Generic[_InstanceT, _ParameterSpec, _LazyEntityT]):
         #self.variable_tuple_to_instances_dict: dict[tuple[_LazyObjectT, ...], list[_InstanceT]] = {}
         #self.variable_tuple_to_property_dict: dict[tuple[_LazyObjectT, ...], _LazyObjectT] = {}
 
-    @overload
-    def __get__(
-        self,
-        instance: None,
-        owner: type[_InstanceT] | None = None
-    ) -> "LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyEntityT]": ...
+    #@overload
+    #def __get__(
+    #    self,
+    #    instance: None,
+    #    owner: type[_InstanceT] | None = None
+    #) -> "LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyEntityT]": ...
 
-    @overload
-    def __get__(
-        self,
-        instance: _InstanceT,
-        owner: type[_InstanceT] | None = None
-    ) -> _LazyEntityT: ...
+    #@overload
+    #def __get__(
+    #    self,
+    #    instance: _InstanceT,
+    #    owner: type[_InstanceT] | None = None
+    #) -> _LazyEntityT: ...
 
-    def __get__(
+    #def __get__(
+    #    self,
+    #    instance: _InstanceT | None,
+    #    owner: type[_InstanceT] | None = None
+    #) -> "LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyEntityT] | _LazyEntityT":
+    #    if instance is None:
+    #        return self
+
+    def instance_get(
         self,
-        instance: _InstanceT | None,
-        owner: type[_InstanceT] | None = None
-    ) -> "LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyEntityT] | _LazyEntityT":
-        if instance is None:
-            return self
+        instance: _InstanceT
+    ) -> _LazyEntityT:
 
         def restock_method(
             entity: _LazyEntityT
@@ -1048,12 +1153,13 @@ class LazyPropertyDescriptor(Generic[_InstanceT, _ParameterSpec, _LazyEntityT]):
             #parameters = tuple(parameter_list)
             if (entity := self.parameters_to_entity_bidict.get(parameters)) is None:
                 entity = self.handle_new_property(self.method(type(instance), *(
-                    parameter if not requires_unwrapping else apply_deepest(lambda obj: obj.value, parameter)
+                    parameter.value if not requires_unwrapping else apply_deepest(lambda obj: obj.value, parameter.value)
                     for parameter, requires_unwrapping in zip(parameters, self.requires_unwrapping_tuple, strict=True)
                 )))
                 self.parameters_to_entity_bidict[parameters] = entity
                 entity._at_restock(restock_method)
             #entity = self.get_entity_from_parameters()
+            prop._bind_dependency_children(entity)
             prop._set(entity)
         return entity
 
@@ -2349,53 +2455,49 @@ class LazyPropertySharedDescriptor(LazyPropertyUnwrappedDescriptor[_InstanceT, _
     #    return field(default_factory=factory)
 
 
-def _get_type_from_annotation(
-    annotation: Any
-) -> type:
-    return annotation.__origin__ if isinstance(annotation, GenericAlias) else \
-        type(None) if not isinstance(annotation, type) else annotation
+#def _get_type_from_annotation(
+#    annotation: Any
+#) -> type:
+#    return annotation.__origin__ if isinstance(annotation, GenericAlias) else \
+#        type(None) if not isinstance(annotation, type) else annotation
 
 
 class lazy_object:
-    @overload
     def __new__(
         cls,
         method: Callable[[type[_InstanceT]], _LazyObjectT]
-    ) -> LazyObjectDescriptor[_InstanceT, _LazyObjectT]: ...
+    ) -> LazyObjectDescriptor[_InstanceT, _LazyObjectT]:
+        return LazyObjectDescriptor(method.__func__)
 
-    @overload
-    def __new__(
-        cls,
-        method: Callable[[type[_InstanceT]], LazyCollection[_LazyEntityT]]
-    ) -> LazyCollectionDescriptor[_InstanceT, _LazyEntityT]: ...
 
-    @overload
+class lazy_object_unwrapped:
     def __new__(
         cls,
         method: Callable[[type[_InstanceT]], _T]
-    ) -> LazyObjectUnwrappedDescriptor[_InstanceT, _T]: ...
+    ) -> LazyObjectUnwrappedDescriptor[_InstanceT, _T]:
+        return LazyObjectUnwrappedDescriptor(method.__func__)
 
-    def __new__(
-        cls,
-        method: Union[
-            Callable[[type[_InstanceT]], _LazyObjectT],
-            Callable[[type[_InstanceT]], LazyCollection[_LazyEntityT]],
-            Callable[[type[_InstanceT]], _T]
-        ]
-    ) -> Union[
-        LazyObjectDescriptor[_InstanceT, _LazyObjectT],
-        LazyCollectionDescriptor[_InstanceT, _LazyEntityT],
-        LazyObjectUnwrappedDescriptor[_InstanceT, _T]
-    ]:
-        method = method.__func__
-        return_type = _get_type_from_annotation(
-            inspect.signature(method).return_annotation
-        )
-        if issubclass(return_type, LazyObject):
-            return LazyObjectDescriptor(method)
-        if issubclass(return_type, LazyCollection):
-            return LazyCollectionDescriptor(method)
-        return LazyObjectUnwrappedDescriptor(method)
+    #def __new__(
+    #    cls,
+    #    method: Union[
+    #        Callable[[type[_InstanceT]], _LazyObjectT],
+    #        Callable[[type[_InstanceT]], LazyCollection[_LazyEntityT]],
+    #        Callable[[type[_InstanceT]], _T]
+    #    ]
+    #) -> Union[
+    #    LazyObjectDescriptor[_InstanceT, _LazyObjectT],
+    #    LazyCollectionDescriptor[_InstanceT, _LazyEntityT],
+    #    LazyObjectUnwrappedDescriptor[_InstanceT, _T]
+    #]:
+    #    method = method.__func__
+    #    return_type = _get_type_from_annotation(
+    #        inspect.signature(method).return_annotation
+    #    )
+    #    if issubclass(return_type, LazyObject):
+    #        return LazyObjectDescriptor(method)
+    #    if issubclass(return_type, LazyCollection):
+    #        return LazyCollectionDescriptor(method)
+    #    return LazyObjectUnwrappedDescriptor(method)
 
 
 class lazy_object_shared:
@@ -2403,40 +2505,49 @@ class lazy_object_shared:
         cls,
         method: Callable[[type[_InstanceT]], _HashableT]
     ) -> LazyObjectSharedDescriptor[_InstanceT, _HashableT]:
-        method = method.__func__
-        return LazyObjectSharedDescriptor(method)
+        return LazyObjectSharedDescriptor(method.__func__)
+
+
+class lazy_collection:
+    def __new__(
+        cls,
+        method: Callable[[type[_InstanceT]], LazyCollection[_LazyEntityT]]
+    ) -> LazyCollectionDescriptor[_InstanceT, _LazyEntityT]:
+        return LazyCollectionDescriptor(method.__func__)
 
 
 class lazy_property:
-    @overload
     def __new__(
         cls,
         method: Callable[Concatenate[type[_InstanceT], _ParameterSpec], _LazyObjectT]
-    ) -> LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyObjectT]: ...
+    ) -> LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyObjectT]:
+        return LazyPropertyDescriptor(method.__func__)
 
-    @overload
+
+class lazy_property_unwrapped:
     def __new__(
         cls,
         method: Callable[Concatenate[type[_InstanceT], _ParameterSpec], _T]
-    ) -> LazyPropertyUnwrappedDescriptor[_InstanceT, _ParameterSpec, _T]: ...
+    ) -> LazyPropertyUnwrappedDescriptor[_InstanceT, _ParameterSpec, _T]:
+        return LazyPropertyUnwrappedDescriptor(method.__func__)
 
-    def __new__(
-        cls,
-        method: Union[
-            Callable[Concatenate[type[_InstanceT], _ParameterSpec], _LazyObjectT],
-            Callable[Concatenate[type[_InstanceT], _ParameterSpec], _T]
-        ]
-    ) -> Union[
-        LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyObjectT],
-        LazyPropertyUnwrappedDescriptor[_InstanceT, _ParameterSpec, _T]
-    ]:
-        method = method.__func__
-        return_type = _get_type_from_annotation(
-            inspect.signature(method).return_annotation
-        )
-        if issubclass(return_type, LazyObject):
-            return LazyPropertyDescriptor(method)
-        return LazyPropertyUnwrappedDescriptor(method)
+    #def __new__(
+    #    cls,
+    #    method: Union[
+    #        Callable[Concatenate[type[_InstanceT], _ParameterSpec], _LazyObjectT],
+    #        Callable[Concatenate[type[_InstanceT], _ParameterSpec], _T]
+    #    ]
+    #) -> Union[
+    #    LazyPropertyDescriptor[_InstanceT, _ParameterSpec, _LazyObjectT],
+    #    LazyPropertyUnwrappedDescriptor[_InstanceT, _ParameterSpec, _T]
+    #]:
+    #    method = method.__func__
+    #    return_type = _get_type_from_annotation(
+    #        inspect.signature(method).return_annotation
+    #    )
+    #    if issubclass(return_type, LazyObject):
+    #        return LazyPropertyDescriptor(method)
+    #    return LazyPropertyUnwrappedDescriptor(method)
 
 
 class lazy_property_shared:
@@ -2444,8 +2555,8 @@ class lazy_property_shared:
         cls,
         method: Callable[Concatenate[type[_InstanceT], _ParameterSpec], _HashableT]
     ) -> LazyPropertySharedDescriptor[_InstanceT, _ParameterSpec, _HashableT]:
-        method = method.__func__
-        return LazyPropertySharedDescriptor(method)
+        #method = method.__func__
+        return LazyPropertySharedDescriptor(method.__func__)
 
 
 #@overload

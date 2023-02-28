@@ -16,6 +16,7 @@ from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyCollection,
+    lazy_collection,
     #LazyWrapper,
     #lazy_collection,
     lazy_object,
@@ -59,7 +60,7 @@ class ShapeMobject(MeshMobject):
     #def _apply_phong_lighting() -> bool:
     #    return False
 
-    @lazy_object
+    @lazy_collection
     @classmethod
     def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
         return LazyCollection()

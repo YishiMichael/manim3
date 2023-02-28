@@ -16,12 +16,14 @@ from ..rendering.glsl_buffers import (
     TextureStorage,
     UniformBlockBuffer
 )
-from ..rendering.vertex_array import ContextState
+from ..rendering.vertex_array import ContextState, IndexedAttributesBuffer, VertexArray
 from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
 from ..utils.lazy import (
     lazy_object,
-    lazy_property
+    lazy_object_unwrapped,
+    lazy_property,
+    lazy_property_unwrapped
 )
 
 
@@ -41,42 +43,42 @@ class MeshMobject(Mobject):
     def _geometry_(cls) -> Geometry:
         return Geometry()
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _ambient_strength_(cls) -> Real:
         return 1.0
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _specular_strength_(cls) -> Real:
         return 0.5
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _shininess_(cls) -> Real:
         return 32.0
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _apply_phong_lighting_(cls) -> bool:
         return True
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _local_sample_points_(
         cls,
@@ -135,26 +137,68 @@ class MeshMobject(Mobject):
     #def _apply_phong_lighting() -> bool:
     #    return True
 
+    @lazy_property
+    @classmethod
+    def _vertex_array_(
+        cls,
+        apply_phong_lighting: bool,
+        _u_color_maps_: TextureStorage,
+        _scene_config__camera__ub_camera_: UniformBlockBuffer,
+        _ub_model_: UniformBlockBuffer,
+        _scene_config__ub_lights_: UniformBlockBuffer,
+        _ub_material_: UniformBlockBuffer,
+        _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
+    ) -> VertexArray:
+        custom_macros = []
+        if apply_phong_lighting:
+            custom_macros.append("#define APPLY_PHONG_LIGHTING")
+        return VertexArray(
+            shader_filename="mesh",
+            custom_macros=custom_macros,
+            texture_storages=[
+                _u_color_maps_
+            ],
+            uniform_blocks=[
+                _scene_config__camera__ub_camera_,
+                _ub_model_,
+                _scene_config__ub_lights_,
+                _ub_material_
+            ],
+            indexed_attributes=_geometry__indexed_attributes_buffer_
+            #uniform_blocks=[
+            #    scene_config._camera_._ub_camera_,
+            #    self._ub_model_,
+            #    scene_config._ub_lights_,
+            #    self._ub_material_
+            #],
+            #attributes=_geometry_._attributes_,
+            #index_buffer=_geometry_._index_buffer_,
+            #mode=moderngl.TRIANGLES
+        )
+
+    @lazy_object
+    @classmethod
+    def _scene_config_(cls) -> SceneConfig:
+        return NotImplemented
+
     def _render(
         self,
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        custom_macros = []
-        if self._apply_phong_lighting_.value:
-            custom_macros.append("#define APPLY_PHONG_LIGHTING")
-        self._geometry_._vertex_array_.render(
-            shader_filename="mesh",
-            custom_macros=custom_macros,
-            texture_storages=[
-                self._u_color_maps_
-            ],
-            uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                scene_config._ub_lights_,
-                self._ub_material_
-            ],
+        self._scene_config_ = scene_config
+        self._vertex_array_.render(
+            #shader_filename="mesh",
+            #custom_macros=custom_macros,
+            #texture_storages=[
+            #    self._u_color_maps_
+            #],
+            #uniform_blocks=[
+            #    scene_config._camera_._ub_camera_,
+            #    self._ub_model_,
+            #    scene_config._ub_lights_,
+            #    self._ub_material_
+            #],
             framebuffer=target_framebuffer,
             context_state=ContextState(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST

@@ -17,7 +17,7 @@ from ..geometries.geometry import (
 )
 from ..utils.lazy import (
     lazy_object,
-    lazy_property
+    lazy_property_unwrapped
 )
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
@@ -39,7 +39,7 @@ class ShapeGeometry(Geometry):
     def _shape_(cls) -> Shape:
         return Shape()
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _geometry_data_(
         cls,

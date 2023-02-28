@@ -18,10 +18,10 @@ from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer
 )
-from ..rendering.vertex_array import VertexArray
+from ..rendering.vertex_array import IndexedAttributesBuffer
 from ..utils.lazy import (
     LazyObject,
-    lazy_object,
+    lazy_object_unwrapped,
     lazy_property
 )
 
@@ -41,7 +41,7 @@ class GeometryData:
 class Geometry(LazyObject):
     __slots__ = ()
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _geometry_data_(cls) -> GeometryData:
         return GeometryData(
@@ -53,43 +53,49 @@ class Geometry(LazyObject):
 
     @lazy_property
     @classmethod
-    def _attributes_(
+    def _indexed_attributes_buffer_(
         cls,
         geometry_data: GeometryData
-    ) -> AttributesBuffer:
-        return AttributesBuffer(
-            fields=[
-                "vec3 in_position",
-                "vec3 in_normal",
-                "vec2 in_uv"
-            ],
-            num_vertex=len(geometry_data.position),
-            data={
-                "in_position": geometry_data.position,
-                "in_normal": geometry_data.normal,
-                "in_uv": geometry_data.uv
-            }
-        )
-
-    @lazy_property
-    @classmethod
-    def _index_buffer_(
-        cls,
-        geometry_data: GeometryData
-    ) -> IndexBuffer:
-        return IndexBuffer(
-            data=geometry_data.index
-        )
-
-    @lazy_property
-    @classmethod
-    def _vertex_array_(
-        cls,
-        _attributes_: AttributesBuffer,
-        _index_buffer_: IndexBuffer
-    ) -> VertexArray:
-        return VertexArray(
-            attributes=_attributes_,
-            index_buffer=_index_buffer_,
+    ) -> IndexedAttributesBuffer:
+        return IndexedAttributesBuffer(
+            attributes=AttributesBuffer(
+                fields=[
+                    "vec3 in_position",
+                    "vec3 in_normal",
+                    "vec2 in_uv"
+                ],
+                num_vertex=len(geometry_data.position),
+                data={
+                    "in_position": geometry_data.position,
+                    "in_normal": geometry_data.normal,
+                    "in_uv": geometry_data.uv
+                }
+            ),
+            index_buffer=IndexBuffer(
+                data=geometry_data.index
+            ),
             mode=moderngl.TRIANGLES
         )
+
+    #@lazy_property
+    #@classmethod
+    #def _index_buffer_(
+    #    cls,
+    #    geometry_data: GeometryData
+    #) -> IndexBuffer:
+    #    return IndexBuffer(
+    #        data=geometry_data.index
+    #    )
+
+    #@lazy_property
+    #@classmethod
+    #def _indexed_attributes_buffer_(
+    #    cls,
+    #    _attributes_: AttributesBuffer,
+    #    _index_buffer_: IndexBuffer
+    #) -> VertexArray:
+    #    return VertexArray(
+    #        attributes=_attributes_,
+    #        index_buffer=_index_buffer_,
+    #        mode=moderngl.TRIANGLES
+    #    )

@@ -39,11 +39,14 @@ from ..custom_typing import (
 from ..utils.lazy import (
     LazyCollection,
     LazyObject,
+    lazy_collection,
     #LazyWrapper,
     #lazy_collection,
     lazy_object,
+    lazy_object_unwrapped,
     #lazy_object_raw,
     lazy_property,
+    lazy_property_unwrapped
     #lazy_property_raw
 )
 from ..utils.space import SpaceUtils
@@ -60,13 +63,13 @@ class LineStringKind(Enum):
 
 
 class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _lengths_(cls) -> FloatsT:
         # Make sure all entries are non-zero to avoid zero divisions
         return NotImplemented
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _length_(
         cls,
@@ -74,7 +77,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
     ) -> float:
         return lengths.sum()
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _length_knots_(
         cls,
@@ -182,12 +185,12 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         super().__init__()
         self._coords_ = coords
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _coords_(cls) -> _VecsT:
         return NotImplemented
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _kind_(
         cls,
@@ -199,7 +202,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
             return LineStringKind.LINEAR_RING
         return LineStringKind.LINE_STRING
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _shapely_component_(
         cls,
@@ -212,7 +215,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
             return shapely.geometry.LineString(coords)
         return shapely.validation.make_valid(shapely.geometry.Polygon(coords))
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _lengths_(
         cls,
@@ -291,12 +294,12 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         if children is not None:
             self._children_.add(*children)
 
-    @lazy_object
+    @lazy_collection
     @classmethod
     def _children_(cls) -> LazyCollection[LineString[_VecT, _VecsT]]:
         return LazyCollection()
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _lengths_(
         cls,
@@ -566,7 +569,7 @@ class Shape(LazyObject):
         samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
         return gamma(samples).astype(float)
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _shapely_obj_(
         cls,

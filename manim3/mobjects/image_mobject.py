@@ -12,10 +12,7 @@ from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..scenes.scene_config import SceneConfig
-from ..utils.lazy import (
-    LazyWrapper,
-    lazy_object
-)
+from ..utils.lazy import lazy_object
 
 
 class ImageMobject(MeshMobject):
@@ -55,5 +52,5 @@ class ImageMobject(MeshMobject):
         image = self._image
         with ColorFramebufferBatch() as batch:
             batch.color_texture.write(image.tobytes())
-            self._color_map_ = LazyWrapper(batch.color_texture)
+            self._color_map_ = batch.color_texture
             super()._render(scene_config, target_framebuffer)

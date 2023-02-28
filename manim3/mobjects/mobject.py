@@ -38,10 +38,13 @@ from ..utils.lazy import (
     LazyCollection,
     LazyObject,
     LazyWrapper,
+    lazy_collection,
     #lazy_collection,
     #lazy_object_raw,
-    lazy_object,
-    lazy_property
+    #lazy_object,
+    lazy_object_unwrapped,
+    lazy_property,
+    lazy_property_unwrapped
 )
 from ..utils.space import SpaceUtils
 
@@ -65,9 +68,6 @@ class BoundingBox3D:
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division
         radius[np.isclose(radius, 0.0)] = 1e-8
         return radius
-
-
-class Mobject(LazyObject): ...
 
 
 class Mobject(LazyObject):
@@ -114,7 +114,7 @@ class Mobject(LazyObject):
     #def _parents() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
 
-    @lazy_object
+    @lazy_collection
     @classmethod
     def _children_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
@@ -124,7 +124,7 @@ class Mobject(LazyObject):
     #def _parents_() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
 
-    @lazy_object
+    @lazy_collection
     @classmethod
     def _real_descendants_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
@@ -285,12 +285,12 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _local_sample_points_(cls) -> Vec3sT:
         # Implemented in subclasses
@@ -312,7 +312,7 @@ class Mobject(LazyObject):
             }
         )
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _has_local_sample_points_(
         cls,
@@ -320,7 +320,7 @@ class Mobject(LazyObject):
     ) -> bool:
         return bool(len(local_sample_points))
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _local_world_bounding_box_(
         cls,
@@ -684,7 +684,7 @@ class Mobject(LazyObject):
 
     # render
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _apply_oit_(cls) -> bool:
         return False
@@ -699,7 +699,7 @@ class Mobject(LazyObject):
     #def _render_samples() -> int:
     #    return 0
 
-    @lazy_object
+    @lazy_collection
     @classmethod
     def _render_passes_(cls) -> LazyCollection[RenderPass]:
         return LazyCollection()

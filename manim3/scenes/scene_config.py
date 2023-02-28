@@ -16,10 +16,9 @@ from ..utils.color import ColorUtils
 from ..utils.lazy import (
     LazyCollection,
     LazyObject,
-    #LazyWrapper,
-    #lazy_collection,
+    lazy_collection,
     lazy_object,
-    #lazy_object_raw,
+    lazy_object_unwrapped,
     lazy_property
 )
 
@@ -27,17 +26,17 @@ from ..utils.lazy import (
 class PointLight(LazyObject):
     __slots__ = ()
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _position_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
@@ -68,27 +67,27 @@ class SceneConfig(LazyObject):
         ("opacity", (np.float_)),
     ])
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _background_color_(cls) -> Vec3T:
         return np.zeros(3)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _background_opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _ambient_light_color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _ambient_light_opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object
+    @lazy_collection
     @classmethod
     def _point_lights_(cls) -> LazyCollection[PointLight]:
         return LazyCollection()

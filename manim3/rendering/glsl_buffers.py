@@ -24,10 +24,12 @@ from ..utils.lazy import (
     LazyObject,
     #LazyWrapper,
     #lazy_object_raw,
-    lazy_object,
+    #lazy_object,
     lazy_object_shared,
+    lazy_object_unwrapped,
     #lazy_property_raw
-    lazy_property
+    #lazy_property,
+    lazy_property_unwrapped
 )
 
 
@@ -157,12 +159,12 @@ class GLSLDynamicStruct(LazyObject):
     def _layout_(cls) -> GLSLBufferLayout:
         return NotImplemented
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _data_(cls) -> np.ndarray | dict[str, Any]:
         return NotImplemented
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _struct_dtype_(
         cls,
@@ -185,7 +187,7 @@ class GLSLDynamicStruct(LazyObject):
             0
         )
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _field_name_(
         cls,
@@ -194,7 +196,7 @@ class GLSLDynamicStruct(LazyObject):
         assert (field_names := struct_dtype.names) is not None
         return field_names[0]
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _data_storage_(
         cls,
@@ -214,7 +216,7 @@ class GLSLDynamicStruct(LazyObject):
             data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)
         return data_storage
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _itemsize_(
         cls,
@@ -222,7 +224,7 @@ class GLSLDynamicStruct(LazyObject):
     ) -> int:
         return struct_dtype.itemsize
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _is_empty_(
         cls,
@@ -345,7 +347,7 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 
     _BUFFER_CACHE: list[moderngl.Buffer] = []
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _buffer_(
         cls,
@@ -395,7 +397,7 @@ class TextureStorage(GLSLDynamicStruct):
         )
         self._texture_array_ = texture_array
 
-    @lazy_object
+    @lazy_object_unwrapped
     @classmethod
     def _texture_array_(cls) -> np.ndarray:
         return NotImplemented
@@ -462,7 +464,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
             data=data,
         )
 
-    @lazy_property
+    @lazy_property_unwrapped
     @classmethod
     def _vertex_dtype_(
         cls,
