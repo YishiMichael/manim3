@@ -144,12 +144,12 @@ class VertexArray(LazyObject):
     @lazy_collection
     @classmethod
     def _texture_storages_(cls) -> LazyCollection[TextureStorage]:
-        return NotImplemented
+        return LazyCollection()
 
     @lazy_collection
     @classmethod
     def _uniform_blocks_(cls) -> LazyCollection[UniformBlockBuffer]:
-        return NotImplemented
+        return LazyCollection()
 
     #@staticmethod
     #def __texture_storage_shapes_key(
