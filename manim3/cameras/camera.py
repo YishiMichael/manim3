@@ -17,8 +17,6 @@ from ..lazy.interfaces import (
     lazy_object_unwrapped,
     lazy_property,
     lazy_property_unwrapped
-    #lazy_object_raw,
-    #lazy_property_raw
 )
 from ..rendering.config import ConfigSingleton
 from ..rendering.glsl_buffers import UniformBlockBuffer

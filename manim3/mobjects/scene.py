@@ -14,10 +14,8 @@ from ..custom_typing import (
     Vec3T
 )
 from ..lazy.interfaces import (
-    #LazyWrapper,
     lazy_object,
     lazy_object_unwrapped,
-    #lazy_object_raw,
     lazy_property
 )
 from ..mobjects.mobject import Mobject

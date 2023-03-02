@@ -76,26 +76,3 @@ class Geometry(LazyObject):
             ),
             mode=moderngl.TRIANGLES
         )
-
-    #@lazy_property
-    #@classmethod
-    #def _index_buffer_(
-    #    cls,
-    #    geometry_data: GeometryData
-    #) -> IndexBuffer:
-    #    return IndexBuffer(
-    #        data=geometry_data.index
-    #    )
-
-    #@lazy_property
-    #@classmethod
-    #def _indexed_attributes_buffer_(
-    #    cls,
-    #    _attributes_: AttributesBuffer,
-    #    _index_buffer_: IndexBuffer
-    #) -> VertexArray:
-    #    return VertexArray(
-    #        attributes=_attributes_,
-    #        index_buffer=_index_buffer_,
-    #        mode=moderngl.TRIANGLES
-    #    )

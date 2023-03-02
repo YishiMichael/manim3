@@ -22,7 +22,6 @@ from ..lazy.interfaces import (
     lazy_object,
     lazy_object_shared,
     lazy_object_unwrapped,
-    #lazy_object_unwrapped,
     lazy_property_shared,
     lazy_property_unwrapped
 )

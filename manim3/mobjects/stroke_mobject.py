@@ -17,12 +17,7 @@ from ..custom_typing import (
 )
 from ..lazy.core import LazyCollection
 from ..lazy.interfaces import (
-    #LazyWrapper,
-    #LazyCollection,
     lazy_object,
-    #lazy_object_raw,
-    #lazy_property_raw,
-    #lazy_object_shared,
     lazy_object_unwrapped,
     lazy_property,
     lazy_property_unwrapped
@@ -41,7 +36,6 @@ from ..rendering.vertex_array import (
 from ..utils.color import ColorUtils
 from ..utils.scene_config import SceneConfig
 from ..utils.shape import (
-    #LineString3D,
     LineStringKind,
     MultiLineString3D
 )

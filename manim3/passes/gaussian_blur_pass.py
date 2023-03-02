@@ -9,12 +9,9 @@ from ..custom_typing import (
     Real
 )
 from ..lazy.interfaces import (
-    #LazyWrapper,
     lazy_object_unwrapped,
-    #lazy_object_raw,
     lazy_property,
     lazy_property_unwrapped
-    #lazy_property_raw
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton

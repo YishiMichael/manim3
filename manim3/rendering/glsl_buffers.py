@@ -21,13 +21,8 @@ import numpy as np
 
 from ..lazy.core import LazyObject
 from ..lazy.interfaces import (
-    #LazyWrapper,
-    #lazy_object_raw,
-    #lazy_object,
     lazy_object_shared,
     lazy_object_unwrapped,
-    #lazy_property_raw
-    #lazy_property,
     lazy_property_unwrapped
 )
 from ..rendering.context import ContextSingleton

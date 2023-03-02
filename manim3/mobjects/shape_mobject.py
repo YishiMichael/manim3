@@ -13,10 +13,7 @@ from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.core import LazyCollection
 from ..lazy.interfaces import (
     lazy_collection,
-    #LazyWrapper,
-    #lazy_collection,
     lazy_object,
-    #lazy_value,
     lazy_property
 )
 from ..mobjects.mesh_mobject import MeshMobject

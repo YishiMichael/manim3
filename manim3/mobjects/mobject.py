@@ -7,7 +7,6 @@ import itertools as it
 from typing import (
     Generator,
     Iterator,
-    TypeVar,
     overload
 )
 import warnings
@@ -52,9 +51,6 @@ from ..rendering.framebuffer_batches import (
 from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.scene_config import SceneConfig
 from ..utils.space import SpaceUtils
-
-
-_MobjectT = TypeVar("_MobjectT", bound="Mobject")
 
 
 @dataclass(
@@ -192,21 +188,21 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        filtered_mobjects = [
-            mob for mob in mobjects
-            if mob not in self._children_
-        ]
+        #filtered_mobjects = [
+        #    mob for mob in mobjects
+        #    if mob not in self._children_
+        #]
         #for mobject in mobjects:
         #    if self in mobject.iter_descendants():
         #        raise ValueError(f"'{mobject}' has already included '{self}'")
-        self._children_.add(*filtered_mobjects)
+        self._children_.add(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
             #print()
             #print(ancestor_mobject)
             #print(list(ancestor_mobject._real_descendants_))
             #print(mobjects)
-            ancestor_mobject._real_descendants_.add(*filtered_mobjects)
-        for mobject in filtered_mobjects:
+            ancestor_mobject._real_descendants_.add(*mobjects)
+        for mobject in mobjects:
             mobject._parents.append(self)
             for descendant_mobject in self.iter_descendants():
                 descendant_mobject._real_ancestors.append(self)
@@ -216,14 +212,14 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        filtered_mobjects = [
-            mob for mob in mobjects
-            if mob in self._children_
-        ]
-        self._children_.remove(*filtered_mobjects)
+        #filtered_mobjects = [
+        #    mob for mob in mobjects
+        #    if mob in self._children_
+        #]
+        self._children_.remove(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
-            ancestor_mobject._real_descendants_.remove(*filtered_mobjects)
-        for mobject in filtered_mobjects:
+            ancestor_mobject._real_descendants_.remove(*mobjects)
+        for mobject in mobjects:
             mobject._parents.remove(self)
             for descendant_mobject in self.iter_descendants():
                 descendant_mobject._real_ancestors.remove(self)
@@ -277,21 +273,39 @@ class Mobject(LazyObject):
     #def copy(self):
     #    return self._copy()
 
-    def copy(self: _MobjectT) -> _MobjectT:
-        descendants = list(self.iter_descendants())
-        descendants_copy = [
+    def copy(self):
+        #real_descendants = list(self._real_descendants_)
+        result = self._copy()
+        #real_descendants_copy: list[Mobject] = []
+        #for descendant in real_descendants:
+        #    descendant_copy = descendant._copy()
+        #    descendant_copy._parents = 
+        #    real_descendants_copy.append(descendant_copy)
+        real_descendants_copy = [
             descendant._copy()
-            for descendant in descendants
+            for descendant in self._real_descendants_
         ]
+        descendants = [self, *self._real_descendants_]
+        descendants_copy = [result, *real_descendants_copy]
 
         def get_matched_descendant_mobject(
             mobject: Mobject
         ) -> Mobject:
-            if mobject in descendants:
-                return descendants_copy[descendants.index(mobject)]
-            return mobject
+            if mobject not in descendants:
+                return mobject
+            return descendants_copy[descendants.index(mobject)]
 
-        result = descendants_copy[0]
+        for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
+            descendant_copy._parents = [
+                get_matched_descendant_mobject(mobject)
+                for mobject in descendant._parents
+            ]
+            descendant_copy._real_ancestors = [
+                get_matched_descendant_mobject(mobject)
+                for mobject in descendant._real_ancestors
+            ]
+
+        #result = descendants_copy[0]
         for descriptor in self.__class__._LAZY_DESCRIPTORS.values():
             if isinstance(descriptor, LazyObjectDescriptor):
                 mobject = descriptor.__get__(self)
@@ -301,6 +315,11 @@ class Mobject(LazyObject):
                     get_matched_descendant_mobject(mobject)
                     for mobject in descriptor.__get__(self)
                 )))
+
+        #for mobject in self._parents:
+        #    mobject.add(result)
+        #for mobject in self._real_ancestors:
+        #    mobject._real_descendants_.add(result)
         #for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
         #    descendant_copy._children_ = LazyCollection(*(
         #        descendants_copy[descendants.index(descendant_child)]
@@ -319,7 +338,6 @@ class Mobject(LazyObject):
         #    parent._bind_child(result)
         #result = descendants_copy[0]
         #assert isinstance(result, self.__class__)
-        assert isinstance(result, self.__class__)
         return result
 
     # matrix & transform
