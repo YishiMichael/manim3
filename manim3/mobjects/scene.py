@@ -13,9 +13,14 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
+from ..lazy.interfaces import (
+    #LazyWrapper,
+    lazy_object,
+    lazy_object_unwrapped,
+    #lazy_object_raw,
+    lazy_property
+)
 from ..mobjects.mobject import Mobject
-from ..scenes.active_scene_data import ActiveSceneDataSingleton
-from ..scenes.scene_config import SceneConfig
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextSingleton
 from ..rendering.glsl_buffers import (
@@ -32,13 +37,8 @@ from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
 )
-from ..utils.lazy import (
-    #LazyWrapper,
-    lazy_object,
-    lazy_object_unwrapped,
-    #lazy_object_raw,
-    lazy_property
-)
+from ..utils.active_scene_data import ActiveSceneDataSingleton
+from ..utils.scene_config import SceneConfig
 
 
 class Scene(Mobject):

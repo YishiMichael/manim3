@@ -6,14 +6,13 @@ import subprocess as sp
 
 from PIL import Image
 
-
-from ..scenes.active_scene_data import ActiveSceneDataSingleton
-from ..scenes.scene import Scene
+from ..mobjects.scene import Scene
 from ..rendering.config import (
     Config,
     ConfigSingleton
 )
 from ..rendering.framebuffer_batches import SimpleFramebufferBatch
+from ..utils.active_scene_data import ActiveSceneDataSingleton
 
 
 class Renderer:

@@ -26,17 +26,11 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-from ..passes.render_pass import RenderPass
-#from ..rendering.framebuffer_batch import FramebufferBatch
-from ..rendering.framebuffer_batches import (
-    ColorFramebufferBatch,
-    #SimpleFramebufferBatch
-)
-from ..rendering.glsl_buffers import UniformBlockBuffer
-from ..scenes.scene_config import SceneConfig
-from ..utils.lazy import (
+from ..lazy.core import (
     LazyCollection,
-    LazyObject,
+    LazyObject
+)
+from ..lazy.interfaces import (
     LazyWrapper,
     lazy_collection,
     #lazy_collection,
@@ -46,6 +40,14 @@ from ..utils.lazy import (
     lazy_property,
     lazy_property_unwrapped
 )
+from ..passes.render_pass import RenderPass
+#from ..rendering.framebuffer_batch import FramebufferBatch
+from ..rendering.framebuffer_batches import (
+    ColorFramebufferBatch,
+    #SimpleFramebufferBatch
+)
+from ..rendering.glsl_buffers import UniformBlockBuffer
+from ..utils.scene_config import SceneConfig
 from ..utils.space import SpaceUtils
 
 

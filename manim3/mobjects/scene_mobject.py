@@ -7,12 +7,12 @@ import numpy as np
 
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
+from ..lazy.interfaces import lazy_object
+from ..mobjects.scene import Scene
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
-from ..scenes.scene import Scene
-from ..scenes.scene_config import SceneConfig
-from ..utils.lazy import lazy_object
+from ..utils.scene_config import SceneConfig
 
 
 class SceneMobject(MeshMobject):

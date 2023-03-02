@@ -12,17 +12,16 @@ from ..custom_typing import (
     Mat4T,
     Vec3T
 )
-from ..rendering.config import ConfigSingleton
-from ..rendering.glsl_buffers import UniformBlockBuffer
-from ..utils.lazy import (
-    LazyObject,
-    LazyWrapper,
+from ..lazy.core import LazyObject
+from ..lazy.interfaces import (
     lazy_object_unwrapped,
     lazy_property,
     lazy_property_unwrapped
     #lazy_object_raw,
     #lazy_property_raw
 )
+from ..rendering.config import ConfigSingleton
+from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.space import SpaceUtils
 
 
@@ -99,9 +98,9 @@ class Camera(LazyObject):
         up: Vec3T | None = None
     ):
         if eye is not None:
-            self._eye_ = LazyWrapper(eye)
+            self._eye_ = eye
         if target is not None:
-            self._target_ = LazyWrapper(target)
+            self._target_ = target
         if up is not None:
-            self._up_ = LazyWrapper(up)
+            self._up_ = up
         return self

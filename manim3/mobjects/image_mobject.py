@@ -8,11 +8,11 @@ from PIL import Image
 from ..custom_typing import Real
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
+from ..lazy.interfaces import lazy_object
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
-from ..scenes.scene_config import SceneConfig
-from ..utils.lazy import lazy_object
+from ..utils.scene_config import SceneConfig
 
 
 class ImageMobject(MeshMobject):

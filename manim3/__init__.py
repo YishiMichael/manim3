@@ -16,6 +16,7 @@ from .mobjects.image_mobject import *
 from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.polyhedrons import *
+from .mobjects.scene import *
 from .mobjects.scene_mobject import *
 from .mobjects.string_mobject import *
 from .mobjects.shape_mobject import *
@@ -24,6 +25,10 @@ from .mobjects.stroke_mobject import *
 from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
+
+from .lazy.dag import *
+from .lazy.core import *
+from .lazy.interfaces import *
 
 from .passes.gaussian_blur_pass import *
 from .passes.pixelated_pass import *
@@ -37,15 +42,11 @@ from .rendering.glsl_buffers import *
 from .rendering.renderer import *
 from .rendering.vertex_array import *
 
-from .scenes.active_scene_data import *
-from .scenes.scene import *
-from .scenes.scene_config import *
-
+from .utils.active_scene_data import *
 from .utils.cache import *
 from .utils.color import *
-from .utils.dag import *
-from .utils.lazy import *
 from .utils.rate import *
+from .utils.scene_config import *
 from .utils.shape import *
 from .utils.space import *
 

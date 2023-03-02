@@ -13,17 +13,11 @@ import re
 import moderngl
 import numpy as np
 
-from ..rendering.config import ConfigSingleton
-from ..rendering.context import ContextSingleton
-from ..rendering.glsl_buffers import (
-    AttributesBuffer,
-    IndexBuffer,
-    TextureStorage,
-    UniformBlockBuffer
-)
-from ..utils.lazy import (
+from ..lazy.core import (
     LazyCollection,
-    LazyObject,
+    LazyObject
+)
+from ..lazy.interfaces import (
     lazy_collection,
     lazy_object,
     lazy_object_shared,
@@ -31,6 +25,14 @@ from ..utils.lazy import (
     #lazy_object_unwrapped,
     lazy_property_shared,
     lazy_property_unwrapped
+)
+from ..rendering.config import ConfigSingleton
+from ..rendering.context import ContextSingleton
+from ..rendering.glsl_buffers import (
+    AttributesBuffer,
+    IndexBuffer,
+    TextureStorage,
+    UniformBlockBuffer
 )
 
 

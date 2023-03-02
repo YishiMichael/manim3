@@ -11,20 +11,24 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..geometries.geometry import Geometry
-from ..mobjects.mobject import Mobject
-from ..rendering.glsl_buffers import (
-    TextureStorage,
-    UniformBlockBuffer
-)
-from ..rendering.vertex_array import ContextState, IndexedAttributesBuffer, VertexArray
-from ..scenes.scene_config import SceneConfig
-from ..utils.color import ColorUtils
-from ..utils.lazy import (
+from ..lazy.interfaces import (
     lazy_object,
     lazy_object_unwrapped,
     lazy_property,
     lazy_property_unwrapped
 )
+from ..mobjects.mobject import Mobject
+from ..rendering.glsl_buffers import (
+    TextureStorage,
+    UniformBlockBuffer
+)
+from ..rendering.vertex_array import (
+    ContextState,
+    IndexedAttributesBuffer,
+    VertexArray
+)
+from ..utils.color import ColorUtils
+from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):

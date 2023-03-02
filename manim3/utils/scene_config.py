@@ -11,16 +11,18 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
-from ..rendering.glsl_buffers import UniformBlockBuffer
-from ..utils.color import ColorUtils
-from ..utils.lazy import (
+from ..lazy.core import (
     LazyCollection,
-    LazyObject,
+    LazyObject
+)
+from ..lazy.interfaces import (
     lazy_collection,
     lazy_object,
     lazy_object_unwrapped,
     lazy_property
 )
+from ..rendering.glsl_buffers import UniformBlockBuffer
+from ..utils.color import ColorUtils
 
 
 class PointLight(LazyObject):

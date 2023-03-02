@@ -36,9 +36,11 @@ from ..custom_typing import (
     Vec2sT,
     Vec3sT
 )
-from ..utils.lazy import (
+from ..lazy.core import (
     LazyCollection,
-    LazyObject,
+    LazyObject
+)
+from ..lazy.interfaces import (
     lazy_collection,
     #LazyWrapper,
     #lazy_collection,

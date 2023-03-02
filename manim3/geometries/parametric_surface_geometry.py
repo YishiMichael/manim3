@@ -12,7 +12,6 @@ from ..geometries.geometry import (
     Geometry,
     GeometryData
 )
-from ..utils.lazy import LazyWrapper
 
 
 class ParametricSurfaceGeometry(Geometry):
@@ -55,9 +54,9 @@ class ParametricSurfaceGeometry(Geometry):
         normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
 
         super().__init__()
-        self._geometry_data_ = LazyWrapper(GeometryData(
+        self._geometry_data_ = GeometryData(
             index=index,
             position=position,
             normal=normal,
             uv=uv
-        ))
+        )

@@ -19,9 +19,8 @@ from typing import (
 import moderngl
 import numpy as np
 
-from ..rendering.context import ContextSingleton
-from ..utils.lazy import (
-    LazyObject,
+from ..lazy.core import LazyObject
+from ..lazy.interfaces import (
     #LazyWrapper,
     #lazy_object_raw,
     #lazy_object,
@@ -31,6 +30,7 @@ from ..utils.lazy import (
     #lazy_property,
     lazy_property_unwrapped
 )
+from ..rendering.context import ContextSingleton
 
 
 class GLSLBufferLayout(Enum):

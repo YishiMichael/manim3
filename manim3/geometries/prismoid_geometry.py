@@ -14,7 +14,7 @@ from ..geometries.geometry import (
     GeometryData
 )
 from ..geometries.shape_geometry import ShapeGeometry
-from ..utils.lazy import (
+from ..lazy.interfaces import (
     lazy_object,
     lazy_property_unwrapped
 )

@@ -12,7 +12,7 @@ from ..animations.animation import AlphaAnimation
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
-from ..utils.lazy import (
+from ..lazy.core import (
     LazyCollection,
     LazyObjectDescriptor
 )

@@ -5,6 +5,10 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import Real
+from ..lazy.interfaces import (
+    lazy_object_unwrapped,
+    lazy_property
+)
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
@@ -13,10 +17,6 @@ from ..rendering.vertex_array import (
     ContextState,
     IndexedAttributesBuffer,
     VertexArray
-)
-from ..utils.lazy import (
-    lazy_object_unwrapped,
-    lazy_property
 )
 
 

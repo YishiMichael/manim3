@@ -6,15 +6,13 @@ from abc import abstractmethod
 import moderngl
 import numpy as np
 
+from ..lazy.core import LazyObject
+from ..lazy.interfaces import lazy_property
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer
 )
 from ..rendering.vertex_array import IndexedAttributesBuffer
-from ..utils.lazy import (
-    LazyObject,
-    lazy_property
-)
 
 
 class RenderPass(LazyObject):

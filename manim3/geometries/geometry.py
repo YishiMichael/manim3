@@ -14,16 +14,16 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
+from ..lazy.core import LazyObject
+from ..lazy.interfaces import (
+    lazy_object_unwrapped,
+    lazy_property
+)
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer
 )
 from ..rendering.vertex_array import IndexedAttributesBuffer
-from ..utils.lazy import (
-    LazyObject,
-    lazy_object_unwrapped,
-    lazy_property
-)
 
 
 @dataclass(

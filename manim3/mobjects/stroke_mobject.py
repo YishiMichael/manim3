@@ -15,6 +15,18 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
+from ..lazy.core import LazyCollection
+from ..lazy.interfaces import (
+    #LazyWrapper,
+    #LazyCollection,
+    lazy_object,
+    #lazy_object_raw,
+    #lazy_property_raw,
+    #lazy_object_shared,
+    lazy_object_unwrapped,
+    lazy_property,
+    lazy_property_unwrapped
+)
 from ..mobjects.mobject import Mobject
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
@@ -26,19 +38,8 @@ from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
 )
-from ..scenes.scene_config import SceneConfig
 from ..utils.color import ColorUtils
-from ..utils.lazy import (
-    #LazyWrapper,
-    #LazyCollection,
-    lazy_object,
-    #lazy_object_raw,
-    #lazy_property_raw,
-    #lazy_object_shared,
-    lazy_object_unwrapped,
-    lazy_property,
-    lazy_property_unwrapped
-)
+from ..utils.scene_config import SceneConfig
 from ..utils.shape import (
     #LineString3D,
     LineStringKind,
@@ -194,24 +195,24 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property_unwrapped
+    @lazy_property
     @classmethod
-    def _vertex_array_items_(
+    def _vertex_arrays_(
         cls,
-        scene_config__camera__ub_camera: UniformBlockBuffer,
-        ub_model: UniformBlockBuffer,
-        ub_stroke: UniformBlockBuffer,
-        ub_winding_sign: UniformBlockBuffer,
+        _scene_config__camera__ub_camera_: UniformBlockBuffer,
+        _ub_model_: UniformBlockBuffer,
+        _ub_stroke_: UniformBlockBuffer,
+        _ub_winding_sign_: UniformBlockBuffer,
         _multi_line_string_3d_: MultiLineString3D,
         single_sided: bool,
         has_linecap: bool,
         _attributes_: AttributesBuffer
-    ) -> list[VertexArray]:
+    ) -> LazyCollection[VertexArray]:
         uniform_blocks = [
-            scene_config__camera__ub_camera,
-            ub_model,
-            ub_stroke,
-            ub_winding_sign
+            _scene_config__camera__ub_camera_,
+            _ub_model_,
+            _ub_stroke_,
+            _ub_winding_sign_
         ]
 
         def get_vertex_array(
@@ -234,7 +235,7 @@ class StrokeMobject(Mobject):
             )
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
-        result: list[VertexArray] = [
+        result: LazyCollection[VertexArray] = LazyCollection(
             get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINES, [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
@@ -243,25 +244,25 @@ class StrokeMobject(Mobject):
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
             ])
-        ]
+        )
         if has_linecap and not single_sided:
-            result.extend([
+            result.add(
                 get_vertex_array(StrokeMobject._cap_index_getter, moderngl.LINES, [
                     "#define STROKE_CAP"
                 ]),
                 get_vertex_array(StrokeMobject._point_index_getter, moderngl.POINTS, [
                     "#define STROKE_POINT"
                 ])
-            ])
+            )
         return result
 
-    @_vertex_array_items_.restocker
-    @staticmethod
-    def _vertex_array_items_restocker(
-        vertex_array_items: list[VertexArray]
-    ) -> None:
-        for vertex_array in vertex_array_items:
-            vertex_array._restock()
+    #@_vertex_arrays_.restocker
+    #@staticmethod
+    #def _vertex_arrays_restocker(
+    #    vertex_array_items: list[VertexArray]
+    #) -> None:
+    #    for vertex_array in vertex_array_items:
+    #        vertex_array._restock()
 
     #@lazy_slot
     #@staticmethod
@@ -379,7 +380,7 @@ class StrokeMobject(Mobject):
         #]
         # Render color
         target_framebuffer.depth_mask = False
-        for vertex_array in self._vertex_array_items_.value:
+        for vertex_array in self._vertex_arrays_:
             vertex_array.render(
                 #shader_filename="stroke",
                 #custom_macros=custom_macros,
@@ -395,7 +396,7 @@ class StrokeMobject(Mobject):
         target_framebuffer.depth_mask = True
         # Render depth
         target_framebuffer.color_mask = (False, False, False, False)
-        for vertex_array in self._vertex_array_items_.value:
+        for vertex_array in self._vertex_arrays_:
             vertex_array.render(
                 #shader_filename="stroke",
                 #custom_macros=custom_macros,

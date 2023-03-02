@@ -8,11 +8,11 @@ from ..custom_typing import (
     Mat4T,
     Real
 )
-from ..rendering.config import ConfigSingleton
-from ..utils.lazy import (
+from ..lazy.interfaces import (
     lazy_object_unwrapped,
     lazy_property_unwrapped
 )
+from ..rendering.config import ConfigSingleton
 
 
 class PerspectiveCamera(Camera):

@@ -5,11 +5,9 @@ import numpy as np
 import svgelements as se
 
 from ..custom_typing import Real
+from ..lazy.core import LazyCollection
+from ..lazy.interfaces import lazy_collection
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.lazy import (
-    LazyCollection,
-    lazy_collection
-)
 
 
 class SVGMobject(ShapeMobject):

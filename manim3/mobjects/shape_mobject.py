@@ -10,12 +10,8 @@ from ..custom_typing import (
     Real
 )
 from ..geometries.shape_geometry import ShapeGeometry
-from ..mobjects.mesh_mobject import MeshMobject
-from ..mobjects.stroke_mobject import StrokeMobject
-from ..scenes.scene_config import SceneConfig
-from ..utils.color import ColorUtils
-from ..utils.lazy import (
-    LazyCollection,
+from ..lazy.core import LazyCollection
+from ..lazy.interfaces import (
     lazy_collection,
     #LazyWrapper,
     #lazy_collection,
@@ -23,6 +19,10 @@ from ..utils.lazy import (
     #lazy_value,
     lazy_property
 )
+from ..mobjects.mesh_mobject import MeshMobject
+from ..mobjects.stroke_mobject import StrokeMobject
+from ..utils.color import ColorUtils
+from ..utils.scene_config import SceneConfig
 from ..utils.shape import Shape
 
 
