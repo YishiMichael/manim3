@@ -21,7 +21,7 @@ class SceneMobject(MeshMobject):
     def __init__(
         self,
         scene_cls: type[Scene]
-    ):
+    ) -> None:
         super().__init__()
         self._scene: Scene = scene_cls()
         self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))

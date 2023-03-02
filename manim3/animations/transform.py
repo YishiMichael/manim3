@@ -66,7 +66,7 @@ class Transform(AlphaAnimation):
         *,
         run_time: Real = 2.0,
         rate_func: Callable[[Real], Real] | None = None
-    ):
+    ) -> None:
         intermediate_mobject = stop_mobject.copy()
 
         start_stroke_mobjects: LazyCollection[StrokeMobject] = start_mobject._stroke_mobjects_

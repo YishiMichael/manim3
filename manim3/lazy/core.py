@@ -153,15 +153,18 @@ class LazyNode(DAGNode):
 class LazyBase(ABC):
     __slots__ = (
         "_dependency_node",
-        "_parameter_node",
+        "_parameter_node"
         #"_readonly",
-        "_restock_callbacks"
+        #"_restock_callbacks"
     )
 
     _VACANT_INSTANCES: "ClassVar[list[LazyBase]]"
     #_VARIABLE_DESCRS: "ClassVar[list[LazyObjectDescriptor]]"
+    _dependency_node: LazyNode
+    _parameter_node: LazyNode
 
     def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
         cls._VACANT_INSTANCES = []
         #return super().__init_subclass__()
 
@@ -175,14 +178,17 @@ class LazyBase(ABC):
             assert isinstance(instance, cls)
         else:
             instance = super().__new__(cls)
+            instance._init_nodes()
         return instance
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._dependency_node: LazyNode = LazyNode(self)
-        self._parameter_node: LazyNode = LazyNode(self)
-        #self._readonly: bool = False
-        self._restock_callbacks: list[Callable[[Any], None]] | None = []  # TODO: typing
+    def _init_nodes(self):
+        self._dependency_node = LazyNode(self)
+        self._parameter_node = LazyNode(self)
+
+    #def __init__(self) -> None:
+    #    super().__init__()
+    #    #self._readonly: bool = False
+    #    #self._restock_callbacks: list[Callable[[Any], None]] | None = []  # TODO: typing
 
     def _iter_dependency_children(self) -> "Generator[LazyBase, None, None]":
         for child in self._dependency_node._children:
@@ -208,7 +214,6 @@ class LazyBase(ABC):
             instance._dependency_node
             for instance in instances
         ))
-        return self
 
     def _unbind_dependency_children(
         self,
@@ -218,10 +223,6 @@ class LazyBase(ABC):
             instance._dependency_node
             for instance in instances
         ))
-        for instance in instances:
-            if not instance._iter_dependency_parents():
-                instance._restock()
-        return self
 
     def _iter_parameter_children(self) -> "Generator[LazyBase, None, None]":
         for child in self._parameter_node._children:
@@ -247,7 +248,6 @@ class LazyBase(ABC):
             instance._parameter_node
             for instance in instances
         ))
-        return self
 
     def _unbind_parameter_children(
         self,
@@ -257,24 +257,6 @@ class LazyBase(ABC):
             instance._parameter_node
             for instance in instances
         ))
-        return self
-
-    def _restock(self) -> None:
-        # TODO: check refcnt
-        for instance in self._iter_dependency_descendants():
-            if (callbacks := instance._restock_callbacks) is None:
-                continue
-            for callback in callbacks:
-                callback(instance)
-            callbacks.clear()
-            instance.__class__._VACANT_INSTANCES.append(instance)
-
-    def _at_restock(
-        self,
-        callback: Callable[[Any], None]
-    ) -> None:
-        if (callbacks := self._restock_callbacks) is not None:
-            callbacks.append(callback)
 
 
 class LazyEntity(LazyBase):
@@ -303,6 +285,7 @@ class LazyObject(LazyEntity):
     __slots__ = ()
 
     _LAZY_DESCRIPTORS: "ClassVar[dict[str, LazyDescriptor]]"
+    _ALL_SLOTS: "ClassVar[tuple[str, ...]]"
     #_OBJECT_DESCRIPTORS: "ClassVar[list[LazyObjectDescriptor]]"
     #_COLLECTION_DESCRIPTORS: "ClassVar[list[LazyCollectionDescriptor]]"
     #_PARAMETER_DESCRIPTORS: "ClassVar[list[LazyParameterDescriptor]]"
@@ -354,6 +337,12 @@ class LazyObject(LazyEntity):
             assert re.fullmatch(r"_\w+_", name)
 
         cls._LAZY_DESCRIPTORS = descriptors
+        cls._ALL_SLOTS = tuple(set(
+            slot
+            for parent_cls in reversed(cls.__mro__)
+            if issubclass(parent_cls, LazyObject)
+            for slot in parent_cls.__slots__
+        ))
 
             #if descriptor.object_type is _SelfPlaceholder:
             #    descriptor.object_type = cls
@@ -512,6 +501,7 @@ class LazyObject(LazyEntity):
 
     def __init__(self) -> None:
         super().__init__()
+        #self._restock_callbacks: list[Callable[[Any], None]] | None = []
         cls = self.__class__
         for descriptor in cls._LAZY_DESCRIPTORS.values():
             descriptor.initialize(self)
@@ -538,11 +528,32 @@ class LazyObject(LazyEntity):
         #        children.append(default_collection)
         #self._bind_dependency_children(*children)
 
+    #def __del__(self) -> None:
+    #    self._restock_node()
+
+    def _unbind_dependency_children(
+        self,
+        *instances: "LazyBase"
+    ):
+        super()._unbind_dependency_children(*instances)
+        for instance in instances:
+            if not isinstance(instance, LazyObject):
+                continue
+            if instance._iter_dependency_parents():
+                continue
+            for obj in instance._iter_dependency_descendants():
+                if not isinstance(obj, LazyObject):
+                    continue
+                obj._restock_node()
+
     def _copy(self: _LazyObjectT) -> _LazyObjectT:
         cls = self.__class__
         result = cls.__new__(cls)
+        result._init_nodes()
         for descriptor in cls._LAZY_DESCRIPTORS.values():
             descriptor.copy_initialize(result, self)
+        for slot_name in cls._ALL_SLOTS:
+            result.__setattr__(slot_name, self.__getattribute__(slot_name))
         #for object_descriptor in cls._OBJECT_DESCRIPTORS:
         #    object_descriptor.copy_initialize(result, self)
         #for collection_descriptor in cls._COLLECTION_DESCRIPTORS:
@@ -552,6 +563,27 @@ class LazyObject(LazyEntity):
         #for property_descriptor in cls._PROPERTY_DESCRIPTORS:
         #    property_descriptor.copy_initialize(result, self)
         return result
+
+    def _restock_node(self) -> None:
+        # TODO: check refcnt
+        #for instance in self._iter_dependency_descendants():
+        #    if not isinstance(instance, LazyObject):
+        #        continue
+            #if (callbacks := instance._restock_callbacks) is None:
+            #    continue
+            #for callback in callbacks:
+            #    callback(instance)
+            #callbacks.clear()
+        for descriptor in self.__class__._LAZY_DESCRIPTORS.values():
+            descriptor.restock(self)
+        self.__class__._VACANT_INSTANCES.append(self)
+
+    #def _at_restock(
+    #    self,
+    #    callback: Callable[[Any], None]
+    #) -> None:
+    #    if (callbacks := self._restock_callbacks) is not None:
+    #        callbacks.append(callback)
 
 
 class LazyCollection(Generic[_LazyObjectT], LazyEntity):
@@ -814,6 +846,13 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT], ABC):
     ) -> None:
         pass
 
+    @abstractmethod
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        pass
+
 
 class LazyObjectDescriptor(LazyDescriptor[_InstanceT, _LazyObjectT]):
     __slots__ = (
@@ -877,13 +916,14 @@ class LazyObjectDescriptor(LazyDescriptor[_InstanceT, _LazyObjectT]):
             assert isinstance(entity, LazyEntity)
             entity._expire_properties()
         self.instance_to_object_dict[instance] = new_object
-        instance._bind_dependency_children(new_object)
+        if new_object is not NotImplemented:
+            instance._bind_dependency_children(new_object)
 
     def instance_get(
         self,
         instance: _InstanceT
     ) -> _LazyObjectT:
-        return self.instance_to_object_dict[instance]
+        return self.get_object(instance)
 
     def initialize(
         self,
@@ -895,8 +935,8 @@ class LazyObjectDescriptor(LazyDescriptor[_InstanceT, _LazyObjectT]):
             #    default_object = LazyObjectNotImplemented()
             #if default_object is NotImplemented:
             #    default_object = LazyWrapper(NotImplemented)
-            if default_object is not NotImplemented:
-                default_object._restock_callbacks = None  # Never restock
+            #if default_object is not NotImplemented:
+            #    default_object._restock_callbacks = None  # Never restock
             self._default_object = default_object
         self.instance_to_object_dict[instance] = default_object
         if default_object is not NotImplemented:
@@ -908,9 +948,23 @@ class LazyObjectDescriptor(LazyDescriptor[_InstanceT, _LazyObjectT]):
         src: _InstanceT
     ) -> None:
         self.initialize(dst)
+        if self.instance_to_object_dict[dst] is not NotImplemented:
+            dst._unbind_dependency_children(self.instance_to_object_dict[dst])
+        if self.instance_to_object_dict[src] is not NotImplemented:
+            dst._bind_dependency_children(self.instance_to_object_dict[src])
         self.instance_to_object_dict[dst] = self.instance_to_object_dict[src]
-        dst._unbind_dependency_children(self.instance_to_object_dict[dst])
-        dst._bind_dependency_children(self.instance_to_object_dict[src])
+
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        self.instance_to_object_dict.pop(instance)
+
+    def get_object(
+        self,
+        instance: _InstanceT
+    ) -> _LazyObjectT:
+        return self.instance_to_object_dict[instance]
 
 
 class LazyCollectionDescriptor(Generic[_InstanceT, _LazyObjectT], LazyDescriptor[_InstanceT, LazyCollection[_LazyObjectT]]):
@@ -955,11 +1009,23 @@ class LazyCollectionDescriptor(Generic[_InstanceT, _LazyObjectT], LazyDescriptor
     #        return self
     #    return self.instance_to_collection_dict[instance]
 
+    def __set__(
+        self,
+        instance: _InstanceT,
+        new_collection: LazyCollection[_LazyObjectT]
+    ) -> None:
+        assert not instance._is_readonly()
+        for entity in instance._iter_dependency_ancestors():
+            assert isinstance(entity, LazyEntity)
+            entity._expire_properties()
+        self.instance_to_collection_dict[instance] = new_collection
+        instance._bind_dependency_children(new_collection)
+
     def instance_get(
         self,
         instance: _InstanceT
     ) -> LazyCollection[_LazyObjectT]:
-        return self.instance_to_collection_dict[instance]
+        return self.get_collection(instance)
 
     def initialize(
         self,
@@ -967,8 +1033,7 @@ class LazyCollectionDescriptor(Generic[_InstanceT, _LazyObjectT], LazyDescriptor
     ) -> None:
         default_object = self.method(type(instance))
         self.instance_to_collection_dict[instance] = default_object
-        if default_object is not NotImplemented:
-            instance._bind_dependency_children(default_object)
+        instance._bind_dependency_children(default_object)
 
     def copy_initialize(
         self,
@@ -977,6 +1042,18 @@ class LazyCollectionDescriptor(Generic[_InstanceT, _LazyObjectT], LazyDescriptor
     ) -> None:
         self.initialize(dst)
         self.instance_to_collection_dict[dst].add(*self.instance_to_collection_dict[src])
+
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        self.instance_to_collection_dict.pop(instance)
+
+    def get_collection(
+        self,
+        instance: _InstanceT
+    ) -> LazyCollection[_LazyObjectT]:
+        return self.instance_to_collection_dict[instance]
 
     #def __set__(
     #    self,
@@ -1096,8 +1173,8 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT]):
         #"requires_unwrapping_tuple",
         #"parameter_items",
         "instance_to_property_dict",
-        "parameters_to_entity_dict",
-        "entity_to_parameters_composition_dict"
+        "parameters_to_entity_dict"
+        #"entity_to_parameters_composition_dict"
     )
 
     def __init__(
@@ -1128,7 +1205,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT]):
         #self.parameters: tuple[str, ...] = parameter_tuple
         self.instance_to_property_dict: dict[_InstanceT, LazyProperty[_LazyEntityT]] = {}
         self.parameters_to_entity_dict: dict[tuple, _LazyEntityT] = {}
-        self.entity_to_parameters_composition_dict: dict[_LazyEntityT, list[tuple]] = {}
+        #self.entity_to_parameters_composition_dict: dict[_LazyEntityT, list[tuple]] = {}
         #self.property_to_parameters_dict: dict[_DAGNodeT, tuple] = {}
         #self.instance_to_property_record_dict: dict[_InstanceT, LazyPropertyRecord[_DAGNodeT]] = {}
         #self.instance_to_variable_tuple_dict: dict[_InstanceT, tuple[_LazyObjectT, ...]] = {}
@@ -1157,16 +1234,23 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT]):
     #    if instance is None:
     #        return self
 
+    def __set__(
+        self,
+        instance: _InstanceT,
+        value: Any
+    ) -> None:
+        raise ValueError("Attempting to set a readonly property")
+
     def instance_get(
         self,
         instance: _InstanceT
     ) -> _LazyEntityT:
-
-        def restock_method(
-            entity: _LazyEntityT
-        ) -> None:
-            #parameters = self.property_to_parameters_dict.pop(prop)
-            self.entity_to_parameters_composition_dict.pop(entity)
+        # TODO
+        #def cleanup_method(
+        #    entity: _LazyEntityT
+        #) -> None:
+        #    #parameters = self.property_to_parameters_dict.pop(prop)
+        #    self.entity_to_parameters_composition_dict.pop(entity)
 
         #def yield_deepest(
         #    parameter_obj: Any
@@ -1186,7 +1270,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT]):
 
         #    yield from yield_deepest_atom(parameter_obj)
 
-        prop = self.instance_to_property_dict[instance]
+        prop = self.get_property(instance)
         #print()
 
         #def get_parameter(
@@ -1283,8 +1367,8 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT]):
                 #))
                 entity = self.method(type(instance), *parameters)
                 self.parameters_to_entity_dict[parameters] = entity
-                self.entity_to_parameters_composition_dict.setdefault(entity, []).append(parameters)
-                entity._at_restock(restock_method)
+                #self.entity_to_parameters_composition_dict.setdefault(entity, []).append(parameters)
+                #entity._at_restock(cleanup_method)  # TODO
             #entity = self.get_entity_from_parameters()
             prop._bind_dependency_children(entity)
             prop._set(entity)
@@ -1371,6 +1455,12 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT]):
     ) -> None:
         self.initialize(dst)
         self.instance_to_property_dict[dst]._set(self.instance_to_property_dict[src]._get())
+
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        self.instance_to_property_dict.pop(instance)
 
     def get_property(
         self,

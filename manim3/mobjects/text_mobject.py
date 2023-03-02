@@ -61,7 +61,7 @@ class _Alignment:
     def __init__(
         self,
         s: str
-    ):
+    ) -> None:
         self.value = _Alignment.VAL_DICT[s.upper()]
 
 
@@ -109,7 +109,7 @@ class MarkupText(StringMobject):
         protect: Selector = (),
         width: Real | None = None,
         height: Real | None = None
-    ):
+    ) -> None:
         if alignment is None:
             alignment = "LEFT"  # TODO
         if font is None:
@@ -435,7 +435,7 @@ class Code(MarkupText):
         protect: Selector = (),
         width: Real | None = None,
         height: Real | None = None
-    ):
+    ) -> None:
         lexer = pygments.lexers.get_lexer_by_name(language)
         formatter = pygments.formatters.PangoMarkupFormatter(
             style=code_style

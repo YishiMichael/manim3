@@ -50,7 +50,7 @@ class Span:
         self,
         start: int,
         stop: int
-    ):
+    ) -> None:
         assert start <= stop, f"Invalid span: ({start}, {stop})"
         self.start: int = start
         self.stop: int = stop
@@ -199,7 +199,7 @@ class StringMobject(SVGMobject):
         width: Real | None,
         height: Real | None,
         frame_scale: Real | None
-    ):
+    ) -> None:
         parsing_result = self._parse(
             string=string,
             isolate=isolate,

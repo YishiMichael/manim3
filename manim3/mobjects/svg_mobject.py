@@ -20,7 +20,7 @@ class SVGMobject(ShapeMobject):
         width: Real | None = None,
         height: Real | None = None,
         frame_scale: Real | None = None
-    ):
+    ) -> None:
         super().__init__()
         if file_path is None:
             return

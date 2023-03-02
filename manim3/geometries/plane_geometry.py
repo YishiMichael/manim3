@@ -13,7 +13,7 @@ class PlaneGeometry(ParametricSurfaceGeometry):
         self,
         width_segments: int = 1,
         height_segments: int = 1
-    ):
+    ) -> None:
         super().__init__(
             func=lambda x, y: np.array((x, y, 0.0)),
             normal_func=lambda x, y: np.array((0.0, 0.0, 1.0)),

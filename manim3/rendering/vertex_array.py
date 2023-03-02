@@ -69,7 +69,7 @@ class IndexedAttributesBuffer(LazyObject):
         attributes: AttributesBuffer,
         index_buffer: IndexBuffer,
         mode: int
-    ):
+    ) -> None:
         super().__init__()
         self._attributes_ = attributes
         self._index_buffer_ = index_buffer
@@ -105,7 +105,7 @@ class VertexArray(LazyObject):
         #attributes: AttributesBuffer,
         #index_buffer: IndexBuffer,
         #mode: int
-    ):
+    ) -> None:
         super().__init__()
         self._shader_filename_ = shader_filename
         self._custom_macros_ = tuple(custom_macros)

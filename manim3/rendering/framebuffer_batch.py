@@ -30,7 +30,7 @@ class TemporaryResource(Generic[_ParamsT, _T], ABC):
     def __init__(
         self,
         parameters: _ParamsT
-    ):
+    ) -> None:
         if (vacant_instances := self._VACANT_INSTANCES.get(parameters)) is not None and vacant_instances:
             instance = vacant_instances.pop()
         else:

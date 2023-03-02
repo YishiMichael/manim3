@@ -29,7 +29,7 @@ class ShapeGeometry(Geometry):
     def __init__(
         self,
         shape: Shape | None = None
-    ):
+    ) -> None:
         super().__init__()
         if shape is not None:
             self._shape_ = shape

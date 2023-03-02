@@ -23,7 +23,7 @@ class Animation:
         mobject_removal_items: list[tuple[Real, Mobject, Mobject | None]],
         start_time: Real,
         stop_time: Real | None
-    ):
+    ) -> None:
         assert stop_time is None or stop_time >= start_time
         self._animate_func: Callable[[Real, Real], None] = animate_func
         self._mobject_addition_items: list[tuple[Real, Mobject, Mobject | None]] = mobject_addition_items
@@ -42,7 +42,7 @@ class AlphaAnimation(Animation):
         mobject_removal_items: list[tuple[Real, Mobject, Mobject | None]],
         run_time: Real,
         rate_func: Callable[[Real], Real] | None = None
-    ):
+    ) -> None:
         assert run_time > 0.0
         if rate_func is None:
             rate_func = RateUtils.smooth

@@ -45,7 +45,7 @@ class LazyWrapper(Generic[_T], LazyObject):
     def __init__(
         self,
         value: _T
-    ):
+    ) -> None:
         super().__init__()
         self.__value: _T = value
 
@@ -1169,7 +1169,7 @@ class lazy_object(LazyObjectDescriptor[_InstanceT, _LazyObjectT]):
     def __init__(
         self,
         cls_method: Callable[[type[_InstanceT]], _LazyObjectT]
-    ):
+    ) -> None:
         #method = cls_method.__func__
         #return_annotation = inspect.signature(method).return_annotation
 
@@ -1193,7 +1193,7 @@ class lazy_object_unwrapped(Generic[_InstanceT, _T], LazyObjectDescriptor[_Insta
     def __init__(
         self,
         cls_method: Callable[[type[_InstanceT]], _T]
-    ):
+    ) -> None:
         method = cls_method.__func__
 
         def new_method(
@@ -1266,17 +1266,24 @@ class lazy_object_shared(Generic[_InstanceT, _HashableT], LazyObjectDescriptor[_
         instance: _InstanceT,
         obj: _HashableT
     ) -> None:
-        def cleanup_method(
-            cached_object: LazyWrapper[_HashableT]
-        ) -> None:
-            self.content_to_object_bidict.inverse.pop(cached_object)
+        #def cleanup_method(
+        #    cached_object: LazyWrapper[_HashableT]
+        #) -> None:
+        #    self.content_to_object_bidict.inverse.pop(cached_object)
 
         #key = self.key(obj)
         if (cached_object := self.content_to_object_bidict.get(obj)) is None:
             cached_object = LazyWrapper(obj)
             self.content_to_object_bidict[obj] = cached_object
-            cached_object._at_restock(cleanup_method)
+            #cached_object._at_restock(cleanup_method)
         super().__set__(instance, cached_object)
+
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        self.content_to_object_bidict.inverse.pop(self.get_object(instance))
+        super().restock(instance)
 
 
 class lazy_collection(LazyCollectionDescriptor[_InstanceT, _LazyObjectT]):
@@ -1285,7 +1292,7 @@ class lazy_collection(LazyCollectionDescriptor[_InstanceT, _LazyObjectT]):
     def __init__(
         self,
         cls_method: Callable[[type[_InstanceT]], LazyCollection[_LazyObjectT]]
-    ):
+    ) -> None:
         #method = cls_method.__func__
         #return_annotation = inspect.signature(method).return_annotation
 
@@ -1308,7 +1315,7 @@ class lazy_property(LazyPropertyDescriptor[_InstanceT, _LazyEntityT]):
     def __init__(
         self,
         cls_method: Callable[..., _LazyEntityT]
-    ):
+    ) -> None:
         #method = cls_method.__func__
         #return_annotation = inspect.signature(method).return_annotation
 
@@ -1364,13 +1371,13 @@ class lazy_property(LazyPropertyDescriptor[_InstanceT, _LazyEntityT]):
 
 
 class lazy_property_unwrapped(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_T]]):
-    __slots__ = ("restock_methods",)
+    __slots__ = ("restock_method",)
 
     def __init__(
         self,
         cls_method: Callable[..., _T]
     ) -> None:
-        self.restock_methods: list[Callable[[_T], None]] = []
+        self.restock_method: Callable[[_T], None] | None = None
         parameters_wrapped_method, parameter_chains = lazy_property.wrap_parameters(cls_method.__func__)
 
         def new_method(
@@ -1378,10 +1385,10 @@ class lazy_property_unwrapped(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_T]
             *args: Any,
             **kwargs: Any
         ) -> LazyWrapper[_T]:
-            entity = LazyWrapper(parameters_wrapped_method(cls, *args, **kwargs))
-            for restock_method in self.restock_methods:
-                entity._at_restock(lambda obj: restock_method(obj.value))
-            return entity
+            #entity = LazyWrapper(parameters_wrapped_method(cls, *args, **kwargs))
+            #for restock_method in self.restock_methods:
+            #    entity._at_restock(lambda obj: restock_method(obj.value))
+            return LazyWrapper(parameters_wrapped_method(cls, *args, **kwargs))
 
         super().__init__(
             #object_type=LazyWrapper,
@@ -1390,11 +1397,21 @@ class lazy_property_unwrapped(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_T]
             parameter_chains=parameter_chains
         )
 
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        if (obj := self.get_property(instance)._get()) is not None:
+            if self.restock_method is not None:
+                self.restock_method(obj.value)
+        #self.content_to_object_bidict.inverse.pop(self.instance_to_object_dict[instance])
+        super().restock(instance)
+
     def restocker(
         self,
         restock_method: Callable[[_T], None]
     ) -> Callable[[_T], None]:
-        self.restock_methods.append(restock_method)
+        self.restock_method = restock_method
         return restock_method
 
     #def handle_new_property(
@@ -1426,7 +1443,7 @@ class lazy_property_unwrapped(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_T]
 
 class lazy_property_shared(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_HashableT]]):
     __slots__ = (
-        "restock_methods",
+        "restock_method",
         "content_to_object_bidict"
     )
 
@@ -1434,12 +1451,13 @@ class lazy_property_shared(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_Hasha
         self,
         cls_method: Callable[..., _HashableT]
     ) -> None:
+        self.restock_method: Callable[[_HashableT], None] | None = None
         self.content_to_object_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
 
-        def cleanup_method(
-            cached_object: LazyWrapper[_HashableT]
-        ) -> None:
-            self.content_to_object_bidict.inverse.pop(cached_object)
+        #def cleanup_method(
+        #    cached_object: LazyWrapper[_HashableT]
+        #) -> None:
+        #    self.content_to_object_bidict.inverse.pop(cached_object)
 
         parameters_wrapped_method, parameter_chains = lazy_property.wrap_parameters(cls_method.__func__)
 
@@ -1452,9 +1470,9 @@ class lazy_property_shared(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_Hasha
             if (cached_object := self.content_to_object_bidict.get(content)) is None:
                 cached_object = LazyWrapper(content)
                 self.content_to_object_bidict[content] = cached_object
-                cached_object._at_restock(cleanup_method)
-            for restock_method in self.restock_methods:
-                cached_object._at_restock(lambda obj: restock_method(obj.value))
+                #cached_object._at_restock(cleanup_method)
+            #for restock_method in self.restock_methods:
+            #    cached_object._at_restock(lambda obj: restock_method(obj.value))
             return cached_object
 
         super().__init__(
@@ -1465,11 +1483,22 @@ class lazy_property_shared(LazyPropertyDescriptor[_InstanceT, LazyWrapper[_Hasha
         )
         self.restock_methods: list[Callable[[_HashableT], None]] = []
 
+    def restock(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        if (obj := self.get_property(instance)._get()) is not None:
+            self.content_to_object_bidict.inverse.pop(obj)
+            if self.restock_method is not None:
+                self.restock_method(obj.value)
+        #self.content_to_object_bidict.inverse.pop(self.instance_to_object_dict[instance])
+        super().restock(instance)
+
     def restocker(
         self,
         restock_method: Callable[[_HashableT], None]
     ) -> Callable[[_HashableT], None]:
-        self.restock_methods.append(restock_method)
+        self.restock_method = restock_method
         return restock_method
 
 

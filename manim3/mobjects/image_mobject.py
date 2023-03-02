@@ -25,7 +25,7 @@ class ImageMobject(MeshMobject):
         width: Real | None = None,
         height: Real | None = 4.0,
         frame_scale: Real | None = None
-    ):
+    ) -> None:
         super().__init__()
         image = Image.open(image_path)
         self._image: Image.Image = image

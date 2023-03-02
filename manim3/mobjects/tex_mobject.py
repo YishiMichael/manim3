@@ -218,7 +218,7 @@ class TexText(StringMobject):
         protect: Selector = (),
         width: Real | None = None,
         height: Real | None = None
-    ):
+    ) -> None:
         # Prevent from passing an empty string.
         if not string.strip():
             string = "\\\\"
@@ -391,7 +391,7 @@ class Tex(TexText):
         *,
         tex_environment: str | None = "align*",
         **kwargs
-    ):
+    ) -> None:
         super().__init__(
             string=string,
             tex_environment=tex_environment,

@@ -25,7 +25,7 @@ class ParametricSurfaceGeometry(Geometry):
         u_range: tuple[Real, Real],
         v_range: tuple[Real, Real],
         resolution: tuple[int, int] = (100, 100)
-    ):
+    ) -> None:
         u_start, u_stop = u_range
         v_start, v_stop = v_range
         u_len = resolution[0] + 1

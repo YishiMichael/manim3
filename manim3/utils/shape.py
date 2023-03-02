@@ -181,7 +181,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
     def __init__(
         self,
         coords: _VecsT
-    ):
+    ) -> None:
         # TODO: shall we first remove redundant adjacent points?
         assert len(coords)
         super().__init__()
@@ -291,7 +291,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
     def __init__(
         self,
         children: list[LineString[_VecT, _VecsT]] | None = None
-    ):
+    ) -> None:
         super().__init__()
         if children is not None:
             self._children_.add(*children)
@@ -422,7 +422,7 @@ class Shape(LazyObject):
     def __init__(
         self,
         arg: MultiLineString2D | shapely.geometry.base.BaseGeometry | se.Shape | None = None
-    ):
+    ) -> None:
         if arg is None:
             multi_line_string = None
         elif isinstance(arg, MultiLineString2D):

@@ -32,7 +32,7 @@ class ShapeMobject(MeshMobject):
     def __init__(
         self,
         shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None
-    ):
+    ) -> None:
         super().__init__()
         if shape is not None:
             if isinstance(shape, Shape):

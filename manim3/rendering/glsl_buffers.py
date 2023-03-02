@@ -97,7 +97,7 @@ class GLSLDynamicStruct(LazyObject):
         dynamic_array_lens: dict[str, int] | None = None,
         layout: GLSLBufferLayout,
         data: np.ndarray | dict[str, Any]
-    ):
+    ) -> None:
         if child_structs is None:
             child_structs = {}
         if dynamic_array_lens is None:
@@ -385,7 +385,7 @@ class TextureStorage(GLSLDynamicStruct):
         field: str,
         dynamic_array_lens: dict[str, int] | None = None,
         texture_array: np.ndarray
-    ):
+    ) -> None:
         # Note, redundant textures are currently not supported
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
         assert field != replaced_field
@@ -414,7 +414,7 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
         child_structs: dict[str, list[str]] | None = None,
         dynamic_array_lens: dict[str, int] | None = None,
         data: np.ndarray | dict[str, Any]
-    ):
+    ) -> None:
         if child_structs is None:
             child_structs = {}
         if dynamic_array_lens is None:
@@ -448,7 +448,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
         num_vertex: int,
         dynamic_array_lens: dict[str, int] | None = None,
         data: np.ndarray | dict[str, Any],
-    ):
+    ) -> None:
         # Passing structs to an attribute is not allowed, so we eliminate the parameter `child_structs`.
         if dynamic_array_lens is None:
             dynamic_array_lens = {}
@@ -530,7 +530,7 @@ class IndexBuffer(GLSLDynamicBuffer):
         self,
         *,
         data: np.ndarray,
-    ):
+    ) -> None:
         super().__init__(
             field="uint __index__[__NUM_INDEX__]",
             dynamic_array_lens={

@@ -26,7 +26,7 @@ class PixelatedPass(RenderPass):
     def __init__(
         self,
         pixelated_width: Real | None = None
-    ):
+    ) -> None:
         super().__init__()
         if pixelated_width is not None:
             self._pixelated_width_ = pixelated_width

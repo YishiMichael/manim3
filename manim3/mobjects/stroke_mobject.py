@@ -54,7 +54,7 @@ class StrokeMobject(Mobject):
     def __init__(
         self,
         multi_line_string_3d: MultiLineString3D | None = None
-    ):
+    ) -> None:
         super().__init__()
         if multi_line_string_3d is not None:
             self._multi_line_string_3d_ = multi_line_string_3d

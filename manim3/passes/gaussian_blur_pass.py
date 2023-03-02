@@ -36,7 +36,7 @@ class GaussianBlurPass(RenderPass):
     def __init__(
         self,
         sigma_width: Real | None = None
-    ):
+    ) -> None:
         super().__init__()
         if sigma_width is not None:
             self._sigma_width_ = sigma_width
