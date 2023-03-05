@@ -5,9 +5,9 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import Real
-from ..lazy.interfaces import (
-    lazy_object_unwrapped,
-    lazy_property
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
@@ -31,17 +31,17 @@ class PixelatedPass(RenderPass):
         if pixelated_width is not None:
             self._pixelated_width_ = pixelated_width
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _pixelated_width_(cls) -> Real:
         return 0.1
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_color_map_(
         cls,
@@ -52,7 +52,7 @@ class PixelatedPass(RenderPass):
             texture_array=np.array(color_map)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _vertex_array_(
         cls,

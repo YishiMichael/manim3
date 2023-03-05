@@ -17,13 +17,9 @@ from ..lazy.core import (
     LazyCollection,
     LazyObject
 )
-from ..lazy.interfaces import (
-    lazy_collection,
-    lazy_object,
-    lazy_object_shared,
-    lazy_object_unwrapped,
-    lazy_property_shared,
-    lazy_property_unwrapped
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextSingleton
@@ -74,17 +70,17 @@ class IndexedAttributesBuffer(LazyObject):
         self._index_buffer_ = index_buffer
         self._mode_ = mode
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _attributes_(cls) -> AttributesBuffer:
         return NotImplemented
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _index_buffer_(cls) -> IndexBuffer:
         return NotImplemented
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _mode_(cls) -> int:
         return NotImplemented
@@ -120,7 +116,7 @@ class VertexArray(LazyObject):
     #) -> str:
     #    return shader_filename
 
-    @lazy_object_shared
+    @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _shader_filename_(cls) -> str:
         return NotImplemented
@@ -131,7 +127,7 @@ class VertexArray(LazyObject):
     #) -> tuple[str, ...]:
     #    return tuple(custom_macros)
 
-    @lazy_object_shared
+    @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
         return NotImplemented
@@ -142,12 +138,12 @@ class VertexArray(LazyObject):
     #) -> tuple[tuple[str, int], ...]:
     #    return tuple(dynamic_array_lens.items())
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _texture_storages_(cls) -> LazyCollection[TextureStorage]:
         return LazyCollection()
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _uniform_blocks_(cls) -> LazyCollection[UniformBlockBuffer]:
         return LazyCollection()
@@ -164,22 +160,22 @@ class VertexArray(LazyObject):
     #) -> int:
     #    return mode
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _indexed_attributes_(cls) -> IndexedAttributesBuffer:
         return NotImplemented
 
-    #@lazy_object
+    #@Lazy.variable(LazyMode.OBJECT)
     #@classmethod
     #def _index_buffer_(cls) -> IndexBuffer:
     #    return NotImplemented
 
-    #@lazy_object_shared
+    #@Lazy.variable(LazyMode.SHARED)
     #@classmethod
     #def _mode_(cls) -> int:
     #    return NotImplemented
 
-    @lazy_property_shared
+    @Lazy.property(LazyMode.SHARED)
     @classmethod
     def _dynamic_array_lens_(
         cls,
@@ -199,7 +195,7 @@ class VertexArray(LazyObject):
             if not re.fullmatch(r"__\w+__", array_len_name)
         )
 
-    @lazy_property_shared
+    @Lazy.property(LazyMode.SHARED)
     @classmethod
     def _texture_storage_shapes_(
         cls,
@@ -210,7 +206,7 @@ class VertexArray(LazyObject):
             for texture_storage in _texture_storages_
         )
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _program_data_(
         cls,
@@ -234,7 +230,7 @@ class VertexArray(LazyObject):
             uniform_block_binding_dict=uniform_block_binding_dict
         )
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _vertex_array_(
         cls,

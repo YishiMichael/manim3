@@ -18,6 +18,7 @@ from enum import Enum
 import inspect
 import re
 from typing import (
+    _GenericAlias,  # TODO
     Any,
     Callable,
     Generic,
@@ -60,6 +61,8 @@ class AnnotationUtils:
     ) -> Any:
         if isinstance(return_type := inspect.signature(method).return_annotation, str):
             return NotImplemented
+        if isinstance(return_type, _GenericAlias):
+            return return_type.__origin__
         return return_type
 
     @classmethod
@@ -67,10 +70,13 @@ class AnnotationUtils:
         cls,
         method: Callable
     ) -> Any:
-        if isinstance(return_type := inspect.signature(method).return_annotation, str):
+        if isinstance(collection_type := inspect.signature(method).return_annotation, str):
             return NotImplemented
-        assert return_type.__origin__ is LazyCollection
-        return return_type.__args__[0]
+        assert isinstance(collection_type, _GenericAlias)
+        assert collection_type.__origin__ is LazyCollection
+        if isinstance(return_type := collection_type.__args__[0], _GenericAlias):
+            return return_type.__origin__
+        return return_type
 
     @classmethod
     def get_parameter_items(
@@ -90,7 +96,7 @@ class AnnotationUtils:
             for parameter_name_chain, (parameter_name, _) in zip(parameter_name_chains, parameter_items, strict=True)
         )
         parameter_preapplied_methods = tuple(
-            lambda obj: obj.value if requires_unwrapping else None
+            (lambda obj: obj.value) if requires_unwrapping else None
             for _, requires_unwrapping in parameter_items
         )
         return parameter_name_chains, parameter_preapplied_methods
@@ -398,11 +404,11 @@ class Lazy:
     ) -> Callable[[Callable], Any]:
         if mode is LazyMode.OBJECT:
             decorator_cls = LazyObjectVariableDecorator
-        elif LazyMode.COLLECTION:
+        elif mode is LazyMode.COLLECTION:
             decorator_cls = LazyCollectionVariableDecorator
-        elif LazyMode.UNWRAPPED:
+        elif mode is LazyMode.UNWRAPPED:
             decorator_cls = LazyObjectVariableUnwrappedDecorator
-        elif LazyMode.SHARED:
+        elif mode is LazyMode.SHARED:
             decorator_cls = LazyObjectVariableSharedDecorator
         else:
             raise ValueError
@@ -448,11 +454,11 @@ class Lazy:
     ) -> Callable[[Callable], Any]:
         if mode is LazyMode.OBJECT:
             decorator_cls = LazyObjectPropertyDecorator
-        elif LazyMode.COLLECTION:
+        elif mode is LazyMode.COLLECTION:
             decorator_cls = LazyCollectionPropertyDecorator
-        elif LazyMode.UNWRAPPED:
+        elif mode is LazyMode.UNWRAPPED:
             decorator_cls = LazyObjectPropertyUnwrappedDecorator
-        elif LazyMode.SHARED:
+        elif mode is LazyMode.SHARED:
             decorator_cls = LazyObjectPropertySharedDecorator
         else:
             raise ValueError

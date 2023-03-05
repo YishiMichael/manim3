@@ -8,7 +8,10 @@ from PIL import Image
 from ..custom_typing import Real
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
-from ..lazy.interfaces import lazy_object
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
+)
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batches import ColorFramebufferBatch
@@ -39,7 +42,7 @@ class ImageMobject(MeshMobject):
         )
         self.scale(np.array((x_scale, -y_scale, 1.0)))  # flip y
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _geometry_(cls) -> Geometry:
         return PlaneGeometry()

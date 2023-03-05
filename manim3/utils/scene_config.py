@@ -15,11 +15,9 @@ from ..lazy.core import (
     LazyCollection,
     LazyObject
 )
-from ..lazy.interfaces import (
-    lazy_collection,
-    lazy_object,
-    lazy_object_unwrapped,
-    lazy_property
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.color import ColorUtils
@@ -28,17 +26,17 @@ from ..utils.color import ColorUtils
 class PointLight(LazyObject):
     __slots__ = ()
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _position_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
@@ -69,33 +67,33 @@ class SceneConfig(LazyObject):
         ("opacity", (np.float_)),
     ])
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _background_color_(cls) -> Vec3T:
         return np.zeros(3)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _background_opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _ambient_light_color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _ambient_light_opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _point_lights_(cls) -> LazyCollection[PointLight]:
         return LazyCollection()
         #return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _ub_lights_(
         cls,
@@ -133,7 +131,7 @@ class SceneConfig(LazyObject):
             }
         )
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _camera_(cls) -> Camera:
         return PerspectiveCamera()

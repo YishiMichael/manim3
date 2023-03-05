@@ -7,7 +7,10 @@ import numpy as np
 
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
-from ..lazy.interfaces import lazy_object
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
+)
 from ..mobjects.scene import Scene
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
@@ -26,7 +29,7 @@ class SceneMobject(MeshMobject):
         self._scene: Scene = scene_cls()
         self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _geometry_(cls) -> Geometry:
         return PlaneGeometry()

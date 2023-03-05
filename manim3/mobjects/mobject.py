@@ -28,19 +28,14 @@ from ..custom_typing import (
 )
 from ..lazy.core import (
     LazyCollection,
-    LazyCollectionDescriptor,
+    LazyCollectionVariableDescriptor,
     LazyObject,
-    LazyObjectDescriptor
+    LazyObjectVariableDescriptor
 )
-from ..lazy.interfaces import (
-    LazyWrapper,
-    lazy_collection,
-    #lazy_collection,
-    #lazy_object_raw,
-    #lazy_object,
-    lazy_object_unwrapped,
-    lazy_property,
-    lazy_property_unwrapped
+from ..lazy.interface import (
+    Lazy,
+    LazyMode,
+    LazyWrapper
 )
 from ..passes.render_pass import RenderPass
 #from ..rendering.framebuffer_batch import FramebufferBatch
@@ -77,7 +72,7 @@ class BoundingBox3D:
 class Mobject(LazyObject):
     __slots__ = (
         "_parents",
-        "_real_ancestors",
+        "_real_ancestors"
         #"_apply_oit",
         #"_render_samples"
     )
@@ -118,22 +113,22 @@ class Mobject(LazyObject):
     #def _parents() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _children_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
-    #@lazy_collection
+    #@Lazy.variable(LazyMode.COLLECTION)
     #@staticmethod
     #def _parents_() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _real_descendants_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
-    #@lazy_collection
+    #@Lazy.variable(LazyMode.COLLECTION)
     #@staticmethod
     #def _real_ancestors_() -> "LazyCollection[Mobject]":
     #    return LazyCollection()
@@ -306,11 +301,13 @@ class Mobject(LazyObject):
             ]
 
         #result = descendants_copy[0]
-        for descriptor in self.__class__._LAZY_DESCRIPTORS.values():
-            if isinstance(descriptor, LazyObjectDescriptor):
+        for descriptor in self.__class__._LAZY_DESCRIPTORS:
+            if not issubclass(descriptor.element_type, Mobject):
+                continue
+            if isinstance(descriptor, LazyObjectVariableDescriptor):
                 mobject = descriptor.__get__(self)
                 descriptor.__set__(result, get_matched_descendant_mobject(mobject))
-            elif isinstance(descriptor, LazyCollectionDescriptor):
+            elif isinstance(descriptor, LazyCollectionVariableDescriptor):
                 descriptor.__set__(result, LazyCollection(*(
                     get_matched_descendant_mobject(mobject)
                     for mobject in descriptor.__get__(self)
@@ -342,18 +339,18 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(cls) -> Vec3sT:
         # Implemented in subclasses
         return np.zeros((0, 3))
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _ub_model_(
         cls,
@@ -369,7 +366,7 @@ class Mobject(LazyObject):
             }
         )
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _has_local_sample_points_(
         cls,
@@ -377,7 +374,7 @@ class Mobject(LazyObject):
     ) -> bool:
         return bool(len(local_sample_points))
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_world_bounding_box_(
         cls,
@@ -741,7 +738,7 @@ class Mobject(LazyObject):
 
     # render
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _apply_oit_(cls) -> bool:
         return False
@@ -756,7 +753,7 @@ class Mobject(LazyObject):
     #def _render_samples() -> int:
     #    return 0
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _render_passes_(cls) -> LazyCollection[RenderPass]:
         return LazyCollection()

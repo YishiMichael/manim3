@@ -13,10 +13,9 @@ from ..custom_typing import (
     Real,
     Vec3T
 )
-from ..lazy.interfaces import (
-    lazy_object,
-    lazy_object_unwrapped,
-    lazy_property
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..mobjects.mobject import Mobject
 from ..rendering.config import ConfigSingleton
@@ -53,27 +52,27 @@ class Scene(Mobject):
         self._frame_floating_index: float = 0.0
         self._previous_rendering_timestamp: float | None = None
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _accum_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _revealage_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _depth_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
@@ -106,7 +105,7 @@ class Scene(Mobject):
             mode=moderngl.TRIANGLE_FAN
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_color_map_(
         cls,
@@ -117,7 +116,7 @@ class Scene(Mobject):
             texture_array=np.array(color_map)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_accum_map_(
         cls,
@@ -128,7 +127,7 @@ class Scene(Mobject):
             texture_array=np.array(accum_map)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_revealage_map_(
         cls,
@@ -139,7 +138,7 @@ class Scene(Mobject):
             texture_array=np.array(revealage_map)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_depth_map_(
         cls,
@@ -150,7 +149,7 @@ class Scene(Mobject):
             texture_array=np.array(depth_map)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _copy_vertex_array_(
         cls,
@@ -171,7 +170,7 @@ class Scene(Mobject):
             indexed_attributes=_indexed_attributes_buffer_
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _copy_window_vertex_array_(
         cls,
@@ -188,7 +187,7 @@ class Scene(Mobject):
             indexed_attributes=_indexed_attributes_buffer_
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _oit_accum_vertex_array_(
         cls,
@@ -207,7 +206,7 @@ class Scene(Mobject):
             indexed_attributes=_indexed_attributes_buffer_
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _oit_revealage_vertex_array_(
         cls,
@@ -226,7 +225,7 @@ class Scene(Mobject):
             indexed_attributes=_indexed_attributes_buffer_
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _oit_compose_vertex_array_(
         cls,
@@ -245,7 +244,7 @@ class Scene(Mobject):
             indexed_attributes=_indexed_attributes_buffer_
         )
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _scene_config_(cls) -> SceneConfig:
         return SceneConfig()

@@ -11,11 +11,9 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..geometries.geometry import Geometry
-from ..lazy.interfaces import (
-    lazy_object,
-    lazy_object_unwrapped,
-    lazy_property,
-    lazy_property_unwrapped
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..mobjects.mobject import Mobject
 from ..rendering.glsl_buffers import (
@@ -42,47 +40,47 @@ class MeshMobject(Mobject):
     #    #self._render_samples: int = 4
     #    self._apply_phong_lighting: bool = True
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _geometry_(cls) -> Geometry:
         return Geometry()
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _ambient_strength_(cls) -> Real:
         return 1.0
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _specular_strength_(cls) -> Real:
         return 0.5
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _shininess_(cls) -> Real:
         return 32.0
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _apply_phong_lighting_(cls) -> bool:
         return True
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(
         cls,
@@ -90,7 +88,7 @@ class MeshMobject(Mobject):
     ) -> Vec3sT:
         return _geometry_._geometry_data_.value.position
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_color_maps_(
         cls,
@@ -105,7 +103,7 @@ class MeshMobject(Mobject):
             texture_array=np.array(textures)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _ub_material_(
         cls,
@@ -141,7 +139,7 @@ class MeshMobject(Mobject):
     #def _apply_phong_lighting() -> bool:
     #    return True
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _vertex_array_(
         cls,
@@ -180,7 +178,7 @@ class MeshMobject(Mobject):
             #mode=moderngl.TRIANGLES
         )
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _scene_config_(cls) -> SceneConfig:
         return NotImplemented

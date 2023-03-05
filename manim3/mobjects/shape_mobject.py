@@ -11,10 +11,9 @@ from ..custom_typing import (
 )
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.core import LazyCollection
-from ..lazy.interfaces import (
-    lazy_collection,
-    lazy_object,
-    lazy_property
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
@@ -39,12 +38,12 @@ class ShapeMobject(MeshMobject):
             self.set_shape(shape_obj)
         self.set_style(apply_phong_lighting=False)
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _shape_(cls) -> Shape:
         return Shape()
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _geometry_(
         cls,
@@ -57,7 +56,7 @@ class ShapeMobject(MeshMobject):
     #def _apply_phong_lighting() -> bool:
     #    return False
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
         return LazyCollection()

@@ -8,9 +8,9 @@ from ..custom_typing import (
     Mat4T,
     Real
 )
-from ..lazy.interfaces import (
-    lazy_object_unwrapped,
-    lazy_property_unwrapped
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..rendering.config import ConfigSingleton
 
@@ -39,32 +39,32 @@ class PerspectiveCamera(Camera):
         if altitude is not None:
             self._altitude_ = altitude
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> Real:
         return ConfigSingleton().frame_width
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _height_(cls) -> Real:
         return ConfigSingleton().frame_height
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _near_(cls) -> Real:
         return ConfigSingleton().camera_near
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _far_(cls) -> Real:
         return ConfigSingleton().camera_far
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _altitude_(cls) -> Real:
         return ConfigSingleton().camera_altitude
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _projection_matrix_(
         cls,

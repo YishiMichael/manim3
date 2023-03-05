@@ -245,9 +245,9 @@ class LazyObject(LazyEntity):
 
     _VACANT_INSTANCES: "ClassVar[list[LazyObject]]"
     _LAZY_DESCRIPTORS: "ClassVar[tuple[LazyDescriptor, ...]]"
-    _LAZY_DESCRIPTOR_GROUPS: "ClassVar[dict[str, LazyDescriptorGroup]]"
-    #_LAZY_OBJECT_DESCRIPTOR_GROUPS: "ClassVar[dict[str, LazyObjectDescriptorGroup]]"
-    #_LAZY_COLLECTION_DESCRIPTOR_GROUPS: "ClassVar[dict[str, LazyCollectionDescriptorGroup]]"
+    _LAZY_DESCRIPTOR_OVERLOADINGS: "ClassVar[dict[str, LazyDescriptorOverloading]]"
+    #_LAZY_OBJECT_DESCRIPTOR_GROUPS: "ClassVar[dict[str, LazyObjectDescriptorOverloading]]"
+    #_LAZY_COLLECTION_DESCRIPTOR_GROUPS: "ClassVar[dict[str, LazyCollectionDescriptorOverloading]]"
     _ALL_SLOTS: "ClassVar[tuple[str, ...]]"
 
     def __init_subclass__(cls) -> None:
@@ -256,53 +256,80 @@ class LazyObject(LazyEntity):
         base_cls = cls.__base__
         assert issubclass(base_cls, LazyObject)
         #descriptors: list[LazyDescriptor] = []
-        descriptor_groups = base_cls._LAZY_DESCRIPTOR_GROUPS.copy()
-        #collection_descriptor_groups = base_cls._LAZY_COLLECTION_DESCRIPTOR_GROUPS.copy()
+        if base_cls is not LazyObject:
+            descriptor_overloadings = base_cls._LAZY_DESCRIPTOR_OVERLOADINGS.copy()
+        else:
+            descriptor_overloadings = {}
+        #collection_descriptor_overloadings = base_cls._LAZY_COLLECTION_DESCRIPTOR_GROUPS.copy()
         for name, attr in cls.__dict__.items():
             if not isinstance(attr, LazyDescriptor):
                 continue
             assert re.fullmatch(r"_\w+_", name)
             if attr.element_type is NotImplemented:
                 attr.element_type = cls
-            if (descriptor_group := descriptor_groups.get(name)) is not None:
-                if isinstance(descriptor_group, LazyObjectDescriptorGroup):
+            if (descriptor_overloading := descriptor_overloadings.get(name)) is not None:
+                if isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
                     assert isinstance(attr, LazyObjectVariableDescriptor | LazyObjectPropertyDescriptor)
-                    descriptor_group.add_descriptor(cls, attr)
-                elif isinstance(descriptor_group, LazyCollectionDescriptorGroup):
+                    descriptor_overloading.set_descriptor(cls, attr)
+                elif isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
                     assert isinstance(attr, LazyCollectionVariableDescriptor | LazyCollectionPropertyDescriptor)
-                    descriptor_group.add_descriptor(cls, attr)
+                    descriptor_overloading.set_descriptor(cls, attr)
                 else:
                     raise TypeError
-            elif isinstance(attr, LazyObjectVariableDescriptor | LazyObjectPropertyDescriptor):
-                descriptor_groups[name] = LazyObjectDescriptorGroup(cls, attr)
-            elif isinstance(attr, LazyCollectionVariableDescriptor | LazyCollectionPropertyDescriptor):
-                descriptor_groups[name] = LazyCollectionDescriptorGroup(cls, attr)
             else:
-                raise TypeError
+                if isinstance(attr, LazyObjectVariableDescriptor | LazyObjectPropertyDescriptor):
+                    descriptor_overloading = LazyObjectDescriptorOverloading(cls, attr)
+                elif isinstance(attr, LazyCollectionVariableDescriptor | LazyCollectionPropertyDescriptor):
+                    descriptor_overloading = LazyCollectionDescriptorOverloading(cls, attr)
+                else:
+                    raise TypeError
+                descriptor_overloadings[name] = descriptor_overloading
+
+        #if base_cls is not LazyObject:
+        for descriptor_overloading in descriptor_overloadings.values():
+            if descriptor_overloading.get_descriptor(cls) is not None:
+                continue
+            descriptor_overloading.set_descriptor(cls, descriptor_overloading.get_descriptor(base_cls))
+
+        cls._VACANT_INSTANCES = []
+        cls._LAZY_DESCRIPTORS = tuple(
+            descriptor_overloading.get_descriptor_assured(cls)
+            for descriptor_overloading in descriptor_overloadings.values()
+        )
+        cls._LAZY_DESCRIPTOR_OVERLOADINGS = descriptor_overloadings
+        cls._ALL_SLOTS = tuple(set(
+            slot
+            for parent_cls in reversed(cls.__mro__)
+            if issubclass(parent_cls, LazyEntity)
+            for slot in parent_cls.__slots__
+        ))
 
         for attr in cls.__dict__.values():
             if not isinstance(attr, LazyPropertyDescriptor):
                 continue
-            #descriptor_group_chains = tuple(
+            #descriptor_overloading_chains = tuple(
             #    tuple(
-            #        descriptor_groups[parameter_name]
+            #        descriptor_overloadings[parameter_name]
             #        for parameter_name in parameter_name_chain
             #    )
             #    for parameter_name_chain in attr.parameter_name_chains
             #)
-            attr.descriptor_group_chains = tuple(
-                tuple(
-                    descriptor_groups[parameter_name]
-                    for parameter_name in parameter_name_chain
-                )
-                for parameter_name_chain in attr.parameter_name_chains
-            )
+            descriptor_overloading_chains: list[tuple[LazyDescriptorOverloading, ...]] = []
+            for parameter_name_chain in attr.parameter_name_chains:
+                element_type = cls
+                descriptor_overloading_chain: list[LazyDescriptorOverloading] = []
+                for parameter_name in parameter_name_chain:
+                    descriptor_overloading = element_type._LAZY_DESCRIPTOR_OVERLOADINGS[parameter_name]
+                    element_type = descriptor_overloading.element_type
+                    descriptor_overloading_chain.append(descriptor_overloading)
+                descriptor_overloading_chains.append(tuple(descriptor_overloading_chain))
+            attr.descriptor_overloading_chains = tuple(descriptor_overloading_chains)
             #attr.parameter_depths = tuple(
             #    sum(
-            #        isinstance(descriptor_group, LazyCollectionDescriptorGroup)
-            #        for descriptor_group in descriptor_group_chain
+            #        isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading)
+            #        for descriptor_overloading in descriptor_overloading_chain
             #    )
-            #    for descriptor_group_chain in descriptor_group_chains
+            #    for descriptor_overloading_chain in descriptor_overloading_chains
             #)
 
 
@@ -322,19 +349,6 @@ class LazyObject(LazyEntity):
         #        continue
         #    #assert isinstance(descriptor, LazyObjectDescriptor | LazyObjectCollectionDescriptor | LazyPropertyDescriptor)
         #    assert re.fullmatch(r"_\w+_", name)
-
-        cls._VACANT_INSTANCES = []
-        cls._LAZY_DESCRIPTORS = tuple(
-            descriptor_group.get_descriptor(cls)
-            for descriptor_group in descriptor_groups.values()
-        )
-        cls._LAZY_DESCRIPTOR_GROUPS = descriptor_groups
-        cls._ALL_SLOTS = tuple(set(
-            slot
-            for parent_cls in reversed(cls.__mro__)
-            if issubclass(parent_cls, LazyEntity)
-            for slot in parent_cls.__slots__
-        ))
 
     def __new__(
         cls,
@@ -414,6 +428,9 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
         index: int | slice
     ) -> _LazyObjectT | list[_LazyObjectT]:
         return self._elements.__getitem__(index)
+
+    def _copy(self) -> "LazyCollection[_LazyObjectT]":
+        return LazyCollection(*self._elements)
 
     def add(
         self,
@@ -734,7 +751,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         "method",
         "parameter_name_chains",
         "parameter_preapplied_methods",
-        "descriptor_group_chains",
+        "descriptor_overloading_chains",
         "instance_to_property_dict",
         "parameters_to_entity_dict"
     )
@@ -752,7 +769,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         self.method: Callable[..., _LazyEntityT] = method
         self.parameter_name_chains: tuple[tuple[str, ...], ...] = parameter_name_chains
         self.parameter_preapplied_methods: tuple[Callable[[Any], Any] | None, ...] = parameter_preapplied_methods
-        self.descriptor_group_chains: tuple[tuple[LazyDescriptorGroup, ...], ...] = NotImplemented
+        self.descriptor_overloading_chains: tuple[tuple[LazyDescriptorOverloading, ...], ...] = NotImplemented
         self.instance_to_property_dict: dict[_InstanceT, LazyProperty[_LazyEntityT]] = {}
         self.parameters_to_entity_dict: dict[tuple, _LazyEntityT] = {}
 
@@ -770,8 +787,8 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         prop = self.get_property(instance)
         if (entity := prop._get()) is None:
             parameter_items = tuple(
-                self.construct_parameter_item(descriptor_group_chain, instance)
-                for descriptor_group_chain in self.descriptor_group_chains
+                self.construct_parameter_item(descriptor_overloading_chain, instance)
+                for descriptor_overloading_chain in self.descriptor_overloading_chains
             )
             #parameters, parameter_children = self.construct_parameter_item(instance)
             prop._bind_parameter_children(set(
@@ -834,20 +851,20 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
     @classmethod
     def construct_parameter_item(
         cls,
-        descriptor_group_chain: "tuple[LazyDescriptorGroup, ...]",
+        descriptor_overloading_chain: "tuple[LazyDescriptorOverloading, ...]",
         instance: _InstanceT
     ) -> tuple[Any, int, set[LazyEntity]]:
         parameter_children: set[LazyEntity] = set()
 
         def construct_from_collection(
             item: tuple[LazyObject, bool],
-            descriptor_group: LazyCollectionDescriptorGroup
+            descriptor_overloading: LazyCollectionDescriptorOverloading
             #descriptor_name: str,
             #is_chain_tail: bool
         ) -> tuple[tuple[LazyObject, bool], ...]:
             obj, binding_completed = item
             #descriptor = type(obj)._LAZY_DESCRIPTORS[descriptor_name]
-            descriptor = descriptor_group.get_descriptor(type(obj))
+            descriptor = descriptor_overloading.get_descriptor(type(obj))
             collection = descriptor.instance_get(obj)
             if not binding_completed:
                 parameter_children.add(collection)
@@ -863,13 +880,13 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
 
         def construct_from_collection_tail(
             item: tuple[LazyObject, bool],
-            descriptor_group: LazyCollectionDescriptorGroup
+            descriptor_overloading: LazyCollectionDescriptorOverloading
             #descriptor_name: str,
             #is_chain_tail: bool
         ) -> tuple[LazyObject, ...]:
             obj, binding_completed = item
             #descriptor = type(obj)._LAZY_DESCRIPTORS[descriptor_name]
-            descriptor = descriptor_group.get_descriptor(type(obj))
+            descriptor = descriptor_overloading.get_descriptor(type(obj))
             collection = descriptor.instance_get(obj)
             if not binding_completed:
                 parameter_children.add(collection)
@@ -884,12 +901,12 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
 
         def construct_from_object(
             item: tuple[LazyObject, bool],
-            descriptor_group: LazyObjectDescriptorGroup
+            descriptor_overloading: LazyObjectDescriptorOverloading
             #descriptor_name: str,
             #is_chain_tail: bool
         ) -> tuple[LazyObject, bool]:
             obj, binding_completed = item
-            descriptor = descriptor_group.get_descriptor(type(obj))
+            descriptor = descriptor_overloading.get_descriptor(type(obj))
             element = descriptor.instance_get(obj)
             if not binding_completed:
                 if isinstance(descriptor, LazyObjectPropertyDescriptor):
@@ -909,12 +926,12 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
 
         def construct_from_object_tail(
             item: tuple[LazyObject, bool],
-            descriptor_group: LazyObjectDescriptorGroup
+            descriptor_overloading: LazyObjectDescriptorOverloading
             #descriptor_name: str,
             #is_chain_tail: bool
         ) -> LazyObject:
             obj, binding_completed = item
-            descriptor = descriptor_group.get_descriptor(type(obj))
+            descriptor = descriptor_overloading.get_descriptor(type(obj))
             element = descriptor.instance_get(obj)
             if not binding_completed:
                 if isinstance(descriptor, LazyObjectPropertyDescriptor):
@@ -928,40 +945,41 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         parameter_item = (instance, False)
         depth = 0
         #binding_completed = False
-        for descriptor_group in descriptor_group_chain[:-1]:
-            #is_chain_tail = index == len(descriptor_group_chain) - 1
-            if isinstance(descriptor_group, LazyCollectionDescriptorGroup):
+        for descriptor_overloading in descriptor_overloading_chain[:-1]:
+            #is_chain_tail = index == len(descriptor_overloading_chain) - 1
+            if isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
                 parameter_item = cls.apply_at_depth(
                     lambda item: construct_from_collection(
-                        item, descriptor_group
+                        item, descriptor_overloading
                     ),
                     parameter_item,
                     depth
                 )
                 depth += 1
-            elif isinstance(descriptor_group, LazyObjectDescriptorGroup):
+            elif isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
                 parameter_item = cls.apply_at_depth(
                     lambda item: construct_from_object(
-                        item, descriptor_group
+                        item, descriptor_overloading
                     ),
                     parameter_item,
                     depth
                 )
             else:
                 raise TypeError
-        descriptor_group = descriptor_group_chain[-1]
-        if isinstance(descriptor_group, LazyCollectionDescriptorGroup):
+        descriptor_overloading = descriptor_overloading_chain[-1]
+        if isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
             parameter = cls.apply_at_depth(
                 lambda item: construct_from_collection_tail(
-                    item, descriptor_group
+                    item, descriptor_overloading
                 ),
                 parameter_item,
                 depth
             )
-        elif isinstance(descriptor_group, LazyObjectDescriptorGroup):
+            depth += 1
+        elif isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
             parameter = cls.apply_at_depth(
                 lambda item: construct_from_object_tail(
-                    item, descriptor_group
+                    item, descriptor_overloading
                 ),
                 parameter_item,
                 depth
@@ -976,8 +994,8 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
             #)
 
         #parameters = tuple(
-        #    construct_parameter(descriptor_group_chain)
-        #    for descriptor_group_chain in self.descriptor_group_chains
+        #    construct_parameter(descriptor_overloading_chain)
+        #    for descriptor_overloading_chain in self.descriptor_overloading_chains
         #)
         #return parameters, parameter_children
 
@@ -1070,7 +1088,7 @@ class LazyCollectionPropertyDescriptor(LazyPropertyDescriptor[_InstanceT, LazyCo
     #    self._default_object: _LazyObjectT | None = None
 
 
-class LazyDescriptorGroup(Generic[_InstanceT, _LazyObjectT, _LazyDescriptorT], ABC):
+class LazyDescriptorOverloading(Generic[_InstanceT, _LazyObjectT, _LazyDescriptorT], ABC):
     __slots__ = (
         "element_type",
         "descriptors"
@@ -1085,7 +1103,19 @@ class LazyDescriptorGroup(Generic[_InstanceT, _LazyObjectT, _LazyDescriptorT], A
         self.element_type: type[_LazyObjectT] = descriptor.element_type
         self.descriptors: dict[type[_InstanceT], _LazyDescriptorT] = {instance_type: descriptor}
 
-    def add_descriptor(
+    def get_descriptor(
+        self,
+        instance_type: type[_InstanceT]
+    ) -> _LazyDescriptorT | None:
+        return self.descriptors.get(instance_type)
+
+    def get_descriptor_assured(
+        self,
+        instance_type: type[_InstanceT]
+    ) -> _LazyDescriptorT:
+        return self.descriptors[instance_type]
+
+    def set_descriptor(
         self,
         instance_type: type[_InstanceT],
         descriptor: _LazyDescriptorT
@@ -1093,11 +1123,17 @@ class LazyDescriptorGroup(Generic[_InstanceT, _LazyObjectT, _LazyDescriptorT], A
         assert issubclass(descriptor.element_type, self.element_type)
         self.descriptors[instance_type] = descriptor
 
-    def get_descriptor(
-        self,
-        instance_type: type[_InstanceT]
-    ) -> _LazyDescriptorT:
-        return self.descriptors[instance_type]
+    #def set_default_descriptor(
+    #    self,
+    #    instance_type: type[_InstanceT],
+    #    descriptor: _LazyDescriptorT
+    #) -> None:
+    #    if instance_type in self.descriptors:
+    #        return
+    #    self.set_descriptor(
+    #        instance_type=instance_type,
+    #        descriptor=descriptor
+    #    )
 
     #def instance_get(
     #    self,
@@ -1106,7 +1142,7 @@ class LazyDescriptorGroup(Generic[_InstanceT, _LazyObjectT, _LazyDescriptorT], A
     #    return self.descriptors[type(instance)].instance_get(instance)
 
 
-class LazyObjectDescriptorGroup(LazyDescriptorGroup[_InstanceT, _LazyObjectT, Union[
+class LazyObjectDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _LazyObjectT, Union[
     LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT],
     LazyObjectPropertyDescriptor[_InstanceT, _LazyObjectT]
 ]]):
@@ -1119,7 +1155,7 @@ class LazyObjectDescriptorGroup(LazyDescriptorGroup[_InstanceT, _LazyObjectT, Un
     #    return self.descriptors[type(instance)].instance_get(instance)
 
 
-class LazyCollectionDescriptorGroup(LazyDescriptorGroup[_InstanceT, _LazyObjectT, Union[
+class LazyCollectionDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _LazyObjectT, Union[
     LazyCollectionVariableDescriptor[_InstanceT, _LazyObjectT],
     LazyCollectionPropertyDescriptor[_InstanceT, _LazyObjectT]
 ]]):

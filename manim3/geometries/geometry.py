@@ -15,9 +15,9 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..lazy.core import LazyObject
-from ..lazy.interfaces import (
-    lazy_object_unwrapped,
-    lazy_property
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
@@ -41,7 +41,7 @@ class GeometryData:
 class Geometry(LazyObject):
     __slots__ = ()
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _geometry_data_(cls) -> GeometryData:
         return GeometryData(
@@ -51,7 +51,7 @@ class Geometry(LazyObject):
             uv=np.zeros((0, 2))
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _indexed_attributes_buffer_(
         cls,

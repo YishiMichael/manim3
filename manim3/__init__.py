@@ -26,9 +26,9 @@ from .mobjects.svg_mobject import *
 from .mobjects.tex_mobject import *
 from .mobjects.text_mobject import *
 
-from .lazy.dag import *
 from .lazy.core import *
-from .lazy.interfaces import *
+from .lazy.dag import *
+from .lazy.interface import *
 
 from .passes.gaussian_blur_pass import *
 from .passes.pixelated_pass import *

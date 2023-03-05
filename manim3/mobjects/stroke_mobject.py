@@ -16,11 +16,9 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..lazy.core import LazyCollection
-from ..lazy.interfaces import (
-    lazy_object,
-    lazy_object_unwrapped,
-    lazy_property,
-    lazy_property_unwrapped
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..mobjects.mobject import Mobject
 from ..rendering.glsl_buffers import (
@@ -59,43 +57,43 @@ class StrokeMobject(Mobject):
     #) -> bool:
     #    return winding_sign
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _multi_line_string_3d_(cls) -> MultiLineString3D:
         return MultiLineString3D()
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> Real:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _dilate_(cls) -> Real:
         return 0.0
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _winding_sign_(
         cls,
@@ -113,7 +111,7 @@ class StrokeMobject(Mobject):
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
         return area * width >= 0.0
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(
         cls,
@@ -127,7 +125,7 @@ class StrokeMobject(Mobject):
             for line_string in line_strings
         ])
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _ub_stroke_(
         cls,
@@ -150,7 +148,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _ub_winding_sign_(
         cls,
@@ -166,7 +164,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _attributes_(
         cls,
@@ -189,7 +187,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.COLLECTION)
     @classmethod
     def _vertex_arrays_(
         cls,
@@ -229,7 +227,7 @@ class StrokeMobject(Mobject):
             )
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
-        result: LazyCollection[VertexArray] = LazyCollection(
+        result = LazyCollection(
             get_vertex_array(StrokeMobject._line_index_getter, moderngl.LINES, [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
@@ -353,7 +351,7 @@ class StrokeMobject(Mobject):
             return []
         raise ValueError  # never
 
-    @lazy_object
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _scene_config_(cls) -> SceneConfig:
         return NotImplemented

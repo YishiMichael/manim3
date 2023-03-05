@@ -6,7 +6,10 @@ import svgelements as se
 
 from ..custom_typing import Real
 from ..lazy.core import LazyCollection
-from ..lazy.interfaces import lazy_collection
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
+)
 from ..mobjects.shape_mobject import ShapeMobject
 
 
@@ -98,7 +101,7 @@ class SVGMobject(ShapeMobject):
         #)
         self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
 
-    @lazy_collection
+    @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _shape_mobjects_(cls) -> LazyCollection[ShapeMobject]:
         return LazyCollection()

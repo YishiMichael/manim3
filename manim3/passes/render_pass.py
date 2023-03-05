@@ -7,7 +7,10 @@ import moderngl
 import numpy as np
 
 from ..lazy.core import LazyObject
-from ..lazy.interfaces import lazy_property
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
+)
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer
@@ -18,7 +21,7 @@ from ..rendering.vertex_array import IndexedAttributesBuffer
 class RenderPass(LazyObject):
     __slots__ = ()
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(

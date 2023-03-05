@@ -12,10 +12,7 @@ from ..animations.animation import AlphaAnimation
 from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
-from ..lazy.core import (
-    LazyCollection,
-    LazyObjectDescriptor
-)
+from ..lazy.core import LazyObjectVariableDescriptor
 from ..utils.space import SpaceUtils
 from ..utils.shape import (
     MultiLineString3D,
@@ -38,7 +35,7 @@ class Transform(AlphaAnimation):
     ) -> Callable[[Real], MultiLineString3D]:
         return multi_line_string_0.interpolate_shape_callback(multi_line_string_1, has_inlay=False)
 
-    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectDescriptor[ShapeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[ShapeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
         ShapeMobject._shape_: __shape_interpolate_callback,
         ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
         ShapeMobject._color_: SpaceUtils.lerp_callback,
@@ -48,7 +45,7 @@ class Transform(AlphaAnimation):
         ShapeMobject._shininess_: SpaceUtils.lerp_callback
     }
 
-    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
         StrokeMobject._multi_line_string_3d_: __stroke_interpolate_callback,
         StrokeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
         StrokeMobject._color_: SpaceUtils.lerp_callback,
@@ -69,8 +66,8 @@ class Transform(AlphaAnimation):
     ) -> None:
         intermediate_mobject = stop_mobject.copy()
 
-        start_stroke_mobjects: LazyCollection[StrokeMobject] = start_mobject._stroke_mobjects_
-        stop_stroke_mobjects: LazyCollection[StrokeMobject] = stop_mobject._stroke_mobjects_
+        start_stroke_mobjects = start_mobject._stroke_mobjects_._copy()
+        stop_stroke_mobjects = stop_mobject._stroke_mobjects_._copy()
         for start_stroke, stop_stroke in it.zip_longest(start_stroke_mobjects, stop_stroke_mobjects, fillvalue=None):
             if start_stroke is None:
                 assert stop_stroke is not None

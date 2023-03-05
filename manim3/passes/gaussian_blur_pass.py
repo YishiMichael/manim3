@@ -8,10 +8,9 @@ from ..custom_typing import (
     FloatsT,
     Real
 )
-from ..lazy.interfaces import (
-    lazy_object_unwrapped,
-    lazy_property,
-    lazy_property_unwrapped
+from ..lazy.interface import (
+    Lazy,
+    LazyMode
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
@@ -38,17 +37,17 @@ class GaussianBlurPass(RenderPass):
         if sigma_width is not None:
             self._sigma_width_ = sigma_width
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _sigma_width_(cls) -> Real:
         return 0.1
 
-    @lazy_object_unwrapped
+    @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
-    @lazy_property_unwrapped
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _convolution_core_(
         cls,
@@ -59,7 +58,7 @@ class GaussianBlurPass(RenderPass):
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _u_color_map_(
         cls,
@@ -70,7 +69,7 @@ class GaussianBlurPass(RenderPass):
             texture_array=np.array(color_map)
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _ub_gaussian_blur_(
         cls,
@@ -91,7 +90,7 @@ class GaussianBlurPass(RenderPass):
             }
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _horizontal_vertex_array_(
         cls,
@@ -113,7 +112,7 @@ class GaussianBlurPass(RenderPass):
             indexed_attributes=_indexed_attributes_buffer_
         )
 
-    @lazy_property
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _vertical_vertex_array_(
         cls,
