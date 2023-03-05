@@ -9,7 +9,6 @@ from enum import Enum
 import inspect
 import re
 from typing import (
-    _GenericAlias,  # TODO
     Any,
     Callable,
     Generic,
@@ -45,9 +44,9 @@ class AnnotationUtils:
     ) -> Any:
         if isinstance(return_type := inspect.signature(method).return_annotation, str):
             return NotImplemented
-        if isinstance(return_type, _GenericAlias):
-            return return_type.__origin__
-        return return_type
+        if isinstance(return_type, type):
+            return return_type
+        return return_type.__origin__
 
     @classmethod
     def get_element_return_type(
@@ -56,11 +55,11 @@ class AnnotationUtils:
     ) -> Any:
         if isinstance(collection_type := inspect.signature(method).return_annotation, str):
             return NotImplemented
-        assert isinstance(collection_type, _GenericAlias)
         assert collection_type.__origin__ is LazyCollection
-        if isinstance(return_type := collection_type.__args__[0], _GenericAlias):
-            return return_type.__origin__
-        return return_type
+        return_type = collection_type.__args__[0]
+        if isinstance(return_type, type):
+            return return_type
+        return return_type.__origin__
 
     @classmethod
     def get_parameter_items(

@@ -589,14 +589,15 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         new_entity: _LazyEntityT
     ) -> None:
         assert not instance._is_readonly()
+        old_entity = self.get_entity(instance)
+        if old_entity is new_entity:
+            return
         #for entity in instance._iter_dependency_ancestors():
         #    assert isinstance(entity, LazyEntity)
         #    entity._expire_properties()
         #self.instance_to_entity_dict[instance] = new_entity
         #instance._bind_dependency(new_entity)
-        if (old_entity := self.get_entity(instance)) is not NotImplemented:
-            if old_entity is new_entity:
-                return
+        if old_entity is not NotImplemented:
             old_entity._expire_properties()
             instance._unbind_dependency(old_entity)
             old_entity._restock_descendants_if_no_dependency_parents()
