@@ -38,14 +38,17 @@ class GaussianBlurPass(RenderPass):
             self._sigma_width_ = sigma_width
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _sigma_width_(cls) -> Real:
         return 0.1
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _convolution_core_(
         cls,
         sigma_width: Real
@@ -56,6 +59,7 @@ class GaussianBlurPass(RenderPass):
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _u_color_map_(
         cls,
         color_map: moderngl.Texture
@@ -66,6 +70,7 @@ class GaussianBlurPass(RenderPass):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _ub_gaussian_blur_(
         cls,
         convolution_core: FloatsT
@@ -86,6 +91,7 @@ class GaussianBlurPass(RenderPass):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _horizontal_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
@@ -107,6 +113,7 @@ class GaussianBlurPass(RenderPass):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _vertical_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,

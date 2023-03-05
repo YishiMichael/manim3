@@ -365,13 +365,13 @@ class Lazy:
             decorator_cls = LazyObjectVariableSharedDecorator
         else:
             raise ValueError
-        return decorator_cls
 
-        #def result(
-        #    cls_method: Callable
-        #) -> Any:
-        #    return decorator_cls(cls_method.__func__)
-        #return result
+        def result(
+            cls_method: Callable
+        ) -> Any:
+            assert isinstance(cls_method, classmethod)
+            return decorator_cls(cls_method.__func__)
+        return result
 
     @overload
     @classmethod
@@ -416,10 +416,10 @@ class Lazy:
             decorator_cls = LazyObjectPropertySharedDecorator
         else:
             raise ValueError
-        return decorator_cls
 
-        #def result(
-        #    cls_method: Callable
-        #) -> Any:
-        #    return decorator_cls(cls_method.__func__)
-        #return result
+        def result(
+            cls_method: Callable
+        ) -> Any:
+            assert isinstance(cls_method, classmethod)
+            return decorator_cls(cls_method.__func__)
+        return result

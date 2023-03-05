@@ -102,6 +102,7 @@ class SVGMobject(ShapeMobject):
         self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
 
     @Lazy.variable(LazyMode.COLLECTION)
+    @classmethod
     def _shape_mobjects_(cls) -> LazyCollection[ShapeMobject]:
         return LazyCollection()
 

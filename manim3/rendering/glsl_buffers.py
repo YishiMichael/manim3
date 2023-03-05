@@ -113,6 +113,7 @@ class GLSLDynamicStruct(LazyObject):
     #    return field
 
     @Lazy.variable(LazyMode.SHARED)
+    @classmethod
     def _field_(cls) -> str:
         return NotImplemented
 
@@ -126,6 +127,7 @@ class GLSLDynamicStruct(LazyObject):
     #    )
 
     @Lazy.variable(LazyMode.SHARED)
+    @classmethod
     def _child_structs_(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         return NotImplemented
 
@@ -136,6 +138,7 @@ class GLSLDynamicStruct(LazyObject):
     #    return tuple(dynamic_array_lens.items())
 
     @Lazy.variable(LazyMode.SHARED)
+    @classmethod
     def _dynamic_array_lens_(cls) -> tuple[tuple[str, int], ...]:
         return NotImplemented
 
@@ -146,14 +149,17 @@ class GLSLDynamicStruct(LazyObject):
     #    return layout
 
     @Lazy.variable(LazyMode.SHARED)
+    @classmethod
     def _layout_(cls) -> GLSLBufferLayout:
         return NotImplemented
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _data_(cls) -> np.ndarray | dict[str, Any]:
         return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _struct_dtype_(
         cls,
         field: str,
@@ -176,6 +182,7 @@ class GLSLDynamicStruct(LazyObject):
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _field_name_(
         cls,
         struct_dtype: np.dtype
@@ -184,6 +191,7 @@ class GLSLDynamicStruct(LazyObject):
         return field_names[0]
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _data_storage_(
         cls,
         data: np.ndarray | dict[str, Any],
@@ -203,6 +211,7 @@ class GLSLDynamicStruct(LazyObject):
         return data_storage
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _itemsize_(
         cls,
         struct_dtype: np.dtype
@@ -210,6 +219,7 @@ class GLSLDynamicStruct(LazyObject):
         return struct_dtype.itemsize
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _is_empty_(
         cls,
         itemsize: int
@@ -332,6 +342,7 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
     _BUFFER_CACHE: list[moderngl.Buffer] = []
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _buffer_(
         cls,
         data_storage: np.ndarray,
@@ -381,6 +392,7 @@ class TextureStorage(GLSLDynamicStruct):
         self._texture_array_ = texture_array
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _texture_array_(cls) -> np.ndarray:
         return NotImplemented
 
@@ -447,6 +459,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _vertex_dtype_(
         cls,
         struct_dtype: np.dtype

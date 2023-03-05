@@ -39,10 +39,12 @@ class ShapeMobject(MeshMobject):
         self.set_style(apply_phong_lighting=False)
 
     @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
     def _shape_(cls) -> Shape:
         return Shape()
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _geometry_(
         cls,
         _shape_: Shape
@@ -55,6 +57,7 @@ class ShapeMobject(MeshMobject):
     #    return False
 
     @Lazy.variable(LazyMode.COLLECTION)
+    @classmethod
     def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
         return LazyCollection()
 

@@ -59,11 +59,13 @@ class LineStringKind(Enum):
 
 class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _lengths_(cls) -> FloatsT:
         # Make sure all entries are non-zero to avoid zero divisions
         return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _length_(
         cls,
         lengths: FloatsT
@@ -71,6 +73,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
         return lengths.sum()
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _length_knots_(
         cls,
         lengths: FloatsT
@@ -178,10 +181,12 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         self._coords_ = coords
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _coords_(cls) -> _VecsT:
         return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _kind_(
         cls,
         coords: _VecsT
@@ -193,6 +198,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         return LineStringKind.LINE_STRING
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _shapely_component_(
         cls,
         kind: str,
@@ -205,6 +211,7 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         return shapely.validation.make_valid(shapely.geometry.Polygon(coords))
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _lengths_(
         cls,
         coords: _VecsT
@@ -283,10 +290,12 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
             self._children_.add(*children)
 
     @Lazy.variable(LazyMode.COLLECTION)
+    @classmethod
     def _children_(cls) -> LazyCollection[LineString[_VecT, _VecsT]]:
         return LazyCollection()
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _lengths_(
         cls,
         children: tuple[LineString[_VecT, _VecsT], ...]
@@ -453,10 +462,12 @@ class Shape(LazyObject):
         return self.symmetric_difference(other)
 
     @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
     def _multi_line_string_(cls) -> MultiLineString2D:
         return MultiLineString2D()
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _multi_line_string_3d_(
         cls,
         _multi_line_string_: MultiLineString2D
@@ -554,6 +565,7 @@ class Shape(LazyObject):
         return gamma(samples).astype(float)
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _shapely_obj_(
         cls,
         _multi_line_string_: MultiLineString2D

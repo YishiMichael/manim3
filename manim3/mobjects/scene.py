@@ -53,22 +53,27 @@ class Scene(Mobject):
         self._previous_rendering_timestamp: float | None = None
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _accum_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _revealage_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _depth_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes=AttributesBuffer(
@@ -101,6 +106,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _u_color_map_(
         cls,
         color_map: moderngl.Texture
@@ -111,6 +117,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _u_accum_map_(
         cls,
         accum_map: moderngl.Texture
@@ -121,6 +128,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _u_revealage_map_(
         cls,
         revealage_map: moderngl.Texture
@@ -131,6 +139,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _u_depth_map_(
         cls,
         depth_map: moderngl.Texture
@@ -141,6 +150,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _copy_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
@@ -161,6 +171,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _copy_window_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
@@ -177,6 +188,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _oit_accum_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
@@ -195,6 +207,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _oit_revealage_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
@@ -213,6 +226,7 @@ class Scene(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _oit_compose_vertex_array_(
         cls,
         _u_accum_map_: TextureStorage,
@@ -231,6 +245,7 @@ class Scene(Mobject):
         )
 
     @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
     def _scene_config_(cls) -> SceneConfig:
         return SceneConfig()
 

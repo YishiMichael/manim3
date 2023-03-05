@@ -22,6 +22,7 @@ class RenderPass(LazyObject):
     __slots__ = ()
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes=AttributesBuffer(

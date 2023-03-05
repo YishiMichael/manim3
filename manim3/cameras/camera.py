@@ -26,22 +26,27 @@ class Camera(LazyObject):
     __slots__ = ()
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _projection_matrix_(cls) -> Mat4T:
         return NotImplemented
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _eye_(cls) -> Vec3T:
         return ConfigSingleton().camera_altitude * OUT
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _target_(cls) -> Vec3T:
         return ORIGIN
 
     @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
     def _up_(cls) -> Vec3T:
         return UP
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _view_matrix_(
         cls,
         eye: Vec3T,
@@ -59,6 +64,7 @@ class Camera(LazyObject):
         return m
 
     @Lazy.property(LazyMode.OBJECT)
+    @classmethod
     def _ub_camera_(
         cls,
         projection_matrix: Mat4T,

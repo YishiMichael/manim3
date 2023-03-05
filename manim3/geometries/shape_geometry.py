@@ -35,10 +35,12 @@ class ShapeGeometry(Geometry):
             self._shape_ = shape
 
     @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
     def _shape_(cls) -> Shape:
         return Shape()
 
     @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _geometry_data_(
         cls,
         _shape_: Shape
