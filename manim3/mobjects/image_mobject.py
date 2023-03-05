@@ -43,7 +43,6 @@ class ImageMobject(MeshMobject):
         self.scale(np.array((x_scale, -y_scale, 1.0)))  # flip y
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _geometry_(cls) -> Geometry:
         return PlaneGeometry()
 

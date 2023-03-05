@@ -32,17 +32,14 @@ class PixelatedPass(RenderPass):
             self._pixelated_width_ = pixelated_width
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _pixelated_width_(cls) -> Real:
         return 0.1
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _color_map_(cls) -> moderngl.Texture:
         return NotImplemented
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _u_color_map_(
         cls,
         color_map: moderngl.Texture
@@ -53,7 +50,6 @@ class PixelatedPass(RenderPass):
         )
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _vertex_array_(
         cls,
         _u_color_map_: TextureStorage,

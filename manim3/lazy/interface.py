@@ -2,15 +2,6 @@ __all__ = [
     "Lazy",
     "LazyMode",
     "LazyWrapper"
-    #"lazyproperty",
-    #"lazyvariable"
-    #"lazy_object",
-    #"lazy_object_collection",
-    #"lazy_object_shared",
-    #"lazy_object_unwrapped",
-    #"lazy_property",
-    #"lazy_property_shared",
-    #"lazy_property_unwrapped"
 ]
 
 
@@ -31,12 +22,6 @@ from typing import (
 from bidict import bidict
 
 from ..lazy.core import (
-    #LazyCollection,
-    #LazyEntity,
-    #LazyObject,
-    #LazyObjectCollectionDescriptor,
-    #LazyObjectDescriptor,
-    #LazyPropertyDescriptor
     LazyCollection,
     LazyCollectionPropertyDescriptor,
     LazyCollectionVariableDescriptor,
@@ -48,7 +33,6 @@ from ..lazy.core import (
 
 _T = TypeVar("_T")
 _HashableT = TypeVar("_HashableT", bound=Hashable)
-#_LazyEntityT = TypeVar("_LazyEntityT", bound="LazyEntity")
 _LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 
@@ -83,6 +67,11 @@ class AnnotationUtils:
         cls,
         method: Callable
     ) -> tuple[tuple[tuple[str, ...], ...], tuple[Callable[[Any], Any] | None, ...]]:
+        def value_getter(
+            obj: LazyWrapper[_T]
+        ) -> _T:
+            return obj.value
+
         parameter_items = tuple(
             (name, False) if re.fullmatch(r"_\w+_", name) else (f"_{name}_", True)
             for name in tuple(inspect.signature(method).parameters)[1:]  # remove `cls`
@@ -96,7 +85,7 @@ class AnnotationUtils:
             for parameter_name_chain, (parameter_name, _) in zip(parameter_name_chains, parameter_items, strict=True)
         )
         parameter_preapplied_methods = tuple(
-            (lambda obj: obj.value) if requires_unwrapping else None
+            value_getter if requires_unwrapping else None
             for _, requires_unwrapping in parameter_items
         )
         return parameter_name_chains, parameter_preapplied_methods
@@ -214,7 +203,6 @@ class LazyObjectPropertyDecorator(LazyObjectPropertyDescriptor[_InstanceT, _Lazy
         self,
         method: Callable[..., _LazyObjectT]
     ) -> None:
-        #new_method, parameter_name_chains = self.wrap_parameters(cls_method.__func__)
         parameter_name_chains, parameter_preapplied_methods = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=AnnotationUtils.get_return_type(method),
@@ -222,38 +210,6 @@ class LazyObjectPropertyDecorator(LazyObjectPropertyDescriptor[_InstanceT, _Lazy
             parameter_name_chains=parameter_name_chains,
             parameter_preapplied_methods=parameter_preapplied_methods
         )
-
-    #@classmethod
-    #def wrap_parameters(
-    #    cls,
-    #    method: Callable[..., _LazyEntityT]
-    #) -> tuple[Callable[..., _LazyEntityT], tuple[tuple[str, ...], ...]]:
-    #    parameter_items = tuple(
-    #        (name, False) if re.fullmatch(r"_\w+_", name) else (f"_{name}_", True)
-    #        for name in tuple(inspect.signature(method).parameters)[1:]  # remove `cls`
-    #    )
-    #    parameter_name_chains = tuple(
-    #        tuple(re.findall(r"_\w+?_(?=_|$)", parameter_name))
-    #        for parameter_name, _ in parameter_items
-    #    )
-    #    assert all(
-    #        "".join(parameter_name_chain) == parameter_name
-    #        for parameter_name_chain, (parameter_name, _) in zip(parameter_name_chains, parameter_items, strict=True)
-    #    )
-    #    requires_unwrapping_tuple = tuple(requires_unwrapping for _, requires_unwrapping in parameter_items)
-
-    #    def parameters_wrapped_method(
-    #        kls: type[_InstanceT],
-    #        *args: Any,
-    #        **kwargs: Any
-    #    ) -> _LazyEntityT:
-    #        return method(kls, *(
-    #            arg if not requires_unwrapping else cls.apply_at_depth(
-    #                lambda obj: obj.value, arg, 
-    #            )
-    #            for arg, requires_unwrapping in zip(args, requires_unwrapping_tuple, strict=True)
-    #        ), **kwargs)
-    #    return parameters_wrapped_method, parameter_name_chains
 
 
 class LazyCollectionPropertyDecorator(LazyCollectionPropertyDescriptor[_InstanceT, _LazyObjectT]):
@@ -280,7 +236,6 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
         method: Callable[..., _T]
     ) -> None:
         self.restock_method: Callable[[_T], None] | None = None
-        #parameters_wrapped_method, parameter_name_chains = lazy_property.wrap_parameters(cls_method.__func__)
 
         def new_method(
             cls: type[_InstanceT],
@@ -322,7 +277,6 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
     ) -> None:
         #self.restock_method: Callable[[_HashableT], None] | None = None
         self.content_to_object_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
-        #parameters_wrapped_method, parameter_name_chains = lazy_property.wrap_parameters(cls_method.__func__)
 
         def new_method(
             cls: type[_InstanceT],
@@ -341,7 +295,6 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
             parameter_name_chains=parameter_name_chains,
             parameter_preapplied_methods=parameter_preapplied_methods
         )
-        #self.restock_methods: list[Callable[[_HashableT], None]] = []
 
     #def restock(
     #    self,
@@ -412,12 +365,13 @@ class Lazy:
             decorator_cls = LazyObjectVariableSharedDecorator
         else:
             raise ValueError
+        return decorator_cls
 
-        def result(
-            cls_method: Callable
-        ) -> Any:
-            return decorator_cls(cls_method.__func__)
-        return result
+        #def result(
+        #    cls_method: Callable
+        #) -> Any:
+        #    return decorator_cls(cls_method.__func__)
+        #return result
 
     @overload
     @classmethod
@@ -462,9 +416,10 @@ class Lazy:
             decorator_cls = LazyObjectPropertySharedDecorator
         else:
             raise ValueError
+        return decorator_cls
 
-        def result(
-            cls_method: Callable
-        ) -> Any:
-            return decorator_cls(cls_method.__func__)
-        return result
+        #def result(
+        #    cls_method: Callable
+        #) -> Any:
+        #    return decorator_cls(cls_method.__func__)
+        #return result

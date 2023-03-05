@@ -27,17 +27,14 @@ class PointLight(LazyObject):
     __slots__ = ()
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _position_(cls) -> Vec3T:
         return np.ones(3)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
 
@@ -68,33 +65,27 @@ class SceneConfig(LazyObject):
     ])
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _background_color_(cls) -> Vec3T:
         return np.zeros(3)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _background_opacity_(cls) -> Real:
         return 1.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _ambient_light_color_(cls) -> Vec3T:
         return np.ones(3)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _ambient_light_opacity_(cls) -> Real:
         return 1.0
 
     @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
     def _point_lights_(cls) -> LazyCollection[PointLight]:
         return LazyCollection()
         #return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _ub_lights_(
         cls,
         ambient_light_color: Vec3T,
@@ -132,7 +123,6 @@ class SceneConfig(LazyObject):
         )
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _camera_(cls) -> Camera:
         return PerspectiveCamera()
 

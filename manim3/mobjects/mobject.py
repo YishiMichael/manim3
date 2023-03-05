@@ -114,7 +114,6 @@ class Mobject(LazyObject):
     #    return LazyCollection()
 
     @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
     def _children_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
@@ -124,7 +123,6 @@ class Mobject(LazyObject):
     #    return LazyCollection()
 
     @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
     def _real_descendants_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
@@ -340,18 +338,15 @@ class Mobject(LazyObject):
     # matrix & transform
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _local_sample_points_(cls) -> Vec3sT:
         # Implemented in subclasses
         return np.zeros((0, 3))
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _ub_model_(
         cls,
         model_matrix: Mat4T
@@ -367,7 +362,6 @@ class Mobject(LazyObject):
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _has_local_sample_points_(
         cls,
         local_sample_points: Vec3sT
@@ -375,7 +369,6 @@ class Mobject(LazyObject):
         return bool(len(local_sample_points))
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _local_world_bounding_box_(
         cls,
         model_matrix: Mat4T,
@@ -739,7 +732,6 @@ class Mobject(LazyObject):
     # render
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _apply_oit_(cls) -> bool:
         return False
 
@@ -754,7 +746,6 @@ class Mobject(LazyObject):
     #    return 0
 
     @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
     def _render_passes_(cls) -> LazyCollection[RenderPass]:
         return LazyCollection()
 

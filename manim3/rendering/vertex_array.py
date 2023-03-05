@@ -71,17 +71,14 @@ class IndexedAttributesBuffer(LazyObject):
         self._mode_ = mode
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _attributes_(cls) -> AttributesBuffer:
         return NotImplemented
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _index_buffer_(cls) -> IndexBuffer:
         return NotImplemented
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _mode_(cls) -> int:
         return NotImplemented
 
@@ -117,7 +114,6 @@ class VertexArray(LazyObject):
     #    return shader_filename
 
     @Lazy.variable(LazyMode.SHARED)
-    @classmethod
     def _shader_filename_(cls) -> str:
         return NotImplemented
 
@@ -128,7 +124,6 @@ class VertexArray(LazyObject):
     #    return tuple(custom_macros)
 
     @Lazy.variable(LazyMode.SHARED)
-    @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
         return NotImplemented
 
@@ -139,12 +134,10 @@ class VertexArray(LazyObject):
     #    return tuple(dynamic_array_lens.items())
 
     @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
     def _texture_storages_(cls) -> LazyCollection[TextureStorage]:
         return LazyCollection()
 
     @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
     def _uniform_blocks_(cls) -> LazyCollection[UniformBlockBuffer]:
         return LazyCollection()
 
@@ -161,7 +154,6 @@ class VertexArray(LazyObject):
     #    return mode
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _indexed_attributes_(cls) -> IndexedAttributesBuffer:
         return NotImplemented
 
@@ -176,7 +168,6 @@ class VertexArray(LazyObject):
     #    return NotImplemented
 
     @Lazy.property(LazyMode.SHARED)
-    @classmethod
     def _dynamic_array_lens_(
         cls,
         texture_storages__dynamic_array_lens: tuple[tuple[tuple[str, int], ...], ...],
@@ -196,7 +187,6 @@ class VertexArray(LazyObject):
         )
 
     @Lazy.property(LazyMode.SHARED)
-    @classmethod
     def _texture_storage_shapes_(
         cls,
         _texture_storages_: LazyCollection[TextureStorage]
@@ -207,7 +197,6 @@ class VertexArray(LazyObject):
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _program_data_(
         cls,
         shader_filename: str,
@@ -231,7 +220,6 @@ class VertexArray(LazyObject):
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _vertex_array_(
         cls,
         program_data: ProgramData,

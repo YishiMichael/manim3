@@ -37,27 +37,22 @@ class OrthographicCamera(Camera):
             self._far_ = far
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _width_(cls) -> Real:
         return ConfigSingleton().frame_width
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _height_(cls) -> Real:
         return ConfigSingleton().frame_height
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _near_(cls) -> Real:
         return ConfigSingleton().camera_near
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _far_(cls) -> Real:
         return ConfigSingleton().camera_far
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _projection_matrix_(
         cls,
         width: Real,

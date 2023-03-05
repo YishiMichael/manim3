@@ -58,43 +58,35 @@ class StrokeMobject(Mobject):
     #    return winding_sign
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _multi_line_string_3d_(cls) -> MultiLineString3D:
         return MultiLineString3D()
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _width_(cls) -> Real:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _opacity_(cls) -> Real:
         return 1.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _dilate_(cls) -> Real:
         return 0.0
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _winding_sign_(
         cls,
         scene_config__camera__projection_matrix: Mat4T,
@@ -112,7 +104,6 @@ class StrokeMobject(Mobject):
         return area * width >= 0.0
 
     @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
     def _local_sample_points_(
         cls,
         _multi_line_string_3d_: MultiLineString3D
@@ -126,7 +117,6 @@ class StrokeMobject(Mobject):
         ])
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _ub_stroke_(
         cls,
         width: Real,
@@ -149,7 +139,6 @@ class StrokeMobject(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _ub_winding_sign_(
         cls,
         winding_sign: bool
@@ -165,7 +154,6 @@ class StrokeMobject(Mobject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _attributes_(
         cls,
         _multi_line_string_3d_: MultiLineString3D
@@ -188,7 +176,6 @@ class StrokeMobject(Mobject):
         )
 
     @Lazy.property(LazyMode.COLLECTION)
-    @classmethod
     def _vertex_arrays_(
         cls,
         _scene_config__camera__ub_camera_: UniformBlockBuffer,
@@ -352,7 +339,6 @@ class StrokeMobject(Mobject):
         raise ValueError  # never
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _scene_config_(cls) -> SceneConfig:
         return NotImplemented
 

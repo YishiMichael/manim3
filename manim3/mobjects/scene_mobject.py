@@ -30,7 +30,6 @@ class SceneMobject(MeshMobject):
         self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
 
     @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
     def _geometry_(cls) -> Geometry:
         return PlaneGeometry()
 

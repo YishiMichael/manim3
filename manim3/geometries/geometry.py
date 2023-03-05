@@ -42,7 +42,6 @@ class Geometry(LazyObject):
     __slots__ = ()
 
     @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
     def _geometry_data_(cls) -> GeometryData:
         return GeometryData(
             index=np.zeros((0,), dtype=np.uint32),
@@ -52,7 +51,6 @@ class Geometry(LazyObject):
         )
 
     @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _indexed_attributes_buffer_(
         cls,
         geometry_data: GeometryData
