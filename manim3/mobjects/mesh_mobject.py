@@ -1,12 +1,12 @@
 __all__ = ["MeshMobject"]
 
 
+from typing import Iterable
 import moderngl
 import numpy as np
 
 from ..custom_typing import (
     ColorType,
-    Real,
     Vec3T,
     Vec3sT
 )
@@ -57,22 +57,22 @@ class MeshMobject(Mobject):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _opacity_(cls) -> Real:
+    def _opacity_(cls) -> float:
         return 1.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _ambient_strength_(cls) -> Real:
+    def _ambient_strength_(cls) -> float:
         return 1.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _specular_strength_(cls) -> Real:
+    def _specular_strength_(cls) -> float:
         return 0.5
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _shininess_(cls) -> Real:
+    def _shininess_(cls) -> float:
         return 32.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
@@ -94,13 +94,14 @@ class MeshMobject(Mobject):
         cls,
         color_map: moderngl.Texture | None
     ) -> TextureStorage:
-        textures = [color_map] if color_map is not None else []
+        len_maps = int(color_map is not None)
+        #textures = [color_map] if color_map is not None else []
         return TextureStorage(
             field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
+            shape=(len_maps,),
             dynamic_array_lens={
-                "NUM_U_COLOR_MAPS": len(textures)
-            },
-            texture_array=np.array(textures)
+                "NUM_U_COLOR_MAPS": len_maps
+            }
         )
 
     @Lazy.property(LazyMode.OBJECT)
@@ -108,10 +109,10 @@ class MeshMobject(Mobject):
     def _ub_material_(
         cls,
         color: Vec3T,
-        opacity: Real,
-        ambient_strength: Real,
-        specular_strength: Real,
-        shininess: Real
+        opacity: float,
+        ambient_strength: float,
+        specular_strength: float,
+        shininess: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_material",
@@ -188,6 +189,12 @@ class MeshMobject(Mobject):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
+        #self._u_color_maps_.write(
+        #    dynamic_array_lens={
+        #        "NUM_U_COLOR_MAPS": len(textures)
+        #    },
+        #    texture_array=np.array(textures)
+        #)
         self._scene_config_ = scene_config
         self._vertex_array_.render(
             #shader_filename="mesh",
@@ -195,6 +202,13 @@ class MeshMobject(Mobject):
             #texture_storages=[
             #    self._u_color_maps_
             #],
+            texture_array_dict={
+                "u_color_maps": np.array(
+                    [color_map]
+                    if (color_map := self._color_map_.value) is not None
+                    else []
+                )
+            },
             #uniform_blocks=[
             #    scene_config._camera_._ub_camera_,
             #    self._ub_model_,
@@ -207,17 +221,18 @@ class MeshMobject(Mobject):
             )
         )
 
-    def set_style(
-        self,
+    @classmethod
+    def class_set_style(
+        cls,
+        mobjects: "Iterable[MeshMobject]",
         *,
         color: ColorType | None = None,
-        opacity: Real | None = None,
+        opacity: float | None = None,
         apply_oit: bool | None = None,
-        ambient_strength: Real | None = None,
-        specular_strength: Real | None = None,
-        shininess: Real | None = None,
-        apply_phong_lighting: bool | None = None,
-        broadcast: bool = True
+        ambient_strength: float | None = None,
+        specular_strength: float | None = None,
+        shininess: float | None = None,
+        apply_phong_lighting: bool | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_value = color_component if color_component is not None else None
@@ -233,9 +248,7 @@ class MeshMobject(Mobject):
                 specular_strength,
                 shininess
             )) else None
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if not isinstance(mobject, MeshMobject):
-                continue
+        for mobject in mobjects:
             if color_value is not None:
                 mobject._color_ = color_value
             if opacity_value is not None:
@@ -250,4 +263,31 @@ class MeshMobject(Mobject):
                 mobject._shininess_ = shininess_value
             if apply_phong_lighting_value is not None:
                 mobject._apply_phong_lighting_ = apply_phong_lighting_value
+
+    def set_style(
+        self,
+        *,
+        color: ColorType | None = None,
+        opacity: float | None = None,
+        apply_oit: bool | None = None,
+        ambient_strength: float | None = None,
+        specular_strength: float | None = None,
+        shininess: float | None = None,
+        apply_phong_lighting: bool | None = None,
+        broadcast: bool = True
+    ):
+        self.class_set_style(
+            mobjects=(
+                mobject
+                for mobject in self.iter_descendants(broadcast=broadcast)
+                if isinstance(mobject, MeshMobject)
+            ),
+            color=color,
+            opacity=opacity,
+            apply_oit=apply_oit,
+            ambient_strength=ambient_strength,
+            specular_strength=specular_strength,
+            shininess=shininess,
+            apply_phong_lighting=apply_phong_lighting
+        )
         return self

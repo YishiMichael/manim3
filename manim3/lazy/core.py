@@ -208,7 +208,7 @@ class LazyEntity(LazyBase):
 
     def _is_readonly(self) -> bool:
         return any(
-            isinstance(instance, LazyProperty)
+            isinstance(instance, LazyProperty) and not print(instance._get())
             for instance in self._iter_dependency_ancestors()
         )
 

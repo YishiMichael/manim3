@@ -5,7 +5,6 @@ import moderngl
 import numpy as np
 from PIL import Image
 
-from ..custom_typing import Real
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.interface import (
@@ -25,9 +24,9 @@ class ImageMobject(MeshMobject):
         self,
         image_path: str,
         *,
-        width: Real | None = None,
-        height: Real | None = 4.0,
-        frame_scale: Real | None = None
+        width: float | None = None,
+        height: float | None = 4.0,
+        frame_scale: float | None = None
     ) -> None:
         super().__init__()
         image = Image.open(image_path)

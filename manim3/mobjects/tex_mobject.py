@@ -18,7 +18,6 @@ import toml
 
 from ..custom_typing import (
     ColorType,
-    Real,
     Selector
 )
 from ..mobjects.string_mobject import (
@@ -207,7 +206,7 @@ class TexText(StringMobject):
         self,
         string: str,
         *,
-        font_size: Real = 48,
+        font_size: float = 48,
         alignment: str | None = "\\centering",
         tex_environment: str | None = None,
         template: str | None = None,
@@ -216,8 +215,8 @@ class TexText(StringMobject):
         tex_to_color_map: dict[str, ColorType] | None = None,
         isolate: Selector = (),
         protect: Selector = (),
-        width: Real | None = None,
-        height: Real | None = None
+        width: float | None = None,
+        height: float | None = None
     ) -> None:
         # Prevent from passing an empty string.
         if not string.strip():

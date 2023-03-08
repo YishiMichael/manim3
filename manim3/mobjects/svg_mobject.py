@@ -4,7 +4,6 @@ __all__ = ["SVGMobject"]
 import numpy as np
 import svgelements as se
 
-from ..custom_typing import Real
 from ..lazy.core import LazyCollection
 from ..lazy.interface import (
     Lazy,
@@ -20,9 +19,9 @@ class SVGMobject(ShapeMobject):
         self,
         file_path: str | None = None,
         *,
-        width: Real | None = None,
-        height: Real | None = None,
-        frame_scale: Real | None = None
+        width: float | None = None,
+        height: float | None = None,
+        frame_scale: float | None = None
     ) -> None:
         super().__init__()
         if file_path is None:

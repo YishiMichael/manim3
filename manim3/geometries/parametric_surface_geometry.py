@@ -4,10 +4,7 @@ __all__ = ["ParametricSurfaceGeometry"]
 import numpy as np
 from typing import Callable
 
-from ..custom_typing import (
-    Real,
-    Vec3T
-)
+from ..custom_typing import Vec3T
 from ..geometries.geometry import (
     Geometry,
     GeometryData
@@ -22,8 +19,8 @@ class ParametricSurfaceGeometry(Geometry):
         *,
         func: Callable[[float, float], Vec3T],
         normal_func: Callable[[float, float], Vec3T],
-        u_range: tuple[Real, Real],
-        v_range: tuple[Real, Real],
+        u_range: tuple[float, float],
+        v_range: tuple[float, float],
         resolution: tuple[int, int] = (100, 100)
     ) -> None:
         u_start, u_stop = u_range

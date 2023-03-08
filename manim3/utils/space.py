@@ -16,7 +16,6 @@ from scipy.spatial.transform import (
 
 from ..custom_typing import (
     FloatsT,
-    Real,
     Mat3T,
     Mat4T,
     Vec2T,
@@ -41,7 +40,7 @@ class SpaceUtils:
     @classmethod
     def matrix_from_scale(
         cls,
-        factor: Real | Vec3T
+        factor: float | Vec3T
     ) -> Mat4T:
         m = np.identity(4)
         m[:3, :3] *= factor
@@ -187,27 +186,27 @@ class SpaceUtils:
     @classmethod
     def lerp(
         cls,
-        tensor_0: Real,
-        tensor_1: Real,
-        alpha: Real
-    ) -> Real: ...
+        tensor_0: float,
+        tensor_1: float,
+        alpha: float
+    ) -> float: ...
 
     @overload
     @classmethod
     def lerp(
         cls,
         tensor_0: FloatsT,
-        tensor_1: Real,
-        alpha: Real
+        tensor_1: float,
+        alpha: float
     ) -> FloatsT: ...
 
     @overload
     @classmethod
     def lerp(
         cls,
-        tensor_0: Real,
+        tensor_0: float,
         tensor_1: FloatsT,
-        alpha: Real
+        alpha: float
     ) -> FloatsT: ...
 
     @overload
@@ -216,7 +215,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec2T,
         tensor_1: Vec2T,
-        alpha: Real
+        alpha: float
     ) -> Vec2T: ...
 
     @overload
@@ -225,7 +224,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec2sT,
         tensor_1: Vec2T,
-        alpha: Real
+        alpha: float
     ) -> Vec2sT: ...
 
     @overload
@@ -234,7 +233,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec2T,
         tensor_1: Vec2sT,
-        alpha: Real
+        alpha: float
     ) -> Vec2sT: ...
 
     @overload
@@ -243,7 +242,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec3T,
         tensor_1: Vec3T,
-        alpha: Real
+        alpha: float
     ) -> Vec3T: ...
 
     @overload
@@ -252,7 +251,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec3sT,
         tensor_1: Vec3T,
-        alpha: Real
+        alpha: float
     ) -> Vec3sT: ...
 
     @overload
@@ -261,7 +260,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec3T,
         tensor_1: Vec3sT,
-        alpha: Real
+        alpha: float
     ) -> Vec3sT: ...
 
     @overload
@@ -270,7 +269,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec4T,
         tensor_1: Vec4T,
-        alpha: Real
+        alpha: float
     ) -> Vec4T: ...
 
     @overload
@@ -279,7 +278,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec4sT,
         tensor_1: Vec4T,
-        alpha: Real
+        alpha: float
     ) -> Vec4sT: ...
 
     @overload
@@ -288,7 +287,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec4T,
         tensor_1: Vec4sT,
-        alpha: Real
+        alpha: float
     ) -> Vec4sT: ...
 
     @overload
@@ -297,7 +296,7 @@ class SpaceUtils:
         cls,
         tensor_0: Mat3T,
         tensor_1: Mat3T,
-        alpha: Real
+        alpha: float
     ) -> Mat3T: ...
 
     @overload
@@ -306,41 +305,41 @@ class SpaceUtils:
         cls,
         tensor_0: Mat4T,
         tensor_1: Mat4T,
-        alpha: Real
+        alpha: float
     ) -> Mat4T: ...
 
     @classmethod
     def lerp(
         cls,
-        tensor_0: Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
-        tensor_1: Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
-        alpha: Real
-    ) -> Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T:
+        tensor_0: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
+        tensor_1: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
+        alpha: float
+    ) -> float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T:
         return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
     @overload
     @classmethod
     def lerp_callback(
         cls,
-        tensor_0: Real,
-        tensor_1: Real
-    ) -> Callable[[Real], Real]: ...
+        tensor_0: float,
+        tensor_1: float
+    ) -> Callable[[float], float]: ...
 
     @overload
     @classmethod
     def lerp_callback(
         cls,
         tensor_0: FloatsT,
-        tensor_1: Real
-    ) -> Callable[[Real], FloatsT]: ...
+        tensor_1: float
+    ) -> Callable[[float], FloatsT]: ...
 
     @overload
     @classmethod
     def lerp_callback(
         cls,
-        tensor_0: Real,
+        tensor_0: float,
         tensor_1: FloatsT
-    ) -> Callable[[Real], FloatsT]: ...
+    ) -> Callable[[float], FloatsT]: ...
 
     @overload
     @classmethod
@@ -348,7 +347,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec2T,
         tensor_1: Vec2T
-    ) -> Callable[[Real], Vec2T]: ...
+    ) -> Callable[[float], Vec2T]: ...
 
     @overload
     @classmethod
@@ -356,7 +355,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec2sT,
         tensor_1: Vec2T
-    ) -> Callable[[Real], Vec2sT]: ...
+    ) -> Callable[[float], Vec2sT]: ...
 
     @overload
     @classmethod
@@ -364,7 +363,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec2T,
         tensor_1: Vec2sT
-    ) -> Callable[[Real], Vec2sT]: ...
+    ) -> Callable[[float], Vec2sT]: ...
 
     @overload
     @classmethod
@@ -372,7 +371,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec3T,
         tensor_1: Vec3T
-    ) -> Callable[[Real], Vec3T]: ...
+    ) -> Callable[[float], Vec3T]: ...
 
     @overload
     @classmethod
@@ -380,7 +379,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec3sT,
         tensor_1: Vec3T
-    ) -> Callable[[Real], Vec3sT]: ...
+    ) -> Callable[[float], Vec3sT]: ...
 
     @overload
     @classmethod
@@ -388,7 +387,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec3T,
         tensor_1: Vec3sT
-    ) -> Callable[[Real], Vec3sT]: ...
+    ) -> Callable[[float], Vec3sT]: ...
 
     @overload
     @classmethod
@@ -396,7 +395,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec4T,
         tensor_1: Vec4T
-    ) -> Callable[[Real], Vec4T]: ...
+    ) -> Callable[[float], Vec4T]: ...
 
     @overload
     @classmethod
@@ -404,7 +403,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec4sT,
         tensor_1: Vec4T
-    ) -> Callable[[Real], Vec4sT]: ...
+    ) -> Callable[[float], Vec4sT]: ...
 
     @overload
     @classmethod
@@ -412,7 +411,7 @@ class SpaceUtils:
         cls,
         tensor_0: Vec4T,
         tensor_1: Vec4sT
-    ) -> Callable[[Real], Vec4sT]: ...
+    ) -> Callable[[float], Vec4sT]: ...
 
     @overload
     @classmethod
@@ -420,7 +419,7 @@ class SpaceUtils:
         cls,
         tensor_0: Mat3T,
         tensor_1: Mat3T
-    ) -> Callable[[Real], Mat3T]: ...
+    ) -> Callable[[float], Mat3T]: ...
 
     @overload
     @classmethod
@@ -428,24 +427,24 @@ class SpaceUtils:
         cls,
         tensor_0: Mat4T,
         tensor_1: Mat4T
-    ) -> Callable[[Real], Mat4T]: ...
+    ) -> Callable[[float], Mat4T]: ...
 
     @classmethod
     def lerp_callback(
         cls,
-        tensor_0: Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
-        tensor_1: Real | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T
+        tensor_0: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
+        tensor_1: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T
     ) -> Union[
-        Callable[[Real], Real],
-        Callable[[Real], FloatsT],
-        Callable[[Real], Vec2T],
-        Callable[[Real], Vec2sT],
-        Callable[[Real], Vec3T],
-        Callable[[Real], Vec3sT],
-        Callable[[Real], Vec4T],
-        Callable[[Real], Vec4sT],
-        Callable[[Real], Mat3T],
-        Callable[[Real], Mat4T]
+        Callable[[float], float],
+        Callable[[float], FloatsT],
+        Callable[[float], Vec2T],
+        Callable[[float], Vec2sT],
+        Callable[[float], Vec3T],
+        Callable[[float], Vec3sT],
+        Callable[[float], Vec4T],
+        Callable[[float], Vec4sT],
+        Callable[[float], Mat3T],
+        Callable[[float], Mat4T]
     ]:
         return partial(cls.lerp, tensor_0, tensor_1)
 
@@ -454,7 +453,7 @@ class SpaceUtils:
         cls,
         matrix_0: Mat4T,
         matrix_1: Mat4T
-    ) -> Callable[[Real], Mat4T]:
+    ) -> Callable[[float], Mat4T]:
         rotation_part_0 = matrix_0[:3, :3]
         translation_0 = matrix_0[:3, 3]
         rotation_0 = Rotation.from_matrix(rotation_part_0)
@@ -465,7 +464,7 @@ class SpaceUtils:
         shear_1 = rotation_part_1 @ np.linalg.inv(rotation_1.as_matrix())
         slerp = Slerp((0.0, 1.0), Rotation.concatenate((rotation_0, rotation_1)))
 
-        def callback(alpha: Real) -> Mat4T:
+        def callback(alpha: float) -> Mat4T:
             m = np.identity(4)
             m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ Rotation.as_matrix(slerp(alpha))
             m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
@@ -476,7 +475,7 @@ class SpaceUtils:
     def increase_dimension(
         cls,
         vectors: Vec2sT,
-        value: Real = 0.0
+        value: float = 0.0
     ) -> Vec3sT:
         result = np.zeros((vectors.shape[0], 3))
         result[:, :2] = vectors

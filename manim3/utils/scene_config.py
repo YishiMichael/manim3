@@ -8,7 +8,6 @@ from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
 from ..custom_typing import (
     ColorType,
-    Real,
     Vec3T
 )
 from ..lazy.core import (
@@ -38,7 +37,7 @@ class PointLight(LazyObject):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _opacity_(cls) -> Real:
+    def _opacity_(cls) -> float:
         return 1.0
 
     def set_style(
@@ -46,7 +45,7 @@ class PointLight(LazyObject):
         *,
         position: Vec3T | None = None,
         color: ColorType | None = None,
-        opacity: Real | None = None
+        opacity: float | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if position is not None:
@@ -74,7 +73,7 @@ class SceneConfig(LazyObject):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _background_opacity_(cls) -> Real:
+    def _background_opacity_(cls) -> float:
         return 1.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
@@ -84,7 +83,7 @@ class SceneConfig(LazyObject):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _ambient_light_opacity_(cls) -> Real:
+    def _ambient_light_opacity_(cls) -> float:
         return 1.0
 
     @Lazy.variable(LazyMode.COLLECTION)
@@ -98,7 +97,7 @@ class SceneConfig(LazyObject):
     def _ub_lights_(
         cls,
         ambient_light_color: Vec3T,
-        ambient_light_opacity: Real,
+        ambient_light_opacity: float,
         point_lights: LazyCollection[PointLight]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
@@ -154,7 +153,7 @@ class SceneConfig(LazyObject):
         self,
         *,
         color: ColorType | None = None,
-        opacity: Real | None = None
+        opacity: float | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
@@ -167,7 +166,7 @@ class SceneConfig(LazyObject):
         self,
         *,
         color: ColorType | None = None,
-        opacity: Real | None = None
+        opacity: float | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         if color_component is not None:
@@ -181,7 +180,7 @@ class SceneConfig(LazyObject):
         *,
         position: Vec3T | None = None,
         color: ColorType | None = None,
-        opacity: Real | None = None
+        opacity: float | None = None
     ):
         #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         #point_light = np.array((
@@ -202,7 +201,7 @@ class SceneConfig(LazyObject):
         index: int | None = None,
         position: Vec3T | None = None,
         color: ColorType | None = None,
-        opacity: Real | None = None
+        opacity: float | None = None
     ):
         if self._point_lights_:
             if index is None:
@@ -241,12 +240,12 @@ class SceneConfig(LazyObject):
         self,
         *,
         background_color: ColorType | None = None,
-        background_opacity: Real | None = None,
+        background_opacity: float | None = None,
         ambient_light_color: ColorType | None = None,
-        ambient_light_opacity: Real | None = None,
+        ambient_light_opacity: float | None = None,
         point_light_position: Vec3T | None = None,
         point_light_color: ColorType | None = None,
-        point_light_opacity: Real | None = None
+        point_light_opacity: float | None = None
     ):
         self.set_background(
             color=background_color,

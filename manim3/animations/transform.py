@@ -9,7 +9,6 @@ from typing import (
 )
 
 from ..animations.animation import AlphaAnimation
-from ..custom_typing import Real
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..lazy.core import LazyObjectVariableDescriptor
@@ -25,17 +24,17 @@ class Transform(AlphaAnimation):
     def __shape_interpolate_callback(
         shape_0: Shape,
         shape_1: Shape
-    ) -> Callable[[Real], Shape]:
+    ) -> Callable[[float], Shape]:
         return shape_0.interpolate_shape_callback(shape_1, has_inlay=True)
 
     @staticmethod
     def __stroke_interpolate_callback(
         multi_line_string_0: MultiLineString3D,
         multi_line_string_1: MultiLineString3D
-    ) -> Callable[[Real], MultiLineString3D]:
+    ) -> Callable[[float], MultiLineString3D]:
         return multi_line_string_0.interpolate_shape_callback(multi_line_string_1, has_inlay=False)
 
-    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[ShapeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+    _SHAPE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[ShapeMobject, Any], Callable[[Any, Any], Callable[[float], Any]]]] = {
         ShapeMobject._shape_: __shape_interpolate_callback,
         ShapeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
         ShapeMobject._color_: SpaceUtils.lerp_callback,
@@ -45,7 +44,7 @@ class Transform(AlphaAnimation):
         ShapeMobject._shininess_: SpaceUtils.lerp_callback
     }
 
-    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[Real], Any]]]] = {
+    _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[float], Any]]]] = {
         StrokeMobject._multi_line_string_3d_: __stroke_interpolate_callback,
         StrokeMobject._model_matrix_: SpaceUtils.rotational_interpolate_callback,
         StrokeMobject._color_: SpaceUtils.lerp_callback,
@@ -61,8 +60,8 @@ class Transform(AlphaAnimation):
         start_mobject: ShapeMobject,
         stop_mobject: ShapeMobject,
         *,
-        run_time: Real = 2.0,
-        rate_func: Callable[[Real], Real] | None = None
+        run_time: float = 2.0,
+        rate_func: Callable[[float], float] | None = None
     ) -> None:
         intermediate_mobject = stop_mobject.copy()
 
@@ -101,8 +100,8 @@ class Transform(AlphaAnimation):
         ]
 
         def animate_func(
-            alpha_0: Real,
-            alpha: Real
+            alpha_0: float,
+            alpha: float
         ) -> None:
             for variable_descr, callback in shape_callbacks.items():
                 variable_descr.__set__(intermediate_mobject, callback(alpha))

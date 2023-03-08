@@ -58,8 +58,7 @@ class DAGNode:
             raise ValueError(f"Node `{node}` has already included `{self}`")
         if node in self._children:
             raise ValueError(f"Node `{node}` is already a child of `{self}`")
-        else:
-            self._children.append(node)
+        self._children.append(node)
         node._parents.append(self)
 
     def _unbind(

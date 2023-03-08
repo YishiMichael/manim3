@@ -1,7 +1,5 @@
 from manim3 import *
 
-import numpy as np
-
 
 class TextExample(Scene):
     def construct(self) -> None:
@@ -32,19 +30,24 @@ class TexTransformExample(Scene):
         tex = TexText("TexText").scale(3)
         tex_concatenated = ShapeMobject(Shape.concatenate(
             glyph._shape_ for glyph in tex._shape_mobjects_
-        )).apply_transform(tex._shape_mobjects_[0]._model_matrix_.value).set_fill(color=BLUE).set_stroke(width=0.2, color=RED)
+        )).apply_transform(tex._shape_mobjects_[0]._model_matrix_.value).set_fill(color=BLUE).set_stroke(width=0.1, color=RED)
         #text = Text("Text").scale(3)
         #text_concatenated = ShapeMobject(Shape.concatenate(
         #    glyph._shape_ for glyph in text._shape_mobjects
         #)).apply_transform(text._shape_mobjects[0]._model_matrix_).set_fill(color=PINK).set_stroke(width=0.1, color=GREEN)
-        self.add(tex_concatenated)
+        #self.wait(2)
+        self.add(tex_concatenated, tex_concatenated.copy().shift(RIGHT * 2))
         self.wait()
-        self.play(Transform(tex_concatenated, tex_concatenated.copy().shift(RIGHT * 2)))
-        self.wait()
+        #tex_concatenated.remove(*tex_concatenated._stroke_mobjects_)
+        #self.wait(3)
+        #self.add(tex_concatenated)
+        #self.play(Transform(tex_concatenated, tex_concatenated.copy().shift(RIGHT * 2)))
+        #self.wait()
 
 
 if __name__ == "__main__":
     config = Config()
+    #config.fps = 2
     #config.preview = False
     #config.write_video = True
     #config.window_pixel_size = (1920, 1080)

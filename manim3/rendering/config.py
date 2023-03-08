@@ -8,8 +8,6 @@ import os
 import sys
 from typing import ClassVar
 
-from ..custom_typing import Real
-
 
 class Config:
     __slots__ = (
@@ -30,15 +28,15 @@ class Config:
     )
 
     def __init__(self) -> None:
-        self._camera_altitude: Real = 5.0
-        self._camera_near: Real = 0.1
-        self._camera_far: Real = 100.0
+        self._camera_altitude: float = 5.0
+        self._camera_near: float = 0.1
+        self._camera_far: float = 100.0
         self._fps: int = 30
 
-        self._aspect_ratio: Real = 16.0 / 9.0
-        self._frame_height: Real = 8.0
-        self._pixel_height: Real = 1080
-        self._window_pixel_height: Real = 540
+        self._aspect_ratio: float = 16.0 / 9.0
+        self._frame_height: float = 8.0
+        self._pixel_height: float = 1080
+        self._window_pixel_height: float = 540
 
         self._start_frame_index: int | None = None
         self._stop_frame_index: int | None = None
@@ -89,15 +87,15 @@ class Config:
     # camera
 
     @property
-    def camera_altitude(self) -> Real:
+    def camera_altitude(self) -> float:
         return self._camera_altitude
 
     @property
-    def camera_near(self) -> Real:
+    def camera_near(self) -> float:
         return self._camera_near
 
     @property
-    def camera_far(self) -> Real:
+    def camera_far(self) -> float:
         return self._camera_far
 
     @property
@@ -114,27 +112,27 @@ class Config:
     # size & resolution
 
     @property
-    def aspect_ratio(self) -> Real:
+    def aspect_ratio(self) -> float:
         return self._aspect_ratio
 
     @property
-    def frame_height(self) -> Real:
+    def frame_height(self) -> float:
         return self._frame_height
 
     @property
-    def frame_width(self) -> Real:
+    def frame_width(self) -> float:
         return self.aspect_ratio * self.frame_height
 
     @property
-    def frame_size(self) -> tuple[Real, Real]:
+    def frame_size(self) -> tuple[float, float]:
         return (self.frame_width, self.frame_height)
 
     @property
-    def pixel_height(self) -> Real:
+    def pixel_height(self) -> float:
         return self._pixel_height
 
     @property
-    def pixel_width(self) -> Real:
+    def pixel_width(self) -> float:
         return self.aspect_ratio * self.pixel_height
 
     @property
@@ -142,15 +140,15 @@ class Config:
         return (int(self.pixel_width), int(self.pixel_height))
 
     @property
-    def pixel_per_unit(self) -> Real:
+    def pixel_per_unit(self) -> float:
         return self.pixel_height / self.frame_height
 
     @property
-    def window_pixel_height(self) -> Real:
+    def window_pixel_height(self) -> float:
         return self._window_pixel_height
 
     @property
-    def window_pixel_width(self) -> Real:
+    def window_pixel_width(self) -> float:
         return self.aspect_ratio * self.window_pixel_height
 
     @property
@@ -160,14 +158,14 @@ class Config:
     @aspect_ratio.setter
     def aspect_ratio(
         self,
-        aspect_ratio: Real
+        aspect_ratio: float
     ) -> None:
         self._aspect_ratio = aspect_ratio
 
     @frame_size.setter
     def frame_size(
         self,
-        frame_size: tuple[Real, Real]
+        frame_size: tuple[float, float]
     ) -> None:
         width, height = frame_size
         self._aspect_ratio = width / height
@@ -176,7 +174,7 @@ class Config:
     @pixel_size.setter
     def pixel_size(
         self,
-        pixel_size: tuple[Real, Real]
+        pixel_size: tuple[float, float]
     ) -> None:
         width, height = pixel_size
         self._aspect_ratio = width / height
@@ -185,7 +183,7 @@ class Config:
     @window_pixel_size.setter
     def window_pixel_size(
         self,
-        window_pixel_size: tuple[Real, Real]
+        window_pixel_size: tuple[float, float]
     ) -> None:
         width, height = window_pixel_size
         self._aspect_ratio = width / height
@@ -198,7 +196,7 @@ class Config:
         return self._start_frame_index
 
     @property
-    def start_time(self) -> Real | None:
+    def start_time(self) -> float | None:
         return None if self.start_frame_index is None else self.start_frame_index / self.fps
 
     @property
@@ -206,11 +204,11 @@ class Config:
         return self._stop_frame_index
 
     @property
-    def stop_time(self) -> Real | None:
+    def stop_time(self) -> float | None:
         return None if self.stop_frame_index is None else self.stop_frame_index / self.fps
 
     @property
-    def time_span(self) -> tuple[Real | None, Real | None]:
+    def time_span(self) -> tuple[float | None, float | None]:
         return (self.start_time, self.stop_time)
 
     @property
@@ -242,7 +240,7 @@ class Config:
     @start_time.setter
     def start_time(
         self,
-        start_time: Real | None
+        start_time: float | None
     ) -> None:
         start_frame_index = None if start_time is None else int(start_time * self.fps)
         self._validate_frame_index_span(start_frame_index, self.stop_frame_index)
@@ -251,7 +249,7 @@ class Config:
     @stop_time.setter
     def stop_time(
         self,
-        stop_time: Real | None
+        stop_time: float | None
     ) -> None:
         stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
         self._validate_frame_index_span(self.start_frame_index, stop_frame_index)
@@ -260,7 +258,7 @@ class Config:
     @time_span.setter
     def time_span(
         self,
-        time_span: tuple[Real | None, Real | None]
+        time_span: tuple[float | None, float | None]
     ) -> None:
         start_time, stop_time = time_span
         start_frame_index = None if start_time is None else int(start_time * self.fps)

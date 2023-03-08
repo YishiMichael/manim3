@@ -11,9 +11,11 @@ import re
 from typing import (
     Any,
     Callable,
+    Concatenate,
     Generic,
     Hashable,
     Literal,
+    ParamSpec,
     TypeVar,
     overload
 )
@@ -34,6 +36,7 @@ _T = TypeVar("_T")
 _HashableT = TypeVar("_HashableT", bound=Hashable)
 _LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
+_PropertyParameters = ParamSpec("_PropertyParameters")
 
 
 class AnnotationUtils:
@@ -326,28 +329,28 @@ class Lazy:
     def variable(
         cls,
         mode: Literal[LazyMode.OBJECT]
-    ) -> Callable[[Callable], LazyObjectVariableDecorator]: ...
+    ) -> Callable[[Callable[[type[_InstanceT]], _LazyObjectT]], LazyObjectVariableDecorator[_InstanceT, _LazyObjectT]]: ...
 
     @overload
     @classmethod
     def variable(
         cls,
         mode: Literal[LazyMode.COLLECTION]
-    ) -> Callable[[Callable], LazyCollectionVariableDecorator]: ...
+    ) -> Callable[[Callable[[type[_InstanceT]], LazyCollection[_LazyObjectT]]], LazyCollectionVariableDecorator[_InstanceT, _LazyObjectT]]: ...
 
     @overload
     @classmethod
     def variable(
         cls,
         mode: Literal[LazyMode.UNWRAPPED]
-    ) -> Callable[[Callable], LazyObjectVariableUnwrappedDecorator]: ...
+    ) -> Callable[[Callable[[type[_InstanceT]], _T]], LazyObjectVariableUnwrappedDecorator[_InstanceT, _T]]: ...
 
     @overload
     @classmethod
     def variable(
         cls,
         mode: Literal[LazyMode.SHARED]
-    ) -> Callable[[Callable], LazyObjectVariableSharedDecorator]: ...
+    ) -> Callable[[Callable[[type[_InstanceT]], _HashableT]], LazyObjectVariableSharedDecorator[_InstanceT, _HashableT]]: ...
 
     @classmethod
     def variable(
@@ -377,28 +380,28 @@ class Lazy:
     def property(
         cls,
         mode: Literal[LazyMode.OBJECT]
-    ) -> Callable[[Callable], LazyObjectPropertyDecorator]: ...
+    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], _LazyObjectT]], LazyObjectPropertyDecorator[_InstanceT, _LazyObjectT]]: ...
 
     @overload
     @classmethod
     def property(
         cls,
         mode: Literal[LazyMode.COLLECTION]
-    ) -> Callable[[Callable], LazyCollectionPropertyDecorator]: ...
+    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], LazyCollection[_LazyObjectT]]], LazyCollectionPropertyDecorator[_InstanceT, _LazyObjectT]]: ...
 
     @overload
     @classmethod
     def property(
         cls,
         mode: Literal[LazyMode.UNWRAPPED]
-    ) -> Callable[[Callable], LazyObjectPropertyUnwrappedDecorator]: ...
+    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]], LazyObjectPropertyUnwrappedDecorator[_InstanceT, _T]]: ...
 
     @overload
     @classmethod
     def property(
         cls,
         mode: Literal[LazyMode.SHARED]
-    ) -> Callable[[Callable], LazyObjectPropertySharedDecorator]: ...
+    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]], LazyObjectPropertySharedDecorator[_InstanceT, _HashableT]]: ...
 
     @classmethod
     def property(

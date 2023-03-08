@@ -22,7 +22,6 @@ import pygments.lexers
 
 from ..custom_typing import (
     ColorType,
-    Real,
     Selector
 )
 from ..mobjects.string_mobject import (
@@ -92,12 +91,12 @@ class MarkupText(StringMobject):
         self,
         string: str,
         *,
-        font_size: Real = 48,
-        line_spacing_height: Real | None = None,
+        font_size: float = 48,
+        line_spacing_height: float | None = None,
         justify: bool = False,
-        indent: Real = 0.0,
+        indent: float = 0.0,
         alignment: str | None = None,
-        line_width: Real | None = None,
+        line_width: float | None = None,
         font: str | None = None,
         slant: str = "NORMAL",
         weight: str = "NORMAL",
@@ -107,8 +106,8 @@ class MarkupText(StringMobject):
         disable_ligatures: bool = True,
         isolate: Selector = re.compile(r"\w+", flags=re.UNICODE),
         protect: Selector = (),
-        width: Real | None = None,
-        height: Real | None = None
+        width: float | None = None,
+        height: float | None = None
     ) -> None:
         if alignment is None:
             alignment = "LEFT"  # TODO
@@ -418,12 +417,12 @@ class Code(MarkupText):
         language: str = "python",
         # Visit https://pygments.org/demo/ to have a preview of more styles.
         code_style: str = "monokai",
-        font_size: Real = 24,
-        line_spacing_height: Real | None = 1.0,
+        font_size: float = 24,
+        line_spacing_height: float | None = 1.0,
         justify: bool = False,
-        indent: Real = 0.0,
+        indent: float = 0.0,
         alignment: str | None = None,
-        line_width: Real | None = None,
+        line_width: float | None = None,
         font: str | None = "Consolas",
         slant: str = "NORMAL",
         weight: str = "NORMAL",
@@ -433,8 +432,8 @@ class Code(MarkupText):
         disable_ligatures: bool = True,
         isolate: Selector = re.compile(r"\w+", flags=re.UNICODE),
         protect: Selector = (),
-        width: Real | None = None,
-        height: Real | None = None
+        width: float | None = None,
+        height: float | None = None
     ) -> None:
         lexer = pygments.lexers.get_lexer_by_name(language)
         formatter = pygments.formatters.PangoMarkupFormatter(

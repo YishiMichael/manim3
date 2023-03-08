@@ -4,7 +4,6 @@ __all__ = ["PixelatedPass"]
 import moderngl
 import numpy as np
 
-from ..custom_typing import Real
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -25,7 +24,7 @@ class PixelatedPass(RenderPass):
 
     def __init__(
         self,
-        pixelated_width: Real | None = None
+        pixelated_width: float | None = None
     ) -> None:
         super().__init__()
         if pixelated_width is not None:
@@ -33,23 +32,19 @@ class PixelatedPass(RenderPass):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _pixelated_width_(cls) -> Real:
+    def _pixelated_width_(cls) -> float:
         return 0.1
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
-    def _color_map_(cls) -> moderngl.Texture:
-        return NotImplemented
+    #@Lazy.variable(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _color_map_(cls) -> moderngl.Texture:
+    #    return NotImplemented
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _u_color_map_(
-        cls,
-        color_map: moderngl.Texture
-    ) -> TextureStorage:
+    def _u_color_map_(cls) -> TextureStorage:
         return TextureStorage(
-            field="sampler2D u_color_map",
-            texture_array=np.array(color_map)
+            field="sampler2D u_color_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
@@ -81,27 +76,37 @@ class PixelatedPass(RenderPass):
         )
         with ColorFramebufferBatch(size=texture_size) as batch:
             batch.color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
-            self._color_map_ = texture
+            #self._u_color_map_.write(
+            #    texture_array=np.array(texture)
+            #)
             self._vertex_array_.render(
                 #shader_filename="copy",
                 #custom_macros=[],
-                #texture_storages = [
-                #    self._u_color_map_
-                #],
                 #uniform_blocks=[],
+                texture_array_dict={
+                    "u_color_map": np.array(texture),
+                },
                 framebuffer=batch.framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING
                 )
             )
-            self._color_map_ = batch.color_texture
+            #self._u_color_map_.write(
+            #    texture_array=np.array(texture)
+            #)
+            #self._color_map_ = batch.color_texture
             self._vertex_array_.render(
                 #shader_filename="copy",
                 #custom_macros=[],
-                #texture_storages = [
-                #    self._u_color_map_
+                #texture_storages=[
+                #    self._u_color_map_.write(
+                #        texture_array=np.array(batch.color_texture)
+                #    )
                 #],
                 #uniform_blocks=[],
+                texture_array_dict={
+                    "u_color_map": np.array(batch.color_texture),
+                },
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING

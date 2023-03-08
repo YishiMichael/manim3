@@ -4,10 +4,7 @@ __all__ = ["OrthographicCamera"]
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..custom_typing import (
-    Mat4T,
-    Real
-)
+from ..custom_typing import Mat4T
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -21,10 +18,10 @@ class OrthographicCamera(Camera):
     def __init__(
         self,
         *,
-        width: Real | None = None,
-        height: Real | None = None,
-        near: Real | None = None,
-        far: Real | None = None
+        width: float | None = None,
+        height: float | None = None,
+        near: float | None = None,
+        far: float | None = None
     ) -> None:
         super().__init__()
         if width is not None:
@@ -38,32 +35,32 @@ class OrthographicCamera(Camera):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _width_(cls) -> Real:
+    def _width_(cls) -> float:
         return ConfigSingleton().frame_width
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _height_(cls) -> Real:
+    def _height_(cls) -> float:
         return ConfigSingleton().frame_height
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _near_(cls) -> Real:
+    def _near_(cls) -> float:
         return ConfigSingleton().camera_near
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _far_(cls) -> Real:
+    def _far_(cls) -> float:
         return ConfigSingleton().camera_far
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _projection_matrix_(
         cls,
-        width: Real,
-        height: Real,
-        near: Real,
-        far: Real
+        width: float,
+        height: float,
+        near: float,
+        far: float
     ) -> Mat4T:
         sx = 2.0 / width
         sy = 2.0 / height

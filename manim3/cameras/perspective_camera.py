@@ -4,10 +4,7 @@ __all__ = ["PerspectiveCamera"]
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..custom_typing import (
-    Mat4T,
-    Real
-)
+from ..custom_typing import Mat4T
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -21,11 +18,11 @@ class PerspectiveCamera(Camera):
     def __init__(
         self,
         *,
-        width: Real | None = None,
-        height: Real | None = None,
-        near: Real | None = None,
-        far: Real | None = None,
-        altitude: Real | None = None
+        width: float | None = None,
+        height: float | None = None,
+        near: float | None = None,
+        far: float | None = None,
+        altitude: float | None = None
     ) -> None:
         super().__init__()
         if width is not None:
@@ -41,38 +38,38 @@ class PerspectiveCamera(Camera):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _width_(cls) -> Real:
+    def _width_(cls) -> float:
         return ConfigSingleton().frame_width
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _height_(cls) -> Real:
+    def _height_(cls) -> float:
         return ConfigSingleton().frame_height
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _near_(cls) -> Real:
+    def _near_(cls) -> float:
         return ConfigSingleton().camera_near
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _far_(cls) -> Real:
+    def _far_(cls) -> float:
         return ConfigSingleton().camera_far
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _altitude_(cls) -> Real:
+    def _altitude_(cls) -> float:
         return ConfigSingleton().camera_altitude
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _projection_matrix_(
         cls,
-        width: Real,
-        height: Real,
-        near: Real,
-        far: Real,
-        altitude: Real
+        width: float,
+        height: float,
+        near: float,
+        far: float,
+        altitude: float
     ) -> Mat4T:
         sx = 2.0 * altitude / width
         sy = 2.0 * altitude / height

@@ -5,7 +5,6 @@ __all__ = [
     "Mat4T",
     "Mat3sT",
     "Mat4sT",
-    "Real",
     "Selector",
     "Vec2T",
     "Vec3T",
@@ -26,8 +25,6 @@ from typing import (
 
 import numpy as np
 
-
-Real = float | int
 
 _ND = int
 _2D = Literal[2]

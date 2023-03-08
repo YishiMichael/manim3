@@ -20,7 +20,6 @@ from ..constants import (
     TAU
 )
 from ..custom_typing import (
-    Real,
     Vec2T,
     Vec2sT
 )
@@ -60,8 +59,8 @@ class Line(Polyline):
 class Arc(Polyline):
     def __init__(
         self,
-        start_angle: Real,
-        sweep_angle: Real
+        start_angle: float,
+        sweep_angle: float
     ) -> None:
         n_segments = int(np.ceil(sweep_angle / TAU * 64.0))
         complex_coords = np.exp(1.0j * (start_angle + np.linspace(0.0, sweep_angle, n_segments + 1)))

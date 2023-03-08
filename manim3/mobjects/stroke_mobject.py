@@ -2,7 +2,11 @@ __all__ = ["StrokeMobject"]
 
 
 import itertools as it
-from typing import Callable
+from typing import (
+    Callable,
+    Generator,
+    Iterable
+)
 
 import moderngl
 import numpy as np
@@ -10,7 +14,6 @@ import numpy as np
 from ..custom_typing import (
     ColorType,
     Mat4T,
-    Real,
     Vec3T,
     Vec3sT,
     VertexIndexType
@@ -64,7 +67,7 @@ class StrokeMobject(Mobject):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _width_(cls) -> Real:
+    def _width_(cls) -> float:
         # TODO: The unit mismatches by a factor of 5
         return 0.2
 
@@ -85,12 +88,12 @@ class StrokeMobject(Mobject):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _opacity_(cls) -> Real:
+    def _opacity_(cls) -> float:
         return 1.0
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _dilate_(cls) -> Real:
+    def _dilate_(cls) -> float:
         return 0.0
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -101,7 +104,7 @@ class StrokeMobject(Mobject):
         scene_config__camera__view_matrix: Mat4T,
         model_matrix: Mat4T,
         multi_line_string_3d__children__coords: tuple[Vec3sT, ...],
-        width: Real
+        width: float
     ) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...
         transform = scene_config__camera__projection_matrix @ scene_config__camera__view_matrix @ model_matrix
@@ -129,10 +132,10 @@ class StrokeMobject(Mobject):
     @classmethod
     def _ub_stroke_(
         cls,
-        width: Real,
+        width: float,
         color: Vec3T,
-        opacity: Real,
-        dilate: Real
+        opacity: float,
+        dilate: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
@@ -377,6 +380,7 @@ class StrokeMobject(Mobject):
                 #shader_filename="stroke",
                 #custom_macros=custom_macros,
                 #texture_storages=[],
+                texture_array_dict={},
                 #uniform_blocks=uniform_blocks,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
@@ -393,6 +397,7 @@ class StrokeMobject(Mobject):
                 #shader_filename="stroke",
                 #custom_macros=custom_macros,
                 #texture_storages=[],
+                texture_array_dict={},
                 #uniform_blocks=uniform_blocks,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
@@ -413,18 +418,27 @@ class StrokeMobject(Mobject):
     #        area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
     #    return area * self._width_.value >= 0.0
 
-    def set_style(
+    def iter_stroke_descendants(
         self,
+        broadcast: bool = True
+    ) -> "Generator[StrokeMobject, None, None]":
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if isinstance(mobject, StrokeMobject):
+                yield mobject
+
+    @classmethod
+    def class_set_style(
+        cls,
+        mobjects: "Iterable[StrokeMobject]",
         *,
-        width: Real | None = None,
+        width: float | None = None,
         single_sided: bool | None = None,
         has_linecap: bool | None = None,
         color: ColorType | None = None,
-        opacity: Real | None = None,
-        dilate: Real | None = None,
-        apply_oit: bool | None = None,
-        broadcast: bool = True
-    ):
+        opacity: float | None = None,
+        dilate: float | None = None,
+        apply_oit: bool | None = None
+    ) -> None:
         width_value = width if width is not None else None
         single_sided_value = single_sided if single_sided is not None else None
         has_linecap_value = has_linecap if has_linecap is not None else None
@@ -437,9 +451,7 @@ class StrokeMobject(Mobject):
                 opacity_component,
                 dilate
             )) else None
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if not isinstance(mobject, StrokeMobject):
-                continue
+        for mobject in mobjects:
             if width_value is not None:
                 mobject._width_ = width_value
             if single_sided_value is not None:
@@ -454,4 +466,27 @@ class StrokeMobject(Mobject):
                 mobject._dilate_ = dilate_value
             if apply_oit_value is not None:
                 mobject._apply_oit_ = apply_oit_value
+
+    def set_style(
+        self,
+        *,
+        width: float | None = None,
+        single_sided: bool | None = None,
+        has_linecap: bool | None = None,
+        color: ColorType | None = None,
+        opacity: float | None = None,
+        dilate: float | None = None,
+        apply_oit: bool | None = None,
+        broadcast: bool = True
+    ):
+        self.class_set_style(
+            mobjects=self.iter_stroke_descendants(broadcast=broadcast),
+            width=width,
+            single_sided=single_sided,
+            has_linecap=has_linecap,
+            color=color,
+            opacity=opacity,
+            dilate=dilate,
+            apply_oit=apply_oit
+        )
         return self

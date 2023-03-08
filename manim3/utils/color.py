@@ -8,7 +8,6 @@ import numpy as np
 
 from ..custom_typing import (
     ColorType,
-    Real,
     Vec3T
 )
 
@@ -56,8 +55,8 @@ class ColorUtils:
     def normalize_color_input(
         cls,
         color: ColorType | None,
-        opacity: Real | None
-    ) -> tuple[Vec3T | None, Real | None]:
+        opacity: float | None
+    ) -> tuple[Vec3T | None, float | None]:
         color_component = None
         opacity_component = None
         if color is not None:

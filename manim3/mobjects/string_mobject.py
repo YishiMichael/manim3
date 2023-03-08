@@ -19,10 +19,7 @@ import warnings
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from ..custom_typing import (
-    Real,
-    Selector
-)
+from ..custom_typing import Selector
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
@@ -196,9 +193,9 @@ class StringMobject(SVGMobject):
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
         get_content_prefix_and_suffix: Callable[[bool], tuple[str, str]],
         get_svg_path: Callable[[str], str],
-        width: Real | None,
-        height: Real | None,
-        frame_scale: Real | None
+        width: float | None,
+        height: float | None,
+        frame_scale: float | None
     ) -> None:
         parsing_result = self._parse(
             string=string,
@@ -241,9 +238,9 @@ class StringMobject(SVGMobject):
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
         get_content_prefix_and_suffix: Callable[[bool], tuple[str, str]],
         get_svg_path: Callable[[str], str],
-        width: Real | None = None,
-        height: Real | None = None,
-        frame_scale: Real | None = None
+        width: float | None = None,
+        height: float | None = None,
+        frame_scale: float | None = None
     ) -> ParsingResult:
         labelled_items, replaced_items = cls._get_labelled_items_and_replaced_items(
             string=string,
@@ -507,9 +504,9 @@ class StringMobject(SVGMobject):
         labels_count: int,
         get_svg_path: Callable[[str], str],
         get_content_prefix_and_suffix: Callable[[bool], tuple[str, str]],
-        width: Real | None,
-        height: Real | None,
-        frame_scale: Real | None
+        width: float | None,
+        height: float | None,
+        frame_scale: float | None
     ) -> list[LabelledShapeItem]:
 
         def get_svg_path_by_content(

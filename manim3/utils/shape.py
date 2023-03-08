@@ -30,7 +30,6 @@ import svgelements as se
 
 from ..custom_typing import (
     FloatsT,
-    Real,
     Vec2T,
     Vec3T,
     Vec2sT,
@@ -87,20 +86,20 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
     @abstractmethod
     def interpolate_point(
         self,
-        alpha: Real
+        alpha: float
     ) -> _VecT:
         pass
 
     def interpolate_points(
         self,
-        alphas: Iterable[Real]
+        alphas: Iterable[float]
     ) -> _VecsT:
         return np.array([self.interpolate_point(alpha) for alpha in alphas])
 
     @classmethod
     def _get_residue(
         cls,
-        target: Real,
+        target: float,
         array: FloatsT,
         index: int
     ) -> float:
@@ -108,7 +107,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
 
     def _integer_interpolate(
         self,
-        target: Real,
+        target: float,
         *,
         side: Literal["left", "right"] = "right"
     ) -> tuple[int, float]:
@@ -223,13 +222,13 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
         cls,
         vec_0: _VecT,
         vec_1: _VecT,
-        alpha: Real
+        alpha: float
     ) -> _VecT:
         return SpaceUtils.lerp(vec_0, vec_1, alpha)
 
     def interpolate_point(
         self,
-        alpha: Real
+        alpha: float
     ) -> _VecT:
         coords = self._coords_.value
         if self._kind_.value == LineStringKind.POINT:
@@ -239,8 +238,8 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
 
     def partial(
         self,
-        start: Real,
-        stop: Real
+        start: float,
+        stop: float
     ) -> "LineString":
         coords = self._coords_.value
         if self._kind_.value == LineStringKind.POINT:
@@ -263,15 +262,15 @@ class LineString(ShapeInterpolant[_VecT, _VecsT]):
     def interpolate_shape_callback(
         self,
         other: "LineString"
-    ) -> "Callable[[Real], LineString]":
+    ) -> "Callable[[float], LineString]":
         all_knots = np.unique(np.concatenate((self._length_knots_.value, other._length_knots_.value)))
-        point_callbacks: list[Callable[[Real], _VecT]] = [
+        point_callbacks: list[Callable[[float], _VecT]] = [
             SpaceUtils.lerp_callback(self.interpolate_point(knot), other.interpolate_point(knot))
             for knot in all_knots
         ]
 
         def callback(
-            alpha: Real
+            alpha: float
         ) -> LineString:
             return LineString(np.array([
                 point_callback(alpha)
@@ -304,7 +303,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
 
     def interpolate_point(
         self,
-        alpha: Real
+        alpha: float
     ) -> _VecT:
         if not self._children_:
             raise ValueError("Attempting to interpolate an empty MultiLineString")
@@ -313,8 +312,8 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
 
     def partial(
         self,
-        start: Real,
-        stop: Real
+        start: float,
+        stop: float
     ):
         children = self._children_
         if not children:
@@ -337,7 +336,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         other: "MultiLineString[_VecT, _VecsT]",
         *,
         has_inlay: bool
-    ) -> "Callable[[Real], MultiLineString[_VecT, _VecsT]]":
+    ) -> "Callable[[float], MultiLineString[_VecT, _VecsT]]":
         children_0 = self._children_
         children_1 = other._children_
         if not children_0 or not children_1:
@@ -346,14 +345,14 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         (residue_list_list_0, residue_list_list_1), triplet_tuple_list = self._zip_knots(
             self._length_knots_.value, other._length_knots_.value
         )
-        line_string_callbacks: list[Callable[[Real], LineString[_VecT, _VecsT]]] = [
+        line_string_callbacks: list[Callable[[float], LineString[_VecT, _VecsT]]] = [
             children_0[index_0].partial(start_residue_0, stop_residue_0).interpolate_shape_callback(
                 children_1[index_1].partial(start_residue_1, stop_residue_1)
             )
             for (index_0, start_residue_0, stop_residue_0), (index_1, start_residue_1, stop_residue_1) in triplet_tuple_list
         ]
 
-        inlay_callbacks: list[Callable[[Real], _VecsT]] = []
+        inlay_callbacks: list[Callable[[float], _VecsT]] = []
         for index_0, residues in enumerate(residue_list_list_0):
             coords = children_0[index_0].interpolate_points(residues)
             if len(coords) == 2:
@@ -369,7 +368,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
             inlay_callbacks.append(SpaceUtils.lerp_callback(coords_center, coords))
 
         def callback(
-            alpha: Real
+            alpha: float
         ) -> MultiLineString[_VecT, _VecsT]:
             line_strings = [
                 line_string_callback(alpha)
@@ -584,14 +583,14 @@ class Shape(LazyObject):
 
     def interpolate_point(
         self,
-        alpha: Real
+        alpha: float
     ) -> Vec2T:
         return self._multi_line_string_.interpolate_point(alpha)
 
     def partial(
         self,
-        start: Real,
-        stop: Real
+        start: float,
+        stop: float
     ) -> "Shape":
         return Shape(self._multi_line_string_.partial(start, stop))
 
@@ -600,14 +599,14 @@ class Shape(LazyObject):
         other: "Shape",
         *,
         has_inlay: bool
-    ) -> "Callable[[Real], Shape]":
+    ) -> "Callable[[float], Shape]":
         multi_line_string_callback = self._multi_line_string_.interpolate_shape_callback(
             other._multi_line_string_,
             has_inlay=has_inlay
         )
 
         def callback(
-            alpha: Real
+            alpha: float
         ) -> Shape:
             multi_line_string = multi_line_string_callback(alpha)
             return Shape(Shape._to_shapely_object(multi_line_string))
@@ -659,11 +658,11 @@ class Shape(LazyObject):
 
     def buffer(
         self,
-        distance: Real,
+        distance: float,
         quad_segs: int = 16,
         cap_style: str = "round",
         join_style: str = "round",
-        mitre_limit: Real = 5.0,
+        mitre_limit: float = 5.0,
         single_sided: bool = False
     ) -> "Shape":
         return Shape(self._shapely_obj_.value.buffer(

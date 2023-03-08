@@ -6,7 +6,9 @@ from functools import reduce
 import itertools as it
 from typing import (
     Generator,
+    Generic,
     Iterator,
+    TypeVar,
     overload
 )
 import warnings
@@ -21,7 +23,6 @@ from ..constants import (
 )
 from ..custom_typing import (
     Mat4T,
-    Real,
     Vec2T,
     Vec3T,
     Vec3sT
@@ -46,6 +47,74 @@ from ..rendering.framebuffer_batches import (
 from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.scene_config import SceneConfig
 from ..utils.space import SpaceUtils
+
+
+_T = TypeVar("_T")
+
+
+class PseudoCollection(Generic[_T]):
+    __slots__ = ("_elements",)
+
+    def __init__(
+        self,
+        *elements: _T
+    ) -> None:
+        super().__init__()
+        self._elements: list[_T] = []
+        self.add(*elements)
+
+    def __iter__(self) -> Iterator[_T]:
+        return self._elements.__iter__()
+
+    def __len__(self) -> int:
+        return self._elements.__len__()
+
+    @overload
+    def __getitem__(
+        self,
+        index: int
+    ) -> _T:
+        ...
+
+    @overload
+    def __getitem__(
+        self,
+        index: slice
+    ) -> list[_T]:
+        ...
+
+    def __getitem__(
+        self,
+        index: int | slice
+    ) -> _T | list[_T]:
+        return self._elements.__getitem__(index)
+
+    def __copy__(self):
+        return PseudoCollection(self._elements[:])
+
+    def add(
+        self,
+        *elements: _T
+    ):
+        if not elements:
+            return self
+        for element in elements:
+            if element in self._elements:
+                continue
+            self._elements.append(element)
+        return self
+
+    def remove(
+        self,
+        *elements: _T
+    ):
+        if not elements:
+            return self
+        for element in elements:
+            if element not in self._elements:
+                continue
+            self._elements.remove(element)
+        return self
 
 
 @dataclass(
@@ -79,8 +148,8 @@ class Mobject(LazyObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._parents: list[Mobject] = []
-        self._real_ancestors: list[Mobject] = []
+        self._parents: PseudoCollection[Mobject] = PseudoCollection()
+        self._real_ancestors: PseudoCollection[Mobject] = PseudoCollection()
         #self._apply_oit: bool = False
         #self._render_samples: int = 0
 
@@ -183,41 +252,36 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        #filtered_mobjects = [
-        #    mob for mob in mobjects
-        #    if mob not in self._children_
-        #]
-        #for mobject in mobjects:
-        #    if self in mobject.iter_descendants():
-        #        raise ValueError(f"'{mobject}' has already included '{self}'")
+        all_descendants = [
+            descendant_mobject
+            for mobject in mobjects
+            for descendant_mobject in mobject.iter_descendants()
+        ]
         self._children_.add(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
-            #print()
-            #print(ancestor_mobject)
-            #print(list(ancestor_mobject._real_descendants_))
-            #print(mobjects)
-            ancestor_mobject._real_descendants_.add(*mobjects)
+            ancestor_mobject._real_descendants_.add(*all_descendants)
         for mobject in mobjects:
-            mobject._parents.append(self)
-            for descendant_mobject in self.iter_descendants():
-                descendant_mobject._real_ancestors.append(self)
+            mobject._parents.add(self)
+        for descendant_mobject in all_descendants:
+            descendant_mobject._real_ancestors.add(*self.iter_ancestors())
         return self
 
     def remove(
         self,
         *mobjects: "Mobject"
     ):
-        #filtered_mobjects = [
-        #    mob for mob in mobjects
-        #    if mob in self._children_
-        #]
+        all_descendants = [
+            descendant_mobject
+            for mobject in mobjects
+            for descendant_mobject in mobject.iter_descendants()
+        ]
         self._children_.remove(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
-            ancestor_mobject._real_descendants_.remove(*mobjects)
+            ancestor_mobject._real_descendants_.remove(*all_descendants)
         for mobject in mobjects:
             mobject._parents.remove(self)
-            for descendant_mobject in self.iter_descendants():
-                descendant_mobject._real_ancestors.remove(self)
+        for descendant_mobject in all_descendants:
+            descendant_mobject._real_ancestors.remove(*self.iter_ancestors())
         return self
 
     #def index(self, node: "Mobject") -> int:
@@ -291,14 +355,14 @@ class Mobject(LazyObject):
             return descendants_copy[descendants.index(mobject)]
 
         for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
-            descendant_copy._parents = [
+            descendant_copy._parents = PseudoCollection(*(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._parents
-            ]
-            descendant_copy._real_ancestors = [
+            ))
+            descendant_copy._real_ancestors = PseudoCollection(*(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._real_ancestors
-            ]
+            ))
 
         #result = descendants_copy[0]
         for descriptor in self.__class__._LAZY_DESCRIPTORS:
@@ -560,7 +624,7 @@ class Mobject(LazyObject):
 
     def scale(
         self,
-        factor: Real | Vec3T,
+        factor: float | Vec3T,
         *,
         about_point: Vec3T | None = None,
         about_edge: Vec3T | None = None,
@@ -577,7 +641,7 @@ class Mobject(LazyObject):
 
     def scale_about_origin(
         self,
-        factor: Real | Vec3T,
+        factor: float | Vec3T,
         *,
         broadcast: bool = True
     ):
@@ -607,7 +671,7 @@ class Mobject(LazyObject):
 
     def stretch_to_fit_dim(
         self,
-        target_length: Real,
+        target_length: float,
         dim: int,
         *,
         about_point: Vec3T | None = None,
@@ -626,7 +690,7 @@ class Mobject(LazyObject):
 
     def stretch_to_fit_width(
         self,
-        target_length: Real,
+        target_length: float,
         *,
         about_point: Vec3T | None = None,
         about_edge: Vec3T | None = None,
@@ -643,7 +707,7 @@ class Mobject(LazyObject):
 
     def stretch_to_fit_height(
         self,
-        target_length: Real,
+        target_length: float,
         *,
         about_point: Vec3T | None = None,
         about_edge: Vec3T | None = None,
@@ -660,7 +724,7 @@ class Mobject(LazyObject):
 
     def stretch_to_fit_depth(
         self,
-        target_length: Real,
+        target_length: float,
         *,
         about_point: Vec3T | None = None,
         about_edge: Vec3T | None = None,
@@ -678,11 +742,11 @@ class Mobject(LazyObject):
     @classmethod
     def _get_frame_scale_vector(
         cls,
-        original_width: Real,
-        original_height: Real,
-        specified_width: Real | None,
-        specified_height: Real | None,
-        specified_frame_scale: Real | None
+        original_width: float,
+        original_height: float,
+        specified_width: float | None,
+        specified_height: float | None,
+        specified_frame_scale: float | None
     ) -> Vec2T:
         # Called when initializing a planar mobject
         scale_factor = np.ones(2)

@@ -202,7 +202,7 @@ class VertexArray(LazyObject):
         _texture_storages_: LazyCollection[TextureStorage]
     ) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return tuple(
-            (texture_storage._field_name_.value, texture_storage._texture_array_.value.shape)
+            (texture_storage._field_name_.value, texture_storage._shape_.value)
             for texture_storage in _texture_storages_
         )
 
@@ -385,6 +385,7 @@ class VertexArray(LazyObject):
         #custom_macros: list[str],
         #texture_storages: list[TextureStorage],
         #uniform_blocks: list[UniformBlockBuffer],
+        texture_array_dict: dict[str, np.ndarray],
         framebuffer: moderngl.Framebuffer,
         context_state: ContextState
     ) -> None:
@@ -406,6 +407,8 @@ class VertexArray(LazyObject):
         #    (texture_storage._field_name_.value, texture_storage._texture_array_.value.shape)
         #    for texture_storage in texture_storages
         #)
+
+        #self._texture_storages_ = LazyCollection(*texture_storages)
 
         if self._vertex_array_.value is None:
             return
@@ -433,9 +436,11 @@ class VertexArray(LazyObject):
         for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
             texture_storage = texture_storage_dict[texture_storage_name]
             assert not texture_storage._is_empty_.value
+            texture_array = texture_array_dict[texture_storage_name]
+            assert texture_array.shape == texture_storage._shape_.value
             texture_bindings.extend(
                 (texture, binding)
-                for binding, texture in enumerate(texture_storage._texture_array_.value.flat, start=binding_offset)
+                for binding, texture in enumerate(texture_array.flat, start=binding_offset)
             )
 
         # uniform blocks

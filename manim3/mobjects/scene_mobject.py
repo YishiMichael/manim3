@@ -39,7 +39,7 @@ class SceneMobject(MeshMobject):
     #def _scene() -> Scene:
     #    return NotImplemented
 
-    #def _update_dt(self, dt: Real):
+    #def _update_dt(self, dt: float):
     #    super()._update_dt(dt)  # TODO
     #    self._scene._update_dt(dt)
 
