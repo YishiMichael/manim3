@@ -7,6 +7,7 @@ import itertools as it
 from typing import (
     Generator,
     Generic,
+    Iterable,
     Iterator,
     TypeVar,
     overload
@@ -440,7 +441,7 @@ class Mobject(LazyObject):
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
-    def _local_world_bounding_box_(
+    def _bounding_box_without_descendants_(
         cls,
         model_matrix: Mat4T,
         local_sample_points: Vec3sT,
@@ -454,28 +455,73 @@ class Mobject(LazyObject):
             minimum=world_sample_points.min(axis=0)
         )
 
-    # TODO: Can we lazyfy bounding_box, as long as _children_ is lazified...?
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _bounding_box_with_descendants_(
+        cls,
+        bounding_box_without_descendants: BoundingBox3D | None,
+        real_descendants__bounding_box_without_descendants: tuple[BoundingBox3D | None, ...]
+    ) -> BoundingBox3D | None:
+        points_array = np.array(list(it.chain(*(
+            (aabb.maximum, aabb.minimum)
+            for aabb in (
+                bounding_box_without_descendants,
+                *real_descendants__bounding_box_without_descendants
+            )
+            if aabb is not None
+        ))))
+        if not len(points_array):
+            return None
+            #warnings.warn("Trying to calculate the bounding box of some mobject with no points")
+            #maximum = ORIGIN
+            #minimum = ORIGIN
+        #else:
+        #    maximum = points_array.max(axis=0)
+        #    minimum = points_array.min(axis=0)
+        return BoundingBox3D(
+            maximum=points_array.max(axis=0),
+            minimum=points_array.min(axis=0)
+        )
+
     def get_bounding_box(
         self,
         *,
         broadcast: bool = True
     ) -> BoundingBox3D:
-        points_array = np.array(list(it.chain(*(
-            (aabb.maximum, aabb.minimum)
-            for mobject in self.iter_descendants(broadcast=broadcast)
-            if (aabb := mobject._local_world_bounding_box_.value) is not None
-        ))))
-        if not len(points_array):
-            warnings.warn("Trying to calculate the bounding box of some mobject with no points")
-            maximum = ORIGIN
-            minimum = ORIGIN
+        if broadcast:
+            result = self._bounding_box_with_descendants_.value
         else:
-            maximum = points_array.max(axis=0)
-            minimum = points_array.min(axis=0)
-        return BoundingBox3D(
-            maximum=maximum,
-            minimum=minimum
-        )
+            result = self._bounding_box_without_descendants_.value
+        if result is None:
+            warnings.warn("Trying to calculate the bounding box of some mobject with no points")
+            return BoundingBox3D(
+                maximum=ORIGIN,
+                minimum=ORIGIN
+            )
+        return result
+
+    # TODO: Can we lazyfy bounding_box, as long as _children_ is lazified...?
+    #def get_bounding_box(
+    #    self,
+    #    *,
+    #    broadcast: bool = True
+    #) -> BoundingBox3D:
+    #    points_array = np.array(list(it.chain(*(
+    #        (aabb.maximum, aabb.minimum)
+    #        for mobject in self.iter_descendants(broadcast=broadcast)
+    #        if (aabb := mobject._local_world_bounding_box_.value) is not None
+    #    ))))
+    #    if not len(points_array):
+    #        warnings.warn("Trying to calculate the bounding box of some mobject with no points")
+    #        maximum = ORIGIN
+    #        minimum = ORIGIN
+    #    else:
+    #        maximum = points_array.max(axis=0)
+    #        minimum = points_array.min(axis=0)
+    #    return BoundingBox3D(
+    #        maximum=maximum,
+    #        minimum=minimum
+    #    )
 
     def get_bounding_box_size(
         self,

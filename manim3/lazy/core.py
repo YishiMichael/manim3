@@ -425,8 +425,8 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
     ) -> _LazyObjectT | list[_LazyObjectT]:
         return self._elements.__getitem__(index)
 
-    def _copy(self) -> "LazyCollection[_LazyObjectT]":
-        return LazyCollection(*self._elements)
+    #def _copy(self) -> "LazyCollection[_LazyObjectT]":
+    #    return LazyCollection(*self._elements)
 
     def add(
         self,

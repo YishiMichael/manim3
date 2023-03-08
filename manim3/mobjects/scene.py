@@ -363,8 +363,6 @@ class Scene(Mobject):
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
                 )
             )
-            #from PIL import Image
-            #Image.frombytes("RGBA", scene_batch.opaque_texture.size, scene_batch.opaque_texture.read(), "raw").show()
             #Image.frombytes("RGB", scene_batch.opaque_framebuffer.size, scene_batch.opaque_framebuffer.read(), "raw").show()
 
     def _render_frame(self) -> None:

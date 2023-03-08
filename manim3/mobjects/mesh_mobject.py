@@ -189,6 +189,7 @@ class MeshMobject(Mobject):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
+        #print(np.frombuffer(self._ub_model_._buffer_.value.read(), dtype=np.float32).reshape((4,4))[3,0])
         #self._u_color_maps_.write(
         #    dynamic_array_lens={
         #        "NUM_U_COLOR_MAPS": len(textures)
@@ -206,7 +207,8 @@ class MeshMobject(Mobject):
                 "u_color_maps": np.array(
                     [color_map]
                     if (color_map := self._color_map_.value) is not None
-                    else []
+                    else [],
+                    dtype=moderngl.Texture
                 )
             },
             #uniform_blocks=[
@@ -220,6 +222,9 @@ class MeshMobject(Mobject):
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
             )
         )
+        #print(self._model_matrix_.value)
+        #from PIL import Image
+        #Image.frombytes("RGB", target_framebuffer.size, target_framebuffer.read(), "raw").show()
 
     @classmethod
     def class_set_style(
