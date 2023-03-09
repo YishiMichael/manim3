@@ -351,8 +351,8 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
         data_storage: np.ndarray,
         struct_dtype: np.dtype
     ) -> moderngl.Buffer:
-        if GLSLDynamicBuffer._VACANT_BUFFERS:
-            buffer = GLSLDynamicBuffer._VACANT_BUFFERS.pop()
+        if cls._VACANT_BUFFERS:
+            buffer = cls._VACANT_BUFFERS.pop()
         else:
             buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
 
@@ -504,7 +504,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
 
     def _get_buffer_format(
         self,
-        attribute_name_set: set[str]
+        attribute_name_tuple: tuple[str, ...]
     ) -> tuple[str, list[str]]:
         # TODO: This may require refactory
         vertex_dtype = self._vertex_dtype_.value
@@ -513,7 +513,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
         dtype_stack: list[tuple[np.dtype, int]] = []
         attribute_names: list[str] = []
         for field_name, (field_dtype, field_offset, *_) in vertex_fields.items():
-            if field_name not in attribute_name_set:
+            if field_name not in attribute_name_tuple:
                 continue
             dtype_stack.append((field_dtype, field_offset))
             attribute_names.append(field_name)

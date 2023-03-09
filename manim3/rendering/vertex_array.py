@@ -254,7 +254,7 @@ class VertexArray(LazyObject):
             if isinstance(member := moderngl_program[name], moderngl.Attribute)
         }
         attributes._validate(program_attributes)
-        buffer_format, attribute_names = attributes._get_buffer_format(set(program_attributes))
+        buffer_format, attribute_names = attributes._get_buffer_format(tuple(program_attributes))
         return ContextSingleton().vertex_array(
             program=moderngl_program,
             content=[(attributes._buffer_.value, buffer_format, *attribute_names)],

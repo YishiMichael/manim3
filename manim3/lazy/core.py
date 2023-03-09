@@ -84,6 +84,7 @@ from typing import (
     Generator,
     Generic,
     Iterator,
+    Literal,
     TypeVar,
     Union,
     overload
@@ -92,6 +93,7 @@ from typing import (
 from ..lazy.dag import DAGNode
 
 
+_LazyBaseT = TypeVar("_LazyBaseT", bound="LazyBase")
 _LazyEntityT = TypeVar("_LazyEntityT", bound="LazyEntity")
 _LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
@@ -200,40 +202,86 @@ class LazyBase(ABC):
 
 
 class LazyEntity(LazyBase):
-    __slots__ = ("_linked_properties",)
+    __slots__ = (
+        "_linked_properties",
+        "_restockable"
+    )
 
     def __init__(self) -> None:
         super().__init__()
         self._linked_properties: list[LazyProperty] = []
+        self._restockable: bool = True
+
+    def _iter_dependency_children(self) -> "Generator[LazyEntity, None, None]":
+        for entity in super()._iter_dependency_children():
+            assert isinstance(entity, LazyEntity)
+            yield entity
+
+    def _iter_dependency_descendants(self) -> "Generator[LazyEntity, None, None]":
+        for entity in super()._iter_dependency_descendants():
+            assert isinstance(entity, LazyEntity)
+            yield entity
+
+    @abstractmethod
+    def _restock(self) -> None:
+        pass
 
     def _is_readonly(self) -> bool:
         return any(
-            isinstance(instance, LazyProperty) and not print(instance._get())
+            isinstance(instance, LazyProperty)
             for instance in self._iter_dependency_ancestors()
         )
 
     def _expire_properties(self) -> None:
-        #expired_properties = [
-        #    expired_property
-        #    for expired_property in self._iter_parameter_ancestors()
-        #    if isinstance(expired_property, LazyProperty)
-        #]
-        for expired_property in self._linked_properties:
+        # Make a shallow copy as we're removing items from the list we're iterating.
+        expired_entities: list[LazyEntity] = []
+        for expired_property in self._linked_properties[:]:
             if (entity := expired_property._get()) is None:
                 continue
+            #print(expired_property)
+            #print(list(entity._iter_dependency_parents()))
             expired_property._clear_dependency()
+            #print(list(entity._iter_dependency_parents()))
+            #print()
             expired_property._clear_parameter_children()
             expired_property._set(None)
+            #entity._restock_descendants_if_no_dependency_parents()
+            if entity not in expired_entities:
+                expired_entities.append(entity)
+        for entity in expired_entities:
             entity._restock_descendants_if_no_dependency_parents()
-        #self._linked_properties.clear()
 
     def _restock_descendants_if_no_dependency_parents(self) -> None:
-        if self._iter_dependency_parents():
-            return
-        for entity in self._iter_dependency_descendants():
-            assert isinstance(entity, LazyEntity)
-            if isinstance(entity, LazyObject):
-                entity._restock()
+        #if "VertexArray" in [cls.__name__ for cls in self.__class__.__mro__]:
+        #    print(self, list(self._iter_dependency_parents()), bool(self._iter_dependency_parents()))
+        #if list(self._iter_dependency_parents()):
+        #    return
+        #children = list(self._iter_dependency_children())
+        #if self._restockable:
+        #    self._restock()
+        #print(children)
+        #print(list(self._iter_dependency_children()))
+        #print()
+        #self._clear_dependency()
+        #for entity in children:
+        #    assert isinstance(entity, LazyEntity)
+        #    entity._restock_descendants_if_no_dependency_parents()
+        #for entity in self._iter_dependency_descendants():
+        #    assert isinstance(entity, LazyEntity)
+        #    if isinstance(entity, LazyObject):
+        #        entity._restock()
+
+        all_descendants = list(self._iter_dependency_descendants())
+        while expired_entities := [
+            entity for entity in all_descendants
+            if not list(entity._iter_dependency_parents())
+        ]:
+            for entity in expired_entities:
+                #assert isinstance(entity, LazyEntity)
+                if entity._restockable:
+                    entity._restock()
+                    assert not list(entity._iter_dependency_children())
+                all_descendants.remove(entity)
 
 
 class LazyObject(LazyEntity):
@@ -293,7 +341,8 @@ class LazyObject(LazyEntity):
             for descriptor_overloading in descriptor_overloadings.values()
         )
         cls._LAZY_DESCRIPTOR_OVERLOADINGS = descriptor_overloadings
-        cls._ALL_SLOTS = tuple(set(
+        # Use dict.fromkeys to preserve order (by first occurrance)
+        cls._ALL_SLOTS = tuple(dict.fromkeys(
             slot
             for parent_cls in reversed(cls.__mro__)
             if issubclass(parent_cls, LazyEntity)
@@ -428,6 +477,15 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
     #def _copy(self) -> "LazyCollection[_LazyObjectT]":
     #    return LazyCollection(*self._elements)
 
+    def _restock(self) -> None:
+        for element in self._elements:
+            self._unbind_dependency(element)
+        self._elements.clear()
+        #elements = self._elements[:]
+        #self.remove(*elements)
+        #for element in elements:
+        #    element._restock()
+
     def add(
         self,
         *elements: _LazyObjectT
@@ -465,6 +523,10 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
             element._restock_descendants_if_no_dependency_parents()
         return self
 
+    #def clear(self):
+    #    self.remove(*self._elements)
+    #    return self
+
 
 class LazyProperty(Generic[_LazyEntityT], LazyBase):
     __slots__ = (
@@ -475,7 +537,7 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
     def __init__(self) -> None:
         super().__init__()
         self._entity: _LazyEntityT | None = None
-        self._parameter_children: set[LazyEntity] = set()
+        self._parameter_children: list[LazyEntity] = []
 
     def _get(self) -> _LazyEntityT | None:
         return self._entity
@@ -486,16 +548,16 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
     ) -> None:
         self._entity = entity
 
-    def _get_parameter_children(self) -> set[LazyEntity]:
+    def _get_parameter_children(self) -> list[LazyEntity]:
         return self._parameter_children
 
     def _bind_parameter_children(
         self,
-        parameter_children: set[LazyEntity]
+        parameter_children: list[LazyEntity]
     ) -> None:
         for parameter_child in parameter_children:
             parameter_child._linked_properties.append(self)
-        self._parameter_children.update(parameter_children)
+        self._parameter_children.extend(parameter_children)
 
     def _clear_parameter_children(self) -> None:
         for parameter_child in self._parameter_children:
@@ -503,8 +565,11 @@ class LazyProperty(Generic[_LazyEntityT], LazyBase):
         self._parameter_children.clear()
 
 
-class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT], ABC):
-    __slots__ = ("element_type",)
+class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyBaseT], ABC):
+    __slots__ = (
+        "element_type",
+        "instance_to_lazy_dict"
+    )
 
     def __init__(
         self,
@@ -512,6 +577,7 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT], ABC):
     ) -> None:
         super().__init__()
         self.element_type: type[_ElementT] = element_type
+        self.instance_to_lazy_dict: dict[_InstanceT, _LazyBaseT] = {}
 
     @overload
     def __get__(
@@ -550,13 +616,13 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT], ABC):
     ) -> None:
         pass
 
-    @abstractmethod
+    #@abstractmethod
     def copy_initialize(
         self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
-        pass
+        self.initialize(dst)
 
     @abstractmethod
     def restock(
@@ -564,13 +630,37 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT], ABC):
         instance: _InstanceT
     ) -> None:
         pass
+        #if (lazy_base := self.instance_to_lazy_dict.pop(instance)) is not NotImplemented:
+        #    instance._unbind_dependency(lazy_base)
+
+    def get(
+        self,
+        instance: _InstanceT
+    ) -> _LazyBaseT:
+        return self.instance_to_lazy_dict[instance]
+
+    def set(
+        self,
+        instance: _InstanceT,
+        lazy_base: _LazyBaseT
+    ) -> None:
+        self.instance_to_lazy_dict[instance] = lazy_base
+
+    def pop(
+        self,
+        instance: _InstanceT
+    ) -> _LazyBaseT:
+        return self.instance_to_lazy_dict.pop(instance)
+
+    #def restock(
+    #    self,
+    #    instance: _InstanceT
+    #) -> None:
+    #    pass
 
 
-class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]):
-    __slots__ = (
-        "method",
-        "instance_to_entity_dict"
-    )
+class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT, _LazyEntityT]):
+    __slots__ = ("method",)
 
     def __init__(
         self,
@@ -581,7 +671,7 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
             element_type=element_type
         )
         self.method: Callable[[type[_InstanceT]], _LazyEntityT] = method
-        self.instance_to_entity_dict: dict[_InstanceT, _LazyEntityT] = {}
+        #self.instance_to_entity_dict: dict[_InstanceT, _LazyEntityT] = {}
 
     def __set__(
         self,
@@ -589,7 +679,7 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         new_entity: _LazyEntityT
     ) -> None:
         assert not instance._is_readonly()
-        old_entity = self.get_entity(instance)
+        old_entity = self.get(instance)
         if old_entity is new_entity:
             return
         #for entity in instance._iter_dependency_ancestors():
@@ -601,7 +691,7 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
             old_entity._expire_properties()
             instance._unbind_dependency(old_entity)
             old_entity._restock_descendants_if_no_dependency_parents()
-        self.set_entity(instance, new_entity)
+        self.set(instance, new_entity)
         if new_entity is not NotImplemented:
             instance._bind_dependency(new_entity)
 
@@ -609,26 +699,48 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         self,
         instance: _InstanceT
     ) -> _LazyEntityT:
-        return self.get_entity(instance)
+        return self.get(instance)
+
+    def initialize(
+        self,
+        instance: _InstanceT
+    ) -> None:
+        default_entity = self.get_default_entity(type(instance))
+        #if (default_object := self._default_object) is None:
+        #    default_object = self.method(type(instance))
+        #    if default_object is not NotImplemented:
+        #        default_object._restockable = False
+        #    self._default_object = default_object
+        self.set(instance, default_entity)
+        if default_entity is not NotImplemented:
+            instance._bind_dependency(default_entity)
 
     def restock(
         self,
         instance: _InstanceT
     ) -> None:
-        self.instance_to_entity_dict.pop(instance)
+        if (entity := self.pop(instance)) is not NotImplemented:
+            instance._unbind_dependency(entity)
 
-    def get_entity(
+    @abstractmethod
+    def get_default_entity(
         self,
-        instance: _InstanceT
+        instance_type: type[_InstanceT]
     ) -> _LazyEntityT:
-        return self.instance_to_entity_dict[instance]
+        pass
 
-    def set_entity(
-        self,
-        instance: _InstanceT,
-        entity: _LazyEntityT
-    ) -> None:
-        self.instance_to_entity_dict[instance] = entity
+    #def get_entity(
+    #    self,
+    #    instance: _InstanceT
+    #) -> _LazyEntityT:
+    #    return self.instance_to_entity_dict[instance]
+
+    #def set_entity(
+    #    self,
+    #    instance: _InstanceT,
+    #    entity: _LazyEntityT
+    #) -> None:
+    #    self.instance_to_entity_dict[instance] = entity
 
 
 class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjectT, _LazyObjectT]):
@@ -674,29 +786,39 @@ class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjec
     #) -> _LazyObjectT:
     #    return self.get_object(instance)
 
-    def initialize(
-        self,
-        instance: _InstanceT
-    ) -> None:
-        if (default_object := self._default_object) is None:
-            default_object = self.method(type(instance))
-            self._default_object = default_object
-        self.set_entity(instance, default_object)
-        if default_object is not NotImplemented:
-            instance._bind_dependency(default_object)
+    #def initialize(
+    #    self,
+    #    instance: _InstanceT
+    #) -> None:
+    #    
+    #    self.set(instance, default_object)
+    #    if default_object is not NotImplemented:
+    #        instance._bind_dependency(default_object)
 
     def copy_initialize(
         self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
-        self.initialize(dst)
-        if (dst_object := self.get_entity(dst)) is not NotImplemented:
+        super().copy_initialize(dst, src)
+        #self.initialize(dst)
+        if (dst_object := self.get(dst)) is not NotImplemented:
             dst._unbind_dependency(dst_object)
             dst_object._restock_descendants_if_no_dependency_parents()
-        if (src_object := self.get_entity(src)) is not NotImplemented:
+        if (src_object := self.get(src)) is not NotImplemented:
             dst._bind_dependency(src_object)
-        self.set_entity(dst, src_object)
+        self.set(dst, src_object)
+
+    def get_default_entity(
+        self,
+        instance_type: type[_InstanceT]
+    ) -> _LazyObjectT:
+        if (default_object := self._default_object) is None:
+            default_object = self.method(instance_type)
+            if default_object is not NotImplemented:
+                default_object._restockable = False
+            self._default_object = default_object
+        return default_object
 
     #def restock(
     #    self,
@@ -714,30 +836,37 @@ class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjec
 class LazyCollectionVariableDescriptor(LazyVariableDescriptor[_InstanceT, LazyCollection[_LazyObjectT], _LazyObjectT]):
     __slots__ = ()
 
-    def initialize(
-        self,
-        instance: _InstanceT
-    ) -> None:
-        default_object = self.method(type(instance))
-        self.set_entity(instance, default_object)
-        instance._bind_dependency(default_object)
+    #def initialize(
+    #    self,
+    #    instance: _InstanceT
+    #) -> None:
+    #    default_object = self.method(type(instance))
+    #    self.set(instance, default_object)
+    #    instance._bind_dependency(default_object)
 
     def copy_initialize(
         self,
         dst: _InstanceT,
         src: _InstanceT
     ) -> None:
-        self.initialize(dst)
-        self.get_entity(dst).add(*self.get_entity(src))
+        super().copy_initialize(dst, src)
+        #self.initialize(dst)
+        self.get(dst).add(*self.get(src))
+
+    def get_default_entity(
+        self,
+        instance_type: type[_InstanceT]
+    ) -> LazyCollection[_LazyObjectT]:
+        return self.method(instance_type)
 
 
-class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]):
+class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT, LazyProperty[_LazyEntityT]]):
     __slots__ = (
         "method",
         "parameter_name_chains",
         "parameter_preapplied_methods",
         "descriptor_overloading_chains",
-        "instance_to_property_dict",
+        #"instance_to_property_dict",
         "parameters_to_entity_dict"
     )
 
@@ -755,7 +884,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         self.parameter_name_chains: tuple[tuple[str, ...], ...] = parameter_name_chains
         self.parameter_preapplied_methods: tuple[Callable[[Any], Any] | None, ...] = parameter_preapplied_methods
         self.descriptor_overloading_chains: tuple[tuple[LazyDescriptorOverloading, ...], ...] = NotImplemented
-        self.instance_to_property_dict: dict[_InstanceT, LazyProperty[_LazyEntityT]] = {}
+        #self.instance_to_property_dict: dict[_InstanceT, LazyProperty[_LazyEntityT]] = {}
         self.parameters_to_entity_dict: dict[tuple, _LazyEntityT] = {}
 
     def __set__(
@@ -769,21 +898,29 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         self,
         instance: _InstanceT
     ) -> _LazyEntityT:
-        prop = self.get_property(instance)
+        prop = self.get(instance)
         if (entity := prop._get()) is None:
             parameter_items = tuple(
                 self.construct_parameter_item(descriptor_overloading_chain, instance)
                 for descriptor_overloading_chain in self.descriptor_overloading_chains
             )
-            prop._bind_parameter_children(set(
+            prop._bind_parameter_children(list(dict.fromkeys(
                 parameter_child
                 for _, _, parameter_children in parameter_items
                 for parameter_child in parameter_children
-            ))
+            )))
             parameters = tuple(
                 parameter
                 for parameter, _, _ in parameter_items
             )
+            #print(tuple(
+            #        parameter
+            #        if preapplied_method is None
+            #        else self.apply_at_depth(preapplied_method, parameter, depth)
+            #        for (parameter, depth, _), preapplied_method in zip(
+            #            parameter_items, self.parameter_preapplied_methods, strict=True
+            #        )
+            #    ))
             if (entity := self.parameters_to_entity_dict.get(parameters)) is None:
                 entity = self.method(type(instance), *(
                     parameter
@@ -802,14 +939,15 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         self,
         instance: _InstanceT
     ) -> None:
-        self.instance_to_property_dict[instance] = LazyProperty()
+        self.set(instance, LazyProperty())
+        #self.instance_to_property_dict[instance] = LazyProperty()
 
-    def copy_initialize(
-        self,
-        dst: _InstanceT,
-        src: _InstanceT
-    ) -> None:
-        self.initialize(dst)
+    #def copy_initialize(
+    #    self,
+    #    dst: _InstanceT,
+    #    src: _InstanceT
+    #) -> None:
+    #    self.initialize(dst)
         #self.instance_to_property_dict[dst]._set(
         #    self.instance_to_property_dict[src]._get()
         #)
@@ -821,133 +959,285 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT]
         self,
         instance: _InstanceT
     ) -> None:
-        self.instance_to_property_dict.pop(instance)
+        self.pop(instance)
 
-    def get_property(
-        self,
-        instance: _InstanceT
-    ) -> LazyProperty[_LazyEntityT]:
-        return self.instance_to_property_dict[instance]
+    #def restock(
+    #    self,
+    #    instance: _InstanceT
+    #) -> None:
+    #    if (prop := self.instance_to_property_dict.pop(instance)) is not NotImplemented:
+    #        instance._unbind_dependency(prop)
+
+    #def get_property(
+    #    self,
+    #    instance: _InstanceT
+    #) -> LazyProperty[_LazyEntityT]:
+    #    return self.instance_to_property_dict[instance]
 
     @classmethod
     def construct_parameter_item(
         cls,
         descriptor_overloading_chain: "tuple[LazyDescriptorOverloading, ...]",
         instance: _InstanceT
-    ) -> tuple[Any, int, set[LazyEntity]]:
-        parameter_children: set[LazyEntity] = set()
+    ) -> tuple[Any, int, list[LazyEntity]]:
+        parameter_children: list[LazyEntity] = []
 
-        def construct_from_collection(
+        @overload
+        def construct_callback(
             item: tuple[LazyObject, bool],
-            descriptor_overloading: LazyCollectionDescriptorOverloading
-        ) -> tuple[tuple[LazyObject, bool], ...]:
+            descriptor_overloading: LazyObjectDescriptorOverloading,
+            is_chain_tail: Literal[True]
+        ) -> LazyObject: ...
+
+        @overload
+        def construct_callback(
+            item: tuple[LazyObject, bool],
+            descriptor_overloading: LazyCollectionDescriptorOverloading,
+            is_chain_tail: Literal[True]
+        ) -> tuple[LazyObject, ...]: ...
+
+        @overload
+        def construct_callback(
+            item: tuple[LazyObject, bool],
+            descriptor_overloading: LazyObjectDescriptorOverloading,
+            is_chain_tail: Literal[False]
+        ) -> tuple[LazyObject, bool]: ...
+
+        @overload
+        def construct_callback(
+            item: tuple[LazyObject, bool],
+            descriptor_overloading: LazyCollectionDescriptorOverloading,
+            is_chain_tail: Literal[False]
+        ) -> tuple[tuple[LazyObject, bool], ...]: ...
+
+        def construct_callback(
+            item: tuple[LazyObject, bool],
+            descriptor_overloading: LazyDescriptorOverloading,
+            is_chain_tail: bool
+        ) -> LazyObject | tuple[LazyObject, ...] | tuple[LazyObject, bool] | tuple[tuple[LazyObject, bool], ...]:
             obj, binding_completed = item
             descriptor = descriptor_overloading.get_descriptor(type(obj))
-            collection = descriptor.instance_get(obj)
-            if not binding_completed:
-                parameter_children.add(collection)
-                if isinstance(descriptor, LazyCollectionPropertyDescriptor):
-                    parameter_children.update(descriptor.get_property(obj)._get_parameter_children())
-                    binding_completed = True
-                else:
-                    parameter_children.update(collection)
-            return tuple(
-                (element, binding_completed)
-                for element in collection
-            )
+            entity = descriptor.instance_get(obj)
 
-        def construct_from_collection_tail(
-            item: tuple[LazyObject, bool],
-            descriptor_overloading: LazyCollectionDescriptorOverloading
-        ) -> tuple[LazyObject, ...]:
-            obj, binding_completed = item
-            descriptor = descriptor_overloading.get_descriptor(type(obj))
-            collection = descriptor.instance_get(obj)
-            if not binding_completed:
-                parameter_children.add(collection)
-                if isinstance(descriptor, LazyCollectionPropertyDescriptor):
-                    parameter_children.update(descriptor.get_property(obj)._get_parameter_children())
-                else:
-                    parameter_children.update(*(
-                        element._iter_dependency_descendants()
-                        for element in collection
-                    ))
-            return tuple(collection)
-
-        def construct_from_object(
-            item: tuple[LazyObject, bool],
-            descriptor_overloading: LazyObjectDescriptorOverloading
-        ) -> tuple[LazyObject, bool]:
-            obj, binding_completed = item
-            descriptor = descriptor_overloading.get_descriptor(type(obj))
-            element = descriptor.instance_get(obj)
-            if not binding_completed:
-                if isinstance(descriptor, LazyObjectPropertyDescriptor):
-                    parameter_children.update(descriptor.get_property(obj)._get_parameter_children())
-                    binding_completed = True
-                else:
-                    parameter_children.add(element)
-            return (element, binding_completed)
-
-        def construct_from_object_tail(
-            item: tuple[LazyObject, bool],
-            descriptor_overloading: LazyObjectDescriptorOverloading
-        ) -> LazyObject:
-            obj, binding_completed = item
-            descriptor = descriptor_overloading.get_descriptor(type(obj))
-            element = descriptor.instance_get(obj)
-            if not binding_completed:
-                if isinstance(descriptor, LazyObjectPropertyDescriptor):
-                    parameter_children.update(descriptor.get_property(obj)._get_parameter_children())
-                else:
-                    parameter_children.update(
-                        element._iter_dependency_descendants()
-                    )
-            return element
-
-        parameter_item = (instance, False)
-        depth = 0
-        for descriptor_overloading in descriptor_overloading_chain[:-1]:
-            #is_chain_tail = index == len(descriptor_overloading_chain) - 1
-            if isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
-                parameter_item = cls.apply_at_depth(
-                    lambda item: construct_from_collection(
-                        item, descriptor_overloading
-                    ),
-                    parameter_item,
-                    depth
-                )
-                depth += 1
-            elif isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
-                parameter_item = cls.apply_at_depth(
-                    lambda item: construct_from_object(
-                        item, descriptor_overloading
-                    ),
-                    parameter_item,
-                    depth
-                )
+            elements: list[LazyObject] = []
+            if isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
+                assert isinstance(entity, LazyObject)
+                elements.append(entity)
+            elif isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
+                assert isinstance(entity, LazyCollection)
+                elements.extend(entity)
             else:
                 raise TypeError
-        descriptor_overloading = descriptor_overloading_chain[-1]
-        if isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
-            parameter = cls.apply_at_depth(
-                lambda item: construct_from_collection_tail(
-                    item, descriptor_overloading
+
+            if not binding_completed:
+                if isinstance(descriptor, LazyVariableDescriptor):
+                    if is_chain_tail:
+                        parameter_children.extend(*(
+                            element._iter_dependency_descendants()
+                            for element in elements
+                        ))
+                    else:
+                        parameter_children.extend(elements)
+                else:
+                    parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+                    binding_completed = True
+
+            if isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
+                assert isinstance(entity, LazyObject)
+                if is_chain_tail:
+                    result = entity
+                else:
+                    result = (entity, binding_completed)
+            else:
+                assert isinstance(entity, LazyCollection)
+                if is_chain_tail:
+                    result = tuple(entity)
+                else:
+                    result = tuple(
+                        (element, binding_completed)
+                        for element in entity
+                    )
+            return result
+
+
+            #if not binding_completed:
+            #    if isinstance(descriptor, LazyVariableDescriptor):
+            #        if isinstance(descriptor, LazyObjectVariableDescriptor):
+            #            if is_tail:
+            #                parameter_children.extend(entity._iter_dependency_descendants())
+            #            else:
+            #                parameter_children.append(entity)
+            #        else:
+            #            if is_tail:
+            #                parameter_children.extend(*(
+            #                    element._iter_dependency_descendants()
+            #                    for element in entity
+            #                ))
+            #            else:
+            #                parameter_children.extend(entity)
+            #    else:
+            #        parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+            #        binding_completed = True
+
+
+
+
+
+            #    if isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
+            #        assert isinstance(entity, LazyObject)
+            #        if isinstance(descriptor, LazyObjectVariableDescriptor):
+            #            if is_tail:
+            #                parameter_children.extend(entity._iter_dependency_descendants())
+            #            else:
+            #                parameter_children.append(entity)
+            #        elif isinstance(descriptor, LazyObjectPropertyDescriptor):
+            #            parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+            #            binding_completed = True
+            #        else:
+            #            raise TypeError
+            #    elif isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
+            #        assert isinstance(entity, LazyCollection)
+            #        parameter_children.append(entity)
+            #        if isinstance(descriptor, LazyCollectionVariableDescriptor):
+            #            if is_tail:
+            #                parameter_children.extend(*(
+            #                    element._iter_dependency_descendants()
+            #                    for element in entity
+            #                ))
+            #            else:
+            #                parameter_children.extend(entity)
+            #        elif isinstance(descriptor, LazyCollectionPropertyDescriptor):
+            #            parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+            #            binding_completed = True
+            #        else:
+            #            raise TypeError
+            #    else:
+            #        raise TypeError
+            #return tuple(
+            #    (element, binding_completed)
+            #    for element in collection
+            #)
+
+        #def construct_from_collection(
+        #    item: tuple[LazyObject, bool],
+        #    descriptor_overloading: LazyCollectionDescriptorOverloading
+        #) -> tuple[tuple[LazyObject, bool], ...]:
+        #    obj, binding_completed = item
+        #    descriptor = descriptor_overloading.get_descriptor(type(obj))
+        #    collection = descriptor.instance_get(obj)
+        #    if not binding_completed:
+        #        parameter_children.append(collection)
+        #        if isinstance(descriptor, LazyCollectionPropertyDescriptor):
+        #            parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+        #            binding_completed = True
+        #        else:
+        #            parameter_children.extend(collection)
+        #    return tuple(
+        #        (element, binding_completed)
+        #        for element in collection
+        #    )
+
+        #def construct_from_collection_tail(
+        #    item: tuple[LazyObject, bool],
+        #    descriptor_overloading: LazyCollectionDescriptorOverloading
+        #) -> tuple[LazyObject, ...]:
+        #    obj, binding_completed = item
+        #    descriptor = descriptor_overloading.get_descriptor(type(obj))
+        #    collection = descriptor.instance_get(obj)
+        #    if not binding_completed:
+        #        parameter_children.append(collection)
+        #        if isinstance(descriptor, LazyCollectionPropertyDescriptor):
+        #            parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+        #        else:
+        #            parameter_children.extend(*(
+        #                element._iter_dependency_descendants()
+        #                for element in collection
+        #            ))
+        #    return tuple(collection)
+
+        #def construct_from_object(
+        #    item: tuple[LazyObject, bool],
+        #    descriptor_overloading: LazyObjectDescriptorOverloading
+        #) -> tuple[LazyObject, bool]:
+        #    obj, binding_completed = item
+        #    descriptor = descriptor_overloading.get_descriptor(type(obj))
+        #    element = descriptor.instance_get(obj)
+        #    if not binding_completed:
+        #        if isinstance(descriptor, LazyObjectPropertyDescriptor):
+        #            parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+        #            binding_completed = True
+        #        else:
+        #            parameter_children.append(element)
+        #    return (element, binding_completed)
+
+        #def construct_from_object_tail(
+        #    item: tuple[LazyObject, bool],
+        #    descriptor_overloading: LazyObjectDescriptorOverloading
+        #) -> LazyObject:
+        #    obj, binding_completed = item
+        #    descriptor = descriptor_overloading.get_descriptor(type(obj))
+        #    element = descriptor.instance_get(obj)
+        #    if not binding_completed:
+        #        if isinstance(descriptor, LazyObjectPropertyDescriptor):
+        #            parameter_children.extend(descriptor.get(obj)._get_parameter_children())
+        #        else:
+        #            parameter_children.extend(
+        #                element._iter_dependency_descendants()
+        #            )
+        #    return element
+
+        def construct_layer(
+            descriptor_overloading: LazyDescriptorOverloading,
+            is_chain_tail: bool,
+            parameter: Any,
+            depth: int
+        ) -> Any:
+            return cls.apply_at_depth(
+                lambda item: construct_callback(
+                    item, descriptor_overloading, is_chain_tail
                 ),
-                parameter_item,
+                parameter,
                 depth
             )
-            depth += 1
-        elif isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
-            parameter = cls.apply_at_depth(
-                lambda item: construct_from_object_tail(
-                    item, descriptor_overloading
-                ),
-                parameter_item,
-                depth
-            )
-        else:
-            raise TypeError
+
+        parameter = (instance, False)
+        depth = 0
+        for index, descriptor_overloading in enumerate(descriptor_overloading_chain):
+            is_chain_tail = index == len(descriptor_overloading_chain) - 1
+            #assert isinstance(descriptor_overloading, LazyObjectDescriptorOverloading | LazyCollectionDescriptorOverloading)
+            #if isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
+            parameter = construct_layer(descriptor_overloading, is_chain_tail, parameter, depth)
+            depth += isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading)
+            #elif isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
+            #    parameter = cls.apply_at_depth(
+            #        lambda item: construct_from_object(
+            #            item, descriptor_overloading
+            #        ),
+            #        parameter,
+            #        depth
+            #    )
+            #else:
+            #    raise TypeError
+        #descriptor_overloading = descriptor_overloading_chain[-1]
+        #if isinstance(descriptor_overloading, LazyCollectionDescriptorOverloading):
+        #    parameter = cls.apply_at_depth(
+        #        lambda item: construct_from_collection_tail(
+        #            item, descriptor_overloading
+        #        ),
+        #        parameter_item,
+        #        depth
+        #    )
+        #    depth += 1
+        #elif isinstance(descriptor_overloading, LazyObjectDescriptorOverloading):
+        #    parameter = cls.apply_at_depth(
+        #        lambda item: construct_from_object_tail(
+        #            item, descriptor_overloading
+        #        ),
+        #        parameter_item,
+        #        depth
+        #    )
+        #else:
+        #    raise TypeError
         return parameter, depth, parameter_children
 
     @classmethod

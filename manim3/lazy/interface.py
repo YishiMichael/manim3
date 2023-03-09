@@ -187,6 +187,8 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
     ) -> None:
         if (cached_object := self.content_to_object_bidict.get(obj)) is None:
             cached_object = LazyWrapper(obj)
+            #print(self.content_to_object_bidict)
+            #print(obj, cached_object)
             self.content_to_object_bidict[obj] = cached_object
         super().__set__(instance, cached_object)
 
@@ -194,7 +196,7 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
         self,
         instance: _InstanceT
     ) -> None:
-        self.content_to_object_bidict.inverse.pop(self.get_entity(instance))
+        self.content_to_object_bidict.inverse.pop(self.get(instance))
         super().restock(instance)
 
 
@@ -257,7 +259,7 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
         self,
         instance: _InstanceT
     ) -> None:
-        if (obj := self.get_property(instance)._get()) is not None:
+        if (obj := self.get(instance)._get()) is not None:
             if self.restock_method is not None:
                 self.restock_method(obj.value)
         super().restock(instance)

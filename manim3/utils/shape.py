@@ -78,7 +78,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
         lengths: FloatsT
     ) -> FloatsT:
         if not len(lengths):
-            return np.zeros(1)
+            return np.ones(1)
         unnormalized_knots = np.insert(lengths.cumsum(), 0, 0.0)
         # Ensure the last entry is always precisely 1.0
         return unnormalized_knots / unnormalized_knots[-1]
@@ -297,9 +297,9 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
     @classmethod
     def _lengths_(
         cls,
-        children: tuple[LineString[_VecT, _VecsT], ...]
+        children__length: tuple[float, ...]
     ) -> FloatsT:
-        return np.maximum(np.array([child._length_ for child in children]), 1e-6)
+        return np.maximum(np.array(children__length), 1e-6)
 
     def interpolate_point(
         self,
@@ -569,7 +569,7 @@ class Shape(LazyObject):
         cls,
         _multi_line_string_: MultiLineString2D
     ) -> shapely.geometry.base.BaseGeometry:
-        return Shape._to_shapely_object(_multi_line_string_)
+        return cls._to_shapely_object(_multi_line_string_)
 
     @classmethod
     def _to_shapely_object(
@@ -591,8 +591,9 @@ class Shape(LazyObject):
         self,
         start: float,
         stop: float
-    ) -> "Shape":
-        return Shape(self._multi_line_string_.partial(start, stop))
+    ):
+        cls = self.__class__
+        return cls(self._multi_line_string_.partial(start, stop))
 
     def interpolate_shape_callback(
         self,
@@ -600,6 +601,7 @@ class Shape(LazyObject):
         *,
         has_inlay: bool
     ) -> "Callable[[float], Shape]":
+        cls = self.__class__
         multi_line_string_callback = self._multi_line_string_.interpolate_shape_callback(
             other._multi_line_string_,
             has_inlay=has_inlay
@@ -607,17 +609,17 @@ class Shape(LazyObject):
 
         def callback(
             alpha: float
-        ) -> Shape:
+        ):
             multi_line_string = multi_line_string_callback(alpha)
-            return Shape(Shape._to_shapely_object(multi_line_string))
+            return cls(cls._to_shapely_object(multi_line_string))
         return callback
 
     @classmethod
     def concatenate(
         cls,
         shapes: "Iterable[Shape]"
-    ) -> "Shape":
-        return Shape(MultiLineString2D.concatenate(
+    ):
+        return cls(MultiLineString2D.concatenate(
             shape._multi_line_string_
             for shape in shapes
         ))
@@ -649,12 +651,14 @@ class Shape(LazyObject):
         return np.array(self._shapely_obj_.value.centroid)
 
     @property
-    def convex_hull(self) -> "Shape":
-        return Shape(self._shapely_obj_.value.convex_hull)
+    def convex_hull(self):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.convex_hull)
 
     @property
-    def envelope(self) -> "Shape":
-        return Shape(self._shapely_obj_.value.envelope)
+    def envelope(self):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.envelope)
 
     def buffer(
         self,
@@ -664,8 +668,9 @@ class Shape(LazyObject):
         join_style: str = "round",
         mitre_limit: float = 5.0,
         single_sided: bool = False
-    ) -> "Shape":
-        return Shape(self._shapely_obj_.value.buffer(
+    ):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.buffer(
             distance=distance,
             quad_segs=quad_segs,
             cap_style=cap_style,
@@ -677,23 +682,27 @@ class Shape(LazyObject):
     def intersection(
         self,
         other: "Shape"
-    ) -> "Shape":
-        return Shape(self._shapely_obj_.value.intersection(other._shapely_obj_.value))
+    ):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.intersection(other._shapely_obj_.value))
 
     def union(
         self,
         other: "Shape"
-    ) -> "Shape":
-        return Shape(self._shapely_obj_.value.union(other._shapely_obj_.value))
+    ):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.union(other._shapely_obj_.value))
 
     def difference(
         self,
         other: "Shape"
-    ) -> "Shape":
-        return Shape(self._shapely_obj_.value.difference(other._shapely_obj_.value))
+    ):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.difference(other._shapely_obj_.value))
 
     def symmetric_difference(
         self,
         other: "Shape"
-    ) -> "Shape":
-        return Shape(self._shapely_obj_.value.symmetric_difference(other._shapely_obj_.value))
+    ):
+        cls = self.__class__
+        return cls(self._shapely_obj_.value.symmetric_difference(other._shapely_obj_.value))

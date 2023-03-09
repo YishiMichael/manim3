@@ -40,9 +40,11 @@ class AlphaAnimation(Animation):
         mobject_addition_items: list[tuple[float, Mobject, Mobject | None]],
         mobject_removal_items: list[tuple[float, Mobject, Mobject | None]],
         run_time: float,
-        rate_func: Callable[[float], float] = RateUtils.smooth
+        rate_func: Callable[[float], float] | None = None
     ) -> None:
         assert run_time > 0.0
+        if rate_func is None:
+            rate_func = RateUtils.smooth
         super().__init__(
             animate_func=lambda t0, t: animate_func(rate_func(t0 / run_time), rate_func(t / run_time)),
             mobject_addition_items=[
