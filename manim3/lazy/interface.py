@@ -135,16 +135,21 @@ class LazyCollectionVariableDecorator(LazyCollectionVariableDescriptor[_Instance
 
 
 class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T]]):
-    __slots__ = ()
+    __slots__ = ("default_object",)
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _T]
     ) -> None:
+        self.default_object: LazyWrapper[_T] | None = None
+
         def new_method(
             cls: type[_InstanceT]
         ) -> LazyWrapper[_T]:
-            return LazyWrapper(method(cls))
+            if (default_object := self.default_object) is None:
+                default_object = LazyWrapper(method(cls))
+                self.default_object = default_object
+            return default_object
 
         super().__init__(
             element_type=LazyWrapper,
@@ -162,18 +167,25 @@ class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_Instanc
 
 
 class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_HashableT]]):
-    __slots__ = ("content_to_object_bidict",)
+    __slots__ = (
+        "content_to_object_bidict",
+        "default_object"
+    )
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _HashableT]
     ) -> None:
         self.content_to_object_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
+        self.default_object: LazyWrapper[_HashableT] | None = None
 
         def new_method(
             cls: type[_InstanceT]
         ) -> LazyWrapper[_HashableT]:
-            return LazyWrapper(method(cls))
+            if (default_object := self.default_object) is None:
+                default_object = LazyWrapper(method(cls))
+                self.default_object = default_object
+            return default_object
 
         super().__init__(
             element_type=LazyWrapper,
@@ -192,12 +204,12 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
             self.content_to_object_bidict[obj] = cached_object
         super().__set__(instance, cached_object)
 
-    def restock(
+    def clear_ref(
         self,
         instance: _InstanceT
     ) -> None:
         self.content_to_object_bidict.inverse.pop(self.get(instance))
-        super().restock(instance)
+        super().clear_ref(instance)
 
 
 class LazyObjectPropertyDecorator(LazyObjectPropertyDescriptor[_InstanceT, _LazyObjectT]):
@@ -233,13 +245,13 @@ class LazyCollectionPropertyDecorator(LazyCollectionPropertyDescriptor[_Instance
 
 
 class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_InstanceT, LazyWrapper[_T]]):
-    __slots__ = ("restock_method",)
+    __slots__ = ("release_method",)
 
     def __init__(
         self,
         method: Callable[..., _T]
     ) -> None:
-        self.restock_method: Callable[[_T], None] | None = None
+        self.release_method: Callable[[type[_InstanceT], _T], None] | None = None
 
         def new_method(
             cls: type[_InstanceT],
@@ -255,21 +267,22 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
             parameter_preapplied_methods=parameter_preapplied_methods
         )
 
-    def restock(
+    def clear_ref(
         self,
         instance: _InstanceT
     ) -> None:
         if (obj := self.get(instance)._get()) is not None:
-            if self.restock_method is not None:
-                self.restock_method(obj.value)
-        super().restock(instance)
+            if self.release_method is not None:
+                self.release_method(type(instance), obj.value)
+        super().clear_ref(instance)
 
-    def restocker(
+    def releaser(
         self,
-        restock_method: Callable[[_T], None]
-    ) -> Callable[[_T], None]:
-        self.restock_method = restock_method
-        return restock_method
+        release_method: Callable
+    ) -> Callable:
+        assert isinstance(release_method, classmethod)
+        self.release_method = release_method.__func__
+        return release_method
 
 
 class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT, LazyWrapper[_HashableT]]):
@@ -300,7 +313,7 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
             parameter_preapplied_methods=parameter_preapplied_methods
         )
 
-    #def restock(
+    #def clear_ref(
     #    self,
     #    instance: _InstanceT
     #) -> None:
@@ -308,7 +321,7 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
     #        self.content_to_object_bidict.inverse.pop(obj)
     #        if self.restock_method is not None:
     #            self.restock_method(obj.value)
-    #    super().restock(instance)
+    #    super().clear_ref(instance)
 
     #def restocker(
     #    self,

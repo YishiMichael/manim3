@@ -267,15 +267,12 @@ class LazyBase(ABC):
 
 
 class LazyEntity(LazyBase):
-    __slots__ = (
-        "_linked_properties",
-        "_restockable"
-    )
+    __slots__ = ("_linked_properties",)
 
     def __init__(self) -> None:
         super().__init__()
         self._linked_properties: list[LazyProperty] = []
-        self._restockable: bool = True
+        #self._restockable: bool = True
 
     def _iter_dependency_children(self) -> "Generator[LazyEntity, None, None]":
         for entity in super()._iter_dependency_children():
@@ -288,7 +285,7 @@ class LazyEntity(LazyBase):
             yield entity
 
     @abstractmethod
-    def _restock(self) -> None:
+    def _clear_children_ref(self) -> None:
         pass
 
     def _is_readonly(self) -> bool:
@@ -310,13 +307,12 @@ class LazyEntity(LazyBase):
             #print()
             expired_property._clear_linked_parameters()
             expired_property._set(None)
-            #entity._restock_descendants_if_no_dependency_parents()
-            if entity not in expired_entities:
-                expired_entities.append(entity)
-        for entity in expired_entities:
-            entity._restock_descendants_if_no_dependency_parents()
+            #entity._clear_descendants_ref_if_no_dependency_parents()
+            expired_entities.append(entity)
+        for entity in dict.fromkeys(expired_entities):
+            entity._clear_descendants_ref_if_no_dependency_parents()
 
-    def _restock_descendants_if_no_dependency_parents(self) -> None:
+    def _clear_descendants_ref_if_no_dependency_parents(self) -> None:
         #if "VertexArray" in [cls.__name__ for cls in self.__class__.__mro__]:
         #    print(self, list(self._iter_dependency_parents()), bool(self._iter_dependency_parents()))
         #if list(self._iter_dependency_parents()):
@@ -330,23 +326,37 @@ class LazyEntity(LazyBase):
         #self._clear_dependency()
         #for entity in children:
         #    assert isinstance(entity, LazyEntity)
-        #    entity._restock_descendants_if_no_dependency_parents()
+        #    entity._clear_descendants_ref_if_no_dependency_parents()
         #for entity in self._iter_dependency_descendants():
         #    assert isinstance(entity, LazyEntity)
         #    if isinstance(entity, LazyObject):
         #        entity._restock()
 
-        all_descendants = list(self._iter_dependency_descendants())
-        while expired_entities := [
-            entity for entity in all_descendants
-            if not list(entity._iter_dependency_parents())
-        ]:
-            for entity in expired_entities:
-                #assert isinstance(entity, LazyEntity)
-                if entity._restockable:
-                    entity._restock()
-                    assert not list(entity._iter_dependency_children())
-                all_descendants.remove(entity)
+        stack: list[LazyEntity] = [self]
+        while stack:
+            entity = stack.pop(0)
+            if list(entity._iter_dependency_parents()):
+                continue
+            entity_children = list(entity._iter_dependency_children())
+            entity._clear_dependency()
+            stack.extend(entity_children)
+            #import sys
+            #print(sys.getrefcount(entity))
+            #if entity._restockable:
+            entity._clear_children_ref()
+                #assert not list(entity._iter_dependency_children())
+
+        #all_descendants = list(self._iter_dependency_descendants())
+        #while expired_entities := [
+        #    entity for entity in all_descendants
+        #    if not list(entity._iter_dependency_parents())
+        #]:
+        #    for entity in expired_entities:
+        #        #assert isinstance(entity, LazyEntity)
+        #        if entity._restockable:
+        #            entity._restock()
+        #            assert not list(entity._iter_dependency_children())
+        #        all_descendants.remove(entity)
 
 
 class LazyObject(LazyEntity):
@@ -493,14 +503,14 @@ class LazyObject(LazyEntity):
             descriptor.copy_initialize(result, self)
         return result
 
-    def _restock(self) -> None:
+    def _clear_children_ref(self) -> None:
         # TODO: check refcnt
         # TODO: Never restock the default object
         #import sys
         #print(sys.getrefcount(self), type(self))
         cls = self.__class__
         for descriptor in cls._LAZY_DESCRIPTORS:
-            descriptor.restock(self)
+            descriptor.clear_ref(self)
         #cls._VACANT_INSTANCES.append(self)
 
 
@@ -544,9 +554,9 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
     #def _copy(self) -> "LazyCollection[_LazyObjectT]":
     #    return LazyCollection(*self._elements)
 
-    def _restock(self) -> None:
-        for element in self._elements:
-            self._unbind_dependency(element)
+    def _clear_children_ref(self) -> None:
+        #for element in self._elements:
+        #    self._unbind_dependency(element)
         self._elements.clear()
         #elements = self._elements[:]
         #self.remove(*elements)
@@ -587,7 +597,7 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
                 continue
             self._elements.remove(element)
             self._unbind_dependency(element)
-            element._restock_descendants_if_no_dependency_parents()
+            element._clear_descendants_ref_if_no_dependency_parents()
         return self
 
     #def clear(self):
@@ -691,12 +701,12 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyBaseT], A
     ) -> None:
         self.initialize(dst)
 
-    @abstractmethod
-    def restock(
+    #@abstractmethod
+    def clear_ref(
         self,
         instance: _InstanceT
     ) -> None:
-        pass
+        self.instance_to_lazy_dict.pop(instance)
         #if (lazy_base := self.instance_to_lazy_dict.pop(instance)) is not NotImplemented:
         #    instance._unbind_dependency(lazy_base)
 
@@ -713,11 +723,11 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyBaseT], A
     ) -> None:
         self.instance_to_lazy_dict[instance] = lazy_base
 
-    def pop(
-        self,
-        instance: _InstanceT
-    ) -> _LazyBaseT:
-        return self.instance_to_lazy_dict.pop(instance)
+    #def pop(
+    #    self,
+    #    instance: _InstanceT
+    #) -> _LazyBaseT:
+    #    return self.instance_to_lazy_dict.pop(instance)
 
     #def restock(
     #    self,
@@ -757,7 +767,7 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         if old_entity is not NotImplemented:
             old_entity._expire_properties()
             instance._unbind_dependency(old_entity)
-            old_entity._restock_descendants_if_no_dependency_parents()
+            old_entity._clear_descendants_ref_if_no_dependency_parents()
         self.set(instance, new_entity)
         if new_entity is not NotImplemented:
             instance._bind_dependency(new_entity)
@@ -772,7 +782,7 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         self,
         instance: _InstanceT
     ) -> None:
-        default_entity = self.get_default_entity(type(instance))
+        default_entity = self.method(type(instance))
         #if (default_object := self._default_object) is None:
         #    default_object = self.method(type(instance))
         #    if default_object is not NotImplemented:
@@ -782,19 +792,19 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         if default_entity is not NotImplemented:
             instance._bind_dependency(default_entity)
 
-    def restock(
-        self,
-        instance: _InstanceT
-    ) -> None:
-        if (entity := self.pop(instance)) is not NotImplemented:
-            instance._unbind_dependency(entity)
+    #def restock(
+    #    self,
+    #    instance: _InstanceT
+    #) -> None:
+    #    if (entity := self.pop(instance)) is not NotImplemented:
+    #        instance._unbind_dependency(entity)
 
-    @abstractmethod
-    def get_default_entity(
-        self,
-        instance_type: type[_InstanceT]
-    ) -> _LazyEntityT:
-        pass
+    #@abstractmethod
+    #def get_default_entity(
+    #    self,
+    #    instance_type: type[_InstanceT]
+    #) -> _LazyEntityT:
+    #    pass
 
     #def get_entity(
     #    self,
@@ -811,18 +821,18 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
 
 
 class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjectT, _LazyObjectT]):
-    __slots__ = ("_default_object",)
+    __slots__ = ()
 
-    def __init__(
-        self,
-        element_type: type[_LazyObjectT],
-        method: Callable[[type[_InstanceT]], _LazyObjectT]
-    ) -> None:
-        super().__init__(
-            element_type=element_type,
-            method=method
-        )
-        self._default_object: _LazyObjectT | None = None
+    #def __init__(
+    #    self,
+    #    element_type: type[_LazyObjectT],
+    #    method: Callable[[type[_InstanceT]], _LazyObjectT]
+    #) -> None:
+    #    super().__init__(
+    #        element_type=element_type,
+    #        method=method
+    #    )
+    #    self._default_object: _LazyObjectT | None = None
 
     #def __set__(
     #    self,
@@ -838,7 +848,7 @@ class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjec
     #        #    entity._expire_properties()
     #        old_object._expire_properties()
     #        instance._unbind_dependency(old_object)
-    #        old_object._restock_descendants_if_no_dependency_parents()
+    #        old_object._clear_descendants_ref_if_no_dependency_parents()
     #    #instance._expire_properties()
     #    #for entity in instance._iter_dependency_ancestors():
     #    #    assert isinstance(entity, LazyEntity)
@@ -871,21 +881,21 @@ class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjec
         #self.initialize(dst)
         if (dst_object := self.get(dst)) is not NotImplemented:
             dst._unbind_dependency(dst_object)
-            dst_object._restock_descendants_if_no_dependency_parents()
+            dst_object._clear_descendants_ref_if_no_dependency_parents()
         if (src_object := self.get(src)) is not NotImplemented:
             dst._bind_dependency(src_object)
         self.set(dst, src_object)
 
-    def get_default_entity(
-        self,
-        instance_type: type[_InstanceT]
-    ) -> _LazyObjectT:
-        if (default_object := self._default_object) is None:
-            default_object = self.method(instance_type)
-            if default_object is not NotImplemented:
-                default_object._restockable = False
-            self._default_object = default_object
-        return default_object
+    #def get_default_entity(
+    #    self,
+    #    instance_type: type[_InstanceT]
+    #) -> _LazyObjectT:
+    #    if (default_object := self._default_object) is None:
+    #        default_object = self.method(instance_type)
+    #        #if default_object is not NotImplemented:
+    #        #    default_object._restockable = False
+    #        self._default_object = default_object
+    #    return default_object
 
     #def restock(
     #    self,
@@ -920,11 +930,11 @@ class LazyCollectionVariableDescriptor(LazyVariableDescriptor[_InstanceT, LazyCo
         #self.initialize(dst)
         self.get(dst).add(*self.get(src))
 
-    def get_default_entity(
-        self,
-        instance_type: type[_InstanceT]
-    ) -> LazyCollection[_LazyObjectT]:
-        return self.method(instance_type)
+    #def get_default_entity(
+    #    self,
+    #    instance_type: type[_InstanceT]
+    #) -> LazyCollection[_LazyObjectT]:
+    #    return self.method(instance_type)
 
 
 class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT, LazyProperty[_LazyEntityT]]):
@@ -1043,11 +1053,11 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         #    self.instance_to_property_dict[src]._get_linked_parameters()
         #)
 
-    def restock(
-        self,
-        instance: _InstanceT
-    ) -> None:
-        self.pop(instance)
+    #def restock(
+    #    self,
+    #    instance: _InstanceT
+    #) -> None:
+    #    self.pop(instance)
 
     #def restock(
     #    self,

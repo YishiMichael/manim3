@@ -262,11 +262,14 @@ class VertexArray(LazyObject):
             mode=mode
         )
 
-    @_vertex_array_.restocker
-    @staticmethod
-    def _vertex_array_restocker(
+    @_vertex_array_.releaser
+    @classmethod
+    def _vertex_array_releaser(
+        cls,
         vertex_array: moderngl.VertexArray | None
     ) -> None:
+        #import sys
+        #print(sys.getrefcount(vertex_array))
         if vertex_array is not None:
             vertex_array.release()
 

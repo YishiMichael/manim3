@@ -365,12 +365,13 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
         buffer.write(bytes_data)
         return buffer
 
-    @_buffer_.restocker
-    @staticmethod
-    def _buffer_restocker(
+    @_buffer_.releaser
+    @classmethod
+    def _buffer_releaser(
+        cls,
         buffer: moderngl.Buffer
     ) -> None:
-        GLSLDynamicBuffer._VACANT_BUFFERS.append(buffer)
+        cls._VACANT_BUFFERS.append(buffer)
 
     @classmethod
     def _flatten_as_data_dict(
