@@ -297,7 +297,7 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
     @classmethod
     def _lengths_(
         cls,
-        children__length: tuple[float, ...]
+        children__length: list[float]
     ) -> FloatsT:
         return np.maximum(np.array(children__length), 1e-6)
 

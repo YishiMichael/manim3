@@ -179,9 +179,9 @@ class VertexArray(LazyObject):
     @classmethod
     def _dynamic_array_lens_(
         cls,
-        texture_storages__dynamic_array_lens: tuple[tuple[tuple[str, int], ...], ...],
-        uniform_blocks__dynamic_array_lens: tuple[tuple[tuple[str, int], ...], ...],
-        indexed_attributes__attributes__dynamic_array_lens: tuple[tuple[str, int], ...]
+        texture_storages__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
+        uniform_blocks__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
+        indexed_attributes__attributes__dynamic_array_lens: list[tuple[str, int]]
     ) -> tuple[tuple[str, int], ...]:
         dynamic_array_lens: dict[str, int] = {}
         for texture_storage_dynamic_array_lens in texture_storages__dynamic_array_lens:

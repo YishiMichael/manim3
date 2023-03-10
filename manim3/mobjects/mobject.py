@@ -460,7 +460,7 @@ class Mobject(LazyObject):
     def _bounding_box_with_descendants_(
         cls,
         bounding_box_without_descendants: BoundingBox3D | None,
-        real_descendants__bounding_box_without_descendants: tuple[BoundingBox3D | None, ...]
+        real_descendants__bounding_box_without_descendants: list[BoundingBox3D | None]
     ) -> BoundingBox3D | None:
         points_array = np.array(list(it.chain(*(
             (aabb.maximum, aabb.minimum)

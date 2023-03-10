@@ -103,7 +103,7 @@ class StrokeMobject(Mobject):
         scene_config__camera__projection_matrix: Mat4T,
         scene_config__camera__view_matrix: Mat4T,
         model_matrix: Mat4T,
-        multi_line_string_3d__children__coords: tuple[Vec3sT, ...],
+        multi_line_string_3d__children__coords: list[Vec3sT],
         width: float
     ) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...

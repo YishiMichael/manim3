@@ -67,6 +67,7 @@ class SVGMobject(ShapeMobject):
             if isinstance(shape, se.Shape)
             and (shape_mobject := ShapeMobject(shape * transform))._has_local_sample_points_.value
         ]
+        #print(shape_mobjects)
         #if shape_mobjects:
         #    return
 
