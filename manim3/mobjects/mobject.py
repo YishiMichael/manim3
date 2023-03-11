@@ -32,12 +32,12 @@ from ..lazy.core import (
     LazyCollection,
     LazyCollectionVariableDescriptor,
     LazyObject,
-    LazyObjectVariableDescriptor
+    LazyObjectVariableDescriptor,
+    LazyWrapper
 )
 from ..lazy.interface import (
     Lazy,
-    LazyMode,
-    LazyWrapper
+    LazyMode
 )
 from ..passes.render_pass import RenderPass
 #from ..rendering.framebuffer_batch import FramebufferBatch

@@ -268,6 +268,7 @@ class VertexArray(LazyObject):
         cls,
         vertex_array: moderngl.VertexArray | None
     ) -> None:
+        # TODO: check refcnt
         #import sys
         #print(sys.getrefcount(vertex_array))
         if vertex_array is not None:

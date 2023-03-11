@@ -45,7 +45,6 @@ class TexTransformExample(Scene):
         self.add(tex_concatenated)
         self.wait()
         #tex_concatenated.shift(RIGHT * 3)
-        #ShapeMobject._model_matrix_.__set__(tex_concatenated, SpaceUtils.matrix_from_translation(RIGHT * 3) @ tex_concatenated._model_matrix_.value)
         #tex_concatenated.shift(RIGHT * 2)
         #tex_concatenated.remove(*tex_concatenated._stroke_mobjects_)
         #self.wait(3)
@@ -56,7 +55,7 @@ class TexTransformExample(Scene):
 
 if __name__ == "__main__":
     config = Config()
-    config.fps = 3
+    #config.fps = 30
     #config.preview = False
     #config.write_video = True
     #config.window_pixel_size = (1920, 1080)

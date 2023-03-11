@@ -22,8 +22,10 @@ from ..custom_typing import (
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
-from ..lazy.core import LazyObjectVariableDescriptor
-from ..lazy.interface import LazyWrapper
+from ..lazy.core import (
+    LazyObjectVariableDescriptor,
+    LazyWrapper
+)
 from ..utils.space import SpaceUtils
 from ..utils.shape import (
     MultiLineString3D,

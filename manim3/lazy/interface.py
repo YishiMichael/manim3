@@ -1,7 +1,7 @@
 __all__ = [
     "Lazy",
-    "LazyMode",
-    "LazyWrapper"
+    "LazyMode"
+    #"LazyWrapper"
 ]
 
 
@@ -12,7 +12,7 @@ from typing import (
     Any,
     Callable,
     Concatenate,
-    Generic,
+    #Generic,
     Hashable,
     Literal,
     ParamSpec,
@@ -28,7 +28,8 @@ from ..lazy.core import (
     LazyCollectionVariableDescriptor,
     LazyObject,
     LazyObjectPropertyDescriptor,
-    LazyObjectVariableDescriptor
+    LazyObjectVariableDescriptor,
+    LazyWrapper
 )
 
 
@@ -68,12 +69,7 @@ class AnnotationUtils:
     def get_parameter_items(
         cls,
         method: Callable
-    ) -> tuple[tuple[tuple[str, ...], ...], tuple[Callable[[Any], Any] | None, ...]]:
-        def value_getter(
-            obj: LazyWrapper[_T]
-        ) -> _T:
-            return obj.value
-
+    ) -> tuple[tuple[tuple[str, ...], ...], tuple[bool, ...]]:
         parameter_items = tuple(
             (name, False) if re.fullmatch(r"_\w+_", name) else (f"_{name}_", True)
             for name in tuple(inspect.signature(method).parameters)[1:]  # remove `cls`
@@ -86,26 +82,11 @@ class AnnotationUtils:
             "".join(parameter_name_chain) == parameter_name
             for parameter_name_chain, (parameter_name, _) in zip(parameter_name_chains, parameter_items, strict=True)
         )
-        parameter_preapplied_methods = tuple(
-            value_getter if requires_unwrapping else None
+        requires_unwrapping_tuple = tuple(
+            requires_unwrapping
             for _, requires_unwrapping in parameter_items
         )
-        return parameter_name_chains, parameter_preapplied_methods
-
-
-class LazyWrapper(Generic[_T], LazyObject):
-    __slots__ = ("__value",)
-
-    def __init__(
-        self,
-        value: _T
-    ) -> None:
-        super().__init__()
-        self.__value: _T = value
-
-    @property
-    def value(self) -> _T:
-        return self.__value
+        return parameter_name_chains, requires_unwrapping_tuple
 
 
 class LazyObjectVariableDecorator(LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT]):
@@ -219,12 +200,12 @@ class LazyObjectPropertyDecorator(LazyObjectPropertyDescriptor[_InstanceT, _Lazy
         self,
         method: Callable[..., _LazyObjectT]
     ) -> None:
-        parameter_name_chains, parameter_preapplied_methods = AnnotationUtils.get_parameter_items(method)
+        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=AnnotationUtils.get_return_type(method),
             method=method,
             parameter_name_chains=parameter_name_chains,
-            parameter_preapplied_methods=parameter_preapplied_methods
+            requires_unwrapping_tuple=requires_unwrapping_tuple
         )
 
 
@@ -235,12 +216,12 @@ class LazyCollectionPropertyDecorator(LazyCollectionPropertyDescriptor[_Instance
         self,
         method: Callable[..., LazyCollection[_LazyObjectT]]
     ) -> None:
-        parameter_name_chains, parameter_preapplied_methods = AnnotationUtils.get_parameter_items(method)
+        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=AnnotationUtils.get_element_return_type(method),
             method=method,
             parameter_name_chains=parameter_name_chains,
-            parameter_preapplied_methods=parameter_preapplied_methods
+            requires_unwrapping_tuple=requires_unwrapping_tuple
         )
 
 
@@ -259,12 +240,12 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
         ) -> LazyWrapper[_T]:
             return LazyWrapper(method(cls, *args))
 
-        parameter_name_chains, parameter_preapplied_methods = AnnotationUtils.get_parameter_items(method)
+        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=LazyWrapper,
             method=new_method,
             parameter_name_chains=parameter_name_chains,
-            parameter_preapplied_methods=parameter_preapplied_methods
+            requires_unwrapping_tuple=requires_unwrapping_tuple
         )
 
     def clear_ref(
@@ -305,12 +286,12 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
                 self.content_to_object_bidict[content] = cached_object
             return cached_object
 
-        parameter_name_chains, parameter_preapplied_methods = AnnotationUtils.get_parameter_items(method)
+        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=LazyWrapper,
             method=new_method,
             parameter_name_chains=parameter_name_chains,
-            parameter_preapplied_methods=parameter_preapplied_methods
+            requires_unwrapping_tuple=requires_unwrapping_tuple
         )
 
     #def clear_ref(
@@ -344,28 +325,40 @@ class Lazy:
     def variable(
         cls,
         mode: Literal[LazyMode.OBJECT]
-    ) -> Callable[[Callable[[type[_InstanceT]], _LazyObjectT]], LazyObjectVariableDecorator[_InstanceT, _LazyObjectT]]: ...
+    ) -> Callable[
+        [Callable[[type[_InstanceT]], _LazyObjectT]],
+        LazyObjectVariableDecorator[_InstanceT, _LazyObjectT]
+    ]: ...
 
     @overload
     @classmethod
     def variable(
         cls,
         mode: Literal[LazyMode.COLLECTION]
-    ) -> Callable[[Callable[[type[_InstanceT]], LazyCollection[_LazyObjectT]]], LazyCollectionVariableDecorator[_InstanceT, _LazyObjectT]]: ...
+    ) -> Callable[
+        [Callable[[type[_InstanceT]], LazyCollection[_LazyObjectT]]],
+        LazyCollectionVariableDecorator[_InstanceT, _LazyObjectT]
+    ]: ...
 
     @overload
     @classmethod
     def variable(
         cls,
         mode: Literal[LazyMode.UNWRAPPED]
-    ) -> Callable[[Callable[[type[_InstanceT]], _T]], LazyObjectVariableUnwrappedDecorator[_InstanceT, _T]]: ...
+    ) -> Callable[
+        [Callable[[type[_InstanceT]], _T]],
+        LazyObjectVariableUnwrappedDecorator[_InstanceT, _T]
+    ]: ...
 
     @overload
     @classmethod
     def variable(
         cls,
         mode: Literal[LazyMode.SHARED]
-    ) -> Callable[[Callable[[type[_InstanceT]], _HashableT]], LazyObjectVariableSharedDecorator[_InstanceT, _HashableT]]: ...
+    ) -> Callable[
+        [Callable[[type[_InstanceT]], _HashableT]],
+        LazyObjectVariableSharedDecorator[_InstanceT, _HashableT]
+    ]: ...
 
     @classmethod
     def variable(
@@ -395,28 +388,40 @@ class Lazy:
     def property(
         cls,
         mode: Literal[LazyMode.OBJECT]
-    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], _LazyObjectT]], LazyObjectPropertyDecorator[_InstanceT, _LazyObjectT]]: ...
+    ) -> Callable[
+        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _LazyObjectT]],
+        LazyObjectPropertyDecorator[_InstanceT, _LazyObjectT]
+    ]: ...
 
     @overload
     @classmethod
     def property(
         cls,
         mode: Literal[LazyMode.COLLECTION]
-    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], LazyCollection[_LazyObjectT]]], LazyCollectionPropertyDecorator[_InstanceT, _LazyObjectT]]: ...
+    ) -> Callable[
+        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], LazyCollection[_LazyObjectT]]],
+        LazyCollectionPropertyDecorator[_InstanceT, _LazyObjectT]
+    ]: ...
 
     @overload
     @classmethod
     def property(
         cls,
         mode: Literal[LazyMode.UNWRAPPED]
-    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]], LazyObjectPropertyUnwrappedDecorator[_InstanceT, _T]]: ...
+    ) -> Callable[
+        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]],
+        LazyObjectPropertyUnwrappedDecorator[_InstanceT, _T]
+    ]: ...
 
     @overload
     @classmethod
     def property(
         cls,
         mode: Literal[LazyMode.SHARED]
-    ) -> Callable[[Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]], LazyObjectPropertySharedDecorator[_InstanceT, _HashableT]]: ...
+    ) -> Callable[
+        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]],
+        LazyObjectPropertySharedDecorator[_InstanceT, _HashableT]
+    ]: ...
 
     @classmethod
     def property(
