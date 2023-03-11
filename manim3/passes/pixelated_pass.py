@@ -14,7 +14,7 @@ from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..rendering.glsl_buffers import TextureStorage
 from ..rendering.vertex_array import (
     ContextState,
-    IndexedAttributesBuffer,
+    #IndexedAttributesBuffer,
     VertexArray
 )
 
@@ -44,24 +44,24 @@ class PixelatedPass(RenderPass):
     @classmethod
     def _u_color_map_(cls) -> TextureStorage:
         return TextureStorage(
-            field="sampler2D u_color_map"
+            #field="sampler2D u_color_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _vertex_array_(
-        cls,
-        _u_color_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        cls#,
+        #_u_color_map_: TextureStorage,
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
-            shader_filename="copy",
-            custom_macros=[],
-            texture_storages = [
-                _u_color_map_
-            ],
-            uniform_blocks=[],
-            indexed_attributes=_indexed_attributes_buffer_
+            #shader_filename="copy",
+            #custom_macros=[],
+            #texture_storages=[
+            #    _u_color_map_
+            #],
+            #uniform_blocks=[],
+            #indexed_attributes=_indexed_attributes_buffer_
         )
 
     def render(
@@ -79,13 +79,21 @@ class PixelatedPass(RenderPass):
             #self._u_color_map_.write(
             #    texture_array=np.array(texture)
             #)
-            self._vertex_array_.render(
-                #shader_filename="copy",
-                #custom_macros=[],
-                #uniform_blocks=[],
-                texture_array_dict={
-                    "u_color_map": np.array(texture),
-                },
+            self._vertex_array_.write(
+                shader_filename="copy",
+                custom_macros=[],
+                texture_storages=[
+                    self._u_color_map_.write(
+                        field="sampler2D u_color_map",
+                        texture_array=np.array(texture)
+                    )
+                ],
+                uniform_blocks=[],
+                indexed_attributes=self._indexed_attributes_buffer_
+                #texture_array_dict={
+                #    "u_color_map": np.array(texture),
+                #},
+            ).render(
                 framebuffer=batch.framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING
@@ -95,18 +103,21 @@ class PixelatedPass(RenderPass):
             #    texture_array=np.array(texture)
             #)
             #self._color_map_ = batch.color_texture
-            self._vertex_array_.render(
-                #shader_filename="copy",
-                #custom_macros=[],
-                #texture_storages=[
-                #    self._u_color_map_.write(
-                #        texture_array=np.array(batch.color_texture)
-                #    )
-                #],
-                #uniform_blocks=[],
-                texture_array_dict={
-                    "u_color_map": np.array(batch.color_texture),
-                },
+            self._vertex_array_.write(
+                shader_filename="copy",
+                custom_macros=[],
+                texture_storages=[
+                    self._u_color_map_.write(
+                        field="sampler2D u_color_map",
+                        texture_array=np.array(batch.color_texture)
+                    )
+                ],
+                uniform_blocks=[],
+                indexed_attributes=self._indexed_attributes_buffer_
+                #texture_array_dict={
+                #    "u_color_map": np.array(batch.color_texture),
+                #},
+            ).render(
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.NOTHING

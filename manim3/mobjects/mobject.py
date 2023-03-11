@@ -7,7 +7,7 @@ import itertools as it
 from typing import (
     Generator,
     Generic,
-    Iterable,
+    #Iterable,
     Iterator,
     TypeVar,
     overload

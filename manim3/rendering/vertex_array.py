@@ -89,26 +89,26 @@ class IndexedAttributesBuffer(LazyObject):
 class VertexArray(LazyObject):
     __slots__ = ()
 
-    def __init__(
-        self,
-        *,
-        shader_filename: str,
-        custom_macros: list[str],
-        texture_storages: list[TextureStorage],
-        uniform_blocks: list[UniformBlockBuffer],
-        indexed_attributes: IndexedAttributesBuffer
-        #attributes: AttributesBuffer,
-        #index_buffer: IndexBuffer,
-        #mode: int
-    ) -> None:
-        super().__init__()
-        self._shader_filename_ = shader_filename
-        self._custom_macros_ = tuple(custom_macros)
-        self._texture_storages_.add(*texture_storages)
-        self._uniform_blocks_.add(*uniform_blocks)
-        self._indexed_attributes_ = indexed_attributes
-        #self._index_buffer_ = index_buffer
-        #self._mode_ = mode
+    #def __init__(
+    #    self,
+    #    *,
+    #    shader_filename: str,
+    #    custom_macros: list[str],
+    #    texture_storages: list[TextureStorage],
+    #    uniform_blocks: list[UniformBlockBuffer],
+    #    indexed_attributes: IndexedAttributesBuffer
+    #    #attributes: AttributesBuffer,
+    #    #index_buffer: IndexBuffer,
+    #    #mode: int
+    #) -> None:
+    #    super().__init__()
+    #    self._shader_filename_ = shader_filename
+    #    self._custom_macros_ = tuple(custom_macros)
+    #    self._texture_storages_.add(*texture_storages)
+    #    self._uniform_blocks_.add(*uniform_blocks)
+    #    self._indexed_attributes_ = indexed_attributes
+    #    #self._index_buffer_ = index_buffer
+    #    #self._mode_ = mode
 
     #@staticmethod
     #def __shader_filename_key(
@@ -202,7 +202,7 @@ class VertexArray(LazyObject):
         _texture_storages_: LazyCollection[TextureStorage]
     ) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return tuple(
-            (texture_storage._field_name_.value, texture_storage._shape_.value)
+            (texture_storage._field_name_.value, texture_storage._texture_array_.value.shape)
             for texture_storage in _texture_storages_
         )
 
@@ -215,6 +215,7 @@ class VertexArray(LazyObject):
         dynamic_array_lens: tuple[tuple[str, int], ...],
         texture_storage_shapes: tuple[tuple[str, tuple[int, ...]], ...]
     ) -> ProgramData:
+        #print("=" * 100)
         #print(shader_filename
         #    ,custom_macros
         #    ,dynamic_array_lens
@@ -224,11 +225,21 @@ class VertexArray(LazyObject):
         program = cls._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
         texture_binding_offset_dict = cls._set_texture_bindings(program, texture_storage_shapes)
         uniform_block_binding_dict = cls._set_uniform_block_bindings(program)
+        #print(program)
         return ProgramData(
             program=program,
             texture_binding_offset_dict=texture_binding_offset_dict,
             uniform_block_binding_dict=uniform_block_binding_dict
         )
+
+    @_program_data_.releaser
+    @classmethod
+    def _program_data_releaser(
+        cls,
+        program_data: ProgramData
+    ) -> None:
+        # TODO: check refcnt
+        program_data.program.release()
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -382,6 +393,22 @@ class VertexArray(LazyObject):
     ) -> int:
         return reduce(op.mul, shape, 1)  # TODO: redundant with the one in glsl_buffers.py
 
+    def write(
+        self,
+        *,
+        shader_filename: str,
+        custom_macros: list[str],
+        texture_storages: list[TextureStorage],
+        uniform_blocks: list[UniformBlockBuffer],
+        indexed_attributes: IndexedAttributesBuffer
+    ):
+        self._shader_filename_ = shader_filename
+        self._custom_macros_ = tuple(custom_macros)
+        self._texture_storages_ = LazyCollection(*texture_storages)
+        self._uniform_blocks_ = LazyCollection(*uniform_blocks)
+        self._indexed_attributes_ = indexed_attributes
+        return self
+
     def render(
         self,
         *,
@@ -389,7 +416,12 @@ class VertexArray(LazyObject):
         #custom_macros: list[str],
         #texture_storages: list[TextureStorage],
         #uniform_blocks: list[UniformBlockBuffer],
-        texture_array_dict: dict[str, np.ndarray],
+        #indexed_attributes: IndexedAttributesBuffer,
+        #shader_filename: str,
+        #custom_macros: list[str],
+        #texture_storages: list[TextureStorage],
+        #uniform_blocks: list[UniformBlockBuffer],
+        #texture_array_dict: dict[str, np.ndarray],
         framebuffer: moderngl.Framebuffer,
         context_state: ContextState
     ) -> None:
@@ -440,11 +472,11 @@ class VertexArray(LazyObject):
         for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
             texture_storage = texture_storage_dict[texture_storage_name]
             assert not texture_storage._is_empty_.value
-            texture_array = texture_array_dict[texture_storage_name]
-            assert texture_array.shape == texture_storage._shape_.value
+            #texture_array = texture_array_dict[texture_storage_name]
+            #assert texture_array.shape == texture_storage._shape_.value
             texture_bindings.extend(
                 (texture, binding)
-                for binding, texture in enumerate(texture_array.flat, start=binding_offset)
+                for binding, texture in enumerate(texture_storage._texture_array_.value.flat, start=binding_offset)
             )
 
         # uniform blocks

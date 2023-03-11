@@ -18,25 +18,31 @@ from ..rendering.context import ContextSingleton
 
 
 _T = TypeVar("_T")
-_ParamsT = TypeVar("_ParamsT", bound=tuple)
 
 
-class TemporaryResource(Generic[_ParamsT, _T], ABC):
-    _VACANT_INSTANCES: dict[_ParamsT, list[_T]]
+class TemporaryResource(Generic[_T], ABC):
+    __slots__ = (
+        "_parameters",
+        "_instance"
+    )
+
+    _VACANT_INSTANCES: dict[tuple, list[_T]]
 
     def __init_subclass__(cls) -> None:
         cls._VACANT_INSTANCES = {}
 
     def __init__(
         self,
-        parameters: _ParamsT
+        *args,
+        **kwargs
     ) -> None:
+        parameters = (*args, *kwargs.values())
         if (vacant_instances := self._VACANT_INSTANCES.get(parameters)) is not None and vacant_instances:
             instance = vacant_instances.pop()
         else:
-            instance = self._new_instance(parameters)
+            instance = self._new_instance(*args, **kwargs)
         self._init_instance(instance)
-        self._parameters: _ParamsT = parameters
+        self._parameters: tuple = parameters
         self._instance: _T = instance
 
     def __enter__(self) -> _T:
@@ -54,7 +60,8 @@ class TemporaryResource(Generic[_ParamsT, _T], ABC):
     @abstractmethod
     def _new_instance(
         cls,
-        parameters: _ParamsT
+        *args,
+        **kwargs
     ) -> _T:
         pass
 
@@ -67,8 +74,9 @@ class TemporaryResource(Generic[_ParamsT, _T], ABC):
         pass
 
 
-# TODO: Why replacing `_ParamsT` with `tuple[tuple[int, int], int, int, str]` breaks the code?
-class FramebufferBatch(TemporaryResource[_ParamsT, _T]):
+class FramebufferBatch(TemporaryResource[_T]):
+    __slots__ = ()
+
     def __init__(
         self,
         *,
@@ -79,7 +87,12 @@ class FramebufferBatch(TemporaryResource[_ParamsT, _T]):
     ):
         if size is None:
             size = ConfigSingleton().pixel_size
-        super().__init__((size, components, samples, dtype))
+        super().__init__(
+            size=size,
+            components=components,
+            samples=samples,
+            dtype=dtype
+        )
 
     @classmethod
     def texture(
@@ -135,22 +148,22 @@ class FramebufferBatch(TemporaryResource[_ParamsT, _T]):
     #) -> None:
     #    ContextSingleton().copy_framebuffer(dst=dst, src=src)
 
-    @classmethod
-    def _new_instance(
-        cls,
-        parameters: tuple[tuple[int, int], int, int, str]
-    ) -> _T:
-        size, components, samples, dtype = parameters
-        return cls._new_batch(
-            size=size,
-            components=components,
-            samples=samples,
-            dtype=dtype
-        )
+    #@classmethod
+    #def _new_instance(
+    #    cls,
+    #    parameters: tuple[tuple[int, int], int, int, str]
+    #) -> _T:
+    #    size, components, samples, dtype = parameters
+    #    return cls._new_batch(
+    #        size=size,
+    #        components=components,
+    #        samples=samples,
+    #        dtype=dtype
+    #    )
 
     @classmethod
     @abstractmethod
-    def _new_batch(
+    def _new_instance(
         cls,
         *,
         size: tuple[int, int],

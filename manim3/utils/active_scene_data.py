@@ -20,6 +20,8 @@ class ActiveSceneData:
 
 
 class ActiveSceneDataSingleton:
+    __slots__ = ()
+
     _INSTANCE: ClassVar[ActiveSceneData | None] = None
 
     def __new__(cls) -> ActiveSceneData:

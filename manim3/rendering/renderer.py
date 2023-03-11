@@ -16,6 +16,8 @@ from ..utils.active_scene_data import ActiveSceneDataSingleton
 
 
 class Renderer:
+    __slots__ = ("_config",)
+
     def __init__(
         self,
         config: Config | None = None

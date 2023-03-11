@@ -23,9 +23,11 @@ class SimpleFramebufferBatchStruct:
     framebuffer: moderngl.Framebuffer
 
 
-class SimpleFramebufferBatch(FramebufferBatch[tuple[tuple[int, int], int, int, str], SimpleFramebufferBatchStruct]):
+class SimpleFramebufferBatch(FramebufferBatch[SimpleFramebufferBatchStruct]):
+    __slots__ = ()
+
     @classmethod
-    def _new_batch(
+    def _new_instance(
         cls,
         *,
         size: tuple[int, int],
@@ -71,9 +73,11 @@ class ColorFramebufferBatchStruct:
     framebuffer: moderngl.Framebuffer
 
 
-class ColorFramebufferBatch(FramebufferBatch[tuple[tuple[int, int], int, int, str], ColorFramebufferBatchStruct]):
+class ColorFramebufferBatch(FramebufferBatch[ColorFramebufferBatchStruct]):
+    __slots__ = ()
+
     @classmethod
-    def _new_batch(
+    def _new_instance(
         cls,
         *,
         size: tuple[int, int],
@@ -119,9 +123,11 @@ class SceneFramebufferBatchStruct:
     revealage_framebuffer: moderngl.Framebuffer
 
 
-class SceneFramebufferBatch(FramebufferBatch[tuple[tuple[int, int], int, int, str], SceneFramebufferBatchStruct]):
+class SceneFramebufferBatch(FramebufferBatch[SceneFramebufferBatchStruct]):
+    __slots__ = ()
+
     @classmethod
-    def _new_batch(
+    def _new_instance(
         cls,
         *,
         size: tuple[int, int],

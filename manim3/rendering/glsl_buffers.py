@@ -83,27 +83,14 @@ class GLSLDynamicStruct(LazyObject):
         "dmat4":   np.dtype(("f8", (4, 4))),
     }
 
-    def __init__(
-        self,
-        *,
-        field: str,
-        child_structs: dict[str, list[str]],
-        dynamic_array_lens: dict[str, int],
-        layout: GLSLBufferLayout
-    ) -> None:
-        #if child_structs is None:
-        #    child_structs = {}
-        #if dynamic_array_lens is None:
-        #    dynamic_array_lens = {}
-        super().__init__()
-        self._field_ = field
-        self._child_structs_ = tuple(
-            (name, tuple(child_struct_fields))
-            for name, child_struct_fields in child_structs.items()
-        )
-        self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
-        self._layout_ = layout
-        #self._data_ = data
+    #def __init__(
+    #    self,
+    #    *,
+    #    field: str | None,
+    #    child_structs: dict[str, list[str]],
+    #    dynamic_array_lens: dict[str, int],
+    #    layout: GLSLBufferLayout
+    #) -> None:
 
     #@staticmethod
     #def __field_key(
@@ -128,7 +115,7 @@ class GLSLDynamicStruct(LazyObject):
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _child_structs_(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
-        return NotImplemented
+        return ()
 
     #@staticmethod
     #def __dynamic_array_lens_key(
@@ -139,7 +126,7 @@ class GLSLDynamicStruct(LazyObject):
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _dynamic_array_lens_(cls) -> tuple[tuple[str, int], ...]:
-        return NotImplemented
+        return ()
 
     #@staticmethod
     #def __layout_key(
@@ -306,17 +293,21 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
         self,
         *,
         field: str,
-        child_structs: dict[str, list[str]],
-        dynamic_array_lens: dict[str, int],
-        layout: GLSLBufferLayout,
+        child_structs: dict[str, list[str]] | None,
+        dynamic_array_lens: dict[str, int] | None,
+        #layout: GLSLBufferLayout,
         data: np.ndarray | dict[str, Any]
     ) -> None:
-        super().__init__(
-            field=field,
-            child_structs=child_structs,
-            dynamic_array_lens=dynamic_array_lens,
-            layout=layout
-        )
+        super().__init__()
+        self._field_ = field
+        if child_structs is not None:
+            self._child_structs_ = tuple(
+                (name, tuple(child_struct_fields))
+                for name, child_struct_fields in child_structs.items()
+            )
+        if dynamic_array_lens is not None:
+            self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
+        #self._layout_ = layout
         self._data_ = data
 
     @Lazy.variable(LazyMode.UNWRAPPED)
@@ -390,48 +381,68 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 class TextureStorage(GLSLDynamicStruct):
     __slots__ = ()
 
-    def __init__(
-        self,
-        *,
-        field: str,
-        shape: tuple[int, ...] = (),
-        dynamic_array_lens: dict[str, int] | None = None,
-        #texture_array: np.ndarray
-    ) -> None:
-        # Note, redundant textures are currently not supported
-        replaced_field = re.sub(r"^sampler2D\b", "uint", field)
-        assert field != replaced_field
-        if dynamic_array_lens is None:
-            dynamic_array_lens = {}
-        super().__init__(
-            field=replaced_field,
-            child_structs={},
-            #dynamic_array_lens={},
-            dynamic_array_lens=dynamic_array_lens,
-            layout=GLSLBufferLayout.PACKED
-            #data=NotImplemented
-            #data=np.zeros(texture_array.shape, dtype=np.uint32)
-        )
-        self._shape_ = shape
-        #self._texture_array_ = texture_array
+    #def __init__(
+    #    self,
+    #    *,
+    #    field: str
+    ##    #shape: tuple[int, ...] = (),
+    ##    #dynamic_array_lens: dict[str, int] | None = None,
+    ##    #texture_array: np.ndarray
+    #) -> None:
+    #    
+    #    #if dynamic_array_lens is None:
+    #    #    dynamic_array_lens = {}
+    #    super().__init__(
+    #        field=replaced_field,
+    #        child_structs={},
+    #        dynamic_array_lens={},
+    #        layout=GLSLBufferLayout.PACKED
+    #        #data=NotImplemented
+    #        #data=np.zeros(texture_array.shape, dtype=np.uint32)
+    #    )
+    #    #self._shape_ = shape
+    #    #self._texture_array_ = texture_array
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _shape_(cls) -> tuple[int, ...]:
+    def _sampler_field_(cls) -> str:
         return NotImplemented
 
-    #def write(
-    #    self,
-    #    *,
-    #    dynamic_array_lens: dict[str, int] | None = None,
-    #    texture_array: np.ndarray
-    #):
-    #    if dynamic_array_lens is None:
-    #        dynamic_array_lens = {}
-    #    self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
-    #    #self._data_ = np.zeros(texture_array.shape, dtype=np.uint32)
-    #    self._texture_array_ = texture_array
-    #    return self
+    @Lazy.property(LazyMode.SHARED)
+    @classmethod
+    def _field_(
+        cls,
+        sampler_field: str
+    ) -> str:
+        field = re.sub(r"^sampler2D\b", "uint", sampler_field)
+        assert sampler_field != field
+        return field
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _layout_(cls) -> GLSLBufferLayout:
+        return GLSLBufferLayout.PACKED
+
+    @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
+    def _texture_array_(cls) -> np.ndarray:
+        return NotImplemented
+
+    def write(
+        self,
+        *,
+        field: str,
+        dynamic_array_lens: dict[str, int] | None = None,
+        texture_array: np.ndarray
+    ):
+        # Note, redundant textures are currently not supported
+        self._sampler_field_ = field
+        if dynamic_array_lens is None:
+            dynamic_array_lens = {}
+        self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
+        #self._data_ = np.zeros(texture_array.shape, dtype=np.uint32)
+        self._texture_array_ = texture_array
+        return self
 
 
 class UniformBlockBuffer(GLSLDynamicBuffer):
@@ -448,8 +459,8 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
     ) -> None:
         if child_structs is None:
             child_structs = {}
-        if dynamic_array_lens is None:
-            dynamic_array_lens = {}
+        #if dynamic_array_lens is None:
+        #    dynamic_array_lens = {}
         super().__init__(
             field=f"__UniformBlockStruct__ {name}",
             child_structs={
@@ -457,9 +468,14 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
                 **child_structs
             },
             dynamic_array_lens=dynamic_array_lens,
-            layout=GLSLBufferLayout.STD140,
+            #layout=GLSLBufferLayout.STD140,
             data=data
         )
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _layout_(cls) -> GLSLBufferLayout:
+        return GLSLBufferLayout.STD140
 
     def _validate(
         self,
@@ -483,17 +499,25 @@ class AttributesBuffer(GLSLDynamicBuffer):
         # Passing structs to an attribute is not allowed, so we eliminate the parameter `child_structs`.
         if dynamic_array_lens is None:
             dynamic_array_lens = {}
-        dynamic_array_lens["__NUM_VERTEX__"] = num_vertex
+        #dynamic_array_lens["__NUM_VERTEX__"] = num_vertex
         super().__init__(
             field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
             child_structs={
                 "__VertexStruct__": fields
             },
-            dynamic_array_lens=dynamic_array_lens,
-            # Let's keep using std140 layout, hopefully leading to a faster processing speed.
-            layout=GLSLBufferLayout.STD140,
+            dynamic_array_lens={
+                "__NUM_VERTEX__": num_vertex,
+                **dynamic_array_lens
+            },
+            #layout=GLSLBufferLayout.STD140,
             data=data,
         )
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _layout_(cls) -> GLSLBufferLayout:
+        # Let's keep using std140 layout, hopefully leading to a faster processing speed.
+        return GLSLBufferLayout.STD140
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -568,6 +592,11 @@ class IndexBuffer(GLSLDynamicBuffer):
             dynamic_array_lens={
                 "__NUM_INDEX__": len(data)
             },
-            layout=GLSLBufferLayout.PACKED,
+            #layout=GLSLBufferLayout.PACKED,
             data=data
         )
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _layout_(cls) -> GLSLBufferLayout:
+        return GLSLBufferLayout.PACKED
