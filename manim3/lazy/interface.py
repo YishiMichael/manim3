@@ -11,7 +11,6 @@ from typing import (
     Any,
     Callable,
     Concatenate,
-    #Generic,
     Hashable,
     Literal,
     ParamSpec,
@@ -177,17 +176,8 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
     ) -> None:
         if (cached_object := self.content_to_object_bidict.get(obj)) is None:
             cached_object = LazyWrapper(obj)
-            #print(self.content_to_object_bidict)
-            #print(obj, cached_object)
             self.content_to_object_bidict[obj] = cached_object
         super().__set__(instance, cached_object)
-
-    #def clear_ref(
-    #    self,
-    #    instance: _InstanceT
-    #) -> None:
-    #    self.content_to_object_bidict.inverse.pop(self.get(instance))
-    #    super().clear_ref(instance)
 
 
 class LazyObjectPropertyDecorator(LazyObjectPropertyDescriptor[_InstanceT, _LazyObjectT]):
@@ -235,7 +225,6 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
         ) -> LazyWrapper[_T]:
             return LazyWrapper(method(cls, *args))
 
-        #self.release_method: Callable[[type[_InstanceT], _T], None] | None = None
         parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=LazyWrapper,
@@ -243,15 +232,6 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
             parameter_name_chains=parameter_name_chains,
             requires_unwrapping_tuple=requires_unwrapping_tuple
         )
-
-    #def release_entity(
-    #    self,
-    #    instance_type: type[_InstanceT],
-    #    entity: LazyWrapper[_T]
-    #) -> None:
-    #    super().release_entity(instance_type, entity)
-    #    if self.release_method is not None:
-    #        self.release_method(instance_type, entity.value)
 
     def releaser(
         self,
@@ -288,7 +268,6 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
                 self.content_to_object_bidict[content] = cached_object
             return cached_object
 
-        #self.restock_method: Callable[[_HashableT], None] | None = None
         self.content_to_object_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
         parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
@@ -297,23 +276,6 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
             parameter_name_chains=parameter_name_chains,
             requires_unwrapping_tuple=requires_unwrapping_tuple
         )
-
-    #def clear_ref(
-    #    self,
-    #    instance: _InstanceT
-    #) -> None:
-    #    if (obj := self.get_property(instance)._get()) is not None:
-    #        self.content_to_object_bidict.inverse.pop(obj)
-    #        if self.restock_method is not None:
-    #            self.restock_method(obj.value)
-    #    super().clear_ref(instance)
-
-    #def restocker(
-    #    self,
-    #    restock_method: Callable[[_HashableT], None]
-    #) -> Callable[[_HashableT], None]:
-    #    self.restock_method = restock_method
-    #    return restock_method
 
 
 class LazyMode(Enum):

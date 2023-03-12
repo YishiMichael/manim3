@@ -22,7 +22,6 @@ from ..rendering.glsl_buffers import (
 )
 from ..rendering.vertex_array import (
     ContextState,
-    #IndexedAttributesBuffer,
     VertexArray
 )
 from ..utils.color import ColorUtils
@@ -30,16 +29,6 @@ from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):
-    #__slots__ = (
-    #    #"_render_samples",
-    #    "_apply_phong_lighting",
-    #)
-
-    #def __init__(self):
-    #    super().__init__()
-    #    #self._render_samples: int = 4
-    #    self._apply_phong_lighting: bool = True
-
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _geometry_(cls) -> Geometry:
@@ -75,7 +64,7 @@ class MeshMobject(Mobject):
     def _shininess_(cls) -> float:
         return 32.0
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _apply_phong_lighting_(cls) -> bool:
         return True
@@ -86,8 +75,6 @@ class MeshMobject(Mobject):
         cls,
         _geometry_: Geometry
     ) -> Vec3sT:
-        #print(_geometry_)
-        #print(_geometry_._geometry_data_.value)
         return _geometry_._geometry_data_.value.position
 
     @Lazy.variable(LazyMode.OBJECT)
@@ -121,66 +108,20 @@ class MeshMobject(Mobject):
             }
         )
 
-    #@lazy_slot
-    #@staticmethod
-    #def _render_samples() -> int:
-    #    return 4
-
-    #@lazy_slot
-    #@staticmethod
-    #def _apply_phong_lighting() -> bool:
-    #    return True
-
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _vertex_array_(cls) -> VertexArray:
         return VertexArray()
-
-    #@Lazy.variable(LazyMode.OBJECT)
-    #@classmethod
-    #def _scene_config_(cls) -> SceneConfig:
-    #    return NotImplemented
 
     def _render(
         self,
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        #print(np.frombuffer(self._ub_model_._buffer_.value.read(), dtype=np.float32).reshape((4,4))[3,0])
-        #self._u_color_maps_.write(
-        #    dynamic_array_lens={
-        #        "NUM_U_COLOR_MAPS": len(textures)
-        #    },
-        #    texture_array=np.array(textures)
-        #)
-        #self._scene_config_ = scene_config
         custom_macros = []
         if self._apply_phong_lighting_.value:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
         textures = [color_map] if (color_map := self._color_map_.value) is not None else []
-        #return VertexArray(
-        #    shader_filename="mesh",
-        #    custom_macros=custom_macros,
-        #    texture_storages=[
-        #        _u_color_maps_
-        #    ],
-        #    uniform_blocks=[
-        #        _scene_config__camera__ub_camera_,
-        #        _ub_model_,
-        #        _scene_config__ub_lights_,
-        #        _ub_material_
-        #    ],
-        #    indexed_attributes=_geometry__indexed_attributes_buffer_
-        #    #uniform_blocks=[
-        #    #    scene_config._camera_._ub_camera_,
-        #    #    self._ub_model_,
-        #    #    scene_config._ub_lights_,
-        #    #    self._ub_material_
-        #    #],
-        #    #attributes=_geometry_._attributes_,
-        #    #index_buffer=_geometry_._index_buffer_,
-        #    #mode=moderngl.TRIANGLES
-        #)
         self._vertex_array_.write(
             shader_filename="mesh",
             custom_macros=custom_macros,
@@ -193,14 +134,6 @@ class MeshMobject(Mobject):
                     texture_array=np.array(textures, dtype=moderngl.Texture)
                 )
             ],
-            #texture_array_dict={
-            #    "u_color_maps": np.array(
-            #        [color_map]
-            #        if (color_map := self._color_map_.value) is not None
-            #        else [],
-            #        dtype=moderngl.Texture
-            #    )
-            #},
             uniform_blocks=[
                 scene_config._camera_._ub_camera_,
                 self._ub_model_,
@@ -214,9 +147,6 @@ class MeshMobject(Mobject):
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
             )
         )
-        #print(self._model_matrix_.value)
-        #from PIL import Image
-        #Image.frombytes("RGB", target_framebuffer.size, target_framebuffer.read(), "raw").show()
 
     @classmethod
     def class_set_style(

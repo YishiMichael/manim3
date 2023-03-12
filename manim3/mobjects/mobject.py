@@ -7,7 +7,6 @@ import itertools as it
 from typing import (
     Generator,
     Generic,
-    #Iterable,
     Iterator,
     TypeVar,
     overload
@@ -40,11 +39,7 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..passes.render_pass import RenderPass
-#from ..rendering.framebuffer_batch import FramebufferBatch
-from ..rendering.framebuffer_batches import (
-    ColorFramebufferBatch,
-    #SimpleFramebufferBatch
-)
+from ..rendering.framebuffer_batches import ColorFramebufferBatch
 from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.scene_config import SceneConfig
 from ..utils.space import SpaceUtils
@@ -54,6 +49,10 @@ _T = TypeVar("_T")
 
 
 class PseudoCollection(Generic[_T]):
+    # Provides a interface similar to `LazyCollection`.
+    # If `_parents` and `_real_ancestors` are implemented with `LazyCollection` also,
+    # loops will pop up in the DAG in the lazy system.
+
     __slots__ = ("_elements",)
 
     def __init__(
@@ -134,7 +133,7 @@ class BoundingBox3D:
     @property
     def radius(self) -> Vec3T:
         radius = (self.maximum - self.minimum) / 2.0
-        # For zero-width dimensions of radius, thicken a little bit to avoid zero division
+        # For zero-width dimensions of radius, thicken a little bit to avoid zero division.
         radius[np.isclose(radius, 0.0)] = 1e-8
         return radius
 
@@ -143,16 +142,12 @@ class Mobject(LazyObject):
     __slots__ = (
         "_parents",
         "_real_ancestors"
-        #"_apply_oit",
-        #"_render_samples"
     )
 
     def __init__(self) -> None:
         super().__init__()
         self._parents: PseudoCollection[Mobject] = PseudoCollection()
         self._real_ancestors: PseudoCollection[Mobject] = PseudoCollection()
-        #self._apply_oit: bool = False
-        #self._render_samples: int = 0
 
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children_)
@@ -176,48 +171,23 @@ class Mobject(LazyObject):
         return self._children_.__getitem__(index)
 
     # family matters
-    # These methods implement a Directed Acyclic Graph
-
-    #@lazy_value
-    #@staticmethod
-    #def _parents() -> "LazyCollection[Mobject]":
-    #    return LazyCollection()
+    # These methods implement a DAG.
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _children_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
 
-    #@Lazy.variable(LazyMode.COLLECTION)
-    #@staticmethod
-    #def _parents_() -> "LazyCollection[Mobject]":
-    #    return LazyCollection()
-
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _real_descendants_(cls) -> "LazyCollection[Mobject]":
         return LazyCollection()
-
-    #@Lazy.variable(LazyMode.COLLECTION)
-    #@staticmethod
-    #def _real_ancestors_() -> "LazyCollection[Mobject]":
-    #    return LazyCollection()
 
     def iter_children(self) -> "Generator[Mobject, None, None]":
         yield from self._children_
 
     def iter_parents(self) -> "Generator[Mobject, None, None]":
         yield from self._parents
-
-    #def iter_ancestors_with_duplicates(self) -> "Generator[Mobject, None, None]":
-    #    yield self
-    #    for parent_node in self._parents:
-    #        yield from parent_node.iter_ancestors_with_duplicates()
-
-    #def iter_descendants_with_duplicates(self) -> "Generator[Mobject, None, None]":
-    #    yield self
-    #    for child_node in self._children_:
-    #        yield from child_node.iter_descendants_with_duplicates()
 
     def iter_descendants(
         self,
@@ -227,12 +197,6 @@ class Mobject(LazyObject):
         yield self
         if broadcast:
             yield from self._real_descendants_
-        #occurred: set[Mobject] = {self}
-        #for node in self.iter_descendants_with_duplicates():
-        #    if node in occurred:
-        #        continue
-        #    yield node
-        #    occurred.add(node)
 
     def iter_ancestors(
         self,
@@ -242,12 +206,6 @@ class Mobject(LazyObject):
         yield self
         if broadcast:
             yield from self._real_ancestors
-        #occurred: set[Mobject] = {self}
-        #for node in self.iter_ancestors_with_duplicates():
-        #    if node in occurred:
-        #        continue
-        #    yield node
-        #    occurred.add(node)
 
     def add(
         self,
@@ -311,36 +269,8 @@ class Mobject(LazyObject):
         self.remove(*self.iter_children())
         return self
 
-    #def clear_parents(self):
-    #    for parent in self.iter_parents():
-    #        parent._unbind_child(self)
-    #    return self
-
-    #def set_children(self, nodes: "Iterable[Mobject]"):
-    #    self.clear()
-    #    self.add(*nodes)
-    #    return self
-
-    #def copy_standalone(self):
-    #    result = self._copy()
-    #    result._parents = []
-    #    result._children_ = []
-    #    for child in self._children_:
-    #        child_copy = child.copy_standalone()
-    #        result._bind_child(child_copy)
-    #    return result
-
-    #def copy(self):
-    #    return self._copy()
-
     def copy(self):
-        #real_descendants = list(self._real_descendants_)
         result = self._copy()
-        #real_descendants_copy: list[Mobject] = []
-        #for descendant in real_descendants:
-        #    descendant_copy = descendant._copy()
-        #    descendant_copy._parents = 
-        #    real_descendants_copy.append(descendant_copy)
         real_descendants_copy = [
             descendant._copy()
             for descendant in self._real_descendants_
@@ -365,7 +295,6 @@ class Mobject(LazyObject):
                 for mobject in descendant._real_ancestors
             ))
 
-        #result = descendants_copy[0]
         for descriptor in self.__class__._LAZY_DESCRIPTORS:
             if not issubclass(descriptor.element_type, Mobject):
                 continue
@@ -377,29 +306,6 @@ class Mobject(LazyObject):
                     get_matched_descendant_mobject(mobject)
                     for mobject in descriptor.__get__(self)
                 )))
-
-        #for mobject in self._parents:
-        #    mobject.add(result)
-        #for mobject in self._real_ancestors:
-        #    mobject._real_descendants_.add(result)
-        #for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
-        #    descendant_copy._children_ = LazyCollection(*(
-        #        descendants_copy[descendants.index(descendant_child)]
-        #        for descendant_child in descendant._children_
-        #    ))
-        #    descendant_copy._parents = [
-        #        (
-        #            descendants_copy[descendants.index(descendant_parent)]
-        #            if descendant_parent in descendants
-        #            else descendant_parent
-        #        )
-        #        for descendant_parent in descendant._parents
-        #    ]
-        #result = self.copy_standalone()
-        #for parent in self._parents:
-        #    parent._bind_child(result)
-        #result = descendants_copy[0]
-        #assert isinstance(result, self.__class__)
         return result
 
     # matrix & transform
@@ -412,7 +318,7 @@ class Mobject(LazyObject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(cls) -> Vec3sT:
-        # Implemented in subclasses
+        # Implemented in subclasses.
         return np.zeros((0, 3))
 
     @Lazy.property(LazyMode.OBJECT)
@@ -472,12 +378,6 @@ class Mobject(LazyObject):
         ))))
         if not len(points_array):
             return None
-            #warnings.warn("Trying to calculate the bounding box of some mobject with no points")
-            #maximum = ORIGIN
-            #minimum = ORIGIN
-        #else:
-        #    maximum = points_array.max(axis=0)
-        #    minimum = points_array.min(axis=0)
         return BoundingBox3D(
             maximum=points_array.max(axis=0),
             minimum=points_array.min(axis=0)
@@ -499,29 +399,6 @@ class Mobject(LazyObject):
                 minimum=ORIGIN
             )
         return result
-
-    # TODO: Can we lazyfy bounding_box, as long as _children_ is lazified...?
-    #def get_bounding_box(
-    #    self,
-    #    *,
-    #    broadcast: bool = True
-    #) -> BoundingBox3D:
-    #    points_array = np.array(list(it.chain(*(
-    #        (aabb.maximum, aabb.minimum)
-    #        for mobject in self.iter_descendants(broadcast=broadcast)
-    #        if (aabb := mobject._local_world_bounding_box_.value) is not None
-    #    ))))
-    #    if not len(points_array):
-    #        warnings.warn("Trying to calculate the bounding box of some mobject with no points")
-    #        maximum = ORIGIN
-    #        minimum = ORIGIN
-    #    else:
-    #        maximum = points_array.max(axis=0)
-    #        minimum = points_array.min(axis=0)
-    #    return BoundingBox3D(
-    #        maximum=maximum,
-    #        minimum=minimum
-    #    )
 
     def get_bounding_box_size(
         self,
@@ -553,7 +430,7 @@ class Mobject(LazyObject):
         *,
         broadcast: bool = True
     ):
-        # Avoid redundant caculations
+        # Avoid redundant caculations.
         transform_dict: dict[LazyWrapper[Mat4T], LazyWrapper[Mat4T]] = {}
         for mobject in self.iter_descendants(broadcast=broadcast):
             original_matrix = mobject._model_matrix_
@@ -603,7 +480,7 @@ class Mobject(LazyObject):
         if coor_mask is not None:
             vector *= coor_mask
         matrix = SpaceUtils.matrix_from_translation(vector)
-        # `about_point` and `about_edge` are meaningless when shifting
+        # `about_point` and `about_edge` are meaningless when shifting.
         self.apply_relative_transform(
             matrix=matrix,
             broadcast=broadcast
@@ -794,7 +671,7 @@ class Mobject(LazyObject):
         specified_height: float | None,
         specified_frame_scale: float | None
     ) -> Vec2T:
-        # Called when initializing a planar mobject
+        # Called when initializing a planar mobject.
         scale_factor = np.ones(2)
         if specified_width is None and specified_height is None:
             if specified_frame_scale is not None:
@@ -811,8 +688,6 @@ class Mobject(LazyObject):
         else:
             raise ValueError  # never
         return scale_factor
-        #self.center().scale(np.append(scale_factor, 1.0))
-        #return self
 
     # rotate relatives
 
@@ -848,20 +723,10 @@ class Mobject(LazyObject):
 
     # render
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _apply_oit_(cls) -> bool:
         return False
-
-    #@lazy_slot
-    #@staticmethod
-    #def _apply_oit() -> bool:
-    #    return False
-
-    #@lazy_slot
-    #@staticmethod
-    #def _render_samples() -> int:
-    #    return 0
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
@@ -873,20 +738,10 @@ class Mobject(LazyObject):
         scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        # Implemented in subclasses
+        # Implemented in subclasses.
         # This function is not responsible for clearing the `target_framebuffer`.
         # On the other hand, one shall clear the framebuffer before calling this function.
         pass
-
-    #def _render_with_samples(self, scene_config: SceneConfig, target_framebuffer: moderngl.Framebuffer) -> None:
-    #    samples = self._render_samples
-    #    if not samples:
-    #        self._render(scene_config, target_framebuffer)
-    #        return
-
-    #    with SimpleFramebufferBatch(samples=samples) as msaa_batch:
-    #        self._render(scene_config, msaa_batch.framebuffer)
-    #        FramebufferBatch.downsample_framebuffer(msaa_batch.framebuffer, target_framebuffer)
 
     def _render_with_passes(
         self,
@@ -928,15 +783,3 @@ class Mobject(LazyObject):
     ):
         self._render_passes_.remove(*render_passes)
         return self
-
-
-#class Group(Mobject):
-#    def __init__(self, *mobjects: Mobject):
-#        super().__init__()
-#        self.add(*mobjects)
-
-#    # TODO
-#    def _bind_child(self, node, index: int | None = None):
-#        assert isinstance(node, Mobject)
-#        super()._bind_child(node, index=index)
-#        return self

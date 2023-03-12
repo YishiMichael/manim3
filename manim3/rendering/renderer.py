@@ -34,12 +34,12 @@ class Renderer:
         if ConfigSingleton().write_video:
             writing_process = sp.Popen([
                 "ffmpeg",
-                "-y",  # overwrite output file if it exists
+                "-y",  # Overwrite output file if it exists.
                 "-f", "rawvideo",
                 "-s", "{}x{}".format(*ConfigSingleton().pixel_size),  # size of one frame
                 "-pix_fmt", "rgba",
                 "-r", str(ConfigSingleton().fps),  # frames per second
-                "-i", "-",  # The input comes from a pipe
+                "-i", "-",  # The input comes from a pipe.
                 "-vf", "vflip",
                 "-an",
                 "-vcodec", "libx264",
@@ -60,7 +60,7 @@ class Renderer:
             scene = scene_cls()
             scene.construct()
 
-            # Ensure at least one frame is rendered
+            # Ensure at least one frame is rendered.
             if scene._previous_rendering_timestamp is None:
                 scene._render_frame()
 

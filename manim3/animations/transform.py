@@ -99,15 +99,13 @@ class Transform(AlphaAnimation):
             if start_stroke is None:
                 assert stop_stroke is not None
                 start_stroke = stop_stroke.copy().set_style(width=0.0)
-                start_stroke._model_matrix_ = start_mobject._model_matrix_
-                start_stroke._multi_line_string_3d_ = start_mobject._shape_._multi_line_string_3d_  # TODO
+                start_mobject.adjust_stroke_shape(start_stroke)
                 start_stroke_mobjects.append(start_stroke)
 
             if stop_stroke is None:
                 assert start_stroke is not None
                 stop_stroke = start_stroke.copy().set_style(width=0.0)
-                stop_stroke._model_matrix_ = stop_mobject._model_matrix_
-                stop_stroke._multi_line_string_3d_ = stop_mobject._shape_._multi_line_string_3d_
+                stop_mobject.adjust_stroke_shape(stop_stroke)
                 stop_stroke_mobjects.append(stop_stroke)
                 intermediate_mobject._stroke_mobjects_.add(stop_stroke)
 

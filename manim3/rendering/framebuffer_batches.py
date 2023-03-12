@@ -186,7 +186,7 @@ class SceneFramebufferBatch(FramebufferBatch[SceneFramebufferBatchStruct]):
     ) -> None:
         instance.opaque_framebuffer.clear()
         instance.accum_framebuffer.clear()
-        instance.revealage_framebuffer.clear(red=1.0)  # initialize `revealage` with 1.0
+        instance.revealage_framebuffer.clear(red=1.0)  # Tnitialize `revealage` with 1.0.
         # Test against each fragment by the depth buffer, but never write to it.
         instance.accum_framebuffer.depth_mask = False
         instance.revealage_framebuffer.depth_mask = False

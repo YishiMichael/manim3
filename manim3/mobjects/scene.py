@@ -47,29 +47,9 @@ class Scene(Mobject):
     def __init__(self) -> None:
         super().__init__()
         self._animation_dict: dict[Animation, float] = {}
-        # A timer scaled by fps
+        # A timer scaled by fps.
         self._frame_floating_index: float = 0.0
         self._previous_rendering_timestamp: float | None = None
-
-    #@Lazy.variable(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _color_map_(cls) -> moderngl.Texture:
-    #    return NotImplemented
-
-    #@Lazy.variable(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _accum_map_(cls) -> moderngl.Texture:
-    #    return NotImplemented
-
-    #@Lazy.variable(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _revealage_map_(cls) -> moderngl.Texture:
-    #    return NotImplemented
-
-    #@Lazy.variable(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _depth_map_(cls) -> moderngl.Texture:
-    #    return NotImplemented
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
@@ -107,130 +87,47 @@ class Scene(Mobject):
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _u_color_map_(cls) -> TextureStorage:
-        return TextureStorage(
-            #field="sampler2D u_color_map"
-        )
+        return TextureStorage()
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _u_accum_map_(cls) -> TextureStorage:
-        return TextureStorage(
-            #field="sampler2D u_accum_map"
-        )
+        return TextureStorage()
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _u_revealage_map_(cls) -> TextureStorage:
-        return TextureStorage(
-            #field="sampler2D u_revealage_map"
-        )
+        return TextureStorage()
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _u_depth_map_(cls) -> TextureStorage:
-        return TextureStorage(
-            #field="sampler2D u_depth_map"
-        )
+        return TextureStorage()
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _copy_vertex_array_(
-        cls#,
-        #_u_color_map_: TextureStorage,
-        #_u_depth_map_: TextureStorage,
-        #_indexed_attributes_buffer_: IndexedAttributesBuffer
-    ) -> VertexArray:
+    def _copy_vertex_array_(cls) -> VertexArray:
         return VertexArray()
-        #return VertexArray(
-        #    shader_filename="copy",
-        #    custom_macros=[
-        #        "#define COPY_DEPTH"
-        #    ],
-        #    texture_storages=[
-        #        _u_color_map_,
-        #        _u_depth_map_
-        #    ],
-        #    uniform_blocks=[],
-        #    indexed_attributes=_indexed_attributes_buffer_
-        #)
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _copy_window_vertex_array_(
-        cls#,
-        #_u_color_map_: TextureStorage,
-        #_indexed_attributes_buffer_: IndexedAttributesBuffer
-    ) -> VertexArray:
+    def _copy_window_vertex_array_(cls) -> VertexArray:
         return VertexArray()
-        #return VertexArray(
-        #    shader_filename="copy",
-        #    custom_macros=[],
-        #    texture_storages=[
-        #        _u_color_map_
-        #    ],
-        #    uniform_blocks=[],
-        #    indexed_attributes=_indexed_attributes_buffer_
-        #)
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _oit_accum_vertex_array_(
-        cls#,
-        #_u_color_map_: TextureStorage,
-        #_u_depth_map_: TextureStorage,
-        #_indexed_attributes_buffer_: IndexedAttributesBuffer
-    ) -> VertexArray:
+    def _oit_accum_vertex_array_(cls) -> VertexArray:
         return VertexArray()
-        #return VertexArray(
-        #    shader_filename="oit_accum",
-        #    custom_macros=[],
-        #    texture_storages=[
-        #        _u_color_map_,
-        #        _u_depth_map_
-        #    ],
-        #    uniform_blocks=[],
-        #    indexed_attributes=_indexed_attributes_buffer_
-        #)
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _oit_revealage_vertex_array_(
-        cls#,
-        #_u_color_map_: TextureStorage,
-        #_u_depth_map_: TextureStorage,
-        #_indexed_attributes_buffer_: IndexedAttributesBuffer
-    ) -> VertexArray:
+    def _oit_revealage_vertex_array_(cls) -> VertexArray:
         return VertexArray()
-        #return VertexArray(
-        #    shader_filename="oit_revealage",
-        #    custom_macros=[],
-        #    texture_storages=[
-        #        _u_color_map_,
-        #        _u_depth_map_
-        #    ],
-        #    uniform_blocks=[],
-        #    indexed_attributes=_indexed_attributes_buffer_
-        #)
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _oit_compose_vertex_array_(
-        cls#,
-        #_u_accum_map_: TextureStorage,
-        #_u_revealage_map_: TextureStorage,
-        #_indexed_attributes_buffer_: IndexedAttributesBuffer
-    ) -> VertexArray:
+    def _oit_compose_vertex_array_(cls) -> VertexArray:
         return VertexArray()
-        #return VertexArray(
-        #    shader_filename="oit_compose",
-        #    custom_macros=[],
-        #    texture_storages=[
-        #        _u_accum_map_,
-        #        _u_revealage_map_
-        #    ],
-        #    uniform_blocks=[],
-        #    indexed_attributes=_indexed_attributes_buffer_
-        #)
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
@@ -258,12 +155,6 @@ class Scene(Mobject):
             for mobject in opaque_mobjects:
                 with SimpleFramebufferBatch() as batch:
                     mobject._render_with_passes(scene_config, batch.framebuffer)
-                    #self._u_color_map_.write(
-                    #    texture_array=np.array(batch.color_texture)
-                    #)
-                    #self._u_depth_map_.write(
-                    #    texture_array=np.array(batch.depth_texture)
-                    #)
                     self._copy_vertex_array_.write(
                         shader_filename="copy",
                         custom_macros=[
@@ -282,15 +173,6 @@ class Scene(Mobject):
                         uniform_blocks=[],
                         indexed_attributes=self._indexed_attributes_buffer_
                     ).render(
-                        #shader_filename="copy",
-                        #custom_macros=[
-                        #    "#define COPY_DEPTH"
-                        #],
-                        #uniform_blocks=[],
-                        #texture_array_dict={
-                        #    "u_color_map": np.array(batch.color_texture),
-                        #    "u_depth_map": np.array(batch.depth_texture)
-                        #},
                         framebuffer=scene_batch.opaque_framebuffer,
                         context_state=ContextState(
                             enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
@@ -301,18 +183,7 @@ class Scene(Mobject):
             for mobject in transparent_mobjects:
                 with SimpleFramebufferBatch() as batch:
                     mobject._render_with_passes(scene_config, batch.framebuffer)
-                    #self._u_color_map_.write(
-                    #    texture_array=np.array(batch.color_texture)
-                    #)
-                    #self._u_depth_map_.write(
-                    #    texture_array=np.array(batch.depth_texture)
-                    #)
-                    #self._color_map_ = batch.color_texture
-                    #self._depth_map_ = batch.depth_texture
                     self._oit_accum_vertex_array_.write(
-                        #shader_filename="oit_accum",
-                        #custom_macros=[],
-                        #texture_storages=texture_storages,
                         shader_filename="oit_accum",
                         custom_macros=[],
                         texture_storages=[
@@ -327,10 +198,6 @@ class Scene(Mobject):
                         ],
                         uniform_blocks=[],
                         indexed_attributes=self._indexed_attributes_buffer_
-                        #texture_array_dict={
-                        #    "u_color_map": np.array(batch.color_texture),
-                        #    "u_depth_map": np.array(batch.depth_texture)
-                        #}
                     ).render(
                         framebuffer=scene_batch.accum_framebuffer,
                         context_state=ContextState(
@@ -347,10 +214,6 @@ class Scene(Mobject):
                         ],
                         uniform_blocks=[],
                         indexed_attributes=self._indexed_attributes_buffer_
-                        #texture_array_dict={
-                        #    "u_color_map": np.array(batch.color_texture),
-                        #    "u_depth_map": np.array(batch.depth_texture)
-                        #}
                     ).render(
                         framebuffer=scene_batch.revealage_framebuffer,
                         context_state=ContextState(
@@ -359,14 +222,6 @@ class Scene(Mobject):
                         )
                     )
 
-            #self._color_map_ = scene_batch.opaque_texture
-            #self._depth_map_ = scene_batch.depth_texture
-            #self._u_color_map_.write(
-            #    texture_array=np.array(scene_batch.opaque_texture)
-            #)
-            #self._u_depth_map_.write(
-            #    texture_array=np.array(scene_batch.depth_texture)
-            #)
             self._copy_vertex_array_.write(
                 shader_filename="copy",
                 custom_macros=[
@@ -384,10 +239,6 @@ class Scene(Mobject):
                 ],
                 uniform_blocks=[],
                 indexed_attributes=self._indexed_attributes_buffer_
-                #texture_array_dict={
-                #    "u_color_map": np.array(scene_batch.opaque_texture),
-                #    "u_depth_map": np.array(scene_batch.depth_texture)
-                #},
             ).render(
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
@@ -395,14 +246,6 @@ class Scene(Mobject):
                     blend_func=(moderngl.ONE, moderngl.ZERO)
                 )
             )
-            #self._accum_map_ = scene_batch.accum_texture
-            #self._revealage_map_ = scene_batch.revealage_texture
-            #self._u_accum_map_.write(
-            #    texture_array=np.array(scene_batch.accum_texture)
-            #)
-            #self._u_revealage_map_.write(
-            #    texture_array=np.array(scene_batch.revealage_texture)
-            #)
             self._oit_compose_vertex_array_.write(
                 shader_filename="oit_compose",
                 custom_macros=[],
@@ -418,17 +261,12 @@ class Scene(Mobject):
                 ],
                 uniform_blocks=[],
                 indexed_attributes=self._indexed_attributes_buffer_
-                #texture_array_dict={
-                #    "u_accum_map": np.array(scene_batch.accum_texture),
-                #    "u_revealage_map": np.array(scene_batch.revealage_texture)
-                #},
             ).render(
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
                 )
             )
-            #Image.frombytes("RGB", scene_batch.opaque_framebuffer.size, scene_batch.opaque_framebuffer.read(), "raw").show()
 
     def _render_frame(self) -> None:
         scene_config = self._scene_config_
@@ -450,10 +288,6 @@ class Scene(Mobject):
             assert (window := ContextSingleton._WINDOW) is not None
             assert (window_framebuffer := ContextSingleton._WINDOW_FRAMEBUFFER) is not None
             window.clear()
-            #self._color_map_ = active_scene_data.color_texture
-            #self._u_color_map_.write(
-            #    texture_array=np.array(active_scene_data.color_texture)
-            #)
             self._copy_window_vertex_array_.write(
                 shader_filename="copy",
                 custom_macros=[],
@@ -464,9 +298,6 @@ class Scene(Mobject):
                     )
                 ],
                 uniform_blocks=[],
-                #texture_array_dict={
-                #    "u_color_map": np.array(active_scene_data.color_texture)
-                #},
                 indexed_attributes=self._indexed_attributes_buffer_
             ).render(
                 framebuffer=window_framebuffer,
@@ -487,8 +318,8 @@ class Scene(Mobject):
         stop_frame_floating_index: float
     ) -> range:
         # Find all frame indices in the intersection of
-        # (start_frame_floating_index, stop_frame_floating_index]
-        # and [ConfigSingleton().start_frame_index, ConfigSingleton().stop_frame_index]
+        # `(start_frame_floating_index, stop_frame_floating_index]`
+        # and `[ConfigSingleton().start_frame_index, ConfigSingleton().stop_frame_index]`.
         start_frame_index = int(np.ceil(
             start_frame_floating_index
             if (config_start_frame_index := ConfigSingleton().start_frame_index) is None
@@ -500,7 +331,7 @@ class Scene(Mobject):
             else max(config_stop_frame_index, stop_frame_floating_index)
         ))
         if np.isclose(start_frame_index, start_frame_floating_index):
-            # Exclude the open side
+            # Exclude the open side.
             start_frame_index += 1
         return range(start_frame_index, stop_frame_index + 1)
 

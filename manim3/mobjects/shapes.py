@@ -85,7 +85,7 @@ class RegularPolygon(Polygon):
         self,
         n: int
     ) -> None:
-        # By default, one vertex is at (1, 0)
+        # By default, one vertex is at (1, 0).
         complex_coords = np.exp(1.0j * np.linspace(0.0, TAU, n, endpoint=False))
         super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)
 

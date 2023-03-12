@@ -1,6 +1,6 @@
 __all__ = [
     "AlphaAnimation",
-    "Animation",
+    "Animation"
     #"SimpleAnimation"
 ]
 
@@ -35,7 +35,7 @@ class AlphaAnimation(Animation):
     def __init__(
         self,
         *,
-        # In terms of alpha instead of time
+        # In terms of alpha instead of time.
         animate_func: Callable[[float, float], None],
         mobject_addition_items: list[tuple[float, Mobject, Mobject | None]],
         mobject_removal_items: list[tuple[float, Mobject, Mobject | None]],

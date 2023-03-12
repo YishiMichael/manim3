@@ -1,11 +1,11 @@
 __all__ = ["ShapeMobject"]
 
 
-#import moderngl
 from typing import (
     Generator,
     Iterable
 )
+
 import shapely.geometry
 import svgelements as se
 
@@ -18,8 +18,6 @@ from ..lazy.interface import (
 )
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
-#from ..utils.color import ColorUtils
-#from ..utils.scene_config import SceneConfig
 from ..utils.shape import Shape
 
 
@@ -52,33 +50,15 @@ class ShapeMobject(MeshMobject):
     ) -> ShapeGeometry:
         return ShapeGeometry(_shape_)
 
-    #@lazy_value
-    #@classmethod
-    #def _apply_phong_lighting() -> bool:
-    #    return False
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _apply_phong_lighting_(cls) -> bool:
+        return False
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
     def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
         return LazyCollection()
-
-    #def _render(
-    #    self,
-    #    scene_config: SceneConfig,
-    #    target_framebuffer: moderngl.Framebuffer
-    #) -> None:
-    #    super()._render(scene_config, target_framebuffer)
-    #    for stroke_mobject in self._stroke_mobjects_:
-    #        stroke_mobject._model_matrix_ = self._model_matrix_  # TODO: should it live here???
-    #        stroke_mobject._render(scene_config, target_framebuffer)
-
-    def iter_shape_descendants(
-        self,
-        broadcast: bool = True
-    ) -> "Generator[ShapeMobject, None, None]":
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if isinstance(mobject, ShapeMobject):
-                yield mobject
 
     def set_shape(
         self,
@@ -88,6 +68,22 @@ class ShapeMobject(MeshMobject):
         for stroke in self._stroke_mobjects_:
             stroke._multi_line_string_3d_ = shape._multi_line_string_3d_
         return self
+
+    def adjust_stroke_shape(
+        self,
+        stroke_mobject: StrokeMobject
+    ):
+        stroke_mobject._model_matrix_ = self._model_matrix_
+        stroke_mobject._multi_line_string_3d_ = self._shape_._multi_line_string_3d_
+        return self
+
+    def iter_shape_descendants(
+        self,
+        broadcast: bool = True
+    ) -> "Generator[ShapeMobject, None, None]":
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if isinstance(mobject, ShapeMobject):
+                yield mobject
 
     @classmethod
     def class_set_fill(
@@ -163,8 +159,8 @@ class ShapeMobject(MeshMobject):
 
         stroke_mobjects: list[StrokeMobject] = []
         for mobject in mobjects:
-            stroke = StrokeMobject(mobject._shape_._multi_line_string_3d_)
-            stroke.apply_transform(mobject._model_matrix_.value)
+            stroke = StrokeMobject()
+            mobject.adjust_stroke_shape(stroke)
             stroke_mobjects.append(stroke)
             mobject._stroke_mobjects_.add(stroke)
             mobject.add(stroke)
@@ -192,16 +188,6 @@ class ShapeMobject(MeshMobject):
         apply_oit: bool | None = None,
         broadcast: bool = True
     ):
-        #stroke_mobjects: list[StrokeMobject] = []
-        #for mobject in self.iter_descendants(broadcast=broadcast):
-        #    if not isinstance(mobject, ShapeMobject):
-        #        continue
-        #    stroke = StrokeMobject(mobject._shape_._multi_line_string_3d_)
-        #    stroke.apply_transform(mobject._model_matrix_.value)
-        #    stroke_mobjects.append(stroke)
-        #    mobject._stroke_mobjects_.add(stroke)
-        #    mobject.add(stroke)
-
         self.class_add_stroke(
             mobjects=self.iter_shape_descendants(broadcast=broadcast),
             width=width,
@@ -259,40 +245,6 @@ class ShapeMobject(MeshMobject):
             dilate=dilate,
             apply_oit=apply_oit
         )
-        #for mobject in mobjects:
-        #    if mobject._stroke_mobjects_:
-        #        mobject._stroke_mobjects_[numeric_index].set_style(
-        #            width=width,
-        #            single_sided=single_sided,
-        #            has_linecap=has_linecap,
-        #            color=color,
-        #            opacity=opacity,
-        #            dilate=dilate,
-        #            apply_oit=apply_oit,
-        #            broadcast=False
-        #        )
-        #    else:
-        #        if index is not None:
-        #            raise IndexError
-        #        if any(param is not None for param in (
-        #            width,
-        #            single_sided,
-        #            has_linecap,
-        #            color,
-        #            opacity,
-        #            dilate,
-        #            apply_oit
-        #        )):
-        #            mobject.add_stroke(
-        #                width=width,
-        #                single_sided=single_sided,
-        #                has_linecap=has_linecap,
-        #                color=color,
-        #                opacity=opacity,
-        #                dilate=dilate,
-        #                apply_oit=apply_oit,
-        #                broadcast=False
-        #            )
 
     def set_stroke(
         self,
@@ -318,44 +270,6 @@ class ShapeMobject(MeshMobject):
             dilate=dilate,
             apply_oit=apply_oit
         )
-        #for mobject in self.iter_descendants(broadcast=broadcast):
-        #    if not isinstance(mobject, ShapeMobject):
-        #        continue
-        #    if mobject._stroke_mobjects_:
-        #        if index is None:
-        #            index = 0
-        #        mobject._stroke_mobjects_[index].set_style(
-        #            width=width,
-        #            single_sided=single_sided,
-        #            has_linecap=has_linecap,
-        #            color=color,
-        #            opacity=opacity,
-        #            dilate=dilate,
-        #            apply_oit=apply_oit,
-        #            broadcast=False
-        #        )
-        #    else:
-        #        if index is not None:
-        #            raise IndexError
-        #        if any(param is not None for param in (
-        #            width,
-        #            single_sided,
-        #            has_linecap,
-        #            color,
-        #            opacity,
-        #            dilate,
-        #            apply_oit
-        #        )):
-        #            mobject.add_stroke(
-        #                width=width,
-        #                single_sided=single_sided,
-        #                has_linecap=has_linecap,
-        #                color=color,
-        #                opacity=opacity,
-        #                dilate=dilate,
-        #                apply_oit=apply_oit,
-        #                broadcast=False
-        #            )
         return self
 
     @classmethod

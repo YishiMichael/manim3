@@ -162,7 +162,7 @@ class ParsingResult:
 
 class StringMobject(SVGMobject):
     """
-    An abstract base class for `Tex` and `MarkupText`
+    An abstract base class for `Tex` and `MarkupText`.
 
     This class aims to optimize the logic of "slicing children
     via substrings". This could be much clearer and more user-friendly
@@ -218,16 +218,6 @@ class StringMobject(SVGMobject):
         self._parsing_result: ParsingResult = parsing_result
         self._shape_mobjects_.add(*shape_mobjects)
         self.add(*shape_mobjects)
-
-    #@lazy_slot
-    #@staticmethod
-    #def _string() -> str:
-    #    return NotImplemented
-
-    #@lazy_slot
-    #@staticmethod
-    #def _parsing_result() -> ParsingResult:
-    #    return NotImplemented
 
     @classmethod
     def _parse(
@@ -726,7 +716,7 @@ class StringMobject(SVGMobject):
             for part_range in it.pairwise((0, *it.accumulate(range_lens)))
         ]))
 
-    # Implemented in subclasses
+    # Implemented in subclasses.
 
     @classmethod
     @abstractmethod

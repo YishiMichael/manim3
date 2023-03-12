@@ -112,7 +112,7 @@ class ShapeInterpolant(Generic[_VecT, _VecsT], LazyObject):
         side: Literal["left", "right"] = "right"
     ) -> tuple[int, float]:
         """
-        Assumed that `array` has at least 2 elements and already sorted, and that `0 = array[0] <= target <= array[-1]`
+        Assumed that `array` has at least 2 elements and already sorted, and that `0 = array[0] <= target <= array[-1]`.
         Returns `(i, (target - array[i - 1]) / (array[i] - array[i - 1]))` such that
         `1 <= i <= len(array) - 1` and `array[i - 1] <= target <= array[i]`.
         """
@@ -502,19 +502,12 @@ class Shape(LazyObject):
         se_path = se.Path(se_shape.segments(transformed=True))
         se_path.approximate_arcs_with_cubics()
         coords_list: list[Vec2T] = []
-        #current_contour_start_point: Vec2T = np.zeros(2)
         for segment in se_path.segments(transformed=True):
             if isinstance(segment, se.Move):
                 yield np.array(coords_list)
-                #current_contour_start_point = np.array(segment.end)
                 coords_list = [np.array(segment.end)]
             elif isinstance(segment, se.Linear):  # Line & Close
-                #coords_list.append(current_contour_start_point)
-                #yield np.array(coords_list)
-                #coords_list = []
                 coords_list.append(np.array(segment.end))
-                #elif isinstance(segment, se.Line):
-                #    coords_list.append(np.array(segment.end))
             else:
                 if isinstance(segment, se.QuadraticBezier):
                     control_points = [segment.start, segment.control, segment.end]

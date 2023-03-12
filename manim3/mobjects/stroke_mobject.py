@@ -14,12 +14,10 @@ import numpy as np
 from ..cameras.camera import Camera
 from ..custom_typing import (
     ColorType,
-    Mat4T,
     Vec3T,
     Vec3sT,
     VertexIndexType
 )
-from ..lazy.core import LazyCollection
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -55,12 +53,6 @@ class StrokeMobject(Mobject):
         if multi_line_string_3d is not None:
             self._multi_line_string_3d_ = multi_line_string_3d
 
-    #@staticmethod
-    #def __winding_sign_key(
-    #    winding_sign: bool
-    #) -> bool:
-    #    return winding_sign
-
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _multi_line_string_3d_(cls) -> MultiLineString3D:
@@ -69,7 +61,7 @@ class StrokeMobject(Mobject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> float:
-        # TODO: The unit mismatches by a factor of 5
+        # TODO: The unit mismatches by a factor of 5.
         return 0.2
 
     @Lazy.variable(LazyMode.UNWRAPPED)
@@ -101,24 +93,6 @@ class StrokeMobject(Mobject):
     @classmethod
     def _winding_sign_(cls) -> bool:
         return NotImplemented
-
-    #@Lazy.property(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _winding_sign_(
-    #    cls,
-    #    scene_config__camera__projection_matrix: Mat4T,
-    #    scene_config__camera__view_matrix: Mat4T,
-    #    model_matrix: Mat4T,
-    #    multi_line_string_3d__children__coords: list[Vec3sT],
-    #    width: float
-    #) -> bool:
-    #    # TODO: The calculation here is somehow redundant with what shader does...
-    #    transform = scene_config__camera__projection_matrix @ scene_config__camera__view_matrix @ model_matrix
-    #    area = 0.0
-    #    for coords in multi_line_string_3d__children__coords:
-    #        coords_2d = SpaceUtils.apply_affine(transform, coords)[:, :2]
-    #        area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
-    #    return area * width >= 0.0
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -216,40 +190,6 @@ class StrokeMobject(Mobject):
     def _point_vertex_array_(cls) -> VertexArray:
         return VertexArray()
 
-    #@Lazy.variable(LazyMode.COLLECTION)
-    #@classmethod
-    #def _vertex_arrays_(cls) -> LazyCollection[VertexArray]:
-    #    return LazyCollection(VertexArray(), VertexArray(), VertexArray(), VertexArray())
-
-    #@Lazy.property(LazyMode.COLLECTION)
-    #@classmethod
-    #def _vertex_arrays_(
-    #    cls,
-    #    _scene_config__camera__ub_camera_: UniformBlockBuffer,
-    #    _ub_model_: UniformBlockBuffer,
-    #    _ub_stroke_: UniformBlockBuffer,
-    #    _ub_winding_sign_: UniformBlockBuffer,
-    #    _multi_line_string_3d_: MultiLineString3D,
-    #    single_sided: bool,
-    #    has_linecap: bool,
-    #    _attributes_: AttributesBuffer
-    #) -> LazyCollection[VertexArray]:
-    #    
-    #    return result
-
-    #@_vertex_arrays_.restocker
-    #@staticmethod
-    #def _vertex_arrays_restocker(
-    #    vertex_array_items: list[VertexArray]
-    #) -> None:
-    #    for vertex_array in vertex_array_items:
-    #        vertex_array._restock()
-
-    #@lazy_slot
-    #@staticmethod
-    #def _render_samples() -> int:
-    #    return 4
-
     @classmethod
     def _lump_index_from_getter(
         cls,
@@ -275,7 +215,6 @@ class StrokeMobject(Mobject):
     ) -> list[int]:
         if kind == LineStringKind.POINT:
             return []
-        #n_points = len(line_string._coords_.value)
         if kind == LineStringKind.LINE_STRING:
             # (0, 1, 1, 2, ..., n-2, n-1)
             return list(it.chain(*zip(*(
@@ -297,7 +236,6 @@ class StrokeMobject(Mobject):
     ) -> list[int]:
         if kind == LineStringKind.POINT:
             return []
-        #n_points = len(line_string._coords_.value)
         if kind == LineStringKind.LINE_STRING:
             # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
             return list(it.chain(*zip(*(
@@ -319,7 +257,6 @@ class StrokeMobject(Mobject):
     ) -> list[int]:
         if kind == LineStringKind.POINT:
             return []
-        #n_points = len(line_string._coords_.value)
         if kind == LineStringKind.LINE_STRING:
             return [0, 1, coords_len - 1, coords_len - 2]
         if kind == LineStringKind.LINEAR_RING:
@@ -339,11 +276,6 @@ class StrokeMobject(Mobject):
         if kind == LineStringKind.LINEAR_RING:
             return []
         raise ValueError  # never
-
-    #@Lazy.variable(LazyMode.OBJECT)
-    #@classmethod
-    #def _scene_config_(cls) -> SceneConfig:
-    #    return NotImplemented
 
     def _render(
         self,
@@ -404,11 +336,6 @@ class StrokeMobject(Mobject):
         target_framebuffer.depth_mask = False
         for vertex_array in vertex_arrays:
             vertex_array.render(
-                #shader_filename="stroke",
-                #custom_macros=custom_macros,
-                #texture_storages=[],
-                #texture_array_dict={},
-                #uniform_blocks=uniform_blocks,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND,
@@ -421,11 +348,6 @@ class StrokeMobject(Mobject):
         target_framebuffer.color_mask = (False, False, False, False)
         for vertex_array in vertex_arrays:
             vertex_array.render(
-                #shader_filename="stroke",
-                #custom_macros=custom_macros,
-                #texture_storages=[],
-                #texture_array_dict={},
-                #uniform_blocks=uniform_blocks,
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.DEPTH_TEST

@@ -90,7 +90,6 @@ class SceneConfig(LazyObject):
     @classmethod
     def _point_lights_(cls) -> LazyCollection[PointLight]:
         return LazyCollection()
-        #return np.zeros(0, dtype=SceneConfig._POINT_LIGHT_DTYPE)
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -125,7 +124,7 @@ class SceneConfig(LazyObject):
                     "color": np.array([
                         np.append(point_light._color_.value, point_light._opacity_.value)
                         for point_light in point_lights
-                    ])#np.append(point_lights["color"], point_lights["opacity"][:, None], axis=1)
+                    ])
                 }
             }
         )
@@ -182,12 +181,6 @@ class SceneConfig(LazyObject):
         color: ColorType | None = None,
         opacity: float | None = None
     ):
-        #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        #point_light = np.array((
-        #    position if position is not None else np.zeros(3),
-        #    color_component if color_component is not None else np.ones(3),
-        #    opacity_component if opacity_component is not None else 1.0
-        #), dtype=self._POINT_LIGHT_DTYPE)
         self._point_lights_.add(PointLight().set_style(
             position=position,
             color=color,
@@ -211,16 +204,6 @@ class SceneConfig(LazyObject):
                 color=color,
                 opacity=opacity
             )
-            #point_lights = self._point_lights_
-            #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-            #point_light = np.array((
-            #    position if position is not None else point_lights[index]["position"],
-            #    color_component if color_component is not None else point_lights[index]["color"],
-            #    opacity_component if opacity_component is not None else point_lights[index]["opacity"]
-            #), dtype=self._POINT_LIGHT_DTYPE)
-            #self._point_lights_ = LazyWrapper(np.concatenate(
-            #    (point_lights[:index], [point_light], point_lights[index + 1:])
-            #))
         else:
             if index is not None:
                 raise IndexError
