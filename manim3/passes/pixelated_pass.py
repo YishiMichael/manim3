@@ -39,12 +39,12 @@ class PixelatedPass(RenderPass):
     def _u_color_map_(cls) -> TextureStorage:
         return TextureStorage()
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _vertex_array_(cls) -> VertexArray:
         return VertexArray()
 
-    def render(
+    def _render(
         self,
         texture: moderngl.Texture,
         target_framebuffer: moderngl.Framebuffer

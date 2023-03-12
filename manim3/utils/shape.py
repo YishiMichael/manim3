@@ -415,13 +415,16 @@ class Shape(LazyObject):
         self,
         arg: MultiLineString2D | shapely.geometry.base.BaseGeometry | se.Shape | None = None
     ) -> None:
+        super().__init__()
+
         if arg is None:
-            multi_line_string = None
-        elif isinstance(arg, MultiLineString2D):
+            return
+        if isinstance(arg, MultiLineString2D):
             multi_line_string = arg
         else:
             if isinstance(arg, shapely.geometry.base.BaseGeometry):
                 coords_iter = self._iter_coords_from_shapely_obj(arg)
+                self._precalculated_shapely_obj_ = arg
             elif isinstance(arg, se.Shape):
                 coords_iter = self._iter_coords_from_se_shape(arg)
             else:
@@ -431,10 +434,7 @@ class Shape(LazyObject):
                 for coords in coords_iter
                 if len(coords)
             ])
-
-        super().__init__()
-        if multi_line_string is not None:
-            self._multi_line_string_ = multi_line_string
+        self._multi_line_string_ = multi_line_string
 
     def __and__(
         self,
@@ -464,6 +464,11 @@ class Shape(LazyObject):
     @classmethod
     def _multi_line_string_(cls) -> MultiLineString2D:
         return MultiLineString2D()
+
+    @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
+    def _precalculated_shapely_obj_(cls) -> shapely.geometry.base.BaseGeometry | None:
+        return None
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -560,8 +565,11 @@ class Shape(LazyObject):
     @classmethod
     def _shapely_obj_(
         cls,
-        _multi_line_string_: MultiLineString2D
+        _multi_line_string_: MultiLineString2D,
+        precalculated_shapely_obj: shapely.geometry.base.BaseGeometry | None
     ) -> shapely.geometry.base.BaseGeometry:
+        if precalculated_shapely_obj is not None:
+            return precalculated_shapely_obj
         return cls._to_shapely_object(_multi_line_string_)
 
     @classmethod
