@@ -18,6 +18,10 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
+from ..lazy.core import (
+    LazyCollectionVariableDescriptor,
+    LazyWrapper
+)
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -388,13 +392,13 @@ class StrokeMobject(Mobject):
         dilate: float | None = None,
         apply_oit: bool | None = None
     ) -> None:
-        width_value = width if width is not None else None
-        single_sided_value = single_sided if single_sided is not None else None
-        has_linecap_value = has_linecap if has_linecap is not None else None
+        width_value = LazyWrapper(width) if width is not None else None
+        single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
+        has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = color_component if color_component is not None else None
-        opacity_value = opacity_component if opacity_component is not None else None
-        dilate_value = dilate if dilate is not None else None
+        color_value = LazyWrapper(color_component) if color_component is not None else None
+        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
+        dilate_value = LazyWrapper(dilate) if dilate is not None else None
         apply_oit_value = apply_oit if apply_oit is not None else \
             True if any(param is not None for param in (
                 opacity_component,
@@ -439,3 +443,26 @@ class StrokeMobject(Mobject):
             apply_oit=apply_oit
         )
         return self
+
+    @classmethod
+    def class_concatenate(
+        cls,
+        *mobjects: "StrokeMobject"
+    ) -> "StrokeMobject":
+        if not mobjects:
+            return cls()
+        result = mobjects[0]._copy()
+        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+            if isinstance(descriptor, LazyCollectionVariableDescriptor):
+                continue
+            if descriptor is cls._multi_line_string_3d_:
+                continue
+            assert all(
+                descriptor.get_impl(result) is descriptor.get_impl(mobject)
+                for mobject in mobjects
+            )
+        result._multi_line_string_3d_ = MultiLineString3D.concatenate(
+            mobject._multi_line_string_3d_
+            for mobject in mobjects
+        )
+        return result

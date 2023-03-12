@@ -11,7 +11,10 @@ import svgelements as se
 
 from ..custom_typing import ColorType
 from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.core import LazyCollection
+from ..lazy.core import (
+    LazyCollection,
+    LazyCollectionVariableDescriptor
+)
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -75,6 +78,14 @@ class ShapeMobject(MeshMobject):
     ):
         stroke_mobject._model_matrix_ = self._model_matrix_
         stroke_mobject._multi_line_string_3d_ = self._shape_._multi_line_string_3d_
+        return self
+
+    def add_stroke_mobject(
+        self,
+        stroke_mobject: StrokeMobject
+    ):
+        self._stroke_mobjects_.add(stroke_mobject)
+        self.add(stroke_mobject)
         return self
 
     def iter_shape_descendants(
@@ -161,9 +172,8 @@ class ShapeMobject(MeshMobject):
         for mobject in mobjects:
             stroke = StrokeMobject()
             mobject.adjust_stroke_shape(stroke)
+            mobject.add_stroke_mobject(stroke)
             stroke_mobjects.append(stroke)
-            mobject._stroke_mobjects_.add(stroke)
-            mobject.add(stroke)
 
         StrokeMobject.class_set_style(
             mobjects=stroke_mobjects,
@@ -354,3 +364,44 @@ class ShapeMobject(MeshMobject):
             stroke_apply_oit=stroke_apply_oit
         )
         return self
+
+    @classmethod
+    def class_concatenate(
+        cls,
+        *mobjects: "ShapeMobject"
+    ) -> "ShapeMobject":
+        if not mobjects:
+            return cls()
+        result = mobjects[0]._copy()
+        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+            if isinstance(descriptor, LazyCollectionVariableDescriptor):
+                continue
+            if descriptor is cls._shape_:
+                continue
+            assert all(
+                descriptor.get_impl(result) is descriptor.get_impl(mobject)
+                #or print(descriptor is ShapeMobject._color_, descriptor.get_impl(result), descriptor.descriptor_overloading.get_descriptor(type(mobject)).get_impl(mobject))
+                for mobject in mobjects
+            )
+        result._shape_ = Shape.concatenate(
+            mobject._shape_
+            for mobject in mobjects
+        )
+
+        stroke_mobjects = LazyCollection(*(
+            StrokeMobject.class_concatenate(*zipped_stroke_mobjects)
+            for zipped_stroke_mobjects in zip(*(
+                mobject._stroke_mobjects_
+                for mobject in mobjects
+            ), strict=True)
+        ))
+        result._stroke_mobjects_ = stroke_mobjects
+        result.clear()
+        result.add(*stroke_mobjects)
+        return result
+
+    def concatenate(self) -> "ShapeMobject":
+        return self.class_concatenate(*(
+            mobject for mobject in self.iter_children()
+            if isinstance(mobject, ShapeMobject)
+        ))

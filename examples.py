@@ -27,30 +27,11 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
-        #self.wait()
-        #self.add_pass(GaussianBlurPass())
-        text = Text("Text").scale(3)
-        text_concatenated = ShapeMobject(Shape.concatenate(
-            glyph._shape_ for glyph in text._shape_mobjects_
-        )).apply_transform(text._shape_mobjects_[0]._model_matrix_.value)
-        tex = TexText("TexText").scale(3)
-        tex_concatenated = ShapeMobject(Shape.concatenate(
-            glyph._shape_ for glyph in tex._shape_mobjects_
-        )).apply_transform(tex._shape_mobjects_[0]._model_matrix_.value).set_fill(color=BLUE)#.set_stroke(width=0.1, color=RED)
-        #tex_concatenated.next_to(text, DOWN)
-        #text = Text("Text").scale(3)
-        #text_concatenated = ShapeMobject(Shape.concatenate(
-        #    glyph._shape_ for glyph in text._shape_mobjects
-        #)).apply_transform(text._shape_mobjects[0]._model_matrix_).set_fill(color=PINK).set_stroke(width=0.1, color=GREEN)
-        #self.wait(2)
-        self.add(text_concatenated)
+        text = Text("Text").scale(3).set_fill(color="#00FF00").add_stroke(width=0.1, color=RED).add_stroke(width=0.5, color=YELLOW).concatenate()
+        tex = TexText("TexText").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
+        self.add(text)
         self.wait()
-        #tex_concatenated.shift(RIGHT * 3)
-        #tex_concatenated.shift(RIGHT * 2)
-        #tex_concatenated.remove(*tex_concatenated._stroke_mobjects_)
-        #self.wait(3)
-        #self.add(tex_concatenated)
-        self.play(Transform(text_concatenated, tex_concatenated))
+        self.play(Transform(text, tex.shift(RIGHT * 2)))
         self.wait()
 
 

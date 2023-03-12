@@ -90,7 +90,7 @@ class PseudoCollection(Generic[_T]):
         return self._elements.__getitem__(index)
 
     def __copy__(self):
-        return PseudoCollection(self._elements[:])
+        return PseudoCollection(*self._elements)
 
     def add(
         self,
@@ -295,7 +295,7 @@ class Mobject(LazyObject):
                 for mobject in descendant._real_ancestors
             ))
 
-        for descriptor in self.__class__._LAZY_DESCRIPTORS:
+        for descriptor in self.__class__._LAZY_VARIABLE_DESCRIPTORS:
             if not issubclass(descriptor.element_type, Mobject):
                 continue
             if isinstance(descriptor, LazyObjectVariableDescriptor):

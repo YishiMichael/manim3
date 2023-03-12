@@ -107,20 +107,20 @@ class Transform(AlphaAnimation):
                 stop_stroke = start_stroke.copy().set_style(width=0.0)
                 stop_mobject.adjust_stroke_shape(stop_stroke)
                 stop_stroke_mobjects.append(stop_stroke)
-                intermediate_mobject._stroke_mobjects_.add(stop_stroke)
+                intermediate_mobject.add_stroke_mobject(stop_stroke)
 
         shape_callbacks = {
-            variable_descriptor: interpolate_method(start_variable, stop_variable)
-            for variable_descriptor, interpolate_method in self._SHAPE_INTERPOLATE_CALLBACKS.items()
-            if (start_variable := variable_descriptor.__get__(start_mobject)) \
-                is not (stop_variable := variable_descriptor.__get__(stop_mobject))
+            descriptor: interpolate_method(start_variable, stop_variable)
+            for descriptor, interpolate_method in self._SHAPE_INTERPOLATE_CALLBACKS.items()
+            if (start_variable := descriptor.__get__(start_mobject)) \
+                is not (stop_variable := descriptor.__get__(stop_mobject))
         }
         stroke_callbacks_list = [
             {
-                variable_descriptor: interpolate_method(start_variable, stop_variable)
-                for variable_descriptor, interpolate_method in self._STROKE_INTERPOLATE_CALLBACKS.items()
-                if (start_variable := variable_descriptor.__get__(start_stroke_mobject)) \
-                    is not (stop_variable := variable_descriptor.__get__(stop_stroke_mobject))
+                descriptor: interpolate_method(start_variable, stop_variable)
+                for descriptor, interpolate_method in self._STROKE_INTERPOLATE_CALLBACKS.items()
+                if (start_variable := descriptor.__get__(start_stroke_mobject)) \
+                    is not (stop_variable := descriptor.__get__(stop_stroke_mobject))
             }
             for start_stroke_mobject, stop_stroke_mobject in zip(
                 start_stroke_mobjects, stop_stroke_mobjects, strict=True
@@ -131,14 +131,14 @@ class Transform(AlphaAnimation):
             alpha_0: float,
             alpha: float
         ) -> None:
-            for variable_descriptor, callback in shape_callbacks.items():
-                variable_descriptor.__set__(intermediate_mobject, callback(alpha))
+            for descriptor, callback in shape_callbacks.items():
+                descriptor.__set__(intermediate_mobject, callback(alpha))
 
             for callbacks, intermediate_stroke_mobject in zip(
                 stroke_callbacks_list, intermediate_mobject._stroke_mobjects_, strict=True
             ):
-                for variable_descriptor, callback in callbacks.items():
-                    variable_descriptor.__set__(intermediate_stroke_mobject, callback(alpha))
+                for descriptor, callback in callbacks.items():
+                    descriptor.__set__(intermediate_stroke_mobject, callback(alpha))
 
         super().__init__(
             animate_func=animate_func,

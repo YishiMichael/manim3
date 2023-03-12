@@ -387,11 +387,10 @@ class MultiLineString(ShapeInterpolant[_VecT, _VecsT]):
         cls,
         multi_line_strings: "Iterable[MultiLineString[_VecT, _VecsT]]"
     ):
-        return cls([
-            line_string
+        return cls(list(it.chain(*(
+            multi_line_string._children_
             for multi_line_string in multi_line_strings
-            for line_string in multi_line_string._children_
-        ])
+        ))))
 
 
 class LineString2D(LineString[Vec2T, Vec2sT]):

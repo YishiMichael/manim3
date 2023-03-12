@@ -229,11 +229,15 @@ class LazyData(ABC):
 
 
 class LazyEntity(LazyData):
-    __slots__ = ("_linked_properties",)
+    __slots__ = (
+        "_linked_properties",
+        "_always_alive"
+    )
 
     def __init__(self) -> None:
         super().__init__()
         self._linked_properties: list[LazyProperty] = []
+        self._always_alive: bool = False
 
     def _get_linked_properties(self) -> "list[LazyProperty]":
         return self._linked_properties
@@ -278,6 +282,8 @@ class LazyEntity(LazyData):
             data = stack.pop(0)
             if list(data._iter_dependency_parents()):
                 continue
+            if isinstance(data, LazyEntity) and data._always_alive:
+                continue
             stack.extend(
                 child for child in data._iter_dependency_children()
                 if child not in stack
@@ -289,7 +295,8 @@ class LazyEntity(LazyData):
 class LazyObject(LazyEntity):
     __slots__ = ()
 
-    _LAZY_DESCRIPTORS: "ClassVar[tuple[LazyDescriptor, ...]]"
+    _LAZY_VARIABLE_DESCRIPTORS: "ClassVar[tuple[LazyVariableDescriptor, ...]]"
+    _LAZY_PROPERTY_DESCRIPTORS: "ClassVar[tuple[LazyPropertyDescriptor, ...]]"
     _LAZY_DESCRIPTOR_OVERLOADINGS: "ClassVar[dict[str, LazyDescriptorOverloading]]"
     _ALL_SLOTS: "ClassVar[tuple[str, ...]]"
 
@@ -334,13 +341,25 @@ class LazyObject(LazyEntity):
 
         # Ensure property descriptors come after variable descriptors.
         # This is a requirement for the functionality of `copy_initialize`.
-        cls._LAZY_DESCRIPTORS = tuple(sorted(
-            (
-                descriptor_overloading.get_descriptor(cls)
-                for descriptor_overloading in descriptor_overloadings.values()
-            ),
-            key=lambda descriptor: isinstance(descriptor, LazyPropertyDescriptor)
-        ))
+        descriptors = [
+            descriptor_overloading.get_descriptor(cls)
+            for descriptor_overloading in descriptor_overloadings.values()
+        ]
+        cls._LAZY_VARIABLE_DESCRIPTORS = tuple(
+            descriptor for descriptor in descriptors
+            if isinstance(descriptor, LazyVariableDescriptor)
+        )
+        cls._LAZY_PROPERTY_DESCRIPTORS = tuple(
+            descriptor for descriptor in descriptors
+            if isinstance(descriptor, LazyPropertyDescriptor)
+        )
+        #cls._LAZY_DESCRIPTORS = tuple(sorted(
+        #    (
+        #        descriptor_overloading.get_descriptor(cls)
+        #        for descriptor_overloading in descriptor_overloadings.values()
+        #    ),
+        #    key=lambda descriptor: isinstance(descriptor, LazyPropertyDescriptor)
+        #))
         cls._LAZY_DESCRIPTOR_OVERLOADINGS = descriptor_overloadings
         # Use dict.fromkeys to preserve order (by first occurrance)
         cls._ALL_SLOTS = tuple(dict.fromkeys(
@@ -366,8 +385,11 @@ class LazyObject(LazyEntity):
 
     def __init__(self) -> None:
         super().__init__()
+        #self._always_alive: bool = False
         cls = self.__class__
-        for descriptor in cls._LAZY_DESCRIPTORS:
+        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+            descriptor.initialize(self)
+        for descriptor in cls._LAZY_PROPERTY_DESCRIPTORS:
             descriptor.initialize(self)
 
     def _copy(self: _LazyObjectT) -> _LazyObjectT:
@@ -376,14 +398,18 @@ class LazyObject(LazyEntity):
         result._dependency_node = LazyDependencyNode(result)
         for slot_name in cls._ALL_SLOTS:
             result.__setattr__(slot_name, copy.copy(self.__getattribute__(slot_name)))
-        for descriptor in cls._LAZY_DESCRIPTORS:
+        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+            descriptor.copy_initialize(result, self)
+        for descriptor in cls._LAZY_PROPERTY_DESCRIPTORS:
             descriptor.copy_initialize(result, self)
         return result
 
     def _clear_ref(self) -> None:
         # TODO: check refcnt
         cls = self.__class__
-        for descriptor in cls._LAZY_DESCRIPTORS:
+        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+            descriptor.clear_ref(self)
+        for descriptor in cls._LAZY_PROPERTY_DESCRIPTORS:
             descriptor.clear_ref(self)
         #import sys
         #print(sys.getrefcount(self), type(self))
@@ -623,13 +649,29 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
 
 
 class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjectT, _LazyObjectT]):
-    __slots__ = ()
+    __slots__ = ("default_object",)
+
+    def __init__(
+        self,
+        element_type: type[_LazyObjectT],
+        method: Callable[[type[_InstanceT]], _LazyObjectT]
+    ) -> None:
+        self.default_object: _LazyObjectT | None = None
+        super().__init__(
+            element_type=element_type,
+            method=method
+        )
 
     def initialize(
         self,
         instance: _InstanceT
     ) -> None:
-        default_object = self.method(type(instance))
+        if (default_object := self.default_object) is None:
+            default_object = self.method(type(instance))
+            if default_object is not NotImplemented:
+                default_object._always_alive = True
+            self.default_object = default_object
+        #default_object = self.method(type(instance))
         if default_object is not NotImplemented:
             instance._bind_dependency(default_object)
         self.set_description(instance, default_object)

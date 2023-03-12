@@ -114,7 +114,8 @@ class LazyCollectionVariableDecorator(LazyCollectionVariableDescriptor[_Instance
 
 
 class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T]]):
-    __slots__ = ("default_object",)
+    #__slots__ = ("default_object",)
+    __slots__ = ()
 
     def __init__(
         self,
@@ -123,12 +124,12 @@ class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_Instanc
         def new_method(
             cls: type[_InstanceT]
         ) -> LazyWrapper[_T]:
-            if (default_object := self.default_object) is None:
-                default_object = LazyWrapper(method(cls))
-                self.default_object = default_object
-            return default_object
+            #if (default_object := self.default_object) is None:
+            #    default_object = LazyWrapper(method(cls))
+            #    self.default_object = default_object
+            return LazyWrapper(method(cls))
 
-        self.default_object: LazyWrapper[_T] | None = None
+        #self.default_object: LazyWrapper[_T] | None = None
         super().__init__(
             element_type=LazyWrapper,
             method=new_method
@@ -145,10 +146,7 @@ class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_Instanc
 
 
 class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_HashableT]]):
-    __slots__ = (
-        "content_to_object_bidict",
-        "default_object"
-    )
+    __slots__ = ("content_to_object_bidict",)
 
     def __init__(
         self,
@@ -157,13 +155,13 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
         def new_method(
             cls: type[_InstanceT]
         ) -> LazyWrapper[_HashableT]:
-            if (default_object := self.default_object) is None:
-                default_object = LazyWrapper(method(cls))
-                self.default_object = default_object
-            return default_object
+            #if (default_object := self.default_object) is None:
+            #    default_object = LazyWrapper(method(cls))
+            #    self.default_object = default_object
+            return LazyWrapper(method(cls))
 
         self.content_to_object_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
-        self.default_object: LazyWrapper[_HashableT] | None = None
+        #self.default_object: LazyWrapper[_HashableT] | None = None
         super().__init__(
             element_type=LazyWrapper,
             method=new_method

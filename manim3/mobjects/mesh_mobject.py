@@ -2,6 +2,7 @@ __all__ = ["MeshMobject"]
 
 
 from typing import Iterable
+
 import moderngl
 import numpy as np
 
@@ -11,6 +12,7 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..geometries.geometry import Geometry
+from ..lazy.core import LazyWrapper
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -162,13 +164,13 @@ class MeshMobject(Mobject):
         apply_phong_lighting: bool | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = color_component if color_component is not None else None
-        opacity_value = opacity_component if opacity_component is not None else None
+        color_value = LazyWrapper(color_component) if color_component is not None else None
+        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
         apply_oit_value = apply_oit if apply_oit is not None else \
             True if opacity_component is not None else None
-        ambient_strength_value = ambient_strength if ambient_strength is not None else None
-        specular_strength_value = specular_strength if specular_strength is not None else None
-        shininess_value = shininess if shininess is not None else None
+        ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
+        specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
+        shininess_value = LazyWrapper(shininess) if shininess is not None else None
         apply_phong_lighting_value = apply_phong_lighting if apply_phong_lighting is not None else \
             True if any(param is not None for param in (
                 ambient_strength,
