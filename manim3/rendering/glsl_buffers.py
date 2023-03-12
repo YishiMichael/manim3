@@ -348,16 +348,6 @@ class TextureStorage(GLSLDynamicStruct):
     def _sampler_field_(cls) -> str:
         return NotImplemented
 
-    @Lazy.property(LazyMode.SHARED)
-    @classmethod
-    def _field_(
-        cls,
-        sampler_field: str
-    ) -> str:
-        field = re.sub(r"^sampler2D\b", "uint", sampler_field)
-        assert sampler_field != field
-        return field
-
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _layout_(cls) -> GLSLBufferLayout:
@@ -367,6 +357,16 @@ class TextureStorage(GLSLDynamicStruct):
     @classmethod
     def _texture_array_(cls) -> np.ndarray:
         return NotImplemented
+
+    @Lazy.property(LazyMode.SHARED)
+    @classmethod
+    def _field_(
+        cls,
+        sampler_field: str
+    ) -> str:
+        field = re.sub(r"^sampler2D\b", "uint", sampler_field)
+        assert sampler_field != field
+        return field
 
     def write(
         self,

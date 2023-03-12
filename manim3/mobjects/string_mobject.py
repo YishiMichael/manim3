@@ -208,16 +208,14 @@ class StringMobject(SVGMobject):
             height=height,
             frame_scale=frame_scale
         )
-        shape_mobjects = [
-            shape_item.shape_mobject
-            for shape_item in parsing_result.shape_items
-        ]
-        
+
         super().__init__()
         self._string: str = string
         self._parsing_result: ParsingResult = parsing_result
-        self._shape_mobjects_.add(*shape_mobjects)
-        self.add(*shape_mobjects)
+        self.add(*(
+            shape_item.shape_mobject
+            for shape_item in parsing_result.shape_items
+        ))
 
     @classmethod
     def _parse(
@@ -526,7 +524,7 @@ class StringMobject(SVGMobject):
             width=width,
             height=height,
             frame_scale=frame_scale
-        )._shape_mobjects_)
+        ).iter_shape_children())
 
         if labels_count == 1:
             return [
@@ -539,7 +537,7 @@ class StringMobject(SVGMobject):
 
         labelled_shapes = list(SVGMobject(
             file_path=get_svg_path_by_content(is_labelled=True)
-        )._shape_mobjects_)
+        ).iter_shape_children())
         if len(plain_shapes) != len(labelled_shapes):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."

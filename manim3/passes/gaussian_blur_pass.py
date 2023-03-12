@@ -38,6 +38,21 @@ class GaussianBlurPass(RenderPass):
     def _sigma_width_(cls) -> float:
         return 0.1
 
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _u_color_map_(cls) -> TextureStorage:
+        return TextureStorage()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _horizontal_vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _vertical_vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _convolution_core_(
@@ -48,11 +63,6 @@ class GaussianBlurPass(RenderPass):
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _u_color_map_(cls) -> TextureStorage:
-        return TextureStorage()
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -74,16 +84,6 @@ class GaussianBlurPass(RenderPass):
                 "u_convolution_core": convolution_core
             }
         )
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _horizontal_vertex_array_(cls) -> VertexArray:
-        return VertexArray()
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _vertical_vertex_array_(cls) -> VertexArray:
-        return VertexArray()
 
     def _render(
         self,

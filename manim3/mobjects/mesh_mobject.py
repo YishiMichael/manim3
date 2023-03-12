@@ -71,6 +71,16 @@ class MeshMobject(Mobject):
     def _apply_phong_lighting_(cls) -> bool:
         return True
 
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _u_color_maps_(cls) -> TextureStorage:
+        return TextureStorage()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(
@@ -78,11 +88,6 @@ class MeshMobject(Mobject):
         _geometry_: Geometry
     ) -> Vec3sT:
         return _geometry_._geometry_data_.value.position
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _u_color_maps_(cls) -> TextureStorage:
-        return TextureStorage()
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -109,11 +114,6 @@ class MeshMobject(Mobject):
                 "u_shininess": np.array(shininess)
             }
         )
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _vertex_array_(cls) -> VertexArray:
-        return VertexArray()
 
     def _render(
         self,

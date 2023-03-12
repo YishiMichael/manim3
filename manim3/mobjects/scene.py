@@ -53,6 +53,11 @@ class Scene(Mobject):
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
+    def _scene_config_(cls) -> SceneConfig:
+        return SceneConfig()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes=AttributesBuffer(
@@ -128,11 +133,6 @@ class Scene(Mobject):
     @classmethod
     def _oit_compose_vertex_array_(cls) -> VertexArray:
         return VertexArray()
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _scene_config_(cls) -> SceneConfig:
-        return SceneConfig()
 
     def _render(
         self,

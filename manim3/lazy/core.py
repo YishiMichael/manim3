@@ -1,63 +1,112 @@
-# TODO: The document is outdated.
-
 """
-This module implements a basic class with lazy properties.
+This module implements the functionality of lazy evaluation.
 
-The functionality of `LazyData` is to save resource as much as it can.
-On one hand, all data of `lazy_object` and `lazy_property` are shared among
-instances. On the other hand, these data will be restocked (recursively) if
-they themselves are instances of `LazyData`. One may also define custom
-restockers for individual data.
-
-Every child class of `LazyData` shall be declared with an empty `__slots__`,
-and all methods shall be sorted in the following way:
+Every child class of `LazyData` shall define `__slots__`, and all methods
+shall basically be sorted in the following way:
 - magic methods
-- lazy_variable_shared
-- lazy_object
-- lazy_property
-- lazy_slot
+- lazy variables
+- lazy properties
 - private class methods
 - private methods
 - public methods
 
-All methods decorated by any of `lazy_object`, `lazy_variable_shared`,
-`lazy_property` and `lazy_slot` should be static methods, and so are their
-restockers. Type annotation is strictly applied to reduce chances of running
-into unexpected behaviors.
+All methods decorated by any decorator provided by `Lazy` should be class
+methods and be named with underscores appeared on both sides, i.e. `_data_`.
+Successive underscores shall not occur, due to the name convension handled by
+lazy properties.
 
-Methods decorated by `lazy_object` should be named with underscores appeared
-on both sides, i.e. `_data_`. Each should not take any argument and return
-the *initial* value for this data. `NotImplemented` may be an alternative for
-the value returned, as long as the data is initialized in `__new__` method.
-In principle, the data can be of any type including mutable ones, but one must
-keep in mind that data *cannot be mutated* as they are shared. The only way to
-change the value is to reset the data via `__set__`, and the new value shall
-be wrapped up with `LazyWrapper`. This makes it possible to manually share data
-which is not the initial value. Note, the `__get__` method will return the
-unwrapped data. One shall use `instance.__class__._data_._get_data(instance)`
-to obtain the wrapped data if one wishes to share it with other instances.
+## Lazy Variable
 
-Methods decorated by `lazy_variable_shared` are pretty much similar to ones
-decorated by `lazy_object`, except that an argument `hasher` should be
-additionally passed to the decorator. Data handled in these methods are
-expected to be light-weighted and have much duplicated usage so that caching
-can take effect. Data wrapping is not necessary when calling `__set__`.
+Lazy variables are what users can modify freely from the outer scope. They are
+dependent variables of lazy properties. Once modified, the related lazy
+properties will be expired, and will be recomputed when fetching.
 
-Methods decorated by `lazy_property` should be named with the same style of
-`lazy_object`. They should take *at least one* argument, and all names of
-arguments should be matched with any `lazy_object` or other `lazy_property`
-where underscores on edges are eliminated. Data is immutable, and calling
-`__set__` method will trigger an exception. As the name `lazy` suggests, if
-any correlated `lazy_object` is altered, as long as the calculation is never
-done before, the recalculation will be executed when one calls `__get__`.
+Methods decorated by `Lazy.variable` should not take any argument except for
+`cls` and return the *initial* value for this data. `NotImplemented` may be
+an alternative for the value returned, as long as one ensures the data is
+initialized when computation relating to it is performed.
 
-Methods decorated by `lazy_slot` should be named with an underscore inserted
-at front, i.e. `_data`. They behave like a normal attribute of the class.
-Again, each should not take any argument and return the *initial* value for
-this data, with `NotImplemented` as an alternative if the data is set in
-`__new__`. Data can be freely mutated because they are no longer shared
-(as long as one does not do something like `b._data = a._data`, or calls the
-`_copy` method). Data wrapping is not necessary when calling `__set__`.
++------------+----------------+----------------+--------------------+
+| LazyMode   | method return  | __get__ return | __set__ type       |
++------------+----------------+----------------+--------------------+
+| OBJECT     | LazyObject     | LazyObject     | LazyObject         |
+| COLLECTION | LazyCollection | LazyCollection | LazyCollection     |
+| UNWRAPPED  | T              | LazyWrapper[T] | T | LazyWrapper[T] |
+| SHARED     | T (Hashable)   | LazyWrapper[T] | T                  |
++------------+----------------+----------------+--------------------+
+
+The `__get__` method always returns an instance of `LazyEntity`, which is the
+base class of both `LazyObject` and `LazyCollection`. `LazyCollection`, as its
+name suggests, is just a dynamic collection of `LazyObject`s, and provides
+`add`, `remove` as its public interface. `LazyWrapper` is derived from
+`LazyObject`, which is just responsible for bringing a value into the lazy
+scope, and the value is obtained via the readonly `value` property. One may
+picture a lazy object as a tree (it's a DAG really), where `LazyWrapper`s sit
+on all leaves.
+
+Lazy variables are of course mutable. All can be mutated via `__set__` method.
+Among all cases above, a common value will be shared among instances, except
+for providing `T` type in `UNWRAPPED` mode, in which case a new `LazyWrapper`
+object will be instanced and assigned specially to the instance. Additionally,
+`LazyCollection`s can be mutated via `add` and `remove`.
+
+The `LazyObject._copy` method will make all its children `LazyObject`s shared,
+and construct new `LazyCollection` holding the same references, just like a
+shallow copy.
+
+## Lazy Property
+
+Lazy properties depend on lazy variables and therefore cannot be modified.
+Their values are computed only when expired, otherwise the cached value is
+directly returned for usage.
+
+Methods decorated by `Lazy.property` defines how lazy properties are related
+to their dependent variables.
+
++------------+----------------+----------------+
+| LazyMode   | method return  | __get__ return |
++------------+----------------+----------------+
+| OBJECT     | LazyObject     | LazyObject     |
+| COLLECTION | LazyCollection | LazyCollection |
+| UNWRAPPED  | T              | LazyWrapper[T] |
+| SHARED     | T (Hashable)   | LazyWrapper[T] |
++------------+----------------+----------------+
+
+The return type of `__get__` is basically the same as that of lazy variables.
+Values will also be shared if the leaf nodes of objects of parameters (which
+forms a complicated structure of `LazyWrapper`s) match completely.
+
+The parameters can be lazy variables, or other lazy properties (as long as
+cyclic dependency doesn't exist), or a mixed collection of those, as long as
+the types are consistent. The name of a parameter needs to indicate how it is
+constructed through some specific patterns. Below are some examples.
+
+Suppose `_o_` is a descriptor returning `LazyObject` when calling `__get__`,
+and `_w_`, `_c_` for `LazyWrapper`, `LazyCollection`, respectively.
++--------------+--------------------------------------------------------+
+| param name   | what is fed into the param                             |
++--------------+--------------------------------------------------------+
+| _o_          | inst._o_                                               |
+| w            | inst._w_.value                                         |
+| _o__o_       | inst._o_._o_                                           |
+| o__w         | inst._o_._w_.value                                     |
+| _c_          | [e for e in inst._c_]                                  |
+| _c__o_       | [e._o_ for e in inst._c_]                              |
+| c__w         | [e._w_.value for e in inst._c_]                        |
+| _c__c__o_    | [[ee._o_ for ee in e._c_] for e in inst._c_]           |
+| _c__o__c__o_ | [[ee._o_ for ee in e._o_._c_] for e in inst._c_]       |
+| c__o__c__w   | [[ee._w_.value for ee in e._o_._c_] for e in inst._c_] |
++--------------+--------------------------------------------------------+
+
+As a conclusion, if there are `n` collection descriptor in the name chain, the
+parameter will be fed with an `n`-fold list. If the underscores on ends are
+missing, it's assumed the last descriptor will return `LazyWrapper` and values
+are pulled out from the wrappers.
+
+Lazy properties are immutable. This also applies to children of a `LazyObject`
+and elements of `LazyCollection`. That is, one cannot set the value of
+`inst._w_` even when it's a lazy variable, given that `inst` itself is the
+calculation result of some property.
 """
 
 

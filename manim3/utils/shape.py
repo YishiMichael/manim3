@@ -480,6 +480,17 @@ class Shape(LazyObject):
             for line_string in _multi_line_string_._children_
         ])
 
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _shapely_obj_(
+        cls,
+        _multi_line_string_: MultiLineString2D,
+        precalculated_shapely_obj: shapely.geometry.base.BaseGeometry | None
+    ) -> shapely.geometry.base.BaseGeometry:
+        if precalculated_shapely_obj is not None:
+            return precalculated_shapely_obj
+        return cls._to_shapely_object(_multi_line_string_)
+
     @classmethod
     def _iter_coords_from_shapely_obj(
         cls,
@@ -559,17 +570,6 @@ class Shape(LazyObject):
             return np.array((gamma(0.0),))
         samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
         return gamma(samples).astype(float)
-
-    @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
-    def _shapely_obj_(
-        cls,
-        _multi_line_string_: MultiLineString2D,
-        precalculated_shapely_obj: shapely.geometry.base.BaseGeometry | None
-    ) -> shapely.geometry.base.BaseGeometry:
-        if precalculated_shapely_obj is not None:
-            return precalculated_shapely_obj
-        return cls._to_shapely_object(_multi_line_string_)
 
     @classmethod
     def _to_shapely_object(

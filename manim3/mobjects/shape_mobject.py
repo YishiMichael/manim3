@@ -45,14 +45,6 @@ class ShapeMobject(MeshMobject):
     def _shape_(cls) -> Shape:
         return Shape()
 
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
-    def _geometry_(
-        cls,
-        _shape_: Shape
-    ) -> ShapeGeometry:
-        return ShapeGeometry(_shape_)
-
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _apply_phong_lighting_(cls) -> bool:
@@ -62,6 +54,14 @@ class ShapeMobject(MeshMobject):
     @classmethod
     def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
         return LazyCollection()
+
+    @Lazy.property(LazyMode.OBJECT)
+    @classmethod
+    def _geometry_(
+        cls,
+        _shape_: Shape
+    ) -> ShapeGeometry:
+        return ShapeGeometry(_shape_)
 
     def set_shape(
         self,
@@ -87,6 +87,11 @@ class ShapeMobject(MeshMobject):
         self._stroke_mobjects_.add(stroke_mobject)
         self.add(stroke_mobject)
         return self
+
+    def iter_shape_children(self) -> "Generator[ShapeMobject, None, None]":
+        for mobject in self.iter_children():
+            if isinstance(mobject, ShapeMobject):
+                yield mobject
 
     def iter_shape_descendants(
         self,
@@ -380,7 +385,6 @@ class ShapeMobject(MeshMobject):
                 continue
             assert all(
                 descriptor.get_impl(result) is descriptor.get_impl(mobject)
-                #or print(descriptor is ShapeMobject._color_, descriptor.get_impl(result), descriptor.descriptor_overloading.get_descriptor(type(mobject)).get_impl(mobject))
                 for mobject in mobjects
             )
         result._shape_ = Shape.concatenate(
@@ -401,7 +405,4 @@ class ShapeMobject(MeshMobject):
         return result
 
     def concatenate(self) -> "ShapeMobject":
-        return self.class_concatenate(*(
-            mobject for mobject in self.iter_children()
-            if isinstance(mobject, ShapeMobject)
-        ))
+        return self.class_concatenate(*self.iter_shape_children())

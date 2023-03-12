@@ -98,6 +98,26 @@ class StrokeMobject(Mobject):
     def _winding_sign_(cls) -> bool:
         return NotImplemented
 
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _line_vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _join_vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _cap_vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _point_vertex_array_(cls) -> VertexArray:
+        return VertexArray()
+
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(
@@ -173,26 +193,6 @@ class StrokeMobject(Mobject):
                 "in_position": position
             }
         )
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _line_vertex_array_(cls) -> VertexArray:
-        return VertexArray()
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _join_vertex_array_(cls) -> VertexArray:
-        return VertexArray()
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _cap_vertex_array_(cls) -> VertexArray:
-        return VertexArray()
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _point_vertex_array_(cls) -> VertexArray:
-        return VertexArray()
 
     @classmethod
     def _lump_index_from_getter(
