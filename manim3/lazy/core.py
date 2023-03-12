@@ -296,25 +296,47 @@ class LazyEntity(LazyData):
     #        assert isinstance(entity, LazyEntity)
     #        yield entity
 
+    def _get_linked_properties(self) -> "list[LazyProperty]":
+        return self._linked_properties
+
+    def _bind_linked_property(
+        self,
+        linked_property: "LazyProperty"
+    ) -> None:
+        self._linked_properties.append(linked_property)
+
+    def _unbind_linked_property(
+        self,
+        linked_property: "LazyProperty"
+    ) -> None:
+        self._linked_properties.remove(linked_property)
+
     def _is_readonly(self) -> bool:
         return any(
             isinstance(data, LazyProperty)
             for data in self._iter_dependency_ancestors()
         )
 
-    def _expire_properties(self) -> None:
+    @classmethod
+    def _expire_properties(
+        cls,
+        *expired_properties: "LazyProperty"
+    ) -> None:
         expired_entities: list[LazyEntity] = []
         # Make a shallow copy as we're removing items from the list we're iterating.
-        for expired_property in self._linked_properties[:]:
+        for expired_property in expired_properties:
             if (entity := expired_property._get()) is None:
                 continue
+            #if entity.__class__.__name__ == "ShapeGeometry":
+            #    print("Expired property:", expired_property, "from", self, self._linked_properties)
             #print(expired_property)
             #print(list(entity._iter_dependency_parents()))
-            expired_property._clear_dependency()
+            #expired_property._clear_dependency()
+            expired_property._unbind_dependency(entity)
             #print(list(entity._iter_dependency_parents()))
             #print()
-            expired_property._clear_linked_entities()
             expired_property._set(None)
+            expired_property._clear_linked_entities()
             #entity._clear_descendants_ref_if_no_dependency_parents()
             expired_entities.append(entity)
         #print(expired_entities)
@@ -350,7 +372,7 @@ class LazyEntity(LazyData):
             if list(data._iter_dependency_parents()):
                 continue
             #if data.__class__.__name__ == "ShapeGeometry":
-            #    print(data)
+            #    print("Cleared", data)
             #data_children = list(data._iter_dependency_children())
             stack.extend(
                 child for child in data._iter_dependency_children()
@@ -594,7 +616,7 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
         #for entity in self._iter_dependency_ancestors():
         #    assert isinstance(entity, LazyEntity)
         #    entity._expire_properties()
-        self._expire_properties()
+        self._expire_properties(*self._get_linked_properties())
         for element in elements:
             if element in self._elements:
                 continue
@@ -612,7 +634,7 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
         #for entity in self._iter_dependency_ancestors():
         #    assert isinstance(entity, LazyEntity)
         #    entity._expire_properties()
-        self._expire_properties()
+        self._expire_properties(*self._get_linked_properties())
         for element in elements:
             if element not in self._elements:
                 continue
@@ -652,20 +674,23 @@ class LazyProperty(Generic[_LazyEntityT], LazyData):
 
     def _bind_linked_entities(
         self,
-        linked_entities: list[LazyEntity]
+        *linked_entities: LazyEntity
     ) -> None:
         for linked_entity in linked_entities:
-            linked_entity._linked_properties.append(self)
+            linked_entity._bind_linked_property(self)
         self._linked_entities.extend(linked_entities)
 
     def _clear_linked_entities(self) -> None:
         for linked_entity in self._linked_entities:
-            linked_entity._linked_properties.remove(self)
+            linked_entity._unbind_linked_property(self)
         self._linked_entities.clear()
 
     def _clear_ref(self) -> None:
         #for element in self._elements:
         #    self._unbind_dependency(element)
+        #if (entity := self._get()) is None:
+        #    return
+        #self._unbind_dependency(entity)
         self._set(None)
         self._clear_linked_entities()
 
@@ -794,7 +819,23 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         #if old_entity is not NotImplemented:
         #    print(old_entity._linked_properties)
         if old_entity is not NotImplemented:
-            old_entity._expire_properties()
+            #other_parents = list(old_entity._iter_dependency_parents())
+            #other_parents.remove(instance)
+            #other_properties = [
+            #    prop
+            #    for parent in other_parents
+            #    for prop in parent._iter_dependency_children()
+            #    if isinstance(prop, LazyProperty) and old_entity in prop._get_linked_entities()
+            #]
+            #if other_properties:
+
+
+            old_entity._expire_properties(*(
+                prop
+                for prop in instance._iter_dependency_children()
+                if isinstance(prop, LazyProperty)
+                and prop in old_entity._get_linked_properties()
+            ))
             instance._unbind_dependency(old_entity)
             old_entity._clear_descendants_ref_if_no_dependency_parents()
         if new_entity is not NotImplemented:
@@ -1052,10 +1093,10 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
                 self.construct_parameter_item(descriptor_overloading_chain, instance)
                 for descriptor_overloading_chain in self.descriptor_overloading_chains
             )
-            prop._bind_linked_entities(list(dict.fromkeys(it.chain(*(
+            prop._bind_linked_entities(*dict.fromkeys(it.chain(*(
                 linked_entities
                 for _, linked_entities in parameter_items
-            )))))
+            ))))
             parameter_trees = tuple(
                 parameter_tree
                 for parameter_tree, _ in parameter_items
@@ -1096,20 +1137,26 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
     ) -> None:
         dst_property = LazyProperty()
         src_property = self.get_description(src)
-        dst_collection_children = [
-            entity for entity in dst._iter_dependency_children()
-            if isinstance(entity, LazyCollection)
-        ]
-        src_collection_children = [
-            entity for entity in src._iter_dependency_children()
-            if isinstance(entity, LazyCollection)
-        ]
-        dst_property._set(src_property._get())
-        dst_property._bind_linked_entities([
-            linked_entity if linked_entity not in src_collection_children
-            else dst_collection_children[src_collection_children.index(linked_entity)]
-            for linked_entity in src_property._get_linked_entities()
-        ])
+
+        src_entity = src_property._get()
+        dst_property._set(src_entity)
+        if src_entity is not None:
+            dst_property._bind_dependency(src_entity)
+
+            dst_collection_children = [
+                entity for entity in dst._iter_dependency_children()
+                if isinstance(entity, LazyCollection)
+            ]
+            src_collection_children = [
+                entity for entity in src._iter_dependency_children()
+                if isinstance(entity, LazyCollection)
+            ]
+            dst_property._bind_linked_entities(*(
+                linked_entity if linked_entity not in src_collection_children
+                else dst_collection_children[src_collection_children.index(linked_entity)]
+                for linked_entity in src_property._get_linked_entities()
+            ))
+
         dst._bind_dependency(dst_property)
         self.set_description(dst, dst_property)
         #super().copy_initialize(dst, src)

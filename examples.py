@@ -35,7 +35,7 @@ class TexTransformExample(Scene):
         tex = TexText("TexText").scale(3)
         tex_concatenated = ShapeMobject(Shape.concatenate(
             glyph._shape_ for glyph in tex._shape_mobjects_
-        )).apply_transform(tex._shape_mobjects_[0]._model_matrix_.value).set_fill(color=BLUE)#.set_stroke(width=0.1, color=RED)
+        )).apply_transform(tex._shape_mobjects_[0]._model_matrix_.value).set_fill(color=BLUE).set_stroke(width=0.1, color=RED)
         #tex_concatenated.next_to(text, DOWN)
         #text = Text("Text").scale(3)
         #text_concatenated = ShapeMobject(Shape.concatenate(
@@ -55,7 +55,7 @@ class TexTransformExample(Scene):
 
 if __name__ == "__main__":
     config = Config()
-    config.fps = 3
+    #config.fps = 3
     #config.preview = False
     #config.write_video = True
     #config.window_pixel_size = (1920, 1080)
