@@ -18,16 +18,17 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
+from ..rendering.context import ContextState
 from ..rendering.glsl_buffers import (
     TextureStorage,
     UniformBlockBuffer
 )
 from ..rendering.vertex_array import (
-    ContextState,
+    IndexedAttributesBuffer,
     VertexArray
 )
 from ..utils.color import ColorUtils
-from ..utils.scene_config import SceneConfig
+#from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):
@@ -71,16 +72,6 @@ class MeshMobject(Mobject):
     def _apply_phong_lighting_(cls) -> bool:
         return True
 
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _u_color_maps_(cls) -> TextureStorage:
-        return TextureStorage()
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _vertex_array_(cls) -> VertexArray:
-        return VertexArray()
-
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(
@@ -88,6 +79,21 @@ class MeshMobject(Mobject):
         _geometry_: Geometry
     ) -> Vec3sT:
         return _geometry_._geometry_data_.value.position
+
+    @Lazy.property(LazyMode.OBJECT)
+    @classmethod
+    def _u_color_maps_(
+        cls,
+        color_map: moderngl.Texture | None
+    ) -> TextureStorage:
+        texture_len = int(color_map is not None)
+        return TextureStorage(
+            field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
+            dynamic_array_lens={
+                "NUM_U_COLOR_MAPS": texture_len
+            },
+            shape=(texture_len,)
+        )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -115,35 +121,71 @@ class MeshMobject(Mobject):
             }
         )
 
-    def _render(
-        self,
-        scene_config: SceneConfig,
-        target_framebuffer: moderngl.Framebuffer
-    ) -> None:
+    @Lazy.property(LazyMode.OBJECT)
+    @classmethod
+    def _vertex_array_(
+        cls,
+        apply_phong_lighting: bool,
+        _u_color_maps_: TextureStorage,
+        _scene_config__camera__ub_camera_: UniformBlockBuffer,
+        _ub_model_: UniformBlockBuffer,
+        _scene_config__ub_lights_: UniformBlockBuffer,
+        _ub_material_: UniformBlockBuffer,
+        _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
+    ) -> VertexArray:
         custom_macros = []
-        if self._apply_phong_lighting_.value:
+        if apply_phong_lighting:
             custom_macros.append("#define APPLY_PHONG_LIGHTING")
-        textures = [color_map] if (color_map := self._color_map_.value) is not None else []
-        self._vertex_array_.write(
+        return VertexArray(
             shader_filename="mesh",
             custom_macros=custom_macros,
             texture_storages=[
-                self._u_color_maps_.write(
-                    field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
-                    dynamic_array_lens={
-                        "NUM_U_COLOR_MAPS": len(textures)
-                    },
-                    texture_array=np.array(textures, dtype=moderngl.Texture)
-                )
+                _u_color_maps_
             ],
             uniform_blocks=[
-                scene_config._camera_._ub_camera_,
-                self._ub_model_,
-                scene_config._ub_lights_,
-                self._ub_material_
+                _scene_config__camera__ub_camera_,
+                _ub_model_,
+                _scene_config__ub_lights_,
+                _ub_material_
             ],
-            indexed_attributes=self._geometry_._indexed_attributes_buffer_
-        ).render(
+            indexed_attributes_buffer=_geometry__indexed_attributes_buffer_
+        )
+
+    def _render(
+        self,
+        #scene_config: SceneConfig,
+        target_framebuffer: moderngl.Framebuffer
+    ) -> None:
+        custom_macros: list[str] = []
+        if self._apply_phong_lighting_.value:
+            custom_macros.append("#define APPLY_PHONG_LIGHTING")
+        textures: list[moderngl.Texture] = []
+        if (color_map := self._color_map_.value) is not None:
+            textures.append(color_map)
+        #self._vertex_array_.write(
+        #    shader_filename="mesh",
+        #    custom_macros=custom_macros,
+        #    texture_storages=[
+        #        self._u_color_maps_.write(
+        #            field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
+        #            dynamic_array_lens={
+        #                "NUM_U_COLOR_MAPS": len(textures)
+        #            },
+        #            texture_array=np.array(textures, dtype=moderngl.Texture)
+        #        )
+        #    ],
+        #    uniform_blocks=[
+        #        scene_config._camera_._ub_camera_,
+        #        self._ub_model_,
+        #        scene_config._ub_lights_,
+        #        self._ub_material_
+        #    ],
+        #    indexed_attributes=self._geometry_._indexed_attributes_buffer_
+        #)
+        self._vertex_array_.render(
+            texture_array_dict={
+                "u_color_maps": np.array(textures, dtype=moderngl.Texture)
+            },
             framebuffer=target_framebuffer,
             context_state=ContextState(
                 enable_only=moderngl.BLEND | moderngl.DEPTH_TEST

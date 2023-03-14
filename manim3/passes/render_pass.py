@@ -25,7 +25,7 @@ class RenderPass(LazyObject):
     @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
-            attributes=AttributesBuffer(
+            attributes_buffer=AttributesBuffer(
                 fields=[
                     "vec3 in_position",
                     "vec2 in_uv"

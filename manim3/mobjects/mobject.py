@@ -39,7 +39,7 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..passes.render_pass import RenderPass
-from ..rendering.framebuffer_batches import ColorFramebufferBatch
+from ..rendering.framebuffer_batch import ColorFramebufferBatch
 from ..rendering.glsl_buffers import UniformBlockBuffer
 from ..utils.scene_config import SceneConfig
 from ..utils.space import SpaceUtils
@@ -733,30 +733,33 @@ class Mobject(LazyObject):
     def _render_passes_(cls) -> LazyCollection[RenderPass]:
         return LazyCollection()
 
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _scene_config_(cls) -> SceneConfig:
+        return NotImplemented
+
     def _render(
         self,
-        scene_config: SceneConfig,
+        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         # Implemented in subclasses.
-        # This function is not responsible for clearing the `target_framebuffer`.
-        # On the other hand, one shall clear the framebuffer before calling this function.
         pass
 
     def _render_with_passes(
         self,
-        scene_config: SceneConfig,
+        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         render_passes = self._render_passes_
         if not render_passes:
-            self._render(scene_config, target_framebuffer)
+            self._render(target_framebuffer)
             return
 
         with ColorFramebufferBatch() as batch_0, ColorFramebufferBatch() as batch_1:
             batches = (batch_0, batch_1)
             target_id = 0
-            self._render(scene_config, batch_0.framebuffer)
+            self._render(batch_0.framebuffer)
             for render_pass in render_passes[:-1]:
                 target_id = 1 - target_id
                 render_pass._render(

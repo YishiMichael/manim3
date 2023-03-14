@@ -13,8 +13,8 @@ from ..lazy.interface import (
 )
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
-from ..rendering.framebuffer_batches import ColorFramebufferBatch
-from ..utils.scene_config import SceneConfig
+from ..rendering.framebuffer_batch import ColorFramebufferBatch
+#from ..utils.scene_config import SceneConfig
 
 
 class ImageMobject(MeshMobject):
@@ -48,11 +48,11 @@ class ImageMobject(MeshMobject):
 
     def _render(
         self,
-        scene_config: SceneConfig,
+        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         image = self._image
         with ColorFramebufferBatch() as batch:
             batch.color_texture.write(image.tobytes())
             self._color_map_ = batch.color_texture
-            super()._render(scene_config, target_framebuffer)
+            super()._render(target_framebuffer)

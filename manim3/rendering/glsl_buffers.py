@@ -24,7 +24,7 @@ from ..lazy.interface import (
     Lazy,
     LazyMode
 )
-from ..rendering.context import ContextSingleton
+from ..rendering.context import Context
 
 
 class GLSLBufferLayout(Enum):
@@ -82,6 +82,23 @@ class GLSLDynamicStruct(LazyObject):
         "dmat4x3": np.dtype(("f8", (4, 3))),
         "dmat4":   np.dtype(("f8", (4, 4))),
     }
+
+    def __init__(
+        self,
+        *,
+        field: str,
+        child_structs: dict[str, list[str]] | None,
+        dynamic_array_lens: dict[str, int] | None
+    ) -> None:
+        super().__init__()
+        self._field_ = field
+        if child_structs is not None:
+            self._child_structs_ = tuple(
+                (name, tuple(child_struct_fields))
+                for name, child_struct_fields in child_structs.items()
+            )
+        if dynamic_array_lens is not None:
+            self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -261,15 +278,19 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
         dynamic_array_lens: dict[str, int] | None,
         data: np.ndarray | dict[str, Any]
     ) -> None:
-        super().__init__()
-        self._field_ = field
-        if child_structs is not None:
-            self._child_structs_ = tuple(
-                (name, tuple(child_struct_fields))
-                for name, child_struct_fields in child_structs.items()
-            )
-        if dynamic_array_lens is not None:
-            self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
+        super().__init__(
+            field=field,
+            child_structs=child_structs,
+            dynamic_array_lens=dynamic_array_lens
+        )
+        #self._field_ = field
+        #if child_structs is not None:
+        #    self._child_structs_ = tuple(
+        #        (name, tuple(child_struct_fields))
+        #        for name, child_struct_fields in child_structs.items()
+        #    )
+        #if dynamic_array_lens is not None:
+        #    self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
         self._data_ = data
 
     @Lazy.variable(LazyMode.UNWRAPPED)
@@ -307,7 +328,8 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
         if cls._VACANT_BUFFERS:
             buffer = cls._VACANT_BUFFERS.pop()
         else:
-            buffer = ContextSingleton().buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+            buffer = Context.buffer()
+            #atexit.register(lambda: buffer.release())
 
         bytes_data = data_storage.tobytes()
         #assert struct_dtype.itemsize == len(bytes_data)
@@ -343,10 +365,26 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
 class TextureStorage(GLSLDynamicStruct):
     __slots__ = ()
 
-    @Lazy.variable(LazyMode.SHARED)
-    @classmethod
-    def _sampler_field_(cls) -> str:
-        return NotImplemented
+    def __init__(
+        self,
+        *,
+        field: str,
+        dynamic_array_lens: dict[str, int] | None = None,
+        shape: tuple[int, ...] = ()
+    ) -> None:
+        replaced_field = re.sub(r"^sampler2D\b", "uint", field)
+        assert field != replaced_field
+        super().__init__(
+            field=replaced_field,
+            child_structs=None,
+            dynamic_array_lens=dynamic_array_lens
+        )
+        self._shape_ = shape
+
+    #@Lazy.variable(LazyMode.SHARED)
+    #@classmethod
+    #def _sampler_field_(cls) -> str:
+    #    return NotImplemented
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -355,33 +393,38 @@ class TextureStorage(GLSLDynamicStruct):
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _texture_array_(cls) -> np.ndarray:
+    def _shape_(cls) -> tuple[int, ...]:
         return NotImplemented
 
-    @Lazy.property(LazyMode.SHARED)
-    @classmethod
-    def _field_(
-        cls,
-        sampler_field: str
-    ) -> str:
-        field = re.sub(r"^sampler2D\b", "uint", sampler_field)
-        assert sampler_field != field
-        return field
+    #@Lazy.variable(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _texture_array_(cls) -> np.ndarray:
+    #    return NotImplemented
 
-    def write(
-        self,
-        *,
-        field: str,
-        dynamic_array_lens: dict[str, int] | None = None,
-        texture_array: np.ndarray
-    ):
-        # Note, redundant textures are currently not supported
-        self._sampler_field_ = field
-        if dynamic_array_lens is None:
-            dynamic_array_lens = {}
-        self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
-        self._texture_array_ = texture_array
-        return self
+    #@Lazy.property(LazyMode.SHARED)
+    #@classmethod
+    #def _field_(
+    #    cls,
+    #    sampler_field: str
+    #) -> str:
+    #    field = re.sub(r"^sampler2D\b", "uint", sampler_field)
+    #    assert sampler_field != field
+    #    return field
+
+    #def write(
+    #    self,
+    #    *,
+    #    field: str,
+    #    dynamic_array_lens: dict[str, int] | None = None,
+    #    texture_array: np.ndarray
+    #):
+    #    # Note, redundant textures are currently not supported
+    #    self._sampler_field_ = field
+    #    if dynamic_array_lens is None:
+    #        dynamic_array_lens = {}
+    #    self._dynamic_array_lens_ = tuple(dynamic_array_lens.items())
+    #    self._texture_array_ = texture_array
+    #    return self
 
 
 class UniformBlockBuffer(GLSLDynamicBuffer):

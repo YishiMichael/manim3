@@ -1,7 +1,4 @@
-__all__ = [
-    "ContextState",
-    "VertexArray"
-]
+__all__ = ["VertexArray"]
 
 
 from dataclasses import dataclass
@@ -22,28 +19,16 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..rendering.config import ConfigSingleton
-from ..rendering.context import ContextSingleton
+from ..rendering.context import (
+    Context,
+    ContextState
+)
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer,
     TextureStorage,
     UniformBlockBuffer
 )
-
-
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class ContextState:
-    enable_only: int
-    depth_func: str = "<"
-    blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING
-    blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD
-    front_face: str = "ccw"
-    cull_face: str = "back"
-    wireframe: bool = False
 
 
 @dataclass(
@@ -61,18 +46,18 @@ class IndexedAttributesBuffer(LazyObject):
     def __init__(
         self,
         *,
-        attributes: AttributesBuffer,
+        attributes_buffer: AttributesBuffer,
         index_buffer: IndexBuffer,
         mode: int
     ) -> None:
         super().__init__()
-        self._attributes_ = attributes
+        self._attributes_buffer_ = attributes_buffer
         self._index_buffer_ = index_buffer
         self._mode_ = mode
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _attributes_(cls) -> AttributesBuffer:
+    def _attributes_buffer_(cls) -> AttributesBuffer:
         return NotImplemented
 
     @Lazy.variable(LazyMode.OBJECT)
@@ -88,6 +73,22 @@ class IndexedAttributesBuffer(LazyObject):
 
 class VertexArray(LazyObject):
     __slots__ = ()
+
+    def __init__(
+        self,
+        *,
+        shader_filename: str,
+        custom_macros: list[str],
+        texture_storages: list[TextureStorage],
+        uniform_blocks: list[UniformBlockBuffer],
+        indexed_attributes_buffer: IndexedAttributesBuffer
+    ) -> None:
+        super().__init__()
+        self._shader_filename_ = shader_filename
+        self._custom_macros_ = tuple(custom_macros)
+        self._texture_storages_.add(*texture_storages)
+        self._uniform_blocks_.add(*uniform_blocks)
+        self._indexed_attributes_buffer_ = indexed_attributes_buffer
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -111,7 +112,7 @@ class VertexArray(LazyObject):
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _indexed_attributes_(cls) -> IndexedAttributesBuffer:
+    def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         return NotImplemented
 
     @Lazy.property(LazyMode.SHARED)
@@ -120,14 +121,14 @@ class VertexArray(LazyObject):
         cls,
         texture_storages__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
         uniform_blocks__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
-        indexed_attributes__attributes__dynamic_array_lens: list[tuple[str, int]]
+        indexed_attributes_buffer__attributes_buffer__dynamic_array_lens: list[tuple[str, int]]
     ) -> tuple[tuple[str, int], ...]:
         dynamic_array_lens: dict[str, int] = {}
         for texture_storage_dynamic_array_lens in texture_storages__dynamic_array_lens:
             dynamic_array_lens.update(dict(texture_storage_dynamic_array_lens))
         for uniform_block_dynamic_array_lens in uniform_blocks__dynamic_array_lens:
             dynamic_array_lens.update(uniform_block_dynamic_array_lens)
-        dynamic_array_lens.update(dict(indexed_attributes__attributes__dynamic_array_lens))
+        dynamic_array_lens.update(dict(indexed_attributes_buffer__attributes_buffer__dynamic_array_lens))
         return tuple(
             (array_len_name, array_len)
             for array_len_name, array_len in dynamic_array_lens.items()
@@ -141,7 +142,7 @@ class VertexArray(LazyObject):
         _texture_storages_: LazyCollection[TextureStorage]
     ) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return tuple(
-            (texture_storage._field_name_.value, texture_storage._texture_array_.value.shape)
+            (texture_storage._field_name_.value, texture_storage._shape_.value)
             for texture_storage in _texture_storages_
         )
 
@@ -179,13 +180,13 @@ class VertexArray(LazyObject):
     def _vertex_array_(
         cls,
         program_data: ProgramData,
-        _indexed_attributes_: IndexedAttributesBuffer
+        _indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> moderngl.VertexArray | None:
-        attributes = _indexed_attributes_._attributes_
-        index_buffer = _indexed_attributes_._index_buffer_
-        mode = _indexed_attributes_._mode_.value
+        attributes_buffer = _indexed_attributes_buffer_._attributes_buffer_
+        index_buffer = _indexed_attributes_buffer_._index_buffer_
+        mode = _indexed_attributes_buffer_._mode_.value
 
-        if attributes._is_empty_.value or index_buffer._is_empty_.value:
+        if attributes_buffer._is_empty_.value or index_buffer._is_empty_.value:
             return None
 
         moderngl_program = program_data.program
@@ -194,11 +195,13 @@ class VertexArray(LazyObject):
             for name in moderngl_program
             if isinstance(member := moderngl_program[name], moderngl.Attribute)
         }
-        attributes._validate(program_attributes)
-        buffer_format, attribute_names = attributes._get_buffer_format(tuple(program_attributes))
-        return ContextSingleton().vertex_array(
+        attributes_buffer._validate(program_attributes)
+        buffer_format, attribute_names = attributes_buffer._get_buffer_format(tuple(program_attributes))
+        return Context.vertex_array(
             program=moderngl_program,
-            content=[(attributes._buffer_.value, buffer_format, *attribute_names)],
+            attributes_buffer=attributes_buffer._buffer_.value,
+            buffer_format=buffer_format,
+            attribute_names=attribute_names,
             index_buffer=index_buffer._buffer_.value,
             mode=mode
         )
@@ -215,6 +218,51 @@ class VertexArray(LazyObject):
         if vertex_array is not None:
             vertex_array.release()
 
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _texture_binding_items_(
+        cls,
+        _texture_storages_: list[TextureStorage],
+        program_data: ProgramData
+    ) -> dict[str, tuple[tuple[int, ...], int]]:
+        texture_storage_dict = {
+            texture_storage._field_name_.value: texture_storage
+            for texture_storage in _texture_storages_
+        }
+        texture_binding_item: dict[str, tuple[tuple[int, ...], int]] = {}
+        for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
+            texture_storage = texture_storage_dict[texture_storage_name]
+            assert not texture_storage._is_empty_.value
+            #texture_array = texture_array_dict[texture_storage_name]
+            #assert texture_storage._shape_.value == texture_array.shape
+            texture_binding_item[texture_storage_name] = (texture_storage._shape_.value, binding_offset)
+            #texture_bindings.extend(
+            #    (texture, binding)
+            #    for binding, texture in enumerate(texture_array.flat, start=binding_offset)
+            #)
+        return texture_binding_item
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _uniform_block_bindings_(
+        cls,
+        _uniform_blocks_: list[UniformBlockBuffer],
+        program_data: ProgramData
+    ) -> tuple[tuple[moderngl.Buffer, int], ...]:
+        uniform_block_dict = {
+            uniform_block._field_name_.value: uniform_block
+            for uniform_block in _uniform_blocks_
+        }
+        uniform_block_bindings: list[tuple[moderngl.Buffer, int]] = []
+        for uniform_block_name, binding in program_data.uniform_block_binding_dict.items():
+            uniform_block = uniform_block_dict[uniform_block_name]
+            assert not uniform_block._is_empty_.value
+            program_uniform_block = program_data.program[uniform_block_name]
+            assert isinstance(program_uniform_block, moderngl.UniformBlock)
+            uniform_block._validate(program_uniform_block)
+            uniform_block_bindings.append((uniform_block._buffer_.value, binding))
+        return tuple(uniform_block_bindings)
+
     @classmethod
     def _construct_moderngl_program(
         cls,
@@ -222,7 +270,7 @@ class VertexArray(LazyObject):
         custom_macros: tuple[str, ...],
         dynamic_array_lens: tuple[tuple[str, int], ...]
     ) -> moderngl.Program:
-        version_string = f"#version {ContextSingleton().version_code} core"
+        version_string = f"#version {Context.mgl_context.version_code} core"
         array_len_macros = [
             f"#define {array_len_name} {array_len}"
             for array_len_name, array_len in dynamic_array_lens
@@ -246,14 +294,13 @@ class VertexArray(LazyObject):
             )
             if re.search(rf"\b{shader_type}\b", shader_str, flags=re.MULTILINE) is not None
         }
-        program = ContextSingleton().program(
+        return Context.program(
             vertex_shader=shaders["VERTEX_SHADER"],
             fragment_shader=shaders.get("FRAGMENT_SHADER"),
             geometry_shader=shaders.get("GEOMETRY_SHADER"),
             tess_control_shader=shaders.get("TESS_CONTROL_SHADER"),
             tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER"),
         )
-        return program
 
     @classmethod
     def _set_texture_bindings(
@@ -323,72 +370,36 @@ class VertexArray(LazyObject):
     ) -> int:
         return reduce(op.mul, shape, 1)  # TODO: redundant with the one in glsl_buffers.py
 
-    def write(
-        self,
-        *,
-        shader_filename: str,
-        custom_macros: list[str],
-        texture_storages: list[TextureStorage],
-        uniform_blocks: list[UniformBlockBuffer],
-        indexed_attributes: IndexedAttributesBuffer
-    ):
-        self._shader_filename_ = shader_filename
-        self._custom_macros_ = tuple(custom_macros)
-        self._texture_storages_ = LazyCollection(*texture_storages)
-        self._uniform_blocks_ = LazyCollection(*uniform_blocks)
-        self._indexed_attributes_ = indexed_attributes
-        return self
-
     def render(
         self,
         *,
+        texture_array_dict: dict[str, np.ndarray],
         framebuffer: moderngl.Framebuffer,
         context_state: ContextState
     ) -> None:
-        if self._vertex_array_.value is None:
+        if (vertex_array := self._vertex_array_.value) is None:
             return
 
-        program_data = self._program_data_.value
-
-        # texture storages
-        texture_storage_dict = {
-            texture_storage._field_name_.value: texture_storage
-            for texture_storage in self._texture_storages_
-        }
+        #texture_storage_dict = {
+        #    texture_storage._field_name_.value: texture_storage
+        #    for texture_storage in self._texture_storages_
+        #}
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
-        for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
-            texture_storage = texture_storage_dict[texture_storage_name]
-            assert not texture_storage._is_empty_.value
+        for texture_storage_name, (shape, binding_offset) in self._texture_binding_items_.value.items():
+            #texture_storage = texture_storage_dict[texture_storage_name]
+            #assert not texture_storage._is_empty_.value
+            texture_array = texture_array_dict[texture_storage_name]
+            assert shape == texture_array.shape
             texture_bindings.extend(
                 (texture, binding)
-                for binding, texture in enumerate(texture_storage._texture_array_.value.flat, start=binding_offset)
+                for binding, texture in enumerate(texture_array.flat, start=binding_offset)
             )
 
-        # uniform blocks
-        uniform_block_dict = {
-            uniform_block._field_name_.value: uniform_block
-            for uniform_block in self._uniform_blocks_
-        }
-        uniform_block_bindings: list[tuple[moderngl.Buffer, int]] = []
-        for uniform_block_name, binding in program_data.uniform_block_binding_dict.items():
-            uniform_block = uniform_block_dict[uniform_block_name]
-            assert not uniform_block._is_empty_.value
-            program_uniform_block = program_data.program[uniform_block_name]
-            assert isinstance(program_uniform_block, moderngl.UniformBlock)
-            uniform_block._validate(program_uniform_block)
-            uniform_block_bindings.append((uniform_block._buffer_.value, binding))
-
-        context = ContextSingleton()
-        context.depth_func = context_state.depth_func
-        context.blend_func = context_state.blend_func
-        context.blend_equation = context_state.blend_equation
-        context.front_face = context_state.front_face
-        context.cull_face = context_state.cull_face
-        context.wireframe = context_state.wireframe
-        with context.scope(
+        Context.set_state(context_state)
+        with Context.mgl_context.scope(
             framebuffer=framebuffer,
             enable_only=context_state.enable_only,
             textures=tuple(texture_bindings),
-            uniform_buffers=tuple(uniform_block_bindings)
+            uniform_buffers=self._uniform_block_bindings_.value
         ):
-            self._vertex_array_.value.render()
+            vertex_array.render()

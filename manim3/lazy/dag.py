@@ -27,7 +27,9 @@ class DAGNode:
     def _iter_descendants(self: Self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_descendants_atom(node: Self) -> Generator[Self, None, None]:
+        def iter_descendants_atom(
+            node: Self
+        ) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)
@@ -40,7 +42,9 @@ class DAGNode:
     def _iter_ancestors(self: Self) -> Generator[Self, None, None]:
         occurred: set[Self] = set()
 
-        def iter_ancestors_atom(node: Self) -> Generator[Self, None, None]:
+        def iter_ancestors_atom(
+            node: Self
+        ) -> Generator[Self, None, None]:
             if node in occurred:
                 return
             occurred.add(node)

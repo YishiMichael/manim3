@@ -58,7 +58,7 @@ class Geometry(LazyObject):
         geometry_data: GeometryData
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
-            attributes=AttributesBuffer(
+            attributes_buffer=AttributesBuffer(
                 fields=[
                     "vec3 in_position",
                     "vec3 in_normal",

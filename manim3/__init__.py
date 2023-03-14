@@ -37,12 +37,12 @@ from .passes.render_pass import *
 from .rendering.config import *
 from .rendering.context import *
 from .rendering.framebuffer_batch import *
-from .rendering.framebuffer_batches import *
+#from .rendering.framebuffer_batches import *
 from .rendering.glsl_buffers import *
-from .rendering.renderer import *
+#from .rendering.renderer import *
 from .rendering.vertex_array import *
 
-from .utils.active_scene_data import *
+#from .utils.active_scene_data import *
 from .utils.cache import *
 from .utils.color import *
 from .utils.rate import *
