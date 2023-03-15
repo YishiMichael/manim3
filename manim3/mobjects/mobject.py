@@ -122,7 +122,7 @@ class PseudoCollection(Generic[_T]):
     kw_only=True,
     slots=True
 )
-class BoundingBox3D:
+class BoundingBox:
     maximum: Vec3T
     minimum: Vec3T
 
@@ -352,11 +352,11 @@ class Mobject(LazyObject):
         model_matrix: Mat4T,
         local_sample_points: Vec3sT,
         has_local_sample_points: bool
-    ) -> BoundingBox3D | None:
+    ) -> BoundingBox | None:
         if not has_local_sample_points:
             return None
         world_sample_points = SpaceUtils.apply_affine(model_matrix, local_sample_points)
-        return BoundingBox3D(
+        return BoundingBox(
             maximum=world_sample_points.max(axis=0),
             minimum=world_sample_points.min(axis=0)
         )
@@ -365,9 +365,9 @@ class Mobject(LazyObject):
     @classmethod
     def _bounding_box_with_descendants_(
         cls,
-        bounding_box_without_descendants: BoundingBox3D | None,
-        real_descendants__bounding_box_without_descendants: list[BoundingBox3D | None]
-    ) -> BoundingBox3D | None:
+        bounding_box_without_descendants: BoundingBox | None,
+        real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
+    ) -> BoundingBox | None:
         points_array = np.array(list(it.chain(*(
             (aabb.maximum, aabb.minimum)
             for aabb in (
@@ -378,7 +378,7 @@ class Mobject(LazyObject):
         ))))
         if not len(points_array):
             return None
-        return BoundingBox3D(
+        return BoundingBox(
             maximum=points_array.max(axis=0),
             minimum=points_array.min(axis=0)
         )
@@ -387,14 +387,14 @@ class Mobject(LazyObject):
         self,
         *,
         broadcast: bool = True
-    ) -> BoundingBox3D:
+    ) -> BoundingBox:
         if broadcast:
             result = self._bounding_box_with_descendants_.value
         else:
             result = self._bounding_box_without_descendants_.value
         if result is None:
             warnings.warn("Trying to calculate the bounding box of some mobject with no points")
-            return BoundingBox3D(
+            return BoundingBox(
                 maximum=ORIGIN,
                 minimum=ORIGIN
             )

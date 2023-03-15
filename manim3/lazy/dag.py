@@ -1,6 +1,7 @@
 __all__ = ["DAGNode"]
 
 
+from abc import ABC
 from typing import (
     Generator,
     TypeVar
@@ -10,7 +11,7 @@ from typing import (
 Self = TypeVar("Self", bound="DAGNode")
 
 
-class DAGNode:
+class DAGNode(ABC):
     """
     Node of a doubly linked DAG (directed acyclic graph)
     """

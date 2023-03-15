@@ -4,12 +4,13 @@ __all__ = [
 ]
 
 
+from abc import ABC
 import os
 import sys
 from typing import ClassVar
 
 
-class Config:
+class Config(ABC):
     __slots__ = (
         "_camera_altitude",
         "_camera_near",
@@ -296,7 +297,9 @@ class Config:
         self._halt_on_last_frame = halt_on_last_frame
 
 
-class ConfigSingleton:
+class ConfigSingleton(ABC):
+    __slots__ = ()
+
     _INSTANCE: ClassVar[Config | None] = None
 
     def __new__(cls) -> Config:

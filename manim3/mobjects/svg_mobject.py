@@ -7,6 +7,7 @@ import svgelements as se
 from ..lazy.core import LazyWrapper
 from ..mobjects.shape_mobject import ShapeMobject
 from ..utils.color import ColorUtils
+from ..utils.shape import Shape
 
 
 class SVGMobject(ShapeMobject):
@@ -58,8 +59,9 @@ class SVGMobject(ShapeMobject):
                 #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape)
-            and (shape_mobject := ShapeMobject(shape * transform))._has_local_sample_points_.value
+            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(
+                Shape.from_se_shape(shape * transform)
+            ))._has_local_sample_points_.value
         ]
 
         # Share the `_color_` values.

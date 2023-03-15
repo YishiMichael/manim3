@@ -41,7 +41,7 @@ class PrismoidGeometry(Geometry):
         uv_list: list[Vec2T] = []
         index_list: list[int] = []
         index_offset = 0
-        for line_string in _shape_._multi_line_string_._children_:
+        for line_string in _shape_._multi_line_string_._line_strings_:
             coords = line_string._coords_.value
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths.

@@ -1,7 +1,19 @@
 __all__ = ["RateUtils"]
 
 
-class RateUtils:
+from abc import (
+    ABC,
+    abstractmethod
+)
+
+
+class RateUtils(ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def __new__(cls) -> None:
+        pass
+
     @classmethod
     def linear(
         cls,

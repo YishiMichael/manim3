@@ -27,12 +27,12 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
-        text = Text("Text").scale(3).add_stroke(width=0.1, color=RED).add_stroke(width=0.2, color=YELLOW).concatenate()
-        #tex = TexText("TexText").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
+        text = Text("Text").scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=RED).concatenate()
+        tex = TexText("TexText").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text)
         self.wait()
-        #self.play(Transform(text, tex.shift(RIGHT * 2)))
-        #self.wait()
+        self.play(Transform(text, tex.shift(RIGHT * 2)))
+        self.wait()
 
 
 if __name__ == "__main__":

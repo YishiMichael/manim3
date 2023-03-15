@@ -24,11 +24,7 @@ from ..custom_typing import (
     Vec2sT
 )
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.shape import (
-    LineString2D,
-    MultiLineString2D,
-    Shape
-)
+from ..utils.shape import Shape
 
 
 class Polyline(ShapeMobject):
@@ -36,7 +32,7 @@ class Polyline(ShapeMobject):
         self,
         coords: Vec2sT
     ) -> None:
-        super().__init__(Shape(MultiLineString2D([LineString2D(coords)])))
+        super().__init__(Shape([coords]))
 
 
 class Point(Polyline):

@@ -62,7 +62,7 @@ class ShapeGeometry(Geometry):
     ) -> tuple[VertexIndexType, Vec2sT]:
         item_list: list[tuple[VertexIndexType, Vec2sT]] = []
         coords_len = 0
-        for polygon in cls._get_shapely_polygons(shape._shapely_obj_.value):
+        for polygon in cls._get_shapely_polygons(shape.shapely_obj):
             index, coords = cls._get_polygon_triangulation(polygon)
             item_list.append((index + coords_len, coords))
             coords_len += len(coords)

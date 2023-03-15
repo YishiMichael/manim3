@@ -60,12 +60,6 @@ class PointLight(LazyObject):
 class SceneConfig(LazyObject):
     __slots__ = ()
 
-    _POINT_LIGHT_DTYPE: ClassVar[np.dtype] = np.dtype([
-        ("position", (np.float_, (3,))),
-        ("color", (np.float_, (3,))),
-        ("opacity", (np.float_)),
-    ])
-
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _background_color_(cls) -> Vec3T:

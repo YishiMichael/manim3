@@ -6,9 +6,6 @@ from typing import (
     Iterable
 )
 
-import shapely.geometry
-import svgelements as se
-
 from ..custom_typing import ColorType
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.core import (
@@ -29,15 +26,11 @@ class ShapeMobject(MeshMobject):
 
     def __init__(
         self,
-        shape: Shape | shapely.geometry.base.BaseGeometry | se.Shape | None = None
+        shape: Shape | None = None
     ) -> None:
         super().__init__()
         if shape is not None:
-            if isinstance(shape, Shape):
-                shape_obj = shape
-            else:
-                shape_obj = Shape(shape)
-            self.set_shape(shape_obj)
+            self.set_shape(shape)
         self.set_style(apply_phong_lighting=False)
 
     @Lazy.variable(LazyMode.OBJECT)
@@ -69,7 +62,7 @@ class ShapeMobject(MeshMobject):
     ):
         self._shape_ = shape
         for stroke in self._stroke_mobjects_:
-            stroke._multi_line_string_3d_ = shape._multi_line_string_3d_
+            stroke._multi_line_string_ = shape._multi_line_string_
         return self
 
     def adjust_stroke_shape(
@@ -77,7 +70,7 @@ class ShapeMobject(MeshMobject):
         stroke_mobject: StrokeMobject
     ):
         stroke_mobject._model_matrix_ = self._model_matrix_
-        stroke_mobject._multi_line_string_3d_ = self._shape_._multi_line_string_3d_
+        stroke_mobject._multi_line_string_ = self._shape_._multi_line_string_
         return self
 
     def add_stroke_mobject(

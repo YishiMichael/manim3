@@ -1,6 +1,10 @@
 __all__ = ["SpaceUtils"]
 
 
+from abc import (
+    ABC,
+    abstractmethod
+)
 from functools import partial
 from typing import (
     Callable,
@@ -27,7 +31,13 @@ from ..custom_typing import (
 )
 
 
-class SpaceUtils:
+class SpaceUtils(ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def __new__(cls) -> None:
+        pass
+
     @classmethod
     def matrix_from_translation(
         cls,
@@ -475,9 +485,9 @@ class SpaceUtils:
     def increase_dimension(
         cls,
         vectors: Vec2sT,
-        value: float = 0.0
+        z_value: float = 0.0
     ) -> Vec3sT:
-        result = np.zeros((vectors.shape[0], 3))
+        result = np.zeros((len(vectors), 3))
         result[:, :2] = vectors
-        result[:, 2] = value
+        result[:, 2] = z_value
         return result

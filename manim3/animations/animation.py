@@ -5,13 +5,22 @@ __all__ = [
 ]
 
 
+from abc import ABC
 from typing import Callable
 
 from ..mobjects.mobject import Mobject
 from ..utils.rate import RateUtils
 
 
-class Animation:
+class Animation(ABC):
+    __slots__ = (
+        "_animate_func",
+        "_mobject_addition_items",
+        "_mobject_removal_items",
+        "_start_time",
+        "_stop_time"
+    )
+
     def __init__(
         self,
         *,
@@ -32,6 +41,8 @@ class Animation:
 
 
 class AlphaAnimation(Animation):
+    __slots__ = ()
+
     def __init__(
         self,
         *,

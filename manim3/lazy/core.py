@@ -171,7 +171,7 @@ class LazyDependencyNode(DAGNode):
 
 
 @final
-class TreeNode(Generic[_TreeNodeContentT]):
+class TreeNode(Generic[_TreeNodeContentT], ABC):
     __slots__ = (
         "_children",
         "_content"

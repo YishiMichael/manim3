@@ -28,14 +28,14 @@ from ..rendering.context import (
     Context,
     ContextState
 )
+from ..rendering.framebuffer_batch import (
+    SceneFramebufferBatch,
+    SimpleFramebufferBatch
+)
 from ..rendering.glsl_buffers import (
     AttributesBuffer,
     IndexBuffer,
     TextureStorage
-)
-from ..rendering.framebuffer_batch import (
-    SceneFramebufferBatch,
-    SimpleFramebufferBatch
 )
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,

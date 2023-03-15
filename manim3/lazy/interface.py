@@ -4,6 +4,10 @@ __all__ = [
 ]
 
 
+from abc import (
+    ABC,
+    abstractmethod
+)
 from enum import Enum
 import inspect
 import re
@@ -38,7 +42,13 @@ _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 _PropertyParameters = ParamSpec("_PropertyParameters")
 
 
-class AnnotationUtils:
+class AnnotationUtils(ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def __new__(cls) -> None:
+        pass
+
     @classmethod
     def get_return_type(
         cls,
@@ -283,7 +293,7 @@ class LazyMode(Enum):
     SHARED = 3
 
 
-class Lazy:
+class Lazy(ABC):
     @overload
     @classmethod
     def variable(

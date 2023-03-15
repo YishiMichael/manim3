@@ -43,7 +43,7 @@ from ..utils.color import ColorUtils
 #from ..utils.scene_config import SceneConfig
 from ..utils.shape import (
     LineStringKind,
-    MultiLineString3D
+    MultiLineString
 )
 from ..utils.space import SpaceUtils
 
@@ -53,16 +53,16 @@ class StrokeMobject(Mobject):
 
     def __init__(
         self,
-        multi_line_string_3d: MultiLineString3D | None = None
+        multi_line_string: MultiLineString | None = None
     ) -> None:
         super().__init__()
-        if multi_line_string_3d is not None:
-            self._multi_line_string_3d_ = multi_line_string_3d
+        if multi_line_string is not None:
+            self._multi_line_string_ = multi_line_string
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _multi_line_string_3d_(cls) -> MultiLineString3D:
-        return MultiLineString3D()
+    def _multi_line_string_(cls) -> MultiLineString:
+        return MultiLineString()
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
@@ -122,13 +122,13 @@ class StrokeMobject(Mobject):
         scene_config__camera__projection_matrix: Mat4T,
         scene_config__camera__view_matrix: Mat4T,
         model_matrix: Mat4T,
-        multi_line_string_3d__children__coords: list[Vec3sT],
+        multi_line_string__line_strings__coords: list[Vec3sT],
         width: float
     ) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...
         area = 0.0
         transform = scene_config__camera__projection_matrix @ scene_config__camera__view_matrix @ model_matrix
-        for coords in multi_line_string_3d__children__coords:
+        for coords in multi_line_string__line_strings__coords:
             coords_2d = SpaceUtils.apply_affine(transform, coords)[:, :2]
             area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
         return area * width >= 0.0
@@ -137,9 +137,9 @@ class StrokeMobject(Mobject):
     @classmethod
     def _local_sample_points_(
         cls,
-        _multi_line_string_3d_: MultiLineString3D
+        _multi_line_string_: MultiLineString
     ) -> Vec3sT:
-        line_strings = _multi_line_string_3d_._children_
+        line_strings = _multi_line_string_._line_strings_
         if not line_strings:
             return np.zeros((0, 3))
         return np.concatenate([
@@ -190,14 +190,14 @@ class StrokeMobject(Mobject):
     @classmethod
     def _attributes_buffer_(
         cls,
-        _multi_line_string_3d_: MultiLineString3D
+        _multi_line_string_: MultiLineString
     ) -> AttributesBuffer:
-        if not _multi_line_string_3d_._children_:
+        if not _multi_line_string_._line_strings_:
             position = np.zeros((0, 3))
         else:
             position = np.concatenate([
                 line_string._coords_.value
-                for line_string in _multi_line_string_3d_._children_
+                for line_string in _multi_line_string_._line_strings_
             ])
         return AttributesBuffer(
             fields=[
@@ -218,7 +218,7 @@ class StrokeMobject(Mobject):
         _ub_stroke_: UniformBlockBuffer,
         _ub_winding_sign_: UniformBlockBuffer,
         _attributes_buffer_: AttributesBuffer,
-        _multi_line_string_3d_: MultiLineString3D,
+        _multi_line_string_: MultiLineString,
         single_sided: bool,
         has_linecap: bool
     ) -> LazyCollection[VertexArray]:
@@ -243,7 +243,7 @@ class StrokeMobject(Mobject):
                 indexed_attributes_buffer=IndexedAttributesBuffer(
                     attributes_buffer=_attributes_buffer_,
                     index_buffer=IndexBuffer(
-                        data=cls._lump_index_from_getter(index_getter, _multi_line_string_3d_)
+                        data=cls._lump_index_from_getter(index_getter, _multi_line_string_)
                     ),
                     mode=mode
                 )
@@ -275,11 +275,11 @@ class StrokeMobject(Mobject):
     def _lump_index_from_getter(
         cls,
         index_getter: Callable[[int, LineStringKind], list[int]],
-        multi_line_string_3d: MultiLineString3D
+        multi_line_string: MultiLineString
     ) -> VertexIndexType:
         offset = 0
         index_arrays: list[VertexIndexType] = []
-        for line_string in multi_line_string_3d._children_:
+        for line_string in multi_line_string._line_strings_:
             coords_len = len(line_string._coords_.value)
             kind = line_string._kind_.value
             index_arrays.append(np.array(index_getter(coords_len, kind), dtype=np.uint32) + offset)
@@ -307,7 +307,6 @@ class StrokeMobject(Mobject):
                 np.roll(range(coords_len - 1), -i)
                 for i in range(2)
             ))))
-        raise ValueError  # never
 
     @classmethod
     def _join_index_getter(
@@ -328,7 +327,6 @@ class StrokeMobject(Mobject):
                 np.roll(range(coords_len - 1), -i)
                 for i in range(3)
             ))))
-        raise ValueError  # never
 
     @classmethod
     def _cap_index_getter(
@@ -342,7 +340,6 @@ class StrokeMobject(Mobject):
             return [0, 1, coords_len - 1, coords_len - 2]
         if kind == LineStringKind.LINEAR_RING:
             return []
-        raise ValueError  # never
 
     @classmethod
     def _point_index_getter(
@@ -356,7 +353,6 @@ class StrokeMobject(Mobject):
             return []
         if kind == LineStringKind.LINEAR_RING:
             return []
-        raise ValueError  # never
 
     def _render(
         self,
@@ -385,7 +381,7 @@ class StrokeMobject(Mobject):
         #        indexed_attributes=IndexedAttributesBuffer(
         #            attributes_buffer=self._attributes_buffer_,
         #            index_buffer=IndexBuffer(
-        #                data=self._lump_index_from_getter(index_getter, self._multi_line_string_3d_)
+        #                data=self._lump_index_from_getter(index_getter, self._multi_line_string_)
         #            ),
         #            mode=mode
         #        )
@@ -445,7 +441,7 @@ class StrokeMobject(Mobject):
     #    # TODO: The calculation here is somehow redundant with what shader does...
     #    area = 0.0
     #    transform = camera._projection_matrix_.value @ camera._view_matrix_.value @ self._model_matrix_.value
-    #    for line_string in self._multi_line_string_3d_._children_:
+    #    for line_string in self._multi_line_string_._line_strings_:
     #        coords_2d = SpaceUtils.apply_affine(transform, line_string._coords_.value)[:, :2]
     #        area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
     #    return area * self._width_.value >= 0.0
@@ -534,14 +530,14 @@ class StrokeMobject(Mobject):
         for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
             if isinstance(descriptor, LazyCollectionVariableDescriptor):
                 continue
-            if descriptor is cls._multi_line_string_3d_:
+            if descriptor is cls._multi_line_string_:
                 continue
             assert all(
                 descriptor.get_impl(result) is descriptor.get_impl(mobject)
                 for mobject in mobjects
             )
-        result._multi_line_string_3d_ = MultiLineString3D.concatenate(
-            mobject._multi_line_string_3d_
+        result._multi_line_string_ = MultiLineString.concatenate(
+            mobject._multi_line_string_
             for mobject in mobjects
         )
         return result

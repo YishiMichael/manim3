@@ -31,7 +31,7 @@ from ..utils.color import ColorUtils
 
 @dataclass(
     frozen=True,
-    kw_only=False,
+    kw_only=True,
     slots=True
 )
 class TexTemplate:

@@ -4,6 +4,10 @@ __all__ = [
 ]
 
 
+from abc import (
+    ABC,
+    abstractmethod
+)
 import atexit
 from dataclasses import dataclass
 import os
@@ -32,7 +36,7 @@ class ContextState:
     wireframe: bool = False
 
 
-class Context:
+class Context(ABC):
     __slots__ = ()
 
     _MGL_CONTEXT: ClassVar[moderngl.Context | None] = None
@@ -40,6 +44,10 @@ class Context:
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
     #_SCENE_BATCH: ClassVar[SimpleFramebufferBatch | None] = None
     _WRITING_PROCESS: ClassVar[sp.Popen | None] = None
+
+    @abstractmethod
+    def __new__(cls) -> None:
+        pass
 
     @classmethod
     def activate(cls) -> None:

@@ -5,7 +5,10 @@ __all__ = [
 ]
 
 
-from abc import abstractmethod
+from abc import (
+    ABC,
+    abstractmethod
+)
 from dataclasses import dataclass
 from enum import Enum
 import itertools as it
@@ -42,7 +45,7 @@ class EdgeFlag(Enum):
         return self.value
 
 
-class Span:
+class Span(ABC):
     def __init__(
         self,
         start: int,

@@ -28,12 +28,14 @@ from ..lazy.core import (
 )
 from ..utils.space import SpaceUtils
 from ..utils.shape import (
-    MultiLineString3D,
+    MultiLineString,
     Shape
 )
 
 
 class Transform(AlphaAnimation):
+    __slots__ = ()
+
     @staticmethod
     def __shape_interpolate_callback(
         shape_0: Shape,
@@ -43,9 +45,9 @@ class Transform(AlphaAnimation):
 
     @staticmethod
     def __stroke_interpolate_callback(
-        multi_line_string_0: MultiLineString3D,
-        multi_line_string_1: MultiLineString3D
-    ) -> Callable[[float], MultiLineString3D]:
+        multi_line_string_0: MultiLineString,
+        multi_line_string_1: MultiLineString
+    ) -> Callable[[float], MultiLineString]:
         return multi_line_string_0.interpolate_shape_callback(multi_line_string_1, has_inlay=False)
 
     @staticmethod
@@ -73,7 +75,7 @@ class Transform(AlphaAnimation):
     }
 
     _STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[float], Any]]]] = {
-        StrokeMobject._multi_line_string_3d_: __stroke_interpolate_callback,
+        StrokeMobject._multi_line_string_: __stroke_interpolate_callback,
         StrokeMobject._model_matrix_: __rotational_interpolate_callback,
         StrokeMobject._color_: __lerp_callback,
         StrokeMobject._opacity_: __lerp_callback,

@@ -16,11 +16,7 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.shape import (
-    LineString2D,
-    MultiLineString2D,
-    Shape
-)
+from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
 
@@ -35,9 +31,9 @@ class Polyhedron(ShapeMobject):
         super().__init__()
         for face in faces:
             matrix, coords = self._convert_coplanar_vertices(vertices[face])
-            # Append the last point to form a closed ring
+            # Append the last point to form a closed ring.
             ring_coords = np.append(coords, coords[0, None], axis=0)
-            shape = ShapeMobject(Shape(MultiLineString2D([LineString2D(ring_coords)])))
+            shape = ShapeMobject(Shape([ring_coords]))
             shape.apply_transform(matrix)
             self.add(shape)
         self.set_style(apply_phong_lighting=True)
