@@ -90,7 +90,7 @@ class SceneConfig(LazyObject):
         cls,
         ambient_light_color: Vec3T,
         ambient_light_opacity: float,
-        point_lights: LazyCollection[PointLight]
+        _point_lights_: list[PointLight]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_lights",
@@ -105,18 +105,18 @@ class SceneConfig(LazyObject):
                 ]
             },
             dynamic_array_lens={
-                "NUM_U_POINT_LIGHTS": len(point_lights)
+                "NUM_U_POINT_LIGHTS": len(_point_lights_)
             },
             data={
                 "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
                 "u_point_lights": {
                     "position": np.array([
                         point_light._position_.value
-                        for point_light in point_lights
+                        for point_light in _point_lights_
                     ]),
                     "color": np.array([
                         np.append(point_light._color_.value, point_light._opacity_.value)
-                        for point_light in point_lights
+                        for point_light in _point_lights_
                     ])
                 }
             }

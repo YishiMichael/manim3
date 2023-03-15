@@ -8,6 +8,7 @@ from abc import (
 from functools import partial
 from typing import (
     Callable,
+    Literal,
     Union,
     overload
 )
@@ -486,9 +487,41 @@ class SpaceUtils(ABC):
     def increase_dimension(
         cls,
         vectors: Vec2sT,
+        *,
         z_value: float = 0.0
     ) -> Vec3sT:
         result = np.zeros((len(vectors), 3))
         result[:, :2] = vectors
         result[:, 2] = z_value
         return result
+
+    @overload
+    @classmethod
+    def decrease_dimension(
+        cls,
+        vectors: Vec3sT,
+        *,
+        extract_z: Literal[True]
+    ) -> tuple[Vec2sT, FloatsT]: ...
+
+    @overload
+    @classmethod
+    def decrease_dimension(
+        cls,
+        vectors: Vec3sT,
+        *,
+        extract_z: Literal[False] = False
+    ) -> Vec2sT: ...
+
+    @classmethod
+    def decrease_dimension(
+        cls,
+        vectors: Vec3sT,
+        *,
+        extract_z: bool = False
+    ) -> tuple[Vec2sT, FloatsT] | Vec2sT:
+        result = vectors[:, :2]
+        if not extract_z:
+            return result
+        z_value = vectors[:, 2]
+        return result, z_value

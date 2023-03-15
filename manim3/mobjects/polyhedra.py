@@ -15,8 +15,8 @@ from ..custom_typing import (
     Vec2sT,
     Vec3sT
 )
+from ..mobjects.shapes import Polygon
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
 
@@ -30,10 +30,8 @@ class Polyhedron(ShapeMobject):
     ) -> None:
         super().__init__()
         for face in faces:
-            matrix, coords = self._convert_coplanar_vertices(vertices[face])
-            # Append the last point to form a closed ring.
-            ring_coords = np.append(coords, coords[0, None], axis=0)
-            shape = ShapeMobject(Shape([ring_coords]))
+            coords, matrix = self._convert_coplanar_vertices(vertices[face])
+            shape = Polygon(coords)
             shape.apply_transform(matrix)
             self.add(shape)
         self.set_style(apply_phong_lighting=True)
@@ -42,7 +40,7 @@ class Polyhedron(ShapeMobject):
     def _convert_coplanar_vertices(
         cls,
         vertices: Vec3sT
-    ) -> tuple[Mat4T, Vec2sT]:
+    ) -> tuple[Vec2sT, Mat4T]:
         assert len(vertices) >= 3
         # We first choose three points that define the plane.
         # Instead of choosing `vertices[:3]`, we choose `vertices[:2]` and the geometric centroid,
@@ -55,17 +53,18 @@ class Polyhedron(ShapeMobject):
         rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
 
         transformed = (np.linalg.inv(rotation_matrix) @ (vertices - origin).T).T
-        assert np.isclose(transformed[:, 2], 0.0).all(), "Vertices are not coplanar"
+        transformed_xy, transformed_z = SpaceUtils.decrease_dimension(transformed, extract_z=True)
+        assert np.isclose(transformed_z, 0.0).all(), "Vertices are not coplanar"
 
         matrix = np.identity(4)
         matrix[:3, :3] = rotation_matrix
         matrix[:3, 3] = origin
-        return matrix, transformed[:, :2]
+        return transformed_xy, matrix
 
 
 # The five platonic solids are ported from manim community.
 # /manim/mobject/three_d/polyhedra.py
-# All these polyhedrons have all vertices sitting on the unit sphere.
+# All these polyhedra have all vertices sitting on the unit sphere.
 class Tetrahedron(Polyhedron):
     __slots__ = ()
 

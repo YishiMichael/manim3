@@ -16,9 +16,9 @@ from typing import (
     Literal
 )
 
+from mapbox_earcut import triangulate_float32
 import numpy as np
 import shapely.geometry
-#import shapely.ops
 import shapely.validation
 
 from ..custom_typing import (
@@ -26,7 +26,8 @@ from ..custom_typing import (
     Vec2T,
     Vec3T,
     Vec2sT,
-    Vec3sT
+    Vec3sT,
+    VertexIndexType
 )
 from ..lazy.core import (
     LazyCollection,
@@ -490,17 +491,11 @@ class Shape(LazyObject):
     def _shapely_obj_(
         cls,
         #precalculated_shapely_obj: shapely.geometry.base.BaseGeometry | None,
-        _multi_line_string_: MultiLineString
+        _multi_line_string__line_strings_: list[LineString]
     ) -> shapely.geometry.base.BaseGeometry:
         #if precalculated_shapely_obj is not None:
         #    return precalculated_shapely_obj
-        return cls._to_shapely_object(_multi_line_string_)
-
-    @classmethod
-    def _to_shapely_object(
-        cls,
-        multi_line_string: MultiLineString
-    ) -> shapely.geometry.base.BaseGeometry:
+        #return cls._to_shapely_object(_multi_line_string_)
 
         def get_shapely_component(
             line_string: LineString
@@ -514,8 +509,55 @@ class Shape(LazyObject):
 
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, [
             get_shapely_component(line_string)
-            for line_string in multi_line_string._line_strings_
+            for line_string in _multi_line_string__line_strings_
         ], shapely.geometry.GeometryCollection())
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _triangulation_(
+        cls,
+        shapely_obj: shapely.geometry.base.BaseGeometry
+    ) -> tuple[VertexIndexType, Vec2sT]:
+
+        def get_shapely_polygons(
+            shapely_obj: shapely.geometry.base.BaseGeometry
+        ) -> Generator[shapely.geometry.Polygon, None, None]:
+            if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
+                pass
+            elif isinstance(shapely_obj, shapely.geometry.Polygon):
+                yield shapely_obj
+            elif isinstance(shapely_obj, shapely.geometry.base.BaseMultipartGeometry):
+                for child in shapely_obj.geoms:
+                    yield from get_shapely_polygons(child)
+            else:
+                raise TypeError
+
+        def get_polygon_triangulation(
+            polygon: shapely.geometry.Polygon
+        ) -> tuple[VertexIndexType, Vec2sT]:
+            ring_coords_list = [
+                np.array(boundary.coords, dtype=np.float32)
+                for boundary in [polygon.exterior, *polygon.interiors]
+            ]
+            coords = np.concatenate(ring_coords_list)
+            if not len(coords):
+                return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+
+            ring_ends = np.cumsum([len(ring_coords) for ring_coords in ring_coords_list], dtype=np.uint32)
+            return triangulate_float32(coords, ring_ends), coords
+
+        item_list: list[tuple[VertexIndexType, Vec2sT]] = []
+        coords_len = 0
+        for polygon in get_shapely_polygons(shapely_obj):
+            index, coords = get_polygon_triangulation(polygon)
+            item_list.append((index + coords_len, coords))
+            coords_len += len(coords)
+
+        if not item_list:
+            return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+
+        index_list, coords_list = zip(*item_list)
+        return np.concatenate(index_list), np.concatenate(coords_list)
 
     @classmethod
     def from_multi_line_string(
@@ -543,8 +585,8 @@ class Shape(LazyObject):
                 for interior in shapely_obj.interiors:
                     yield np.array(interior.coords)
             elif isinstance(shapely_obj, shapely.geometry.base.BaseMultipartGeometry):
-                for geom in shapely_obj.geoms:
-                    yield from iter_coords_from_shapely_obj(geom)
+                for shapely_obj_component in shapely_obj.geoms:
+                    yield from iter_coords_from_shapely_obj(shapely_obj_component)
             else:
                 raise TypeError
 

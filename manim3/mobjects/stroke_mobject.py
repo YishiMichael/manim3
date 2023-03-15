@@ -15,6 +15,7 @@ import numpy as np
 from ..custom_typing import (
     ColorType,
     Mat4T,
+    Vec2sT,
     Vec3T,
     Vec3sT,
     VertexIndexType
@@ -125,13 +126,19 @@ class StrokeMobject(Mobject):
         multi_line_string__line_strings__coords: list[Vec3sT],
         width: float
     ) -> bool:
-        # TODO: The calculation here is somehow redundant with what shader does...
-        area = 0.0
+        # TODO: The calculation here is somehow redundant with what shader does.。。
+
+        def get_signed_area(
+            coords: Vec2sT
+        ) -> float:
+            return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
+
         transform = scene_config__camera__projection_matrix @ scene_config__camera__view_matrix @ model_matrix
-        for coords in multi_line_string__line_strings__coords:
-            coords_2d = SpaceUtils.apply_affine(transform, coords)[:, :2]
-            area += np.cross(coords_2d, np.roll(coords_2d, -1, axis=0)).sum()
-        return area * width >= 0.0
+        area = sum(
+            get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, coords)))
+            for coords in multi_line_string__line_strings__coords
+        )
+        return bool(area * width >= 0.0)
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
