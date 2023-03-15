@@ -17,11 +17,9 @@ from typing import (
 )
 
 import numpy as np
-from scipy.interpolate import BSpline
 import shapely.geometry
 import shapely.ops
 import shapely.validation
-import svgelements as se
 
 from ..custom_typing import (
     FloatsT,
@@ -262,6 +260,7 @@ class LineString(ShapeInterpolant):
                 point_callback(alpha)
                 for point_callback in point_callbacks
             ]))
+
         return callback
 
 
@@ -497,6 +496,7 @@ class Shape(LazyObject):
         cls,
         multi_line_string: MultiLineString
     ) -> shapely.geometry.base.BaseGeometry:
+
         def get_shapely_component(
             line_string: LineString
         ) -> shapely.geometry.base.BaseGeometry:
@@ -526,6 +526,7 @@ class Shape(LazyObject):
         cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
     ) -> "Shape":
+
         def iter_coords_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
         ) -> Generator[Vec2sT, None, None]:
@@ -546,72 +547,6 @@ class Shape(LazyObject):
         #result = Shape(iter_coords_from_shapely_obj(shapely_obj))
         #result._precalculated_shapely_obj_ = shapely_obj
         #return result
-
-    @classmethod
-    def from_se_shape(
-        cls,
-        se_shape: se.Shape
-    ) -> "Shape":
-        def smoothen_samples(
-            curve: Callable[[FloatsT], Vec2sT],
-            samples: FloatsT,
-            bisect_depth: int
-        ) -> FloatsT:
-            # Bisect a segment if one of its endpoints has a turning angle above the threshold.
-            # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
-            if bisect_depth == 4:
-                return samples
-            points = curve(samples)
-            directions = SpaceUtils.normalize(points[1:] - points[:-1])
-            angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
-            large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
-            if not len(large_angle_indices):
-                return samples
-            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain(*(
-                ((i, i + 1), (i + 1, i + 2))
-                for i in large_angle_indices
-            )))))
-            new_samples = np.average(samples[insertion_index_pairs], axis=1)
-            return smoothen_samples(curve, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
-
-        def get_bezier_sample_points(
-            control_points: Vec2sT
-        ) -> Vec2sT:
-
-            order = len(control_points) - 1
-            gamma = BSpline(
-                t=np.append(np.zeros(order + 1), np.ones(order + 1)),
-                c=control_points,
-                k=order
-            )
-            if np.isclose(SpaceUtils.norm(gamma(1.0) - gamma(0.0)), 0.0):
-                return np.array((gamma(0.0),))
-            samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
-            return gamma(samples).astype(float)
-
-        def iter_coords_from_se_shape(
-            se_shape: se.Shape
-        ) -> Generator[Vec2sT, None, None]:
-            se_path = se.Path(se_shape.segments(transformed=True))
-            se_path.approximate_arcs_with_cubics()
-            coords_list: list[Vec2T] = []
-            for segment in se_path.segments(transformed=True):
-                if isinstance(segment, se.Move):
-                    yield np.array(coords_list)
-                    coords_list = [np.array(segment.end)]
-                elif isinstance(segment, se.Linear):  # Line & Close
-                    coords_list.append(np.array(segment.end))
-                else:
-                    if isinstance(segment, se.QuadraticBezier):
-                        control_points = [segment.start, segment.control, segment.end]
-                    elif isinstance(segment, se.CubicBezier):
-                        control_points = [segment.start, segment.control1, segment.control2, segment.end]
-                    else:
-                        raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-                    coords_list.extend(get_bezier_sample_points(np.array(control_points))[1:])
-            yield np.array(coords_list)
-
-        return Shape(iter_coords_from_se_shape(se_shape))
 
     def interpolate_point(
         self,
@@ -643,6 +578,7 @@ class Shape(LazyObject):
             return Shape.from_multi_line_string(multi_line_string_callback(alpha))
             #multi_line_string = multi_line_string_callback(alpha)
             #return Shape.from_shapely_obj(Shape._to_shapely_object(multi_line_string))
+
         return callback
 
     @classmethod

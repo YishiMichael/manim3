@@ -479,6 +479,7 @@ class SpaceUtils(ABC):
             m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ Rotation.as_matrix(slerp(alpha))
             m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
             return m
+
         return callback
 
     @classmethod

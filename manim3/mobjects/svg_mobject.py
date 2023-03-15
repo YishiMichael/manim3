@@ -1,13 +1,59 @@
 __all__ = ["SVGMobject"]
 
 
+import itertools as it
+from typing import (
+    Generator,
+    overload
+)
+
 import numpy as np
+from scipy.interpolate import BSpline
 import svgelements as se
 
+from ..custom_typing import (
+    FloatsT,
+    Vec2T,
+    Vec2sT
+)
 from ..lazy.core import LazyWrapper
 from ..mobjects.shape_mobject import ShapeMobject
 from ..utils.color import ColorUtils
 from ..utils.shape import Shape
+from ..utils.space import SpaceUtils
+
+
+class BezierCurve(BSpline):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        control_points: Vec2sT
+    ) -> None:
+        order = len(control_points) - 1
+        super().__init__(
+            t=np.append(np.zeros(order + 1), np.ones(order + 1)),
+            c=control_points,
+            k=order
+        )
+
+    @overload
+    def __call__(
+        self,
+        sample: float
+    ) -> Vec2T: ...
+
+    @overload
+    def __call__(
+        self,
+        sample: FloatsT
+    ) -> Vec2sT: ...
+
+    def __call__(
+        self,
+        sample: float | FloatsT
+    ) -> Vec2T | Vec2sT:
+        return super().__call__(sample)
 
 
 class SVGMobject(ShapeMobject):
@@ -59,9 +105,9 @@ class SVGMobject(ShapeMobject):
                 #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape) and (shape_mobject := ShapeMobject(
-                Shape.from_se_shape(shape * transform)
-            ))._has_local_sample_points_.value
+            if isinstance(shape, se.Shape) and (
+                shape_mobject := self._get_mobject_from_se_shape(shape * transform)
+            )._has_local_sample_points_.value
         ]
 
         # Share the `_color_` values.
@@ -77,3 +123,64 @@ class SVGMobject(ShapeMobject):
 
         self.add(*shape_mobjects)
         self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+
+    @classmethod
+    def _get_mobject_from_se_shape(
+        cls,
+        se_shape: se.Shape
+    ) -> ShapeMobject:
+
+        def smoothen_samples(
+            curve: BezierCurve,
+            samples: FloatsT,
+            bisect_depth: int
+        ) -> FloatsT:
+            # Bisect a segment if one of its endpoints has a turning angle above the threshold.
+            # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
+            if bisect_depth == 4:
+                return samples
+            points = curve(samples)
+            directions = SpaceUtils.normalize(points[1:] - points[:-1])
+            angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
+            large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
+            if not len(large_angle_indices):
+                return samples
+            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain(*(
+                ((i, i + 1), (i + 1, i + 2))
+                for i in large_angle_indices
+            )))))
+            new_samples = np.average(samples[insertion_index_pairs], axis=1)
+            return smoothen_samples(curve, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
+
+        def get_bezier_sample_points(
+            control_points: Vec2sT
+        ) -> Vec2sT:
+            gamma = BezierCurve(control_points)
+            if np.isclose(SpaceUtils.norm(gamma(1.0) - gamma(0.0)), 0.0):
+                return np.array((gamma(0.0),))
+            samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
+            return gamma(samples)
+
+        def iter_coords_from_se_shape(
+            se_shape: se.Shape
+        ) -> Generator[Vec2sT, None, None]:
+            se_path = se.Path(se_shape.segments(transformed=True))
+            se_path.approximate_arcs_with_cubics()
+            coords_list: list[Vec2T] = []
+            for segment in se_path.segments(transformed=True):
+                if isinstance(segment, se.Move):
+                    yield np.array(coords_list)
+                    coords_list = [np.array(segment.end)]
+                elif isinstance(segment, se.Linear):  # Line & Close
+                    coords_list.append(np.array(segment.end))
+                else:
+                    if isinstance(segment, se.QuadraticBezier):
+                        control_points = [segment.start, segment.control, segment.end]
+                    elif isinstance(segment, se.CubicBezier):
+                        control_points = [segment.start, segment.control1, segment.control2, segment.end]
+                    else:
+                        raise ValueError(f"Cannot handle path segment type: {type(segment)}")
+                    coords_list.extend(get_bezier_sample_points(np.array(control_points))[1:])
+            yield np.array(coords_list)
+
+        return ShapeMobject(Shape(iter_coords_from_se_shape(se_shape)))

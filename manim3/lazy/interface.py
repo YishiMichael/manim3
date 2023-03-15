@@ -131,6 +131,7 @@ class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_Instanc
         self,
         method: Callable[[type[_InstanceT]], _T]
     ) -> None:
+
         def new_method(
             cls: type[_InstanceT]
         ) -> LazyWrapper[_T]:
@@ -162,6 +163,7 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
         self,
         method: Callable[[type[_InstanceT]], _HashableT]
     ) -> None:
+
         def new_method(
             cls: type[_InstanceT]
         ) -> LazyWrapper[_HashableT]:
@@ -227,6 +229,7 @@ class LazyObjectPropertyUnwrappedDecorator(LazyObjectPropertyDescriptor[_Instanc
         self,
         method: Callable[..., _T]
     ) -> None:
+
         def new_method(
             cls: type[_InstanceT],
             *args: Any
@@ -265,6 +268,7 @@ class LazyObjectPropertySharedDecorator(LazyObjectPropertyDescriptor[_InstanceT,
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]
     ) -> None:
+
         def new_method(
             cls: type[_InstanceT],
             *args: _PropertyParameters.args,
@@ -355,6 +359,7 @@ class Lazy(ABC):
         ) -> Any:
             assert isinstance(cls_method, classmethod)
             return decorator_cls(cls_method.__func__)
+
         return result
 
     @overload
@@ -418,4 +423,5 @@ class Lazy(ABC):
         ) -> Any:
             assert isinstance(cls_method, classmethod)
             return decorator_cls(cls_method.__func__)
+
         return result

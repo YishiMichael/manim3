@@ -23,6 +23,7 @@ class SphereGeometry(ParametricSurfaceGeometry):
         theta_segments: int = 32,
         phi_segments: int = 16
     ) -> None:
+
         def func(
             theta: float,
             phi: float

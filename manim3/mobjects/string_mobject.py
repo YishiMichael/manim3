@@ -292,6 +292,7 @@ class StringMobject(SVGMobject):
         protect: Selector,
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None]
     ) -> tuple[list[LabelledItem], list[CommandItem | LabelledInsertionItem]]:
+
         def get_key(
             index_item: tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, EdgeFlag, int, int]
         ) -> tuple[int, int, int, int, int]:
@@ -426,6 +427,7 @@ class StringMobject(SVGMobject):
         selector: Selector,
         string: str
     ) -> Generator[Span, None, None]:
+
         def iter_spans_by_single_selector(
             sel: str | re.Pattern[str] | slice,
             string: str

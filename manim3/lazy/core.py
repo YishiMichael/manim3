@@ -798,6 +798,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         self,
         instance: _InstanceT
     ) -> _LazyEntityT:
+
         def expand_dependencies(
             obj: LazyObject
         ) -> TreeNode[LazyObject]:
@@ -924,6 +925,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
         def construct_parameter(
             descriptor_overloading: LazyDescriptorOverloading
         ) -> Callable[[LazyObject], TreeNode[LazyObject]]:
+
             def callback(
                 obj: LazyObject
             ) -> TreeNode[LazyObject]:
@@ -937,11 +939,13 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
                 else:
                     raise TypeError
                 return result
+
             return callback
 
         def construct_linked_objects(
             descriptor_overloading: LazyDescriptorOverloading
         ) -> Callable[[LazyObject], TreeNode[LazyObject]]:
+
             def callback(
                 obj: LazyObject
             ) -> TreeNode[LazyObject]:
@@ -964,6 +968,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
                 else:
                     raise TypeError
                 return result
+
             return callback
 
         for descriptor_overloading in descriptor_overloading_chain:
