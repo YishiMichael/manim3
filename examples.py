@@ -37,7 +37,7 @@ class TexTransformExample(Scene):
 
 if __name__ == "__main__":
     config = Config()
-    #config.fps = 3
+    config.fps = 3
     #config.preview = False
     #config.write_video = True
     #config.window_pixel_size = (1920, 1080)

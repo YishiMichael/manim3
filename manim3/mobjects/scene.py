@@ -32,7 +32,7 @@ from ..rendering.framebuffer_batch import (
     SceneFramebufferBatch,
     SimpleFramebufferBatch
 )
-from ..rendering.glsl_buffers import (
+from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
     TextureStorage
@@ -276,6 +276,7 @@ class Scene(Mobject):
                     #Image.frombytes("RGB", batch.framebuffer.size, batch.framebuffer.read(), "raw").show()
                     #Image.frombytes("RGBA", batch.color_texture.size, batch.color_texture.read(), "raw").show()
                     #Image.frombytes("RGB", scene_batch.opaque_framebuffer.size, scene_batch.opaque_framebuffer.read(), "raw").show()
+                    #Image.frombytes("RGBA", scene_batch.opaque_texture.size, scene_batch.opaque_texture.read(), "raw").show()
 
             for mobject in transparent_mobjects:
                 with SimpleFramebufferBatch() as batch:

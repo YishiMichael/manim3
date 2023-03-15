@@ -97,7 +97,7 @@ class AnnotationUtils(ABC):
         return parameter_name_chains, requires_unwrapping_tuple
 
 
-class LazyObjectVariableDecorator(LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT]):
+class LazyObjectVariableDecorator(LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _LazyObjectT]):
     __slots__ = ()
 
     def __init__(
@@ -109,8 +109,14 @@ class LazyObjectVariableDecorator(LazyObjectVariableDescriptor[_InstanceT, _Lazy
             method=method
         )
 
+    def convert_input(
+        self,
+        new_input: _LazyObjectT
+    ) -> _LazyObjectT:
+        return new_input
 
-class LazyCollectionVariableDecorator(LazyCollectionVariableDescriptor[_InstanceT, _LazyObjectT]):
+
+class LazyCollectionVariableDecorator(LazyCollectionVariableDescriptor[_InstanceT, _LazyObjectT, LazyCollection[_LazyObjectT]]):
     __slots__ = ()
 
     def __init__(
@@ -122,8 +128,14 @@ class LazyCollectionVariableDecorator(LazyCollectionVariableDescriptor[_Instance
             method=method
         )
 
+    def convert_input(
+        self,
+        new_input: LazyCollection[_LazyObjectT]
+    ) -> LazyCollection[_LazyObjectT]:
+        return new_input
 
-class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T]]):
+
+class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T], _T | LazyWrapper[_T]]):
     #__slots__ = ("default_object",)
     __slots__ = ()
 
@@ -146,17 +158,16 @@ class LazyObjectVariableUnwrappedDecorator(LazyObjectVariableDescriptor[_Instanc
             method=new_method
         )
 
-    def __set__(
+    def convert_input(
         self,
-        instance: _InstanceT,
-        obj: _T | LazyWrapper[_T]
-    ) -> None:
-        if not isinstance(obj, LazyWrapper):
-            obj = LazyWrapper(obj)
-        super().__set__(instance, obj)
+        new_input: _T | LazyWrapper[_T]
+    ) -> LazyWrapper[_T]:
+        if not isinstance(new_input, LazyWrapper):
+            new_input = LazyWrapper(new_input)
+        return new_input
 
 
-class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_HashableT]]):
+class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
     __slots__ = ("content_to_object_bidict",)
 
     def __init__(
@@ -179,15 +190,24 @@ class LazyObjectVariableSharedDecorator(LazyObjectVariableDescriptor[_InstanceT,
             method=new_method
         )
 
-    def __set__(
+    def convert_input(
         self,
-        instance: _InstanceT,
-        obj: _HashableT
-    ) -> None:
-        if (cached_object := self.content_to_object_bidict.get(obj)) is None:
-            cached_object = LazyWrapper(obj)
-            self.content_to_object_bidict[obj] = cached_object
-        super().__set__(instance, cached_object)
+        new_input: _HashableT
+    ) -> LazyWrapper[_HashableT]:
+        if (cached_object := self.content_to_object_bidict.get(new_input)) is None:
+            cached_object = LazyWrapper(new_input)
+            self.content_to_object_bidict[new_input] = cached_object
+        return cached_object
+
+    #def __set__(
+    #    self,
+    #    instance: _InstanceT,
+    #    obj: _HashableT
+    #) -> None:
+    #    if (cached_object := self.content_to_object_bidict.get(obj)) is None:
+    #        cached_object = LazyWrapper(obj)
+    #        self.content_to_object_bidict[obj] = cached_object
+    #    super().__set__(instance, cached_object)
 
 
 class LazyObjectPropertyDecorator(LazyObjectPropertyDescriptor[_InstanceT, _LazyObjectT]):

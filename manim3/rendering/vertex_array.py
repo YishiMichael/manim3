@@ -23,7 +23,7 @@ from ..rendering.context import (
     Context,
     ContextState
 )
-from ..rendering.glsl_buffers import (
+from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
     TextureStorage,
@@ -339,9 +339,8 @@ class VertexArray(LazyObject):
                 uniform_size = 1
                 local_offset = 0
             else:
-                assert len(multi_index) == len(texture_storage_shape) - 1
-                uniform_size = texture_storage_shape[-1]
-                local_offset = np.ravel_multi_index(multi_index, texture_storage_shape[:-1]) * uniform_size if multi_index else 0
+                *dims, uniform_size = texture_storage_shape
+                local_offset = np.ravel_multi_index(multi_index, dims) * uniform_size
             assert member.array_length == uniform_size
             offset = texture_binding_offset_dict[texture_storage_name] + local_offset
             member.value = offset if uniform_size == 1 else list(range(offset, offset + uniform_size))
@@ -370,7 +369,7 @@ class VertexArray(LazyObject):
         cls,
         shape: tuple[int, ...]
     ) -> int:
-        return reduce(op.mul, shape, 1)  # TODO: redundant with the one in glsl_buffers.py
+        return reduce(op.mul, shape, 1)  # TODO: redundant with the one in gl_buffer.py
 
     def render(
         self,

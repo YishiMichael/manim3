@@ -27,7 +27,7 @@ from ..lazy.interface import (
 from ..rendering.context import Context
 
 
-class GLSLBufferLayout(Enum):
+class GLBufferLayout(Enum):
     PACKED = 0
     STD140 = 1
 
@@ -43,10 +43,10 @@ class FieldInfo:
     shape: tuple[int, ...]
 
 
-class GLSLDynamicStruct(LazyObject):
+class GLDynamicStruct(LazyObject):
     __slots__ = ()
 
-    _GLSL_DTYPE: ClassVar[dict[str, np.dtype]] = {
+    _GL_DTYPE: ClassVar[dict[str, np.dtype]] = {
         "int":     np.dtype(("i4", ())),
         "ivec2":   np.dtype(("i4", (2,))),
         "ivec3":   np.dtype(("i4", (3,))),
@@ -117,7 +117,7 @@ class GLSLDynamicStruct(LazyObject):
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _layout_(cls) -> GLSLBufferLayout:
+    def _layout_(cls) -> GLBufferLayout:
         return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -127,7 +127,7 @@ class GLSLDynamicStruct(LazyObject):
         field: str,
         child_structs: tuple[tuple[str, tuple[str, ...]], ...],
         dynamic_array_lens: tuple[tuple[str, int], ...],
-        layout: GLSLBufferLayout
+        layout: GLBufferLayout
     ) -> np.dtype:
         dynamic_array_lens_dict = dict(dynamic_array_lens)
         return cls._build_struct_dtype(
@@ -173,7 +173,7 @@ class GLSLDynamicStruct(LazyObject):
         cls,
         fields_info: list[FieldInfo],
         child_structs_info: dict[str, list[FieldInfo]],
-        layout: GLSLBufferLayout,
+        layout: GLBufferLayout,
         depth: int
     ) -> np.dtype:
         names: list[str] = []
@@ -189,11 +189,11 @@ class GLSLDynamicStruct(LazyObject):
                 )
                 base_alignment = 16
             else:
-                atomic_dtype = cls._GLSL_DTYPE[field_info.dtype_str]
+                atomic_dtype = cls._GL_DTYPE[field_info.dtype_str]
                 child_dtype = cls._align_atomic_dtype(atomic_dtype, layout, not shape)
                 base_alignment = child_dtype.base.itemsize
 
-            if layout == GLSLBufferLayout.STD140:
+            if layout == GLBufferLayout.STD140:
                 assert child_dtype.itemsize % base_alignment == 0
                 offset += (-offset) % base_alignment
             names.append(field_info.name)
@@ -201,7 +201,7 @@ class GLSLDynamicStruct(LazyObject):
             offsets.append(offset)
             offset += cls._int_prod(shape) * child_dtype.itemsize
 
-        if layout == GLSLBufferLayout.STD140:
+        if layout == GLBufferLayout.STD140:
             offset += (-offset) % 16
 
         return np.dtype({
@@ -238,7 +238,7 @@ class GLSLDynamicStruct(LazyObject):
     def _align_atomic_dtype(
         cls,
         atomic_dtype: np.dtype,
-        layout: GLSLBufferLayout,
+        layout: GLBufferLayout,
         zero_dimensional: bool
     ) -> np.dtype:
         base = atomic_dtype.base
@@ -247,7 +247,7 @@ class GLSLDynamicStruct(LazyObject):
         shape_dict = dict(enumerate(shape))
         n_col = shape_dict.get(0, 1)
         n_row = shape_dict.get(1, 1)
-        if layout == GLSLBufferLayout.STD140:
+        if layout == GLBufferLayout.STD140:
             itemsize = (n_col if zero_dimensional and n_col <= 2 and n_row == 1 else 4) * base.itemsize
         else:
             itemsize = n_col * base.itemsize
@@ -265,7 +265,7 @@ class GLSLDynamicStruct(LazyObject):
         return reduce(op.mul, shape, 1)
 
 
-class GLSLDynamicBuffer(GLSLDynamicStruct):
+class GLDynamicBuffer(GLDynamicStruct):
     __slots__ = ()
 
     _VACANT_BUFFERS: list[moderngl.Buffer] = []
@@ -362,7 +362,7 @@ class GLSLDynamicBuffer(GLSLDynamicStruct):
         return result
 
 
-class TextureStorage(GLSLDynamicStruct):
+class TextureStorage(GLDynamicStruct):
     __slots__ = ()
 
     def __init__(
@@ -388,8 +388,8 @@ class TextureStorage(GLSLDynamicStruct):
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _layout_(cls) -> GLSLBufferLayout:
-        return GLSLBufferLayout.PACKED
+    def _layout_(cls) -> GLBufferLayout:
+        return GLBufferLayout.PACKED
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
@@ -427,7 +427,7 @@ class TextureStorage(GLSLDynamicStruct):
     #    return self
 
 
-class UniformBlockBuffer(GLSLDynamicBuffer):
+class UniformBlockBuffer(GLDynamicBuffer):
     __slots__ = ()
 
     def __init__(
@@ -453,8 +453,8 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _layout_(cls) -> GLSLBufferLayout:
-        return GLSLBufferLayout.STD140
+    def _layout_(cls) -> GLBufferLayout:
+        return GLBufferLayout.STD140
 
     def _validate(
         self,
@@ -464,7 +464,7 @@ class UniformBlockBuffer(GLSLDynamicBuffer):
         assert uniform_block.size == self._itemsize_.value
 
 
-class AttributesBuffer(GLSLDynamicBuffer):
+class AttributesBuffer(GLDynamicBuffer):
     __slots__ = ()
 
     def __init__(
@@ -492,9 +492,9 @@ class AttributesBuffer(GLSLDynamicBuffer):
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _layout_(cls) -> GLSLBufferLayout:
+    def _layout_(cls) -> GLBufferLayout:
         # Let's keep using std140 layout, hopefully leading to a faster processing speed.
-        return GLSLBufferLayout.STD140
+        return GLBufferLayout.STD140
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -555,7 +555,7 @@ class AttributesBuffer(GLSLDynamicBuffer):
             assert attribute.shape == field_dtype.base["_"].base.kind.replace("u", "I")
 
 
-class IndexBuffer(GLSLDynamicBuffer):
+class IndexBuffer(GLDynamicBuffer):
     __slots__ = ()
 
     def __init__(
@@ -574,5 +574,5 @@ class IndexBuffer(GLSLDynamicBuffer):
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _layout_(cls) -> GLSLBufferLayout:
-        return GLSLBufferLayout.PACKED
+    def _layout_(cls) -> GLBufferLayout:
+        return GLBufferLayout.PACKED

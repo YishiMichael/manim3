@@ -18,7 +18,7 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..rendering.config import ConfigSingleton
-from ..rendering.glsl_buffers import UniformBlockBuffer
+from ..rendering.gl_buffer import UniformBlockBuffer
 from ..utils.space import SpaceUtils
 
 

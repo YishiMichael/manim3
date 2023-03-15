@@ -30,6 +30,7 @@ class TemporaryResource(Generic[_ResourceParameters], ABC):
     _VACANT_INSTANCES: dict[tuple, list]
 
     def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
         cls._INSTANCE_TO_PARAMETERS_DICT = {}
         cls._VACANT_INSTANCES = {}
 
@@ -55,6 +56,7 @@ class TemporaryResource(Generic[_ResourceParameters], ABC):
         *args: _ResourceParameters.args,
         **kwargs: _ResourceParameters.kwargs
     ) -> None:
+        super().__init__()
         self._init_instance()
 
     def __enter__(self):
@@ -134,7 +136,6 @@ class SimpleFramebufferBatch(TemporaryResource):
         self,
         size: tuple[int, int] | None = None,
         components: int = 4,
-        samples: int = 0,
         dtype: str = "f1"
     ) -> None:
         if size is None:
@@ -142,12 +143,10 @@ class SimpleFramebufferBatch(TemporaryResource):
         color_texture = Context.texture(
             size=size,
             components=components,
-            samples=samples,
             dtype=dtype
         )
         depth_texture = Context.depth_texture(
-            size=size,
-            samples=samples
+            size=size
         )
         framebuffer = Context.framebuffer(
             color_attachments=(color_texture,),
@@ -210,7 +209,6 @@ class ColorFramebufferBatch(TemporaryResource):
         *,
         size: tuple[int, int] | None = None,
         components: int = 4,
-        samples: int = 0,
         dtype: str = "f1"
     ) -> None:
         if size is None:
@@ -218,7 +216,6 @@ class ColorFramebufferBatch(TemporaryResource):
         color_texture = Context.texture(
             size=size,
             components=components,
-            samples=samples,
             dtype=dtype
         )
         framebuffer = Context.framebuffer(
@@ -287,32 +284,27 @@ class SceneFramebufferBatch(TemporaryResource):
     def _init_new_instance(
         self,
         *,
-        size: tuple[int, int] | None = None,
-        samples: int = 4
+        size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
             size = ConfigSingleton().pixel_size
         opaque_texture = Context.texture(
             size=size,
             components=4,
-            samples=samples,
             dtype="f1"
         )
         accum_texture = Context.texture(
             size=size,
             components=4,
-            samples=samples,
             dtype="f2"
         )
         revealage_texture = Context.texture(
             size=size,
             components=1,
-            samples=samples,
             dtype="f1"
         )
         depth_texture = Context.depth_texture(
-            size=size,
-            samples=samples
+            size=size
         )
         opaque_framebuffer = Context.framebuffer(
             color_attachments=(opaque_texture,),

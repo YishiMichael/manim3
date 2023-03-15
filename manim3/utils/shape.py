@@ -18,7 +18,7 @@ from typing import (
 
 import numpy as np
 import shapely.geometry
-import shapely.ops
+#import shapely.ops
 import shapely.validation
 
 from ..custom_typing import (
@@ -243,13 +243,15 @@ class LineString(ShapeInterpolant):
                 ]
         return LineString(np.array(new_coords))
 
+    @classmethod
     def interpolate_shape_callback(
-        self,
-        other: "LineString"
+        cls,
+        line_string_0: "LineString",
+        line_string_1: "LineString"
     ) -> "Callable[[float], LineString]":
-        all_knots = np.unique(np.concatenate((self._length_knots_.value, other._length_knots_.value)))
+        all_knots = np.unique(np.concatenate((line_string_0._length_knots_.value, line_string_1._length_knots_.value)))
         point_callbacks: list[Callable[[float], Vec3T]] = [
-            SpaceUtils.lerp_callback(self.interpolate_point(knot), other.interpolate_point(knot))
+            SpaceUtils.lerp_callback(line_string_0.interpolate_point(knot), line_string_1.interpolate_point(knot))
             for knot in all_knots
         ]
 
@@ -319,22 +321,25 @@ class MultiLineString(ShapeInterpolant):
             )
         return result
 
+    @classmethod
     def interpolate_shape_callback(
-        self,
-        other: "MultiLineString",
+        cls,
+        multi_line_string_0: "MultiLineString",
+        multi_line_string_1: "MultiLineString",
         *,
-        has_inlay: bool
+        has_inlay: bool = False
     ) -> "Callable[[float], MultiLineString]":
-        line_strings_0 = self._line_strings_
-        line_strings_1 = other._line_strings_
+        line_strings_0 = multi_line_string_0._line_strings_
+        line_strings_1 = multi_line_string_1._line_strings_
         if not line_strings_0 or not line_strings_1:
             raise ValueError("Attempting to interpolate an empty MultiLineString")
 
-        (residue_list_list_0, residue_list_list_1), triplet_tuple_list = self._zip_knots(
-            self._length_knots_.value, other._length_knots_.value
+        (residue_list_list_0, residue_list_list_1), triplet_tuple_list = multi_line_string_0._zip_knots(
+            multi_line_string_0._length_knots_.value, multi_line_string_1._length_knots_.value
         )
         line_string_callbacks: list[Callable[[float], LineString]] = [
-            line_strings_0[index_0].partial(start_residue_0, stop_residue_0).interpolate_shape_callback(
+            LineString.interpolate_shape_callback(
+                line_strings_0[index_0].partial(start_residue_0, stop_residue_0),
                 line_strings_1[index_1].partial(start_residue_1, stop_residue_1)
             )
             for (index_0, start_residue_0, stop_residue_0), (index_1, start_residue_1, stop_residue_1) in triplet_tuple_list
@@ -561,14 +566,17 @@ class Shape(LazyObject):
     ) -> "Shape":
         return Shape.from_multi_line_string(self._multi_line_string_.partial(start, stop))
 
+    @classmethod
     def interpolate_shape_callback(
-        self,
-        other: "Shape",
+        cls,
+        shape_0: "Shape",
+        shape_1: "Shape",
         *,
-        has_inlay: bool
+        has_inlay: bool = True
     ) -> "Callable[[float], Shape]":
-        multi_line_string_callback = self._multi_line_string_.interpolate_shape_callback(
-            other._multi_line_string_,
+        multi_line_string_callback = MultiLineString.interpolate_shape_callback(
+            shape_0._multi_line_string_,
+            shape_1._multi_line_string_,
             has_inlay=has_inlay
         )
 

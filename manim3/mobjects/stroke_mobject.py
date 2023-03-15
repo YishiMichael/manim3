@@ -30,7 +30,7 @@ from ..lazy.interface import (
 )
 from ..mobjects.mobject import Mobject
 from ..rendering.context import ContextState
-from ..rendering.glsl_buffers import (
+from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
     UniformBlockBuffer

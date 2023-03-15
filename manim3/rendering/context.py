@@ -142,13 +142,11 @@ class Context(ABC):
         *,
         size: tuple[int, int],
         components: int,
-        samples: int,
         dtype: str
     ) -> moderngl.Texture:
         texture = cls.mgl_context.texture(
             size=size,
             components=components,
-            samples=samples,
             dtype=dtype
         )
         atexit.register(lambda: texture.release())
@@ -158,12 +156,10 @@ class Context(ABC):
     def depth_texture(
         cls,
         *,
-        size: tuple[int, int],
-        samples: int
+        size: tuple[int, int]
     ) -> moderngl.Texture:
         depth_texture = cls.mgl_context.depth_texture(
-            size=size,
-            samples=samples
+            size=size
         )
         atexit.register(lambda: depth_texture.release())
         return depth_texture

@@ -1,7 +1,6 @@
 __all__ = ["SceneConfig"]
 
 
-from typing import ClassVar
 import numpy as np
 
 from ..cameras.camera import Camera
@@ -18,7 +17,7 @@ from ..lazy.interface import (
     Lazy,
     LazyMode
 )
-from ..rendering.glsl_buffers import UniformBlockBuffer
+from ..rendering.gl_buffer import UniformBlockBuffer
 from ..utils.color import ColorUtils
 
 

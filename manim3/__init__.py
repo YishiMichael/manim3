@@ -38,7 +38,7 @@ from .rendering.config import *
 from .rendering.context import *
 from .rendering.framebuffer_batch import *
 #from .rendering.framebuffer_batches import *
-from .rendering.glsl_buffers import *
+from .rendering.gl_buffer import *
 #from .rendering.renderer import *
 from .rendering.vertex_array import *
 

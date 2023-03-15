@@ -12,7 +12,7 @@ from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextState
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
-from ..rendering.glsl_buffers import TextureStorage
+from ..rendering.gl_buffer import TextureStorage
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray

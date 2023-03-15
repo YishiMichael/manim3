@@ -11,7 +11,7 @@ from ..lazy.interface import (
     Lazy,
     LazyMode
 )
-from ..rendering.glsl_buffers import (
+from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer
 )

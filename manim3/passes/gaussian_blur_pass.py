@@ -13,7 +13,7 @@ from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextState
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
-from ..rendering.glsl_buffers import (
+from ..rendering.gl_buffer import (
     UniformBlockBuffer,
     TextureStorage
 )
