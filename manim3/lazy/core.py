@@ -148,13 +148,14 @@ from ..lazy.dag import DAGNode
 
 
 _T = TypeVar("_T")
-_InputT = TypeVar("_InputT")
 _TreeNodeContentT = TypeVar("_TreeNodeContentT", bound=Hashable)
 _LazyDataT = TypeVar("_LazyDataT", bound="LazyData")
 _LazyEntityT = TypeVar("_LazyEntityT", bound="LazyEntity")
 _LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
-_ElementT = TypeVar("_ElementT", bound="LazyObject")
+_DescriptorGetT = TypeVar("_DescriptorGetT", bound="LazyEntity")
+_DescriptorGetElementT = TypeVar("_DescriptorGetElementT", bound="LazyObject")
+_DescriptorSetT = TypeVar("_DescriptorSetT")
 _LazyDescriptorT = TypeVar("_LazyDescriptorT", bound="LazyDescriptor")
 _PropertyParameters = ParamSpec("_PropertyParameters")
 
@@ -363,6 +364,7 @@ class LazyObject(LazyEntity):
         for name, attr in cls.__dict__.items():
             if not isinstance(attr, LazyDescriptor):
                 continue
+            #attr.name = name
             assert re.fullmatch(r"_\w+_", name)
             if attr.element_type is NotImplemented:
                 attr.element_type = cls
@@ -511,7 +513,7 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
         assert not self._is_readonly()
         if not elements:
             return self
-        self._expire_properties(*self._get_linked_properties())
+        LazyEntity._expire_properties(*self._get_linked_properties())
         for element in elements:
             if element in self._elements:
                 continue
@@ -526,7 +528,7 @@ class LazyCollection(Generic[_LazyObjectT], LazyEntity):
         assert not self._is_readonly()
         if not elements:
             return self
-        self._expire_properties(*self._get_linked_properties())
+        LazyEntity._expire_properties(*self._get_linked_properties())
         for element in elements:
             if element not in self._elements:
                 continue
@@ -578,18 +580,20 @@ class LazyProperty(Generic[_LazyEntityT], LazyData):
         self._clear_linked_entities()
 
 
-class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyDataT, _InputT], ABC):
+class LazyDescriptor(Generic[_InstanceT, _DescriptorGetT, _DescriptorGetElementT, _LazyDataT, _DescriptorSetT], ABC):
     __slots__ = (
+        #"name",
         "element_type",
         "instance_to_data_dict"
     )
 
     def __init__(
         self,
-        element_type: type[_ElementT]
+        element_type: type[_DescriptorGetElementT]
     ) -> None:
         super().__init__()
-        self.element_type: type[_ElementT] = element_type
+        #self.name: str = NotImplemented
+        self.element_type: type[_DescriptorGetElementT] = element_type
         self.instance_to_data_dict: dict[_InstanceT, _LazyDataT] = {}
 
     @overload
@@ -604,13 +608,13 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyDataT, _I
         self,
         instance: _InstanceT,
         owner: type[_InstanceT] | None = None
-    ) -> _LazyEntityT: ...
+    ) -> _DescriptorGetT: ...
 
     def __get__(
         self: _LazyDescriptorT,
         instance: _InstanceT | None,
         owner: type[_InstanceT] | None = None
-    ) -> _LazyDescriptorT | _LazyEntityT:
+    ) -> _LazyDescriptorT | _DescriptorGetT:
         if instance is None:
             return self
         return self.get_impl(instance)
@@ -618,23 +622,23 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyDataT, _I
     def __set__(
         self,
         instance: _InstanceT,
-        new_input: _InputT
+        new_value: _DescriptorSetT
     ) -> None:
-        self.set_impl(instance, new_input)
+        self.set_impl(instance, new_value)
 
     @abstractmethod
     def get_impl(
         self,
         instance: _InstanceT
-    ) -> _LazyEntityT:
+    ) -> _DescriptorGetT:
         pass
 
     @abstractmethod
     def set_impl(
         self,
         instance: _InstanceT,
-        new_input: _InputT
-    ) -> _LazyEntityT:
+        new_value: _DescriptorSetT
+    ) -> None:
         pass
 
     @abstractmethod
@@ -672,12 +676,12 @@ class LazyDescriptor(Generic[_InstanceT, _LazyEntityT, _ElementT, _LazyDataT, _I
         self.instance_to_data_dict[instance] = lazy_data
 
 
-class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT, _LazyEntityT, _InputT]):
+class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _DescriptorGetElementT, _LazyEntityT, _DescriptorSetT]):
     __slots__ = ("method",)
 
     def __init__(
         self,
-        element_type: type[_ElementT],
+        element_type: type[_DescriptorGetElementT],
         method: Callable[[type[_InstanceT]], _LazyEntityT]
     ) -> None:
         super().__init__(
@@ -694,15 +698,31 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
     def set_impl(
         self,
         instance: _InstanceT,
-        new_input: _InputT
+        new_value: _DescriptorSetT
     ) -> None:
         assert not instance._is_readonly()
-        new_entity = self.convert_input(new_input)
+        new_entity = self.convert_input(new_value)
         old_entity = self.get_description(instance)
         if old_entity is new_entity:
             return
         if old_entity is not NotImplemented:
-            old_entity._expire_properties(*(
+            #if instance.__class__.__name__ == "StrokeMobject":
+            #    #print(f"{instance=}")
+            #    #for des in instance._iter_dependency_descendants():
+            #    #    if isinstance(des, LazyObject):
+            #    #        for variable_descr in des.__class__._LAZY_VARIABLE_DESCRIPTORS:
+            #    #            print(des, variable_descr.__get__(des))
+            #    #print()
+            #l = [prop
+            #    for prop in old_entity._get_linked_properties()
+            #    if prop in instance._iter_dependency_children()
+            #    ]
+            #if l and any(child.__class__.__name__ == "UniformBlockBuffer"
+            #        for child in instance._iter_dependency_descendants()):
+            #    print(f"{instance=}")
+            #    print(list(instance._iter_dependency_descendants()))
+            #    print()
+            LazyEntity._expire_properties(*(
                 prop
                 for prop in old_entity._get_linked_properties()
                 if prop in instance._iter_dependency_children()
@@ -716,12 +736,12 @@ class LazyVariableDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
     @abstractmethod
     def convert_input(
         self,
-        new_input: _InputT
+        new_value: _DescriptorSetT
     ) -> _LazyEntityT:
         pass
 
 
-class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjectT, _LazyObjectT, _InputT]):
+class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjectT, _LazyObjectT, _DescriptorSetT]):
     __slots__ = ("default_object",)
 
     def __init__(
@@ -761,7 +781,7 @@ class LazyObjectVariableDescriptor(LazyVariableDescriptor[_InstanceT, _LazyObjec
         self.set_description(dst, src_object)
 
 
-class LazyCollectionVariableDescriptor(LazyVariableDescriptor[_InstanceT, LazyCollection[_LazyObjectT], _LazyObjectT, _InputT]):
+class LazyCollectionVariableDescriptor(LazyVariableDescriptor[_InstanceT, LazyCollection[_LazyObjectT], _LazyObjectT, _DescriptorSetT]):
     __slots__ = ()
 
     def initialize(
@@ -782,7 +802,7 @@ class LazyCollectionVariableDescriptor(LazyVariableDescriptor[_InstanceT, LazyCo
         self.set_description(dst, dst_collection)
 
 
-class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT, LazyProperty[_LazyEntityT], Any]):
+class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _DescriptorGetElementT, LazyProperty[_LazyEntityT], Any]):
     __slots__ = (
         "method",
         "release_method",
@@ -796,7 +816,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
 
     def __init__(
         self,
-        element_type: type[_ElementT],
+        element_type: type[_DescriptorGetElementT],
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _LazyEntityT],
         parameter_name_chains: tuple[tuple[str, ...], ...],
         requires_unwrapping_tuple: tuple[bool, ...]
@@ -863,6 +883,10 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
             )
             self.instance_to_key_dict[instance] = key
             self.key_to_instances_dict.setdefault(key, []).append(instance)
+            #print(type(instance))
+            #if parameter_trees[0]._content.__class__.__name__ == "PrismoidGeometry":
+            #    print(parameter_trees[0]._content._shape_)
+            #print(key)
             if (entity := self.key_to_entity_dict.get(key)) is None:
                 parameters = tuple(
                     parameter_tree._construct_list(callback=value_getter if requires_unwrapping else None)
@@ -871,6 +895,8 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
                     )
                 )
                 entity = self.method(type(instance), *parameters)
+                #if self.name == "_geometry_data_":
+                #    print(type(instance))
                 self.key_to_entity_dict[key] = entity
             prop._bind_dependency(entity)
             prop._set(entity)
@@ -879,7 +905,7 @@ class LazyPropertyDescriptor(LazyDescriptor[_InstanceT, _LazyEntityT, _ElementT,
     def set_impl(
         self,
         instance: _InstanceT,
-        new_input: Any
+        new_value: Any
     ) -> None:
         raise ValueError("Attempting to set a readonly property")
 
@@ -1057,7 +1083,7 @@ class LazyDescriptorOverloading(Generic[_InstanceT, _LazyObjectT, _LazyDescripto
 
 @final
 class LazyObjectDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _LazyObjectT, Union[
-    LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _InputT],
+    LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT],
     LazyObjectPropertyDescriptor[_InstanceT, _LazyObjectT]
 ]]):
     __slots__ = ()
@@ -1065,7 +1091,7 @@ class LazyObjectDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _Laz
 
 @final
 class LazyCollectionDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _LazyObjectT, Union[
-    LazyCollectionVariableDescriptor[_InstanceT, _LazyObjectT, _InputT],
+    LazyCollectionVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT],
     LazyCollectionPropertyDescriptor[_InstanceT, _LazyObjectT]
 ]]):
     __slots__ = ()

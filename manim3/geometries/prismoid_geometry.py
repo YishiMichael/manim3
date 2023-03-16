@@ -9,10 +9,8 @@ from ..custom_typing import (
     Vec2T,
     Vec3T
 )
-from ..geometries.geometry import (
-    Geometry,
-    GeometryData
-)
+from ..geometries.geometry import GeometryData
+from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -21,21 +19,8 @@ from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
 
-class PrismoidGeometry(Geometry):
+class PrismoidGeometry(ShapeGeometry):
     __slots__ = ()
-
-    def __init__(
-        self,
-        shape: Shape | None = None
-    ) -> None:
-        super().__init__()
-        if shape is not None:
-            self._shape_ = shape
-
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _shape_(cls) -> Shape:
-        return Shape()
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -49,7 +34,7 @@ class PrismoidGeometry(Geometry):
         index_list: list[int] = []
         index_offset = 0
         for line_string in _shape_._multi_line_string_._line_strings_:
-            coords = line_string._coords_.value
+            coords = SpaceUtils.decrease_dimension(line_string._coords_.value)
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths.
             # TODO: Shall we normalize winding?
@@ -68,17 +53,16 @@ class PrismoidGeometry(Geometry):
             # Assemble side faces.
             ip_normal_pairs: list[tuple[int, Vec2T]] = []
             rotation_mat = np.array(((0.0, 1.0), (-1.0, 0.0)))
-            for ip, (p_prev, p, p_next) in enumerate(zip(np.roll(points, 1), points, np.roll(points, -1))):
+            for ip, (p_prev, p, p_next) in enumerate(zip(np.roll(points, 1, axis=0), points, np.roll(points, -1, axis=0))):
                 n0 = rotation_mat @ SpaceUtils.normalize(p - p_prev)
                 n1 = rotation_mat @ SpaceUtils.normalize(p_next - p)
 
-                angle = abs(np.arccos(np.dot(n0, n1)))
+                angle = abs(np.arccos(np.clip(np.dot(n0, n1), -1.0, 1.0)))
                 if angle <= np.pi / 16.0:
                     n_avg = SpaceUtils.normalize(n0 + n1)
                     ip_normal_pairs.append((ip, n_avg))
                 else:
-                    # Vertices shall be duplicated
-                    # if its connected faces have significantly different normal vectors.
+                    # Vertices shall be duplicated if its connected faces have significantly different normal vectors.
                     ip_normal_pairs.append((ip, n0))
                     ip_normal_pairs.append((ip, n1))
 
@@ -90,14 +74,7 @@ class PrismoidGeometry(Geometry):
             normal_list.extend(SpaceUtils.increase_dimension(normals))
             uv_list.extend(duplicated_points)
             uv_list.extend(duplicated_points)
-            #for ip, normal in ip_normal_pairs:
-            #    p = points[ip]
-            #    position_list.append(SpaceUtils.increase_dimension(p, z_value=1.0))
-            #    position_list.append(SpaceUtils.increase_dimension(p, z_value=-1.0))
-            #    normal_list.append(SpaceUtils.increase_dimension(normal))
-            #    normal_list.append(SpaceUtils.increase_dimension(normal))
-            #    uv_list.append(p)
-            #    uv_list.append(p)
+
             l = len(ip_normal_pairs)
             for (i0, (ip0, _)), (i1, (ip1, _)) in it.islice(it.pairwise(it.cycle(enumerate(ip_normal_pairs))), l):
                 if ip0 == ip1:

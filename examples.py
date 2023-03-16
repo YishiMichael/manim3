@@ -1,3 +1,5 @@
+from scipy.spatial.transform import Rotation
+
 from manim3 import *
 
 
@@ -35,11 +37,46 @@ class TexTransformExample(Scene):
         self.wait()
 
 
+class Rotating(Animation):
+    def __init__(
+        self,
+        mobject: Mobject
+    ) -> None:
+
+        def animate_func(
+            t_0: float,
+            t: float
+        ) -> None:
+            mobject.rotate(Rotation.from_rotvec(UP * (t - t_0) * 0.5))
+
+        super().__init__(
+            animate_func=animate_func,
+            mobject_addition_items=[],
+            mobject_removal_items=[],
+            start_time=0.0,
+            stop_time=None
+        )
+
+
+class ThreeDTextExample(Scene):
+    def construct(self) -> None:
+        self.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
+        text = Text("Text").concatenate()
+        text_3d = MeshMobject()
+        text_3d._geometry_ = PrismoidGeometry(text._shape_)
+        text_3d._model_matrix_ = text._model_matrix_
+        text_3d.scale(5.0).stretch_to_fit_depth(0.5)
+        text_3d.set_style(color="#00FFAA99")
+        self.add(text_3d)
+        self.prepare(Rotating(text_3d))
+        self.wait(10)
+
+
 if __name__ == "__main__":
     config = Config()
-    config.fps = 3
+    #config.fps = 3
     #config.preview = False
     #config.write_video = True
     #config.window_pixel_size = (1920, 1080)
     #Renderer(config).run(TexTransformExample)
-    TexTransformExample.render(config)
+    ThreeDTextExample.render(config)

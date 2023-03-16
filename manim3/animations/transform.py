@@ -27,9 +27,9 @@ from ..utils.shape import (
 
 
 _T = TypeVar("_T")
-_InputT = TypeVar("_InputT")
 _InstanceT = TypeVar("_InstanceT", bound=LazyObject)
 _LazyObjectT = TypeVar("_LazyObjectT", bound=LazyObject)
+_DescriptorSetT = TypeVar("_DescriptorSetT")
 
 
 class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
@@ -40,14 +40,14 @@ class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
 
     def __init__(
         self,
-        descriptor: LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _InputT],
-        method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _InputT]]
+        descriptor: LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT],
+        method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _DescriptorSetT]]
     ) -> None:
         super().__init__()
-        self._descriptor: LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _InputT] = descriptor  # type checker bug?
-        self._method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _InputT]] = method
+        self._descriptor: LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT] = descriptor  # type checker bug?
+        self._method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _DescriptorSetT]] = method
 
-    def get_intermediate_instance_callback(
+    def _get_intermediate_instance_callback(
         self,
         instance_0: _InstanceT,
         instance_1: _InstanceT
@@ -70,18 +70,42 @@ class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
 
         return intermediate_instance_callback
 
+    @classmethod
+    def _get_intermediate_instance_composed_callback(
+        cls,
+        interpolants: "tuple[VariableInterpolant[_InstanceT, Any], ...]",
+        instance_0: _InstanceT,
+        instance_1: _InstanceT
+    ) -> Callable[[_InstanceT, float], None]:
+        callbacks = tuple(
+            callback
+            for interpolant in interpolants
+            if (callback := interpolant._get_intermediate_instance_callback(
+                instance_0, instance_1
+            )) is not None
+        )
+
+        def composed_callback(
+            instance: _InstanceT,
+            alpha: float
+        ) -> None:
+            for callback in callbacks:
+                callback(instance, alpha)
+
+        return composed_callback
+
 
 class VariableUnwrappedInterpolant(VariableInterpolant[_InstanceT, LazyWrapper[_T]]):
     def __init__(
         self,
-        descriptor: LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T], _InputT],
-        method: Callable[[_T, _T], Callable[[float], _InputT]]
+        descriptor: LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T], _DescriptorSetT],
+        method: Callable[[_T, _T], Callable[[float], _DescriptorSetT]]
     ) -> None:
 
         def new_method(
             variable_0: LazyWrapper[_T],
             variable_1: LazyWrapper[_T]
-        ) -> Callable[[float], _InputT]:
+        ) -> Callable[[float], _DescriptorSetT]:
             return method(variable_0.value, variable_1.value)
 
         super().__init__(
@@ -216,21 +240,13 @@ class Transform(AlphaAnimation):
                 stop_stroke_mobjects.append(stop_stroke)
                 intermediate_mobject.add_stroke_mobject(stop_stroke)
 
-        shape_callbacks = [
-            callback
-            for interpolant in self._SHAPE_INTERPOLANTS
-            if (callback := interpolant.get_intermediate_instance_callback(
-                start_mobject, stop_mobject
-            )) is not None
-        ]
-        stroke_callbacks_list = [
-            [
-                callback
-                for interpolant in self._STROKE_INTERPOLANTS
-                if (callback := interpolant.get_intermediate_instance_callback(
-                    start_stroke_mobject, stop_stroke_mobject
-                )) is not None
-            ]
+        shape_callback = VariableInterpolant._get_intermediate_instance_composed_callback(
+            self._SHAPE_INTERPOLANTS, start_mobject, stop_mobject
+        )
+        stroke_callback_list = [
+            VariableInterpolant._get_intermediate_instance_composed_callback(
+                self._STROKE_INTERPOLANTS, start_stroke_mobject, stop_stroke_mobject
+            )
             for start_stroke_mobject, stop_stroke_mobject in zip(
                 start_stroke_mobjects, stop_stroke_mobjects, strict=True
             )
@@ -240,21 +256,11 @@ class Transform(AlphaAnimation):
             alpha_0: float,
             alpha: float
         ) -> None:
-            for shape_callback in shape_callbacks:
-                shape_callback(intermediate_mobject, alpha)
-            for intermediate_stroke_mobject, stroke_callbacks in zip(
-                intermediate_mobject._stroke_mobjects_, stroke_callbacks_list, strict=True
+            shape_callback(intermediate_mobject, alpha)
+            for intermediate_stroke_mobject, stroke_callback in zip(
+                intermediate_mobject._stroke_mobjects_, stroke_callback_list, strict=True
             ):
-                for stroke_callback in stroke_callbacks:
-                    stroke_callback(intermediate_stroke_mobject, alpha)
-            #for descriptor, callback in shape_callbacks.items():
-            #    descriptor.__set__(intermediate_mobject, callback(alpha))
-
-            #for callbacks, intermediate_stroke_mobject in zip(
-            #    stroke_callbacks_list, intermediate_mobject._stroke_mobjects_, strict=True
-            #):
-            #    for descriptor, callback in callbacks.items():
-            #        descriptor.__set__(intermediate_stroke_mobject, callback(alpha))
+                stroke_callback(intermediate_stroke_mobject, alpha)
 
         super().__init__(
             animate_func=animate_func,
