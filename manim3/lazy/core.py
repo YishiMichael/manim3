@@ -421,7 +421,8 @@ class LazySlot(Generic[_InstanceT, _ContainerT], ABC):
     def yield_ancestor_slots(self) -> "Generator[LazySlot, None, None]":
         yield self
         for container in self._descriptor_backref._element_backrefs:
-            yield from container._container_backref.yield_ancestor_slots()
+            if container._container_backref is not NotImplemented:  # TODO: This should not be needed...
+                yield from container._container_backref.yield_ancestor_slots()
 
     #@abstractmethod
     #def get_container_if_exists(self) -> _ContainerT | None:
@@ -852,6 +853,8 @@ class LazyObject(ABC):
                 element._make_always_alive()
 
     def _kill_if_no_element_backrefs(self) -> None:
+        #if self.__class__.__name__ == "LazyWrapper" and (not print(self.value.__class__.__name__)) and self.value.__class__.__name__ == "Buffer":
+        #    print(bool(self._element_backrefs))
         if self._is_dead:
             return
         if self._always_alive:
@@ -862,6 +865,18 @@ class LazyObject(ABC):
         # TODO: check refcnt
         cls = self.__class__
         for descriptor in cls._LAZY_DESCRIPTORS:
+            slot = descriptor.get_slot(self)
+            if isinstance(slot, LazyVariableSlot):
+                container = slot.get_variable_container()
+            elif isinstance(slot, LazyPropertySlot):
+                container = slot.get_property_container()
+            else:
+                raise TypeError
+            if container is None:
+                continue
+            for element in container._iter_elements():
+                element._element_backrefs.remove(container)
+                element._kill_if_no_element_backrefs()
             descriptor.clear_ref(self)
 
 

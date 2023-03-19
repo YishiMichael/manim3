@@ -59,10 +59,10 @@ class Scene(Mobject):
         self._frame_floating_index: float = 0.0
         self._previous_frame_rendering_timestamp: float | None = None
 
-    @Lazy.variable(LazyMode.OBJECT)
-    @classmethod
-    def _scene_config_(cls) -> SceneConfig:
-        return SceneConfig()
+    #@Lazy.variable(LazyMode.OBJECT)
+    #@classmethod
+    #def _scene_config_(cls) -> SceneConfig:
+    #    return SceneConfig()
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
