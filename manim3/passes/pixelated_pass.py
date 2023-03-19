@@ -44,7 +44,6 @@ class PixelatedPass(RenderPass):
     def _vertex_array_(
         cls,
         _u_color_map_: TextureStorage
-        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
@@ -53,7 +52,6 @@ class PixelatedPass(RenderPass):
                 _u_color_map_
             ],
             uniform_blocks=[]
-            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     def _render(
@@ -68,18 +66,6 @@ class PixelatedPass(RenderPass):
         )
         with ColorFramebufferBatch(size=texture_size) as batch:
             batch.color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
-            #self._vertex_array_.write(
-            #    shader_filename="copy",
-            #    custom_macros=[],
-            #    texture_storages=[
-            #        self._u_color_map_.write(
-            #            field="sampler2D u_color_map",
-            #            texture_array=np.array(texture)
-            #        )
-            #    ],
-            #    uniform_blocks=[],
-            #    indexed_attributes=self._indexed_attributes_buffer_
-            #)
             self._vertex_array_.render(
                 texture_array_dict={
                     "u_color_map": np.array(texture)
@@ -89,18 +75,6 @@ class PixelatedPass(RenderPass):
                     enable_only=moderngl.NOTHING
                 )
             )
-            #self._vertex_array_.write(
-            #    shader_filename="copy",
-            #    custom_macros=[],
-            #    texture_storages=[
-            #        self._u_color_map_.write(
-            #            field="sampler2D u_color_map",
-            #            texture_array=np.array(batch.color_texture)
-            #        )
-            #    ],
-            #    uniform_blocks=[],
-            #    indexed_attributes=self._indexed_attributes_buffer_
-            #)
             self._vertex_array_.render(
                 texture_array_dict={
                     "u_color_map": np.array(batch.color_texture)

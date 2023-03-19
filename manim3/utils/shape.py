@@ -37,10 +37,6 @@ from ..lazy.interface import (
 from ..utils.space import SpaceUtils
 
 
-#_VecT = TypeVar("_VecT", bound=Vec2T | Vec3T)
-#_VecsT = TypeVar("_VecsT", bound=Vec2sT | Vec3sT)
-
-
 class LineStringKind(Enum):
     POINT = 0
     LINE_STRING = 1
@@ -198,15 +194,6 @@ class LineString(ShapeInterpolant):
         coords: Vec3sT
     ) -> FloatsT:
         return np.maximum(SpaceUtils.norm(coords[1:] - coords[:-1]), 1e-6)
-
-    #@classmethod
-    #def _lerp(
-    #    cls,
-    #    vec_0: _VecT,
-    #    vec_1: _VecT,
-    #    alpha: float
-    #) -> _VecT:
-    #    return SpaceUtils.lerp(vec_0, vec_1, alpha)
 
     def interpolate_point(
         self,
@@ -387,29 +374,12 @@ class MultiLineString(ShapeInterpolant):
         return result
 
 
-#class LineString2D(LineString[Vec2T, Vec2sT]):
-#    __slots__ = ()
-
-
-#class LineString(LineString[Vec3T, Vec3sT]):
-#    __slots__ = ()
-
-
-#class MultiLineString2D(MultiLineString[Vec2T, Vec2sT]):
-#    __slots__ = ()
-
-
-#class MultiLineString(MultiLineString[Vec3T, Vec3sT]):
-#    __slots__ = ()
-
-
 class Shape(LazyObject):
     __slots__ = ()
 
     def __init__(
         self,
         coords_iterable: Iterable[Vec2sT] | None = None
-        #arg: MultiLineString2D | shapely.geometry.base.BaseGeometry | se.Shape | None = None
     ) -> None:
         super().__init__()
         if coords_iterable is not None:
@@ -418,25 +388,6 @@ class Shape(LazyObject):
                 for coords in coords_iterable
                 if len(coords)
             )
-
-        #if arg is None:
-        #    return
-        #if isinstance(arg, MultiLineString2D):
-        #    multi_line_string = arg
-        #else:
-        #    if isinstance(arg, shapely.geometry.base.BaseGeometry):
-        #        coords_iter = self._iter_coords_from_shapely_obj(arg)
-        #        self._precalculated_shapely_obj_ = arg
-        #    elif isinstance(arg, se.Shape):
-        #        coords_iter = self._iter_coords_from_se_shape(arg)
-        #    else:
-        #        raise TypeError(f"Cannot handle argument in Shape constructor: {arg}")
-        #    multi_line_string = MultiLineString2D([
-        #        LineString2D(coords)
-        #        for coords in coords_iter
-        #        if len(coords)
-        #    ])
-        #self._multi_line_string_ = multi_line_string
 
     def __and__(
         self,
@@ -467,32 +418,12 @@ class Shape(LazyObject):
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    #@Lazy.variable(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _precalculated_shapely_obj_(cls) -> shapely.geometry.base.BaseGeometry | None:
-    #    return None
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _multi_line_string_(
-    #    cls,
-    #    _multi_line_string_: MultiLineString2D
-    #) -> MultiLineString:
-    #    return MultiLineString([
-    #        LineString(SpaceUtils.increase_dimension(line_string._coords_.value))
-    #        for line_string in _multi_line_string_._line_strings_
-    #    ])
-
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _shapely_obj_(
         cls,
-        #precalculated_shapely_obj: shapely.geometry.base.BaseGeometry | None,
         _multi_line_string__line_strings_: list[LineString]
     ) -> shapely.geometry.base.BaseGeometry:
-        #if precalculated_shapely_obj is not None:
-        #    return precalculated_shapely_obj
-        #return cls._to_shapely_object(_multi_line_string_)
 
         def get_shapely_component(
             line_string: LineString
@@ -588,9 +519,6 @@ class Shape(LazyObject):
                 raise TypeError
 
         return Shape(iter_coords_from_shapely_obj(shapely_obj))
-        #result = Shape(iter_coords_from_shapely_obj(shapely_obj))
-        #result._precalculated_shapely_obj_ = shapely_obj
-        #return result
 
     def interpolate_point(
         self,
@@ -623,8 +551,6 @@ class Shape(LazyObject):
             alpha: float
         ) -> Shape:
             return Shape.from_multi_line_string(multi_line_string_callback(alpha))
-            #multi_line_string = multi_line_string_callback(alpha)
-            #return Shape.from_shapely_obj(Shape._to_shapely_object(multi_line_string))
 
         return callback
 
@@ -637,12 +563,6 @@ class Shape(LazyObject):
             shape._multi_line_string_
             for shape in shapes
         ))
-        #result = Shape()
-        #result._multi_line_string_ = MultiLineString.concatenate(
-        #    shape._multi_line_string_
-        #    for shape in shapes
-        #)
-        #return result
 
     # operations ported from shapely
 

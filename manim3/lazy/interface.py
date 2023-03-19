@@ -121,23 +121,12 @@ class LazyUnitaryVariableDecorator(LazyUnitaryVariableDescriptor[_InstanceT, _El
 
 
 class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_T], _T | LazyWrapper[_T]]):
-    #__slots__ = ("default_object",)
     __slots__ = ()
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _T]
     ) -> None:
-
-        #def new_method(
-        #    cls: type[_InstanceT]
-        #) -> LazyWrapper[_T]:
-        #    #if (default_object := self.default_object) is None:
-        #    #    default_object = LazyWrapper(method(cls))
-        #    #    self.default_object = default_object
-        #    return LazyWrapper(method(cls))
-
-        #self.default_object: LazyWrapper[_T] | None = None
         super().__init__(
             element_type=LazyWrapper,
             method=method
@@ -161,17 +150,7 @@ class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_Instance
         self,
         method: Callable[[type[_InstanceT]], _HashableT]
     ) -> None:
-
-        #def new_method(
-        #    cls: type[_InstanceT]
-        #) -> LazyWrapper[_HashableT]:
-        #    #if (default_object := self.default_object) is None:
-        #    #    default_object = LazyWrapper(method(cls))
-        #    #    self.default_object = default_object
-        #    return LazyWrapper(method(cls))
-
         self.content_to_element_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
-        #self.default_object: LazyWrapper[_HashableT] | None = None
         super().__init__(
             element_type=LazyWrapper,
             method=method
@@ -188,16 +167,6 @@ class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_Instance
         return LazyUnitaryContainer(
             element=cached_element
         )
-
-    #def __set__(
-    #    self,
-    #    instance: _InstanceT,
-    #    obj: _HashableT
-    #) -> None:
-    #    if (cached_object := self.content_to_element_bidict.get(obj)) is None:
-    #        cached_object = LazyWrapper(obj)
-    #        self.content_to_element_bidict[obj] = cached_object
-    #    super().__set__(instance, cached_object)
 
 
 class LazyDynamicVariableDecorator(LazyDynamicVariableDescriptor[_InstanceT, _ElementT, Iterable[_ElementT]]):
@@ -252,13 +221,6 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
     ) -> None:
-
-        #def new_method(
-        #    cls: type[_InstanceT],
-        #    *args: Any
-        #) -> LazyWrapper[_T]:
-        #    return LazyWrapper(method(cls, *args))
-
         parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=LazyWrapper,
@@ -299,19 +261,6 @@ class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_Instance
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]
     ) -> None:
-
-        #def new_method(
-        #    cls: type[_InstanceT],
-        #    *args: _PropertyParameters.args,
-        #    **kwargs: _PropertyParameters.kwargs
-        #) -> _HashableT:
-        #    content = method(cls, *args, **kwargs)
-        #    if (cached_element := self.content_to_element_bidict.get(content)) is None:
-        #        cached_element = LazyWrapper(content)
-        #        cached_element._always_alive = True
-        #        self.content_to_element_bidict[content] = cached_element
-        #    return cached_element
-
         self.content_to_element_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
         parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(

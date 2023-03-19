@@ -271,13 +271,7 @@ class VertexArray(LazyObject):
         for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
             texture_storage = texture_storage_dict[texture_storage_name]
             assert not texture_storage._is_empty_.value
-            #texture_array = texture_array_dict[texture_storage_name]
-            #assert texture_storage._shape_.value == texture_array.shape
             texture_binding_item[texture_storage_name] = (texture_storage._shape_.value, binding_offset)
-            #texture_bindings.extend(
-            #    (texture, binding)
-            #    for binding, texture in enumerate(texture_array.flat, start=binding_offset)
-            #)
         return texture_binding_item
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -410,6 +404,7 @@ class VertexArray(LazyObject):
     def render(
         self,
         *,
+        # Note, redundant textures are currently not supported.
         texture_array_dict: dict[str, np.ndarray] | None = None,
         framebuffer: moderngl.Framebuffer,
         context_state: ContextState
@@ -420,14 +415,8 @@ class VertexArray(LazyObject):
         if texture_array_dict is None:
             texture_array_dict = {}
 
-        #texture_storage_dict = {
-        #    texture_storage._field_name_.value: texture_storage
-        #    for texture_storage in self._texture_storages_
-        #}
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
         for texture_storage_name, (shape, binding_offset) in self._texture_binding_items_.value.items():
-            #texture_storage = texture_storage_dict[texture_storage_name]
-            #assert not texture_storage._is_empty_.value
             texture_array = texture_array_dict[texture_storage_name]
             assert shape == texture_array.shape
             texture_bindings.extend(

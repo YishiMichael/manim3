@@ -79,4 +79,4 @@ if __name__ == "__main__":
     #config.write_video = True
     #config.pixel_size = (960, 540)
     #Renderer(config).run(TexTransformExample)
-    ThreeDTextExample.render(config)
+    TexTransformExample.render(config)

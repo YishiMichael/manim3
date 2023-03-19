@@ -28,7 +28,6 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.color import ColorUtils
-#from ..utils.scene_config import SceneConfig
 
 
 class MeshMobject(Mobject):
@@ -155,7 +154,6 @@ class MeshMobject(Mobject):
 
     def _render(
         self,
-        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         custom_macros: list[str] = []
@@ -164,26 +162,6 @@ class MeshMobject(Mobject):
         textures: list[moderngl.Texture] = []
         if (color_map := self._color_map_.value) is not None:
             textures.append(color_map)
-        #self._vertex_array_.write(
-        #    shader_filename="mesh",
-        #    custom_macros=custom_macros,
-        #    texture_storages=[
-        #        self._u_color_maps_.write(
-        #            field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
-        #            dynamic_array_lens={
-        #                "NUM_U_COLOR_MAPS": len(textures)
-        #            },
-        #            texture_array=np.array(textures, dtype=moderngl.Texture)
-        #        )
-        #    ],
-        #    uniform_blocks=[
-        #        scene_config._camera_._ub_camera_,
-        #        self._ub_model_,
-        #        scene_config._ub_lights_,
-        #        self._ub_material_
-        #    ],
-        #    indexed_attributes=self._geometry_._indexed_attributes_buffer_
-        #)
         self._vertex_array_.render(
             texture_array_dict={
                 "u_color_maps": np.array(textures, dtype=moderngl.Texture)

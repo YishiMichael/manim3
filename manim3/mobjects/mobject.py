@@ -739,7 +739,6 @@ class Mobject(LazyObject):
 
     def _render(
         self,
-        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         # Implemented in subclasses.
@@ -747,7 +746,6 @@ class Mobject(LazyObject):
 
     def _render_with_passes(
         self,
-        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         render_passes = self._render_passes_

@@ -28,11 +28,11 @@ from ..utils.shape import (
 
 _T = TypeVar("_T")
 _InstanceT = TypeVar("_InstanceT", bound=LazyObject)
-_LazyObjectT = TypeVar("_LazyObjectT", bound=LazyObject)
+_ElementT = TypeVar("_ElementT", bound=LazyObject)
 _DescriptorSetT = TypeVar("_DescriptorSetT")
 
 
-class VariableInterpolant(Generic[_InstanceT, _LazyObjectT, _DescriptorSetT], ABC):
+class VariableInterpolant(Generic[_InstanceT, _ElementT, _DescriptorSetT], ABC):
     __slots__ = (
         "_descriptor",
         "_method"
@@ -40,12 +40,12 @@ class VariableInterpolant(Generic[_InstanceT, _LazyObjectT, _DescriptorSetT], AB
 
     def __init__(
         self,
-        descriptor: LazyUnitaryVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT],
-        method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _DescriptorSetT]]
+        descriptor: LazyUnitaryVariableDescriptor[_InstanceT, _ElementT, _DescriptorSetT],
+        method: Callable[[_ElementT, _ElementT], Callable[[float], _DescriptorSetT]]
     ) -> None:
         super().__init__()
-        self._descriptor: LazyUnitaryVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT] = descriptor  # type checker bug?
-        self._method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _DescriptorSetT]] = method
+        self._descriptor: LazyUnitaryVariableDescriptor[_InstanceT, _ElementT, _DescriptorSetT] = descriptor  # type checker bug?
+        self._method: Callable[[_ElementT, _ElementT], Callable[[float], _DescriptorSetT]] = method
 
     def _get_intermediate_instance_callback(
         self,
@@ -117,34 +117,6 @@ class VariableUnwrappedInterpolant(VariableInterpolant[_InstanceT, LazyWrapper[_
 class Transform(AlphaAnimation):
     __slots__ = ()
 
-    #@staticmethod
-    #def __shape_interpolate_callback(
-    #    shape_0: Shape,
-    #    shape_1: Shape
-    #) -> Callable[[float], Shape]:
-    #    return shape_0.interpolate_shape_callback(shape_1, has_inlay=True)
-
-    #@staticmethod
-    #def __stroke_interpolate_callback(
-    #    multi_line_string_0: MultiLineString,
-    #    multi_line_string_1: MultiLineString
-    #) -> Callable[[float], MultiLineString]:
-    #    return multi_line_string_0.interpolate_shape_callback(multi_line_string_1, has_inlay=False)
-
-    #@staticmethod
-    #def __rotational_interpolate_callback(
-    #    matrix_0: LazyWrapper[Mat4T],
-    #    matrix_1: LazyWrapper[Mat4T]
-    #) -> Callable[[float], Mat4T]:
-    #    return SpaceUtils.rotational_interpolate_callback(matrix_0.value, matrix_1.value)
-
-    #@staticmethod
-    #def __lerp_callback(
-    #    tensor_0: LazyWrapper[float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T],
-    #    tensor_1: LazyWrapper[float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T]
-    #) -> Callable[[float], float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T]:
-    #    return SpaceUtils.lerp_callback(tensor_0.value, tensor_1.value)
-
     _SHAPE_INTERPOLANTS: ClassVar[tuple[VariableInterpolant[ShapeMobject, Any, Any], ...]] = (
         VariableInterpolant(
             descriptor=ShapeMobject._shape_,
@@ -175,18 +147,6 @@ class Transform(AlphaAnimation):
             method=SpaceUtils.lerp_callback
         )
     )
-
-    #_STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyUnitaryVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[float], Any]]]] = {
-    #    StrokeMobject._multi_line_string_: __stroke_interpolate_callback,
-    #    StrokeMobject._model_matrix_: __rotational_interpolate_callback,
-    #    StrokeMobject._color_: __lerp_callback,
-    #    StrokeMobject._opacity_: __lerp_callback,
-    #    StrokeMobject._width_: __lerp_callback,
-    #    StrokeMobject._color_: __lerp_callback,
-    #    StrokeMobject._opacity_: __lerp_callback,
-    #    StrokeMobject._dilate_: __lerp_callback
-    #}
-
     _STROKE_INTERPOLANTS: ClassVar[tuple[VariableInterpolant[StrokeMobject, Any, Any], ...]] = (
         VariableInterpolant(
             descriptor=StrokeMobject._multi_line_string_,

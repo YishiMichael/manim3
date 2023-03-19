@@ -1,8 +1,9 @@
 __all__ = ["ParametricSurfaceGeometry"]
 
 
-import numpy as np
 from typing import Callable
+
+import numpy as np
 
 from ..custom_typing import Vec3T
 from ..geometries.geometry import (

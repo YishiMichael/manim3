@@ -14,7 +14,6 @@ from ..mobjects.scene import Scene
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
-#from ..utils.scene_config import SceneConfig
 
 
 class SceneMobject(MeshMobject):
@@ -44,7 +43,6 @@ class SceneMobject(MeshMobject):
 
     def _render(
         self,
-        #scene_config: SceneConfig,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         with ColorFramebufferBatch() as batch:

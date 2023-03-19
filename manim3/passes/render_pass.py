@@ -4,55 +4,12 @@ __all__ = ["RenderPass"]
 from abc import abstractmethod
 
 import moderngl
-#import numpy as np
 
 from ..lazy.core import LazyObject
-#from ..lazy.interface import (
-#    Lazy,
-#    LazyMode
-#)
-#from ..rendering.gl_buffer import (
-#    AttributesBuffer,
-#    IndexBuffer
-#)
-#from ..rendering.vertex_array import IndexedAttributesBuffer
 
 
 class RenderPass(LazyObject):
     __slots__ = ()
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
-    #    return IndexedAttributesBuffer(
-    #        attributes_buffer=AttributesBuffer(
-    #            fields=[
-    #                "vec3 in_position",
-    #                "vec2 in_uv"
-    #            ],
-    #            num_vertex=4,
-    #            data={
-    #                "in_position": np.array((
-    #                    [-1.0, -1.0, 0.0],
-    #                    [1.0, -1.0, 0.0],
-    #                    [1.0, 1.0, 0.0],
-    #                    [-1.0, 1.0, 0.0],
-    #                )),
-    #                "in_uv": np.array((
-    #                    [0.0, 0.0],
-    #                    [1.0, 0.0],
-    #                    [1.0, 1.0],
-    #                    [0.0, 1.0],
-    #                ))
-    #            }
-    #        ),
-    #        index_buffer=IndexBuffer(
-    #            data=np.array((
-    #                0, 1, 2, 3
-    #            ))
-    #        ),
-    #        mode=moderngl.TRIANGLE_FAN
-    #    )
 
     @abstractmethod
     def _render(

@@ -18,7 +18,6 @@ import moderngl
 from moderngl_window.context.pyglet.window import Window
 
 from ..rendering.config import ConfigSingleton
-#from ..rendering.framebuffer_batch import SimpleFramebufferBatch
 
 
 @dataclass(
@@ -42,7 +41,6 @@ class Context(ABC):
     _MGL_CONTEXT: ClassVar[moderngl.Context | None] = None
     _WINDOW: ClassVar[Window | None] = None
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
-    #_SCENE_BATCH: ClassVar[SimpleFramebufferBatch | None] = None
     _WRITING_PROCESS: ClassVar[sp.Popen | None] = None
 
     @abstractmethod
@@ -79,7 +77,6 @@ class Context(ABC):
         cls,
         scene_name: str
     ) -> None:
-        #if ConfigSingleton().write_video:
         cls._WRITING_PROCESS = sp.Popen([
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
@@ -95,9 +92,6 @@ class Context(ABC):
             "-loglevel", "error",
             os.path.join(ConfigSingleton().output_dir, f"{scene_name}.mp4")
         ], stdin=sp.PIPE)
-        #else:
-        #    writing_process = None
-        #cls._WRITING_PROCESS = writing_process
 
     @classmethod
     @property
@@ -181,7 +175,7 @@ class Context(ABC):
     @classmethod
     def buffer(cls) -> moderngl.Buffer:
         buffer = cls.mgl_context.buffer(reserve=1, dynamic=True)  # TODO: dynamic?
-        #atexit.register(lambda: buffer.release())
+        atexit.register(lambda: buffer.release())
         return buffer
 
     @classmethod
