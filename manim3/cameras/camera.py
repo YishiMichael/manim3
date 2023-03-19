@@ -28,7 +28,7 @@ class Camera(LazyObject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _projection_matrix_(cls) -> Mat4T:
-        return NotImplemented
+        return np.identity(4)
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod

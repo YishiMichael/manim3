@@ -372,6 +372,8 @@ class MarkupText(StringMobject):
 
 
 class Text(MarkupText):
+    __slots__ = ()
+
     #CONFIG = {
     #    # For backward compatibility
     #    "isolate": (re.compile(r"\w+", re.U), re.compile(r"\S+", re.U)),

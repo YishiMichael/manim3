@@ -10,10 +10,7 @@ import re
 import moderngl
 import numpy as np
 
-from ..lazy.core import (
-    LazyCollection,
-    LazyObject
-)
+from ..lazy.core import LazyObject
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -60,17 +57,23 @@ class IndexedAttributesBuffer(LazyObject):
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _attributes_buffer_(cls) -> AttributesBuffer:
-        return NotImplemented
+        return AttributesBuffer(
+            fields=[],
+            num_vertex=0,
+            data={}
+        )
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _index_buffer_(cls) -> IndexBuffer:
-        return NotImplemented
+        return IndexBuffer(
+            data=np.zeros((0, 1), dtype=np.uint32)
+        )
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _mode_(cls) -> int:
-        return NotImplemented
+        return moderngl.TRIANGLES
 
 
 class VertexArray(LazyObject):
@@ -80,42 +83,75 @@ class VertexArray(LazyObject):
         self,
         *,
         shader_filename: str,
-        custom_macros: list[str],
-        texture_storages: list[TextureStorage],
-        uniform_blocks: list[UniformBlockBuffer],
-        indexed_attributes_buffer: IndexedAttributesBuffer
+        custom_macros: list[str] | None = None,
+        texture_storages: list[TextureStorage] | None = None,
+        uniform_blocks: list[UniformBlockBuffer] | None = None,
+        indexed_attributes_buffer: IndexedAttributesBuffer | None = None
     ) -> None:
         super().__init__()
         self._shader_filename_ = shader_filename
-        self._custom_macros_ = tuple(custom_macros)
-        self._texture_storages_.add(*texture_storages)
-        self._uniform_blocks_.add(*uniform_blocks)
-        self._indexed_attributes_buffer_ = indexed_attributes_buffer
+        if custom_macros is not None:
+            self._custom_macros_ = tuple(custom_macros)
+        if texture_storages is not None:
+            self._texture_storages_.add(*texture_storages)
+        if uniform_blocks is not None:
+            self._uniform_blocks_.add(*uniform_blocks)
+        if indexed_attributes_buffer is not None:
+            self._indexed_attributes_buffer_ = indexed_attributes_buffer
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _shader_filename_(cls) -> str:
-        return NotImplemented
+        return ""
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
-        return NotImplemented
+        return ()
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _texture_storages_(cls) -> LazyCollection[TextureStorage]:
-        return LazyCollection()
+    def _texture_storages_(cls) -> list[TextureStorage]:
+        return []
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _uniform_blocks_(cls) -> LazyCollection[UniformBlockBuffer]:
-        return LazyCollection()
+    def _uniform_blocks_(cls) -> list[UniformBlockBuffer]:
+        return []
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
-        return NotImplemented
+        # For full-screen rendering.
+        return IndexedAttributesBuffer(
+            attributes_buffer=AttributesBuffer(
+                fields=[
+                    "vec3 in_position",
+                    "vec2 in_uv"
+                ],
+                num_vertex=4,
+                data={
+                    "in_position": np.array((
+                        [-1.0, -1.0, 0.0],
+                        [1.0, -1.0, 0.0],
+                        [1.0, 1.0, 0.0],
+                        [-1.0, 1.0, 0.0],
+                    )),
+                    "in_uv": np.array((
+                        [0.0, 0.0],
+                        [1.0, 0.0],
+                        [1.0, 1.0],
+                        [0.0, 1.0],
+                    ))
+                }
+            ),
+            index_buffer=IndexBuffer(
+                data=np.array((
+                    0, 1, 2, 3
+                ))
+            ),
+            mode=moderngl.TRIANGLE_FAN
+        )
 
     @Lazy.property(LazyMode.SHARED)
     @classmethod
@@ -141,7 +177,7 @@ class VertexArray(LazyObject):
     @classmethod
     def _texture_storage_shapes_(
         cls,
-        _texture_storages_: LazyCollection[TextureStorage]
+        _texture_storages_: list[TextureStorage]
     ) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return tuple(
             (texture_storage._field_name_.value, texture_storage._shape_.value)
@@ -374,12 +410,15 @@ class VertexArray(LazyObject):
     def render(
         self,
         *,
-        texture_array_dict: dict[str, np.ndarray],
+        texture_array_dict: dict[str, np.ndarray] | None = None,
         framebuffer: moderngl.Framebuffer,
         context_state: ContextState
     ) -> None:
         if (vertex_array := self._vertex_array_.value) is None:
             return
+
+        if texture_array_dict is None:
+            texture_array_dict = {}
 
         #texture_storage_dict = {
         #    texture_storage._field_name_.value: texture_storage

@@ -29,6 +29,12 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
+        #text = RegularPolygon(3)
+        #tex = RegularPolygon(4).set_stroke(width=0.3)
+        #self.add(text)
+        #self.wait()
+        #self.play(Transform(text, tex))
+        #self.wait()
         text = Text("Text").scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=RED).concatenate()
         tex = TexText("TexText").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text)
@@ -47,7 +53,7 @@ class Rotating(Animation):
             t_0: float,
             t: float
         ) -> None:
-            mobject.rotate(Rotation.from_rotvec(UP * (t - t_0) * 0.5))
+            mobject.rotate(Rotation.from_rotvec(DOWN * (t - t_0) * 0.5))
 
         super().__init__(
             animate_func=animate_func,
@@ -77,6 +83,6 @@ if __name__ == "__main__":
     #config.fps = 3
     #config.preview = False
     #config.write_video = True
-    #config.window_pixel_size = (1920, 1080)
+    #config.pixel_size = (960, 540)
     #Renderer(config).run(TexTransformExample)
-    ThreeDTextExample.render(config)
+    TexTransformExample.render(config)

@@ -103,7 +103,7 @@ class GLDynamicStruct(LazyObject):
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _field_(cls) -> str:
-        return NotImplemented
+        return ""
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -118,7 +118,7 @@ class GLDynamicStruct(LazyObject):
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
-        return NotImplemented
+        return GLBufferLayout.PACKED
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -296,7 +296,7 @@ class GLDynamicBuffer(GLDynamicStruct):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _data_(cls) -> np.ndarray | dict[str, Any]:
-        return NotImplemented
+        return {}
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -370,7 +370,7 @@ class TextureStorage(GLDynamicStruct):
         *,
         field: str,
         dynamic_array_lens: dict[str, int] | None = None,
-        shape: tuple[int, ...] = ()
+        shape: tuple[int, ...] | None = None
     ) -> None:
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
         assert field != replaced_field
@@ -379,7 +379,8 @@ class TextureStorage(GLDynamicStruct):
             child_structs=None,
             dynamic_array_lens=dynamic_array_lens
         )
-        self._shape_ = shape
+        if shape is not None:
+            self._shape_ = shape
 
     #@Lazy.variable(LazyMode.SHARED)
     #@classmethod
@@ -394,7 +395,7 @@ class TextureStorage(GLDynamicStruct):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _shape_(cls) -> tuple[int, ...]:
-        return NotImplemented
+        return ()
 
     #@Lazy.variable(LazyMode.UNWRAPPED)
     #@classmethod

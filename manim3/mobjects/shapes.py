@@ -28,6 +28,8 @@ from ..utils.shape import Shape
 
 
 class Polyline(ShapeMobject):
+    __slots__ = ()
+
     def __init__(
         self,
         coords: Vec2sT
@@ -36,6 +38,8 @@ class Polyline(ShapeMobject):
 
 
 class Point(Polyline):
+    __slots__ = ()
+
     def __init__(
         self,
         point: Vec2T
@@ -44,6 +48,8 @@ class Point(Polyline):
 
 
 class Line(Polyline):
+    __slots__ = ()
+
     def __init__(
         self,
         start_point: Vec2T,
@@ -53,6 +59,8 @@ class Line(Polyline):
 
 
 class Arc(Polyline):
+    __slots__ = ()
+
     def __init__(
         self,
         start_angle: float,
@@ -64,11 +72,15 @@ class Arc(Polyline):
 
 
 class Circle(Arc):
+    __slots__ = ()
+
     def __init__(self) -> None:
         super().__init__(0.0, TAU)
 
 
 class Polygon(Polyline):
+    __slots__ = ()
+
     def __init__(
         self,
         coords: Vec2sT
@@ -77,6 +89,8 @@ class Polygon(Polyline):
 
 
 class RegularPolygon(Polygon):
+    __slots__ = ()
+
     def __init__(
         self,
         n: int
@@ -87,12 +101,16 @@ class RegularPolygon(Polygon):
 
 
 class Triangle(RegularPolygon):
+    __slots__ = ()
+
     def __init__(self) -> None:
         super().__init__(3)
         self.rotate_about_origin(Rotation.from_rotvec(OUT * PI / 2.0))
 
 
 class Square(RegularPolygon):
+    __slots__ = ()
+
     def __init__(self) -> None:
         super().__init__(4)
         self.rotate_about_origin(Rotation.from_rotvec(OUT * PI / 4.0))

@@ -17,10 +17,7 @@ from ..rendering.gl_buffer import (
     UniformBlockBuffer,
     TextureStorage
 )
-from ..rendering.vertex_array import (
-    IndexedAttributesBuffer,
-    VertexArray
-)
+from ..rendering.vertex_array import VertexArray
 
 
 class GaussianBlurPass(RenderPass):
@@ -83,8 +80,8 @@ class GaussianBlurPass(RenderPass):
     def _horizontal_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
-        _ub_gaussian_blur_: UniformBlockBuffer,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _ub_gaussian_blur_: UniformBlockBuffer
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="gaussian_blur",
@@ -96,8 +93,8 @@ class GaussianBlurPass(RenderPass):
             ],
             uniform_blocks=[
                 _ub_gaussian_blur_
-            ],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     @Lazy.property(LazyMode.OBJECT)
@@ -105,8 +102,8 @@ class GaussianBlurPass(RenderPass):
     def _vertical_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
-        _ub_gaussian_blur_: UniformBlockBuffer,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _ub_gaussian_blur_: UniformBlockBuffer
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="gaussian_blur",
@@ -118,8 +115,8 @@ class GaussianBlurPass(RenderPass):
             ],
             uniform_blocks=[
                 _ub_gaussian_blur_
-            ],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     def _render(

@@ -13,10 +13,7 @@ from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextState
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
 from ..rendering.gl_buffer import TextureStorage
-from ..rendering.vertex_array import (
-    IndexedAttributesBuffer,
-    VertexArray
-)
+from ..rendering.vertex_array import VertexArray
 
 
 class PixelatedPass(RenderPass):
@@ -46,8 +43,8 @@ class PixelatedPass(RenderPass):
     @classmethod
     def _vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _u_color_map_: TextureStorage
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
@@ -55,8 +52,8 @@ class PixelatedPass(RenderPass):
             texture_storages=[
                 _u_color_map_
             ],
-            uniform_blocks=[],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            uniform_blocks=[]
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     def _render(

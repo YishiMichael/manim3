@@ -16,7 +16,7 @@ from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..lazy.core import (
     LazyObject,
-    LazyObjectVariableDescriptor,
+    LazyUnitaryVariableDescriptor,
     LazyWrapper
 )
 from ..utils.space import SpaceUtils
@@ -32,7 +32,7 @@ _LazyObjectT = TypeVar("_LazyObjectT", bound=LazyObject)
 _DescriptorSetT = TypeVar("_DescriptorSetT")
 
 
-class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
+class VariableInterpolant(Generic[_InstanceT, _LazyObjectT, _DescriptorSetT], ABC):
     __slots__ = (
         "_descriptor",
         "_method"
@@ -40,11 +40,11 @@ class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
 
     def __init__(
         self,
-        descriptor: LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT],
+        descriptor: LazyUnitaryVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT],
         method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _DescriptorSetT]]
     ) -> None:
         super().__init__()
-        self._descriptor: LazyObjectVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT] = descriptor  # type checker bug?
+        self._descriptor: LazyUnitaryVariableDescriptor[_InstanceT, _LazyObjectT, _DescriptorSetT] = descriptor  # type checker bug?
         self._method: Callable[[_LazyObjectT, _LazyObjectT], Callable[[float], _DescriptorSetT]] = method
 
     def _get_intermediate_instance_callback(
@@ -73,7 +73,7 @@ class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
     @classmethod
     def _get_intermediate_instance_composed_callback(
         cls,
-        interpolants: "tuple[VariableInterpolant[_InstanceT, Any], ...]",
+        interpolants: "tuple[VariableInterpolant[_InstanceT, Any, Any], ...]",
         instance_0: _InstanceT,
         instance_1: _InstanceT
     ) -> Callable[[_InstanceT, float], None]:
@@ -95,10 +95,10 @@ class VariableInterpolant(Generic[_InstanceT, _LazyObjectT], ABC):
         return composed_callback
 
 
-class VariableUnwrappedInterpolant(VariableInterpolant[_InstanceT, LazyWrapper[_T]]):
+class VariableUnwrappedInterpolant(VariableInterpolant[_InstanceT, LazyWrapper[_T], _DescriptorSetT]):
     def __init__(
         self,
-        descriptor: LazyObjectVariableDescriptor[_InstanceT, LazyWrapper[_T], _DescriptorSetT],
+        descriptor: LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_T], _DescriptorSetT],
         method: Callable[[_T, _T], Callable[[float], _DescriptorSetT]]
     ) -> None:
 
@@ -145,7 +145,7 @@ class Transform(AlphaAnimation):
     #) -> Callable[[float], float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T]:
     #    return SpaceUtils.lerp_callback(tensor_0.value, tensor_1.value)
 
-    _SHAPE_INTERPOLANTS: ClassVar[tuple[VariableInterpolant[ShapeMobject, Any], ...]] = (
+    _SHAPE_INTERPOLANTS: ClassVar[tuple[VariableInterpolant[ShapeMobject, Any, Any], ...]] = (
         VariableInterpolant(
             descriptor=ShapeMobject._shape_,
             method=Shape.interpolate_shape_callback
@@ -176,7 +176,7 @@ class Transform(AlphaAnimation):
         )
     )
 
-    #_STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyObjectVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[float], Any]]]] = {
+    #_STROKE_INTERPOLATE_CALLBACKS: ClassVar[dict[LazyUnitaryVariableDescriptor[StrokeMobject, Any], Callable[[Any, Any], Callable[[float], Any]]]] = {
     #    StrokeMobject._multi_line_string_: __stroke_interpolate_callback,
     #    StrokeMobject._model_matrix_: __rotational_interpolate_callback,
     #    StrokeMobject._color_: __lerp_callback,
@@ -187,7 +187,7 @@ class Transform(AlphaAnimation):
     #    StrokeMobject._dilate_: __lerp_callback
     #}
 
-    _STROKE_INTERPOLANTS: ClassVar[tuple[VariableInterpolant[StrokeMobject, Any], ...]] = (
+    _STROKE_INTERPOLANTS: ClassVar[tuple[VariableInterpolant[StrokeMobject, Any, Any], ...]] = (
         VariableInterpolant(
             descriptor=StrokeMobject._multi_line_string_,
             method=MultiLineString.interpolate_shape_callback

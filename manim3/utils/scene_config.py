@@ -9,10 +9,7 @@ from ..custom_typing import (
     ColorType,
     Vec3T
 )
-from ..lazy.core import (
-    LazyCollection,
-    LazyObject
-)
+from ..lazy.core import LazyObject
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -81,8 +78,8 @@ class SceneConfig(LazyObject):
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _point_lights_(cls) -> LazyCollection[PointLight]:
-        return LazyCollection()
+    def _point_lights_(cls) -> list[PointLight]:
+        return []
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod

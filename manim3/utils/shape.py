@@ -29,10 +29,7 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexType
 )
-from ..lazy.core import (
-    LazyCollection,
-    LazyObject
-)
+from ..lazy.core import LazyObject
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -57,7 +54,7 @@ class ShapeInterpolant(LazyObject):
     @classmethod
     def _lengths_(cls) -> FloatsT:
         # Make sure all entries are non-zero to avoid zero divisions
-        return NotImplemented
+        return np.zeros((0, 1))
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -136,7 +133,7 @@ class ShapeInterpolant(LazyObject):
             all_list_indices[unique_inverse_argsorted[slice(*span)]]
             for span in it.pairwise(np.cumsum(unique_counts))
         ]
-        assert len(list_indices_groups) >= 2
+        assert len(list_indices_groups)
         assert len(list_indices_groups[-1]) == len(knots_lists)
         knot_indices = np.zeros(len(knots_lists), dtype=np.int_)
         residue_list = [0.0 for _ in knots_lists]
@@ -180,7 +177,7 @@ class LineString(ShapeInterpolant):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _coords_(cls) -> Vec3sT:
-        return NotImplemented
+        return np.zeros((0, 3))
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -280,8 +277,8 @@ class MultiLineString(ShapeInterpolant):
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _line_strings_(cls) -> LazyCollection[LineString]:
-        return LazyCollection()
+    def _line_strings_(cls) -> list[LineString]:
+        return []
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod

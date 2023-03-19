@@ -28,10 +28,9 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..lazy.core import (
-    LazyCollection,
-    LazyCollectionVariableDescriptor,
+    LazyDynamicVariableDescriptor,
     LazyObject,
-    LazyObjectVariableDescriptor,
+    LazyUnitaryVariableDescriptor,
     LazyWrapper
 )
 from ..lazy.interface import (
@@ -48,9 +47,9 @@ from ..utils.space import SpaceUtils
 _T = TypeVar("_T")
 
 
-class PseudoCollection(Generic[_T]):
-    # Provides a interface similar to `LazyCollection`.
-    # If `_parents` and `_real_ancestors` are implemented with `LazyCollection` also,
+class PseudoDynamicContainer(Generic[_T]):
+    # Provides a interface similar to `LazyDynamicContainer`.
+    # If `_parents` and `_real_ancestors` are implemented with `LazyDynamicContainer` also,
     # loops will pop up in the DAG in the lazy system.
 
     __slots__ = ("_elements",)
@@ -90,7 +89,7 @@ class PseudoCollection(Generic[_T]):
         return self._elements.__getitem__(index)
 
     def __copy__(self):
-        return PseudoCollection(*self._elements)
+        return PseudoDynamicContainer(*self._elements)
 
     def add(
         self,
@@ -146,8 +145,8 @@ class Mobject(LazyObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._parents: PseudoCollection[Mobject] = PseudoCollection()
-        self._real_ancestors: PseudoCollection[Mobject] = PseudoCollection()
+        self._parents: PseudoDynamicContainer[Mobject] = PseudoDynamicContainer()
+        self._real_ancestors: PseudoDynamicContainer[Mobject] = PseudoDynamicContainer()
 
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children_)
@@ -171,17 +170,17 @@ class Mobject(LazyObject):
         return self._children_.__getitem__(index)
 
     # family matters
-    # These methods implement a DAG.
+    # These methods implement a DAG (directed acyclic graph).
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _children_(cls) -> "LazyCollection[Mobject]":
-        return LazyCollection()
+    def _children_(cls) -> "list[Mobject]":
+        return []
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _real_descendants_(cls) -> "LazyCollection[Mobject]":
-        return LazyCollection()
+    def _real_descendants_(cls) -> "list[Mobject]":
+        return []
 
     def iter_children(self) -> "Generator[Mobject, None, None]":
         yield from self._children_
@@ -286,11 +285,11 @@ class Mobject(LazyObject):
             return descendants_copy[descendants.index(mobject)]
 
         for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
-            descendant_copy._parents = PseudoCollection(*(
+            descendant_copy._parents = PseudoDynamicContainer(*(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._parents
             ))
-            descendant_copy._real_ancestors = PseudoCollection(*(
+            descendant_copy._real_ancestors = PseudoDynamicContainer(*(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._real_ancestors
             ))
@@ -298,14 +297,14 @@ class Mobject(LazyObject):
         for descriptor in self.__class__._LAZY_VARIABLE_DESCRIPTORS:
             if not issubclass(descriptor.element_type, Mobject):
                 continue
-            if isinstance(descriptor, LazyObjectVariableDescriptor):
+            if isinstance(descriptor, LazyUnitaryVariableDescriptor):
                 mobject = descriptor.__get__(self)
                 descriptor.__set__(result, get_matched_descendant_mobject(mobject))
-            elif isinstance(descriptor, LazyCollectionVariableDescriptor):
-                descriptor.__set__(result, LazyCollection(*(
+            elif isinstance(descriptor, LazyDynamicVariableDescriptor):
+                descriptor.__set__(result, (
                     get_matched_descendant_mobject(mobject)
                     for mobject in descriptor.__get__(self)
-                )))
+                ))
         return result
 
     # matrix & transform
@@ -730,13 +729,13 @@ class Mobject(LazyObject):
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _render_passes_(cls) -> LazyCollection[RenderPass]:
-        return LazyCollection()
+    def _render_passes_(cls) -> list[RenderPass]:
+        return []
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _scene_config_(cls) -> SceneConfig:
-        return NotImplemented
+        return SceneConfig()
 
     def _render(
         self,

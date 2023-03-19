@@ -21,8 +21,7 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..lazy.core import (
-    LazyCollection,
-    LazyCollectionVariableDescriptor,
+    LazyDynamicVariableDescriptor,
     LazyWrapper
 )
 from ..lazy.interface import (
@@ -228,7 +227,7 @@ class StrokeMobject(Mobject):
         _multi_line_string_: MultiLineString,
         single_sided: bool,
         has_linecap: bool
-    ) -> LazyCollection[VertexArray]:
+    ) -> list[VertexArray]:
         #self._winding_sign_ = self._calculate_winding_sign(scene_config._camera_)
         uniform_blocks = [
             _scene_config__camera__ub_camera_,
@@ -245,7 +244,7 @@ class StrokeMobject(Mobject):
             return VertexArray(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
-                texture_storages=[],
+                #texture_storages=[],
                 uniform_blocks=uniform_blocks,
                 indexed_attributes_buffer=IndexedAttributesBuffer(
                     attributes_buffer=_attributes_buffer_,
@@ -257,7 +256,7 @@ class StrokeMobject(Mobject):
             )
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
-        vertex_arrays = LazyCollection(
+        vertex_arrays = [
             get_vertex_array(cls._line_index_getter, moderngl.LINES, [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
@@ -266,16 +265,16 @@ class StrokeMobject(Mobject):
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
             ])
-        )
+        ]
         if has_linecap and not single_sided:
-            vertex_arrays.add(
+            vertex_arrays.extend([
                 get_vertex_array(cls._cap_index_getter, moderngl.LINES, [
                     "#define STROKE_CAP"
                 ]),
                 get_vertex_array(cls._point_index_getter, moderngl.POINTS, [
                     "#define STROKE_POINT"
                 ])
-            )
+            ])
         return vertex_arrays
 
     @classmethod
@@ -420,7 +419,7 @@ class StrokeMobject(Mobject):
         target_framebuffer.depth_mask = False
         for vertex_array in self._vertex_arrays_:
             vertex_array.render(
-                texture_array_dict={},
+                #texture_array_dict={},
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND,
@@ -433,7 +432,7 @@ class StrokeMobject(Mobject):
         target_framebuffer.color_mask = (False, False, False, False)
         for vertex_array in self._vertex_arrays_:
             vertex_array.render(
-                texture_array_dict={},
+                #texture_array_dict={},
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.DEPTH_TEST
@@ -535,12 +534,12 @@ class StrokeMobject(Mobject):
             return cls()
         result = mobjects[0]._copy()
         for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
-            if isinstance(descriptor, LazyCollectionVariableDescriptor):
+            if isinstance(descriptor, LazyDynamicVariableDescriptor):
                 continue
             if descriptor is cls._multi_line_string_:
                 continue
             assert all(
-                descriptor.get_impl(result) is descriptor.get_impl(mobject)
+                descriptor.__get__(result) is descriptor.__get__(mobject)
                 for mobject in mobjects
             )
         result._multi_line_string_ = MultiLineString.concatenate(

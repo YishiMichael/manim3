@@ -94,44 +94,11 @@ class Scene(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
-        return IndexedAttributesBuffer(
-            attributes_buffer=AttributesBuffer(
-                fields=[
-                    "vec3 in_position",
-                    "vec2 in_uv"
-                ],
-                num_vertex=4,
-                data={
-                    "in_position": np.array((
-                        [-1.0, -1.0, 0.0],
-                        [1.0, -1.0, 0.0],
-                        [1.0, 1.0, 0.0],
-                        [-1.0, 1.0, 0.0],
-                    )),
-                    "in_uv": np.array((
-                        [0.0, 0.0],
-                        [1.0, 0.0],
-                        [1.0, 1.0],
-                        [0.0, 1.0],
-                    ))
-                }
-            ),
-            index_buffer=IndexBuffer(
-                data=np.array((
-                    0, 1, 2, 3
-                ))
-            ),
-            mode=moderngl.TRIANGLE_FAN
-        )
-
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
     def _copy_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
-        _u_depth_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _u_depth_map_: TextureStorage
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
@@ -141,9 +108,9 @@ class Scene(Mobject):
             texture_storages=[
                 _u_color_map_,
                 _u_depth_map_
-            ],
-            uniform_blocks=[],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #uniform_blocks=[],
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     @Lazy.property(LazyMode.OBJECT)
@@ -151,18 +118,18 @@ class Scene(Mobject):
     def _oit_accum_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
-        _u_depth_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _u_depth_map_: TextureStorage
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_accum",
-            custom_macros=[],
+            #custom_macros=[],
             texture_storages=[
                 _u_color_map_,
                 _u_depth_map_
-            ],
-            uniform_blocks=[],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #uniform_blocks=[],
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     @Lazy.property(LazyMode.OBJECT)
@@ -170,18 +137,18 @@ class Scene(Mobject):
     def _oit_revealage_vertex_array_(
         cls,
         _u_color_map_: TextureStorage,
-        _u_depth_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _u_depth_map_: TextureStorage
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_revealage",
-            custom_macros=[],
+            #custom_macros=[],
             texture_storages=[
                 _u_color_map_,
                 _u_depth_map_
-            ],
-            uniform_blocks=[],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #uniform_blocks=[],
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     @Lazy.property(LazyMode.OBJECT)
@@ -189,35 +156,35 @@ class Scene(Mobject):
     def _oit_compose_vertex_array_(
         cls,
         _u_accum_map_: TextureStorage,
-        _u_revealage_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _u_revealage_map_: TextureStorage
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_compose",
-            custom_macros=[],
+            #custom_macros=[],
             texture_storages=[
                 _u_accum_map_,
                 _u_revealage_map_
-            ],
-            uniform_blocks=[],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #uniform_blocks=[],
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _copy_window_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        _u_color_map_: TextureStorage
+        #_indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
-            custom_macros=[],
+            #custom_macros=[],
             texture_storages=[
                 _u_color_map_
-            ],
-            uniform_blocks=[],
-            indexed_attributes_buffer=_indexed_attributes_buffer_
+            ]
+            #uniform_blocks=[],
+            #indexed_attributes_buffer=_indexed_attributes_buffer_
         )
 
     def _render(

@@ -32,6 +32,8 @@ from ..utils.color import ColorUtils
 
 
 class MeshMobject(Mobject):
+    __slots__ = ()
+
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
     def _geometry_(cls) -> Geometry:

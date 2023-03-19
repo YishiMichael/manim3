@@ -8,10 +8,7 @@ from typing import (
 
 from ..custom_typing import ColorType
 from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.core import (
-    LazyCollection,
-    LazyCollectionVariableDescriptor
-)
+from ..lazy.core import LazyDynamicVariableDescriptor
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -45,8 +42,8 @@ class ShapeMobject(MeshMobject):
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _stroke_mobjects_(cls) -> LazyCollection[StrokeMobject]:
-        return LazyCollection()
+    def _stroke_mobjects_(cls) -> list[StrokeMobject]:
+        return []
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -372,12 +369,12 @@ class ShapeMobject(MeshMobject):
             return cls()
         result = mobjects[0]._copy()
         for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
-            if isinstance(descriptor, LazyCollectionVariableDescriptor):
+            if isinstance(descriptor, LazyDynamicVariableDescriptor):
                 continue
             if descriptor is cls._shape_:
                 continue
             assert all(
-                descriptor.get_impl(result) is descriptor.get_impl(mobject)
+                descriptor.__get__(result) is descriptor.__get__(mobject)
                 for mobject in mobjects
             )
         result._shape_ = Shape.concatenate(
@@ -385,13 +382,13 @@ class ShapeMobject(MeshMobject):
             for mobject in mobjects
         )
 
-        stroke_mobjects = LazyCollection(*(
+        stroke_mobjects = [
             StrokeMobject.class_concatenate(*zipped_stroke_mobjects)
             for zipped_stroke_mobjects in zip(*(
                 mobject._stroke_mobjects_
                 for mobject in mobjects
             ), strict=True)
-        ))
+        ]
         result._stroke_mobjects_ = stroke_mobjects
         result.clear()
         result.add(*stroke_mobjects)
