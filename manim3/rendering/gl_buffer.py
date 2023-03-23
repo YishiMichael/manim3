@@ -6,7 +6,6 @@ __all__ = [
 ]
 
 
-from dataclasses import dataclass
 from enum import Enum
 from functools import reduce
 import operator as op
@@ -32,18 +31,87 @@ class GLBufferLayout(Enum):
     STD140 = 1
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class FieldInfo:
-    dtype_str: str
-    name: str
-    shape: tuple[int, ...]
+class DTypeNode(LazyObject):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        name: str,
+        shape: tuple[int, ...],
+        children: "list[DTypeNode]",
+        layout: GLBufferLayout
+    ) -> None:
+        super().__init__()
+        self._name_ = name
+        self._shape_ = shape
+        self._children_ = children
+        self._layout_ = layout
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _name_(cls) -> str:
+        return ""
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _shape_(cls) -> tuple[int, ...]:
+        return ()
+
+    @Lazy.property(LazyMode.SHARED)
+    @classmethod
+    def _base_alignment_(cls) -> int:
+        return 16
+
+    @Lazy.variable(LazyMode.COLLECTION)
+    @classmethod
+    def _children_(cls) -> "list[DTypeNode]":
+        return []
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _layout_(cls) -> GLBufferLayout:
+        return GLBufferLayout.PACKED
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _dtype_(
+        cls,
+        shape: tuple[int, ...],
+        base_alignment: int,
+        children__name: list[str],
+        children__dtype: list[np.dtype],
+        children__base_alignment: list[int],
+        layout: GLBufferLayout
+    ) -> np.dtype:
+        offsets: list[int] = []
+        offset: int = 0
+        for child_dtype, child_base_alignment in zip(children__dtype, children__base_alignment, strict=True):
+            offsets.append(offset)
+            offset += child_dtype.itemsize
+            if layout == GLBufferLayout.STD140:
+                offset += (-offset) % child_base_alignment
+        if layout == GLBufferLayout.STD140:
+            offset += (-offset) % base_alignment
+
+        return np.dtype((np.dtype({
+            "names": children__name,
+            "formats": children__dtype,
+            "offsets": offsets,
+            "itemsize": offset
+        }), shape))
+
+    def _write(
+        self,
+        array_ptr: np.ndarray,
+        data: np.ndarray | dict[str, Any]
+    ) -> None:
+        assert isinstance(data, dict)
+        for child_node in self._children_:
+            name = child_node._name_.value
+            child_node._write(array_ptr[name], data[name])
 
 
-class GLDynamicStruct(LazyObject):
+class AtomicDTypeNode(DTypeNode):
     __slots__ = ()
 
     _GL_DTYPE: ClassVar[dict[str, np.dtype]] = {
@@ -85,6 +153,84 @@ class GLDynamicStruct(LazyObject):
 
     def __init__(
         self,
+        name: str,
+        shape: tuple[int, ...],
+        dtype_str: str,
+        layout: GLBufferLayout
+    ) -> None:
+        super().__init__(
+            name=name,
+            shape=shape,
+            children=[],
+            layout=layout
+        )
+        self._dtype_str_ = dtype_str
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _dtype_str_(cls) -> str:
+        return ""
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _atomic_dtype_(
+        cls,
+        dtype_str: str
+    ) -> np.dtype:
+        return cls._GL_DTYPE[dtype_str]
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _dtype_(
+        cls,
+        atomic_dtype: np.dtype,
+        shape: tuple[int, ...],
+        layout: GLBufferLayout
+    ) -> np.dtype:
+        atomic_base = atomic_dtype.base
+        atomic_shape = atomic_dtype.shape
+        assert len(atomic_shape) <= 2 and all(2 <= l <= 4 for l in atomic_shape)
+        shape_dict = dict(enumerate(atomic_shape))
+        n_col = shape_dict.get(0, 1)
+        n_row = shape_dict.get(1, 1)
+        if layout == GLBufferLayout.STD140:
+            col_itemsize_factor = n_col if not shape and n_col <= 2 and n_row == 1 else 4
+        else:
+            col_itemsize_factor = n_col
+        col_itemsize = col_itemsize_factor * atomic_base.itemsize
+        return np.dtype((np.dtype({
+            "names": ["_"],
+            "formats": [(atomic_base, (n_col,))],
+            "itemsize": col_itemsize
+        }), (*shape, n_row)))
+
+    @Lazy.property(LazyMode.SHARED)
+    @classmethod
+    def _base_alignment_(
+        cls,
+        dtype: np.dtype
+    ) -> int:
+        return dtype.base.itemsize
+
+    def _write(
+        self,
+        array_ptr: np.ndarray,
+        data: np.ndarray | dict[str, Any]
+    ) -> None:
+        assert isinstance(data, np.ndarray)
+        if not array_ptr.size:
+            return
+        atomic_dtype_dim = self._atomic_dtype_.value.ndim
+        data_expanded = np.expand_dims(data, tuple(range(-2, -atomic_dtype_dim)))
+        assert array_ptr["_"].shape == data_expanded.shape
+        array_ptr["_"] = data_expanded
+
+
+class GLDynamicStruct(LazyObject):
+    __slots__ = ()
+
+    def __init__(
+        self,
         *,
         field: str,
         child_structs: dict[str, list[str]] | None,
@@ -120,45 +266,77 @@ class GLDynamicStruct(LazyObject):
     def _layout_(cls) -> GLBufferLayout:
         return GLBufferLayout.PACKED
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _struct_dtype_(
+    def _dtype_node_(
         cls,
         field: str,
         child_structs: tuple[tuple[str, tuple[str, ...]], ...],
         dynamic_array_lens: tuple[tuple[str, int], ...],
         layout: GLBufferLayout
-    ) -> np.dtype:
+    ) -> DTypeNode:
+
+        def parse_field_str(
+            field_str: str,
+            dynamic_array_lens_dict: dict[str, int]
+        ) -> tuple[str, str, tuple[int, ...]]:
+            pattern = re.compile(r"""
+                (?P<dtype_str>\w+?)
+                \s
+                (?P<name>\w+?)
+                (?P<shape>(\[\w+?\])*)
+            """, flags=re.VERBOSE)
+            match_obj = pattern.fullmatch(field_str)
+            assert match_obj is not None
+            dtype_str = match_obj.group("dtype_str")
+            name = match_obj.group("name")
+            shape = tuple(
+                int(s) if re.match(r"^\d+$", s := index_match.group(1)) is not None else dynamic_array_lens_dict[s]
+                for index_match in re.finditer(r"\[(\w+?)\]", match_obj.group("shape"))
+            )
+            return (dtype_str, name, shape)
+
+        child_structs_dict = dict(child_structs)
         dynamic_array_lens_dict = dict(dynamic_array_lens)
-        return cls._build_struct_dtype(
-            [cls._parse_field_str(field, dynamic_array_lens_dict)],
-            {
-                name: [
-                    cls._parse_field_str(child_field, dynamic_array_lens_dict)
-                    for child_field in child_struct_fields
-                ]
-                for name, child_struct_fields in child_structs
-            },
-            layout,
-            0
-        )
+
+        def get_dtype_node(
+            field: str,
+        ) -> DTypeNode:
+            dtype_str, name, shape = parse_field_str(field, dynamic_array_lens_dict)
+            if (child_struct_fields := child_structs_dict.get(dtype_str)) is None:
+                return AtomicDTypeNode(
+                    name=name,
+                    shape=shape,
+                    dtype_str=dtype_str,
+                    layout=layout
+                )
+            return DTypeNode(
+                name=name,
+                shape=shape,
+                children=[
+                    get_dtype_node(child_struct_field)
+                    for child_struct_field in child_struct_fields
+                ],
+                layout=layout
+            )
+
+        return get_dtype_node(field)
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _field_name_(
         cls,
-        struct_dtype: np.dtype
+        dtype_node__name: str
     ) -> str:
-        assert (field_names := struct_dtype.names) is not None
-        return field_names[0]
+        return dtype_node__name
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _itemsize_(
         cls,
-        struct_dtype: np.dtype
+        dtype_node__dtype: np.dtype
     ) -> int:
-        return struct_dtype.itemsize
+        return dtype_node__dtype.itemsize
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -167,102 +345,6 @@ class GLDynamicStruct(LazyObject):
         itemsize: int
     ) -> bool:
         return itemsize == 0
-
-    @classmethod
-    def _build_struct_dtype(
-        cls,
-        fields_info: list[FieldInfo],
-        child_structs_info: dict[str, list[FieldInfo]],
-        layout: GLBufferLayout,
-        depth: int
-    ) -> np.dtype:
-        names: list[str] = []
-        formats: list[tuple[np.dtype, tuple[int, ...]]] = []
-        offsets: list[int] = []
-        offset = 0
-
-        for field_info in fields_info:
-            shape = field_info.shape
-            if (child_struct_fields_info := child_structs_info.get(field_info.dtype_str)) is not None:
-                child_dtype = cls._build_struct_dtype(
-                    child_struct_fields_info, child_structs_info, layout, depth + len(shape)
-                )
-                base_alignment = 16
-            else:
-                atomic_dtype = cls._GL_DTYPE[field_info.dtype_str]
-                child_dtype = cls._align_atomic_dtype(atomic_dtype, layout, not shape)
-                base_alignment = child_dtype.base.itemsize
-
-            if layout == GLBufferLayout.STD140:
-                assert child_dtype.itemsize % base_alignment == 0
-                offset += (-offset) % base_alignment
-            names.append(field_info.name)
-            formats.append((child_dtype, shape))
-            offsets.append(offset)
-            offset += cls._int_prod(shape) * child_dtype.itemsize
-
-        if layout == GLBufferLayout.STD140:
-            offset += (-offset) % 16
-
-        return np.dtype({
-            "names": names,
-            "formats": formats,
-            "offsets": offsets,
-            "itemsize": offset
-        })
-
-    @classmethod
-    def _parse_field_str(
-        cls,
-        field_str: str,
-        dynamic_array_lens: dict[str, int]
-    ) -> FieldInfo:
-        pattern = re.compile(r"""
-            (?P<dtype_str>\w+?)
-            \s
-            (?P<name>\w+?)
-            (?P<shape>(\[\w+?\])*)
-        """, flags=re.VERBOSE)
-        match_obj = pattern.fullmatch(field_str)
-        assert match_obj is not None
-        return FieldInfo(
-            dtype_str=match_obj.group("dtype_str"),
-            name=match_obj.group("name"),
-            shape=tuple(
-                int(s) if re.match(r"^\d+$", s := index_match.group(1)) is not None else dynamic_array_lens[s]
-                for index_match in re.finditer(r"\[(\w+?)\]", match_obj.group("shape"))
-            ),
-        )
-
-    @classmethod
-    def _align_atomic_dtype(
-        cls,
-        atomic_dtype: np.dtype,
-        layout: GLBufferLayout,
-        zero_dimensional: bool
-    ) -> np.dtype:
-        base = atomic_dtype.base
-        shape = atomic_dtype.shape
-        assert len(shape) <= 2 and all(2 <= l <= 4 for l in shape)
-        shape_dict = dict(enumerate(shape))
-        n_col = shape_dict.get(0, 1)
-        n_row = shape_dict.get(1, 1)
-        if layout == GLBufferLayout.STD140:
-            itemsize = (n_col if zero_dimensional and n_col <= 2 and n_row == 1 else 4) * base.itemsize
-        else:
-            itemsize = n_col * base.itemsize
-        return np.dtype((np.dtype({
-            "names": ["_"],
-            "formats": [(base, (n_col,))],
-            "itemsize": itemsize
-        }), (n_row,)))
-
-    @classmethod
-    def _int_prod(
-        cls,
-        shape: tuple[int, ...]
-    ) -> int:
-        return reduce(op.mul, shape, 1)
 
 
 class GLDynamicBuffer(GLDynamicStruct):
@@ -294,20 +376,11 @@ class GLDynamicBuffer(GLDynamicStruct):
     @classmethod
     def _data_storage_(
         cls,
-        data: np.ndarray | dict[str, Any],
-        struct_dtype: np.dtype,
-        field_name: str
+        _dtype_node_: DTypeNode,
+        data: np.ndarray | dict[str, Any]
     ) -> np.ndarray:
-        data_dict = cls._flatten_as_data_dict(data, (field_name,))
-        data_storage = np.zeros((), dtype=struct_dtype)
-        for data_key, data_value in data_dict.items():
-            if not data_value.size:
-                continue
-            data_ptr = data_storage
-            while data_key:
-                data_ptr = data_ptr[data_key[0]]
-                data_key = data_key[1:]
-            data_ptr["_"] = data_value.reshape(data_ptr["_"].shape)
+        data_storage = np.zeros((), dtype=_dtype_node_._dtype_.value)
+        _dtype_node_._write(data_storage, data)
         return data_storage
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -315,7 +388,7 @@ class GLDynamicBuffer(GLDynamicStruct):
     def _buffer_(
         cls,
         data_storage: np.ndarray,
-        struct_dtype: np.dtype
+        itemsize: int
     ) -> moderngl.Buffer:
         if cls._VACANT_BUFFERS:
             buffer = cls._VACANT_BUFFERS.pop()
@@ -323,11 +396,11 @@ class GLDynamicBuffer(GLDynamicStruct):
             buffer = Context.buffer()
 
         bytes_data = data_storage.tobytes()
-        #assert struct_dtype.itemsize == len(bytes_data)
-        if struct_dtype.itemsize == 0:
+        assert itemsize == len(bytes_data)
+        if itemsize == 0:
             buffer.clear()
             return buffer
-        buffer.orphan(struct_dtype.itemsize)
+        buffer.orphan(itemsize)
         buffer.write(bytes_data)
         return buffer
 
@@ -338,19 +411,6 @@ class GLDynamicBuffer(GLDynamicStruct):
         buffer: moderngl.Buffer
     ) -> None:
         cls._VACANT_BUFFERS.append(buffer)
-
-    @classmethod
-    def _flatten_as_data_dict(
-        cls,
-        data: np.ndarray | dict[str, Any],
-        prefix: tuple[str, ...]
-    ) -> dict[tuple[str, ...], np.ndarray]:
-        if isinstance(data, np.ndarray):
-            return {prefix: data}
-        result: dict[tuple[str, ...], np.ndarray] = {}
-        for child_name, child_data in data.items():
-            result.update(cls._flatten_as_data_dict(child_data, prefix + (child_name,)))
-        return result
 
 
 class TextureStorage(GLDynamicStruct):
@@ -457,9 +517,9 @@ class AttributesBuffer(GLDynamicBuffer):
     @classmethod
     def _vertex_dtype_(
         cls,
-        struct_dtype: np.dtype
+        dtype_node__dtype: np.dtype
     ) -> np.dtype:
-        return struct_dtype["__vertex__"].base
+        return dtype_node__dtype.base
 
     def _get_buffer_format(
         self,
@@ -510,6 +570,13 @@ class AttributesBuffer(GLDynamicBuffer):
             assert attribute.array_length == self._int_prod(field_dtype.shape)
             assert attribute.dimension == self._int_prod(field_dtype.base.shape) * self._int_prod(field_dtype.base["_"].shape)
             assert attribute.shape == field_dtype.base["_"].base.kind.replace("u", "I")
+
+    @classmethod
+    def _int_prod(
+        cls,
+        shape: tuple[int, ...]
+    ) -> int:
+        return reduce(op.mul, shape, 1)
 
 
 class IndexBuffer(GLDynamicBuffer):

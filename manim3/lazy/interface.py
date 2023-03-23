@@ -161,7 +161,6 @@ class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_Instance
     ) -> LazyUnitaryContainer[LazyWrapper[_HashableT]]:
         if (cached_element := self.content_to_element_dict.get(new_value)) is None:
             cached_element = LazyWrapper(new_value)
-            #cached_element._make_always_alive()
             self.content_to_element_dict[new_value] = cached_element
         return LazyUnitaryContainer(
             element=cached_element
@@ -275,7 +274,6 @@ class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_Instance
     ) -> LazyUnitaryContainer[LazyWrapper[_HashableT]]:
         if (cached_element := self.content_to_element_dict.get(new_value)) is None:
             cached_element = LazyWrapper(new_value)
-            #cached_element._make_always_alive()
             self.content_to_element_dict[new_value] = cached_element
         return LazyUnitaryContainer(
             element=cached_element
