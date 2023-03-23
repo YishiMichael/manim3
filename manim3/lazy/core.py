@@ -15,6 +15,12 @@ methods and be named with underscores appeared on both sides, i.e. `_data_`.
 Successive underscores shall not occur, due to the name convension handled by
 lazy properties.
 
+The structure of this implementation can be summarized in the following graph:
+
+LazyObject --> LazySlot         --> LazyContainer        --> LazyObject
+            |> LazyVariableSlot  |> LazyUnitaryContainer
+            |> LazyPropertySlot  |> LazyDynamicContainer
+
 # Lazy Variable
 
 Lazy variables are what users can modify freely from the outer scope. They are
@@ -28,14 +34,15 @@ on the other hand, can be shared freely.
 Methods decorated by `Lazy.variable` should not take any argument except for
 `cls` and return the *initial* value for this data.
 
-+------------+----------------------+----------------------+----------------------+
-| LazyMode   | method return        | __get__ return       | __set__ type         |
-+------------+----------------------+----------------------+----------------------+
-| OBJECT     | LazyObject           | LazyObject           | LazyObject           |
-| UNWRAPPED  | T                    | LazyWrapper[T]       | T | LazyWrapper[T]   |
-| SHARED     | T (Hashable)         | LazyWrapper[T]       | T                    |
-| COLLECTION | LazyDynamicContainer | LazyDynamicContainer | LazyDynamicContainer |
-+------------+----------------------+----------------------+----------------------+
++------------+-------------------+-------------------+--------------------+
+| LazyMode   | method return     | __get__ return    | __set__ type       |
++------------+-------------------+-------------------+--------------------+
+| OBJECT     | LazyObjectT       | LazyObjectT       | LazyObjectT        |
+| UNWRAPPED  | T                 | LazyWrapper[T]    | T | LazyWrapper[T] |
+| SHARED     | T (Hashable)      | LazyWrapper[T]    | T                  |
+| COLLECTION | LazyCollectionT * | LazyCollectionT * | LazyCollectionT *  |
++------------+-------------------+-------------------+--------------------+
+*: Abbreviation of `LazyDynamicContainer[LazyObjectT]`.
 
 The `__get__` method always returns an instance of either `LazyObject` or
 `LazyDynamicContainer`, the latter of which is just a dynamic collection of
@@ -51,8 +58,9 @@ for providing `T` type in `UNWRAPPED` mode, in which case a new `LazyWrapper`
 object will be instanced and assigned specially to the instance. Additionally,
 `LazyDynamicContainer`s can be mutated via `add` and `remove`.
 
-The `LazyObject._copy` method will make all its children `LazyObject`s shared,
-and construct new `LazyDynamicContainer`s holding the same references, just
+The `LazyObject._copy` method will only copy containers under variable slots.
+This means all children `LazyObject`s will be shared, and new
+`LazyDynamicContainer`s will be created, holding the same references, just
 like a shallow copy.
 
 # Lazy Property
@@ -66,14 +74,15 @@ Containers under `LazyPropertySlot` objects can be shared due to read-only.
 Methods decorated by `Lazy.property` defines how lazy properties are related
 to their dependent variables.
 
-+------------+----------------------+----------------------+
-| LazyMode   | method return        | __get__ return       |
-+------------+----------------------+----------------------+
-| OBJECT     | LazyObject           | LazyObject           |
-| UNWRAPPED  | T                    | LazyWrapper[T]       |
-| SHARED     | T (Hashable)         | LazyWrapper[T]       |
-| COLLECTION | LazyDynamicContainer | LazyDynamicContainer |
-+------------+----------------------+----------------------+
++------------+-------------------+-------------------+
+| LazyMode   | method return     | __get__ return    |
++------------+-------------------+-------------------+
+| OBJECT     | LazyObject        | LazyObject        |
+| UNWRAPPED  | T                 | LazyWrapper[T]    |
+| SHARED     | T (Hashable)      | LazyWrapper[T]    |
+| COLLECTION | LazyCollectionT * | LazyCollectionT * |
++------------+-------------------+-------------------+
+*: Abbreviation of `LazyDynamicContainer[LazyObjectT]`.
 
 The return type of `__get__` is basically the same as that of lazy variables.
 Containers will be entirely shared if the leaf nodes of objects of parameters
@@ -461,7 +470,7 @@ class LazyObject(ABC):
             if isinstance(descriptor, LazyVariableDescriptor)
         )
         cls._LAZY_DESCRIPTOR_OVERLOADING_DICT = descriptor_overloading_dict
-        # Use dict.fromkeys to preserve order (by first occurrance)
+        # Use dict.fromkeys to preserve order (by first occurrance).
         cls._PY_SLOTS = tuple(dict.fromkeys(
             slot
             for parent_cls in reversed(cls.__mro__)
@@ -541,14 +550,14 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _D
     ) -> _DescriptorT | _DescriptorGetT:
         if instance is None:
             return self
-        return self.convert_get(self.get_impl(instance))
+        return self.convert_get(self.get_implementation(instance))
 
     def __set__(
         self,
         instance: _InstanceT,
         new_value: _DescriptorSetT
     ) -> None:
-        self.set_impl(instance, self.convert_set(new_value))
+        self.set_implementation(instance, self.convert_set(new_value))
 
     def __delete__(
         self,
@@ -557,14 +566,14 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _D
         raise TypeError("Cannot delete attributes of a lazy object")
 
     @abstractmethod
-    def get_impl(
+    def get_implementation(
         self,
         instance: _InstanceT
     ) -> _ContainerT:
         pass
 
     @abstractmethod
-    def set_impl(
+    def set_implementation(
         self,
         instance: _InstanceT,
         new_container: _ContainerT
@@ -633,13 +642,13 @@ class LazyVariableDescriptor(LazyDescriptor[
         self.method: Callable[[type[_InstanceT]], _DescriptorSetT] = method
         self.default_container: _ContainerT | None = None
 
-    def get_impl(
+    def get_implementation(
         self,
         instance: _InstanceT
     ) -> _ContainerT:
         return self.get_slot(instance).get_variable_container()
 
-    def set_impl(
+    def set_implementation(
         self,
         instance: _InstanceT,
         new_container: _ContainerT
@@ -702,7 +711,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
 ]):
     __slots__ = (
         "method",
-        "release_method",
+        "finalize_method",
         "parameter_name_chains",
         "requires_unwrapping_tuple",
         "descriptor_overloading_chains",
@@ -721,14 +730,14 @@ class LazyPropertyDescriptor(LazyDescriptor[
             element_type=element_type
         )
         self.method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _DescriptorSetT] = method
-        self.release_method: Callable[[type[_InstanceT], _DescriptorGetT], None] | None = None
+        self.finalize_method: Callable[[type[_InstanceT], _DescriptorGetT], None] | None = None
         self.parameter_name_chains: tuple[tuple[str, ...], ...] = parameter_name_chains
         self.requires_unwrapping_tuple: tuple[bool, ...] = requires_unwrapping_tuple
         self.descriptor_overloading_chains: tuple[tuple[LazyDescriptorOverloading, ...], ...] = NotImplemented
         self.instance_to_key_dict: weakref.WeakKeyDictionary[_InstanceT, tuple[Hashable, ...]] = weakref.WeakKeyDictionary()
         self.key_to_container_dict: weakref.WeakValueDictionary[tuple[Hashable, ...], _ContainerT] = weakref.WeakValueDictionary()
 
-    def get_impl(
+    def get_implementation(
         self,
         instance: _InstanceT
     ) -> _ContainerT:
@@ -750,7 +759,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
                     obj, binding_completed = obj_tagged
                     descriptor = descriptor_overloading.get_descriptor(type(obj))
                     slot = descriptor.get_slot(obj)
-                    container = descriptor.get_impl(obj)
+                    container = descriptor.get_implementation(obj)
                     if not binding_completed:
                         if isinstance(slot, LazyVariableSlot):
                             if is_chain_tail:
@@ -869,13 +878,13 @@ class LazyPropertyDescriptor(LazyDescriptor[
                         variable_slot._make_readonly()
                 self.key_to_container_dict[key] = container
 
-                if (release_method := self.release_method) is not None:
-                    weakref.finalize(container, release_method, type(instance), self.convert_get(container))
+                if (finalize_method := self.finalize_method) is not None:
+                    weakref.finalize(container, finalize_method, type(instance), self.convert_get(container))
 
             slot.set_property_container(container)
         return container
 
-    def set_impl(
+    def set_implementation(
         self,
         instance: _InstanceT,
         new_container: _ContainerT

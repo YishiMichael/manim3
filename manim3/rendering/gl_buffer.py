@@ -127,10 +127,6 @@ class AtomicDTypeNode(DTypeNode):
         "vec2":    np.dtype(("f4", (2,))),
         "vec3":    np.dtype(("f4", (3,))),
         "vec4":    np.dtype(("f4", (4,))),
-        "double":  np.dtype(("f8", ())),
-        "dvec2":   np.dtype(("f8", (2,))),
-        "dvec3":   np.dtype(("f8", (3,))),
-        "dvec4":   np.dtype(("f8", (4,))),
         "mat2":    np.dtype(("f4", (2, 2))),
         "mat2x3":  np.dtype(("f4", (2, 3))),  # TODO: check order
         "mat2x4":  np.dtype(("f4", (2, 4))),
@@ -140,6 +136,10 @@ class AtomicDTypeNode(DTypeNode):
         "mat4x2":  np.dtype(("f4", (4, 2))),
         "mat4x3":  np.dtype(("f4", (4, 3))),
         "mat4":    np.dtype(("f4", (4, 4))),
+        "double":  np.dtype(("f8", ())),
+        "dvec2":   np.dtype(("f8", (2,))),
+        "dvec3":   np.dtype(("f8", (3,))),
+        "dvec4":   np.dtype(("f8", (4,))),
         "dmat2":   np.dtype(("f8", (2, 2))),
         "dmat2x3": np.dtype(("f8", (2, 3))),
         "dmat2x4": np.dtype(("f8", (2, 4))),
@@ -404,9 +404,9 @@ class GLDynamicBuffer(GLDynamicStruct):
         buffer.write(bytes_data)
         return buffer
 
-    @_buffer_.releaser
+    @_buffer_.finalizer
     @classmethod
-    def _buffer_releaser(
+    def _buffer_finalizer(
         cls,
         buffer: moderngl.Buffer
     ) -> None:
@@ -510,7 +510,7 @@ class AttributesBuffer(GLDynamicBuffer):
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
-        # Let's keep using std140 layout, hopefully leading to a faster processing speed.
+        # Let's keep using std140 layout, hopefully giving a faster processing speed.
         return GLBufferLayout.STD140
 
     @Lazy.property(LazyMode.UNWRAPPED)

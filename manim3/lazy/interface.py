@@ -235,21 +235,21 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
             element=LazyWrapper(new_value)
         )
 
-    def releaser(
+    def finalizer(
         self,
-        release_method: Any
+        finalize_method: Any
     ) -> Any:
-        assert isinstance(release_method, classmethod)
-        func = release_method.__func__
+        assert isinstance(finalize_method, classmethod)
+        func = finalize_method.__func__
 
-        def new_release_method(
+        def new_finalize_method(
             cls: type[_InstanceT],
             entity: LazyWrapper[_T]
         ) -> None:
             func(cls, entity.value)
 
-        self.release_method = new_release_method
-        return release_method
+        self.finalize_method = new_finalize_method
+        return finalize_method
 
 
 class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):

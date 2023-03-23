@@ -204,13 +204,12 @@ class VertexArray(LazyObject):
             uniform_block_binding_dict=uniform_block_binding_dict
         )
 
-    @_program_data_.releaser
+    @_program_data_.finalizer
     @classmethod
-    def _program_data_releaser(
+    def _program_data_finalizer(
         cls,
         program_data: ProgramData
     ) -> None:
-        # TODO: check refcnt
         program_data.program.release()
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -244,15 +243,12 @@ class VertexArray(LazyObject):
             mode=mode
         )
 
-    @_vertex_array_.releaser
+    @_vertex_array_.finalizer
     @classmethod
-    def _vertex_array_releaser(
+    def _vertex_array_finalizer(
         cls,
         vertex_array: moderngl.VertexArray | None
     ) -> None:
-        # TODO: check refcnt
-        #import sys
-        #print(sys.getrefcount(vertex_array))
         if vertex_array is not None:
             vertex_array.release()
 
