@@ -23,7 +23,7 @@ from ..rendering.context import Context
 _ResourceParameters = ParamSpec("_ResourceParameters")
 
 
-class TemporaryResource(Generic[_ResourceParameters], ABC):
+class TemporaryResource(ABC, Generic[_ResourceParameters]):
     __slots__ = ()
 
     _INSTANCE_TO_PARAMETERS_DICT: dict

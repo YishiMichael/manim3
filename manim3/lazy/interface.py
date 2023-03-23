@@ -22,8 +22,7 @@ from typing import (
     TypeVar,
     overload
 )
-
-from bidict import bidict
+import weakref
 
 from ..lazy.core import (
     LazyDynamicContainer,
@@ -114,7 +113,7 @@ class LazyUnitaryVariableDecorator(LazyUnitaryVariableDescriptor[_InstanceT, _El
     def convert_set(
         self,
         new_value: _ElementT
-    ) -> LazyUnitaryContainer[_InstanceT, _ElementT]:
+    ) -> LazyUnitaryContainer[_ElementT]:
         return LazyUnitaryContainer(
             element=new_value
         )
@@ -135,7 +134,7 @@ class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_Insta
     def convert_set(
         self,
         new_value: _T | LazyWrapper[_T]
-    ) -> LazyUnitaryContainer[_InstanceT, LazyWrapper[_T]]:
+    ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
         if not isinstance(new_value, LazyWrapper):
             new_value = LazyWrapper(new_value)
         return LazyUnitaryContainer(
@@ -144,13 +143,13 @@ class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_Insta
 
 
 class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
-    __slots__ = ("content_to_element_bidict",)
+    __slots__ = ("content_to_element_dict",)
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _HashableT]
     ) -> None:
-        self.content_to_element_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
+        self.content_to_element_dict: weakref.WeakValueDictionary[_HashableT, LazyWrapper[_HashableT]] = weakref.WeakValueDictionary()
         super().__init__(
             element_type=LazyWrapper,
             method=method
@@ -159,11 +158,11 @@ class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_Instance
     def convert_set(
         self,
         new_value: _HashableT
-    ) -> LazyUnitaryContainer[_InstanceT, LazyWrapper[_HashableT]]:
-        if (cached_element := self.content_to_element_bidict.get(new_value)) is None:
+    ) -> LazyUnitaryContainer[LazyWrapper[_HashableT]]:
+        if (cached_element := self.content_to_element_dict.get(new_value)) is None:
             cached_element = LazyWrapper(new_value)
-            cached_element._make_always_alive()
-            self.content_to_element_bidict[new_value] = cached_element
+            #cached_element._make_always_alive()
+            self.content_to_element_dict[new_value] = cached_element
         return LazyUnitaryContainer(
             element=cached_element
         )
@@ -184,7 +183,7 @@ class LazyDynamicVariableDecorator(LazyDynamicVariableDescriptor[_InstanceT, _El
     def convert_set(
         self,
         new_value: Iterable[_ElementT]
-    ) -> LazyDynamicContainer[_InstanceT, _ElementT]:
+    ) -> LazyDynamicContainer[_ElementT]:
         return LazyDynamicContainer(
             elements=new_value
         )
@@ -208,7 +207,7 @@ class LazyUnitaryPropertyDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, _El
     def convert_set(
         self,
         new_value: _ElementT
-    ) -> LazyUnitaryContainer[_InstanceT, _ElementT]:
+    ) -> LazyUnitaryContainer[_ElementT]:
         return LazyUnitaryContainer(
             element=new_value
         )
@@ -232,7 +231,7 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
     def convert_set(
         self,
         new_value: _T
-    ) -> LazyUnitaryContainer[_InstanceT, LazyWrapper[_T]]:
+    ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
         return LazyUnitaryContainer(
             element=LazyWrapper(new_value)
         )
@@ -255,13 +254,13 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
 
 
 class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
-    __slots__ = ("content_to_element_bidict",)
+    __slots__ = ("content_to_element_dict",)
 
     def __init__(
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]
     ) -> None:
-        self.content_to_element_bidict: bidict[_HashableT, LazyWrapper[_HashableT]] = bidict()
+        self.content_to_element_dict: weakref.WeakValueDictionary[_HashableT, LazyWrapper[_HashableT]] = weakref.WeakValueDictionary()
         parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=LazyWrapper,
@@ -273,11 +272,11 @@ class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_Instance
     def convert_set(
         self,
         new_value: _HashableT
-    ) -> LazyUnitaryContainer[_InstanceT, LazyWrapper[_HashableT]]:
-        if (cached_element := self.content_to_element_bidict.get(new_value)) is None:
+    ) -> LazyUnitaryContainer[LazyWrapper[_HashableT]]:
+        if (cached_element := self.content_to_element_dict.get(new_value)) is None:
             cached_element = LazyWrapper(new_value)
-            cached_element._make_always_alive()
-            self.content_to_element_bidict[new_value] = cached_element
+            #cached_element._make_always_alive()
+            self.content_to_element_dict[new_value] = cached_element
         return LazyUnitaryContainer(
             element=cached_element
         )
@@ -301,7 +300,7 @@ class LazyDynamicPropertyDecorator(LazyDynamicPropertyDescriptor[_InstanceT, _El
     def convert_set(
         self,
         new_value: Iterable[_ElementT]
-    ) -> LazyDynamicContainer[_InstanceT, _ElementT]:
+    ) -> LazyDynamicContainer[_ElementT]:
         return LazyDynamicContainer(
             elements=new_value
         )

@@ -1,4 +1,3 @@
-bidict
 colour
 manimpango
 mapbox-earcut

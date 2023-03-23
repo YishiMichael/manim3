@@ -27,12 +27,12 @@ from ..utils.shape import (
 
 
 _T = TypeVar("_T")
-_InstanceT = TypeVar("_InstanceT", bound=LazyObject)
 _ElementT = TypeVar("_ElementT", bound=LazyObject)
+_InstanceT = TypeVar("_InstanceT", bound=LazyObject)
 _DescriptorSetT = TypeVar("_DescriptorSetT")
 
 
-class VariableInterpolant(Generic[_InstanceT, _ElementT, _DescriptorSetT], ABC):
+class VariableInterpolant(ABC, Generic[_InstanceT, _ElementT, _DescriptorSetT]):
     __slots__ = (
         "_descriptor",
         "_method"

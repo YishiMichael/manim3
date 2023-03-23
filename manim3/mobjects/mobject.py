@@ -1,6 +1,7 @@
 __all__ = ["Mobject"]
 
 
+from abc import ABC
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
@@ -47,7 +48,7 @@ from ..utils.space import SpaceUtils
 _T = TypeVar("_T")
 
 
-class PseudoDynamicContainer(Generic[_T]):
+class PseudoDynamicContainer(ABC, Generic[_T]):
     # Provides a interface similar to `LazyDynamicContainer`.
     # If `_parents` and `_real_ancestors` are implemented with `LazyDynamicContainer` also,
     # loops will pop up in the DAG in the lazy system.
