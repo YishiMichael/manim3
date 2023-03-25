@@ -76,7 +76,7 @@ class Context(ABC):
         cls,
         scene_name: str
     ) -> None:
-        cls._WRITING_PROCESS = sp.Popen([
+        cls._WRITING_PROCESS = sp.Popen((
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
@@ -90,7 +90,7 @@ class Context(ABC):
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
             ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.mp4")
-        ], stdin=sp.PIPE)
+        ), stdin=sp.PIPE)
 
     @classmethod
     @property

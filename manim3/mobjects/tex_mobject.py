@@ -91,7 +91,11 @@ class TexFileWriter(StringFileWriter):
                 ">",
                 os.devnull
             ))):
-                raise ValueError
+                message = "LaTeX Error! Not a worry, it happens to the best of us."
+                with svg_path.with_suffix(".log").open(encoding="utf-8") as log_file:
+                    if (error_match_obj := re.search(r"(?<=\n! ).*", log_file.read())) is not None:
+                        message += f" The error could be: `{error_match_obj.group()}`"
+                raise ValueError(message)
 
             # dvi to svg
             os.system(" ".join((
@@ -105,14 +109,6 @@ class TexFileWriter(StringFileWriter):
                 ">",
                 os.devnull
             )))
-
-        except ValueError:
-            print("LaTeX Error! Not a worry, it happens to the best of us.")
-            with svg_path.with_suffix(".log").open(encoding="utf-8") as log_file:
-                error_match_obj = re.search(r"(?<=\n! ).*", log_file.read())
-                if error_match_obj:
-                    print(f"The error could be: `{error_match_obj.group()}`")
-            raise ValueError from None
 
         finally:
             # Cleanup superfluous documents.

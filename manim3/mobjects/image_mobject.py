@@ -5,6 +5,7 @@ import moderngl
 import numpy as np
 from PIL import Image
 
+from ..constants import X_AXIS
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.interface import (
@@ -38,7 +39,7 @@ class ImageMobject(MeshMobject):
             specified_width=width,
             specified_height=height
         )
-        self.scale(np.array((x_scale, -y_scale, 1.0)))  # flip y
+        self.scale(np.array((x_scale, y_scale, 1.0))).flip(X_AXIS)  # flip y
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod

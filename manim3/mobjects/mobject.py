@@ -20,6 +20,7 @@ from scipy.spatial.transform import Rotation
 
 from ..constants import (
     ORIGIN,
+    PI,
     RIGHT
 )
 from ..custom_typing import (
@@ -672,7 +673,6 @@ class Mobject(LazyObject):
         specified_width: float | None,
         specified_height: float | None
     ) -> Vec2T:
-        # Called when initializing a planar mobject.
         scale_factor = np.ones(2)
         if specified_width is None and specified_height is None:
             if specified_frame_scale is not None:
@@ -718,6 +718,22 @@ class Mobject(LazyObject):
         self.rotate(
             rotation=rotation,
             about_point=ORIGIN,
+            broadcast=broadcast
+        )
+        return self
+
+    def flip(
+        self,
+        axis: Vec3T,
+        *,
+        about_point: Vec3T | None = None,
+        about_edge: Vec3T | None = None,
+        broadcast: bool = True
+    ):
+        self.rotate(
+            rotation=Rotation.from_rotvec(SpaceUtils.normalize(axis) * PI),
+            about_point=about_point,
+            about_edge=about_edge,
             broadcast=broadcast
         )
         return self

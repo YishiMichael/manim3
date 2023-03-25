@@ -12,10 +12,12 @@ import numpy as np
 from scipy.interpolate import BSpline
 import svgelements as se
 
+from ..constants import X_AXIS
 from ..custom_typing import (
     FloatsT,
     Vec2T,
-    Vec2sT
+    Vec2sT,
+    Vec3T
 )
 from ..lazy.core import LazyWrapper
 from ..mobjects.shape_mobject import ShapeMobject
@@ -77,7 +79,7 @@ class SVGMobject(ShapeMobject):
         if bbox is None:
             return
 
-        # Handle transform before constructing ShapeGeometry
+        # Handle transform before constructing `ShapeGeometry`
         # so that the center of the geometry falls on the origin.
         x_min, y_min, x_max, y_max = bbox
         x_scale, y_scale = self._get_frame_scale_vector(
@@ -113,17 +115,17 @@ class SVGMobject(ShapeMobject):
 
         # Share the `_color_` values.
         # Useful when calling `concatenate()` method.
-        color_hex_to_mobjects: dict[str, list[ShapeMobject]] = {}
+        color_hex_to_value_dict: dict[str, LazyWrapper[Vec3T]] = {}
         for mobject in shape_mobjects:
-            color_hex_to_mobjects.setdefault(ColorUtils.color_to_hex(mobject._color_.value), []).append(mobject)
-        for color_hex, mobjects in color_hex_to_mobjects.items():
-            rgb, _ = ColorUtils.decompose_color(color_hex)
-            color_value = LazyWrapper(rgb)
-            for mobject in mobjects:
-                mobject._color_ = color_value
+            color = mobject._color_.value
+            color_hex = ColorUtils.color_to_hex(color)
+            if (color_value := color_hex_to_value_dict.get(color_hex)) is None:
+                color_value = LazyWrapper(color)
+                color_hex_to_value_dict[color_hex] = color_value
+            mobject._color_ = color_value
 
         self.add(*shape_mobjects)
-        self.scale(np.array((1.0, -1.0, 1.0)))  # flip y
+        self.flip(X_AXIS)  # flip y
 
     @classmethod
     def _get_mobject_from_se_shape(
