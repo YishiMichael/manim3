@@ -36,6 +36,7 @@ class TexTransformExample(Scene):
         #self.play(Transform(text, tex))
         #self.wait()
         text = Text("Text").scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=RED).concatenate()
+        #print(text._children_[0]._multi_line_string_._lengths_.value)
         tex = TexText("TexText").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text)
         self.wait()
@@ -70,6 +71,7 @@ class ThreeDTextExample(Scene):
         text = Text("Text").concatenate()
         text_3d = MeshMobject()
         text_3d._geometry_ = PrismoidGeometry(text._shape_)
+        #print(text_3d._geometry_._geometry_data_.value)
         text_3d._model_matrix_ = text._model_matrix_
         text_3d.scale(5.0).stretch_to_fit_depth(0.5)
         text_3d.set_style(color="#00FFAA99")

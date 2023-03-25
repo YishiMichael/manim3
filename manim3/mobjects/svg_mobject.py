@@ -2,6 +2,7 @@ __all__ = ["SVGMobject"]
 
 
 import itertools as it
+import pathlib
 from typing import (
     Generator,
     overload
@@ -61,11 +62,11 @@ class SVGMobject(ShapeMobject):
 
     def __init__(
         self,
-        file_path: str | None = None,
+        file_path: str | pathlib.Path | None = None,
         *,
+        frame_scale: float | None = None,
         width: float | None = None,
-        height: float | None = None,
-        frame_scale: float | None = None
+        height: float | None = None
     ) -> None:
         super().__init__()
         if file_path is None:
@@ -80,11 +81,11 @@ class SVGMobject(ShapeMobject):
         # so that the center of the geometry falls on the origin.
         x_min, y_min, x_max, y_max = bbox
         x_scale, y_scale = self._get_frame_scale_vector(
-            x_max - x_min,
-            y_max - y_min,
-            width,
-            height,
-            frame_scale
+            original_width=x_max - x_min,
+            original_height=y_max - y_min,
+            specified_frame_scale=frame_scale,
+            specified_width=width,
+            specified_height=height
         )
         transform = se.Matrix(
             x_scale,

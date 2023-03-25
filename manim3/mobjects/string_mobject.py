@@ -1,6 +1,7 @@
 __all__ = [
     "CommandFlag",
     "EdgeFlag",
+    "StringFileWriter",
     "StringMobject"
 ]
 
@@ -9,9 +10,12 @@ from abc import (
     ABC,
     abstractmethod
 )
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
+import hashlib
 import itertools as it
+import pathlib
 import re
 from typing import (
     Callable,
@@ -46,6 +50,8 @@ class EdgeFlag(Enum):
 
 
 class Span(ABC):
+    __slots__ = ("start", "stop")
+
     def __init__(
         self,
         start: int,
@@ -72,7 +78,7 @@ class Span(ABC):
 )
 class ConfiguredItem:
     span: Span
-    attr_dict: dict[str, str]
+    attrs: dict[str, str]
 
 
 @dataclass(
@@ -114,7 +120,7 @@ class CommandItem:
 class LabelledItem:
     label: int
     span: Span
-    attr_dict: dict[str, str]
+    attrs: dict[str, str]
 
 
 @dataclass(
@@ -163,6 +169,62 @@ class ParsingResult:
     group_part_items: list[tuple[str, list[ShapeMobject]]]
 
 
+class StringFileWriter(ABC):
+    __slots__ = ()
+
+    def get_svg_path_by_content(
+        self,
+        content: str,
+        string: str
+    ) -> pathlib.Path:
+        svg_path = self.get_svg_path(content)
+        if not svg_path.exists():
+            with self.display_during_execution(string):
+                self.create_svg_file(content, svg_path)
+        return svg_path
+
+    @abstractmethod
+    def get_svg_path(
+        self,
+        content: str
+    ) -> pathlib.Path:
+        pass
+
+    @abstractmethod
+    def create_svg_file(
+        self,
+        content: str,
+        svg_path: pathlib.Path
+    ) -> None:
+        pass
+
+    @classmethod
+    def hash_string(
+        cls,
+        string: str
+    ) -> str:
+        # Truncating at 16 bytes for cleanliness.
+        hasher = hashlib.sha256(string.encode())
+        return hasher.hexdigest()[:16]
+
+    @classmethod
+    @contextmanager
+    def display_during_execution(
+        cls,
+        string: str
+    ) -> Generator[None, None, None]:
+        max_characters = 60
+        summary = string.replace("\n", "")
+        if len(summary) > max_characters:
+            summary = f"{summary[:max_characters - 3]}..."
+        message = f"Writing \"{summary}\""
+        try:
+            print(message, end="\r")
+            yield
+        finally:
+            print(" " * len(message), end="\r")
+
+
 class StringMobject(SVGMobject):
     """
     An abstract base class for `Tex` and `MarkupText`.
@@ -194,25 +256,24 @@ class StringMobject(SVGMobject):
         isolate: Selector = (),
         protect: Selector = (),
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
-        get_content_prefix_and_suffix: Callable[[bool], tuple[str, str]],
-        get_svg_path: Callable[[str], str],
+        get_content_by_body: Callable[[str, bool], str],
+        file_writer: StringFileWriter,
+        frame_scale: float | None,
         width: float | None,
-        height: float | None,
-        frame_scale: float | None
+        height: float | None
     ) -> None:
+        super().__init__()
         parsing_result = self._parse(
             string=string,
             isolate=isolate,
             protect=protect,
             configured_items_generator=configured_items_generator,
-            get_content_prefix_and_suffix=get_content_prefix_and_suffix,
-            get_svg_path=get_svg_path,
+            get_content_by_body=get_content_by_body,
+            file_writer=file_writer,
+            frame_scale=frame_scale,
             width=width,
-            height=height,
-            frame_scale=frame_scale
+            height=height
         )
-
-        super().__init__()
         self._string: str = string
         self._parsing_result: ParsingResult = parsing_result
         self.add(*(
@@ -227,11 +288,11 @@ class StringMobject(SVGMobject):
         isolate: Selector,
         protect: Selector,
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
-        get_content_prefix_and_suffix: Callable[[bool], tuple[str, str]],
-        get_svg_path: Callable[[str], str],
-        width: float | None = None,
-        height: float | None = None,
-        frame_scale: float | None = None
+        get_content_by_body: Callable[[str, bool], str],
+        file_writer: StringFileWriter,
+        frame_scale: float | None,
+        width: float | None,
+        height: float | None
     ) -> ParsingResult:
         labelled_items, replaced_items = cls._get_labelled_items_and_replaced_items(
             string=string,
@@ -249,14 +310,15 @@ class StringMobject(SVGMobject):
         ]
 
         labelled_shape_items = cls._get_labelled_shape_items(
+            string=string,
             original_pieces=original_pieces,
             replaced_items=replaced_items,
             labels_count=len(labelled_items),
-            get_svg_path=get_svg_path,
-            get_content_prefix_and_suffix=get_content_prefix_and_suffix,
+            get_content_by_body=get_content_by_body,
+            file_writer=file_writer,
+            frame_scale=frame_scale,
             width=width,
-            height=height,
-            frame_scale=frame_scale
+            height=height
         )
 
         label_to_span_dict = {
@@ -311,7 +373,7 @@ class StringMobject(SVGMobject):
         index_items: list[tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, EdgeFlag, int, int]] = sorted((
             (span_item, edge_flag, priority, i)
             for priority, span_item_iter in enumerate((
-                (ConfiguredItem(span=span, attr_dict=attr_dict) for span, attr_dict in configured_items_generator),
+                (ConfiguredItem(span=span, attrs=attrs) for span, attrs in configured_items_generator),
                 (IsolatedItem(span=span) for span in cls._iter_spans_by_selector(isolate, string)),
                 (ProtectedItem(span=span) for span in cls._iter_spans_by_selector(protect, string)),
                 (CommandItem(match_obj=match_obj) for match_obj in cls._iter_command_matches(string))
@@ -364,14 +426,14 @@ class StringMobject(SVGMobject):
                 else:
                     pos, open_command_item = open_command_stack.pop()
                     bracket_stack.pop()
-                    attr_dict = cls._get_attr_dict_from_command_pair(
+                    attrs = cls._get_attrs_from_command_pair(
                         open_command_item.match_obj, command_item.match_obj
                     )
-                    if attr_dict is not None:
+                    if attrs is not None:
                         add_labelled_item(LabelledItem(
                             label=next(label_counter),
                             span=Span(open_command_item.span.stop, command_item.span.start),
-                            attr_dict=attr_dict
+                            attrs=attrs
                         ), pos)
                     replaced_items.append(command_item)
                 continue
@@ -393,12 +455,12 @@ class StringMobject(SVGMobject):
             add_labelled_item(LabelledItem(
                 label=next(label_counter),
                 span=span,
-                attr_dict=span_item.attr_dict if isinstance(span_item, ConfiguredItem) else {}
+                attrs=span_item.attrs if isinstance(span_item, ConfiguredItem) else {}
             ), pos)
         add_labelled_item(LabelledItem(
             label=0,
             span=Span(0, len(string)),
-            attr_dict={}
+            attrs={}
         ), 0)
 
         if overlapping_spans:
@@ -470,7 +532,7 @@ class StringMobject(SVGMobject):
             else command_insert_func(
                 replaced_item.labelled_item.label,
                 replaced_item.edge_flag,
-                replaced_item.labelled_item.attr_dict
+                replaced_item.labelled_item.attrs
             )
             for replaced_item in replaced_items
         ]
@@ -492,24 +554,25 @@ class StringMobject(SVGMobject):
     @classmethod
     def _get_labelled_shape_items(
         cls,
+        string: str,
         original_pieces: list[str],
         replaced_items: list[CommandItem | LabelledInsertionItem],
         labels_count: int,
-        get_svg_path: Callable[[str], str],
-        get_content_prefix_and_suffix: Callable[[bool], tuple[str, str]],
+        get_content_by_body: Callable[[str, bool], str],
+        file_writer: StringFileWriter,
+        frame_scale: float | None,
         width: float | None,
-        height: float | None,
-        frame_scale: float | None
+        height: float | None
     ) -> list[LabelledShapeItem]:
 
-        def get_svg_path_by_content(
+        def get_shape_mobjects(
             is_labelled: bool
-        ) -> str:
+        ) -> list[ShapeMobject]:
             content_replaced_pieces = cls._get_replaced_pieces(
                 replaced_items=replaced_items,
                 command_replace_func=cls._replace_for_content,
-                command_insert_func=lambda label, edge_flag, attr_dict: cls._get_command_string(
-                    attr_dict,
+                command_insert_func=lambda label, edge_flag, attrs: cls._get_command_string(
+                    attrs,
                     edge_flag=edge_flag,
                     label=label if is_labelled else None
                 )
@@ -520,17 +583,16 @@ class StringMobject(SVGMobject):
                 start_index=0,
                 stop_index=len(original_pieces)
             )
-            prefix, suffix = get_content_prefix_and_suffix(is_labelled)
-            content = "".join((prefix, body, suffix))
-            return get_svg_path(content)
+            content = get_content_by_body(body, is_labelled)
+            svg_path = file_writer.get_svg_path_by_content(content, string)
+            return list(SVGMobject(
+                file_path=svg_path,
+                frame_scale=frame_scale,
+                width=width,
+                height=height
+            ).iter_shape_children())
 
-        plain_shapes = list(SVGMobject(
-            file_path=get_svg_path_by_content(is_labelled=False),
-            width=width,
-            height=height,
-            frame_scale=frame_scale
-        ).iter_shape_children())
-
+        plain_shapes = get_shape_mobjects(is_labelled=False)
         if labels_count == 1:
             return [
                 LabelledShapeItem(
@@ -540,9 +602,7 @@ class StringMobject(SVGMobject):
                 for plain_shape in plain_shapes
             ]
 
-        labelled_shapes = list(SVGMobject(
-            file_path=get_svg_path_by_content(is_labelled=True)
-        ).iter_shape_children())
+        labelled_shapes = get_shape_mobjects(is_labelled=True)
         if len(plain_shapes) != len(labelled_shapes):
             warnings.warn(
                 "Cannot align children of the labelled svg to the original svg. Skip the labelling process."
@@ -572,7 +632,7 @@ class StringMobject(SVGMobject):
         if unrecognizable_colors:
             warnings.warn(
                 "Unrecognizable color labels detected ({0}). The result could be unexpected.".format(
-                    ", ".join(unrecognizable_colors)
+                    ", ".join(dict.fromkeys(unrecognizable_colors))
                 )
             )
         return labelled_shape_items
@@ -700,7 +760,7 @@ class StringMobject(SVGMobject):
         matching_replaced_pieces = cls._get_replaced_pieces(
             replaced_items=replaced_items,
             command_replace_func=cls._replace_for_matching,
-            command_insert_func=lambda label, flag, attr_dict: ""
+            command_insert_func=lambda label, flag, attrs: ""
         )
         group_substrs = [
             re.sub(r"\s+", "", cls._replace_string(
@@ -755,7 +815,7 @@ class StringMobject(SVGMobject):
 
     @classmethod
     @abstractmethod
-    def _get_attr_dict_from_command_pair(
+    def _get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
         close_command: re.Match[str],
@@ -766,7 +826,7 @@ class StringMobject(SVGMobject):
     @abstractmethod
     def _get_command_string(
         cls,
-        attr_dict: dict[str, str],
+        attrs: dict[str, str],
         edge_flag: EdgeFlag,
         label: int | None
     ) -> str:

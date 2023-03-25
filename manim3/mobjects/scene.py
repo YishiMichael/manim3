@@ -1,7 +1,6 @@
 __all__ = ["Scene"]
 
 
-import os
 import time
 from typing import Callable
 import warnings
@@ -288,7 +287,7 @@ class Scene(Mobject):
             final_batch.framebuffer.read(components=4),
             "raw"
         )
-        image.save(os.path.join(ConfigSingleton().output_dir, f"{self.__class__.__name__}.png"))
+        image.save(ConfigSingleton().output_dir.joinpath(f"{self.__class__.__name__}.png"))
 
     def _render_to_image(self) -> None:
         self._render_scene(self.__class__._render_to_image_callback)

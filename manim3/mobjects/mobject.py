@@ -665,11 +665,12 @@ class Mobject(LazyObject):
     @classmethod
     def _get_frame_scale_vector(
         cls,
+        *,
         original_width: float,
         original_height: float,
+        specified_frame_scale: float | None,
         specified_width: float | None,
-        specified_height: float | None,
-        specified_frame_scale: float | None
+        specified_height: float | None
     ) -> Vec2T:
         # Called when initializing a planar mobject.
         scale_factor = np.ones(2)

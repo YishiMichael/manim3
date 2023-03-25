@@ -4,14 +4,15 @@ __all__ = [
 ]
 
 
-from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import lru_cache
-import hashlib
 import os
+import pathlib
 import re
-from typing import Generator
-import warnings
+from typing import (
+    ClassVar,
+    Generator
+)
 
 from colour import Color
 import toml
@@ -23,6 +24,7 @@ from ..custom_typing import (
 from ..mobjects.string_mobject import (
     CommandFlag,
     EdgeFlag,
+    StringFileWriter,
     StringMobject
 )
 from ..rendering.config import ConfigSingleton
@@ -40,181 +42,106 @@ class TexTemplate:
     preamble: str
 
 
-def hash_string(
-    string: str
-) -> str:
-    # Truncating at 16 bytes for cleanliness
-    hasher = hashlib.sha256(string.encode())
-    return hasher.hexdigest()[:16]
+class TexFileWriter(StringFileWriter):
+    __slots__ = ("_compiler",)
 
+    def __init__(
+        self,
+        compiler: str
+    ) -> None:
+        super().__init__()
+        self._compiler: str = compiler
 
-@lru_cache(maxsize=8)
-def get_tex_template(
-    template_name: str | None
-) -> TexTemplate:
-    default_name = "ctex"  # TODO: set global default
-    if template_name is None:
-        template_name = default_name
-    name = template_name.replace(" ", "_").lower()
-    with open(ConfigSingleton().tex_templates_path, encoding="utf-8") as tex_templates_file:
-        templates_dict = toml.load(tex_templates_file)
-    if name not in templates_dict:
-        warnings.warn(
-            f"Cannot recognize template '{name}', falling back to '{default_name}'."
-        )
-        name = default_name
-    return TexTemplate(**templates_dict[name])
+    def get_svg_path(
+        self,
+        content: str
+    ) -> pathlib.Path:
+        hash_content = str((
+            content,
+            self._compiler
+        ))
+        return ConfigSingleton().tex_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
 
+    def create_svg_file(
+        self,
+        content: str,
+        svg_path: pathlib.Path
+    ) -> None:
+        compiler = self._compiler
+        if compiler == "latex":
+            program = "latex"
+            dvi_ext = ".dvi"
+        elif compiler == "xelatex":
+            program = "xelatex -no-pdf"
+            dvi_ext = ".xdv"
+        else:
+            raise ValueError(
+                f"Compiler '{compiler}' is not implemented"
+            )
 
-#def get_tex_config() -> dict[str, str]:
-#    """
-#    Returns a dict which should look something like this:
-#    {
-#        "template": "default",
-#        "compiler": "latex",
-#        "preamble": "..."
-#    }
-#    """
-#    # Only load once, then save thereafter
-#    if not SAVED_TEX_CONFIG:
-#        #template_name = get_custom_config()["style"]["tex_template"]
-#        template_name = "ctex"
-#        template = get_tex_template(template_name)
-#        SAVED_TEX_CONFIG.update({
-#            "template": template_name,
-#            "compiler": template.compiler,
-#            "preamble": template.preamble
-#        })
-#    return SAVED_TEX_CONFIG
+        # Write tex file.
+        tex_path = svg_path.with_suffix(".tex")
+        with tex_path.open(mode="w", encoding="utf-8") as tex_file:
+            tex_file.write(content)
 
-
-def tex_content_to_svg_file(
-    content: str,
-    template_name: str | None,
-    additional_preamble: str | None
-) -> str:
-    template = get_tex_template(template_name)
-    compiler = template.compiler
-    preamble = template.preamble
-
-    if additional_preamble is not None:
-        preamble += "\n" + additional_preamble
-    full_tex = "\n\n".join((
-        "\\documentclass[preview]{standalone}",
-        preamble,
-        "\\begin{document}",
-        content,
-        "\\end{document}"
-    )) + "\n"
-
-    svg_file = os.path.join(
-        ConfigSingleton().tex_dir, f"{hash_string(full_tex)}.svg"
-    )
-    if not os.path.exists(svg_file):
-        # If svg doesn't exist, create it
-        create_tex_svg(full_tex, svg_file, compiler)
-    return svg_file
-
-
-def create_tex_svg(
-    full_tex: str,
-    svg_file: str,
-    compiler: str
-) -> None:
-    if compiler == "latex":
-        program = "latex"
-        dvi_ext = ".dvi"
-    elif compiler == "xelatex":
-        program = "xelatex -no-pdf"
-        dvi_ext = ".xdv"
-    else:
-        raise ValueError(
-            f"Compiler '{compiler}' is not implemented"
-        )
-
-    # Write tex file
-    root, _ = os.path.splitext(svg_file)
-    with open(root + ".tex", "w", encoding="utf-8") as tex_file:
-        tex_file.write(full_tex)
-
-    # tex to dvi
-    if os.system(" ".join((
-        program,
-        "-interaction=batchmode",
-        "-halt-on-error",
-        f"-output-directory=\"{os.path.dirname(svg_file)}\"",
-        f"\"{root}.tex\"",
-        ">",
-        os.devnull
-    ))):
-        print("LaTeX Error! Not a worry, it happens to the best of us.")
-        with open(root + ".log", "r", encoding="utf-8") as log_file:
-            error_match_obj = re.search(r"(?<=\n! ).*", log_file.read())
-            if error_match_obj:
-                print(f"The error could be: `{error_match_obj.group()}`")
-        raise LatexError()
-
-    # dvi to svg
-    os.system(" ".join((
-        "dvisvgm",
-        f"\"{root}{dvi_ext}\"",
-        "-n",
-        "-v",
-        "0",
-        "-o",
-        f"\"{svg_file}\"",
-        ">",
-        os.devnull
-    )))
-
-    # Cleanup superfluous documents
-    for ext in (".tex", dvi_ext, ".log", ".aux"):
         try:
-            os.remove(root + ext)
-        except FileNotFoundError:
-            pass
+            # tex to dvi
+            if os.system(" ".join((
+                program,
+                "-interaction=batchmode",
+                "-halt-on-error",
+                f"-output-directory=\"{svg_path.parent}\"",
+                f"\"{tex_path}\"",
+                ">",
+                os.devnull
+            ))):
+                raise ValueError
 
+            # dvi to svg
+            os.system(" ".join((
+                "dvisvgm",
+                f"\"{svg_path.with_suffix(dvi_ext)}\"",
+                "-n",
+                "-v",
+                "0",
+                "-o",
+                f"\"{svg_path}\"",
+                ">",
+                os.devnull
+            )))
 
-# TODO, perhaps this should live elsewhere
-@contextmanager
-def display_during_execution(
-    message: str
-) -> Generator[None, None, None]:
-    # Merge into a single line
-    to_print = message.replace("\n", " ")
-    max_characters = 78
-    if len(to_print) > max_characters:
-        to_print = to_print[:max_characters - 3] + "..."
-    try:
-        print(to_print, end="\r")
-        yield
-    finally:
-        print(" " * len(to_print), end="\r")
+        except ValueError:
+            print("LaTeX Error! Not a worry, it happens to the best of us.")
+            with svg_path.with_suffix(".log").open(encoding="utf-8") as log_file:
+                error_match_obj = re.search(r"(?<=\n! ).*", log_file.read())
+                if error_match_obj:
+                    print(f"The error could be: `{error_match_obj.group()}`")
+            raise ValueError from None
 
-
-class LatexError(Exception):
-    pass
-
-
-SCALE_FACTOR_PER_FONT_POINT: float = 0.001
+        finally:
+            # Cleanup superfluous documents.
+            for ext in (".tex", dvi_ext, ".log", ".aux"):
+                svg_path.with_suffix(ext).unlink(missing_ok=True)
 
 
 class TexText(StringMobject):
     __slots__ = ()
 
+    TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
+
     def __init__(
         self,
         string: str,
         *,
-        font_size: float = 48,
-        alignment: str | None = "\\centering",
-        tex_environment: str | None = None,
-        template: str | None = None,
-        additional_preamble: str | None = None,
-        base_color: ColorType = Color("white"),
-        tex_to_color_map: dict[str, ColorType] | None = None,
         isolate: Selector = (),
         protect: Selector = (),
+        tex_to_color_map: dict[str, ColorType] | None = None,
+        template: str = "ctex",
+        additional_preamble: str = "",
+        alignment: str | None = "\\centering",
+        tex_environment: str | None = None,
+        base_color: ColorType = Color("white"),
+        font_size: float = 48,
         width: float | None = None,
         height: float | None = None
     ) -> None:
@@ -224,9 +151,12 @@ class TexText(StringMobject):
         if tex_to_color_map is None:
             tex_to_color_map = {}
 
-        def get_content_prefix_and_suffix(
+        tex_template = self._get_tex_templates_dict()[template]
+
+        def get_content_by_body(
+            body: str,
             is_labelled: bool
-        ) -> tuple[str, str]:
+        ) -> str:
             prefix_lines: list[str] = []
             suffix_lines: list[str] = []
             if not is_labelled:
@@ -239,21 +169,16 @@ class TexText(StringMobject):
             if tex_environment is not None:
                 prefix_lines.append(f"\\begin{{{tex_environment}}}")
                 suffix_lines.append(f"\\end{{{tex_environment}}}")
-            return (
-                "".join((line + "\n" for line in prefix_lines)),
-                "".join(("\n" + line for line in suffix_lines))
-            )
-
-        def get_svg_path(
-            content: str
-        ) -> str:
-            with display_during_execution(f"Writing \"{string}\""):
-                file_path = tex_content_to_svg_file(
-                    content=content,
-                    template_name=template,
-                    additional_preamble=additional_preamble
-                )
-            return file_path
+            return "\n\n".join((
+                "\\documentclass[preview]{standalone}",
+                tex_template.preamble,
+                additional_preamble,
+                "\\begin{document}",
+                "\n".join(prefix_lines),
+                body,
+                "\n".join(suffix_lines),
+                "\\end{document}"
+            )) + "\n"
 
         super().__init__(
             string=string,
@@ -264,15 +189,27 @@ class TexText(StringMobject):
                 for selector in tex_to_color_map
                 for span in self._iter_spans_by_selector(selector, string)
             ),
-            get_content_prefix_and_suffix=get_content_prefix_and_suffix,
-            get_svg_path=get_svg_path,
+            get_content_by_body=get_content_by_body,
+            file_writer=TexFileWriter(
+                compiler=tex_template.compiler
+            ),
+            frame_scale=self.TEX_SCALE_FACTOR_PER_FONT_POINT * font_size,
             width=width,
-            height=height,
-            frame_scale=SCALE_FACTOR_PER_FONT_POINT * font_size
+            height=height
         )
 
         for selector, color in tex_to_color_map.items():
             self.select_parts(selector).set_fill(color=color)
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _get_tex_templates_dict() -> dict[str, TexTemplate]:
+        with ConfigSingleton().tex_templates_path.open(encoding="utf-8") as tex_templates_file:
+            template_content_dict = toml.load(tex_templates_file)
+        return {
+            name: TexTemplate(**template_content)
+            for name, template_content in template_content_dict.items()
+        }
 
     # Parsing
 
@@ -281,7 +218,7 @@ class TexText(StringMobject):
         cls,
         string: str
     ) -> Generator[re.Match[str], None, None]:
-        # Lump together adjacent brace pairs
+        # Lump together adjacent brace pairs.
         pattern = re.compile(r"""
             (?P<command>\\(?:[a-zA-Z]+|.))
             |(?P<open>{+)
@@ -349,7 +286,7 @@ class TexText(StringMobject):
         return ""
 
     @classmethod
-    def _get_attr_dict_from_command_pair(
+    def _get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
         close_command: re.Match[str]
@@ -370,7 +307,7 @@ class TexText(StringMobject):
     @classmethod
     def _get_command_string(
         cls,
-        attr_dict: dict[str, str],
+        attrs: dict[str, str],
         edge_flag: EdgeFlag,
         label: int | None
     ) -> str:

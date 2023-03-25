@@ -366,7 +366,7 @@ class ShapeMobject(MeshMobject):
         *mobjects: "ShapeMobject"
     ) -> "ShapeMobject":
         if not mobjects:
-            return cls()
+            return ShapeMobject()
         result = mobjects[0]._copy()
         for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
             if isinstance(descriptor, LazyDynamicVariableDescriptor):

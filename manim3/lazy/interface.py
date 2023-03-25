@@ -20,6 +20,7 @@ from typing import (
     Literal,
     ParamSpec,
     TypeVar,
+    final,
     overload
 )
 import weakref
@@ -98,6 +99,7 @@ class AnnotationUtils(ABC):
         return parameter_name_chains, requires_unwrapping_tuple
 
 
+@final
 class LazyUnitaryVariableDecorator(LazyUnitaryVariableDescriptor[_InstanceT, _ElementT, _ElementT]):
     __slots__ = ()
 
@@ -119,6 +121,7 @@ class LazyUnitaryVariableDecorator(LazyUnitaryVariableDescriptor[_InstanceT, _El
         )
 
 
+@final
 class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_T], _T | LazyWrapper[_T]]):
     __slots__ = ()
 
@@ -142,6 +145,7 @@ class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_Insta
         )
 
 
+@final
 class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
     __slots__ = ("content_to_element_dict",)
 
@@ -167,6 +171,7 @@ class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_Instance
         )
 
 
+@final
 class LazyDynamicVariableDecorator(LazyDynamicVariableDescriptor[_InstanceT, _ElementT, Iterable[_ElementT]]):
     __slots__ = ()
 
@@ -188,6 +193,7 @@ class LazyDynamicVariableDecorator(LazyDynamicVariableDescriptor[_InstanceT, _El
         )
 
 
+@final
 class LazyUnitaryPropertyDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, _ElementT, _ElementT]):
     __slots__ = ()
 
@@ -212,6 +218,7 @@ class LazyUnitaryPropertyDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, _El
         )
 
 
+@final
 class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_T], _T]):
     __slots__ = ()
 
@@ -252,6 +259,7 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
         return finalize_method
 
 
+@final
 class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
     __slots__ = ("content_to_element_dict",)
 
@@ -280,6 +288,7 @@ class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_Instance
         )
 
 
+@final
 class LazyDynamicPropertyDecorator(LazyDynamicPropertyDescriptor[_InstanceT, _ElementT, Iterable[_ElementT]]):
     __slots__ = ()
 
@@ -304,6 +313,7 @@ class LazyDynamicPropertyDecorator(LazyDynamicPropertyDescriptor[_InstanceT, _El
         )
 
 
+@final
 class LazyMode(Enum):
     OBJECT = 0
     UNWRAPPED = 1
@@ -311,6 +321,7 @@ class LazyMode(Enum):
     COLLECTION = 3
 
 
+@final
 class Lazy(ABC):
     @overload
     @classmethod

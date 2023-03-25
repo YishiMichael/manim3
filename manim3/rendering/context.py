@@ -10,7 +10,6 @@ from abc import (
 )
 import atexit
 from dataclasses import dataclass
-import os
 import subprocess as sp
 from typing import ClassVar
 
@@ -90,7 +89,7 @@ class Context(ABC):
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            os.path.join(ConfigSingleton().output_dir, f"{scene_name}.mp4")
+            ConfigSingleton().output_dir.joinpath(f"{scene_name}.mp4")
         ], stdin=sp.PIPE)
 
     @classmethod

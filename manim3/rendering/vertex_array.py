@@ -4,7 +4,6 @@ __all__ = ["VertexArray"]
 from dataclasses import dataclass
 from functools import reduce
 import operator as op
-import os
 import re
 
 import moderngl
@@ -193,7 +192,7 @@ class VertexArray(LazyObject):
         dynamic_array_lens: tuple[tuple[str, int], ...],
         texture_storage_shapes: tuple[tuple[str, tuple[int, ...]], ...]
     ) -> ProgramData:
-        with open(os.path.join(ConfigSingleton().shaders_dir, f"{shader_filename}.glsl")) as shader_file:
+        with ConfigSingleton().shaders_dir.joinpath(f"{shader_filename}.glsl").open() as shader_file:
             shader_str = shader_file.read()
         program = cls._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
         texture_binding_offset_dict = cls._set_texture_bindings(program, texture_storage_shapes)

@@ -28,8 +28,8 @@ dependent variables of lazy properties. Once modified, the related lazy
 properties will be expired, and will be recomputed when fetching.
 
 Containers under `LazyVariableSlot` objects are never shared among instances,
-since data mutating is expected to affect a particular instance. Data contained,
-on the other hand, can be shared freely.
+since data mutating is modifying to affect a particular instance. Data
+contained, on the other hand, can be shared freely.
 
 Methods decorated by `Lazy.variable` should not take any argument except for
 `cls` and return the *initial* value for this data.
@@ -52,11 +52,11 @@ bringing a value into the lazy scope, and the value is obtained via the
 readonly `value` property. One may picture a lazy object as a tree (it's a
 DAG really), where `LazyWrapper`s sit on all leaves.
 
-Lazy variables are of course mutable. All can be mutated via `__set__` method.
+Lazy variables are of course mutable. All can be modified via `__set__`.
 Among all cases above, a common value will be shared among instances, except
 for providing `T` type in `UNWRAPPED` mode, in which case a new `LazyWrapper`
 object will be instanced and assigned specially to the instance. Additionally,
-`LazyDynamicContainer`s can be mutated via `add` and `remove`.
+`LazyDynamicContainer`s can be modified via `add` and `remove`.
 
 The `LazyObject._copy` method will only copy containers under variable slots.
 This means all children `LazyObject`s will be shared, and new
@@ -154,6 +154,7 @@ from typing import (
     ParamSpec,
     TypeVar,
     Union,
+    final,
     overload
 )
 import weakref
@@ -171,6 +172,7 @@ _DescriptorT = TypeVar("_DescriptorT", bound="LazyDescriptor")
 _PropertyParameters = ParamSpec("_PropertyParameters")
 
 
+@final
 class TreeNode(ABC, Generic[_TreeNodeContentT]):
     __slots__ = (
         "_children",
@@ -188,8 +190,9 @@ class TreeNode(ABC, Generic[_TreeNodeContentT]):
     def bind_only(
         self,
         *nodes: "TreeNode[_TreeNodeContentT]"
-    ) -> None:
+    ):
         self._children = nodes
+        return self
 
     def apply_deepest(
         self,
@@ -197,12 +200,10 @@ class TreeNode(ABC, Generic[_TreeNodeContentT]):
     ) -> "TreeNode[_TreeNodeContentT]":
         if (children := self._children) is None:
             return callback(self._content)
-        result = TreeNode(self._content)
-        result.bind_only(*(
+        return TreeNode(self._content).bind_only(*(
             child.apply_deepest(callback)
             for child in children
         ))
-        return result
 
     def transform(
         self,
@@ -238,10 +239,18 @@ class LazyContainer(ABC, Generic[_ElementT]):
         pass
 
     @abstractmethod
-    def _copy_container(self) -> "LazyContainer[_ElementT]":
+    def _write(
+        self,
+        src: "LazyContainer[_ElementT]"
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def _copy(self) -> "LazyContainer[_ElementT]":
         pass
 
 
+@final
 class LazyUnitaryContainer(LazyContainer[_ElementT]):
     __slots__ = ("_element",)
 
@@ -250,17 +259,25 @@ class LazyUnitaryContainer(LazyContainer[_ElementT]):
         element: _ElementT
     ) -> None:
         super().__init__()
-        self._element = element
+        self._element: _ElementT = element
 
     def _iter_elements(self) -> Generator[_ElementT, None, None]:
         yield self._element
 
-    def _copy_container(self) -> "LazyUnitaryContainer[_ElementT]":
+    def _write(
+        self,
+        src: "LazyUnitaryContainer[_ElementT]"
+    ) -> None:
+        # TODO: shall we copy expired property slots to maintain references?
+        self._element = src._element
+
+    def _copy(self) -> "LazyUnitaryContainer[_ElementT]":
         return LazyUnitaryContainer(
             element=self._element
         )
 
 
+@final
 class LazyDynamicContainer(LazyContainer[_ElementT]):
     __slots__ = ("_elements",)
 
@@ -298,7 +315,26 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
     def _iter_elements(self) -> Generator[_ElementT, None, None]:
         yield from self._elements
 
-    def _copy_container(self) -> "LazyDynamicContainer[_ElementT]":
+    def _write(
+        self,
+        src: "LazyDynamicContainer[_ElementT]"
+    ) -> None:
+        self._elements = src._elements
+        #print(self is src)
+        #self._elements.clear()
+        #self._elements.extend(src._elements)
+        #dst_len = len(self)
+        #src_len = len(src)
+        #if dst_len < src_len:
+        #    self._elements += src._elements[dst_len:]
+        #elif dst_len > src_len:
+        #    self._elements = self._elements[:src_len]
+        #for dst_element, src_element in zip(self._elements, src._elements, strict=True):
+        #    if dst_element is src_element:
+        #        continue
+        #    dst_element._write(src_element)
+
+    def _copy(self) -> "LazyDynamicContainer[_ElementT]":
         return LazyDynamicContainer(
             elements=self._elements
         )
@@ -335,7 +371,15 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
 class LazySlot(ABC, Generic[_ContainerT]):
     __slots__ = ("__weakref__",)
 
+    @abstractmethod
+    def copy_from(
+        self,
+        src: "LazySlot[_ContainerT]"
+    ) -> None:
+        pass
 
+
+@final
 class LazyVariableSlot(LazySlot[_ContainerT]):
     __slots__ = (
         "_container",
@@ -348,10 +392,10 @@ class LazyVariableSlot(LazySlot[_ContainerT]):
         container: _ContainerT
     ) -> None:
         super().__init__()
-        self._container: _ContainerT = NotImplemented
+        container._variable_slot_backref = weakref.ref(self)
+        self._container: _ContainerT = container
         self._linked_property_slots: weakref.WeakSet[LazyPropertySlot] = weakref.WeakSet()
         self._is_writable: bool = True
-        self.set_variable_container(container)
 
     def get_variable_container(self) -> _ContainerT:
         return self._container
@@ -360,9 +404,27 @@ class LazyVariableSlot(LazySlot[_ContainerT]):
         self,
         container: _ContainerT
     ) -> None:
-        assert container._variable_slot_backref is None
-        container._variable_slot_backref = weakref.ref(self)
-        self._container = container
+        self._container._write(container)
+
+    def copy_from(
+        self,
+        src: "LazyVariableSlot[_ContainerT]"
+        #src_instance: "LazyObject"
+    ) -> None:
+        self.set_variable_container(src.get_variable_container())
+        #instance_property_slots = {
+        #    descriptor.get_slot(src_instance): descriptor
+        #    for descriptor in type(src_instance)._LAZY_DESCRIPTORS
+        #    if isinstance(descriptor, LazyPropertyDescriptor)
+        #}
+        self._linked_property_slots.clear()
+        #self._linked_property_slots.update({
+        #    linked_variable_slot
+        #    if (descriptor := instance_property_slots.get(linked_variable_slot)) is None
+        #    else descriptor.get_slot(self)
+        #    for linked_variable_slot in src._linked_property_slots
+        #})
+        self._is_writable = src._is_writable
 
     def expire_property_slots(self) -> None:
         for expired_property_slot in self._linked_property_slots:
@@ -375,35 +437,62 @@ class LazyVariableSlot(LazySlot[_ContainerT]):
             for slot in element._iter_variable_slots():
                 yield from slot.yield_descendant_variable_slots()
 
-    def _make_readonly(self) -> None:
+    def make_readonly(self) -> None:
         for variable_slot in self.yield_descendant_variable_slots():
             variable_slot._is_writable = False
 
 
+@final
 class LazyPropertySlot(LazySlot[_ContainerT]):
     __slots__ = (
         "_container",
-        "_linked_variable_slots"
+        "_linked_variable_slots",
+        "_is_expired"
     )
 
     def __init__(self) -> None:
         super().__init__()
-        self._container: _ContainerT | None = None
+        self._container: _ContainerT = NotImplemented
         self._linked_variable_slots: weakref.WeakSet[LazyVariableSlot] = weakref.WeakSet()
+        self._is_expired: bool = True
 
-    def get_property_container(self) -> _ContainerT | None:
+    def get_property_container(self) -> _ContainerT:
         return self._container
 
     def set_property_container(
         self,
-        new_container: _ContainerT
+        container: _ContainerT
     ) -> None:
-        assert self._container is None
-        self._container = new_container
+        #assert self._is_expired
+        if self._container is not NotImplemented and container is not NotImplemented:
+            self._container._write(container)
+        else:
+            self._container = container
+        #self._is_expired = container is NotImplemented
+
+    def copy_from(
+        self,
+        src: "LazyPropertySlot[_ContainerT]"
+        #src_instance: "LazyObject"
+    ) -> None:
+        self.set_property_container(src.get_property_container())
+        #instance_variable_slots = {
+        #    descriptor.get_slot(src_instance): descriptor
+        #    for descriptor in type(src_instance)._LAZY_DESCRIPTORS
+        #    if isinstance(descriptor, LazyVariableDescriptor)
+        #}
+        self._linked_variable_slots.clear()
+        #self._linked_variable_slots.update({
+        #    linked_variable_slot
+        #    if (descriptor := instance_variable_slots.get(linked_variable_slot)) is None
+        #    else descriptor.get_slot(self)
+        #    for linked_variable_slot in src._linked_variable_slots
+        #})
+        self._is_expired = True
 
     def expire(self) -> None:
-        self._container = None
         self._linked_variable_slots.clear()
+        self._is_expired = True
 
     def bind_linked_variable_slots(
         self,
@@ -495,21 +584,40 @@ class LazyObject(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        cls = self.__class__
+        self._initialize_descriptors()
+
+    def _initialize_descriptors(self) -> None:
+        cls = type(self)
         for descriptor in cls._LAZY_DESCRIPTORS:
             descriptor.initialize(self)
 
+    #def _write(
+    #    self: _ElementT,
+    #    src: _ElementT
+    #) -> None:
+    #    cls = type(self)
+    #    assert cls is type(src)
+    #    for descriptor in cls._LAZY_DESCRIPTORS:
+    #        descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
+    #    for slot_name in cls._PY_SLOTS:
+    #        self.__setattr__(slot_name, copy.copy(src.__getattribute__(slot_name)))
+
     def _copy(self: _ElementT) -> _ElementT:
-        cls = self.__class__
+        cls = type(self)
         result = cls.__new__(cls)
+        result._initialize_descriptors()
+        for descriptor in cls._LAZY_DESCRIPTORS:
+            descriptor.get_slot(result).copy_from(descriptor.get_slot(self))
         for slot_name in cls._PY_SLOTS:
             result.__setattr__(slot_name, copy.copy(self.__getattribute__(slot_name)))
-        for descriptor in cls._LAZY_DESCRIPTORS:
-            descriptor.copy_initialize(result, self)
+        #for slot_name in cls._PY_SLOTS:
+        #    result.__setattr__(slot_name, copy.copy(self.__getattribute__(slot_name)))
+        #for descriptor in cls._LAZY_DESCRIPTORS:
+        #    descriptor.copy_initialize(result, self)
         return result
 
     def _iter_variable_slots(self) -> Generator[LazyVariableSlot, None, None]:
-        for descriptor in self.__class__._LAZY_DESCRIPTORS:
+        for descriptor in type(self)._LAZY_DESCRIPTORS:
             if not isinstance(descriptor, LazyVariableDescriptor):
                 continue
             yield descriptor.get_slot(self)
@@ -601,13 +709,21 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _D
     ) -> None:
         pass
 
-    @abstractmethod
-    def copy_initialize(
-        self,
-        dst: _InstanceT,
-        src: _InstanceT
-    ) -> None:
-        pass
+    #@abstractmethod
+    #def copy_initialize(
+    #    self,
+    #    dst: _InstanceT,
+    #    src: _InstanceT
+    #) -> None:
+    #    pass
+
+    #@abstractmethod
+    #def copy_from(
+    #    self,
+    #    dst: _InstanceT,
+    #    src: _InstanceT
+    #) -> None:
+    #    pass
 
     def get_slot(
         self,
@@ -669,17 +785,24 @@ class LazyVariableDescriptor(LazyDescriptor[
             default_container = self.convert_set(self.method(type(instance)))
             self.default_container = default_container
         self.set_slot(instance, LazyVariableSlot(
-            container=default_container._copy_container()
+            container=default_container._copy()
         ))
 
-    def copy_initialize(
-        self,
-        dst: _InstanceT,
-        src: _InstanceT
-    ) -> None:
-        self.set_slot(dst, LazyVariableSlot(
-            container=self.get_slot(src).get_variable_container()._copy_container()
-        ))
+    #def copy_initialize(
+    #    self,
+    #    dst: _InstanceT,
+    #    src: _InstanceT
+    #) -> None:
+    #    self.set_slot(dst, LazyVariableSlot(
+    #        container=self.get_slot(src).get_variable_container()._copy_container()
+    #    ))
+
+    #def copy_from(
+    #    self,
+    #    dst: _InstanceT,
+    #    src: _InstanceT
+    #) -> None:
+    #    self.get_slot(dst).set_variable_container(self.get_slot(src).get_variable_container())
 
 
 class LazyUnitaryVariableDescriptor(LazyVariableDescriptor[
@@ -734,8 +857,8 @@ class LazyPropertyDescriptor(LazyDescriptor[
         self.parameter_name_chains: tuple[tuple[str, ...], ...] = parameter_name_chains
         self.requires_unwrapping_tuple: tuple[bool, ...] = requires_unwrapping_tuple
         self.descriptor_overloading_chains: tuple[tuple[LazyDescriptorOverloading, ...], ...] = NotImplemented
-        self.instance_to_key_dict: weakref.WeakKeyDictionary[_InstanceT, tuple[Hashable, ...]] = weakref.WeakKeyDictionary()
-        self.key_to_container_dict: weakref.WeakValueDictionary[tuple[Hashable, ...], _ContainerT] = weakref.WeakValueDictionary()
+        self.instance_to_key_dict: weakref.WeakKeyDictionary[_InstanceT, int] = weakref.WeakKeyDictionary()
+        self.key_to_container_dict: weakref.WeakValueDictionary[int, _ContainerT] = weakref.WeakValueDictionary()
 
     def get_implementation(
         self,
@@ -776,8 +899,9 @@ class LazyPropertyDescriptor(LazyDescriptor[
                         result = TreeNode((container._element, binding_completed))
                     elif isinstance(descriptor_overloading, LazyDynamicDescriptorOverloading):
                         assert isinstance(container, LazyDynamicContainer)
-                        result = TreeNode((obj, binding_completed))
-                        result.bind_only(*(TreeNode((element, binding_completed)) for element in container._elements))
+                        result = TreeNode((obj, binding_completed)).bind_only(*(
+                            TreeNode((element, binding_completed)) for element in container._elements
+                        ))
                     else:
                         raise TypeError
                     return result
@@ -802,17 +926,22 @@ class LazyPropertyDescriptor(LazyDescriptor[
             obj: LazyObject
         ) -> TreeNode[LazyObject]:
             result = TreeNode(obj)
-            if isinstance(obj, LazyWrapper):
-                return result
-            slot_nodes: list[TreeNode[LazyObject]] = []
-            for variable_slot in obj._iter_variable_slots():
-                slot_node: TreeNode[LazyObject] = TreeNode(NotImplemented)
-                slot_node.bind_only(*(
-                    expand_dependencies(element)
-                    for element in variable_slot.get_variable_container()._iter_elements()
+            if not isinstance(obj, LazyWrapper):
+                result.bind_only(*(
+                    TreeNode(obj).bind_only(*(
+                        expand_dependencies(element)
+                        for element in variable_slot.get_variable_container()._iter_elements()
+                    ))
+                    for variable_slot in obj._iter_variable_slots()
                 ))
-                slot_nodes.append(slot_node)
-            result.bind_only(*slot_nodes)
+            #slot_nodes: list[TreeNode[LazyObject]] = []
+            #for variable_slot in obj._iter_variable_slots():
+            #    slot_node: TreeNode[LazyObject] = TreeNode(NotImplemented)
+            #    slot_node.bind_only(*(
+            #        expand_dependencies(element)
+            #        for element in variable_slot.get_variable_container()._iter_elements()
+            #    ))
+            #    slot_nodes.append(slot_node)
             return result
 
         def construct_parameter_key(
@@ -846,7 +975,9 @@ class LazyPropertyDescriptor(LazyDescriptor[
             ]
 
         slot = self.get_slot(instance)
-        if (container := slot.get_property_container()) is None:
+        if not slot._is_expired:
+            container = slot.get_property_container()
+        else:
             parameter_items = tuple(
                 construct_parameter_item(descriptor_overloading_chain, instance)
                 for descriptor_overloading_chain in self.descriptor_overloading_chains
@@ -859,10 +990,10 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 parameter_tree
                 for parameter_tree, _ in parameter_items
             )
-            key = tuple(
+            key = hash(tuple(
                 construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
                 for parameter_tree in parameter_trees
-            )
+            ))
             self.instance_to_key_dict[instance] = key
 
             if (container := self.key_to_container_dict.get(key)) is None:
@@ -875,13 +1006,14 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 container = self.convert_set(self.method(type(instance), *parameters))
                 for element in container._iter_elements():
                     for variable_slot in element._iter_variable_slots():
-                        variable_slot._make_readonly()
+                        variable_slot.make_readonly()
                 self.key_to_container_dict[key] = container
 
                 if (finalize_method := self.finalize_method) is not None:
                     weakref.finalize(container, finalize_method, type(instance), self.convert_get(container))
 
             slot.set_property_container(container)
+            slot._is_expired = False
         return container
 
     def set_implementation(
@@ -897,12 +1029,12 @@ class LazyPropertyDescriptor(LazyDescriptor[
     ) -> None:
         self.set_slot(instance, LazyPropertySlot())
 
-    def copy_initialize(
-        self,
-        dst: _InstanceT,
-        src: _InstanceT
-    ) -> None:
-        self.set_slot(dst, LazyPropertySlot())
+    #def copy_initialize(
+    #    self,
+    #    dst: _InstanceT,
+    #    src: _InstanceT
+    #) -> None:
+    #    self.set_slot(dst, LazyPropertySlot())
 
 
 class LazyUnitaryPropertyDescriptor(LazyPropertyDescriptor[
@@ -960,6 +1092,7 @@ class LazyDescriptorOverloading(ABC, Generic[_InstanceT, _ElementT, _DescriptorT
         self.descriptors[instance_type] = descriptor
 
 
+@final
 class LazyUnitaryDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _ElementT, Union[
     LazyUnitaryVariableDescriptor[_InstanceT, _ElementT, _DescriptorSetT],
     LazyUnitaryPropertyDescriptor[_InstanceT, _ElementT, _DescriptorSetT]
@@ -967,6 +1100,7 @@ class LazyUnitaryDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _El
     __slots__ = ()
 
 
+@final
 class LazyDynamicDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _ElementT, Union[
     LazyDynamicVariableDescriptor[_InstanceT, _ElementT, _DescriptorSetT],
     LazyDynamicPropertyDescriptor[_InstanceT, _ElementT, _DescriptorSetT]
@@ -974,6 +1108,7 @@ class LazyDynamicDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _El
     __slots__ = ()
 
 
+@final
 class LazyWrapper(LazyObject, Generic[_T]):
     __slots__ = ("__value",)
 

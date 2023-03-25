@@ -5,7 +5,7 @@ __all__ = [
 
 
 from abc import ABC
-import os
+import pathlib
 import sys
 from typing import ClassVar
 
@@ -51,39 +51,38 @@ class Config(ABC):
     @classmethod
     def _ensure_directory_exists(
         cls,
-        folder_path: str
-    ) -> str:
-        if not os.path.exists(folder_path):
-            os.mkdir(folder_path)
+        folder_path: pathlib.Path
+    ) -> pathlib.Path:
+        folder_path.mkdir(exist_ok=True)
         return folder_path
 
     @property
-    def manim3_dir(self) -> str:
-        return os.path.join(os.path.dirname(__file__), "..")
+    def manim3_dir(self) -> pathlib.Path:
+        return pathlib.Path(__file__).absolute().parent.parent
 
     @property
-    def shaders_dir(self) -> str:
-        return os.path.join(self.manim3_dir, "shaders")
+    def shaders_dir(self) -> pathlib.Path:
+        return self.manim3_dir.joinpath("shaders")
 
     @property
-    def tex_templates_path(self) -> str:
-        return os.path.join(self.manim3_dir, "tex_templates.tml")
+    def tex_templates_path(self) -> pathlib.Path:
+        return self.manim3_dir.joinpath("tex_templates.tml")
 
     @property
-    def user_script_path(self) -> str:
-        return os.path.abspath(sys.argv[0])
+    def user_script_path(self) -> pathlib.Path:
+        return pathlib.Path(sys.argv[0]).absolute()
 
     @property
-    def output_dir(self) -> str:
-        return self._ensure_directory_exists(os.path.join(os.path.dirname(self.user_script_path), "manim3_files"))
+    def output_dir(self) -> pathlib.Path:
+        return self._ensure_directory_exists(self.user_script_path.parent.joinpath("manim3_files"))
 
     @property
-    def tex_dir(self) -> str:
-        return self._ensure_directory_exists(os.path.join(self.output_dir, "_tex"))
+    def tex_dir(self) -> pathlib.Path:
+        return self._ensure_directory_exists(self.output_dir.joinpath("_tex"))
 
     @property
-    def text_dir(self) -> str:
-        return self._ensure_directory_exists(os.path.join(self.output_dir, "_text"))
+    def text_dir(self) -> pathlib.Path:
+        return self._ensure_directory_exists(self.output_dir.joinpath("_text"))
 
     # camera
 

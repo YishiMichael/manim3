@@ -443,7 +443,7 @@ class StrokeMobject(Mobject):
         *mobjects: "StrokeMobject"
     ) -> "StrokeMobject":
         if not mobjects:
-            return cls()
+            return StrokeMobject()
         result = mobjects[0]._copy()
         for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
             if isinstance(descriptor, LazyDynamicVariableDescriptor):
