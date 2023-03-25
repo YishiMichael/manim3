@@ -59,7 +59,7 @@ class PixelatedPass(RenderPass):
         texture: moderngl.Texture,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        pixel_width = self._pixelated_width_.value * ConfigSingleton().pixel_per_unit
+        pixel_width = self._pixelated_width_.value * ConfigSingleton().size.pixel_per_unit
         texture_size = (
             int(np.ceil(texture.width / pixel_width)),
             int(np.ceil(texture.height / pixel_width))

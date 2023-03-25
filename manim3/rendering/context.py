@@ -51,9 +51,9 @@ class Context(ABC):
         if cls._MGL_CONTEXT is not None:
             return
 
-        if ConfigSingleton().preview:
+        if ConfigSingleton().writing.preview:
             window = Window(
-                size=ConfigSingleton().window_pixel_size,
+                size=ConfigSingleton().size.window_pixel_size,
                 fullscreen=False,
                 resizable=True,
                 gl_version=(3, 3),
@@ -80,16 +80,16 @@ class Context(ABC):
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
-            "-s", "{}x{}".format(*ConfigSingleton().pixel_size),  # size of one frame
+            "-s", "{}x{}".format(*ConfigSingleton().size.pixel_size),  # size of one frame
             "-pix_fmt", "rgba",
-            "-r", str(ConfigSingleton().fps),  # frames per second
+            "-r", str(ConfigSingleton().writing.fps),  # frames per second
             "-i", "-",  # The input comes from a pipe.
             "-vf", "vflip",
             "-an",
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            ConfigSingleton().output_dir.joinpath(f"{scene_name}.mp4")
+            ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.mp4")
         ], stdin=sp.PIPE)
 
     @classmethod

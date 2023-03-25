@@ -1,7 +1,4 @@
-__all__ = [
-    "TexText",
-    "Tex"
-]
+__all__ = ["Tex"]
 
 
 from dataclasses import dataclass
@@ -14,7 +11,6 @@ from typing import (
     Generator
 )
 
-from colour import Color
 import toml
 
 from ..custom_typing import (
@@ -60,7 +56,7 @@ class TexFileWriter(StringFileWriter):
             content,
             self._compiler
         ))
-        return ConfigSingleton().tex_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
+        return ConfigSingleton().path.tex_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
 
     def create_svg_file(
         self,
@@ -124,7 +120,7 @@ class TexFileWriter(StringFileWriter):
                 svg_path.with_suffix(ext).unlink(missing_ok=True)
 
 
-class TexText(StringMobject):
+class Tex(StringMobject):
     __slots__ = ()
 
     TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
@@ -136,20 +132,32 @@ class TexText(StringMobject):
         isolate: Selector = (),
         protect: Selector = (),
         tex_to_color_map: dict[str, ColorType] | None = None,
-        template: str = "ctex",
-        additional_preamble: str = "",
-        alignment: str | None = "\\centering",
-        tex_environment: str | None = None,
-        base_color: ColorType = Color("white"),
-        font_size: float = 48,
-        width: float | None = None,
-        height: float | None = None
+        template: str = ...,
+        additional_preamble: str = ...,
+        alignment: str | None = ...,
+        environment: str | None = ...,
+        base_color: ColorType = ...,
+        font_size: float = ...
     ) -> None:
         # Prevent from passing an empty string.
         if not string.strip():
             string = "\\\\"
         if tex_to_color_map is None:
             tex_to_color_map = {}
+
+        config = ConfigSingleton().tex
+        if template is ...:
+            template = config.template
+        if additional_preamble is ...:
+            additional_preamble = config.additional_preamble
+        if alignment is ...:
+            alignment = config.alignment
+        if environment is ...:
+            environment = config.environment
+        if base_color is ...:
+            base_color = config.base_color
+        if font_size is ...:
+            font_size = config.font_size
 
         tex_template = self._get_tex_templates_dict()[template]
 
@@ -166,9 +174,9 @@ class TexText(StringMobject):
                 ))
             if alignment is not None:
                 prefix_lines.append(alignment)
-            if tex_environment is not None:
-                prefix_lines.append(f"\\begin{{{tex_environment}}}")
-                suffix_lines.append(f"\\end{{{tex_environment}}}")
+            if environment is not None:
+                prefix_lines.append(f"\\begin{{{environment}}}")
+                suffix_lines.append(f"\\end{{{environment}}}")
             return "\n\n".join((
                 "\\documentclass[preview]{standalone}",
                 tex_template.preamble,
@@ -193,9 +201,7 @@ class TexText(StringMobject):
             file_writer=TexFileWriter(
                 compiler=tex_template.compiler
             ),
-            frame_scale=self.TEX_SCALE_FACTOR_PER_FONT_POINT * font_size,
-            width=width,
-            height=height
+            frame_scale=self.TEX_SCALE_FACTOR_PER_FONT_POINT * font_size
         )
 
         for selector, color in tex_to_color_map.items():
@@ -204,7 +210,7 @@ class TexText(StringMobject):
     @staticmethod
     @lru_cache(maxsize=1)
     def _get_tex_templates_dict() -> dict[str, TexTemplate]:
-        with ConfigSingleton().tex_templates_path.open(encoding="utf-8") as tex_templates_file:
+        with ConfigSingleton().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
             template_content_dict = toml.load(tex_templates_file)
         return {
             name: TexTemplate(**template_content)
@@ -316,20 +322,3 @@ class TexText(StringMobject):
         if edge_flag == EdgeFlag.STOP:
             return "}}"
         return "{{" + cls._get_color_command(label)
-
-
-class Tex(TexText):
-    __slots__ = ()
-
-    def __init__(
-        self,
-        string: str,
-        *,
-        tex_environment: str | None = "align*",
-        **kwargs
-    ) -> None:
-        super().__init__(
-            string=string,
-            tex_environment=tex_environment,
-            **kwargs
-        )

@@ -1,6 +1,7 @@
 __all__ = ["Scene"]
 
 
+import sys
 import time
 from typing import Callable
 import warnings
@@ -157,8 +158,8 @@ class Scene(Mobject):
         self,
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
-        # Inspired from https://github.com/ambrosiogabe/MathAnimation
-        # ./Animations/src/renderer/Renderer.cpp
+        # Inspired from `https://github.com/ambrosiogabe/MathAnimation`
+        # `./Animations/src/renderer/Renderer.cpp`.
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
         for mobject in self.iter_descendants():
@@ -251,12 +252,14 @@ class Scene(Mobject):
         self,
         final_batch: SimpleFramebufferBatch
     ) -> None:
-        if ConfigSingleton().write_video:
+        if ConfigSingleton().writing.write_video:
             writing_process = Context.writing_process
             assert writing_process.stdin is not None
             writing_process.stdin.write(final_batch.framebuffer.read(components=4))
-        if ConfigSingleton().preview:
+        if ConfigSingleton().writing.preview:
             window = Context.window
+            if window.is_closing:
+                sys.exit()
             window.clear()
             self._copy_window_vertex_array_.render(
                 texture_array_dict={
@@ -268,7 +271,7 @@ class Scene(Mobject):
                 )
             )
             if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
-                    (sleep_t := (1.0 / ConfigSingleton().fps) - (time.time() - previous_timestamp)) > 0.0:
+                    (sleep_t := (1.0 / ConfigSingleton().writing.fps) - (time.time() - previous_timestamp)) > 0.0:
                 time.sleep(sleep_t)
             window.swap_buffers()
         self._previous_frame_rendering_timestamp = time.time()
@@ -283,11 +286,11 @@ class Scene(Mobject):
         # TODO: the image is flipped in y direction
         image = Image.frombytes(
             "RGBA",
-            ConfigSingleton().pixel_size,
+            ConfigSingleton().size.pixel_size,
             final_batch.framebuffer.read(components=4),
             "raw"
         )
-        image.save(ConfigSingleton().output_dir.joinpath(f"{self.__class__.__name__}.png"))
+        image.save(ConfigSingleton().path.output_dir.joinpath(f"{self.__class__.__name__}.png"))
 
     def _render_to_image(self) -> None:
         self._render_scene(self.__class__._render_to_image_callback)
@@ -303,12 +306,12 @@ class Scene(Mobject):
         # and `[ConfigSingleton().start_frame_index, ConfigSingleton().stop_frame_index]`.
         start_frame_index = int(np.ceil(
             start_frame_floating_index
-            if (config_start_frame_index := ConfigSingleton().start_frame_index) is None
+            if (config_start_frame_index := ConfigSingleton().writing.start_frame_index) is None
             else max(config_start_frame_index, start_frame_floating_index)
         ))
         stop_frame_index = int(np.floor(
             stop_frame_floating_index
-            if (config_stop_frame_index := ConfigSingleton().stop_frame_index is None)
+            if (config_stop_frame_index := ConfigSingleton().writing.stop_frame_index is None)
             else max(config_stop_frame_index, stop_frame_floating_index)
         ))
         if np.isclose(start_frame_index, start_frame_floating_index):
@@ -366,7 +369,7 @@ class Scene(Mobject):
         self,
         frames: float
     ):
-        self._update_dt(frames / ConfigSingleton().fps)
+        self._update_dt(frames / ConfigSingleton().writing.fps)
         return self
 
     def construct(self) -> None:
@@ -397,7 +400,7 @@ class Scene(Mobject):
         t: float = 1.0
     ):
         assert t >= 0.0
-        frames = t * ConfigSingleton().fps
+        frames = t * ConfigSingleton().writing.fps
         start_frame_floating_index = self._frame_floating_index
         stop_frame_floating_index = start_frame_floating_index + frames
         self._frame_floating_index = stop_frame_floating_index
@@ -516,17 +519,17 @@ class Scene(Mobject):
 
         ConfigSingleton.set(config)
         Context.activate()
-        if ConfigSingleton().write_video:
+        if ConfigSingleton().writing.write_video:
             Context.setup_writing_process(cls.__name__)
 
         self = cls()
         self.construct()
 
-        if ConfigSingleton().write_video:
+        if ConfigSingleton().writing.write_video:
             writing_process = Context.writing_process
             assert writing_process.stdin is not None
             writing_process.stdin.close()
             writing_process.wait()
             writing_process.terminate()
-        if ConfigSingleton().write_last_frame:
+        if ConfigSingleton().writing.write_last_frame:
             self._render_to_image()

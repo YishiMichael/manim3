@@ -25,7 +25,7 @@ class SceneMobject(MeshMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene_cls()
-        self.stretch_to_fit_size(np.array((*ConfigSingleton().frame_size, 0.0)))
+        self.stretch_to_fit_size(np.array((*ConfigSingleton().size.frame_size, 0.0)))
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod

@@ -18,7 +18,6 @@ from typing import (
 )
 import warnings
 
-from colour import Color
 import manimpango
 import pygments
 import pygments.formatters
@@ -137,7 +136,7 @@ class MarkupTextFileWriter(StringFileWriter):
             self._alignment,
             self._line_width
         ))
-        return ConfigSingleton().text_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
+        return ConfigSingleton().path.text_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
 
     def create_svg_file(
         self,
@@ -153,7 +152,7 @@ class MarkupTextFileWriter(StringFileWriter):
             alignment=self._alignment,
             pango_width=(
                 -1 if (line_width := self._line_width) is None
-                else line_width * ConfigSingleton().pixel_per_unit
+                else line_width * ConfigSingleton().size.pixel_per_unit
             )
         )
 
@@ -190,35 +189,49 @@ class MarkupText(StringMobject):
         self,
         string: str,
         *,
-        isolate: Selector = re.compile(r"\w+", flags=re.UNICODE),
+        isolate: Selector = (),
         protect: Selector = (),
         local_configs: dict[Selector, dict[str, str]] | None = None,
-        justify: bool = False,
-        indent: float = 0.0,
-        alignment: PangoAlignment = PangoAlignment.LEFT,
-        line_width: float | None = None,
-        font_size: float = 48,
-        font: str = "Consolas",
-        slant: str = "NORMAL",
-        weight: str = "NORMAL",
-        base_color: ColorType = Color("white"),
-        line_spacing_height: float = 0.0,
-        disable_ligatures: bool = True,
-        global_config: dict[str, str] | None = None,
-        width: float | None = None,
-        height: float | None = None
+        justify: bool = ...,
+        indent: float = ...,
+        alignment: str = ...,
+        line_width: float | None = ...,
+        font_size: float = ...,
+        font: str = ...,
+        slant: str = ...,
+        weight: str = ...,
+        base_color: ColorType = ...,
+        line_spacing_height: float = ...,
+        global_config: dict[str, str] = ...
     ) -> None:
-        if global_config is None:
-            global_config = {}
+        if not isinstance(self, Text):
+            PangoUtils.validate_markup_string(string)
         if local_configs is None:
             local_configs = {}
 
-        if not isinstance(self, Text):
-            PangoUtils.validate_markup_string(string)
-        #if not self.font:
-        #    self.font = get_customization()["style"]["font"]
-        #if not self.alignment:
-        #    self.alignment = get_customization()["style"]["text_alignment"]
+        config = ConfigSingleton().text
+        if justify is ...:
+            justify = config.justify
+        if indent is ...:
+            indent = config.indent
+        if alignment is ...:
+            alignment = config.alignment
+        if line_width is ...:
+            line_width = config.line_width
+        if font_size is ...:
+            font_size = config.font_size
+        if font is ...:
+            font = config.font
+        if slant is ...:
+            slant = config.slant
+        if weight is ...:
+            weight = config.weight
+        if base_color is ...:
+            base_color = config.base_color
+        if line_spacing_height is ...:
+            line_spacing_height = config.line_spacing_height
+        if global_config is ...:
+            global_config = config.global_config
 
         global_attrs = self._get_global_attrs(
             font_size=font_size,
@@ -227,7 +240,6 @@ class MarkupText(StringMobject):
             weight=weight,
             base_color=base_color,
             line_spacing_height=line_spacing_height,
-            disable_ligatures=disable_ligatures,
             global_config=global_config
         )
 
@@ -258,11 +270,9 @@ class MarkupText(StringMobject):
             file_writer=MarkupTextFileWriter(
                 justify=justify,
                 indent=indent,
-                alignment=alignment,
+                alignment=PangoAlignment[alignment],
                 line_width=line_width
             ),
-            width=width,
-            height=height,
             frame_scale=self.TEXT_SCALE_FACTOR
         )
 
@@ -291,7 +301,6 @@ class MarkupText(StringMobject):
         weight: str,
         base_color: ColorType,
         line_spacing_height: float,
-        disable_ligatures: bool,
         global_config: dict[str, str]
     ) -> dict[str, str]:
         global_attrs = {
@@ -310,8 +319,6 @@ class MarkupText(StringMobject):
             )
         else:
             global_attrs["line_height"] = str(1.0 + line_spacing_height)
-        if disable_ligatures:
-            global_attrs["font_features"] = "liga=0,dlig=0,clig=0,hlig=0"
 
         global_attrs.update(global_config)
         return global_attrs
@@ -469,11 +476,16 @@ class Code(MarkupText):
         self,
         code: str,
         *,
-        language: str = "python",
-        # Visit https://pygments.org/demo/ to have a preview of more styles.
-        code_style: str = "monokai",
+        language: str | None = None,
+        code_style: str | None = None,
         **kwargs
     ) -> None:
+        config = ConfigSingleton().text
+        if language is None:
+            language = config.language
+        if code_style is None:
+            code_style = config.code_style
+
         lexer = pygments.lexers.get_lexer_by_name(language)
         formatter = pygments.formatters.PangoMarkupFormatter(
             style=code_style

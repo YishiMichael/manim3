@@ -36,22 +36,22 @@ class OrthographicCamera(Camera):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> float:
-        return ConfigSingleton().frame_width
+        return ConfigSingleton().size.frame_width
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _height_(cls) -> float:
-        return ConfigSingleton().frame_height
+        return ConfigSingleton().size.frame_height
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _near_(cls) -> float:
-        return ConfigSingleton().camera_near
+        return ConfigSingleton().camera.near
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _far_(cls) -> float:
-        return ConfigSingleton().camera_far
+        return ConfigSingleton().camera.far
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod

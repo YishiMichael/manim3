@@ -33,7 +33,7 @@ class Camera(LazyObject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _eye_(cls) -> Vec3T:
-        return ConfigSingleton().camera_altitude * OUT
+        return ConfigSingleton().camera.altitude * OUT
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
@@ -83,7 +83,7 @@ class Camera(LazyObject):
                 "u_projection_matrix": projection_matrix.T,
                 "u_view_matrix": view_matrix.T,
                 "u_view_position": eye,
-                "u_frame_radius": np.array(ConfigSingleton().frame_size) / 2.0
+                "u_frame_radius": np.array(ConfigSingleton().size.frame_size) / 2.0
             }
         )
 

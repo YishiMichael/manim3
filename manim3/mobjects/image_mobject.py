@@ -32,8 +32,8 @@ class ImageMobject(MeshMobject):
         self._image: Image.Image = image
 
         x_scale, y_scale = self._get_frame_scale_vector(
-            original_width=image.width / ConfigSingleton().pixel_per_unit,
-            original_height=image.height / ConfigSingleton().pixel_per_unit,
+            original_width=image.width / ConfigSingleton().size.pixel_per_unit,
+            original_height=image.height / ConfigSingleton().size.pixel_per_unit,
             specified_frame_scale=frame_scale,
             specified_width=width,
             specified_height=height

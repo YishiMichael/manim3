@@ -42,7 +42,7 @@ class GaussianBlurPass(RenderPass):
         cls,
         sigma_width: float
     ) -> FloatsT:
-        sigma = sigma_width * ConfigSingleton().pixel_per_unit
+        sigma = sigma_width * ConfigSingleton().size.pixel_per_unit
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
@@ -70,7 +70,7 @@ class GaussianBlurPass(RenderPass):
                 "CONVOLUTION_CORE_SIZE": len(convolution_core)
             },
             data={
-                "u_uv_offset": 1.0 / np.array(ConfigSingleton().pixel_size),
+                "u_uv_offset": 1.0 / np.array(ConfigSingleton().size.pixel_size),
                 "u_convolution_core": convolution_core
             }
         )

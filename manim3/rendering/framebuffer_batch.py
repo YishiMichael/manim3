@@ -96,7 +96,7 @@ class SimpleFramebufferBatch(TemporaryResource):
         dtype: str = "f1"
     ) -> None:
         if size is None:
-            size = ConfigSingleton().pixel_size
+            size = ConfigSingleton().size.pixel_size
         color_texture = Context.texture(
             size=size,
             components=components,
@@ -128,7 +128,7 @@ class ColorFramebufferBatch(TemporaryResource):
         dtype: str = "f1"
     ) -> None:
         if size is None:
-            size = ConfigSingleton().pixel_size
+            size = ConfigSingleton().size.pixel_size
         color_texture = Context.texture(
             size=size,
             components=components,
@@ -162,7 +162,7 @@ class SceneFramebufferBatch(TemporaryResource):
         size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
-            size = ConfigSingleton().pixel_size
+            size = ConfigSingleton().size.pixel_size
         opaque_texture = Context.texture(
             size=size,
             components=4,

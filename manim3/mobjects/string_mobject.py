@@ -258,9 +258,7 @@ class StringMobject(SVGMobject):
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
-        frame_scale: float | None,
-        width: float | None,
-        height: float | None
+        frame_scale: float
     ) -> None:
         super().__init__()
         parsing_result = self._parse(
@@ -270,9 +268,7 @@ class StringMobject(SVGMobject):
             configured_items_generator=configured_items_generator,
             get_content_by_body=get_content_by_body,
             file_writer=file_writer,
-            frame_scale=frame_scale,
-            width=width,
-            height=height
+            frame_scale=frame_scale
         )
         self._string: str = string
         self._parsing_result: ParsingResult = parsing_result
@@ -290,9 +286,7 @@ class StringMobject(SVGMobject):
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
-        frame_scale: float | None,
-        width: float | None,
-        height: float | None
+        frame_scale: float
     ) -> ParsingResult:
         labelled_items, replaced_items = cls._get_labelled_items_and_replaced_items(
             string=string,
@@ -316,9 +310,7 @@ class StringMobject(SVGMobject):
             labels_count=len(labelled_items),
             get_content_by_body=get_content_by_body,
             file_writer=file_writer,
-            frame_scale=frame_scale,
-            width=width,
-            height=height
+            frame_scale=frame_scale
         )
 
         label_to_span_dict = {
@@ -560,9 +552,7 @@ class StringMobject(SVGMobject):
         labels_count: int,
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
-        frame_scale: float | None,
-        width: float | None,
-        height: float | None
+        frame_scale: float
     ) -> list[LabelledShapeItem]:
 
         def get_shape_mobjects(
@@ -587,9 +577,7 @@ class StringMobject(SVGMobject):
             svg_path = file_writer.get_svg_path_by_content(content, string)
             return list(SVGMobject(
                 file_path=svg_path,
-                frame_scale=frame_scale,
-                width=width,
-                height=height
+                frame_scale=frame_scale
             ).iter_shape_children())
 
         plain_shapes = get_shape_mobjects(is_labelled=False)
