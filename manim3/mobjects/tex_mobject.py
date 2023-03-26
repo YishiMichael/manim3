@@ -52,8 +52,8 @@ class LaTeXError(ValueError):
 class TexFileWriter(StringFileWriter):
     __slots__ = (
         "_use_mathjax",
+        "_preamble",
         "_template",
-        "_additional_preamble",
         "_alignment",
         "_environment"
     )
@@ -61,15 +61,15 @@ class TexFileWriter(StringFileWriter):
     def __init__(
         self,
         use_mathjax: bool,
+        preamble: str,
         template: str,
-        additional_preamble: str,
         alignment: str | None,
         environment: str | None
     ) -> None:
         super().__init__()
         self._use_mathjax: bool = use_mathjax
+        self._preamble: str = preamble
         self._template: str = template
-        self._additional_preamble: str = additional_preamble
         self._alignment: str | None = alignment
         self._environment: str | None = environment
 
@@ -80,8 +80,8 @@ class TexFileWriter(StringFileWriter):
         hash_content = str((
             content,
             self._use_mathjax,
+            self._preamble,
             self._template,
-            self._additional_preamble,
             self._alignment,
             self._environment
         ))
@@ -121,9 +121,8 @@ class TexFileWriter(StringFileWriter):
             alignment = self._alignment
             environment = self._environment
             full_content = "\n".join(filter(lambda s: s, (
-                "\\documentclass[preview]{standalone}",
+                self._preamble,
                 tex_template.preamble,
-                self._additional_preamble,
                 "\\begin{document}",
                 alignment if alignment is not None else "",
                 f"\\begin{{{environment}}}" if environment is not None else "",
@@ -173,7 +172,7 @@ class TexFileWriter(StringFileWriter):
         content: str,
         svg_path: pathlib.Path
     ) -> None:
-        # `template`, `additional_preamble`, `alignment`, `environment`
+        # `template`, `preamble`, `alignment`, `environment`
         # all don't make an effect when using mathjax.
         import manimgl_mathjax  # TODO
         mathjax_program_path = pathlib.Path(manimgl_mathjax.__file__).absolute().with_name("index.js")
@@ -221,8 +220,8 @@ class Tex(StringMobject):
         protect: Selector = (),
         tex_to_color_map: dict[str, ColorType] | None = None,
         use_mathjax: bool = ...,
+        preamble: str = ...,
         template: str = ...,
-        additional_preamble: str = ...,
         alignment: str | None = ...,
         environment: str | None = ...,
         base_color: ColorType = ...,
@@ -237,10 +236,10 @@ class Tex(StringMobject):
         config = ConfigSingleton().tex
         if use_mathjax is ...:
             use_mathjax = config.use_mathjax
+        if preamble is ...:
+            preamble = config.preamble
         if template is ...:
             template = config.template
-        if additional_preamble is ...:
-            additional_preamble = config.additional_preamble
         if alignment is ...:
             alignment = config.alignment
         if environment is ...:
@@ -278,8 +277,8 @@ class Tex(StringMobject):
             get_content_by_body=get_content_by_body,
             file_writer=TexFileWriter(
                 use_mathjax=use_mathjax,
+                preamble=preamble,
                 template=template,
-                additional_preamble=additional_preamble,
                 alignment=alignment,
                 environment=environment
             ),

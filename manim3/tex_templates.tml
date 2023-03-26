@@ -5,9 +5,6 @@ description = ''
 compiler = 'latex'
 preamble = '''
 \usepackage[english]{babel}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 '''
 
 [ctex]
@@ -15,9 +12,6 @@ description = ''
 compiler = 'xelatex'
 preamble = '''
 \usepackage[UTF8]{ctex}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 '''
 
 [empty]
@@ -37,9 +31,6 @@ preamble = ''
 description = 'American Typewriter'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{American Typewriter}
 \usepackage[defaultmathsizes]{mathastext}
@@ -49,9 +40,6 @@ preamble = '''
 description = 'Antykwa Poltawskiego (TX Fonts for Greek and math symbols)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[OT4,OT1]{fontenc}
 \usepackage{txfonts}
 \usepackage[upright]{txgreeks}
@@ -63,9 +51,6 @@ preamble = '''
 description = 'Apple Chancery'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Apple Chancery}
 \usepackage[defaultmathsizes]{mathastext}
@@ -75,9 +60,6 @@ preamble = '''
 description = 'Auriocus Kalligraphicus (Symbol Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{aurical}
 \renewcommand{\rmdefault}{AuriocusKalligraphicus}
@@ -88,9 +70,6 @@ preamble = '''
 description = 'Baskervald ADF with Fourier'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[upright]{fourier}
 \usepackage{baskervald}
 \usepackage[defaultmathsizes,noasterisk]{mathastext}
@@ -100,9 +79,6 @@ preamble = '''
 description = 'Baskerville (Italic)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Baskerville}
 \usepackage[defaultmathsizes,italic]{mathastext}
@@ -112,9 +88,6 @@ preamble = '''
 description = 'Biolinum'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{txfonts}
 \usepackage[upright]{txgreeks}
 \usepackage[no-math]{fontspec}
@@ -129,9 +102,6 @@ preamble = '''
 description = 'BrushScriptX-Italic (PX math and Greek)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{pxfonts}
 \renewcommand{\rmdefault}{pbsi}
@@ -145,9 +115,6 @@ preamble = '''
 description = 'Chalkboard SE'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Chalkboard SE}
 \usepackage[defaultmathsizes]{mathastext}
@@ -157,9 +124,6 @@ preamble = '''
 description = 'Chalkduster'
 compiler = 'lualatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Chalkduster}
 \usepackage[defaultmathsizes]{mathastext}
@@ -169,9 +133,6 @@ preamble = '''
 description = 'Comfortaa'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[default]{comfortaa}
 \usepackage[LGRgreek,defaultmathsizes,noasterisk]{mathastext}
 \let\varphi\phi
@@ -182,9 +143,6 @@ preamble = '''
 description = 'Comic Sans MS'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Comic Sans MS}
 \usepackage[defaultmathsizes]{mathastext}
@@ -194,9 +152,6 @@ preamble = '''
 description = 'Droid Sans'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[default]{droidsans}
 \usepackage[LGRgreek]{mathastext}
@@ -207,9 +162,6 @@ preamble = '''
 description = 'Droid Sans (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[default]{droidsans}
 \usepackage[LGRgreek,defaultmathsizes,italic]{mathastext}
@@ -220,9 +172,6 @@ preamble = '''
 description = 'Droid Serif'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[default]{droidserif}
 \usepackage[LGRgreek]{mathastext}
@@ -233,9 +182,6 @@ preamble = '''
 description = 'Droid Serif (PX math symbols) (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{pxfonts}
 \usepackage[default]{droidserif}
@@ -247,9 +193,6 @@ preamble = '''
 description = 'ECF Augie (Euler Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \renewcommand\familydefault{fau}
 \usepackage[defaultmathsizes,eulergreek]{mathastext}
 '''
@@ -258,9 +201,6 @@ preamble = '''
 description = 'ECF JD (with TX fonts)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{txfonts}
 \usepackage[upright]{txgreeks}
 \renewcommand\familydefault{fjd}
@@ -272,9 +212,6 @@ preamble = '''
 description = 'ECF Skeetch (CM Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \DeclareFontFamily{T1}{fsk}{}
 \DeclareFontShape{T1}{fsk}{m}{n}{<->s*[1.315] fskmw8t}{}
@@ -286,9 +223,6 @@ preamble = '''
 description = 'ECF Tall Paul (with Symbol font)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \DeclareFontFamily{T1}{ftp}{}
 \DeclareFontShape{T1}{ftp}{m}{n}{<->s*[1.4] ftpmw8t}{}
 \renewcommand\familydefault{ftp}
@@ -300,9 +234,6 @@ preamble = '''
 description = 'ECF Webster (with TX fonts)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{txfonts}
 \usepackage[upright]{txgreeks}
 \renewcommand\familydefault{fwb}
@@ -316,9 +247,6 @@ preamble = '''
 description = 'Electrum ADF (CM Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[LGRgreek,basic,defaultmathsizes]{mathastext}
 \usepackage[lf]{electrum}
@@ -330,9 +258,6 @@ preamble = '''
 description = 'Epigrafica'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[LGR,OT1]{fontenc}
 \usepackage{epigrafica}
 \usepackage[basic,LGRgreek,defaultmathsizes]{mathastext}
@@ -344,9 +269,6 @@ preamble = '''
 description = 'Fourier Utopia (Fourier upright Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[upright]{fourier}
 \usepackage{mathastext}
@@ -356,9 +278,6 @@ preamble = '''
 description = 'French Cursive (Euler Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[default]{frcursive}
 \usepackage[eulergreek,noplusnominus,noequal,nohbar,nolessnomore,noasterisk]{mathastext}
@@ -368,9 +287,6 @@ preamble = '''
 description = 'GFS Bodoni'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \renewcommand{\rmdefault}{bodoni}
 \usepackage[LGRgreek]{mathastext}
@@ -382,9 +298,6 @@ preamble = '''
 description = 'GFS Didot (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \renewcommand\rmdefault{udidot}
 \usepackage[LGRgreek,defaultmathsizes,italic]{mathastext}
@@ -395,9 +308,6 @@ preamble = '''
 description = 'GFS NeoHellenic'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \renewcommand{\rmdefault}{neohellenic}
 \usepackage[LGRgreek]{mathastext}
@@ -409,9 +319,6 @@ preamble = '''
 description = 'GNU FreeSerif (and TX fonts symbols)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \usepackage{txfonts}
 \setmainfont[ExternalLocation,Mapping=tex-text,BoldFont=FreeSerifBold,ItalicFont=FreeSerifItalic,BoldItalicFont=FreeSerifBoldItalic]{FreeSerif}
@@ -422,9 +329,6 @@ preamble = '''
 description = 'GNU FreeSerif and FreeSans'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[ExternalLocation,Mapping=tex-text,BoldFont=FreeSerifBold,ItalicFont=FreeSerifItalic,BoldItalicFont=FreeSerifBoldItalic]{FreeSerif}
 \setsansfont[ExternalLocation,Mapping=tex-text,BoldFont=FreeSansBold,ItalicFont=FreeSansOblique,BoldItalicFont=FreeSansBoldOblique,Scale=MatchLowercase]{FreeSans}
@@ -440,9 +344,6 @@ preamble = '''
 description = 'Helvetica with Fourier (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[scaled]{helvet}
 \usepackage{fourier}
@@ -454,9 +355,6 @@ preamble = '''
 description = 'Latin Modern Typewriter Proportional'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[variablett]{lmodern}
 \renewcommand{\rmdefault}{\ttdefault}
@@ -470,9 +368,6 @@ preamble = '''
 description = 'Latin Modern Typewriter Proportional (CM Greek) (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[variablett,nomath]{lmodern}
 \renewcommand{\familydefault}{\ttdefault}
@@ -484,9 +379,6 @@ preamble = '''
 description = 'Libertine'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{libertine}
 \usepackage[greek=n]{libgreek}
@@ -497,9 +389,6 @@ preamble = '''
 description = 'Libris ADF with Fourier'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[upright]{fourier}
 \usepackage{libris}
@@ -511,9 +400,6 @@ preamble = '''
 description = 'Minion Pro and Myriad Pro (and TX fonts symbols)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage[default]{droidserif}
 \usepackage[LGRgreek]{mathastext}
@@ -524,9 +410,6 @@ preamble = '''
 description = 'Minion Pro (and TX fonts symbols)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{txfonts}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Minion Pro}
@@ -537,9 +420,6 @@ preamble = '''
 description = 'New Century Schoolbook (Symbol Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{newcent}
 \usepackage[symbolgreek]{mathastext}
@@ -550,9 +430,6 @@ preamble = '''
 description = 'New Century Schoolbook (Symbol Greek, PX math symbols)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{pxfonts}
 \usepackage{newcent}
@@ -564,9 +441,6 @@ preamble = '''
 description = 'Noteworthy Light'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Noteworthy Light}
 \usepackage[defaultmathsizes]{mathastext}
@@ -576,9 +450,6 @@ preamble = '''
 description = 'Palatino (Symbol Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{palatino}
 \usepackage[symbolmax,defaultmathsizes]{mathastext}
@@ -588,9 +459,6 @@ preamble = '''
 description = 'Papyrus'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Papyrus}
 \usepackage[defaultmathsizes]{mathastext}
@@ -600,9 +468,6 @@ preamble = '''
 description = 'Romande ADF with Fourier (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{fourier}
 \usepackage{romande}
@@ -614,9 +479,6 @@ preamble = '''
 description = 'SliTeX (Euler Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{tpslifonts}
 \usepackage[eulergreek,defaultmathsizes]{mathastext}
@@ -628,9 +490,6 @@ preamble = '''
 description = 'Times with Fourier (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{fourier}
 \renewcommand{\rmdefault}{ptm}
 \usepackage[italic,defaultmathsizes,noasterisk]{mathastext}
@@ -640,9 +499,6 @@ preamble = '''
 description = 'URW Avant Garde (Symbol Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{avant}
 \renewcommand{\familydefault}{\sfdefault}
@@ -653,9 +509,6 @@ preamble = '''
 description = 'URW Zapf Chancery (CM Greek)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \DeclareFontFamily{T1}{pzc}{}
 \DeclareFontShape{T1}{pzc}{mb}{it}{<->s*[1.2] pzcmi8t}{}
@@ -673,9 +526,6 @@ preamble = '''
 description = 'Venturis ADF with Fourier (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{fourier}
 \usepackage[lf]{venturis}
 \usepackage[italic,defaultmathsizes,noasterisk]{mathastext}
@@ -685,9 +535,6 @@ preamble = '''
 description = 'Verdana (Italic)'
 compiler = 'xelatex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[no-math]{fontspec}
 \setmainfont[Mapping=tex-text]{Verdana}
 \usepackage[defaultmathsizes,italic]{mathastext}
@@ -697,9 +544,6 @@ preamble = '''
 description = 'Vollkorn (TX fonts for Greek and math symbols)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{txfonts}
 \usepackage[upright]{txgreeks}
@@ -711,9 +555,6 @@ preamble = '''
 description = 'Vollkorn with Fourier (Italic)'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \usepackage{fourier}
 \usepackage{vollkorn}
 \usepackage[italic,nohbar]{mathastext}
@@ -723,9 +564,6 @@ preamble = '''
 description = 'Zapf Chancery'
 compiler = 'latex'
 preamble = '''
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{xcolor}
 \DeclareFontFamily{T1}{pzc}{}
 \DeclareFontShape{T1}{pzc}{mb}{it}{<->s*[1.2] pzcmi8t}{}
 \DeclareFontShape{T1}{pzc}{m}{it}{<->ssub * pzc/mb/it}{}

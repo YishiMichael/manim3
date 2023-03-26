@@ -209,8 +209,8 @@ class CameraConfig:
 )
 class TexConfig:
     use_mathjax: bool
+    preamble: str
     template: str
-    additional_preamble: str
     alignment: str | None
     environment: str | None
     base_color: ColorType
@@ -267,8 +267,13 @@ class Config:
     )
     tex: TexConfig = TexConfig(
         use_mathjax=False,
+        preamble="\n".join((
+            "\\documentclass[preview]{standalone}",
+            "\\usepackage{amsmath}",
+            "\\usepackage{amssymb}",
+            "\\usepackage{xcolor}"
+        )),
         template="ctex",
-        additional_preamble="",
         alignment="\\centering",
         environment="align*",
         base_color=Color("white"),
