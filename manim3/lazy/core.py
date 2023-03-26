@@ -427,18 +427,18 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
 
     def __init__(self) -> None:
         super().__init__()
-        self._container: _ContainerT = NotImplemented
+        self._container: _ContainerT | None = None
         self._linked_variable_slots: weakref.WeakSet[LazyVariableSlot] = weakref.WeakSet()
         self._is_expired: bool = True
 
-    def get_property_container(self) -> _ContainerT:
+    def get_property_container(self) -> _ContainerT | None:
         return self._container
 
     def set_property_container(
         self,
-        container: _ContainerT
+        container: _ContainerT | None
     ) -> None:
-        if self._container is not NotImplemented and container is not NotImplemented:
+        if self._container is not None and container is not None:
             self._container._write(container)
         else:
             self._container = container
@@ -883,6 +883,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
         slot = self.get_slot(instance)
         if not slot._is_expired:
             container = slot.get_property_container()
+            assert container is not None
         else:
             parameter_items = tuple(
                 construct_parameter_item(descriptor_overloading_chain, instance)

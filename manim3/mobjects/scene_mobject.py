@@ -32,11 +32,6 @@ class SceneMobject(MeshMobject):
     def _geometry_(cls) -> Geometry:
         return PlaneGeometry()
 
-    #@lazy_slot
-    #@staticmethod
-    #def _scene() -> Scene:
-    #    return NotImplemented
-
     #def _update_dt(self, dt: float):
     #    super()._update_dt(dt)  # TODO
     #    self._scene._update_dt(dt)
