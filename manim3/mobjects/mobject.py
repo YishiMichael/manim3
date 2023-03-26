@@ -42,7 +42,7 @@ from ..lazy.interface import (
 from ..passes.render_pass import RenderPass
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
 from ..rendering.gl_buffer import UniformBlockBuffer
-from ..utils.scene_config import SceneConfig
+from ..utils.scene_state import SceneState
 from ..utils.space import SpaceUtils
 
 
@@ -752,8 +752,8 @@ class Mobject(LazyObject):
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
-    def _scene_config_(cls) -> SceneConfig:
-        return SceneConfig()
+    def _scene_state_(cls) -> SceneState:
+        return SceneState()
 
     def _render(
         self,

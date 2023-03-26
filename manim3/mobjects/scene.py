@@ -1,9 +1,7 @@
 __all__ = ["Scene"]
 
 
-import sys
 import time
-from typing import Callable
 import warnings
 
 import moderngl
@@ -34,6 +32,10 @@ from ..rendering.framebuffer_batch import (
 )
 from ..rendering.gl_buffer import TextureStorage
 from ..rendering.vertex_array import VertexArray
+
+
+class EndSceneException(Exception):
+    pass
 
 
 class Scene(Mobject):
@@ -165,7 +167,7 @@ class Scene(Mobject):
         for mobject in self.iter_descendants():
             if not mobject._has_local_sample_points_.value:
                 continue
-            mobject._scene_config_ = self._scene_config_
+            mobject._scene_state_ = self._scene_state_
             if mobject._apply_oit_.value:
                 transparent_mobjects.append(mobject)
             else:
@@ -186,9 +188,6 @@ class Scene(Mobject):
                             blend_func=(moderngl.ONE, moderngl.ZERO)
                         )
                     )
-                    #from PIL import Image
-                    #Image.frombuffer("RGB", batch.framebuffer.size, batch.framebuffer.read()).show()
-                    #Image.frombuffer("RGB", scene_batch.opaque_framebuffer.size, scene_batch.opaque_framebuffer.read()).show()
 
             for mobject in transparent_mobjects:
                 with SimpleFramebufferBatch() as batch:
@@ -240,87 +239,77 @@ class Scene(Mobject):
 
     def _render_scene(
         self,
-        final_batch_callback: "Callable[[Scene, SimpleFramebufferBatch], None]"
+        render_to_video: bool = False,
+        render_to_image: bool = False
     ) -> None:
-        scene_config = self._scene_config_
-        red, green, blue = scene_config._background_color_.value
-        alpha = scene_config._background_opacity_.value
+        scene_state = self._scene_state_
+        red, green, blue = scene_state._background_color_.value
+        alpha = scene_state._background_opacity_.value
         with SimpleFramebufferBatch() as final_batch:
             framebuffer = final_batch.framebuffer
             framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
             self._render_with_passes(framebuffer)
-            final_batch_callback(self, final_batch)
 
-    def _render_to_video_frame_callback(
-        self,
-        final_batch: SimpleFramebufferBatch
-    ) -> None:
-        if ConfigSingleton().rendering.write_video:
-            writing_process = Context.writing_process
-            assert writing_process.stdin is not None
-            writing_process.stdin.write(final_batch.framebuffer.read(components=4))
-        if ConfigSingleton().rendering.preview:
-            window = Context.window
-            if window.is_closing:
-                sys.exit()
-            window.clear()
-            self._copy_window_vertex_array_.render(
-                texture_array_dict={
-                    "u_color_map": np.array(final_batch.color_texture)
-                },
-                framebuffer=Context.window_framebuffer,
-                context_state=ContextState(
-                    enable_only=moderngl.NOTHING
-                )
-            )
-            if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
-                    (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:
-                time.sleep(sleep_t)
-            window.swap_buffers()
-        self._previous_frame_rendering_timestamp = time.time()
+            if render_to_video:
+                if ConfigSingleton().rendering.write_video:
+                    writing_process = Context.writing_process
+                    assert writing_process.stdin is not None
+                    writing_process.stdin.write(final_batch.framebuffer.read(components=4))
+                if ConfigSingleton().rendering.preview:
+                    window = Context.window
+                    if window.is_closing:
+                        raise KeyboardInterrupt
+                    window.clear()
+                    self._copy_window_vertex_array_.render(
+                        texture_array_dict={
+                            "u_color_map": np.array(final_batch.color_texture)
+                        },
+                        framebuffer=Context.window_framebuffer,
+                        context_state=ContextState(
+                            enable_only=moderngl.NOTHING
+                        )
+                    )
+                    if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
+                            (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:
+                        time.sleep(sleep_t)
+                    window.swap_buffers()
+                self._previous_frame_rendering_timestamp = time.time()
 
-    def _render_to_video_frame(self) -> None:
-        self._render_scene(self.__class__._render_to_video_frame_callback)
-
-    def _render_to_image_callback(
-        self,
-        final_batch: SimpleFramebufferBatch
-    ) -> None:
-        # TODO: the image is flipped in y direction
-        image = Image.frombytes(
-            "RGBA",
-            ConfigSingleton().size.pixel_size,
-            final_batch.framebuffer.read(components=4),
-            "raw"
-        )
-        image.save(ConfigSingleton().path.output_dir.joinpath(f"{self.__class__.__name__}.png"))
-
-    def _render_to_image(self) -> None:
-        self._render_scene(self.__class__._render_to_image_callback)
+            if render_to_image:
+                image = Image.frombytes(
+                    "RGBA",
+                    ConfigSingleton().size.pixel_size,
+                    final_batch.framebuffer.read(components=4),
+                    "raw"
+                ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                image.save(ConfigSingleton().path.output_dir.joinpath(f"{self.__class__.__name__}.png"))
 
     @classmethod
     def _find_frame_range(
         cls,
         start_frame_floating_index: float,
         stop_frame_floating_index: float
-    ) -> range:
+    ) -> tuple[range, bool]:
         # Find all frame indices in the intersection of
         # `(start_frame_floating_index, stop_frame_floating_index]`
         # and `[ConfigSingleton().start_frame_index, ConfigSingleton().stop_frame_index]`.
+        config_start_frame_index = ConfigSingleton().rendering.start_frame_index
+        config_stop_frame_index = ConfigSingleton().rendering.stop_frame_index
         start_frame_index = int(np.ceil(
             start_frame_floating_index
-            if (config_start_frame_index := ConfigSingleton().rendering.start_frame_index) is None
+            if config_start_frame_index is None
             else max(config_start_frame_index, start_frame_floating_index)
         ))
         stop_frame_index = int(np.floor(
             stop_frame_floating_index
-            if (config_stop_frame_index := ConfigSingleton().rendering.stop_frame_index is None)
-            else max(config_stop_frame_index, stop_frame_floating_index)
+            if config_stop_frame_index is None
+            else min(config_stop_frame_index, stop_frame_floating_index)
         ))
         if np.isclose(start_frame_index, start_frame_floating_index):
             # Exclude the open side.
             start_frame_index += 1
-        return range(start_frame_index, stop_frame_index + 1)
+        reaches_end = config_stop_frame_index is not None and bool(np.isclose(stop_frame_index, config_stop_frame_index))
+        return range(start_frame_index, stop_frame_index + 1), reaches_end
 
     def _update_dt(
         self,
@@ -407,19 +396,21 @@ class Scene(Mobject):
         start_frame_floating_index = self._frame_floating_index
         stop_frame_floating_index = start_frame_floating_index + frames
         self._frame_floating_index = stop_frame_floating_index
-        frame_range = self._find_frame_range(start_frame_floating_index, stop_frame_floating_index)
+        frame_range, reaches_end = self._find_frame_range(start_frame_floating_index, stop_frame_floating_index)
+
         if not frame_range:
             self._update_frames(frames)
-            return self
+        else:
+            self._update_frames(frame_range.start - start_frame_floating_index)
+            if self._previous_frame_rendering_timestamp is None:
+                self._render_scene(render_to_video=True)
+            for _ in frame_range[:-1]:
+                self._update_frames(1)
+                self._render_scene(render_to_video=True)
+            self._update_frames(stop_frame_floating_index - (frame_range.stop - 1))
 
-        self._update_frames(frame_range.start - start_frame_floating_index)
-        if self._previous_frame_rendering_timestamp is None:
-            self._render_to_video_frame()
-
-        for _ in frame_range[:-1]:
-            self._update_frames(1)
-            self._render_to_video_frame()
-        self._update_frames(stop_frame_floating_index - (frame_range.stop - 1))
+        if reaches_end:
+            raise EndSceneException()
         return self
 
     def set_view(
@@ -429,7 +420,7 @@ class Scene(Mobject):
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
-        self._scene_config_.set_view(
+        self._scene_state_.set_view(
             eye=eye,
             target=target,
             up=up
@@ -442,7 +433,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None
     ):
-        self._scene_config_.set_background(
+        self._scene_state_.set_background(
             color=color,
             opacity=opacity
         )
@@ -454,7 +445,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None
     ):
-        self._scene_config_.set_ambient_light(
+        self._scene_state_.set_ambient_light(
             color=color,
             opacity=opacity
         )
@@ -467,7 +458,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None
     ):
-        self._scene_config_.add_point_light(
+        self._scene_state_.add_point_light(
             position=position,
             color=color,
             opacity=opacity
@@ -482,7 +473,7 @@ class Scene(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None
     ):
-        self._scene_config_.set_point_light(
+        self._scene_state_.set_point_light(
             index=index,
             position=position,
             color=color,
@@ -501,7 +492,7 @@ class Scene(Mobject):
         point_light_color: ColorType | None = None,
         point_light_opacity: float | None = None
     ):
-        self._scene_config_.set_style(
+        self._scene_state_.set_style(
             background_color=background_color,
             background_opacity=background_opacity,
             ambient_light_color=ambient_light_color,
@@ -526,13 +517,21 @@ class Scene(Mobject):
             Context.setup_writing_process(cls.__name__)
 
         self = cls()
-        self.construct()
 
-        if ConfigSingleton().rendering.write_video:
-            writing_process = Context.writing_process
-            assert writing_process.stdin is not None
-            writing_process.stdin.close()
-            writing_process.wait()
-            writing_process.terminate()
-        if ConfigSingleton().rendering.write_last_frame:
-            self._render_to_image()
+        try:
+            try:
+                self.construct()
+            except EndSceneException:
+                pass
+            finally:
+                if ConfigSingleton().rendering.write_last_frame:
+                    self._render_scene(render_to_image=True)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            if ConfigSingleton().rendering.write_video:
+                writing_process = Context.writing_process
+                assert writing_process.stdin is not None
+                writing_process.stdin.close()
+                writing_process.wait()
+                writing_process.terminate()

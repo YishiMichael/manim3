@@ -41,7 +41,7 @@ from .rendering.vertex_array import *
 
 from .utils.color import *
 from .utils.rate import *
-from .utils.scene_config import *
+from .utils.scene_state import *
 from .utils.shape import *
 from .utils.space import *
 

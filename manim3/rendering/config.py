@@ -69,7 +69,6 @@ class RenderingConfig:
     write_video: bool
     write_last_frame: bool
     preview: bool
-    halt_on_last_frame: bool
 
     @property
     def start_time(self) -> float | None:
@@ -251,8 +250,7 @@ class Config:
         stop_frame_index=None,
         write_video=False,
         write_last_frame=False,
-        preview=True,
-        halt_on_last_frame=True
+        preview=True
     )
     size: SizeConfig = SizeConfig(
         aspect_ratio=16.0 / 9.0,

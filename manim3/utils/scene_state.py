@@ -1,4 +1,4 @@
-__all__ = ["SceneConfig"]
+__all__ = ["SceneState"]
 
 
 import numpy as np
@@ -53,7 +53,7 @@ class PointLight(LazyObject):
         return self
 
 
-class SceneConfig(LazyObject):
+class SceneState(LazyObject):
     __slots__ = ()
 
     @Lazy.variable(LazyMode.UNWRAPPED)

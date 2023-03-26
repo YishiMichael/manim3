@@ -128,9 +128,9 @@ class MeshMobject(Mobject):
         cls,
         apply_phong_lighting: bool,
         _u_color_maps_: TextureStorage,
-        _scene_config__camera__ub_camera_: UniformBlockBuffer,
+        _scene_state__camera__ub_camera_: UniformBlockBuffer,
         _ub_model_: UniformBlockBuffer,
-        _scene_config__ub_lights_: UniformBlockBuffer,
+        _scene_state__ub_lights_: UniformBlockBuffer,
         _ub_material_: UniformBlockBuffer,
         _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
@@ -144,9 +144,9 @@ class MeshMobject(Mobject):
                 _u_color_maps_
             ],
             uniform_blocks=[
-                _scene_config__camera__ub_camera_,
+                _scene_state__camera__ub_camera_,
                 _ub_model_,
-                _scene_config__ub_lights_,
+                _scene_state__ub_lights_,
                 _ub_material_
             ],
             indexed_attributes_buffer=_geometry__indexed_attributes_buffer_

@@ -41,6 +41,8 @@ class TexTransformExample(Scene):
         self.wait()
         self.play(Transform(text, tex.shift(RIGHT * 2)))
         self.wait()
+        self.play(Transform(tex, tex.copy().shift(LEFT * 2)))
+        self.wait()
 
 
 class Rotating(Animation):
@@ -81,9 +83,10 @@ class ThreeDTextExample(Scene):
 if __name__ == "__main__":
     config = Config()
     config.tex.use_mathjax = True
-    #config.writing.fps = 3
-    #config.preview = False
-    #config.write_video = True
-    #config.pixel_size = (960, 540)
-    #Renderer(config).run(TexTransformExample)
+    #config.rendering.time_span = (2.0, 3.0)
+    #config.rendering.fps = 3
+    #config.rendering.preview = False
+    #config.rendering.write_video = True
+    #config.size.pixel_size = (960, 540)
+    #config.rendering.write_last_frame = True
     TexTransformExample.render(config)

@@ -97,8 +97,8 @@ class StrokeMobject(Mobject):
     @classmethod
     def _winding_sign_(
         cls,
-        scene_config__camera__projection_matrix: Mat4T,
-        scene_config__camera__view_matrix: Mat4T,
+        scene_state__camera__projection_matrix: Mat4T,
+        scene_state__camera__view_matrix: Mat4T,
         model_matrix: Mat4T,
         multi_line_string__line_strings__coords: list[Vec3sT],
         width: float
@@ -110,7 +110,7 @@ class StrokeMobject(Mobject):
         ) -> float:
             return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
 
-        transform = scene_config__camera__projection_matrix @ scene_config__camera__view_matrix @ model_matrix
+        transform = scene_state__camera__projection_matrix @ scene_state__camera__view_matrix @ model_matrix
         area = sum(
             get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, coords)))
             for coords in multi_line_string__line_strings__coords
@@ -197,7 +197,7 @@ class StrokeMobject(Mobject):
     @classmethod
     def _vertex_arrays_(
         cls,
-        _scene_config__camera__ub_camera_: UniformBlockBuffer,
+        _scene_state__camera__ub_camera_: UniformBlockBuffer,
         _ub_model_: UniformBlockBuffer,
         _ub_stroke_: UniformBlockBuffer,
         _ub_winding_sign_: UniformBlockBuffer,
@@ -207,7 +207,7 @@ class StrokeMobject(Mobject):
         has_linecap: bool
     ) -> list[VertexArray]:
         uniform_blocks = [
-            _scene_config__camera__ub_camera_,
+            _scene_state__camera__ub_camera_,
             _ub_model_,
             _ub_stroke_,
             _ub_winding_sign_
