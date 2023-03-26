@@ -70,7 +70,6 @@ class ThreeDTextExample(Scene):
         text = Text("Text").concatenate()
         text_3d = MeshMobject()
         text_3d._geometry_ = PrismoidGeometry(text._shape_)
-        #print(text_3d._geometry_._geometry_data_.value)
         text_3d._model_matrix_ = text._model_matrix_
         text_3d.scale(5.0).stretch_to_fit_depth(0.5)
         text_3d.set_style(color="#00FFAA99")

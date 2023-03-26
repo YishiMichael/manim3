@@ -87,10 +87,10 @@ class DTypeNode(LazyObject):
         offsets: list[int] = []
         offset: int = 0
         for child_dtype, child_base_alignment in zip(children__dtype, children__base_alignment, strict=True):
-            offsets.append(offset)
-            offset += child_dtype.itemsize
             if layout == GLBufferLayout.STD140:
                 offset += (-offset) % child_base_alignment
+            offsets.append(offset)
+            offset += child_dtype.itemsize
         if layout == GLBufferLayout.STD140:
             offset += (-offset) % base_alignment
 

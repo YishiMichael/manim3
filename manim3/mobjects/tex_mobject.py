@@ -209,8 +209,8 @@ class TexFileWriter(StringFileWriter):
 class Tex(StringMobject):
     __slots__ = ()
 
-    TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
-    MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5  # TODO
+    _TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
+    _MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5  # TODO
 
     def __init__(
         self,
@@ -261,9 +261,9 @@ class Tex(StringMobject):
                 body
             ))
 
-        frame_scale = font_size * self.TEX_SCALE_FACTOR_PER_FONT_POINT
+        frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
         if use_mathjax:
-            frame_scale *= self.MATHJAX_SCALE_FACTOR
+            frame_scale *= self._MATHJAX_SCALE_FACTOR
 
         super().__init__(
             string=string,

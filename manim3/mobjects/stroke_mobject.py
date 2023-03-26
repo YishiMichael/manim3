@@ -341,7 +341,7 @@ class StrokeMobject(Mobject):
         target_framebuffer: moderngl.Framebuffer
     ) -> None:
         # TODO: Is this already the best practice?
-        # Render color
+        # Render color.
         target_framebuffer.depth_mask = False
         for vertex_array in self._vertex_arrays_:
             vertex_array.render(
@@ -352,10 +352,8 @@ class StrokeMobject(Mobject):
                     blend_equation=moderngl.MAX
                 )
             )
-            #from PIL import Image
-            #Image.frombuffer("RGB", target_framebuffer.size, target_framebuffer.read()).show()
         target_framebuffer.depth_mask = True
-        # Render depth
+        # Render depth.
         target_framebuffer.color_mask = (False, False, False, False)
         for vertex_array in self._vertex_arrays_:
             vertex_array.render(
@@ -365,12 +363,6 @@ class StrokeMobject(Mobject):
                 )
             )
         target_framebuffer.color_mask = (True, True, True, True)
-        #print(self._color_.value)
-        #print(np.frombuffer(self._ub_stroke_._buffer_.value.read(), np.float32))
-        #print(np.frombuffer(self._vertex_arrays_[0]._uniform_blocks_[2]._buffer_.value.read(), np.float32))
-        #print()
-        #from PIL import Image
-        #Image.frombuffer("RGB", target_framebuffer.size, target_framebuffer.read()).show()
 
     def iter_stroke_descendants(
         self,

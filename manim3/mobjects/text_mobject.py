@@ -46,8 +46,8 @@ class PangoAlignment(Enum):
 
 class PangoUtils(ABC):
     # Ensure the canvas is large enough to hold all glyphs.
-    DEFAULT_CANVAS_WIDTH: ClassVar[int] = 16384
-    DEFAULT_CANVAS_HEIGHT: ClassVar[int] = 16384
+    _DEFAULT_CANVAS_WIDTH: ClassVar[int] = 16384
+    _DEFAULT_CANVAS_HEIGHT: ClassVar[int] = 16384
 
     @abstractmethod
     def __new__(cls):
@@ -94,8 +94,8 @@ class PangoUtils(ABC):
             file_name=str(svg_path),
             START_X=0,
             START_Y=0,
-            width=cls.DEFAULT_CANVAS_WIDTH,
-            height=cls.DEFAULT_CANVAS_HEIGHT,
+            width=cls._DEFAULT_CANVAS_WIDTH,
+            height=cls._DEFAULT_CANVAS_HEIGHT,
             justify=justify,
             indent=indent,
             line_spacing=None,           # Already handled
@@ -161,7 +161,7 @@ class MarkupText(StringMobject):
     __slots__ = ()
 
     # See `https://docs.gtk.org/Pango/pango_markup.html`.
-    MARKUP_TAGS: ClassVar[dict[str, dict[str, str]]] = {
+    _MARKUP_TAGS: ClassVar[dict[str, dict[str, str]]] = {
         "b": {"font_weight": "bold"},
         "big": {"font_size": "larger"},
         "i": {"font_style": "italic"},
@@ -172,18 +172,18 @@ class MarkupText(StringMobject):
         "tt": {"font_family": "monospace"},
         "u": {"underline": "single"}
     }
-    MARKUP_ENTITY_DICT: ClassVar[dict[str, str]] = {
+    _MARKUP_ENTITY_DICT: ClassVar[dict[str, str]] = {
         "<": "&lt;",
         ">": "&gt;",
         "&": "&amp;",
         "\"": "&quot;",
         "'": "&apos;"
     }
-    MARKUP_ENTITY_REVERSED_DICT: ClassVar[dict[str, str]] = {
+    _MARKUP_ENTITY_REVERSED_DICT: ClassVar[dict[str, str]] = {
         v: k
-        for k, v in MARKUP_ENTITY_DICT.items()
+        for k, v in _MARKUP_ENTITY_DICT.items()
     }
-    TEXT_SCALE_FACTOR: ClassVar[float] = 0.0076  # TODO
+    _TEXT_SCALE_FACTOR: ClassVar[float] = 0.0076  # TODO
 
     def __init__(
         self,
@@ -273,7 +273,7 @@ class MarkupText(StringMobject):
                 alignment=PangoAlignment[alignment],
                 line_width=line_width
             ),
-            frame_scale=self.TEXT_SCALE_FACTOR
+            frame_scale=self._TEXT_SCALE_FACTOR
         )
 
     # Toolkits
@@ -283,14 +283,14 @@ class MarkupText(StringMobject):
         cls,
         substr: str
     ) -> str:
-        return cls.MARKUP_ENTITY_DICT.get(substr, substr)
+        return cls._MARKUP_ENTITY_DICT.get(substr, substr)
 
     @classmethod
     def _unescape_markup_char(
         cls,
         substr: str
     ) -> str:
-        return cls.MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
+        return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
 
     @classmethod
     def _get_global_attrs(
@@ -405,7 +405,7 @@ class MarkupText(StringMobject):
                     pattern, open_command.group("attr_list"), flags=re.VERBOSE | re.DOTALL
                 )
             }
-        return cls.MARKUP_TAGS.get(tag_name, {})
+        return cls._MARKUP_TAGS.get(tag_name, {})
 
     @classmethod
     def _get_command_string(
