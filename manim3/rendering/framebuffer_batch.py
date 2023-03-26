@@ -44,7 +44,7 @@ class TemporaryResource(ABC, Generic[_ResourceParameters]):
             self = vacant_instances.pop()
         else:
             self = super().__new__(cls)
-            self._init_new_instance(*args, **kwargs)
+            self._new_instance(*args, **kwargs)
             cls._INSTANCE_TO_PARAMETERS_DICT[self] = parameters
         return self
 
@@ -70,7 +70,7 @@ class TemporaryResource(ABC, Generic[_ResourceParameters]):
         cls._VACANT_INSTANCES.setdefault(parameters, []).append(self)
 
     @abstractmethod
-    def _init_new_instance(
+    def _new_instance(
         self,
         *args: _ResourceParameters.args,
         **kwargs: _ResourceParameters.kwargs
@@ -89,18 +89,16 @@ class SimpleFramebufferBatch(TemporaryResource):
         "framebuffer"
     )
 
-    def _init_new_instance(
+    def _new_instance(
         self,
-        size: tuple[int, int] | None = None,
-        components: int = 4,
-        dtype: str = "f1"
+        size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
             size = ConfigSingleton().size.pixel_size
         color_texture = Context.texture(
             size=size,
-            components=components,
-            dtype=dtype
+            components=4,
+            dtype="f1"
         )
         depth_texture = Context.depth_texture(
             size=size
@@ -118,21 +116,22 @@ class SimpleFramebufferBatch(TemporaryResource):
 
 
 class ColorFramebufferBatch(TemporaryResource):
-    __slots__ = ()
+    __slots__ = (
+        "color_texture",
+        "framebuffer"
+    )
 
-    def _init_new_instance(
+    def _new_instance(
         self,
         *,
-        size: tuple[int, int] | None = None,
-        components: int = 4,
-        dtype: str = "f1"
+        size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
             size = ConfigSingleton().size.pixel_size
         color_texture = Context.texture(
             size=size,
-            components=components,
-            dtype=dtype
+            components=4,
+            dtype="f1"
         )
         framebuffer = Context.framebuffer(
             color_attachments=(color_texture,),
@@ -156,7 +155,7 @@ class SceneFramebufferBatch(TemporaryResource):
         "revealage_framebuffer"
     )
 
-    def _init_new_instance(
+    def _new_instance(
         self,
         *,
         size: tuple[int, int] | None = None

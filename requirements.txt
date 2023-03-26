@@ -10,4 +10,3 @@ scipy
 shapely
 svgelements
 toml
-xxhash

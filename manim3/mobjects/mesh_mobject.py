@@ -184,7 +184,7 @@ class MeshMobject(Mobject):
         specular_strength: float | None = None,
         shininess: float | None = None,
         apply_phong_lighting: bool | None = None
-    ):
+    ) -> None:
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_value = LazyWrapper(color_component) if color_component is not None else None
         opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None

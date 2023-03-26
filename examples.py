@@ -35,12 +35,11 @@ class TexTransformExample(Scene):
         #self.wait()
         #self.play(Transform(text, tex))
         #self.wait()
-        text = Tex("Tex", environment=None).scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=RED).concatenate()
-        #print(text._children_[0]._multi_line_string_._lengths_.value)
-        tex = Tex("Tex tex", use_mathjax=True).scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
+        text = Text("Text").scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=BLUE).concatenate()
+        tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text, text)
         self.wait()
-        self.play(Transform(text.copy(), tex.shift(RIGHT * 2)))
+        self.play(Transform(text, tex.shift(RIGHT * 2)))
         self.wait()
 
 
@@ -82,7 +81,8 @@ class ThreeDTextExample(Scene):
 
 if __name__ == "__main__":
     config = Config()
-    #config.fps = 3
+    config.tex.use_mathjax = True
+    #config.writing.fps = 3
     #config.preview = False
     #config.write_video = True
     #config.pixel_size = (960, 540)

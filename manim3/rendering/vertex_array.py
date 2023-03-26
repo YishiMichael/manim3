@@ -131,23 +131,21 @@ class VertexArray(LazyObject):
                 num_vertex=4,
                 data={
                     "in_position": np.array((
-                        [-1.0, -1.0, 0.0],
-                        [1.0, -1.0, 0.0],
-                        [1.0, 1.0, 0.0],
-                        [-1.0, 1.0, 0.0],
+                        (-1.0, -1.0, 0.0),
+                        (1.0, -1.0, 0.0),
+                        (1.0, 1.0, 0.0),
+                        (-1.0, 1.0, 0.0)
                     )),
                     "in_uv": np.array((
-                        [0.0, 0.0],
-                        [1.0, 0.0],
-                        [1.0, 1.0],
-                        [0.0, 1.0],
+                        (0.0, 0.0),
+                        (1.0, 0.0),
+                        (1.0, 1.0),
+                        (0.0, 1.0)
                     ))
                 }
             ),
             index_buffer=IndexBuffer(
-                data=np.array((
-                    0, 1, 2, 3
-                ))
+                data=np.array((0, 1, 2, 3), dtype=np.uint32)
             ),
             mode=moderngl.TRIANGLE_FAN
         )

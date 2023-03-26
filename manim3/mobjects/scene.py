@@ -186,6 +186,9 @@ class Scene(Mobject):
                             blend_func=(moderngl.ONE, moderngl.ZERO)
                         )
                     )
+                    #from PIL import Image
+                    #Image.frombuffer("RGB", batch.framebuffer.size, batch.framebuffer.read()).show()
+                    #Image.frombuffer("RGB", scene_batch.opaque_framebuffer.size, scene_batch.opaque_framebuffer.read()).show()
 
             for mobject in transparent_mobjects:
                 with SimpleFramebufferBatch() as batch:
@@ -252,11 +255,11 @@ class Scene(Mobject):
         self,
         final_batch: SimpleFramebufferBatch
     ) -> None:
-        if ConfigSingleton().writing.write_video:
+        if ConfigSingleton().rendering.write_video:
             writing_process = Context.writing_process
             assert writing_process.stdin is not None
             writing_process.stdin.write(final_batch.framebuffer.read(components=4))
-        if ConfigSingleton().writing.preview:
+        if ConfigSingleton().rendering.preview:
             window = Context.window
             if window.is_closing:
                 sys.exit()
@@ -271,7 +274,7 @@ class Scene(Mobject):
                 )
             )
             if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
-                    (sleep_t := (1.0 / ConfigSingleton().writing.fps) - (time.time() - previous_timestamp)) > 0.0:
+                    (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:
                 time.sleep(sleep_t)
             window.swap_buffers()
         self._previous_frame_rendering_timestamp = time.time()
@@ -306,12 +309,12 @@ class Scene(Mobject):
         # and `[ConfigSingleton().start_frame_index, ConfigSingleton().stop_frame_index]`.
         start_frame_index = int(np.ceil(
             start_frame_floating_index
-            if (config_start_frame_index := ConfigSingleton().writing.start_frame_index) is None
+            if (config_start_frame_index := ConfigSingleton().rendering.start_frame_index) is None
             else max(config_start_frame_index, start_frame_floating_index)
         ))
         stop_frame_index = int(np.floor(
             stop_frame_floating_index
-            if (config_stop_frame_index := ConfigSingleton().writing.stop_frame_index is None)
+            if (config_stop_frame_index := ConfigSingleton().rendering.stop_frame_index is None)
             else max(config_stop_frame_index, stop_frame_floating_index)
         ))
         if np.isclose(start_frame_index, start_frame_floating_index):
@@ -369,7 +372,7 @@ class Scene(Mobject):
         self,
         frames: float
     ):
-        self._update_dt(frames / ConfigSingleton().writing.fps)
+        self._update_dt(frames / ConfigSingleton().rendering.fps)
         return self
 
     def construct(self) -> None:
@@ -400,7 +403,7 @@ class Scene(Mobject):
         t: float = 1.0
     ):
         assert t >= 0.0
-        frames = t * ConfigSingleton().writing.fps
+        frames = t * ConfigSingleton().rendering.fps
         start_frame_floating_index = self._frame_floating_index
         stop_frame_floating_index = start_frame_floating_index + frames
         self._frame_floating_index = stop_frame_floating_index
@@ -519,17 +522,17 @@ class Scene(Mobject):
 
         ConfigSingleton.set(config)
         Context.activate()
-        if ConfigSingleton().writing.write_video:
+        if ConfigSingleton().rendering.write_video:
             Context.setup_writing_process(cls.__name__)
 
         self = cls()
         self.construct()
 
-        if ConfigSingleton().writing.write_video:
+        if ConfigSingleton().rendering.write_video:
             writing_process = Context.writing_process
             assert writing_process.stdin is not None
             writing_process.stdin.close()
             writing_process.wait()
             writing_process.terminate()
-        if ConfigSingleton().writing.write_last_frame:
+        if ConfigSingleton().rendering.write_last_frame:
             self._render_to_image()

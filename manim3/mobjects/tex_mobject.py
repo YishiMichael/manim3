@@ -210,7 +210,7 @@ class Tex(StringMobject):
     __slots__ = ()
 
     TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
-    MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5
+    MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5  # TODO
 
     def __init__(
         self,

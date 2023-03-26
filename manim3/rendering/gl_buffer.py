@@ -18,6 +18,7 @@ from typing import (
 import moderngl
 import numpy as np
 
+from ..custom_typing import VertexIndexType
 from ..lazy.core import LazyObject
 from ..lazy.interface import (
     Lazy,
@@ -585,7 +586,7 @@ class IndexBuffer(GLDynamicBuffer):
     def __init__(
         self,
         *,
-        data: np.ndarray,
+        data: VertexIndexType,
     ) -> None:
         super().__init__(
             field="uint __index__[__NUM_INDEX__]",

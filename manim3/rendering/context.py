@@ -51,7 +51,7 @@ class Context(ABC):
         if cls._MGL_CONTEXT is not None:
             return
 
-        if ConfigSingleton().writing.preview:
+        if ConfigSingleton().rendering.preview:
             window = Window(
                 size=ConfigSingleton().size.window_pixel_size,
                 fullscreen=False,
@@ -82,7 +82,7 @@ class Context(ABC):
             "-f", "rawvideo",
             "-s", "{}x{}".format(*ConfigSingleton().size.pixel_size),  # size of one frame
             "-pix_fmt", "rgba",
-            "-r", str(ConfigSingleton().writing.fps),  # frames per second
+            "-r", str(ConfigSingleton().rendering.fps),  # frames per second
             "-i", "-",  # The input comes from a pipe.
             "-vf", "vflip",
             "-an",

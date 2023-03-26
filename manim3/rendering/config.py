@@ -62,7 +62,7 @@ class PathConfig:
     kw_only=True,
     slots=True
 )
-class WritingConfig:
+class RenderingConfig:
     fps: int
     start_frame_index: int | None
     stop_frame_index: int | None
@@ -245,7 +245,7 @@ class TextConfig:
 )
 class Config:
     path: PathConfig = PathConfig()
-    writing: WritingConfig = WritingConfig(
+    rendering: RenderingConfig = RenderingConfig(
         fps=30,
         start_frame_index=None,
         stop_frame_index=None,
@@ -271,7 +271,7 @@ class Config:
             "\\documentclass[preview]{standalone}",
             "\\usepackage{amsmath}",
             "\\usepackage{amssymb}",
-            "\\usepackage{xcolor}"
+            "\\usepackage{xcolor}"  # Required for labelling.
         )),
         template="ctex",
         alignment="\\centering",
