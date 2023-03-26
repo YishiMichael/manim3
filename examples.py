@@ -35,12 +35,12 @@ class TexTransformExample(Scene):
         #self.wait()
         #self.play(Transform(text, tex))
         #self.wait()
-        text = Text("Text").scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=RED).concatenate()
+        text = Tex("Tex", environment=None).scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=RED).concatenate()
         #print(text._children_[0]._multi_line_string_._lengths_.value)
-        tex = Tex("TexText", environment=None).scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
-        self.add(text)
+        tex = Tex("Tex tex", use_mathjax=True).scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
+        self.add(text, text)
         self.wait()
-        self.play(Transform(text, tex.shift(RIGHT * 2)))
+        self.play(Transform(text.copy(), tex.shift(RIGHT * 2)))
         self.wait()
 
 

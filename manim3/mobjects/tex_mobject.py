@@ -38,15 +38,40 @@ class TexTemplate:
     preamble: str
 
 
+class LaTeXError(ValueError):
+    def __init__(
+        self,
+        error_message: str | None
+    ) -> None:
+        message = "LaTeX Error! Not a worry, it happens to the best of us."
+        if error_message is not None:
+            message += f" The error could be: `{error_message}`"
+        super().__init__(message)
+
+
 class TexFileWriter(StringFileWriter):
-    __slots__ = ("_compiler",)
+    __slots__ = (
+        "_use_mathjax",
+        "_template",
+        "_additional_preamble",
+        "_alignment",
+        "_environment"
+    )
 
     def __init__(
         self,
-        compiler: str
+        use_mathjax: bool,
+        template: str,
+        additional_preamble: str,
+        alignment: str | None,
+        environment: str | None
     ) -> None:
         super().__init__()
-        self._compiler: str = compiler
+        self._use_mathjax: bool = use_mathjax
+        self._template: str = template
+        self._additional_preamble: str = additional_preamble
+        self._alignment: str | None = alignment
+        self._environment: str | None = environment
 
     def get_svg_path(
         self,
@@ -54,7 +79,11 @@ class TexFileWriter(StringFileWriter):
     ) -> pathlib.Path:
         hash_content = str((
             content,
-            self._compiler
+            self._use_mathjax,
+            self._template,
+            self._additional_preamble,
+            self._alignment,
+            self._environment
         ))
         return ConfigSingleton().path.tex_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
 
@@ -63,7 +92,18 @@ class TexFileWriter(StringFileWriter):
         content: str,
         svg_path: pathlib.Path
     ) -> None:
-        compiler = self._compiler
+        if not self._use_mathjax:
+            self.create_svg_file_with_dvisvgm(content, svg_path)
+        else:
+            self.create_svg_file_with_mathjax(content, svg_path)
+
+    def create_svg_file_with_dvisvgm(
+        self,
+        content: str,
+        svg_path: pathlib.Path
+    ) -> None:
+        tex_template = self._get_tex_templates_dict()[self._template]
+        compiler = tex_template.compiler
         if compiler == "latex":
             program = "latex"
             dvi_ext = ".dvi"
@@ -78,7 +118,20 @@ class TexFileWriter(StringFileWriter):
         # Write tex file.
         tex_path = svg_path.with_suffix(".tex")
         with tex_path.open(mode="w", encoding="utf-8") as tex_file:
-            tex_file.write(content)
+            alignment = self._alignment
+            environment = self._environment
+            full_content = "\n".join(filter(lambda s: s, (
+                "\\documentclass[preview]{standalone}",
+                tex_template.preamble,
+                self._additional_preamble,
+                "\\begin{document}",
+                alignment if alignment is not None else "",
+                f"\\begin{{{environment}}}" if environment is not None else "",
+                content,
+                f"\\end{{{environment}}}" if environment is not None else "",
+                "\\end{document}"
+            ))) + "\n"
+            tex_file.write(full_content)
 
         try:
             # tex to dvi
@@ -91,11 +144,11 @@ class TexFileWriter(StringFileWriter):
                 ">",
                 os.devnull
             ))):
-                message = "LaTeX Error! Not a worry, it happens to the best of us."
+                error_message: str | None = None
                 with svg_path.with_suffix(".log").open(encoding="utf-8") as log_file:
                     if (error_match_obj := re.search(r"(?<=\n! ).*", log_file.read())) is not None:
-                        message += f" The error could be: `{error_match_obj.group()}`"
-                raise ValueError(message)
+                        error_message = error_match_obj.group()
+                raise LaTeXError(error_message)
 
             # dvi to svg
             os.system(" ".join((
@@ -115,11 +168,50 @@ class TexFileWriter(StringFileWriter):
             for ext in (".tex", dvi_ext, ".log", ".aux"):
                 svg_path.with_suffix(ext).unlink(missing_ok=True)
 
+    def create_svg_file_with_mathjax(
+        self,
+        content: str,
+        svg_path: pathlib.Path
+    ) -> None:
+        # `template`, `additional_preamble`, `alignment`, `environment`
+        # all don't make an effect when using mathjax.
+        import manimgl_mathjax  # TODO
+        mathjax_program_path = pathlib.Path(manimgl_mathjax.__file__).absolute().with_name("index.js")
+
+        try:
+            full_content = content.replace("\n", " ")
+            os.system(" ".join((
+                "node",
+                f"\"{mathjax_program_path}\"",
+                f"\"{svg_path}\"",
+                f"\"{full_content}\"",
+                ">",
+                os.devnull
+            )))
+            with svg_path.open(encoding="utf-8") as svg_file:
+                if (error_match_obj := re.search(r"(?<=data\-mjx\-error\=\")(.*?)(?=\")", svg_file.read())) is not None:
+                    raise LaTeXError(error_match_obj.group())
+
+        except LaTeXError as error:
+            svg_path.unlink()
+            raise error from None
+
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _get_tex_templates_dict() -> dict[str, TexTemplate]:
+        with ConfigSingleton().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
+            template_content_dict = toml.load(tex_templates_file)
+        return {
+            name: TexTemplate(**template_content)
+            for name, template_content in template_content_dict.items()
+        }
+
 
 class Tex(StringMobject):
     __slots__ = ()
 
     TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
+    MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5
 
     def __init__(
         self,
@@ -128,6 +220,7 @@ class Tex(StringMobject):
         isolate: Selector = (),
         protect: Selector = (),
         tex_to_color_map: dict[str, ColorType] | None = None,
+        use_mathjax: bool = ...,
         template: str = ...,
         additional_preamble: str = ...,
         alignment: str | None = ...,
@@ -142,6 +235,8 @@ class Tex(StringMobject):
             tex_to_color_map = {}
 
         config = ConfigSingleton().tex
+        if use_mathjax is ...:
+            use_mathjax = config.use_mathjax
         if template is ...:
             template = config.template
         if additional_preamble is ...:
@@ -155,34 +250,21 @@ class Tex(StringMobject):
         if font_size is ...:
             font_size = config.font_size
 
-        tex_template = self._get_tex_templates_dict()[template]
-
         def get_content_by_body(
             body: str,
             is_labelled: bool
         ) -> str:
-            prefix_lines: list[str] = []
-            suffix_lines: list[str] = []
-            if not is_labelled:
-                color_hex = ColorUtils.color_to_hex(base_color)
-                prefix_lines.append(self._get_color_command(
-                    int(color_hex[1:], 16)
-                ))
-            if alignment is not None:
-                prefix_lines.append(alignment)
-            if environment is not None:
-                prefix_lines.append(f"\\begin{{{environment}}}")
-                suffix_lines.append(f"\\end{{{environment}}}")
-            return "\n\n".join((
-                "\\documentclass[preview]{standalone}",
-                tex_template.preamble,
-                additional_preamble,
-                "\\begin{document}",
-                "\n".join(prefix_lines),
-                body,
-                "\n".join(suffix_lines),
-                "\\end{document}"
-            )) + "\n"
+            if is_labelled:
+                return body
+            color_hex = ColorUtils.color_to_hex(base_color)
+            return "\n".join((
+                self._get_color_command(int(color_hex[1:], 16)),
+                body
+            ))
+
+        frame_scale = font_size * self.TEX_SCALE_FACTOR_PER_FONT_POINT
+        if use_mathjax:
+            frame_scale *= self.MATHJAX_SCALE_FACTOR
 
         super().__init__(
             string=string,
@@ -195,23 +277,17 @@ class Tex(StringMobject):
             ),
             get_content_by_body=get_content_by_body,
             file_writer=TexFileWriter(
-                compiler=tex_template.compiler
+                use_mathjax=use_mathjax,
+                template=template,
+                additional_preamble=additional_preamble,
+                alignment=alignment,
+                environment=environment
             ),
-            frame_scale=self.TEX_SCALE_FACTOR_PER_FONT_POINT * font_size
+            frame_scale=frame_scale
         )
 
         for selector, color in tex_to_color_map.items():
             self.select_parts(selector).set_fill(color=color)
-
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def _get_tex_templates_dict() -> dict[str, TexTemplate]:
-        with ConfigSingleton().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
-            template_content_dict = toml.load(tex_templates_file)
-        return {
-            name: TexTemplate(**template_content)
-            for name, template_content in template_content_dict.items()
-        }
 
     # Parsing
 

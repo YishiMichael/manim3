@@ -174,12 +174,11 @@ class StringFileWriter(ABC):
 
     def get_svg_path_by_content(
         self,
-        content: str,
-        string: str
+        content: str
     ) -> pathlib.Path:
         svg_path = self.get_svg_path(content)
         if not svg_path.exists():
-            with self.display_during_execution(string):
+            with self.display_during_execution(content):
                 self.create_svg_file(content, svg_path)
         return svg_path
 
@@ -304,7 +303,6 @@ class StringMobject(SVGMobject):
         ]
 
         labelled_shape_items = cls._get_labelled_shape_items(
-            string=string,
             original_pieces=original_pieces,
             replaced_items=replaced_items,
             labels_count=len(labelled_items),
@@ -546,7 +544,6 @@ class StringMobject(SVGMobject):
     @classmethod
     def _get_labelled_shape_items(
         cls,
-        string: str,
         original_pieces: list[str],
         replaced_items: list[CommandItem | LabelledInsertionItem],
         labels_count: int,
@@ -574,7 +571,7 @@ class StringMobject(SVGMobject):
                 stop_index=len(original_pieces)
             )
             content = get_content_by_body(body, is_labelled)
-            svg_path = file_writer.get_svg_path_by_content(content, string)
+            svg_path = file_writer.get_svg_path_by_content(content)
             return list(SVGMobject(
                 file_path=svg_path,
                 frame_scale=frame_scale

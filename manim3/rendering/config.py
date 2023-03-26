@@ -208,6 +208,7 @@ class CameraConfig:
     slots=True
 )
 class TexConfig:
+    use_mathjax: bool
     template: str
     additional_preamble: str
     alignment: str | None
@@ -265,6 +266,7 @@ class Config:
         far=100.0
     )
     tex: TexConfig = TexConfig(
+        use_mathjax=False,
         template="ctex",
         additional_preamble="",
         alignment="\\centering",
