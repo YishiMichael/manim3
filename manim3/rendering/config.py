@@ -290,7 +290,7 @@ class Config:
         line_spacing_height=0.0,
         global_config={},
         language="python",
-        # Visit https://pygments.org/demo/ to have a preview of more styles.
+        # Visit `https://pygments.org/demo/` to have a preview of more styles.
         code_style="monokai"
     )
 

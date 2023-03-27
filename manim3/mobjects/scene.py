@@ -8,7 +8,11 @@ import moderngl
 import numpy as np
 from PIL import Image
 
-from ..animations.animation import Animation
+from ..animations.animation import (
+    Animation,
+    RegroupItem,
+    RegroupVerb
+)
 from ..custom_typing import (
     ColorType,
     Vec3T
@@ -30,7 +34,7 @@ from ..rendering.framebuffer_batch import (
     SceneFramebufferBatch,
     SimpleFramebufferBatch
 )
-from ..rendering.gl_buffer import TextureStorage
+from ..rendering.gl_buffer import TexturePlaceholders
 from ..rendering.vertex_array import VertexArray
 
 
@@ -54,29 +58,29 @@ class Scene(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_color_map_(cls) -> TextureStorage:
-        return TextureStorage(
+    def _u_color_map_(cls) -> TexturePlaceholders:
+        return TexturePlaceholders(
             field="sampler2D u_color_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_accum_map_(cls) -> TextureStorage:
-        return TextureStorage(
+    def _u_accum_map_(cls) -> TexturePlaceholders:
+        return TexturePlaceholders(
             field="sampler2D u_accum_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_revealage_map_(cls) -> TextureStorage:
-        return TextureStorage(
+    def _u_revealage_map_(cls) -> TexturePlaceholders:
+        return TexturePlaceholders(
             field="sampler2D u_revealage_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_depth_map_(cls) -> TextureStorage:
-        return TextureStorage(
+    def _u_depth_map_(cls) -> TexturePlaceholders:
+        return TexturePlaceholders(
             field="sampler2D u_depth_map"
         )
 
@@ -84,15 +88,15 @@ class Scene(Mobject):
     @classmethod
     def _copy_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
-        _u_depth_map_: TextureStorage
+        _u_color_map_: TexturePlaceholders,
+        _u_depth_map_: TexturePlaceholders
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             custom_macros=[
                 "#define COPY_DEPTH"
             ],
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_,
                 _u_depth_map_
             ]
@@ -102,12 +106,12 @@ class Scene(Mobject):
     @classmethod
     def _oit_accum_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
-        _u_depth_map_: TextureStorage
+        _u_color_map_: TexturePlaceholders,
+        _u_depth_map_: TexturePlaceholders
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_accum",
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_,
                 _u_depth_map_
             ]
@@ -117,12 +121,12 @@ class Scene(Mobject):
     @classmethod
     def _oit_revealage_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
-        _u_depth_map_: TextureStorage
+        _u_color_map_: TexturePlaceholders,
+        _u_depth_map_: TexturePlaceholders
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_revealage",
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_,
                 _u_depth_map_
             ]
@@ -132,12 +136,12 @@ class Scene(Mobject):
     @classmethod
     def _oit_compose_vertex_array_(
         cls,
-        _u_accum_map_: TextureStorage,
-        _u_revealage_map_: TextureStorage
+        _u_accum_map_: TexturePlaceholders,
+        _u_revealage_map_: TexturePlaceholders
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_compose",
-            texture_storages=[
+            texture_placeholders=[
                 _u_accum_map_,
                 _u_revealage_map_
             ]
@@ -147,11 +151,11 @@ class Scene(Mobject):
     @classmethod
     def _copy_window_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage
+        _u_color_map_: TexturePlaceholders
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_
             ]
         )
@@ -311,6 +315,24 @@ class Scene(Mobject):
         reaches_end = config_stop_frame_index is not None and bool(np.isclose(stop_frame_index, config_stop_frame_index))
         return range(start_frame_index, stop_frame_index + 1), reaches_end
 
+    def _regroup(
+        self,
+        regroup_item: RegroupItem
+    ) -> None:
+        mobjects = regroup_item.mobjects
+        if isinstance(mobjects, Mobject | None):
+            mobjects = (mobjects,)
+        targets = regroup_item.targets
+        if isinstance(targets, Mobject):
+            targets = (targets,)
+        for mobject in dict.fromkeys(mobjects):
+            if mobject is None:
+                mobject = self
+            if regroup_item.verb == RegroupVerb.ADD:
+                mobject.add(*targets)
+            elif regroup_item.verb == RegroupVerb.DISCARD:
+                mobject.discard(*targets)
+
     def _update_dt(
         self,
         dt: float
@@ -328,31 +350,18 @@ class Scene(Mobject):
                 animation_expired = True
                 t = animation._stop_time
 
-            for addition_item in animation._mobject_addition_items[:]:
-                t_addition, mobject, parent = addition_item
-                if t < t_addition:
+            for time_regroup_item in animation._time_regroup_items[:]:
+                regroup_time, regroup_item = time_regroup_item
+                if t < regroup_time:
                     continue
-                if parent is None:
-                    parent = self
-                parent.add(mobject)
-                animation._mobject_addition_items.remove(addition_item)
+                self._regroup(regroup_item)
+                animation._time_regroup_items.remove(time_regroup_item)
 
             animation._animate_func(t0, t)
 
-            for removal_item in animation._mobject_removal_items[:]:
-                t_removal, mobject, parent = removal_item
-                if t < t_removal:
-                    continue
-                if parent is None:
-                    parent = self
-                parent.remove(mobject)
-                animation._mobject_removal_items.remove(removal_item)
-
             if animation_expired:
-                if animation._mobject_addition_items:
-                    warnings.warn("`mobject_addition_items` is not empty after the animation finishes")
-                if animation._mobject_removal_items:
-                    warnings.warn("`mobject_removal_items` is not empty after the animation finishes")
+                if animation._time_regroup_items:
+                    warnings.warn("`time_regroup_items` is not empty after the animation finishes")
                 self._animation_dict.pop(animation)
 
         return self

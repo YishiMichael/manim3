@@ -35,7 +35,7 @@ class TexTransformExample(Scene):
         #self.wait()
         #self.play(Transform(text, tex))
         #self.wait()
-        text = Text("Text").scale(3).add_stroke(width=0.2, color=YELLOW).add_stroke(width=0.1, color=BLUE).concatenate()
+        text = Text("Text").scale(3).add_stroke(width=0.1, color=BLUE).add_stroke(width=0.2, color=YELLOW).concatenate()
         tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text, text)
         self.wait()
@@ -59,8 +59,7 @@ class Rotating(Animation):
 
         super().__init__(
             animate_func=animate_func,
-            mobject_addition_items=[],
-            mobject_removal_items=[],
+            time_regroup_items=[],
             start_time=0.0,
             stop_time=None
         )

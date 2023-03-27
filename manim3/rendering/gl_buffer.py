@@ -1,7 +1,7 @@
 __all__ = [
     "AttributesBuffer",
     "IndexBuffer",
-    "TextureStorage",
+    "TexturePlaceholders",
     "UniformBlockBuffer"
 ]
 
@@ -414,7 +414,7 @@ class GLDynamicBuffer(GLDynamicStruct):
         cls._VACANT_BUFFERS.append(buffer)
 
 
-class TextureStorage(GLDynamicStruct):
+class TexturePlaceholders(GLDynamicStruct):
     __slots__ = ()
 
     def __init__(

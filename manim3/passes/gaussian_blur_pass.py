@@ -15,7 +15,7 @@ from ..rendering.context import ContextState
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
 from ..rendering.gl_buffer import (
     UniformBlockBuffer,
-    TextureStorage
+    TexturePlaceholders
 )
 from ..rendering.vertex_array import VertexArray
 
@@ -49,8 +49,8 @@ class GaussianBlurPass(RenderPass):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_color_map_(cls) -> TextureStorage:
-        return TextureStorage(
+    def _u_color_map_(cls) -> TexturePlaceholders:
+        return TexturePlaceholders(
             field="sampler2D u_color_map"
         )
 
@@ -79,7 +79,7 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _horizontal_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
+        _u_color_map_: TexturePlaceholders,
         _ub_gaussian_blur_: UniformBlockBuffer
     ) -> VertexArray:
         return VertexArray(
@@ -87,7 +87,7 @@ class GaussianBlurPass(RenderPass):
             custom_macros=[
                 f"#define blur_subroutine horizontal_dilate"
             ],
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_
             ],
             uniform_blocks=[
@@ -99,7 +99,7 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _vertical_vertex_array_(
         cls,
-        _u_color_map_: TextureStorage,
+        _u_color_map_: TexturePlaceholders,
         _ub_gaussian_blur_: UniformBlockBuffer
     ) -> VertexArray:
         return VertexArray(
@@ -107,7 +107,7 @@ class GaussianBlurPass(RenderPass):
             custom_macros=[
                 f"#define blur_subroutine vertical_dilate"
             ],
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_
             ],
             uniform_blocks=[

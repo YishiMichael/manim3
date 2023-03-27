@@ -22,7 +22,7 @@ from ..rendering.context import (
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
-    TextureStorage,
+    TexturePlaceholders,
     UniformBlockBuffer
 )
 
@@ -83,7 +83,7 @@ class VertexArray(LazyObject):
         *,
         shader_filename: str,
         custom_macros: list[str] | None = None,
-        texture_storages: list[TextureStorage] | None = None,
+        texture_placeholders: list[TexturePlaceholders] | None = None,
         uniform_blocks: list[UniformBlockBuffer] | None = None,
         indexed_attributes_buffer: IndexedAttributesBuffer | None = None
     ) -> None:
@@ -91,8 +91,8 @@ class VertexArray(LazyObject):
         self._shader_filename_ = shader_filename
         if custom_macros is not None:
             self._custom_macros_ = tuple(custom_macros)
-        if texture_storages is not None:
-            self._texture_storages_.add(*texture_storages)
+        if texture_placeholders is not None:
+            self._texture_placeholders_.add(*texture_placeholders)
         if uniform_blocks is not None:
             self._uniform_blocks_.add(*uniform_blocks)
         if indexed_attributes_buffer is not None:
@@ -110,7 +110,7 @@ class VertexArray(LazyObject):
 
     @Lazy.variable(LazyMode.COLLECTION)
     @classmethod
-    def _texture_storages_(cls) -> list[TextureStorage]:
+    def _texture_placeholders_(cls) -> list[TexturePlaceholders]:
         return []
 
     @Lazy.variable(LazyMode.COLLECTION)
@@ -154,13 +154,13 @@ class VertexArray(LazyObject):
     @classmethod
     def _dynamic_array_lens_(
         cls,
-        texture_storages__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
+        texture_placeholders__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
         uniform_blocks__dynamic_array_lens: list[tuple[tuple[str, int], ...]],
         indexed_attributes_buffer__attributes_buffer__dynamic_array_lens: list[tuple[str, int]]
     ) -> tuple[tuple[str, int], ...]:
         dynamic_array_lens: dict[str, int] = {}
-        for texture_storage_dynamic_array_lens in texture_storages__dynamic_array_lens:
-            dynamic_array_lens.update(dict(texture_storage_dynamic_array_lens))
+        for texture_placeholder_dynamic_array_lens in texture_placeholders__dynamic_array_lens:
+            dynamic_array_lens.update(dict(texture_placeholder_dynamic_array_lens))
         for uniform_block_dynamic_array_lens in uniform_blocks__dynamic_array_lens:
             dynamic_array_lens.update(uniform_block_dynamic_array_lens)
         dynamic_array_lens.update(dict(indexed_attributes_buffer__attributes_buffer__dynamic_array_lens))
@@ -172,13 +172,13 @@ class VertexArray(LazyObject):
 
     @Lazy.property(LazyMode.SHARED)
     @classmethod
-    def _texture_storage_shapes_(
+    def _texture_placeholder_shapes_(
         cls,
-        _texture_storages_: list[TextureStorage]
+        _texture_placeholders_: list[TexturePlaceholders]
     ) -> tuple[tuple[str, tuple[int, ...]], ...]:
         return tuple(
-            (texture_storage._field_name_.value, texture_storage._shape_.value)
-            for texture_storage in _texture_storages_
+            (texture_placeholder._field_name_.value, texture_placeholder._shape_.value)
+            for texture_placeholder in _texture_placeholders_
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -188,12 +188,12 @@ class VertexArray(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         dynamic_array_lens: tuple[tuple[str, int], ...],
-        texture_storage_shapes: tuple[tuple[str, tuple[int, ...]], ...]
+        texture_placeholder_shapes: tuple[tuple[str, tuple[int, ...]], ...]
     ) -> ProgramData:
         with ConfigSingleton().path.shaders_dir.joinpath(f"{shader_filename}.glsl").open() as shader_file:
             shader_str = shader_file.read()
         program = cls._construct_moderngl_program(shader_str, custom_macros, dynamic_array_lens)
-        texture_binding_offset_dict = cls._set_texture_bindings(program, texture_storage_shapes)
+        texture_binding_offset_dict = cls._set_texture_bindings(program, texture_placeholder_shapes)
         uniform_block_binding_dict = cls._set_uniform_block_bindings(program)
         return ProgramData(
             program=program,
@@ -253,18 +253,18 @@ class VertexArray(LazyObject):
     @classmethod
     def _texture_binding_items_(
         cls,
-        _texture_storages_: list[TextureStorage],
+        _texture_placeholders_: list[TexturePlaceholders],
         program_data: ProgramData
     ) -> dict[str, tuple[tuple[int, ...], int]]:
-        texture_storage_dict = {
-            texture_storage._field_name_.value: texture_storage
-            for texture_storage in _texture_storages_
+        texture_placeholder_dict = {
+            texture_placeholder._field_name_.value: texture_placeholder
+            for texture_placeholder in _texture_placeholders_
         }
         texture_binding_item: dict[str, tuple[tuple[int, ...], int]] = {}
-        for texture_storage_name, binding_offset in program_data.texture_binding_offset_dict.items():
-            texture_storage = texture_storage_dict[texture_storage_name]
-            assert not texture_storage._is_empty_.value
-            texture_binding_item[texture_storage_name] = (texture_storage._shape_.value, binding_offset)
+        for texture_placeholder_name, binding_offset in program_data.texture_binding_offset_dict.items():
+            texture_placeholder = texture_placeholder_dict[texture_placeholder_name]
+            assert not texture_placeholder._is_empty_.value
+            texture_binding_item[texture_placeholder_name] = (texture_placeholder._shape_.value, binding_offset)
         return texture_binding_item
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -331,9 +331,9 @@ class VertexArray(LazyObject):
     def _set_texture_bindings(
         cls,
         program: moderngl.Program,
-        texture_storage_shapes: tuple[tuple[str, tuple[int, ...]], ...]
+        texture_placeholder_shapes: tuple[tuple[str, tuple[int, ...]], ...]
     ) -> dict[str, int]:
-        texture_storage_shape_dict = dict(texture_storage_shapes)
+        texture_placeholder_shape_dict = dict(texture_placeholder_shapes)
         texture_binding_offset_dict: dict[str, int] = {}
         binding_offset = 1
         texture_uniform_match_pattern = re.compile(r"""
@@ -348,24 +348,24 @@ class VertexArray(LazyObject):
             assert member.dimension == 1
             match_obj = texture_uniform_match_pattern.fullmatch(name)
             assert match_obj is not None
-            texture_storage_name = match_obj.group("texture_name")
-            texture_storage_shape = texture_storage_shape_dict[texture_storage_name]
-            if texture_storage_name not in texture_binding_offset_dict:
-                texture_binding_offset_dict[texture_storage_name] = binding_offset
-                binding_offset += cls._int_prod(texture_storage_shape)
+            texture_placeholder_name = match_obj.group("texture_name")
+            texture_placeholder_shape = texture_placeholder_shape_dict[texture_placeholder_name]
+            if texture_placeholder_name not in texture_binding_offset_dict:
+                texture_binding_offset_dict[texture_placeholder_name] = binding_offset
+                binding_offset += cls._int_prod(texture_placeholder_shape)
             multi_index = tuple(
                 int(index_match.group(1))
                 for index_match in re.finditer(r"\[(\d+?)\]", match_obj.group("multi_index"))
             )
-            if not texture_storage_shape:
+            if not texture_placeholder_shape:
                 assert not multi_index
                 uniform_size = 1
                 local_offset = 0
             else:
-                *dims, uniform_size = texture_storage_shape
+                *dims, uniform_size = texture_placeholder_shape
                 local_offset = np.ravel_multi_index(multi_index, dims) * uniform_size
             assert member.array_length == uniform_size
-            offset = texture_binding_offset_dict[texture_storage_name] + local_offset
+            offset = texture_binding_offset_dict[texture_placeholder_name] + local_offset
             member.value = offset if uniform_size == 1 else list(range(offset, offset + uniform_size))
         return texture_binding_offset_dict
 
@@ -409,8 +409,8 @@ class VertexArray(LazyObject):
             texture_array_dict = {}
 
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
-        for texture_storage_name, (shape, binding_offset) in self._texture_binding_items_.value.items():
-            texture_array = texture_array_dict[texture_storage_name]
+        for texture_placeholder_name, (shape, binding_offset) in self._texture_binding_items_.value.items():
+            texture_array = texture_array_dict[texture_placeholder_name]
             assert shape == texture_array.shape
             texture_bindings.extend(
                 (texture, binding)

@@ -12,7 +12,7 @@ from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextState
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
-from ..rendering.gl_buffer import TextureStorage
+from ..rendering.gl_buffer import TexturePlaceholders
 from ..rendering.vertex_array import VertexArray
 
 
@@ -34,8 +34,8 @@ class PixelatedPass(RenderPass):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_color_map_(cls) -> TextureStorage:
-        return TextureStorage(
+    def _u_color_map_(cls) -> TexturePlaceholders:
+        return TexturePlaceholders(
             field="sampler2D u_color_map"
         )
 
@@ -43,12 +43,12 @@ class PixelatedPass(RenderPass):
     @classmethod
     def _vertex_array_(
         cls,
-        _u_color_map_: TextureStorage
+        _u_color_map_: TexturePlaceholders
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             custom_macros=[],
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_map_
             ],
             uniform_blocks=[]

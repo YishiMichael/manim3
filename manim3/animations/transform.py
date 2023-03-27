@@ -11,7 +11,11 @@ from typing import (
     TypeVar
 )
 
-from ..animations.animation import AlphaAnimation
+from ..animations.animation import (
+    AlphaAnimation,
+    RegroupItem,
+    RegroupVerb
+)
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..lazy.core import (
@@ -222,15 +226,33 @@ class Transform(AlphaAnimation):
             ):
                 stroke_callback(intermediate_stroke_mobject, alpha)
 
+        all_parents = [
+            *start_mobject.iter_parents(),
+            *stop_mobject.iter_parents()
+        ]  # TODO
         super().__init__(
             animate_func=animate_func,
-            mobject_addition_items=[
-                (0.0, intermediate_mobject, None),
-                (1.0, stop_mobject, None)
-            ],  # TODO: parents?
-            mobject_removal_items=[
-                (0.0, start_mobject, None),
-                (1.0, intermediate_mobject, None)
+            alpha_regroup_items=[
+                (0.0, RegroupItem(
+                    mobjects=all_parents,
+                    verb=RegroupVerb.DISCARD,
+                    targets=start_mobject
+                )),
+                (0.0, RegroupItem(
+                    mobjects=all_parents,
+                    verb=RegroupVerb.ADD,
+                    targets=intermediate_mobject
+                )),
+                (1.0, RegroupItem(
+                    mobjects=all_parents,
+                    verb=RegroupVerb.DISCARD,
+                    targets=intermediate_mobject
+                )),
+                (1.0, RegroupItem(
+                    mobjects=all_parents,
+                    verb=RegroupVerb.ADD,
+                    targets=stop_mobject
+                ))
             ],
             run_time=run_time,
             rate_func=rate_func

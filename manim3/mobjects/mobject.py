@@ -1,15 +1,12 @@
 __all__ = ["Mobject"]
 
 
-from abc import ABC
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
 from typing import (
     Generator,
-    Generic,
     Iterator,
-    TypeVar,
     overload
 )
 import warnings
@@ -46,78 +43,6 @@ from ..utils.scene_state import SceneState
 from ..utils.space import SpaceUtils
 
 
-_T = TypeVar("_T")
-
-
-class PseudoDynamicContainer(ABC, Generic[_T]):
-    # Provides a interface similar to `LazyDynamicContainer`.
-    # If `_parents` and `_real_ancestors` are implemented with `LazyDynamicContainer` also,
-    # loops will pop up in the DAG in the lazy system.
-
-    __slots__ = ("_elements",)
-
-    def __init__(
-        self,
-        *elements: _T
-    ) -> None:
-        super().__init__()
-        self._elements: list[_T] = []
-        self.add(*elements)
-
-    def __iter__(self) -> Iterator[_T]:
-        return self._elements.__iter__()
-
-    def __len__(self) -> int:
-        return self._elements.__len__()
-
-    @overload
-    def __getitem__(
-        self,
-        index: int
-    ) -> _T:
-        ...
-
-    @overload
-    def __getitem__(
-        self,
-        index: slice
-    ) -> list[_T]:
-        ...
-
-    def __getitem__(
-        self,
-        index: int | slice
-    ) -> _T | list[_T]:
-        return self._elements.__getitem__(index)
-
-    def __copy__(self):
-        return PseudoDynamicContainer(*self._elements)
-
-    def add(
-        self,
-        *elements: _T
-    ):
-        if not elements:
-            return self
-        for element in elements:
-            if element in self._elements:
-                continue
-            self._elements.append(element)
-        return self
-
-    def remove(
-        self,
-        *elements: _T
-    ):
-        if not elements:
-            return self
-        for element in elements:
-            if element not in self._elements:
-                continue
-            self._elements.remove(element)
-        return self
-
-
 @dataclass(
     frozen=True,
     kw_only=True,
@@ -147,8 +72,10 @@ class Mobject(LazyObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._parents: PseudoDynamicContainer[Mobject] = PseudoDynamicContainer()
-        self._real_ancestors: PseudoDynamicContainer[Mobject] = PseudoDynamicContainer()
+        # If `_parents` and `_real_ancestors` are implemented with `LazyDynamicContainer` also,
+        # loops will pop up in the DAG of the lazy system.
+        self._parents: set[Mobject] = set()
+        self._real_ancestors: set[Mobject] = set()
 
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children_)
@@ -212,36 +139,34 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        all_descendants = [
-            descendant_mobject
+        all_descendants = list(it.chain(*(
+            mobject.iter_descendants()
             for mobject in mobjects
-            for descendant_mobject in mobject.iter_descendants()
-        ]
+        )))
         self._children_.add(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
             ancestor_mobject._real_descendants_.add(*all_descendants)
         for mobject in mobjects:
             mobject._parents.add(self)
         for descendant_mobject in all_descendants:
-            descendant_mobject._real_ancestors.add(*self.iter_ancestors())
+            descendant_mobject._real_ancestors.update(self.iter_ancestors())
         return self
 
-    def remove(
+    def discard(
         self,
         *mobjects: "Mobject"
     ):
-        all_descendants = [
-            descendant_mobject
+        all_descendants = list(it.chain(*(
+            mobject.iter_descendants()
             for mobject in mobjects
-            for descendant_mobject in mobject.iter_descendants()
-        ]
-        self._children_.remove(*mobjects)
+        )))
+        self._children_.discard(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
-            ancestor_mobject._real_descendants_.remove(*all_descendants)
+            ancestor_mobject._real_descendants_.discard(*all_descendants)
         for mobject in mobjects:
-            mobject._parents.remove(self)
+            mobject._parents.discard(self)
         for descendant_mobject in all_descendants:
-            descendant_mobject._real_ancestors.remove(*self.iter_ancestors())
+            descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
         return self
 
     #def index(self, node: "Mobject") -> int:
@@ -267,7 +192,19 @@ class Mobject(LazyObject):
     #    return node
 
     def clear(self):
-        self.remove(*self.iter_children())
+        self.discard(*self.iter_children())
+        return self
+
+    def becomes(
+        self,
+        src: "Mobject"
+    ):
+        if self is src:
+            return self
+
+        self.clear()
+        self._becomes(src)
+        self.add(*src.iter_children())
         return self
 
     def copy(self):
@@ -276,8 +213,8 @@ class Mobject(LazyObject):
             descendant._copy()
             for descendant in self._real_descendants_
         ]
-        descendants = [self, *self._real_descendants_]
-        descendants_copy = [result, *real_descendants_copy]
+        descendants: list[Mobject] = [self, *self._real_descendants_]
+        descendants_copy: list[Mobject] = [result, *real_descendants_copy]
 
         def get_matched_descendant_mobject(
             mobject: Mobject
@@ -287,14 +224,16 @@ class Mobject(LazyObject):
             return descendants_copy[descendants.index(mobject)]
 
         for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
-            descendant_copy._parents = PseudoDynamicContainer(*(
+            descendant_copy._parents.clear()
+            descendant_copy._parents.update(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._parents
-            ))
-            descendant_copy._real_ancestors = PseudoDynamicContainer(*(
+            )
+            descendant_copy._real_ancestors.clear()
+            descendant_copy._real_ancestors.update(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._real_ancestors
-            ))
+            )
 
         for descriptor in self.__class__._LAZY_VARIABLE_DESCRIPTORS:
             if not issubclass(descriptor.element_type, Mobject):

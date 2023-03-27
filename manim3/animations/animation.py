@@ -1,22 +1,44 @@
 __all__ = [
     "AlphaAnimation",
-    "Animation"
+    "Animation",
+    "RegroupItem",
+    "RegroupVerb"
     #"SimpleAnimation"
 ]
 
 
 from abc import ABC
-from typing import Callable
+from dataclasses import dataclass
+from enum import Enum
+from typing import (
+    Callable,
+    Iterable
+)
 
 from ..mobjects.mobject import Mobject
 from ..utils.rate import RateUtils
 
 
+class RegroupVerb(Enum):
+    ADD = 1
+    DISCARD = -1
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class RegroupItem:
+    mobjects: Mobject | None | Iterable[Mobject | None]  # `None` represents the scene.
+    verb: RegroupVerb
+    targets: Mobject | Iterable[Mobject]
+
+
 class Animation(ABC):
     __slots__ = (
         "_animate_func",
-        "_mobject_addition_items",
-        "_mobject_removal_items",
+        "_time_regroup_items",
         "_start_time",
         "_stop_time"
     )
@@ -26,16 +48,13 @@ class Animation(ABC):
         *,
         # Two arguments provided are (t0, t).
         animate_func: Callable[[float, float], None],
-        # `tuple[float, Mobject, Mobject | None]` stands for a (time, mobject, parent) triplet. `None` represents the scene.
-        mobject_addition_items: list[tuple[float, Mobject, Mobject | None]],
-        mobject_removal_items: list[tuple[float, Mobject, Mobject | None]],
+        time_regroup_items: list[tuple[float, RegroupItem]],
         start_time: float,
         stop_time: float | None
     ) -> None:
         assert stop_time is None or stop_time >= start_time
         self._animate_func: Callable[[float, float], None] = animate_func
-        self._mobject_addition_items: list[tuple[float, Mobject, Mobject | None]] = mobject_addition_items
-        self._mobject_removal_items: list[tuple[float, Mobject, Mobject | None]] = mobject_removal_items
+        self._time_regroup_items: list[tuple[float, RegroupItem]] = time_regroup_items
         self._start_time: float = start_time
         self._stop_time: float | None = stop_time
 
@@ -48,8 +67,7 @@ class AlphaAnimation(Animation):
         *,
         # In terms of alpha instead of time.
         animate_func: Callable[[float, float], None],
-        mobject_addition_items: list[tuple[float, Mobject, Mobject | None]],
-        mobject_removal_items: list[tuple[float, Mobject, Mobject | None]],
+        alpha_regroup_items: list[tuple[float, RegroupItem]],
         run_time: float,
         rate_func: Callable[[float], float] | None = None
     ) -> None:
@@ -58,13 +76,9 @@ class AlphaAnimation(Animation):
             rate_func = RateUtils.smooth
         super().__init__(
             animate_func=lambda t0, t: animate_func(rate_func(t0 / run_time), rate_func(t / run_time)),
-            mobject_addition_items=[
-                (rate_func(alpha) * run_time, mobject, parent)
-                for alpha, mobject, parent in mobject_addition_items
-            ],
-            mobject_removal_items=[
-                (rate_func(alpha) * run_time, mobject, parent)
-                for alpha, mobject, parent in mobject_removal_items
+            time_regroup_items=[
+                (rate_func(alpha) * run_time, regroup_item)
+                for alpha, regroup_item in alpha_regroup_items
             ],
             start_time=0.0,
             stop_time=run_time

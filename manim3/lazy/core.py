@@ -46,7 +46,7 @@ Methods decorated by `Lazy.variable` should not take any argument except for
 
 The `__get__` method always returns an instance of either `LazyObject` or
 `LazyDynamicContainer`, the latter of which is just a dynamic collection of
-`LazyObject`s, and provides `add`, `remove` as its public interface.
+`LazyObject`s, and provides `add`, `discard` as its public interface.
 `LazyWrapper` is derived from `LazyObject`, which is just responsible for
 bringing a value into the lazy scope, and the value is obtained via the
 readonly `value` property. One may picture a lazy object as a tree (it's a
@@ -56,7 +56,7 @@ Lazy variables are of course mutable. All can be modified via `__set__`.
 Among all cases above, a common value will be shared among instances, except
 for providing `T` type in `UNWRAPPED` mode, in which case a new `LazyWrapper`
 object will be instanced and assigned specially to the instance. Additionally,
-`LazyDynamicContainer`s can be modified via `add` and `remove`.
+`LazyDynamicContainer`s can be modified via `add` and `discard`.
 
 The `LazyObject._copy` method will only copy containers under variable slots.
 This means all children `LazyObject`s will be shared, and new
@@ -340,7 +340,7 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
         slot.expire_property_slots()
         return self
 
-    def remove(
+    def discard(
         self,
         *elements: _ElementT
     ):
@@ -552,14 +552,21 @@ class LazyObject(ABC):
         for descriptor in cls._LAZY_DESCRIPTORS:
             descriptor.initialize(self)
 
+    def _becomes(
+        self: _ElementT,
+        src: _ElementT
+    ) -> None:
+        assert (cls := type(self)) is type(src)
+        for descriptor in cls._LAZY_DESCRIPTORS:
+            descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
+        for slot_name in cls._PY_SLOTS:
+            self.__setattr__(slot_name, copy.copy(src.__getattribute__(slot_name)))
+
     def _copy(self: _ElementT) -> _ElementT:
         cls = type(self)
         result = cls.__new__(cls)
         result._initialize_descriptors()
-        for descriptor in cls._LAZY_DESCRIPTORS:
-            descriptor.get_slot(result).copy_from(descriptor.get_slot(self))
-        for slot_name in cls._PY_SLOTS:
-            result.__setattr__(slot_name, copy.copy(self.__getattribute__(slot_name)))
+        result._becomes(self)
         return result
 
     def _iter_variable_slots(self) -> Generator[LazyVariableSlot, None, None]:
@@ -1022,3 +1029,9 @@ class LazyWrapper(LazyObject, Generic[_T]):
     @property
     def value(self) -> _T:
         return self.__value
+
+    def _becomes(
+        self: _ElementT,
+        src: _ElementT
+    ) -> None:
+        raise ValueError

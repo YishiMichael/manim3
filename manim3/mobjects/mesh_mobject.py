@@ -20,7 +20,7 @@ from ..lazy.interface import (
 from ..mobjects.mobject import Mobject
 from ..rendering.context import ContextState
 from ..rendering.gl_buffer import (
-    TextureStorage,
+    TexturePlaceholders,
     UniformBlockBuffer
 )
 from ..rendering.vertex_array import (
@@ -86,9 +86,9 @@ class MeshMobject(Mobject):
     def _u_color_maps_(
         cls,
         color_map: moderngl.Texture | None
-    ) -> TextureStorage:
+    ) -> TexturePlaceholders:
         texture_len = int(color_map is not None)
-        return TextureStorage(
+        return TexturePlaceholders(
             field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
             dynamic_array_lens={
                 "NUM_U_COLOR_MAPS": texture_len
@@ -127,7 +127,7 @@ class MeshMobject(Mobject):
     def _vertex_array_(
         cls,
         apply_phong_lighting: bool,
-        _u_color_maps_: TextureStorage,
+        _u_color_maps_: TexturePlaceholders,
         _scene_state__camera__ub_camera_: UniformBlockBuffer,
         _ub_model_: UniformBlockBuffer,
         _scene_state__ub_lights_: UniformBlockBuffer,
@@ -140,7 +140,7 @@ class MeshMobject(Mobject):
         return VertexArray(
             shader_filename="mesh",
             custom_macros=custom_macros,
-            texture_storages=[
+            texture_placeholders=[
                 _u_color_maps_
             ],
             uniform_blocks=[
