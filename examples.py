@@ -35,11 +35,11 @@ class TexTransformExample(Scene):
         #self.wait()
         #self.play(Transform(text, tex))
         #self.wait()
-        text = Text("Text").scale(3).add_stroke(width=0.1, color=BLUE).add_stroke(width=0.2, color=YELLOW).concatenate()
+        text = Text("Text").scale(3).add_stroke(width=0.2, color=BLUE).add_stroke(width=0.4, color=GREEN).concatenate()
         tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
-        self.add(text, text)
-        self.wait()
-        self.play(Transform(text, tex.shift(RIGHT * 2)))
+        self.add(text)
+        #self.wait()
+        self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
         self.wait()
         self.play(Transform(tex, tex.copy().shift(LEFT * 2)))
         self.wait()
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     config = Config()
     config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    #config.rendering.fps = 3
+    config.rendering.fps = 30
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)

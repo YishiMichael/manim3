@@ -21,6 +21,7 @@ from ..utils.rate import RateUtils
 
 class RegroupVerb(Enum):
     ADD = 1
+    BECOMES = 0
     DISCARD = -1
 
 
@@ -83,21 +84,3 @@ class AlphaAnimation(Animation):
             start_time=0.0,
             stop_time=run_time
         )
-
-
-#class SimpleAnimation(AlphaAnimation):
-#    # Animation that does not contain any addition or removal of mobjects
-#    def __init__(
-#        self,
-#        *,
-#        animate_func: Callable[[float, float], None],
-#        run_time: float,
-#        rate_func: Callable[[float], float] | None = None
-#    ):
-#        super().__init__(
-#            animate_func=animate_func,
-#            mobject_addition_items=[],
-#            mobject_removal_items=[],
-#            run_time=run_time,
-#            rate_func=rate_func
-#        )

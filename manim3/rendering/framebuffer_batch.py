@@ -1,7 +1,8 @@
 __all__ = [
     "ColorFramebufferBatch",
     "SceneFramebufferBatch",
-    "SimpleFramebufferBatch"
+    "SimpleFramebufferBatch",
+    "TemporaryResource"
 ]
 
 

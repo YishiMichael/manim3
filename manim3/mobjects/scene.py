@@ -330,6 +330,8 @@ class Scene(Mobject):
                 mobject = self
             if regroup_item.verb == RegroupVerb.ADD:
                 mobject.add(*targets)
+            elif regroup_item.verb == RegroupVerb.BECOMES:
+                mobject.becomes(next(iter(targets)))
             elif regroup_item.verb == RegroupVerb.DISCARD:
                 mobject.discard(*targets)
 

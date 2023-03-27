@@ -207,14 +207,20 @@ class Mobject(LazyObject):
         self.add(*src.iter_children())
         return self
 
-    def copy(self):
+    def copy(
+        self,
+        broadcast: bool = True
+    ):
         result = self._copy()
-        real_descendants_copy = [
-            descendant._copy()
-            for descendant in self._real_descendants_
-        ]
-        descendants: list[Mobject] = [self, *self._real_descendants_]
-        descendants_copy: list[Mobject] = [result, *real_descendants_copy]
+        descendants: list[Mobject] = [self]
+        descendants_copy: list[Mobject] = [result]
+        if broadcast:
+            real_descendants_copy = [
+                descendant._copy()
+                for descendant in self._real_descendants_
+            ]
+            descendants.extend(self._real_descendants_)
+            descendants_copy.extend(real_descendants_copy)
 
         def get_matched_descendant_mobject(
             mobject: Mobject
@@ -246,6 +252,9 @@ class Mobject(LazyObject):
                     get_matched_descendant_mobject(mobject)
                     for mobject in descriptor.__get__(self)
                 ))
+
+        if not broadcast:
+            result.clear()
         return result
 
     # matrix & transform

@@ -62,21 +62,21 @@ class ShapeMobject(MeshMobject):
             stroke._multi_line_string_ = shape._multi_line_string_
         return self
 
-    def adjust_stroke_shape(
-        self,
-        stroke_mobject: StrokeMobject
-    ):
-        stroke_mobject._model_matrix_ = self._model_matrix_
-        stroke_mobject._multi_line_string_ = self._shape_._multi_line_string_
-        return self
+    #def adjust_stroke_shape(
+    #    self,
+    #    stroke_mobject: StrokeMobject
+    #):
+    #    stroke_mobject._model_matrix_ = self._model_matrix_
+    #    stroke_mobject._multi_line_string_ = self._shape_._multi_line_string_
+    #    return self
 
-    def add_stroke_mobject(
-        self,
-        stroke_mobject: StrokeMobject
-    ):
-        self._stroke_mobjects_.add(stroke_mobject)
-        self.add(stroke_mobject)
-        return self
+    #def add_stroke_mobject(
+    #    self,
+    #    stroke_mobject: StrokeMobject
+    #):
+    #    self._stroke_mobjects_.add(stroke_mobject)
+    #    self.add(stroke_mobject)
+    #    return self
 
     def iter_shape_children(self) -> "Generator[ShapeMobject, None, None]":
         for mobject in self.iter_children():
@@ -166,8 +166,12 @@ class ShapeMobject(MeshMobject):
         stroke_mobjects: list[StrokeMobject] = []
         for mobject in mobjects:
             stroke = StrokeMobject()
-            mobject.adjust_stroke_shape(stroke)
-            mobject.add_stroke_mobject(stroke)
+            stroke._model_matrix_ = mobject._model_matrix_
+            stroke._multi_line_string_ = mobject._shape_._multi_line_string_
+            mobject._stroke_mobjects_.add(stroke)
+            mobject.add(stroke)
+            #mobject.adjust_stroke_shape(stroke)
+            #mobject.add_stroke_mobject(stroke)
             stroke_mobjects.append(stroke)
 
         StrokeMobject.class_set_style(
