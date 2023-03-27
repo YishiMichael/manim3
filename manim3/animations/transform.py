@@ -13,14 +13,13 @@ from typing import (
     TypeVar
 )
 
-from manim3.mobjects.mobject import Mobject
-
 from ..animations.animation import (
-    AlphaAnimation,
+    Animation,
     RegroupItem,
     RegroupVerb
 )
 from ..mobjects.mesh_mobject import MeshMobject
+from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..lazy.core import (
@@ -29,6 +28,7 @@ from ..lazy.core import (
     LazyVariableDescriptor,
     LazyWrapper
 )
+from ..utils.rate import RateUtils
 from ..utils.space import SpaceUtils
 from ..utils.shape import (
     MultiLineString,
@@ -95,7 +95,6 @@ class VariableInterpolant(ABC, Generic[_InstanceT, _ContainerT, _ElementT, _Desc
                 instance_0, instance_1
             )) is not None
         )
-        #print()
 
         def composed_callback(
             instance: _InstanceT,
@@ -121,7 +120,7 @@ class VariableInterpolant(ABC, Generic[_InstanceT, _ContainerT, _ElementT, _Desc
         return new_method
 
 
-class Transform(AlphaAnimation):
+class Transform(Animation):
     __slots__ = ()
 
     def __init__(
@@ -145,7 +144,7 @@ class Transform(AlphaAnimation):
             )
         ]
 
-        def animate_func(
+        def alpha_animate_func(
             alpha_0: float,
             alpha: float
         ) -> None:
@@ -185,8 +184,11 @@ class Transform(AlphaAnimation):
                 verb=RegroupVerb.BECOMES,
                 targets=stop_mobject
             )))
+
+        if rate_func is None:
+            rate_func = RateUtils.smooth
         super().__init__(
-            animate_func=animate_func,
+            alpha_animate_func=alpha_animate_func,
             alpha_regroup_items=alpha_regroup_items,
             run_time=run_time,
             rate_func=rate_func
@@ -222,6 +224,7 @@ class Transform(AlphaAnimation):
                 result.set_style(width=0.0)
             return result
 
+        # Why `list()` is needed here?
         for mobject_0, mobject_1 in it.zip_longest(list(mobjects_0), list(mobjects_1), fillvalue=None):
             if mobject_0 is not None and mobject_1 is None:
                 mobject_1 = get_placeholder_mobject(mobject_0)

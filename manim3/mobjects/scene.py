@@ -315,19 +315,18 @@ class Scene(Mobject):
         reaches_end = config_stop_frame_index is not None and bool(np.isclose(stop_frame_index, config_stop_frame_index))
         return range(start_frame_index, stop_frame_index + 1), reaches_end
 
+    @classmethod
     def _regroup(
-        self,
+        cls,
         regroup_item: RegroupItem
     ) -> None:
         mobjects = regroup_item.mobjects
-        if isinstance(mobjects, Mobject | None):
+        if isinstance(mobjects, Mobject):
             mobjects = (mobjects,)
         targets = regroup_item.targets
         if isinstance(targets, Mobject):
             targets = (targets,)
         for mobject in dict.fromkeys(mobjects):
-            if mobject is None:
-                mobject = self
             if regroup_item.verb == RegroupVerb.ADD:
                 mobject.add(*targets)
             elif regroup_item.verb == RegroupVerb.BECOMES:
@@ -344,13 +343,13 @@ class Scene(Mobject):
             t0 = self._animation_dict[animation]
             t = t0 + dt
             self._animation_dict[animation] = t
-            if t < animation._start_time:
-                continue
+            #if t < animation._start_time:
+            #    continue
 
             animation_expired = False
-            if animation._stop_time is not None and t > animation._stop_time:
+            if (run_time := animation._run_time) is not None and t > run_time:
                 animation_expired = True
-                t = animation._stop_time
+                t = run_time
 
             for time_regroup_item in animation._time_regroup_items[:]:
                 regroup_time, regroup_item = time_regroup_item
@@ -359,7 +358,7 @@ class Scene(Mobject):
                 self._regroup(regroup_item)
                 animation._time_regroup_items.remove(time_regroup_item)
 
-            animation._animate_func(t0, t)
+            animation._time_animate_func(t0, t)
 
             if animation_expired:
                 if animation._time_regroup_items:
@@ -392,7 +391,7 @@ class Scene(Mobject):
     ):
         self.prepare(*animations)
         try:
-            wait_time = max(t for animation in animations if (t := animation._stop_time) is not None)
+            wait_time = max(t for animation in animations if (t := animation._run_time) is not None)
         except ValueError:
             wait_time = 0.0
         self.wait(wait_time)
