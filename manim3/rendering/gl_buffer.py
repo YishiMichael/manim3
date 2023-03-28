@@ -474,13 +474,6 @@ class UniformBlockBuffer(GLDynamicBuffer):
     def _layout_(cls) -> GLBufferLayout:
         return GLBufferLayout.STD140
 
-    def _validate(
-        self,
-        uniform_block: moderngl.UniformBlock
-    ) -> None:
-        assert uniform_block.name == self._field_name_.value
-        assert uniform_block.size == self._itemsize_.value
-
 
 class AttributesBuffer(GLDynamicBuffer):
     __slots__ = ()
@@ -522,62 +515,11 @@ class AttributesBuffer(GLDynamicBuffer):
     ) -> np.dtype:
         return dtype_node__dtype.base
 
-    def _get_buffer_format(
-        self,
-        attribute_name_tuple: tuple[str, ...]
-    ) -> tuple[str, list[str]]:
-        # TODO: This may require refactory.
-        vertex_dtype = self._vertex_dtype_.value
-        vertex_fields = vertex_dtype.fields
-        assert vertex_fields is not None
-        dtype_stack: list[tuple[np.dtype, int]] = []
-        attribute_names: list[str] = []
-        for field_name, (field_dtype, field_offset, *_) in vertex_fields.items():
-            if field_name not in attribute_name_tuple:
-                continue
-            dtype_stack.append((field_dtype, field_offset))
-            attribute_names.append(field_name)
-
-        components: list[str] = []
-        current_offset = 0
-        while dtype_stack:
-            dtype, offset = dtype_stack.pop(0)
-            dtype_size = self._int_prod(dtype.shape)
-            dtype_itemsize = dtype.base.itemsize
-            if dtype.base.fields is not None:
-                dtype_stack = [
-                    (child_dtype, offset + i * dtype_itemsize + child_offset)
-                    for i in range(dtype_size)
-                    for child_dtype, child_offset, *_ in dtype.base.fields.values()
-                ] + dtype_stack
-                continue
-            if current_offset != offset:
-                components.append(f"{offset - current_offset}x")
-                current_offset = offset
-            components.append(f"{dtype_size}{dtype.base.kind}{dtype_itemsize}")
-            current_offset += dtype_size * dtype_itemsize
-        if current_offset != vertex_dtype.itemsize:
-            components.append(f"{vertex_dtype.itemsize - current_offset}x")
-        components.append("/v")
-        return " ".join(components), attribute_names
-
-    def _validate(
-        self,
-        attributes: dict[str, moderngl.Attribute]
-    ) -> None:
-        vertex_dtype = self._vertex_dtype_.value
-        for attribute_name, attribute in attributes.items():
-            field_dtype = vertex_dtype[attribute_name]
-            assert attribute.array_length == self._int_prod(field_dtype.shape)
-            assert attribute.dimension == self._int_prod(field_dtype.base.shape) * self._int_prod(field_dtype.base["_"].shape)
-            assert attribute.shape == field_dtype.base["_"].base.kind.replace("u", "I")
-
-    @classmethod
-    def _int_prod(
-        cls,
-        shape: tuple[int, ...]
-    ) -> int:
-        return reduce(op.mul, shape, 1)
+    #def _validate(
+    #    self,
+    #    attributes: dict[str, moderngl.Attribute]
+    #) -> None:
+    #
 
 
 class IndexBuffer(GLDynamicBuffer):

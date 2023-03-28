@@ -20,7 +20,6 @@ from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.polyhedra import *
 from .mobjects.scene import *
-from .mobjects.scene_mobject import *
 from .mobjects.shape_mobject import *
 from .mobjects.shapes import *
 from .mobjects.string_mobject import *

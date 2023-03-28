@@ -2,7 +2,6 @@ __all__ = ["Scene"]
 
 
 import time
-import warnings
 
 import moderngl
 import numpy as np
@@ -343,13 +342,13 @@ class Scene(Mobject):
             t0 = self._animation_dict[animation]
             t = t0 + dt
             self._animation_dict[animation] = t
-            #if t < animation._start_time:
-            #    continue
+            if t < animation._start_time:
+                continue
 
             animation_expired = False
-            if (run_time := animation._run_time) is not None and t > run_time:
+            if (stop_time := animation._stop_time) is not None and t > stop_time:
                 animation_expired = True
-                t = run_time
+                t = stop_time
 
             for time_regroup_item in animation._time_regroup_items[:]:
                 regroup_time, regroup_item = time_regroup_item
@@ -361,8 +360,7 @@ class Scene(Mobject):
             animation._time_animate_func(t0, t)
 
             if animation_expired:
-                if animation._time_regroup_items:
-                    warnings.warn("`time_regroup_items` is not empty after the animation finishes")
+                assert not animation._time_regroup_items
                 self._animation_dict.pop(animation)
 
         return self
@@ -391,7 +389,7 @@ class Scene(Mobject):
     ):
         self.prepare(*animations)
         try:
-            wait_time = max(t for animation in animations if (t := animation._run_time) is not None)
+            wait_time = max(t for animation in animations if (t := animation._stop_time) is not None)
         except ValueError:
             wait_time = 0.0
         self.wait(wait_time)

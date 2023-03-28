@@ -41,7 +41,8 @@ class Animation(ABC):
     __slots__ = (
         "_time_animate_func",
         "_time_regroup_items",
-        "_run_time"
+        "_start_time",
+        "_stop_time"
     )
 
     def __init__(
@@ -50,16 +51,14 @@ class Animation(ABC):
         # Two arguments provided are `(alpha_0, alpha)`.
         alpha_animate_func: Callable[[float, float], None],
         alpha_regroup_items: list[tuple[float, RegroupItem]],
-        #start_time: float,
-        run_time: float | None,
-        # (time / run_time) |-> alpha
+        start_time: float,
+        stop_time: float | None,
+        # `time |-> alpha`
         rate_func: Callable[[float], float] | None = None
     ) -> None:
-        assert run_time is None or run_time >= 0.0
+        assert stop_time is None or stop_time >= start_time
         if rate_func is None:
             rate_func = RateUtils.linear
-        if run_time is not None:
-            rate_func = RateUtils.compose(rate_func, lambda t: t / run_time)
 
         def time_animate_func(
             t0: float,
@@ -71,10 +70,10 @@ class Animation(ABC):
             alpha: float
         ) -> float:
             t = RateUtils.inverse(rate_func, alpha)
-            if run_time is not None and t > run_time:
-                if not np.isclose(t, run_time):
-                    warnings.warn("`time_regroup_items` is not within `run_time`")
-                t = run_time
+            if stop_time is not None and t > stop_time:
+                if not np.isclose(t, stop_time):
+                    warnings.warn("`time_regroup_items` is not within `(start_time, stop_time)`")
+                t = stop_time
             return t
 
         self._time_animate_func: Callable[[float, float], None] = time_animate_func
@@ -82,4 +81,5 @@ class Animation(ABC):
             (alpha_to_time(alpha), regroup_item)
             for alpha, regroup_item in alpha_regroup_items
         ]
-        self._run_time: float | None = run_time
+        self._start_time: float = start_time
+        self._stop_time: float | None = stop_time

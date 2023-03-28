@@ -51,15 +51,15 @@ class Rotating(Animation):
         mobject: Mobject
     ) -> None:
 
-        def animate_func(
-            t_0: float,
-            t: float
+        def alpha_animate_func(
+            alpha_0: float,
+            alpha: float
         ) -> None:
-            mobject.rotate(Rotation.from_rotvec(DOWN * (t - t_0) * 0.5))
+            mobject.rotate(Rotation.from_rotvec(DOWN * (alpha - alpha_0) * 0.5))
 
         super().__init__(
-            animate_func=animate_func,
-            time_regroup_items=[],
+            alpha_animate_func=alpha_animate_func,
+            alpha_regroup_items=[],
             start_time=0.0,
             stop_time=None
         )
@@ -79,11 +79,20 @@ class ThreeDTextExample(Scene):
         self.wait(10)
 
 
+class SceneMobjectExample(Scene):
+    def construct(self) -> None:
+        scene_0 = SceneMobject(TexTransformExample).scale(0.5).shift(3 * LEFT)
+        #scene_1 = SceneMobject(ThreeDTextExample).scale(0.5).shift(3 * RIGHT)
+        self.add(scene_0)
+        self.play(PlayScene(scene_0))
+        self.wait(5)
+
+
 if __name__ == "__main__":
     config = Config()
     config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 30
+    #config.rendering.fps = 3
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)

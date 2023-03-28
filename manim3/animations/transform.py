@@ -190,8 +190,9 @@ class Transform(Animation):
         super().__init__(
             alpha_animate_func=alpha_animate_func,
             alpha_regroup_items=alpha_regroup_items,
-            run_time=run_time,
-            rate_func=rate_func
+            start_time=0.0,
+            stop_time=run_time,
+            rate_func=RateUtils.compose(rate_func, lambda t: t / run_time)
         )
 
     @classmethod
