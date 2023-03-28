@@ -139,6 +139,9 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
+        for mobject in mobjects:
+            if mobject in self.iter_ancestors():
+                raise ValueError(f"Circular relationship occurred when adding {mobject} to {self}")
         all_descendants = list(it.chain(*(
             mobject.iter_descendants()
             for mobject in mobjects
@@ -169,28 +172,6 @@ class Mobject(LazyObject):
             descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
         return self
 
-    #def index(self, node: "Mobject") -> int:
-    #    return self._children_.index(node)
-
-    #def insert(self, index: int, node: "Mobject"):
-    #    self._bind_child(node, index=index)
-    #    return self
-
-    #def add(self, *nodes: "Mobject"):
-    #    for node in nodes:
-    #        self._bind_child(node)
-    #    return self
-
-    #def remove(self, *nodes: "Mobject"):
-    #    for node in nodes:
-    #        self._unbind_child(node)
-    #    return self
-
-    #def pop(self, index: int = -1):
-    #    node = self[index]
-    #    self.remove(node)
-    #    return node
-
     def clear(self):
         self.discard(*self.iter_children())
         return self
@@ -202,9 +183,12 @@ class Mobject(LazyObject):
         if self is src:
             return self
 
+        parents = list(self.iter_parents())
         self.clear()
         self._becomes(src)
         self.add(*src.iter_children())
+        for parent in parents:
+            parent.add(self)
         return self
 
     def copy(

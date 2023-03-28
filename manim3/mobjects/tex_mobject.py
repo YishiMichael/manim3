@@ -288,7 +288,7 @@ class Tex(StringMobject):
         for selector, color in tex_to_color_map.items():
             self.select_parts(selector).set_fill(color=color)
 
-    # Parsing
+    # parsing
 
     @classmethod
     def _iter_command_matches(

@@ -276,54 +276,7 @@ class MarkupText(StringMobject):
             frame_scale=self._TEXT_SCALE_FACTOR
         )
 
-    # Toolkits
-
-    @classmethod
-    def _escape_markup_char(
-        cls,
-        substr: str
-    ) -> str:
-        return cls._MARKUP_ENTITY_DICT.get(substr, substr)
-
-    @classmethod
-    def _unescape_markup_char(
-        cls,
-        substr: str
-    ) -> str:
-        return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
-
-    @classmethod
-    def _get_global_attrs(
-        cls,
-        font_size: float,
-        font: str,
-        slant: str,
-        weight: str,
-        base_color: ColorType,
-        line_spacing_height: float,
-        global_config: dict[str, str]
-    ) -> dict[str, str]:
-        global_attrs = {
-            "font_size": str(round(font_size * 1024.0)),
-            "font_family": font,
-            "font_style": slant,
-            "font_weight": weight,
-            "foreground": ColorUtils.color_to_hex(base_color)
-        }
-        # `line_height` attribute is supported since Pango 1.50.
-        pango_version_str = PangoUtils.pango_version_str
-        if tuple(map(int, pango_version_str.split("."))) < (1, 50):
-            warnings.warn(
-                f"Pango version {pango_version_str} found (< 1.50), " +
-                "unable to set `line_height` attribute"
-            )
-        else:
-            global_attrs["line_height"] = str(1.0 + line_spacing_height)
-
-        global_attrs.update(global_config)
-        return global_attrs
-
-    # Parsing
+    # parsing
 
     @classmethod
     def _iter_command_matches(
@@ -434,6 +387,53 @@ class MarkupText(StringMobject):
             for key, val in converted_attrs.items()
         ])
         return f"<span {attrs_str}>"
+
+    # toolkits
+
+    @classmethod
+    def _escape_markup_char(
+        cls,
+        substr: str
+    ) -> str:
+        return cls._MARKUP_ENTITY_DICT.get(substr, substr)
+
+    @classmethod
+    def _unescape_markup_char(
+        cls,
+        substr: str
+    ) -> str:
+        return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
+
+    @classmethod
+    def _get_global_attrs(
+        cls,
+        font_size: float,
+        font: str,
+        slant: str,
+        weight: str,
+        base_color: ColorType,
+        line_spacing_height: float,
+        global_config: dict[str, str]
+    ) -> dict[str, str]:
+        global_attrs = {
+            "font_size": str(round(font_size * 1024.0)),
+            "font_family": font,
+            "font_style": slant,
+            "font_weight": weight,
+            "foreground": ColorUtils.color_to_hex(base_color)
+        }
+        # `line_height` attribute is supported since Pango 1.50.
+        pango_version_str = PangoUtils.pango_version_str
+        if tuple(map(int, pango_version_str.split("."))) < (1, 50):
+            warnings.warn(
+                f"Pango version {pango_version_str} found (< 1.50), " +
+                "unable to set `line_height` attribute"
+            )
+        else:
+            global_attrs["line_height"] = str(1.0 + line_spacing_height)
+
+        global_attrs.update(global_config)
+        return global_attrs
 
 
 class Text(MarkupText):

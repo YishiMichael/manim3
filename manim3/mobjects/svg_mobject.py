@@ -125,7 +125,7 @@ class SVGMobject(ShapeMobject):
             mobject._color_ = color_value
 
         self.add(*shape_mobjects)
-        self.flip(X_AXIS)  # flip y
+        self.flip(X_AXIS)
 
     @classmethod
     def _get_mobject_from_se_shape(

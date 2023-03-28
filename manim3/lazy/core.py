@@ -556,10 +556,14 @@ class LazyObject(ABC):
         self: _ElementT,
         src: _ElementT
     ) -> None:
-        assert (cls := type(self)) is type(src)
-        for descriptor in cls._LAZY_DESCRIPTORS:
+        # Two instances can "become" each other if the type of one is inherited from that of another,
+        # and the inheritance does not commit any addition or overloading of lazy descriptors,
+        # or addition of slots.
+        assert (descriptors := type(self)._LAZY_DESCRIPTORS) == type(src)._LAZY_DESCRIPTORS
+        for descriptor in descriptors:
             descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
-        for slot_name in cls._PY_SLOTS:
+        assert (slot_names := type(self)._PY_SLOTS) == type(src)._PY_SLOTS
+        for slot_name in slot_names:
             self.__setattr__(slot_name, copy.copy(src.__getattribute__(slot_name)))
 
     def _copy(self: _ElementT) -> _ElementT:

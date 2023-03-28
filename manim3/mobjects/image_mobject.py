@@ -39,7 +39,7 @@ class ImageMobject(MeshMobject):
             specified_width=width,
             specified_height=height
         )
-        self.scale(np.array((x_scale, y_scale, 1.0))).flip(X_AXIS)  # flip y
+        self.scale(np.array((x_scale, y_scale, 1.0))).flip(X_AXIS)
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod

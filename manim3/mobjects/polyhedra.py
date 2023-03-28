@@ -63,7 +63,7 @@ class Polyhedron(ShapeMobject):
 
 
 # The five platonic solids are ported from manim community.
-# /manim/mobject/three_d/polyhedra.py
+# `/manim/mobject/three_d/polyhedra.py`
 # All these polyhedra have all vertices sitting on the unit sphere.
 class Tetrahedron(Polyhedron):
     __slots__ = ()

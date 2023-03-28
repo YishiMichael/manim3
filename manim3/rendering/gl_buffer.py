@@ -515,12 +515,6 @@ class AttributesBuffer(GLDynamicBuffer):
     ) -> np.dtype:
         return dtype_node__dtype.base
 
-    #def _validate(
-    #    self,
-    #    attributes: dict[str, moderngl.Attribute]
-    #) -> None:
-    #
-
 
 class IndexBuffer(GLDynamicBuffer):
     __slots__ = ()

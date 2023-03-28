@@ -11,19 +11,22 @@ class TextExample(Scene):
             self.add(shape)
             if isinstance(shape, ShapeMobject) and isinstance(target_shape, ShapeMobject):
                 self.prepare(Transform(shape, target_shape))
+        self.wait(5)
 
 
 class ShapeTransformExample(Scene):
     def construct(self) -> None:
         circle = Circle()
-        circle.set_fill(color=BLUE, opacity=0.5)
-        circle.set_stroke(color=BLUE_E, width=4)
+        circle.set_fill(color=PINK, opacity=0.9)
+        circle.set_stroke(color=YELLOW, width=4)
         square = Square()
+        square.set_fill(opacity=1.0)
 
         #self.play(ShowCreation(square))
         self.add(square)
+        #self.wait()
+        self.play(Transform(square, circle, replace=False))
         self.wait()
-        self.play(Transform(square, circle))
         self.wait(5)
 
 
@@ -79,15 +82,6 @@ class ThreeDTextExample(Scene):
         self.wait(10)
 
 
-class SceneMobjectExample(Scene):
-    def construct(self) -> None:
-        scene_0 = SceneMobject(TexTransformExample).scale(0.5).shift(3 * LEFT)
-        #scene_1 = SceneMobject(ThreeDTextExample).scale(0.5).shift(3 * RIGHT)
-        self.add(scene_0)
-        self.play(PlayScene(scene_0))
-        self.wait(5)
-
-
 if __name__ == "__main__":
     config = Config()
     config.tex.use_mathjax = True
@@ -97,4 +91,4 @@ if __name__ == "__main__":
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)
     #config.rendering.write_last_frame = True
-    TexTransformExample.render(config)
+    ThreeDTextExample.render(config)
