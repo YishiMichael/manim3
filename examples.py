@@ -3,17 +3,6 @@ from scipy.spatial.transform import Rotation
 from manim3 import *
 
 
-class TextExample(Scene):
-    def construct(self) -> None:
-        text = Text("Example Text")
-        target = text.copy().shift(RIGHT * 3).set_fill(color="#00ff00")
-        for shape, target_shape in zip(text.iter_children(), target.iter_children()):
-            self.add(shape)
-            if isinstance(shape, ShapeMobject) and isinstance(target_shape, ShapeMobject):
-                self.prepare(Transform(shape, target_shape))
-        self.wait(5)
-
-
 class ShapeTransformExample(Scene):
     def construct(self) -> None:
         circle = Circle()
@@ -22,9 +11,7 @@ class ShapeTransformExample(Scene):
         square = Square()
         square.set_fill(opacity=1.0)
 
-        #self.play(ShowCreation(square))
         self.add(square)
-        #self.wait()
         self.play(Transform(square, circle, replace=False))
         self.wait()
         self.wait(5)
@@ -32,16 +19,9 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
-        #text = RegularPolygon(3)
-        #tex = RegularPolygon(4).set_stroke(width=0.3)
-        #self.add(text)
-        #self.wait()
-        #self.play(Transform(text, tex))
-        #self.wait()
         text = Text("Text").scale(3).add_stroke(width=0.2, color=BLUE).add_stroke(width=0.4, color=GREEN).concatenate()
         tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text)
-        #self.wait()
         self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
         self.wait()
         self.play(Transform(tex, tex.copy().shift(LEFT * 2)))
@@ -84,7 +64,7 @@ class ThreeDTextExample(Scene):
 
 if __name__ == "__main__":
     config = Config()
-    config.tex.use_mathjax = True
+    #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
     #config.rendering.fps = 3
     #config.rendering.preview = False
