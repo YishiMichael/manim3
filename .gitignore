@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 
+/dist/
 /manim3_files/
 /playground/
 /videos/
