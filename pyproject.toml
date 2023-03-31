@@ -1,0 +1,31 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "manim3"
+version = "0.0.1"
+description = "A personal variant of manim"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE.md"}
+authors = [
+    {name = "YishiMichael"}
+]
+classifiers = [
+    "Programming Language :: Python"
+]
+dependencies = [
+    "colour",
+    "manimpango",
+    "mapbox-earcut",
+    "moderngl",
+    "moderngl_window",
+    "numpy",
+    "pillow",
+    "pygments",
+    "scipy",
+    "shapely",
+    "svgelements",
+    "toml"
+]
