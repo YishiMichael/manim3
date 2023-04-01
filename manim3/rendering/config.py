@@ -39,7 +39,7 @@ class PathConfig:
 
     @property
     def tex_templates_path(self) -> pathlib.Path:
-        return self.manim3_dir.joinpath("tex_templates.tml")
+        return self.manim3_dir.joinpath("tex_templates.toml")
 
     @property
     def user_script_path(self) -> pathlib.Path:
@@ -237,62 +237,91 @@ class TextConfig:
     code_style: str
 
 
-@dataclass(
-    order=True,
-    kw_only=True,
-    slots=True
-)
 class Config:
-    path: PathConfig = PathConfig()
-    rendering: RenderingConfig = RenderingConfig(
-        fps=30,
-        start_frame_index=None,
-        stop_frame_index=None,
-        write_video=False,
-        write_last_frame=False,
-        preview=True
+    __slots__ = (
+        "_path",
+        "_rendering",
+        "_size",
+        "_camera",
+        "_tex",
+        "_text"
     )
-    size: SizeConfig = SizeConfig(
-        aspect_ratio=16.0 / 9.0,
-        frame_height=8.0,
-        pixel_height=1080,
-        window_pixel_height=540
-    )
-    camera: CameraConfig = CameraConfig(
-        altitude=5.0,
-        near=0.1,
-        far=100.0
-    )
-    tex: TexConfig = TexConfig(
-        use_mathjax=False,
-        preamble="\n".join((
-            "\\documentclass[preview]{standalone}",
-            "\\usepackage{amsmath}",
-            "\\usepackage{amssymb}",
-            "\\usepackage{xcolor}"  # Required for labelling.
-        )),
-        template="ctex",
-        alignment="\\centering",
-        environment="align*",
-        base_color=Color("white"),
-        font_size=48
-    )
-    text: TextConfig = TextConfig(
-        justify=False,
-        indent=0.0,
-        alignment="LEFT",
-        line_width=None,
-        font_size=48,
-        font="Consolas",
-        slant="NORMAL",
-        weight="NORMAL",
-        base_color=Color("white"),
-        line_spacing_height=0.0,
-        global_config={},
-        language="python",
-        # Visit `https://pygments.org/demo/` to have a preview of more styles.
-        code_style="monokai"
-    )
+
+    def __init__(self) -> None:
+        self._path: PathConfig = PathConfig()
+        self._rendering: RenderingConfig = RenderingConfig(
+            fps=30,
+            start_frame_index=None,
+            stop_frame_index=None,
+            write_video=False,
+            write_last_frame=False,
+            preview=True
+        )
+        self._size: SizeConfig = SizeConfig(
+            aspect_ratio=16.0 / 9.0,
+            frame_height=8.0,
+            pixel_height=1080,
+            window_pixel_height=540
+        )
+        self._camera: CameraConfig = CameraConfig(
+            altitude=5.0,
+            near=0.1,
+            far=100.0
+        )
+        self._tex: TexConfig = TexConfig(
+            use_mathjax=False,
+            preamble="\n".join((
+                "\\documentclass[preview]{standalone}",
+                "\\usepackage{amsmath}",
+                "\\usepackage{amssymb}",
+                "\\usepackage{xcolor}"  # Required for labelling.
+            )),
+            template="ctex",
+            alignment="\\centering",
+            environment="align*",
+            base_color=Color("white"),
+            font_size=48
+        )
+        self._text: TextConfig = TextConfig(
+            justify=False,
+            indent=0.0,
+            alignment="LEFT",
+            line_width=None,
+            font_size=48,
+            font="Consolas",
+            slant="NORMAL",
+            weight="NORMAL",
+            base_color=Color("white"),
+            line_spacing_height=0.0,
+            global_config={},
+            language="python",
+            # Visit `https://pygments.org/demo/` to have a preview of more styles.
+            code_style="monokai"
+        )
+
+    @property
+    def path(self) -> PathConfig:
+        return self._path
+
+    @property
+    def rendering(self) -> RenderingConfig:
+        return self._rendering
+
+    @property
+    def size(self) -> SizeConfig:
+        return self._size
+
+    @property
+    def camera(self) -> CameraConfig:
+        return self._camera
+
+    @property
+    def tex(self) -> TexConfig:
+        return self._tex
+
+    @property
+    def text(self) -> TextConfig:
+        return self._text
 
 
 class ConfigSingleton(ABC):
