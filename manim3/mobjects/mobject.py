@@ -727,9 +727,9 @@ class Mobject(LazyObject):
         self._render_passes_.add(*render_passes)
         return self
 
-    def remove_pass(
+    def discard_pass(
         self,
         *render_passes: RenderPass
     ):
-        self._render_passes_.remove(*render_passes)
+        self._render_passes_.discard(*render_passes)
         return self

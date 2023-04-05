@@ -7,7 +7,7 @@ class ShapeTransformExample(Scene):
     def construct(self) -> None:
         circle = Circle()
         circle.set_fill(color=PINK, opacity=0.9)
-        circle.set_stroke(color=YELLOW, width=4)
+        circle.set_stroke(color=YELLOW, width=0.4)
         square = Square()
         square.set_fill(opacity=1.0)
 
@@ -23,8 +23,6 @@ class TexTransformExample(Scene):
         tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
         self.add(text)
         self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
-        self.wait()
-        self.play(Transform(tex, tex.copy().shift(LEFT * 2)))
         self.wait()
 
 
