@@ -32,9 +32,9 @@ class Polyline(ShapeMobject):
 
     def __init__(
         self,
-        coords: Vec2sT
+        points: Vec2sT
     ) -> None:
-        super().__init__(Shape([coords]))
+        super().__init__(Shape([(points, False)]))
 
 
 class Point(Polyline):
@@ -78,14 +78,14 @@ class Circle(Arc):
         super().__init__(0.0, TAU)
 
 
-class Polygon(Polyline):
+class Polygon(ShapeMobject):
     __slots__ = ()
 
     def __init__(
         self,
-        coords: Vec2sT
+        points: Vec2sT
     ) -> None:
-        super().__init__(np.append(coords, np.array((coords[0],)), axis=0))
+        super().__init__(Shape([(points, False)]))
 
 
 class RegularPolygon(Polygon):

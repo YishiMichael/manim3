@@ -34,26 +34,26 @@ class PrismoidGeometry(ShapeGeometry):
         index_list: list[int] = []
         index_offset = 0
         for line_string in _shape_._multi_line_string_._line_strings_:
-            coords = SpaceUtils.decrease_dimension(line_string._coords_.value)
+            points = SpaceUtils.decrease_dimension(line_string._points_.value)
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths.
             # TODO: Shall we normalize winding?
-            points: list[Vec2T] = [coords[0]]
-            current_point = coords[0]
-            for point in coords:
+            points_list: list[Vec2T] = [points[0]]
+            current_point = points[0]
+            for point in points:
                 if np.isclose(SpaceUtils.norm(point - current_point), 0.0):
                     continue
                 current_point = point
-                points.append(point)
-            if np.isclose(SpaceUtils.norm(current_point - coords[0]), 0.0):
-                points.pop()
-            if len(points) <= 1:
+                points_list.append(point)
+            if np.isclose(SpaceUtils.norm(current_point - points[0]), 0.0):
+                points_list.pop()
+            if len(points_list) <= 1:
                 continue
 
             # Assemble side faces.
             ip_normal_pairs: list[tuple[int, Vec2T]] = []
             rotation_mat = np.array(((0.0, 1.0), (-1.0, 0.0)))
-            for ip, (p_prev, p, p_next) in enumerate(zip(np.roll(points, 1, axis=0), points, np.roll(points, -1, axis=0))):
+            for ip, (p_prev, p, p_next) in enumerate(zip(np.roll(points_list, 1, axis=0), points_list, np.roll(points_list, -1, axis=0))):
                 n0 = rotation_mat @ SpaceUtils.normalize(p - p_prev)
                 n1 = rotation_mat @ SpaceUtils.normalize(p_next - p)
 
@@ -66,7 +66,7 @@ class PrismoidGeometry(ShapeGeometry):
                     ip_normal_pairs.append((ip, n0))
                     ip_normal_pairs.append((ip, n1))
 
-            duplicated_points = np.array([points[ip] for ip, _ in ip_normal_pairs])
+            duplicated_points = np.array([points_list[ip] for ip, _ in ip_normal_pairs])
             normals = np.array([normal for _, normal in ip_normal_pairs])
             position_list.extend(SpaceUtils.increase_dimension(duplicated_points, z_value=1.0))
             position_list.extend(SpaceUtils.increase_dimension(duplicated_points, z_value=-1.0))
@@ -86,13 +86,13 @@ class PrismoidGeometry(ShapeGeometry):
             index_offset += 2 * l
 
         # Assemble top and bottom faces.
-        shape_index, shape_coords = _shape_._triangulation_.value
+        shape_index, shape_points = _shape_._triangulation_.value
         for sign in (1.0, -1.0):
-            position_list.extend(SpaceUtils.increase_dimension(shape_coords, z_value=sign))
-            normal_list.extend(SpaceUtils.increase_dimension(np.zeros_like(shape_coords), z_value=sign))
-            uv_list.extend(shape_coords)
+            position_list.extend(SpaceUtils.increase_dimension(shape_points, z_value=sign))
+            normal_list.extend(SpaceUtils.increase_dimension(np.zeros_like(shape_points), z_value=sign))
+            uv_list.extend(shape_points)
             index_list.extend(index_offset + shape_index)
-            index_offset += len(shape_coords)
+            index_offset += len(shape_points)
 
         return GeometryData(
             index=np.array(index_list),

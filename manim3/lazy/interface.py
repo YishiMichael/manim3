@@ -251,9 +251,9 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
 
         def new_finalize_method(
             cls: type[_InstanceT],
-            entity: LazyWrapper[_T]
+            value: LazyWrapper[_T]
         ) -> None:
-            func(cls, entity.value)
+            func(cls, value.value)
 
         self.finalize_method = new_finalize_method
         return finalize_method

@@ -15,7 +15,7 @@ from ..rendering.context import ContextState
 from ..rendering.framebuffer_batch import ColorFramebufferBatch
 from ..rendering.gl_buffer import (
     UniformBlockBuffer,
-    TexturePlaceholders
+    TextureIDBuffer
 )
 from ..rendering.vertex_array import VertexArray
 
@@ -49,8 +49,8 @@ class GaussianBlurPass(RenderPass):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_color_map_(cls) -> TexturePlaceholders:
-        return TexturePlaceholders(
+    def _u_color_map_(cls) -> TextureIDBuffer:
+        return TextureIDBuffer(
             field="sampler2D u_color_map"
         )
 
@@ -66,7 +66,7 @@ class GaussianBlurPass(RenderPass):
                 "vec2 u_uv_offset",
                 "float u_convolution_core[CONVOLUTION_CORE_SIZE]"
             ],
-            dynamic_array_lens={
+            array_lens={
                 "CONVOLUTION_CORE_SIZE": len(convolution_core)
             },
             data={
@@ -79,7 +79,7 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _horizontal_vertex_array_(
         cls,
-        _u_color_map_: TexturePlaceholders,
+        _u_color_map_: TextureIDBuffer,
         _ub_gaussian_blur_: UniformBlockBuffer
     ) -> VertexArray:
         return VertexArray(
@@ -87,10 +87,10 @@ class GaussianBlurPass(RenderPass):
             custom_macros=[
                 f"#define blur_subroutine horizontal_dilate"
             ],
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_color_map_
             ],
-            uniform_blocks=[
+            uniform_block_buffers=[
                 _ub_gaussian_blur_
             ]
         )
@@ -99,7 +99,7 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _vertical_vertex_array_(
         cls,
-        _u_color_map_: TexturePlaceholders,
+        _u_color_map_: TextureIDBuffer,
         _ub_gaussian_blur_: UniformBlockBuffer
     ) -> VertexArray:
         return VertexArray(
@@ -107,10 +107,10 @@ class GaussianBlurPass(RenderPass):
             custom_macros=[
                 f"#define blur_subroutine vertical_dilate"
             ],
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_color_map_
             ],
-            uniform_blocks=[
+            uniform_block_buffers=[
                 _ub_gaussian_blur_
             ]
         )

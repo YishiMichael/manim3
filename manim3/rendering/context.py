@@ -37,6 +37,7 @@ class ContextState:
 class Context(ABC):
     __slots__ = ()
 
+    _GL_VERSION: ClassVar[tuple[int, int]] = (4, 3)
     _MGL_CONTEXT: ClassVar[moderngl.Context | None] = None
     _WINDOW: ClassVar[Window | None] = None
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
@@ -56,7 +57,7 @@ class Context(ABC):
                 size=ConfigSingleton().size.window_pixel_size,
                 fullscreen=False,
                 resizable=True,
-                gl_version=(3, 3),
+                gl_version=cls._GL_VERSION,
                 vsync=True,
                 cursor=True
             )
@@ -64,7 +65,10 @@ class Context(ABC):
             window_framebuffer = mgl_context.detect_framebuffer()
         else:
             window = None
-            mgl_context = moderngl.create_context(standalone=True)
+            mgl_context = moderngl.create_context(
+                require=cls._GL_VERSION[0] * 100 + cls._GL_VERSION[1] * 10,
+                standalone=True
+            )
             window_framebuffer = None
         atexit.register(lambda: mgl_context.release())
         cls._MGL_CONTEXT = mgl_context
@@ -203,14 +207,14 @@ class Context(ABC):
         *,
         program: moderngl.Program,
         attributes_buffer: moderngl.Buffer,
-        buffer_format: str,
+        buffer_format_str: str,
         attribute_names: list[str],
         index_buffer: moderngl.Buffer,
         mode: int
     ) -> moderngl.VertexArray:
         vertex_array = cls.mgl_context.vertex_array(
             program=program,
-            content=[(attributes_buffer, buffer_format, *attribute_names)],
+            content=[(attributes_buffer, buffer_format_str, *attribute_names)],
             index_buffer=index_buffer,
             mode=mode
         )

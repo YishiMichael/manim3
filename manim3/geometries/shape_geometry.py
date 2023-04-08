@@ -41,12 +41,12 @@ class ShapeGeometry(Geometry):
         cls,
         shape__triangulation: tuple[VertexIndexType, Vec2sT]
     ) -> GeometryData:
-        index, coords = shape__triangulation
-        position = SpaceUtils.increase_dimension(coords)
-        normal = SpaceUtils.increase_dimension(np.zeros_like(coords), z_value=1.0)
+        index, points = shape__triangulation
+        position = SpaceUtils.increase_dimension(points)
+        normal = SpaceUtils.increase_dimension(np.zeros_like(points), z_value=1.0)
         return GeometryData(
             index=index,
             position=position,
             normal=normal,
-            uv=coords
+            uv=points
         )

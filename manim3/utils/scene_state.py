@@ -101,21 +101,19 @@ class SceneState(LazyObject):
                     "vec4 color"
                 ]
             },
-            dynamic_array_lens={
+            array_lens={
                 "NUM_U_POINT_LIGHTS": len(_point_lights_)
             },
             data={
                 "u_ambient_light_color": np.append(ambient_light_color, ambient_light_opacity),
-                "u_point_lights": {
-                    "position": np.array([
-                        point_light._position_.value
-                        for point_light in _point_lights_
-                    ]),
-                    "color": np.array([
-                        np.append(point_light._color_.value, point_light._opacity_.value)
-                        for point_light in _point_lights_
-                    ])
-                }
+                "u_point_lights.position": np.array([
+                    point_light._position_.value
+                    for point_light in _point_lights_
+                ]),
+                "u_point_lights.color": np.array([
+                    np.append(point_light._color_.value, point_light._opacity_.value)
+                    for point_light in _point_lights_
+                ])
             }
         )
 

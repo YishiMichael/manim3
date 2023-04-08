@@ -33,7 +33,7 @@ from ..rendering.framebuffer_batch import (
     SceneFramebufferBatch,
     SimpleFramebufferBatch
 )
-from ..rendering.gl_buffer import TexturePlaceholders
+from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.vertex_array import VertexArray
 
 
@@ -57,29 +57,29 @@ class Scene(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_color_map_(cls) -> TexturePlaceholders:
-        return TexturePlaceholders(
+    def _u_color_map_(cls) -> TextureIDBuffer:
+        return TextureIDBuffer(
             field="sampler2D u_color_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_accum_map_(cls) -> TexturePlaceholders:
-        return TexturePlaceholders(
+    def _u_accum_map_(cls) -> TextureIDBuffer:
+        return TextureIDBuffer(
             field="sampler2D u_accum_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_revealage_map_(cls) -> TexturePlaceholders:
-        return TexturePlaceholders(
+    def _u_revealage_map_(cls) -> TextureIDBuffer:
+        return TextureIDBuffer(
             field="sampler2D u_revealage_map"
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _u_depth_map_(cls) -> TexturePlaceholders:
-        return TexturePlaceholders(
+    def _u_depth_map_(cls) -> TextureIDBuffer:
+        return TextureIDBuffer(
             field="sampler2D u_depth_map"
         )
 
@@ -87,15 +87,15 @@ class Scene(Mobject):
     @classmethod
     def _copy_vertex_array_(
         cls,
-        _u_color_map_: TexturePlaceholders,
-        _u_depth_map_: TexturePlaceholders
+        _u_color_map_: TextureIDBuffer,
+        _u_depth_map_: TextureIDBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             custom_macros=[
                 "#define COPY_DEPTH"
             ],
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_color_map_,
                 _u_depth_map_
             ]
@@ -105,12 +105,12 @@ class Scene(Mobject):
     @classmethod
     def _oit_accum_vertex_array_(
         cls,
-        _u_color_map_: TexturePlaceholders,
-        _u_depth_map_: TexturePlaceholders
+        _u_color_map_: TextureIDBuffer,
+        _u_depth_map_: TextureIDBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_accum",
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_color_map_,
                 _u_depth_map_
             ]
@@ -120,12 +120,12 @@ class Scene(Mobject):
     @classmethod
     def _oit_revealage_vertex_array_(
         cls,
-        _u_color_map_: TexturePlaceholders,
-        _u_depth_map_: TexturePlaceholders
+        _u_color_map_: TextureIDBuffer,
+        _u_depth_map_: TextureIDBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_revealage",
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_color_map_,
                 _u_depth_map_
             ]
@@ -135,12 +135,12 @@ class Scene(Mobject):
     @classmethod
     def _oit_compose_vertex_array_(
         cls,
-        _u_accum_map_: TexturePlaceholders,
-        _u_revealage_map_: TexturePlaceholders
+        _u_accum_map_: TextureIDBuffer,
+        _u_revealage_map_: TextureIDBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_compose",
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_accum_map_,
                 _u_revealage_map_
             ]
@@ -150,11 +150,11 @@ class Scene(Mobject):
     @classmethod
     def _copy_window_vertex_array_(
         cls,
-        _u_color_map_: TexturePlaceholders
+        _u_color_map_: TextureIDBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
-            texture_placeholders=[
+            texture_id_buffers=[
                 _u_color_map_
             ]
         )

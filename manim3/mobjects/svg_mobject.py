@@ -164,18 +164,22 @@ class SVGMobject(ShapeMobject):
             samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
             return gamma(samples)
 
-        def iter_coords_from_se_shape(
+        def iter_args_from_se_shape(
             se_shape: se.Shape
-        ) -> Generator[Vec2sT, None, None]:
+        ) -> Generator[tuple[Vec2sT, bool], None, None]:
             se_path = se.Path(se_shape.segments(transformed=True))
             se_path.approximate_arcs_with_cubics()
-            coords_list: list[Vec2T] = []
+            points_list: list[Vec2T] = []
+            is_ring: bool = False
             for segment in se_path.segments(transformed=True):
                 if isinstance(segment, se.Move):
-                    yield np.array(coords_list)
-                    coords_list = [np.array(segment.end)]
-                elif isinstance(segment, se.Linear):  # Line & Close
-                    coords_list.append(np.array(segment.end))
+                    yield np.array(points_list), is_ring
+                    points_list = [np.array(segment.end)]
+                    is_ring = False
+                elif isinstance(segment, se.Close):
+                    is_ring = True
+                elif isinstance(segment, se.Line):
+                    points_list.append(np.array(segment.end))
                 else:
                     if isinstance(segment, se.QuadraticBezier):
                         control_points = [segment.start, segment.control, segment.end]
@@ -183,7 +187,7 @@ class SVGMobject(ShapeMobject):
                         control_points = [segment.start, segment.control1, segment.control2, segment.end]
                     else:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-                    coords_list.extend(get_bezier_sample_points(np.array(control_points))[1:])
-            yield np.array(coords_list)
+                    points_list.extend(get_bezier_sample_points(np.array(control_points))[1:])
+            yield np.array(points_list), is_ring
 
-        return ShapeMobject(Shape(iter_coords_from_se_shape(se_shape)))
+        return ShapeMobject(Shape(iter_args_from_se_shape(se_shape)))

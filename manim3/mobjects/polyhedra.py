@@ -30,8 +30,8 @@ class Polyhedron(ShapeMobject):
     ) -> None:
         super().__init__()
         for face in faces:
-            coords, matrix = self._convert_coplanar_vertices(vertices[face])
-            shape = Polygon(coords)
+            points, matrix = self._convert_coplanar_vertices(vertices[face])
+            shape = Polygon(points)
             shape.apply_transform(matrix)
             self.add(shape)
         self.set_style(apply_phong_lighting=True)

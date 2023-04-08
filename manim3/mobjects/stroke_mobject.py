@@ -39,10 +39,7 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.color import ColorUtils
-from ..utils.shape import (
-    LineStringKind,
-    MultiLineString
-)
+from ..utils.shape import LineStringKind, MultiLineString
 from ..utils.space import SpaceUtils
 
 
@@ -100,20 +97,20 @@ class StrokeMobject(Mobject):
         scene_state__camera__projection_matrix: Mat4T,
         scene_state__camera__view_matrix: Mat4T,
         model_matrix: Mat4T,
-        multi_line_string__line_strings__coords: list[Vec3sT],
+        multi_line_string__line_strings__points: list[Vec3sT],
         width: float
     ) -> bool:
         # TODO: The calculation here is somehow redundant with what shader does...
 
         def get_signed_area(
-            coords: Vec2sT
+            points: Vec2sT
         ) -> float:
-            return np.cross(coords, np.roll(coords, -1, axis=0)).sum() / 2.0
+            return np.cross(points, np.roll(points, -1, axis=0)).sum() / 2.0
 
         transform = scene_state__camera__projection_matrix @ scene_state__camera__view_matrix @ model_matrix
         area = sum(
-            get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, coords)))
-            for coords in multi_line_string__line_strings__coords
+            get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, points)))
+            for points in multi_line_string__line_strings__points
         )
         return bool(area * width >= 0.0)
 
@@ -127,7 +124,7 @@ class StrokeMobject(Mobject):
         if not line_strings:
             return np.zeros((0, 3))
         return np.concatenate([
-            line_string._coords_.value
+            line_string._points_.value
             for line_string in line_strings
         ])
 
@@ -180,7 +177,7 @@ class StrokeMobject(Mobject):
             position = np.zeros((0, 3))
         else:
             position = np.concatenate([
-                line_string._coords_.value
+                line_string._points_.value
                 for line_string in _multi_line_string_._line_strings_
             ])
         return AttributesBuffer(
@@ -206,7 +203,7 @@ class StrokeMobject(Mobject):
         single_sided: bool,
         has_linecap: bool
     ) -> list[VertexArray]:
-        uniform_blocks = [
+        uniform_block_buffers = [
             _scene_state__camera__ub_camera_,
             _ub_model_,
             _ub_stroke_,
@@ -221,7 +218,7 @@ class StrokeMobject(Mobject):
             return VertexArray(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
-                uniform_blocks=uniform_blocks,
+                uniform_block_buffers=uniform_block_buffers,
                 indexed_attributes_buffer=IndexedAttributesBuffer(
                     attributes_buffer=_attributes_buffer_,
                     index_buffer=IndexBuffer(
@@ -262,10 +259,10 @@ class StrokeMobject(Mobject):
         offset = 0
         index_arrays: list[VertexIndexType] = []
         for line_string in multi_line_string._line_strings_:
-            coords_len = len(line_string._coords_.value)
+            points_len = len(line_string._points_.value)
             kind = line_string._kind_.value
-            index_arrays.append(np.array(index_getter(coords_len, kind), dtype=np.uint32) + offset)
-            offset += coords_len
+            index_arrays.append(np.array(index_getter(points_len, kind), dtype=np.uint32) + offset)
+            offset += points_len
         if not index_arrays:
             return np.zeros(0, dtype=np.uint32)
         return np.concatenate(index_arrays, dtype=np.uint32)
@@ -273,7 +270,7 @@ class StrokeMobject(Mobject):
     @classmethod
     def _line_index_getter(
         cls,
-        coords_len: int,
+        points_len: int,
         kind: LineStringKind
     ) -> list[int]:
         if kind == LineStringKind.POINT:
@@ -281,19 +278,19 @@ class StrokeMobject(Mobject):
         if kind == LineStringKind.LINE_STRING:
             # (0, 1, 1, 2, ..., n-2, n-1)
             return list(it.chain(*zip(*(
-                range(i, coords_len - 1 + i)
+                range(i, points_len - 1 + i)
                 for i in range(2)
             ))))
         if kind == LineStringKind.LINEAR_RING:
             return list(it.chain(*zip(*(
-                np.roll(range(coords_len - 1), -i)
+                np.roll(range(points_len - 1), -i)
                 for i in range(2)
             ))))
 
     @classmethod
     def _join_index_getter(
         cls,
-        coords_len: int,
+        points_len: int,
         kind: LineStringKind
     ) -> list[int]:
         if kind == LineStringKind.POINT:
@@ -301,32 +298,32 @@ class StrokeMobject(Mobject):
         if kind == LineStringKind.LINE_STRING:
             # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
             return list(it.chain(*zip(*(
-                range(i, coords_len - 2 + i)
+                range(i, points_len - 2 + i)
                 for i in range(3)
             ))))
         if kind == LineStringKind.LINEAR_RING:
             return list(it.chain(*zip(*(
-                np.roll(range(coords_len - 1), -i)
+                np.roll(range(points_len - 1), -i)
                 for i in range(3)
             ))))
 
     @classmethod
     def _cap_index_getter(
         cls,
-        coords_len: int,
+        points_len: int,
         kind: LineStringKind
     ) -> list[int]:
         if kind == LineStringKind.POINT:
             return []
         if kind == LineStringKind.LINE_STRING:
-            return [0, 1, coords_len - 1, coords_len - 2]
+            return [0, 1, points_len - 1, points_len - 2]
         if kind == LineStringKind.LINEAR_RING:
             return []
 
     @classmethod
     def _point_index_getter(
         cls,
-        coords_len: int,
+        points_len: int,
         kind: LineStringKind
     ) -> list[int]:
         if kind == LineStringKind.POINT:
