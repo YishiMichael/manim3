@@ -176,8 +176,13 @@ class Context(ABC):
         return framebuffer
 
     @classmethod
-    def buffer(cls) -> moderngl.Buffer:
-        buffer = cls.mgl_context.buffer(reserve=1, dynamic=True)  # TODO: dynamic?
+    def buffer(
+        cls,
+        *,
+        reserve: int = 1,
+        dynamic: bool = True
+    ) -> moderngl.Buffer:
+        buffer = cls.mgl_context.buffer(reserve=reserve, dynamic=dynamic)  # TODO: dynamic?
         atexit.register(lambda: buffer.release())
         return buffer
 
@@ -190,13 +195,15 @@ class Context(ABC):
         geometry_shader: str | None = None,
         tess_control_shader: str | None = None,
         tess_evaluation_shader: str | None = None,
+        varyings: tuple[str, ...] = ()
     ) -> moderngl.Program:
         program = cls.mgl_context.program(
             vertex_shader=vertex_shader,
             fragment_shader=fragment_shader,
             geometry_shader=geometry_shader,
             tess_control_shader=tess_control_shader,
-            tess_evaluation_shader=tess_evaluation_shader
+            tess_evaluation_shader=tess_evaluation_shader,
+            varyings=varyings
         )
         #atexit.register(lambda: program.release())
         return program

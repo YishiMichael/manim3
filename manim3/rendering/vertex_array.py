@@ -27,6 +27,7 @@ from ..rendering.gl_buffer import (
     IndexBuffer,
     StructuredBufferFormat,
     TextureIDBuffer,
+    TransformFeedbackBuffer,
     UniformBlockBuffer
 )
 
@@ -87,13 +88,15 @@ class Program(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        texture_id_buffer_formats: list[BufferFormat]
+        texture_id_buffer_formats: list[BufferFormat],
+        varyings: tuple[str, ...]
     ) -> None:
         super().__init__()
         self._shader_filename_ = shader_filename
         self._custom_macros_ = custom_macros
         self._array_len_items_ = array_len_items
         self._texture_id_buffer_formats_.add(*texture_id_buffer_formats)
+        self._varyings_ = varyings
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -115,6 +118,11 @@ class Program(LazyObject):
     def _texture_id_buffer_formats_(cls) -> list[BufferFormat]:
         return []
 
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _varyings_(cls) -> tuple[str, ...]:
+        return ()
+
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _info_(
@@ -122,7 +130,8 @@ class Program(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        _texture_id_buffer_formats_: list[BufferFormat]
+        _texture_id_buffer_formats_: list[BufferFormat],
+        varyings: tuple[str, ...]
     ) -> ProgramInfo:
         
         def construct_moderngl_program(
@@ -160,6 +169,7 @@ class Program(LazyObject):
                 geometry_shader=shaders.get("GEOMETRY_SHADER"),
                 tess_control_shader=shaders.get("TESS_CONTROL_SHADER"),
                 tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER"),
+                varyings=varyings
             )
 
         def set_texture_bindings(
@@ -396,10 +406,10 @@ class Program(LazyObject):
         #print(attributes_buffer.read())
         return Context.vertex_array(
             program=program,
-            attributes_buffer=attributes_buffer._buffer_.value,
+            attributes_buffer=attributes_buffer.get_buffer(),
             buffer_format_str=" ".join(components),
             attribute_names=attribute_names,
-            index_buffer=index_buffer._buffer_.value,
+            index_buffer=index_buffer.get_buffer(),
             mode=mode
         )
 
@@ -434,7 +444,7 @@ class Program(LazyObject):
             #assert isinstance(program_uniform_block, moderngl.UniformBlock)
             assert uniform_block.size == uniform_block_buffer_format._nbytes_.value
             uniform_block_bindings.append(
-                (uniform_block_buffer._buffer_.value, uniform_block_binding_dict[name])
+                (uniform_block_buffer.get_buffer(), uniform_block_binding_dict[name])
             )
         #for uniform_block_name, binding in info.uniform_block_binding_dict.items():
         #    uniform_block_buffer = uniform_block_dict[uniform_block_name]
@@ -442,7 +452,7 @@ class Program(LazyObject):
         #    program_uniform_block = info.program[uniform_block_name]
         #    assert isinstance(program_uniform_block, moderngl.UniformBlock)
         #    validate_uniform_block_buffer(uniform_block_buffer, program_uniform_block)
-        #    uniform_block_bindings.append((uniform_block_buffer._buffer_.value, binding))
+        #    uniform_block_bindings.append((uniform_block_buffer.get_buffer(), binding))
         return tuple(uniform_block_bindings)
 
     def _get_texture_bindings(
@@ -474,7 +484,8 @@ class VertexArray(LazyObject):
         custom_macros: list[str] | None = None,
         texture_id_buffers: list[TextureIDBuffer] | None = None,
         uniform_block_buffers: list[UniformBlockBuffer] | None = None,
-        indexed_attributes_buffer: IndexedAttributesBuffer | None = None
+        indexed_attributes_buffer: IndexedAttributesBuffer | None = None,
+        transform_feedback_buffer: TransformFeedbackBuffer | None = None
     ) -> None:
         super().__init__()
         self._shader_filename_ = shader_filename
@@ -486,6 +497,8 @@ class VertexArray(LazyObject):
             self._uniform_block_buffers_.add(*uniform_block_buffers)
         if indexed_attributes_buffer is not None:
             self._indexed_attributes_buffer_ = indexed_attributes_buffer
+        if transform_feedback_buffer is not None:
+            self._transform_feedback_buffer_ = transform_feedback_buffer
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -539,13 +552,27 @@ class VertexArray(LazyObject):
             mode=moderngl.TRIANGLE_FAN
         )
 
+    @Lazy.variable(LazyMode.OBJECT)
+    @classmethod
+    def _transform_feedback_buffer_(cls) -> TransformFeedbackBuffer:
+        return TransformFeedbackBuffer(
+            fields=[],
+            num_vertex=0
+        )
+
+    #@Lazy.variable(LazyMode.SHARED)
+    #@classmethod
+    #def _varyings_(cls) -> tuple[str, ...]:
+    #    return ()
+
     @Lazy.property(LazyMode.SHARED)
     @classmethod
     def _array_len_items_(
         cls,
         texture_id_buffers__array_len_items: list[tuple[tuple[str, int], ...]],
         uniform_block_buffers__array_len_items: list[tuple[tuple[str, int], ...]],
-        indexed_attributes_buffer__attributes_buffer__array_len_items: tuple[tuple[str, int], ...]
+        indexed_attributes_buffer__attributes_buffer__array_len_items: tuple[tuple[str, int], ...],
+        transform_feedback_buffer__array_len_items: tuple[tuple[str, int], ...]
     ) -> tuple[tuple[str, int], ...]:
         #array_len_items: list[tuple[str, int]] = [
         #    *it.chain(*texture_id_buffers__array_len_items),
@@ -562,7 +589,8 @@ class VertexArray(LazyObject):
             for array_len_name, array_len in (
                 *it.chain(*texture_id_buffers__array_len_items),
                 *it.chain(*uniform_block_buffers__array_len_items),
-                *indexed_attributes_buffer__attributes_buffer__array_len_items
+                *indexed_attributes_buffer__attributes_buffer__array_len_items,
+                *transform_feedback_buffer__array_len_items
             )
             if not re.fullmatch(r"__\w+__", array_len_name)
         )
@@ -589,14 +617,16 @@ class VertexArray(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        _texture_id_buffers__buffer_format_: list[BufferFormat]
+        _texture_id_buffers__buffer_format_: list[BufferFormat],
+        transform_feedback_buffer__np_buffer_pointer_keys: tuple[str, ...]
         #texture_id_buffer_format_items: tuple[tuple[str, BufferFormat], ...]
     ) -> Program:
         return Program(
             shader_filename=shader_filename,
             custom_macros=custom_macros,
             array_len_items=array_len_items,
-            texture_id_buffer_formats=_texture_id_buffers__buffer_format_
+            texture_id_buffer_formats=_texture_id_buffers__buffer_format_,
+            varyings=transform_feedback_buffer__np_buffer_pointer_keys
         )
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -654,3 +684,27 @@ class VertexArray(LazyObject):
             uniform_buffers=self._uniform_block_bindings_.value
         ):
             vertex_array.render()
+
+    def transform(self) -> dict[str, np.ndarray]:
+        transform_feedback_buffer = self._transform_feedback_buffer_
+        #transform_feedback_buffer_format = transform_feedback_buffer._buffer_format_
+        with transform_feedback_buffer.temporary_buffer() as buffer:
+            #print(buffer.read())
+            if (vertex_array := self._vertex_array_.value) is not None:
+                #print(buffer.read())
+                vertex_array.transform(buffer=buffer)
+                #print(buffer.read())
+            data_dict = transform_feedback_buffer.read(buffer)
+            #print(buffer.read())
+            #print(data_dict)
+        #with TemporaryBuffer(reserve=transform_feedback_buffer_format._nbytes_.value) as temporary_buffer:
+        #    buffer = temporary_buffer.buffer
+        #    varyings = tuple(transform_feedback_buffer_format.read(buffer))  # TODO
+        #    self._varyings_ = varyings
+        #    if (vertex_array := self._vertex_array_.value) is not None:
+        #        vertex_array.transform(
+        #            buffer=buffer,
+        #            mode=mode
+        #        )
+        #    data_dict = transform_feedback_buffer_format.read(buffer)
+        return data_dict

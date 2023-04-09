@@ -64,9 +64,9 @@ if __name__ == "__main__":
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    #config.rendering.fps = 3
+    config.rendering.fps = 1
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)
     #config.rendering.write_last_frame = True
-    ThreeDTextExample.render(config)
+    TexTransformExample.render(config)

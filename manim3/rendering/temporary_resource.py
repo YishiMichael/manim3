@@ -83,6 +83,20 @@ class TemporaryResource(ABC, Generic[_ResourceParameters]):
         pass
 
 
+#class TemporaryBuffer(TemporaryResource):
+#    __slots__ = ("buffer",)
+
+#    def _new_instance(
+#        self,
+#        *,
+#        reserve: int
+#    ) -> None:
+#        self.buffer: moderngl.Buffer = Context.buffer(reserve=reserve, dynamic=False)
+
+#    def _init_instance(self) -> None:
+#        self.buffer.clear()
+
+
 class SimpleFramebufferBatch(TemporaryResource):
     __slots__ = (
         "color_texture",

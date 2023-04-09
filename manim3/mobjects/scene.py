@@ -29,11 +29,11 @@ from ..rendering.context import (
     Context,
     ContextState
 )
-from ..rendering.framebuffer_batch import (
+from ..rendering.gl_buffer import TextureIDBuffer
+from ..rendering.temporary_resource import (
     SceneFramebufferBatch,
     SimpleFramebufferBatch
 )
-from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.vertex_array import VertexArray
 
 

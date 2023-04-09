@@ -14,7 +14,7 @@ from ..lazy.interface import (
 )
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
-from ..rendering.framebuffer_batch import ColorFramebufferBatch
+from ..rendering.temporary_resource import ColorFramebufferBatch
 
 
 class ImageMobject(MeshMobject):

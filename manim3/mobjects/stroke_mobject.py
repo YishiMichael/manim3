@@ -11,9 +11,11 @@ from typing import (
 import moderngl
 import numpy as np
 
+from ..constants import PI
 from ..custom_typing import (
     ColorType,
-    Mat4T,
+    FloatsT,
+    #Mat4T,
     Vec2sT,
     Vec3T,
     Vec3sT,
@@ -32,6 +34,7 @@ from ..rendering.context import ContextState
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
+    TransformFeedbackBuffer,
     UniformBlockBuffer
 )
 from ..rendering.vertex_array import (
@@ -39,7 +42,7 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.color import ColorUtils
-from ..utils.shape import LineStringKind, MultiLineString
+from ..utils.shape import MultiLineString
 from ..utils.space import SpaceUtils
 
 
@@ -90,43 +93,130 @@ class StrokeMobject(Mobject):
     def _dilate_(cls) -> float:
         return 0.0
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
-    def _winding_sign_(
+    def _all_points_(
         cls,
-        scene_state__camera__projection_matrix: Mat4T,
-        scene_state__camera__view_matrix: Mat4T,
-        model_matrix: Mat4T,
-        multi_line_string__line_strings__points: list[Vec3sT],
-        width: float
-    ) -> bool:
-        # TODO: The calculation here is somehow redundant with what shader does...
-
-        def get_signed_area(
-            points: Vec2sT
-        ) -> float:
-            return np.cross(points, np.roll(points, -1, axis=0)).sum() / 2.0
-
-        transform = scene_state__camera__projection_matrix @ scene_state__camera__view_matrix @ model_matrix
-        area = sum(
-            get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, points)))
-            for points in multi_line_string__line_strings__points
-        )
-        return bool(area * width >= 0.0)
+        multi_line_string__line_strings__points: list[Vec3sT]
+    ) -> Vec3sT:
+        if not multi_line_string__line_strings__points:
+            return np.zeros((0, 3))
+        return np.concatenate(multi_line_string__line_strings__points)
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _local_sample_points_(
         cls,
-        _multi_line_string_: MultiLineString
+        all_points: Vec3sT
     ) -> Vec3sT:
-        line_strings = _multi_line_string_._line_strings_
-        if not line_strings:
-            return np.zeros((0, 3))
-        return np.concatenate([
-            line_string._points_.value
-            for line_string in line_strings
-        ])
+        return all_points
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _all_position_(
+        cls,
+        _scene_state__camera__ub_camera_: UniformBlockBuffer,
+        _ub_model_: UniformBlockBuffer,
+        all_points: Vec3sT
+    ) -> Vec3sT:
+        #if not _multi_line_string_._line_strings_:
+        #    position = np.zeros((0, 3))
+        #else:
+        #    position = np.concatenate([
+        #        line_string._points_.value
+        #        for line_string in _multi_line_string_._line_strings_
+        #    ])
+        indexed_attributes_buffer = IndexedAttributesBuffer(
+            attributes_buffer=AttributesBuffer(
+                fields=[
+                    "vec3 in_position"
+                ],
+                num_vertex=len(all_points),
+                data={
+                    "in_position": all_points
+                }
+            ),
+            index_buffer=IndexBuffer(
+                data=np.arange(len(all_points), dtype=np.uint32)
+            ),
+            mode=moderngl.POINTS
+        )
+        transform_feedback_buffer = TransformFeedbackBuffer(
+            fields=[
+                "vec3 out_position"
+            ],
+            num_vertex=len(all_points)
+        )
+        vertex_array = VertexArray(
+            shader_filename="stroke_preprocess",
+            uniform_block_buffers=[
+                _scene_state__camera__ub_camera_,
+                _ub_model_
+            ],
+            indexed_attributes_buffer=indexed_attributes_buffer,
+            transform_feedback_buffer=transform_feedback_buffer
+        )
+        print(indexed_attributes_buffer._attributes_buffer_.get_buffer().read())
+        data_dict = vertex_array.transform()
+        return data_dict["out_position"]
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _position_list_(
+        cls,
+        all_position: Vec3sT,
+        multi_line_string__line_strings__points_len: list[int]
+    ) -> list[Vec3sT]:
+        stops = np.array(multi_line_string__line_strings__points_len).cumsum()
+        starts = np.roll(stops, 1)
+        starts[0] = 0
+        return [
+            all_position[start:stop]
+            for start, stop in zip(starts, stops, strict=True)
+        ]
+
+    @Lazy.property(LazyMode.SHARED)
+    @classmethod
+    def _winding_sign_(
+        cls,
+        position_list: list[Vec3sT],
+        width: float
+    ) -> bool:
+
+        def get_signed_area(
+            points: Vec2sT
+        ) -> float:
+            return np.cross(points, np.roll(points, 1, axis=0)).sum() / 2.0
+
+        area = sum(
+            get_signed_area(SpaceUtils.decrease_dimension(position))
+            for position in position_list
+        )
+        return bool(area * width >= 0.0)
+
+    #@Lazy.property(LazyMode.SHARED)
+    #@classmethod
+    #def _winding_sign_(
+    #    cls,
+    #    scene_state__camera__projection_matrix: Mat4T,
+    #    scene_state__camera__view_matrix: Mat4T,
+    #    model_matrix: Mat4T,
+    #    multi_line_string__line_strings__points: list[Vec3sT],
+    #    width: float
+    #) -> bool:
+    #    # TODO: The calculation here is somehow redundant with what shader does...
+
+    #    def get_signed_area(
+    #        points: Vec2sT
+    #    ) -> float:
+    #        return np.cross(points, np.roll(points, -1, axis=0)).sum() / 2.0
+
+    #    transform = scene_state__camera__projection_matrix @ scene_state__camera__view_matrix @ model_matrix
+    #    area = sum(
+    #        get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, points)))
+    #        for points in multi_line_string__line_strings__points
+    #    )
+    #    return bool(area * width >= 0.0)
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -171,22 +261,82 @@ class StrokeMobject(Mobject):
     @classmethod
     def _attributes_buffer_(
         cls,
-        _multi_line_string_: MultiLineString
+        position_list: list[Vec3sT],
+        multi_line_string__line_strings__is_ring: list[bool]
     ) -> AttributesBuffer:
-        if not _multi_line_string_._line_strings_:
-            position = np.zeros((0, 3))
+
+        def get_angles(
+            position: Vec3sT,
+            is_ring: bool
+        ) -> tuple[FloatsT, FloatsT]:
+            assert len(position)
+            points = SpaceUtils.decrease_dimension(position)
+            if is_ring:
+                tail_vector = points[0] - points[-1]
+            else:
+                tail_vector = np.zeros(2)
+            vectors: Vec2sT = np.array((tail_vector, *(points[1:] - points[:-1]), tail_vector))
+            # Replace zero-length vectors with former ones or latter ones.
+            nonzero_length_indices = SpaceUtils.norm(vectors).nonzero()[0]
+            if not len(nonzero_length_indices):
+                filled_vectors = np.zeros_like(vectors)
+                filled_vectors[:, 0] = 1.0
+            else:
+                index_increments = np.zeros(len(vectors), dtype=np.int32)
+                index_increments[nonzero_length_indices[1:]] = 1
+                filled_vectors = vectors[nonzero_length_indices[index_increments.cumsum()]]
+                #diff = vectors.copy()
+                #diff[nonzero_length_indices[1:]] -= diff[nonzero_length_indices[:-1]]
+                #filled_vectors = diff.cumsum(axis=0)
+                #filled_vectors[:nonzero_length_indices[0]] += diff[nonzero_length_indices[0]]
+
+            angles = np.arctan2(filled_vectors[:, 1], filled_vectors[:, 0])
+            delta_angles = ((angles[1:] - angles[:-1] + PI) % (2.0 * PI) - PI) / 2.0
+            direction_angles = angles[:-1] + delta_angles
+            return direction_angles, delta_angles
+
+        #def get_angles(
+        #    position: Vec3sT,
+        #    is_ring: bool
+        #) -> tuple[FloatsT, FloatsT]:
+        #    points = SpaceUtils.decrease_dimension(position)
+        #    if not is_ring:
+        #        return get_angles(points)
+        #    points_extended = np.array((points[-1], *points, points[0]))
+        #    direction_angles, delta_angles = get_angles(points_extended)
+        #    return direction_angles[1:-1], delta_angles[1:-1]
+
+
+        #if not _multi_line_string_._line_strings_:
+        #    position = np.zeros((0, 3))
+        #else:
+        #    position = np.concatenate([
+        #        line_string._points_.value
+        #        for line_string in _multi_line_string_._line_strings_
+        #    ])
+        if not position_list:
+            all_position = np.zeros((0, 3))
+            direction_angle = np.zeros((0, 1))
+            delta_angle = np.zeros((0, 1))
         else:
-            position = np.concatenate([
-                line_string._points_.value
-                for line_string in _multi_line_string_._line_strings_
-            ])
+            direction_angles_tuple, delta_angles_tuple = zip(*(
+                get_angles(position, is_ring)
+                for position, is_ring in zip(position_list, multi_line_string__line_strings__is_ring, strict=True)
+            ))
+            all_position = np.concatenate(position_list)
+            direction_angle = np.concatenate(direction_angles_tuple)
+            delta_angle = np.concatenate(delta_angles_tuple)
         return AttributesBuffer(
             fields=[
-                "vec3 in_position"
+                "vec3 in_position",
+                "float in_direction_angle",
+                "float in_delta_angle"
             ],
-            num_vertex=len(position),
+            num_vertex=len(all_position),
             data={
-                "in_position": position
+                "in_position": all_position,
+                "in_direction_angle": direction_angle,
+                "in_delta_angle": delta_angle
             }
         )
 
@@ -195,7 +345,7 @@ class StrokeMobject(Mobject):
     def _vertex_arrays_(
         cls,
         _scene_state__camera__ub_camera_: UniformBlockBuffer,
-        _ub_model_: UniformBlockBuffer,
+        #_ub_model_: UniformBlockBuffer,
         _ub_stroke_: UniformBlockBuffer,
         _ub_winding_sign_: UniformBlockBuffer,
         _attributes_buffer_: AttributesBuffer,
@@ -205,13 +355,13 @@ class StrokeMobject(Mobject):
     ) -> list[VertexArray]:
         uniform_block_buffers = [
             _scene_state__camera__ub_camera_,
-            _ub_model_,
+            #_ub_model_,
             _ub_stroke_,
             _ub_winding_sign_
         ]
 
         def get_vertex_array(
-            index_getter: Callable[[int, LineStringKind], list[int]],
+            index_getter: Callable[[int, bool], list[int]],
             mode: int,
             custom_macros: list[str]
         ) -> VertexArray:
@@ -234,34 +384,34 @@ class StrokeMobject(Mobject):
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
             ]),
-            get_vertex_array(cls._join_index_getter, moderngl.TRIANGLES, [
+            get_vertex_array(cls._join_index_getter, moderngl.POINTS, [
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
             ])
         ]
         if has_linecap and not single_sided:
-            vertex_arrays.extend([
+            vertex_arrays.append(
                 get_vertex_array(cls._cap_index_getter, moderngl.LINES, [
                     "#define STROKE_CAP"
-                ]),
-                get_vertex_array(cls._point_index_getter, moderngl.POINTS, [
-                    "#define STROKE_POINT"
                 ])
-            ])
+                #get_vertex_array(cls._point_index_getter, moderngl.POINTS, [
+                #    "#define STROKE_POINT"
+                #])
+            )
         return vertex_arrays
 
     @classmethod
     def _lump_index_from_getter(
         cls,
-        index_getter: Callable[[int, LineStringKind], list[int]],
+        index_getter: Callable[[int, bool], list[int]],
         multi_line_string: MultiLineString
     ) -> VertexIndexType:
         offset = 0
         index_arrays: list[VertexIndexType] = []
         for line_string in multi_line_string._line_strings_:
-            points_len = len(line_string._points_.value)
-            kind = line_string._kind_.value
-            index_arrays.append(np.array(index_getter(points_len, kind), dtype=np.uint32) + offset)
+            points_len = line_string._points_len_.value
+            is_ring = line_string._is_ring_.value
+            index_arrays.append(np.array(index_getter(points_len, is_ring), dtype=np.uint32) + offset)
             offset += points_len
         if not index_arrays:
             return np.zeros(0, dtype=np.uint32)
@@ -271,67 +421,72 @@ class StrokeMobject(Mobject):
     def _line_index_getter(
         cls,
         points_len: int,
-        kind: LineStringKind
+        is_ring: bool
     ) -> list[int]:
-        if kind == LineStringKind.POINT:
-            return []
-        if kind == LineStringKind.LINE_STRING:
-            # (0, 1, 1, 2, ..., n-2, n-1)
-            return list(it.chain(*zip(*(
-                range(i, points_len - 1 + i)
-                for i in range(2)
-            ))))
-        if kind == LineStringKind.LINEAR_RING:
+        #if kind == LineStringKind.POINT:
+        #    return []
+        if is_ring:
             return list(it.chain(*zip(*(
                 np.roll(range(points_len - 1), -i)
                 for i in range(2)
             ))))
+        # (0, 1, 1, 2, ..., n-2, n-1)
+        return list(it.chain(*zip(*(
+            range(i, points_len - 1 + i)
+            for i in range(2)
+        ))))
+        #if kind == LineStringKind.LINEAR_RING:
+        #    return list(it.chain(*zip(*(
+        #        np.roll(range(points_len - 1), -i)
+        #        for i in range(2)
+        #    ))))
 
     @classmethod
     def _join_index_getter(
         cls,
         points_len: int,
-        kind: LineStringKind
+        is_ring: bool
     ) -> list[int]:
-        if kind == LineStringKind.POINT:
-            return []
-        if kind == LineStringKind.LINE_STRING:
-            # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
-            return list(it.chain(*zip(*(
-                range(i, points_len - 2 + i)
-                for i in range(3)
-            ))))
-        if kind == LineStringKind.LINEAR_RING:
-            return list(it.chain(*zip(*(
-                np.roll(range(points_len - 1), -i)
-                for i in range(3)
-            ))))
+        #if kind == LineStringKind.POINT:
+        #    return []
+        if is_ring:
+            return list(range(points_len))
+        return list(range(1, points_len - 1))
+        #if kind == LineStringKind.LINE_STRING:
+        #    # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
+        #    return list(it.chain(*zip(*(
+        #        range(i, points_len - 2 + i)
+        #        for i in range(3)
+        #    ))))
 
     @classmethod
     def _cap_index_getter(
         cls,
         points_len: int,
-        kind: LineStringKind
+        is_ring: bool
     ) -> list[int]:
-        if kind == LineStringKind.POINT:
+        if is_ring:
             return []
-        if kind == LineStringKind.LINE_STRING:
-            return [0, 1, points_len - 1, points_len - 2]
-        if kind == LineStringKind.LINEAR_RING:
-            return []
+        return [0, points_len - 1]
+        #if kind == LineStringKind.POINT:
+        #    return []
+        #if kind == LineStringKind.LINE_STRING:
+        #    return [0, 1, points_len - 1, points_len - 2]
+        #if kind == LineStringKind.LINEAR_RING:
+        #    return []
 
-    @classmethod
-    def _point_index_getter(
-        cls,
-        points_len: int,
-        kind: LineStringKind
-    ) -> list[int]:
-        if kind == LineStringKind.POINT:
-            return [0]
-        if kind == LineStringKind.LINE_STRING:
-            return []
-        if kind == LineStringKind.LINEAR_RING:
-            return []
+    #@classmethod
+    #def _point_index_getter(
+    #    cls,
+    #    points_len: int,
+    #    is_ring: bool
+    #) -> list[int]:
+    #    if kind == LineStringKind.POINT:
+    #        return [0]
+    #    if kind == LineStringKind.LINE_STRING:
+    #        return []
+    #    if kind == LineStringKind.LINEAR_RING:
+    #        return []
 
     def _render(
         self,

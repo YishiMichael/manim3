@@ -5,18 +5,21 @@ __all__ = [
     "StructuredBufferFormat",
     "IndexBuffer",
     "TextureIDBuffer",
+    "TransformFeedbackBuffer",
     "UniformBlockBuffer"
 ]
 
 
+from contextlib import contextmanager
 from enum import Enum
 from functools import reduce
 import operator as op
 import re
 from typing import (
     #Any,
-    Callable,
-    ClassVar
+    #Callable,
+    ClassVar,
+    Generator
 )
 
 import moderngl
@@ -112,7 +115,7 @@ class BufferFormat(LazyObject):
         cls,
         shape: tuple[int, ...]
     ) -> int:
-        return reduce(op.mul, shape, 1)  # TODO: redundant
+        return reduce(op.mul, shape, 1)
 
     @Lazy.property(LazyMode.SHARED)
     @classmethod
@@ -131,137 +134,162 @@ class BufferFormat(LazyObject):
     ) -> bool:
         return not size
 
+    #@Lazy.property(LazyMode.SHARED)
+    #@classmethod
+    #def _name_chains_(cls) -> tuple[tuple[str, ...], ...]:
+    #    # Implemented in subclasses.
+    #    return ()
+
+    #@Lazy.property(LazyMode.SHARED)
+    #@classmethod
+    #def _names_(
+    #    cls,
+    #    name_chains: tuple[tuple[str, ...], ...]
+    #) -> tuple[str, ...]:
+    #    return tuple(".".join(name_chain) for name_chain in name_chains)
+
+    #@Lazy.property(LazyMode.SHARED)
+    #@classmethod
+    #def _keys_(cls) -> tuple[str, ...]:
+    #    return ("",)
+
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _dtype_(cls) -> np.dtype:
         # Implemented in subclasses.
         return np.dtype("f4")
 
-    def _traverse(
-        self,
-        callback: Callable[[np.ndarray, str, int], None],
-        np_buffer: np.ndarray
-    ) -> None:
+    #@Lazy.property(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _traverse_items_(cls) -> tuple[tuple[str, Callable[[np.ndarray], np.ndarray]], ...]:
+    #    # Implemented in subclasses.
+    #    return NotImplemented
 
-        def traverse(
-            callback: Callable[[np.ndarray, str, int], None],
-            np_buffer_pointer: np.ndarray,
-            buffer_format: BufferFormat,
-            name_chain: tuple[str, ...]
-        ) -> None:
-            if isinstance(buffer_format, AtomicBufferFormat):
-                callback(np_buffer_pointer["_"], ".".join(name_chain), buffer_format._base_ndim_.value)
-            elif isinstance(buffer_format, StructuredBufferFormat):
-                for child in buffer_format._children_:
-                    name = child._name_.value
-                    traverse(
-                        callback,
-                        np_buffer_pointer[name],
-                        child,
-                        name_chain + (name,)
-                    )
-            #assert (names := dtype.names) is not None
-            #if names and (gl_dtype_str := names[0]) in cls._GL_DTYPES:
-            #    assert len(names) == 1
-            #    yield name_chain, buffer_pointer, gl_dtype_str
-            #else:
-            #    for name in names:
-            #        yield from get_pointer_items(
-            #            name_chain + (name,),
-            #            buffer_pointer[name],
-            #            dtype[name]
-            #        )
+    #def _traverse(
+    #    self,
+    #    callback: Callable[[np.ndarray, str, int], None],
+    #    np_buffer: np.ndarray
+    #) -> None:
 
-        traverse(callback, np_buffer, self, ())
+    #    def traverse(
+    #        callback: Callable[[np.ndarray, str, int], None],
+    #        np_buffer_pointer: np.ndarray,
+    #        buffer_format: BufferFormat,
+    #        name_chain: tuple[str, ...]
+    #    ) -> None:
+    #        if isinstance(buffer_format, AtomicBufferFormat):
+    #            callback(np_buffer_pointer["_"], ".".join(name_chain), buffer_format._base_ndim_.value)
+    #        elif isinstance(buffer_format, StructuredBufferFormat):
+    #            for child in buffer_format._children_:
+    #                name = child._name_.value
+    #                traverse(
+    #                    callback,
+    #                    np_buffer_pointer[name],
+    #                    child,
+    #                    name_chain + (name,)
+    #                )
+    #        #assert (names := dtype.names) is not None
+    #        #if names and (gl_dtype_str := names[0]) in cls._GL_DTYPES:
+    #        #    assert len(names) == 1
+    #        #    yield name_chain, buffer_pointer, gl_dtype_str
+    #        #else:
+    #        #    for name in names:
+    #        #        yield from get_pointer_items(
+    #        #            name_chain + (name,),
+    #        #            buffer_pointer[name],
+    #        #            dtype[name]
+    #        #        )
 
-    def write(
-        self,
-        buffer: moderngl.Buffer,
-        data_dict: dict[str, np.ndarray]
-    ) -> None:
-        #cls = type(self)
-        #if (buffer := self._buffer) is None:
-        #    if cls._VACANT_BUFFERS:
-        #        buffer = cls._VACANT_BUFFERS.pop()
-        #    else:
-        #        buffer = Context.buffer()
-        #    weakref.finalize(buffer, list.append, cls._VACANT_BUFFERS, buffer)
-        #    self._buffer = buffer
+    #    traverse(callback, np_buffer, self, ())
 
-        #self.initialize_buffer()
-        #buffer = self.get_buffer()
-        #buffer_format = self._buffer_format_
-        np_buffer = np.zeros(self._shape_.value, dtype=self._dtype_.value)
-        #self._np_buffer = np_buffer
-        #np_buffer_pointers = self._get_np_buffer_pointers(np_buffer, buffer_format)
+    #def write(
+    #    self,
+    #    buffer: moderngl.Buffer,
+    #    data_dict: dict[str, np.ndarray]
+    #) -> None:
+    #    #cls = type(self)
+    #    #if (buffer := self._buffer) is None:
+    #    #    if cls._VACANT_BUFFERS:
+    #    #        buffer = cls._VACANT_BUFFERS.pop()
+    #    #    else:
+    #    #        buffer = Context.buffer()
+    #    #    weakref.finalize(buffer, list.append, cls._VACANT_BUFFERS, buffer)
+    #    #    self._buffer = buffer
 
-        def traverse_callback(
-            np_buffer_pointer: np.ndarray,
-            key: str,
-            base_ndim: int
-        ) -> None:
-            data = data_dict[key]
-            if not np_buffer_pointer.size:
-                assert not data.size
-                return
-            data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
-            assert np_buffer_pointer.shape == data_expanded.shape
-            np_buffer_pointer[...] = data_expanded
+    #    #self.initialize_buffer()
+    #    #buffer = self.get_buffer()
+    #    #buffer_format = self._buffer_format_
+    #    np_buffer = np.zeros(self._shape_.value, dtype=self._dtype_.value)
+    #    #self._np_buffer = np_buffer
+    #    #np_buffer_pointers = self._get_np_buffer_pointers(np_buffer, buffer_format)
 
-        self._traverse(
-            callback=traverse_callback,
-            np_buffer=np_buffer
-            #buffer_format=buffer_format
-        )
+    #    def traverse_callback(
+    #        np_buffer_pointer: np.ndarray,
+    #        key: str,
+    #        base_ndim: int
+    #    ) -> None:
+    #        data = data_dict[key]
+    #        if not np_buffer_pointer.size:
+    #            assert not data.size
+    #            return
+    #        data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
+    #        assert np_buffer_pointer.shape == data_expanded.shape
+    #        np_buffer_pointer[...] = data_expanded
 
-        #for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
-        #    #if not np_buffer_pointer.size:
-        #    #    continue
-        #    data = data_dict[key]
-        #    #gl_dtype_ndim = base_ndim._atomic_ndim_.value
-        #    data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
-        #    assert np_buffer_pointer.shape == data_expanded.shape
-        #    np_buffer_pointer[...] = data_expanded
+    #    self._traverse(
+    #        callback=traverse_callback,
+    #        np_buffer=np_buffer
+    #        #buffer_format=self
+    #    )
 
-        buffer.orphan(self._nbytes_.value)
-        buffer.write(np_buffer.tobytes())
-        #self._buffer = buffer
+    #    #for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
+    #    #    #if not np_buffer_pointer.size:
+    #    #    #    continue
+    #    #    data = data_dict[key]
+    #    #    #gl_dtype_ndim = base_ndim._atomic_ndim_.value
+    #    #    data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
+    #    #    assert np_buffer_pointer.shape == data_expanded.shape
+    #    #    np_buffer_pointer[...] = data_expanded
 
-    def read(
-        self,
-        buffer: moderngl.Buffer
-    ) -> dict[str, np.ndarray]:
-        #cls = type(self)
-        #buffer = self.get_buffer()
-        #buffer_format = self._buffer_format_
-        np_buffer = np.frombuffer(buffer.read(), dtype=self._dtype_.value).reshape(self._shape_.value)
-        data_dict: dict[str, np.ndarray] = {}
-        #np_buffer_pointers = self._get_np_buffer_pointers(np_buffer, buffer_format)
+    #    buffer.orphan(self._nbytes_.value)
+    #    buffer.write(np_buffer.tobytes())
+    #    #self._buffer = buffer
 
-        def traverse_callback(
-            np_buffer_pointer: np.ndarray,
-            key: str,
-            base_ndim: int
-        ) -> None:
-            data_expanded = np_buffer_pointer[...]
-            data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))  # TODO
-            data_dict[key] = data
+    #def read(
+    #    self,
+    #    buffer: moderngl.Buffer
+    #) -> dict[str, np.ndarray]:
+    #    #cls = type(self)
+    #    #buffer = self.get_buffer()
+    #    #buffer_format = self._buffer_format_
+    #    np_buffer = np.frombuffer(buffer.read(), dtype=self._dtype_.value).reshape(self._shape_.value)
+    #    data_dict: dict[str, np.ndarray] = {}
+    #    #np_buffer_pointers = self._get_np_buffer_pointers(np_buffer, buffer_format)
 
-        #for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
-        #    #if not np_buffer_pointer.size:
-        #    #    continue
-        #    data_expanded = np_buffer_pointer[...]
-        #    #gl_dtype_ndim = atomic_format._atomic_ndim_.value
-        #    data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))  # TODO
-        #    data_dict[key] = data
+    #    def traverse_callback(
+    #        np_buffer_pointer: np.ndarray,
+    #        key: str,
+    #        base_ndim: int
+    #    ) -> None:
+    #        data_expanded = np_buffer_pointer[...]
+    #        data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))  # TODO
+    #        data_dict[key] = data
 
-        self._traverse(
-            callback=traverse_callback,
-            np_buffer=np_buffer
-            #buffer_format=buffer_format
-        )
+    #    #for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
+    #    #    #if not np_buffer_pointer.size:
+    #    #    #    continue
+    #    #    data_expanded = np_buffer_pointer[...]
+    #    #    #gl_dtype_ndim = atomic_format._atomic_ndim_.value
+    #    #    data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))  # TODO
+    #    #    data_dict[key] = data
 
-        return data_dict
+    #    self._traverse(
+    #        callback=traverse_callback,
+    #        np_buffer=np_buffer
+    #        #buffer_format=self
+    #    )
+
+    #    return data_dict
 
 
 class AtomicBufferFormat(BufferFormat):
@@ -375,6 +403,12 @@ class AtomicBufferFormat(BufferFormat):
     #    if row_itemsize_factor != n_col:
     #        components.append(f"{row_itemsize_factor - n_col}x{base_itemsize}")
     #    return " ".join(components * n_row)
+
+    #@Lazy.property(LazyMode.SHARED)
+    #@classmethod
+    #def _name_chains_(cls) -> tuple[tuple[str, ...], ...]:
+    #    # Implemented in subclasses.
+    #    return ((),)
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -500,6 +534,19 @@ class StructuredBufferFormat(BufferFormat):
     #        components.append(f"{itemsize - current_stop}x")
     #    return " ".join(components)
 
+    #@Lazy.property(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _name_chains_(
+    #    cls,
+    #    children__name: list[str],
+    #    children__name_chains: list[tuple[tuple[str, ...], ...]]
+    #) -> tuple[tuple[str], ...]:
+    #    return tuple(
+    #        (child_name,) + name_chain
+    #        for child_name, child_name_chains in zip(children__name, children__name_chains, strict=True)
+    #        for name_chain in child_name_chains
+    #    )
+
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
     def _dtype_(
@@ -593,8 +640,8 @@ class GLBuffer(LazyObject):
         self,
         field: str,
         child_structs: dict[str, list[str]] | None,
-        array_lens: dict[str, int] | None,
-        data_dict: dict[str, np.ndarray] | None
+        array_lens: dict[str, int] | None
+        #data_dict: dict[str, np.ndarray] | None
         #data: dict[str, np.ndarray] | None
     ) -> None:
         super().__init__()
@@ -606,8 +653,8 @@ class GLBuffer(LazyObject):
             )
         if array_lens is not None:
             self._array_len_items_ = tuple(array_lens.items())
-        if data_dict is not None:
-            self._data_dict_ = data_dict
+        #if data_dict is not None:
+        #    self._data_dict_ = data_dict
         #if data is not None:
         #    self._data_ = data
         #self._buffer: moderngl.Buffer | None = None
@@ -623,10 +670,10 @@ class GLBuffer(LazyObject):
     def _child_struct_items_(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         return ()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
-    def _data_dict_(cls) -> dict[str, np.ndarray]:
-        return {}
+    #@Lazy.variable(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _data_dict_(cls) -> dict[str, np.ndarray]:
+    #    return {}
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -866,29 +913,146 @@ class GLBuffer(LazyObject):
     #    _, dtype = name_and_dtype
     #    return dtype
 
-    # storage
+    #@Lazy.property(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _buffer_(
+    #    cls,
+    #    _buffer_format_: BufferFormat,
+    #    data_dict: dict[str, np.ndarray]
+    #) -> moderngl.Buffer:
+    #    if cls._VACANT_BUFFERS:
+    #        buffer = cls._VACANT_BUFFERS.pop()
+    #    else:
+    #        buffer = Context.buffer()
+    #    _buffer_format_.write(buffer, data_dict)
+    #    return buffer
+
+    #@_buffer_.finalizer
+    #@classmethod
+    #def _buffer_finalizer(
+    #    cls,
+    #    buffer: moderngl.Buffer
+    #) -> None:
+    #    cls._VACANT_BUFFERS.append(buffer)
+
+    @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
+    def _buffer_(cls) -> moderngl.Buffer:
+        return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
-    def _buffer_(
+    def _np_buffer_(
         cls,
-        _buffer_format_: BufferFormat,
-        data_dict: dict[str, np.ndarray]
-    ) -> moderngl.Buffer:
-        if cls._VACANT_BUFFERS:
-            buffer = cls._VACANT_BUFFERS.pop()
-        else:
-            buffer = Context.buffer()
-        _buffer_format_.write(buffer, data_dict)
-        return buffer
+        buffer_format__shape: tuple[int, ...],
+        buffer_format__dtype: np.dtype
+    ) -> np.ndarray:
+        return np.zeros(buffer_format__shape, dtype=buffer_format__dtype)
 
-    @_buffer_.finalizer
+    @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
-    def _buffer_finalizer(
+    def _np_buffer_pointers_(
+        cls,
+        np_buffer: np.ndarray,
+        _buffer_format_: BufferFormat
+    ) -> dict[str, tuple[np.ndarray, int]]:
+
+        def get_pointers(
+            np_buffer_pointer: np.ndarray,
+            buffer_format: BufferFormat,
+            name_chain: tuple[str, ...]
+        ) -> Generator[tuple[str, np.ndarray, int], None, None]:
+            if isinstance(buffer_format, AtomicBufferFormat):
+                yield ".".join(name_chain), np_buffer_pointer["_"], buffer_format._base_ndim_.value
+                #callback(np_buffer_pointer["_"], ".".join(name_chain), buffer_format._base_ndim_.value)
+            elif isinstance(buffer_format, StructuredBufferFormat):
+                for child in buffer_format._children_:
+                    name = child._name_.value
+                    yield from get_pointers(
+                        np_buffer_pointer[name],
+                        child,
+                        name_chain + (name,)
+                    )
+            #assert (names := dtype.names) is not None
+            #if names and (gl_dtype_str := names[0]) in cls._GL_DTYPES:
+            #    assert len(names) == 1
+            #    yield name_chain, buffer_pointer, gl_dtype_str
+            #else:
+            #    for name in names:
+            #        yield from get_pointer_items(
+            #            name_chain + (name,),
+            #            buffer_pointer[name],
+            #            dtype[name]
+            #        )
+
+        return {
+            key: (np_buffer_pointer, base_ndim)
+            for key, np_buffer_pointer, base_ndim in get_pointers(np_buffer, _buffer_format_, ())
+        }
+
+        #return np.zeros(shape, dtype=buffer_format__dtype)
+
+    @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
+    def _data_dict_(cls) -> dict[str, np.ndarray]:
+        return NotImplemented
+
+    @Lazy.property(LazyMode.SHARED)
+    @classmethod
+    def _np_buffer_pointer_keys_(
+        cls,
+        np_buffer_pointers: dict[str, np.ndarray]
+    ) -> tuple[str, ...]:
+        return tuple(np_buffer_pointers)
+
+    @classmethod
+    def _fetch_buffer(cls) -> moderngl.Buffer:
+        if cls._VACANT_BUFFERS:
+            return cls._VACANT_BUFFERS.pop()
+        return Context.buffer()
+
+    @classmethod
+    def _finalize_buffer(
         cls,
         buffer: moderngl.Buffer
     ) -> None:
         cls._VACANT_BUFFERS.append(buffer)
+
+    @classmethod
+    def _write_to_buffer(
+        cls,
+        buffer: moderngl.Buffer,
+        np_buffer: np.ndarray,
+        np_buffer_pointers: dict[str, tuple[np.ndarray, int]],
+        data_dict: dict[str, np.ndarray]
+    ) -> None:
+        for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
+            data = data_dict[key]
+            if not np_buffer_pointer.size:
+                assert not data.size
+                return
+            data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
+            assert np_buffer_pointer.shape == data_expanded.shape
+            np_buffer_pointer[...] = data_expanded
+
+        buffer.orphan(np_buffer.nbytes)
+        buffer.write(np_buffer.tobytes())
+
+    @classmethod
+    def _read_from_buffer(
+        cls,
+        buffer: moderngl.Buffer,
+        np_buffer: np.ndarray,
+        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
+    ) -> dict[str, np.ndarray]:
+        data_dict: dict[str, np.ndarray] = {}
+        np_buffer[...] = np.frombuffer(buffer.read(), dtype=np_buffer.dtype).reshape(np_buffer.shape)
+        for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
+            data_expanded = np_buffer_pointer[...]
+            data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))  # TODO
+            data_dict[key] = data
+        return data_dict
+
 
     #def initialize_buffer(self) -> None:
     #    cls = type(self)
@@ -904,6 +1068,76 @@ class GLBuffer(LazyObject):
     #def get_buffer(self) -> moderngl.Buffer:
     #    assert (buffer := self._buffer_.value) is not None
     #    return buffer
+
+
+class GLWriteOnlyBuffer(GLBuffer):
+    __slots__ = ()
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _buffer_(
+        cls,
+        np_buffer: np.ndarray,
+        np_buffer_pointers: dict[str, tuple[np.ndarray, int]],
+        data_dict: dict[str, np.ndarray]
+    ) -> moderngl.Buffer:
+        buffer = cls._fetch_buffer()
+        cls._write_to_buffer(
+            buffer=buffer,
+            np_buffer=np_buffer,
+            np_buffer_pointers=np_buffer_pointers,
+            data_dict=data_dict
+        )
+        return buffer
+
+    @_buffer_.finalizer
+    @classmethod
+    def _buffer_finalizer(
+        cls,
+        buffer: moderngl.Buffer
+    ) -> None:
+        cls._finalize_buffer(buffer)
+
+    def write(
+        self,
+        data_dict: dict[str, np.ndarray]
+    ) -> None:
+        self._data_dict_ = data_dict
+
+    def get_buffer(self) -> moderngl.Buffer:
+        return self._buffer_.value
+
+
+class GLReadOnlyBuffer(GLBuffer):
+    __slots__ = ()
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _data_dict_(
+        cls,
+        buffer: moderngl.Buffer,
+        np_buffer: np.ndarray,
+        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
+    ) -> dict[str, np.ndarray]:
+        return cls._read_from_buffer(
+            buffer=buffer,
+            np_buffer=np_buffer,
+            np_buffer_pointers=np_buffer_pointers
+        )
+
+    @contextmanager
+    def temporary_buffer(self) -> Generator[moderngl.Buffer, None, None]:
+        buffer = self._fetch_buffer()
+        buffer.orphan(self._buffer_format_._nbytes_.value)
+        yield buffer
+        self._finalize_buffer(buffer)
+
+    def read(
+        self,
+        buffer: moderngl.Buffer
+    ) -> dict[str, np.ndarray]:
+        self._buffer_ = buffer
+        return self._data_dict_.value
 
 
 #class DTypeNode(LazyObject):
@@ -1303,8 +1537,7 @@ class TextureIDBuffer(GLBuffer):
         super().__init__(
             field=replaced_field,
             child_structs=None,
-            array_lens=array_lens,
-            data_dict=None
+            array_lens=array_lens
         )
         #if shape is not None:
         #    self._shape_ = shape
@@ -1320,7 +1553,7 @@ class TextureIDBuffer(GLBuffer):
     #    return ()
 
 
-class UniformBlockBuffer(GLBuffer):
+class UniformBlockBuffer(GLWriteOnlyBuffer):
     __slots__ = ()
 
     def __init__(
@@ -1340,10 +1573,9 @@ class UniformBlockBuffer(GLBuffer):
                 "__UniformBlockStruct__": fields,
                 **child_structs
             },
-            array_lens=array_lens,
-            data_dict=data
+            array_lens=array_lens
         )
-        #self.write(data)
+        self.write(data)
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -1351,7 +1583,7 @@ class UniformBlockBuffer(GLBuffer):
         return GLBufferLayout.STD140
 
 
-class AttributesBuffer(GLBuffer):
+class AttributesBuffer(GLWriteOnlyBuffer):
     __slots__ = ()
 
     def __init__(
@@ -1373,10 +1605,9 @@ class AttributesBuffer(GLBuffer):
             array_lens={
                 "__NUM_VERTEX__": num_vertex,
                 **array_lens
-            },
-            data_dict=data
+            }
         )
-        #self.write(data)
+        self.write(data)
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
@@ -1393,7 +1624,7 @@ class AttributesBuffer(GLBuffer):
     #    return dtype_node__dtype.base
 
 
-class IndexBuffer(GLBuffer):
+class IndexBuffer(GLWriteOnlyBuffer):
     __slots__ = ()
 
     def __init__(
@@ -1406,16 +1637,42 @@ class IndexBuffer(GLBuffer):
             child_structs={},
             array_lens={
                 "__NUM_INDEX__": len(data)
-            },
-            data_dict={
-                "": data
             }
         )
-        #self.write({
-        #    "": data
-        #})
+        self.write({
+            "": data
+        })
 
     #@Lazy.variable(LazyMode.SHARED)
     #@classmethod
     #def _layout_(cls) -> GLBufferLayout:
     #    return GLBufferLayout.PACKED
+
+
+class TransformFeedbackBuffer(GLReadOnlyBuffer):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        *,
+        fields: list[str],
+        child_structs: dict[str, list[str]] | None = None,
+        num_vertex: int,
+        array_lens: dict[str, int] | None = None
+    ) -> None:
+        # The interface should be similar to `AttributesBuffer`.
+        if child_structs is None:
+            child_structs = {}
+        if array_lens is None:
+            array_lens = {}
+        super().__init__(
+            field="__VertexStruct__ __vertex__[__NUM_VERTEX__]",
+            child_structs={
+                "__VertexStruct__": fields,
+                **child_structs
+            },
+            array_lens={
+                "__NUM_VERTEX__": num_vertex,
+                **array_lens
+            }
+        )

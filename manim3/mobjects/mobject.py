@@ -37,8 +37,8 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..passes.render_pass import RenderPass
-from ..rendering.framebuffer_batch import ColorFramebufferBatch
 from ..rendering.gl_buffer import UniformBlockBuffer
+from ..rendering.temporary_resource import ColorFramebufferBatch
 from ..utils.scene_state import SceneState
 from ..utils.space import SpaceUtils
 

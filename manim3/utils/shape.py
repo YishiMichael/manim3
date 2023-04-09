@@ -6,7 +6,7 @@ __all__ = [
 
 
 from abc import abstractmethod
-from enum import Enum
+#from enum import Enum
 from functools import reduce
 import itertools as it
 from typing import (
@@ -37,10 +37,10 @@ from ..lazy.interface import (
 from ..utils.space import SpaceUtils
 
 
-class LineStringKind(Enum):
-    POINT = 0
-    LINE_STRING = 1
-    LINEAR_RING = 2
+#class LineStringKind(Enum):
+#    POINT = 0
+#    LINE_STRING = 1
+#    LINEAR_RING = 2
 
 
 class ShapeInterpolant(LazyObject):
@@ -185,6 +185,14 @@ class LineString(ShapeInterpolant):
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
+    def _points_len_(
+        cls,
+        points: Vec3sT
+    ) -> int:
+        return len(points)
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
     def _path_points_(
         cls,
         points: Vec3sT,
@@ -195,18 +203,18 @@ class LineString(ShapeInterpolant):
         return np.append(points, (points[0],), axis=0)
 
     # TODO: remove
-    @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
-    def _kind_(
-        cls,
-        points: Vec3sT,
-        is_ring: bool
-    ) -> LineStringKind:
-        if len(points) == 1:
-            return LineStringKind.POINT
-        if not is_ring:
-            return LineStringKind.LINEAR_RING
-        return LineStringKind.LINE_STRING
+    #@Lazy.property(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _kind_(
+    #    cls,
+    #    points: Vec3sT,
+    #    is_ring: bool
+    #) -> LineStringKind:
+    #    if len(points) == 1:
+    #        return LineStringKind.POINT
+    #    if not is_ring:
+    #        return LineStringKind.LINEAR_RING
+    #    return LineStringKind.LINE_STRING
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
