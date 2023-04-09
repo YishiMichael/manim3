@@ -14,13 +14,12 @@ class ShapeTransformExample(Scene):
         self.add(square)
         self.play(Transform(square, circle, replace=False))
         self.wait()
-        self.wait(5)
 
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
-        text = Text("Text").scale(3).add_stroke(width=0.2, color=BLUE).add_stroke(width=0.4, color=GREEN).concatenate()
-        tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.3, color=PINK).concatenate()
+        text = Text("Text").scale(3).add_stroke(width=0.02, color=BLUE).add_stroke(width=0.04, color=GREEN).concatenate()
+        tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.03, color=PINK).concatenate()
         self.add(text)
         self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
         self.wait()
@@ -64,7 +63,7 @@ if __name__ == "__main__":
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 1
+    config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)

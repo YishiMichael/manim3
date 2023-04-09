@@ -219,9 +219,12 @@ class Context(ABC):
         index_buffer: moderngl.Buffer,
         mode: int
     ) -> moderngl.VertexArray:
+        content = []
+        if attribute_names:
+            content.append((attributes_buffer, buffer_format_str, *attribute_names))
         vertex_array = cls.mgl_context.vertex_array(
             program=program,
-            content=[(attributes_buffer, buffer_format_str, *attribute_names)],
+            content=content,
             index_buffer=index_buffer,
             mode=mode
         )

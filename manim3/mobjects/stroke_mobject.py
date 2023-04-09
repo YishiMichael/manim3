@@ -65,7 +65,6 @@ class StrokeMobject(Mobject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> float:
-        # TODO: The unit mismatches by a factor of 5.
         return 0.2
 
     @Lazy.variable(LazyMode.UNWRAPPED)
@@ -116,6 +115,7 @@ class StrokeMobject(Mobject):
     def _all_position_(
         cls,
         _scene_state__camera__ub_camera_: UniformBlockBuffer,
+        #model_matrix,
         _ub_model_: UniformBlockBuffer,
         all_points: Vec3sT
     ) -> Vec3sT:
@@ -156,8 +156,10 @@ class StrokeMobject(Mobject):
             indexed_attributes_buffer=indexed_attributes_buffer,
             transform_feedback_buffer=transform_feedback_buffer
         )
-        print(indexed_attributes_buffer._attributes_buffer_.get_buffer().read())
+        #print(model_matrix)
+        #print(np.frombuffer(_ub_model_.get_buffer().read(), dtype=np.float32))
         data_dict = vertex_array.transform()
+        #print(data_dict)
         return data_dict["out_position"]
 
     @Lazy.property(LazyMode.UNWRAPPED)
@@ -426,8 +428,9 @@ class StrokeMobject(Mobject):
         #if kind == LineStringKind.POINT:
         #    return []
         if is_ring:
+            # (0, 1, 1, 2, ..., n-2, n-1, n-1, 0)
             return list(it.chain(*zip(*(
-                np.roll(range(points_len - 1), -i)
+                np.roll(range(points_len), -i)
                 for i in range(2)
             ))))
         # (0, 1, 1, 2, ..., n-2, n-1)
@@ -500,8 +503,8 @@ class StrokeMobject(Mobject):
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
                     enable_only=moderngl.BLEND,
-                    blend_func=moderngl.ADDITIVE_BLENDING,
-                    blend_equation=moderngl.MAX
+                    blend_func=moderngl.ADDITIVE_BLENDING
+                    #blend_equation=moderngl.MAX
                 )
             )
         target_framebuffer.depth_mask = True

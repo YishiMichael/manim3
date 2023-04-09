@@ -85,7 +85,7 @@ class Polygon(ShapeMobject):
         self,
         points: Vec2sT
     ) -> None:
-        super().__init__(Shape([(points, False)]))
+        super().__init__(Shape([(points, True)]))
 
 
 class RegularPolygon(Polygon):

@@ -79,7 +79,7 @@ out GS_FS {
 void emit_vertex_by_polar(vec3 center_position, float magnitude, float angle) {
     vec2 offset_vec = magnitude * vec2(cos(angle), sin(angle));
     gs_out.offset_vec = offset_vec;
-    gl_Position = vec4((center_position + vec3(u_width * offset_vec, 0.0)) / vec3(u_frame_radius, 1.0), 0.0);
+    gl_Position = vec4((center_position + vec3(u_width * offset_vec, 0.0)) / vec3(u_frame_radius, 1.0), 1.0);
     EmitVertex();
 }
 
@@ -159,8 +159,8 @@ void emit_one_side(vec3 position_0, vec3 position_1, float delta_angle_0, float 
 
 
 void both_sided(vec3 position_0, vec3 position_1, float delta_angle_0, float delta_angle_1, float line_angle) {
-    emit_one_side(position_0, position_1, delta_angle_0, delta_angle_1, line_angle - u_winding_sign * PI_HALF);
-    emit_one_side(position_0, position_1, -delta_angle_0, -delta_angle_1, line_angle + u_winding_sign * PI_HALF);
+    emit_one_side(position_0, position_1, delta_angle_0, delta_angle_1, line_angle - PI_HALF);
+    emit_one_side(position_0, position_1, -delta_angle_0, -delta_angle_1, line_angle + PI_HALF);
     //emit_vertex_by_polar(line_start_position, 1.0, direction_angle - PI_HALF);
     //emit_vertex_by_polar(line_end_position, 1.0, direction_angle - PI_HALF);
     //emit_vertex_by_polar(line_start_position, 0.0, 0.0);
@@ -172,7 +172,10 @@ void both_sided(vec3 position_0, vec3 position_1, float delta_angle_0, float del
 
 
 void single_sided(vec3 position_0, vec3 position_1, float delta_angle_0, float delta_angle_1, float line_angle) {
-    emit_one_side(position_0, position_1, delta_angle_0, delta_angle_1, line_angle - u_winding_sign * PI_HALF);
+    emit_one_side(
+        position_0, position_1,
+        u_winding_sign * delta_angle_0, u_winding_sign * delta_angle_1, line_angle - u_winding_sign * PI_HALF
+    );
     //emit_vertex_by_polar(position_0, 1.0, normal_angle);
     //emit_vertex_by_polar(position_1, 1.0, normal_angle);
     //emit_vertex_by_polar(position_0, 0.0, 0.0);

@@ -692,7 +692,10 @@ class VertexArray(LazyObject):
             #print(buffer.read())
             if (vertex_array := self._vertex_array_.value) is not None:
                 #print(buffer.read())
-                vertex_array.transform(buffer=buffer)
+                with Context.mgl_context.scope(
+                    uniform_buffers=self._uniform_block_bindings_.value
+                ):
+                    vertex_array.transform(buffer=buffer)
                 #print(buffer.read())
             data_dict = transform_feedback_buffer.read(buffer)
             #print(buffer.read())
