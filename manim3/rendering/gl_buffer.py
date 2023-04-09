@@ -1630,18 +1630,26 @@ class IndexBuffer(GLWriteOnlyBuffer):
     def __init__(
         self,
         *,
-        data: VertexIndexType
+        data: VertexIndexType | None
     ) -> None:
+        data_len = 0 if data is None else len(data)
         super().__init__(
             field="uint __index__[__NUM_INDEX__]",
             child_structs={},
             array_lens={
-                "__NUM_INDEX__": len(data)
+                "__NUM_INDEX__": data_len
             }
         )
-        self.write({
-            "": data
-        })
+        if data is not None:
+            self.write({
+                "": data
+            })
+            self._omitted_ = False
+
+    @Lazy.variable(LazyMode.SHARED)
+    @classmethod
+    def _omitted_(cls) -> bool:
+        return True
 
     #@Lazy.variable(LazyMode.SHARED)
     #@classmethod

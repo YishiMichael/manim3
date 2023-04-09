@@ -1,6 +1,7 @@
 __all__ = [
     "Context",
-    "ContextState"
+    "ContextState",
+    "PrimitiveMode"
 ]
 
 
@@ -10,6 +11,7 @@ from abc import (
 )
 import atexit
 from dataclasses import dataclass
+from enum import Enum
 import subprocess as sp
 from typing import ClassVar
 
@@ -17,6 +19,21 @@ import moderngl
 from moderngl_window.context.pyglet.window import Window
 
 from ..rendering.config import ConfigSingleton
+
+
+class PrimitiveMode(Enum):
+    POINTS = moderngl.POINTS
+    LINES = moderngl.LINES
+    LINE_LOOP = moderngl.LINE_LOOP
+    LINE_STRIP = moderngl.LINE_STRIP
+    TRIANGLES = moderngl.TRIANGLES
+    TRIANGLE_STRIP = moderngl.TRIANGLE_STRIP
+    TRIANGLE_FAN = moderngl.TRIANGLE_FAN
+    LINES_ADJACENCY = moderngl.LINES_ADJACENCY
+    LINE_STRIP_ADJACENCY = moderngl.LINE_STRIP_ADJACENCY
+    TRIANGLES_ADJACENCY = moderngl.TRIANGLES_ADJACENCY
+    TRIANGLE_STRIP_ADJACENCY = moderngl.TRIANGLE_STRIP_ADJACENCY
+    PATCHES = moderngl.PATCHES
 
 
 @dataclass(
@@ -216,8 +233,8 @@ class Context(ABC):
         attributes_buffer: moderngl.Buffer,
         buffer_format_str: str,
         attribute_names: list[str],
-        index_buffer: moderngl.Buffer,
-        mode: int
+        index_buffer: moderngl.Buffer | None,
+        mode: PrimitiveMode
     ) -> moderngl.VertexArray:
         content = []
         if attribute_names:
@@ -226,7 +243,7 @@ class Context(ABC):
             program=program,
             content=content,
             index_buffer=index_buffer,
-            mode=mode
+            mode=mode.value
         )
         #atexit.register(lambda: vertex_array.release())
         return vertex_array

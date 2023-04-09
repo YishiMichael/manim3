@@ -6,8 +6,8 @@ __all__ = [
 
 from dataclasses import dataclass
 
-import moderngl
 import numpy as np
+
 
 from ..custom_typing import (
     Vec2sT,
@@ -19,6 +19,7 @@ from ..lazy.interface import (
     Lazy,
     LazyMode
 )
+from ..rendering.context import PrimitiveMode
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer
@@ -74,5 +75,5 @@ class Geometry(LazyObject):
             index_buffer=IndexBuffer(
                 data=geometry_data.index
             ),
-            mode=moderngl.TRIANGLES
+            mode=PrimitiveMode.TRIANGLES
         )

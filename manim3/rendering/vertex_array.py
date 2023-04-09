@@ -18,7 +18,8 @@ from ..lazy.interface import (
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import (
     Context,
-    ContextState
+    ContextState,
+    PrimitiveMode
 )
 from ..rendering.gl_buffer import (
     AtomicBufferFormat,
@@ -39,12 +40,13 @@ class IndexedAttributesBuffer(LazyObject):
         self,
         *,
         attributes_buffer: AttributesBuffer,
-        index_buffer: IndexBuffer,
-        mode: int
+        index_buffer: IndexBuffer | None = None,
+        mode: PrimitiveMode
     ) -> None:
         super().__init__()
         self._attributes_buffer_ = attributes_buffer
-        self._index_buffer_ = index_buffer
+        if index_buffer is not None:
+            self._index_buffer_ = index_buffer
         self._mode_ = mode
 
     @Lazy.variable(LazyMode.OBJECT)
@@ -60,13 +62,13 @@ class IndexedAttributesBuffer(LazyObject):
     @classmethod
     def _index_buffer_(cls) -> IndexBuffer:
         return IndexBuffer(
-            data=np.zeros((0, 1), dtype=np.uint32)
+            data=None
         )
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
-    def _mode_(cls) -> int:
-        return moderngl.TRIANGLES
+    def _mode_(cls) -> PrimitiveMode:
+        return PrimitiveMode.TRIANGLES
 
 
 @dataclass(
@@ -360,7 +362,8 @@ class Program(LazyObject):
         index_buffer = indexed_attributes_buffer._index_buffer_
         mode = indexed_attributes_buffer._mode_.value
 
-        if attributes_buffer_format._is_empty_.value or index_buffer._buffer_format_._is_empty_.value:
+        if attributes_buffer_format._is_empty_.value or \
+                (not index_buffer._omitted_.value and index_buffer._buffer_format_._is_empty_.value):
             return None
 
         def get_item_components(
@@ -409,7 +412,7 @@ class Program(LazyObject):
             attributes_buffer=attributes_buffer.get_buffer(),
             buffer_format_str=" ".join(components),
             attribute_names=attribute_names,
-            index_buffer=index_buffer.get_buffer(),
+            index_buffer=None if index_buffer._omitted_.value else index_buffer.get_buffer(),
             mode=mode
         )
 
@@ -546,10 +549,10 @@ class VertexArray(LazyObject):
                     ))
                 }
             ),
-            index_buffer=IndexBuffer(
-                data=np.array((0, 1, 2, 3), dtype=np.uint32)
-            ),
-            mode=moderngl.TRIANGLE_FAN
+            #index_buffer=IndexBuffer(
+            #    data=np.array((0, 1, 2, 3), dtype=np.uint32)
+            #),
+            mode=PrimitiveMode.TRIANGLE_FAN
         )
 
     @Lazy.variable(LazyMode.OBJECT)

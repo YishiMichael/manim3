@@ -3,6 +3,7 @@ __all__ = ["StrokeMobject"]
 
 import itertools as it
 from typing import (
+    #Callable,
     Callable,
     Generator,
     Iterable
@@ -15,11 +16,13 @@ from ..constants import PI
 from ..custom_typing import (
     ColorType,
     FloatsT,
+    #FloatsT,
     #Mat4T,
     Vec2sT,
     Vec3T,
     Vec3sT,
-    VertexIndexType
+    VertexIndexType,
+    #VertexIndexType
 )
 from ..lazy.core import (
     LazyDynamicVariableDescriptor,
@@ -30,7 +33,10 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
-from ..rendering.context import ContextState
+from ..rendering.context import (
+    ContextState,
+    PrimitiveMode
+)
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
@@ -65,7 +71,7 @@ class StrokeMobject(Mobject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> float:
-        return 0.2
+        return 0.04
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
@@ -114,10 +120,9 @@ class StrokeMobject(Mobject):
     @classmethod
     def _all_position_(
         cls,
+        all_points: Vec3sT,
         _scene_state__camera__ub_camera_: UniformBlockBuffer,
-        #model_matrix,
-        _ub_model_: UniformBlockBuffer,
-        all_points: Vec3sT
+        _ub_model_: UniformBlockBuffer
     ) -> Vec3sT:
         #if not _multi_line_string_._line_strings_:
         #    position = np.zeros((0, 3))
@@ -126,6 +131,7 @@ class StrokeMobject(Mobject):
         #        line_string._points_.value
         #        for line_string in _multi_line_string_._line_strings_
         #    ])
+
         indexed_attributes_buffer = IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
                 fields=[
@@ -136,10 +142,10 @@ class StrokeMobject(Mobject):
                     "in_position": all_points
                 }
             ),
-            index_buffer=IndexBuffer(
-                data=np.arange(len(all_points), dtype=np.uint32)
-            ),
-            mode=moderngl.POINTS
+            #index_buffer=IndexBuffer(
+            #    data=np.arange(len(all_points), dtype=np.uint32)
+            #),
+            mode=PrimitiveMode.POINTS
         )
         transform_feedback_buffer = TransformFeedbackBuffer(
             fields=[
@@ -161,6 +167,8 @@ class StrokeMobject(Mobject):
         data_dict = vertex_array.transform()
         #print(data_dict)
         return data_dict["out_position"]
+
+        #return [get_position(points) for points in multi_line_string__line_strings__points]
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -247,8 +255,18 @@ class StrokeMobject(Mobject):
     @classmethod
     def _ub_winding_sign_(
         cls,
+        #position_list: list[Vec3sT],
+        #width: float,
         winding_sign: bool
     ) -> UniformBlockBuffer:
+
+        #def get_winding_sign(
+        #    position: Vec3sT
+        #) -> float:
+        #    points = SpaceUtils.decrease_dimension(position)
+        #    signed_area = float(np.cross(points, np.roll(points, 1, axis=0)).sum()) / 2.0
+        #    return 1.0 if signed_area * width >= 0.0 else -1.0
+
         return UniformBlockBuffer(
             name="ub_winding_sign",
             fields=[
@@ -278,7 +296,7 @@ class StrokeMobject(Mobject):
             else:
                 tail_vector = np.zeros(2)
             vectors: Vec2sT = np.array((tail_vector, *(points[1:] - points[:-1]), tail_vector))
-            # Replace zero-length vectors with former ones or latter ones.
+            # Replace zero-length vectors with former or latter ones.
             nonzero_length_indices = SpaceUtils.norm(vectors).nonzero()[0]
             if not len(nonzero_length_indices):
                 filled_vectors = np.zeros_like(vectors)
@@ -346,15 +364,78 @@ class StrokeMobject(Mobject):
     @classmethod
     def _vertex_arrays_(
         cls,
+        multi_line_string__line_strings__points_len: list[int],
+        multi_line_string__line_strings__is_ring: list[bool],
         _scene_state__camera__ub_camera_: UniformBlockBuffer,
         #_ub_model_: UniformBlockBuffer,
         _ub_stroke_: UniformBlockBuffer,
         _ub_winding_sign_: UniformBlockBuffer,
         _attributes_buffer_: AttributesBuffer,
-        _multi_line_string_: MultiLineString,
         single_sided: bool,
         has_linecap: bool
     ) -> list[VertexArray]:
+
+        def lump_index_from_getter(
+            index_getter: Callable[[int, bool], list[int]]
+        ) -> VertexIndexType:
+            if not multi_line_string__line_strings__points_len:
+                return np.zeros(0, dtype=np.uint32)
+            offsets = np.array((0, *multi_line_string__line_strings__points_len[:-1])).cumsum()
+            return np.concatenate([
+                np.array(index_getter(points_len, is_ring), dtype=np.uint32) + offset
+                for points_len, is_ring, offset in zip(
+                    multi_line_string__line_strings__points_len,
+                    multi_line_string__line_strings__is_ring,
+                    offsets,
+                    strict=True
+                )
+            ], dtype=np.uint32)
+            #index_arrays: list[VertexIndexType] = []
+            #for points_len, is_ring in zip(
+            #    multi_line_string__line_strings__points_len,
+            #    multi_line_string__line_strings__is_ring,
+            #    strict=True
+            #):
+            #    #points_len = line_string._points_len_.value
+            #    #is_ring = line_string._is_ring_.value
+            #    index_arrays.append(np.array(index_getter(points_len, is_ring), dtype=np.uint32) + offset)
+            #    offset += points_len
+            #if not index_arrays:
+            #    return np.zeros(0, dtype=np.uint32)
+            #return np.concatenate(index_arrays, dtype=np.uint32)
+
+        def line_index_getter(
+            points_len: int,
+            is_ring: bool
+        ) -> list[int]:
+            if is_ring:
+                # (0, 1, 1, 2, ..., n-2, n-1, n-1, 0)
+                return list(it.chain(*zip(*(
+                    np.roll(range(points_len), -i)
+                    for i in range(2)
+                ))))
+            # (0, 1, 1, 2, ..., n-2, n-1)
+            return list(it.chain(*zip(*(
+                range(i, points_len - 1 + i)
+                for i in range(2)
+            ))))
+
+        def join_index_getter(
+            points_len: int,
+            is_ring: bool
+        ) -> list[int]:
+            if is_ring:
+                return list(range(points_len))
+            return list(range(1, points_len - 1))
+
+        def cap_index_getter(
+            points_len: int,
+            is_ring: bool
+        ) -> list[int]:
+            if is_ring:
+                return []
+            return [0, points_len - 1]
+
         uniform_block_buffers = [
             _scene_state__camera__ub_camera_,
             #_ub_model_,
@@ -364,7 +445,7 @@ class StrokeMobject(Mobject):
 
         def get_vertex_array(
             index_getter: Callable[[int, bool], list[int]],
-            mode: int,
+            mode: PrimitiveMode,
             custom_macros: list[str]
         ) -> VertexArray:
             return VertexArray(
@@ -374,7 +455,7 @@ class StrokeMobject(Mobject):
                 indexed_attributes_buffer=IndexedAttributesBuffer(
                     attributes_buffer=_attributes_buffer_,
                     index_buffer=IndexBuffer(
-                        data=cls._lump_index_from_getter(index_getter, _multi_line_string_)
+                        data=lump_index_from_getter(index_getter)
                     ),
                     mode=mode
                 )
@@ -382,18 +463,18 @@ class StrokeMobject(Mobject):
 
         subroutine_name = "single_sided" if single_sided else "both_sided"
         vertex_arrays = [
-            get_vertex_array(cls._line_index_getter, moderngl.LINES, [
+            get_vertex_array(line_index_getter, PrimitiveMode.LINES, [
                 "#define STROKE_LINE",
                 f"#define line_subroutine {subroutine_name}"
             ]),
-            get_vertex_array(cls._join_index_getter, moderngl.POINTS, [
+            get_vertex_array(join_index_getter, PrimitiveMode.POINTS, [
                 "#define STROKE_JOIN",
                 f"#define join_subroutine {subroutine_name}"
             ])
         ]
         if has_linecap and not single_sided:
             vertex_arrays.append(
-                get_vertex_array(cls._cap_index_getter, moderngl.LINES, [
+                get_vertex_array(cap_index_getter, PrimitiveMode.LINES, [
                     "#define STROKE_CAP"
                 ])
                 #get_vertex_array(cls._point_index_getter, moderngl.POINTS, [
@@ -401,82 +482,6 @@ class StrokeMobject(Mobject):
                 #])
             )
         return vertex_arrays
-
-    @classmethod
-    def _lump_index_from_getter(
-        cls,
-        index_getter: Callable[[int, bool], list[int]],
-        multi_line_string: MultiLineString
-    ) -> VertexIndexType:
-        offset = 0
-        index_arrays: list[VertexIndexType] = []
-        for line_string in multi_line_string._line_strings_:
-            points_len = line_string._points_len_.value
-            is_ring = line_string._is_ring_.value
-            index_arrays.append(np.array(index_getter(points_len, is_ring), dtype=np.uint32) + offset)
-            offset += points_len
-        if not index_arrays:
-            return np.zeros(0, dtype=np.uint32)
-        return np.concatenate(index_arrays, dtype=np.uint32)
-
-    @classmethod
-    def _line_index_getter(
-        cls,
-        points_len: int,
-        is_ring: bool
-    ) -> list[int]:
-        #if kind == LineStringKind.POINT:
-        #    return []
-        if is_ring:
-            # (0, 1, 1, 2, ..., n-2, n-1, n-1, 0)
-            return list(it.chain(*zip(*(
-                np.roll(range(points_len), -i)
-                for i in range(2)
-            ))))
-        # (0, 1, 1, 2, ..., n-2, n-1)
-        return list(it.chain(*zip(*(
-            range(i, points_len - 1 + i)
-            for i in range(2)
-        ))))
-        #if kind == LineStringKind.LINEAR_RING:
-        #    return list(it.chain(*zip(*(
-        #        np.roll(range(points_len - 1), -i)
-        #        for i in range(2)
-        #    ))))
-
-    @classmethod
-    def _join_index_getter(
-        cls,
-        points_len: int,
-        is_ring: bool
-    ) -> list[int]:
-        #if kind == LineStringKind.POINT:
-        #    return []
-        if is_ring:
-            return list(range(points_len))
-        return list(range(1, points_len - 1))
-        #if kind == LineStringKind.LINE_STRING:
-        #    # (0, 1, 2, 1, 2, 3, ..., n-3, n-2, n-1)
-        #    return list(it.chain(*zip(*(
-        #        range(i, points_len - 2 + i)
-        #        for i in range(3)
-        #    ))))
-
-    @classmethod
-    def _cap_index_getter(
-        cls,
-        points_len: int,
-        is_ring: bool
-    ) -> list[int]:
-        if is_ring:
-            return []
-        return [0, points_len - 1]
-        #if kind == LineStringKind.POINT:
-        #    return []
-        #if kind == LineStringKind.LINE_STRING:
-        #    return [0, 1, points_len - 1, points_len - 2]
-        #if kind == LineStringKind.LINEAR_RING:
-        #    return []
 
     #@classmethod
     #def _point_index_getter(
@@ -497,27 +502,27 @@ class StrokeMobject(Mobject):
     ) -> None:
         # TODO: Is this already the best practice?
         # Render color.
-        target_framebuffer.depth_mask = False
+        #target_framebuffer.depth_mask = False
         for vertex_array in self._vertex_arrays_:
             vertex_array.render(
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.BLEND,
-                    blend_func=moderngl.ADDITIVE_BLENDING
+                    enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
+                    #blend_func=moderngl.ADDITIVE_BLENDING
                     #blend_equation=moderngl.MAX
                 )
             )
-        target_framebuffer.depth_mask = True
+        #target_framebuffer.depth_mask = True
         # Render depth.
-        target_framebuffer.color_mask = (False, False, False, False)
-        for vertex_array in self._vertex_arrays_:
-            vertex_array.render(
-                framebuffer=target_framebuffer,
-                context_state=ContextState(
-                    enable_only=moderngl.DEPTH_TEST
-                )
-            )
-        target_framebuffer.color_mask = (True, True, True, True)
+        #target_framebuffer.color_mask = (False, False, False, False)
+        #for vertex_array in self._vertex_arrays_:
+        #    vertex_array.render(
+        #        framebuffer=target_framebuffer,
+        #        context_state=ContextState(
+        #            enable_only=moderngl.DEPTH_TEST
+        #        )
+        #    )
+        #target_framebuffer.color_mask = (True, True, True, True)
 
     def iter_stroke_descendants(
         self,
