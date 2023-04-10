@@ -30,6 +30,10 @@ from ..rendering.context import (
     ContextState
 )
 from ..rendering.gl_buffer import TextureIDBuffer
+from ..rendering.mgl_enums import (
+    BlendFunc,
+    ContextFlag
+)
 from ..rendering.temporary_resource import (
     SceneFramebufferBatch,
     SimpleFramebufferBatch
@@ -187,8 +191,8 @@ class Scene(Mobject):
                         },
                         framebuffer=scene_batch.opaque_framebuffer,
                         context_state=ContextState(
-                            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                            blend_func=(moderngl.ONE, moderngl.ZERO)
+                            flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
+                            blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
                         )
                     )
 
@@ -202,8 +206,8 @@ class Scene(Mobject):
                         },
                         framebuffer=scene_batch.accum_framebuffer,
                         context_state=ContextState(
-                            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                            blend_func=moderngl.ADDITIVE_BLENDING
+                            flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
+                            blend_funcs=((BlendFunc.ONE, BlendFunc.ONE),)
                         )
                     )
                     self._oit_revealage_vertex_array_.render(
@@ -213,8 +217,8 @@ class Scene(Mobject):
                         },
                         framebuffer=scene_batch.revealage_framebuffer,
                         context_state=ContextState(
-                            enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                            blend_func=(moderngl.ZERO, moderngl.ONE_MINUS_SRC_COLOR)
+                            flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
+                            blend_funcs=((BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_COLOR),)
                         )
                     )
 
@@ -225,8 +229,8 @@ class Scene(Mobject):
                 },
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.BLEND | moderngl.DEPTH_TEST,
-                    blend_func=(moderngl.ONE, moderngl.ZERO)
+                    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
+                    blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
                 )
             )
             self._oit_compose_vertex_array_.render(
@@ -236,7 +240,7 @@ class Scene(Mobject):
                 },
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
+                    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
                 )
             )
 
@@ -269,7 +273,7 @@ class Scene(Mobject):
                         },
                         framebuffer=Context.window_framebuffer,
                         context_state=ContextState(
-                            enable_only=moderngl.NOTHING
+                            flags=()
                         )
                     )
                     if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \

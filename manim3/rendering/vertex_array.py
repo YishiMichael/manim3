@@ -2,9 +2,7 @@ __all__ = ["VertexArray"]
 
 
 from dataclasses import dataclass
-#from functools import reduce
 import itertools as it
-#import operator as op
 import re
 
 import moderngl
@@ -18,8 +16,7 @@ from ..lazy.interface import (
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import (
     Context,
-    ContextState,
-    PrimitiveMode
+    ContextState
 )
 from ..rendering.gl_buffer import (
     AtomicBufferFormat,
@@ -31,6 +28,7 @@ from ..rendering.gl_buffer import (
     TransformFeedbackBuffer,
     UniformBlockBuffer
 )
+from ..rendering.mgl_enums import PrimitiveMode
 
 
 class IndexedAttributesBuffer(LazyObject):
@@ -679,13 +677,13 @@ class VertexArray(LazyObject):
 
         if texture_array_dict is None:
             texture_array_dict = {}
-        Context.set_state(context_state)
         with Context.mgl_context.scope(
             framebuffer=framebuffer,
-            enable_only=context_state.enable_only,
+            #enable_only=enable_only,
             textures=self._program_._get_texture_bindings(texture_array_dict),
             uniform_buffers=self._uniform_block_bindings_.value
         ):
+            Context.set_state(context_state)
             vertex_array.render()
 
     def transform(self) -> dict[str, np.ndarray]:

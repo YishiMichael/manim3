@@ -72,7 +72,7 @@ class PixelatedPass(RenderPass):
                 },
                 framebuffer=batch.framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.NOTHING
+                    flags=()
                 )
             )
             self._vertex_array_.render(
@@ -81,6 +81,6 @@ class PixelatedPass(RenderPass):
                 },
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.NOTHING
+                    flags=()
                 )
             )

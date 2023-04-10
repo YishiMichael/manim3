@@ -33,15 +33,16 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
-from ..rendering.context import (
-    ContextState,
-    PrimitiveMode
-)
+from ..rendering.context import ContextState
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
     TransformFeedbackBuffer,
     UniformBlockBuffer
+)
+from ..rendering.mgl_enums import (
+    ContextFlag,
+    PrimitiveMode
 )
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
@@ -507,7 +508,7 @@ class StrokeMobject(Mobject):
             vertex_array.render(
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
+                    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
                     #blend_func=moderngl.ADDITIVE_BLENDING
                     #blend_equation=moderngl.MAX
                 )

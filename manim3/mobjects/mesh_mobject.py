@@ -23,6 +23,7 @@ from ..rendering.gl_buffer import (
     TextureIDBuffer,
     UniformBlockBuffer
 )
+from ..rendering.mgl_enums import ContextFlag
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
@@ -167,7 +168,7 @@ class MeshMobject(Mobject):
             },
             framebuffer=target_framebuffer,
             context_state=ContextState(
-                enable_only=moderngl.BLEND | moderngl.DEPTH_TEST
+                flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
             )
         )
 

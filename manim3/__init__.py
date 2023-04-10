@@ -35,6 +35,7 @@ from .passes.render_pass import *
 from .rendering.config import *
 from .rendering.context import *
 from .rendering.gl_buffer import *
+from .rendering.mgl_enums import *
 from .rendering.temporary_resource import *
 from .rendering.vertex_array import *
 

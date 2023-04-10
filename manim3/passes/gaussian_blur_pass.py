@@ -127,7 +127,7 @@ class GaussianBlurPass(RenderPass):
                 },
                 framebuffer=batch.framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.NOTHING
+                    flags=()
                 )
             )
             self._vertical_vertex_array_.render(
@@ -136,6 +136,6 @@ class GaussianBlurPass(RenderPass):
                 },
                 framebuffer=target_framebuffer,
                 context_state=ContextState(
-                    enable_only=moderngl.NOTHING
+                    flags=()
                 )
             )

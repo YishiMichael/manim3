@@ -1,7 +1,6 @@
 __all__ = [
     "Context",
-    "ContextState",
-    "PrimitiveMode"
+    "ContextState"
 ]
 
 
@@ -11,29 +10,22 @@ from abc import (
 )
 import atexit
 from dataclasses import dataclass
-from enum import Enum
+from functools import reduce
+import operator as op
 import subprocess as sp
 from typing import ClassVar
 
 import moderngl
 from moderngl_window.context.pyglet.window import Window
+import OpenGL.GL as gl
 
 from ..rendering.config import ConfigSingleton
-
-
-class PrimitiveMode(Enum):
-    POINTS = moderngl.POINTS
-    LINES = moderngl.LINES
-    LINE_LOOP = moderngl.LINE_LOOP
-    LINE_STRIP = moderngl.LINE_STRIP
-    TRIANGLES = moderngl.TRIANGLES
-    TRIANGLE_STRIP = moderngl.TRIANGLE_STRIP
-    TRIANGLE_FAN = moderngl.TRIANGLE_FAN
-    LINES_ADJACENCY = moderngl.LINES_ADJACENCY
-    LINE_STRIP_ADJACENCY = moderngl.LINE_STRIP_ADJACENCY
-    TRIANGLES_ADJACENCY = moderngl.TRIANGLES_ADJACENCY
-    TRIANGLE_STRIP_ADJACENCY = moderngl.TRIANGLE_STRIP_ADJACENCY
-    PATCHES = moderngl.PATCHES
+from ..rendering.mgl_enums import (
+    BlendEquation,
+    BlendFunc,
+    ContextFlag,
+    PrimitiveMode
+)
 
 
 @dataclass(
@@ -42,10 +34,10 @@ class PrimitiveMode(Enum):
     slots=True
 )
 class ContextState:
-    enable_only: int
+    flags: tuple[ContextFlag, ...]
+    blend_funcs: tuple[tuple[BlendFunc, BlendFunc], ...] = ((BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA),)
+    blend_equations: tuple[BlendEquation, ...] = (BlendEquation.FUNC_ADD,)
     depth_func: str = "<"
-    blend_func: tuple[int, int] | tuple[int, int, int, int] = moderngl.DEFAULT_BLENDING
-    blend_equation: int | tuple[int, int] = moderngl.FUNC_ADD
     front_face: str = "ccw"
     cull_face: str = "back"
     wireframe: bool = False
@@ -143,9 +135,21 @@ class Context(ABC):
         context_state: ContextState
     ) -> None:
         context = Context.mgl_context
+        context.enable_only(reduce(op.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
+        for index, (src_blend_func, dst_blend_func) in enumerate(context_state.blend_funcs):
+            gl.glBlendFunci(
+                index,
+                src_blend_func.value,
+                dst_blend_func.value
+            )
+        for index, blend_equation in enumerate(context_state.blend_equations):
+            gl.glBlendEquationi(
+                index,
+                blend_equation.value
+            )
+        #context.blend_func = tuple(func.value for func in context_state.blend_func)
+        #context.blend_equation = context_state.blend_equation.value
         context.depth_func = context_state.depth_func
-        context.blend_func = context_state.blend_func
-        context.blend_equation = context_state.blend_equation
         context.front_face = context_state.front_face
         context.cull_face = context_state.cull_face
         context.wireframe = context_state.wireframe

@@ -19,7 +19,7 @@ from ..lazy.interface import (
     Lazy,
     LazyMode
 )
-from ..rendering.context import PrimitiveMode
+from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer
