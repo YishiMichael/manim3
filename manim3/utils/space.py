@@ -1,10 +1,6 @@
 __all__ = ["SpaceUtils"]
 
 
-from abc import (
-    ABC,
-    abstractmethod
-)
 from functools import partial
 from typing import (
     Callable,
@@ -32,12 +28,11 @@ from ..custom_typing import (
 )
 
 
-class SpaceUtils(ABC):
+class SpaceUtils:
     __slots__ = ()
 
-    @abstractmethod
-    def __new__(cls) -> None:
-        pass
+    def __new__(cls):
+        raise TypeError
 
     @classmethod
     def matrix_from_translation(

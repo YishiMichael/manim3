@@ -1,9 +1,10 @@
 __all__ = ["ImageMobject"]
 
 
-import moderngl
+#import moderngl
 import numpy as np
 from PIL import Image
+
 
 from ..constants import X_AXIS
 from ..geometries.geometry import Geometry
@@ -14,7 +15,12 @@ from ..lazy.interface import (
 )
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
-from ..rendering.temporary_resource import ColorFramebufferBatch
+from ..rendering.framebuffer import (
+    TransparentFramebuffer,
+    OpaqueFramebuffer
+)
+from ..rendering.texture import TextureFactory
+#from ..rendering.temporary_resource import ColorFramebufferBatch
 
 
 class ImageMobject(MeshMobject):
@@ -48,10 +54,10 @@ class ImageMobject(MeshMobject):
 
     def _render(
         self,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
     ) -> None:
         image = self._image
-        with ColorFramebufferBatch() as batch:
-            batch.color_texture.write(image.tobytes())
-            self._color_map_ = batch.color_texture
+        with TextureFactory.texture(size=image.size) as color_texture:
+            color_texture.write(image.tobytes())
+            self._color_map_ = color_texture
             super()._render(target_framebuffer)

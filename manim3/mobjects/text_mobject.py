@@ -5,10 +5,6 @@ __all__ = [
 ]
 
 
-from abc import (
-    ABC,
-    abstractmethod
-)
 from enum import Enum
 import pathlib
 import re
@@ -44,14 +40,13 @@ class PangoAlignment(Enum):
     RIGHT = 2
 
 
-class PangoUtils(ABC):
+class PangoUtils:
     # Ensure the canvas is large enough to hold all glyphs.
     _DEFAULT_CANVAS_WIDTH: ClassVar[int] = 16384
     _DEFAULT_CANVAS_HEIGHT: ClassVar[int] = 16384
 
-    @abstractmethod
     def __new__(cls):
-        pass
+        raise TypeError
 
     @classmethod
     @property

@@ -18,6 +18,7 @@ from ..rendering.context import (
     Context,
     ContextState
 )
+from ..rendering.framebuffer import Framebuffer
 from ..rendering.gl_buffer import (
     AtomicBufferFormat,
     AttributesBuffer,
@@ -669,8 +670,7 @@ class VertexArray(LazyObject):
         *,
         # Note, redundant textures are currently not supported.
         texture_array_dict: dict[str, np.ndarray] | None = None,
-        framebuffer: moderngl.Framebuffer,
-        context_state: ContextState
+        framebuffer: Framebuffer
     ) -> None:
         if (vertex_array := self._vertex_array_.value) is None:
             return
@@ -678,12 +678,12 @@ class VertexArray(LazyObject):
         if texture_array_dict is None:
             texture_array_dict = {}
         with Context.mgl_context.scope(
-            framebuffer=framebuffer,
+            framebuffer=framebuffer.framebuffer,
             #enable_only=enable_only,
             textures=self._program_._get_texture_bindings(texture_array_dict),
             uniform_buffers=self._uniform_block_bindings_.value
         ):
-            Context.set_state(context_state)
+            Context.set_state(framebuffer.context_state)
             vertex_array.render()
 
     def transform(self) -> dict[str, np.ndarray]:

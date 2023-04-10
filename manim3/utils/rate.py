@@ -1,22 +1,17 @@
 __all__ = ["RateUtils"]
 
 
-from abc import (
-    ABC,
-    abstractmethod
-)
 from typing import Callable
 
 import numpy as np
 import scipy
 
 
-class RateUtils(ABC):
+class RateUtils:
     __slots__ = ()
 
-    @abstractmethod
-    def __new__(cls) -> None:
-        pass
+    def __new__(cls):
+        raise TypeError
 
     @classmethod
     def compose(

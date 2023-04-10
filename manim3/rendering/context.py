@@ -4,10 +4,6 @@ __all__ = [
 ]
 
 
-from abc import (
-    ABC,
-    abstractmethod
-)
 import atexit
 from dataclasses import dataclass
 from functools import reduce
@@ -43,7 +39,7 @@ class ContextState:
     wireframe: bool = False
 
 
-class Context(ABC):
+class Context:
     __slots__ = ()
 
     _GL_VERSION: ClassVar[tuple[int, int]] = (4, 3)
@@ -52,9 +48,8 @@ class Context(ABC):
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
     _WRITING_PROCESS: ClassVar[sp.Popen | None] = None
 
-    @abstractmethod
-    def __new__(cls) -> None:
-        pass
+    def __new__(cls):
+        raise TypeError
 
     @classmethod
     def activate(cls) -> None:

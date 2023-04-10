@@ -4,7 +4,6 @@ __all__ = [
 ]
 
 
-from abc import ABC
 from dataclasses import dataclass
 import pathlib
 import sys
@@ -324,7 +323,7 @@ class Config:
         return self._text
 
 
-class ConfigSingleton(ABC):
+class ConfigSingleton:
     __slots__ = ()
 
     _INSTANCE: ClassVar[Config | None] = None

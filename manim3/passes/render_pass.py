@@ -6,6 +6,7 @@ from abc import abstractmethod
 import moderngl
 
 from ..lazy.core import LazyObject
+from ..rendering.framebuffer import ColorFramebuffer
 
 
 class RenderPass(LazyObject):
@@ -15,6 +16,6 @@ class RenderPass(LazyObject):
     def _render(
         self,
         texture: moderngl.Texture,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: ColorFramebuffer
     ) -> moderngl.Texture:
         pass

@@ -49,7 +49,7 @@ class EdgeFlag(Enum):
         return self.value
 
 
-class Span(ABC):
+class Span:
     __slots__ = ("start", "stop")
 
     def __init__(

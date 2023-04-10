@@ -11,8 +11,9 @@ from ..lazy.interface import (
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextState
+from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import TextureIDBuffer
-from ..rendering.temporary_resource import ColorFramebufferBatch
+from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
 
 
@@ -57,27 +58,29 @@ class PixelatedPass(RenderPass):
     def _render(
         self,
         texture: moderngl.Texture,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: ColorFramebuffer
     ) -> None:
         pixel_width = self._pixelated_width_.value * ConfigSingleton().size.pixel_per_unit
         texture_size = (
             int(np.ceil(texture.width / pixel_width)),
             int(np.ceil(texture.height / pixel_width))
         )
-        with ColorFramebufferBatch(size=texture_size) as batch:
-            batch.color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        with TextureFactory.texture(size=texture_size) as color_texture:
+            color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)  # TODO: typing
             self._vertex_array_.render(
                 texture_array_dict={
                     "u_color_map": np.array(texture)
                 },
-                framebuffer=batch.framebuffer,
+                framebuffer=ColorFramebuffer(
+                    color_texture=color_texture
+                ),
                 context_state=ContextState(
                     flags=()
                 )
             )
             self._vertex_array_.render(
                 texture_array_dict={
-                    "u_color_map": np.array(batch.color_texture)
+                    "u_color_map": np.array(color_texture)
                 },
                 framebuffer=target_framebuffer,
                 context_state=ContextState(

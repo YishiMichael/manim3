@@ -6,6 +6,7 @@ from typing import Iterable
 import moderngl
 import numpy as np
 
+
 from ..custom_typing import (
     ColorType,
     Vec3T,
@@ -18,12 +19,16 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
-from ..rendering.context import ContextState
+#from ..rendering.context import ContextState
+from ..rendering.framebuffer import (
+    TransparentFramebuffer,
+    OpaqueFramebuffer
+)
 from ..rendering.gl_buffer import (
     TextureIDBuffer,
     UniformBlockBuffer
 )
-from ..rendering.mgl_enums import ContextFlag
+#from ..rendering.mgl_enums import ContextFlag
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
@@ -126,6 +131,7 @@ class MeshMobject(Mobject):
     @classmethod
     def _vertex_array_(
         cls,
+        is_transparent: bool,
         apply_phong_lighting: bool,
         _u_color_maps_: TextureIDBuffer,
         _scene_state__camera__ub_camera_: UniformBlockBuffer,
@@ -134,12 +140,16 @@ class MeshMobject(Mobject):
         _ub_material_: UniformBlockBuffer,
         _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
-        custom_macros = []
-        if apply_phong_lighting:
-            custom_macros.append("#define APPLY_PHONG_LIGHTING")
+        custom_macros: list[str] = []
+        if is_transparent:
+            custom_macros.append("#define IS_TRANSPARENT")
+        phong_lighting_subroutine = "enable_phong_lighting" if apply_phong_lighting else "disable_phong_lighting"
+        custom_macros.append(f"#define phong_lighting_subroutine {phong_lighting_subroutine}")
         return VertexArray(
             shader_filename="mesh",
-            custom_macros=custom_macros,
+            custom_macros=[
+                f"#define phong_lighting_subroutine {phong_lighting_subroutine}"
+            ],
             texture_id_buffers=[
                 _u_color_maps_
             ],
@@ -154,11 +164,12 @@ class MeshMobject(Mobject):
 
     def _render(
         self,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
+        #context_state: ContextState
     ) -> None:
-        custom_macros: list[str] = []
-        if self._apply_phong_lighting_.value:
-            custom_macros.append("#define APPLY_PHONG_LIGHTING")
+        #custom_macros: list[str] = []
+        #if self._apply_phong_lighting_.value:
+        #    custom_macros.append("#define APPLY_PHONG_LIGHTING")
         textures: list[moderngl.Texture] = []
         if (color_map := self._color_map_.value) is not None:
             textures.append(color_map)
@@ -167,9 +178,10 @@ class MeshMobject(Mobject):
                 "u_color_maps": np.array(textures, dtype=moderngl.Texture)
             },
             framebuffer=target_framebuffer,
-            context_state=ContextState(
-                flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
-            )
+            #context_state=ContextState(
+            #    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
+            #)
+            #context_state=context_state
         )
 
     @classmethod
@@ -179,7 +191,7 @@ class MeshMobject(Mobject):
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
@@ -188,7 +200,7 @@ class MeshMobject(Mobject):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_value = LazyWrapper(color_component) if color_component is not None else None
         opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
-        apply_oit_value = apply_oit if apply_oit is not None else \
+        is_transparent_value = is_transparent if is_transparent is not None else \
             True if opacity_component is not None else None
         ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
         specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
@@ -204,8 +216,8 @@ class MeshMobject(Mobject):
                 mobject._color_ = color_value
             if opacity_value is not None:
                 mobject._opacity_ = opacity_value
-            if apply_oit_value is not None:
-                mobject._apply_oit_ = apply_oit_value
+            if is_transparent_value is not None:
+                mobject._is_transparent_ = is_transparent_value
             if ambient_strength_value is not None:
                 mobject._ambient_strength_ = ambient_strength_value
             if specular_strength_value is not None:
@@ -220,7 +232,7 @@ class MeshMobject(Mobject):
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
@@ -235,7 +247,7 @@ class MeshMobject(Mobject):
             ),
             color=color,
             opacity=opacity,
-            apply_oit=apply_oit,
+            is_transparent=is_transparent,
             ambient_strength=ambient_strength,
             specular_strength=specular_strength,
             shininess=shininess,

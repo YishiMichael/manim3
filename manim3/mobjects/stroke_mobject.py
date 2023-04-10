@@ -9,7 +9,6 @@ from typing import (
     Iterable
 )
 
-import moderngl
 import numpy as np
 
 from ..constants import PI
@@ -34,6 +33,10 @@ from ..lazy.interface import (
 )
 from ..mobjects.mobject import Mobject
 from ..rendering.context import ContextState
+from ..rendering.framebuffer import (
+    TransparentFramebuffer,
+    OpaqueFramebuffer
+)
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
@@ -371,6 +374,7 @@ class StrokeMobject(Mobject):
         #_ub_model_: UniformBlockBuffer,
         _ub_stroke_: UniformBlockBuffer,
         _ub_winding_sign_: UniformBlockBuffer,
+        is_transparent: bool,
         _attributes_buffer_: AttributesBuffer,
         single_sided: bool,
         has_linecap: bool
@@ -449,6 +453,8 @@ class StrokeMobject(Mobject):
             mode: PrimitiveMode,
             custom_macros: list[str]
         ) -> VertexArray:
+            if is_transparent:
+                custom_macros.append("#define IS_TRANSPARENT")
             return VertexArray(
                 shader_filename="stroke",
                 custom_macros=custom_macros,
@@ -499,19 +505,21 @@ class StrokeMobject(Mobject):
 
     def _render(
         self,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
+        #context_state: ContextState
     ) -> None:
         # TODO: Is this already the best practice?
         # Render color.
         #target_framebuffer.depth_mask = False
         for vertex_array in self._vertex_arrays_:
             vertex_array.render(
-                framebuffer=target_framebuffer,
-                context_state=ContextState(
-                    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
-                    #blend_func=moderngl.ADDITIVE_BLENDING
-                    #blend_equation=moderngl.MAX
-                )
+                framebuffer=target_framebuffer
+                #context_state=context_state
+                #context_state=ContextState(
+                #    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
+                #    #blend_func=moderngl.ADDITIVE_BLENDING
+                #    #blend_equation=moderngl.MAX
+                #)
             )
         #target_framebuffer.depth_mask = True
         # Render depth.
@@ -544,7 +552,7 @@ class StrokeMobject(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        apply_oit: bool | None = None
+        is_transparent: bool | None = None
     ) -> None:
         width_value = LazyWrapper(width) if width is not None else None
         single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
@@ -553,7 +561,7 @@ class StrokeMobject(Mobject):
         color_value = LazyWrapper(color_component) if color_component is not None else None
         opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
         dilate_value = LazyWrapper(dilate) if dilate is not None else None
-        apply_oit_value = apply_oit if apply_oit is not None else \
+        is_transparent_value = is_transparent if is_transparent is not None else \
             True if any(param is not None for param in (
                 opacity_component,
                 dilate
@@ -571,8 +579,8 @@ class StrokeMobject(Mobject):
                 mobject._opacity_ = opacity_value
             if dilate_value is not None:
                 mobject._dilate_ = dilate_value
-            if apply_oit_value is not None:
-                mobject._apply_oit_ = apply_oit_value
+            if is_transparent_value is not None:
+                mobject._is_transparent_ = is_transparent_value
 
     def set_style(
         self,
@@ -583,7 +591,7 @@ class StrokeMobject(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         broadcast: bool = True
     ):
         self.class_set_style(
@@ -594,7 +602,7 @@ class StrokeMobject(Mobject):
             color=color,
             opacity=opacity,
             dilate=dilate,
-            apply_oit=apply_oit
+            is_transparent=is_transparent
         )
         return self
 

@@ -11,7 +11,6 @@ from typing import (
 )
 import warnings
 
-import moderngl
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -36,9 +35,11 @@ from ..lazy.interface import (
     Lazy,
     LazyMode
 )
-from ..passes.render_pass import RenderPass
+from ..rendering.framebuffer import (
+    TransparentFramebuffer,
+    OpaqueFramebuffer
+)
 from ..rendering.gl_buffer import UniformBlockBuffer
-from ..rendering.temporary_resource import ColorFramebufferBatch
 from ..utils.scene_state import SceneState
 from ..utils.space import SpaceUtils
 
@@ -674,13 +675,8 @@ class Mobject(LazyObject):
 
     @Lazy.variable(LazyMode.SHARED)
     @classmethod
-    def _apply_oit_(cls) -> bool:
+    def _is_transparent_(cls) -> bool:
         return False
-
-    @Lazy.variable(LazyMode.COLLECTION)
-    @classmethod
-    def _render_passes_(cls) -> list[RenderPass]:
-        return []
 
     @Lazy.variable(LazyMode.OBJECT)
     @classmethod
@@ -689,47 +685,7 @@ class Mobject(LazyObject):
 
     def _render(
         self,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
     ) -> None:
         # Implemented in subclasses.
         pass
-
-    def _render_with_passes(
-        self,
-        target_framebuffer: moderngl.Framebuffer
-    ) -> None:
-        render_passes = self._render_passes_
-        if not render_passes:
-            self._render(target_framebuffer)
-            return
-
-        with ColorFramebufferBatch() as batch_0, ColorFramebufferBatch() as batch_1:
-            batches = (batch_0, batch_1)
-            target_id = 0
-            self._render(batch_0.framebuffer)
-            for render_pass in render_passes[:-1]:
-                target_id = 1 - target_id
-                render_pass._render(
-                    texture=batches[1 - target_id].color_texture,
-                    target_framebuffer=batches[target_id].framebuffer
-                )
-            target_framebuffer.depth_mask = False  # TODO: shall we disable writing to depth?
-            render_passes[-1]._render(
-                texture=batches[target_id].color_texture,
-                target_framebuffer=target_framebuffer
-            )
-            target_framebuffer.depth_mask = True
-
-    def add_pass(
-        self,
-        *render_passes: RenderPass
-    ):
-        self._render_passes_.add(*render_passes)
-        return self
-
-    def discard_pass(
-        self,
-        *render_passes: RenderPass
-    ):
-        self._render_passes_.discard(*render_passes)
-        return self

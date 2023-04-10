@@ -1,7 +1,6 @@
 __all__ = ["Transform"]
 
 
-from abc import ABC
 from functools import lru_cache
 import itertools as it
 from typing import (
@@ -45,7 +44,7 @@ _DescriptorSetT = TypeVar("_DescriptorSetT")
 _MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
-class VariableInterpolant(ABC, Generic[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
+class VariableInterpolant(Generic[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = (
         "_descriptor",
         "_method"
@@ -220,7 +219,7 @@ class Transform(Animation):
         ) -> _MobjectT:
             result = mobject.copy(broadcast=False)
             if isinstance(result, MeshMobject):
-                result.set_style(opacity=0.0, apply_oit=mobject._apply_oit_.value)  # TODO
+                result.set_style(opacity=0.0, is_transparent=mobject._is_transparent_.value)  # TODO
             elif isinstance(result, StrokeMobject):
                 result.set_style(width=0.0)
             return result

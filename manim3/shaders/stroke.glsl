@@ -265,7 +265,12 @@ in GS_FS {
     vec2 offset_vec;
 } fs_in;
 
+#if defined IS_TRANSPARENT
+out vec4 frag_accum;
+out float frag_revealage;
+#else
 out vec4 frag_color;
+#endif
 
 
 void main() {
@@ -273,7 +278,16 @@ void main() {
     if (dilate_base <= 0.0) {
         discard;
     }
-    frag_color = vec4(u_color.rgb, u_color.a * pow(dilate_base, u_dilate));
+    vec4 color = u_color;
+    color.a *= pow(dilate_base, u_dilate);
+
+    #if defined IS_TRANSPARENT
+    frag_accum = color;
+    frag_accum.rgb *= color.a;
+    frag_revealage = color.a;
+    #else
+    frag_color = color;
+    #endif
 }
 
 

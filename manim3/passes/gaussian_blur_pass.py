@@ -12,11 +12,12 @@ from ..lazy.interface import (
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import ContextState
+from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import (
     UniformBlockBuffer,
     TextureIDBuffer
 )
-from ..rendering.temporary_resource import ColorFramebufferBatch
+from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
 
 
@@ -85,7 +86,7 @@ class GaussianBlurPass(RenderPass):
         return VertexArray(
             shader_filename="gaussian_blur",
             custom_macros=[
-                f"#define blur_subroutine horizontal_dilate"
+                "#define blur_subroutine horizontal_dilate"
             ],
             texture_id_buffers=[
                 _u_color_map_
@@ -105,7 +106,7 @@ class GaussianBlurPass(RenderPass):
         return VertexArray(
             shader_filename="gaussian_blur",
             custom_macros=[
-                f"#define blur_subroutine vertical_dilate"
+                "#define blur_subroutine vertical_dilate"
             ],
             texture_id_buffers=[
                 _u_color_map_
@@ -118,24 +119,20 @@ class GaussianBlurPass(RenderPass):
     def _render(
         self,
         texture: moderngl.Texture,
-        target_framebuffer: moderngl.Framebuffer
+        target_framebuffer: ColorFramebuffer
     ) -> None:
-        with ColorFramebufferBatch() as batch:
+        with TextureFactory.texture() as color_texture:
             self._horizontal_vertex_array_.render(
                 texture_array_dict={
                     "u_color_map": np.array(texture)
                 },
-                framebuffer=batch.framebuffer,
-                context_state=ContextState(
-                    flags=()
+                framebuffer=ColorFramebuffer(
+                    color_texture=color_texture
                 )
             )
             self._vertical_vertex_array_.render(
                 texture_array_dict={
-                    "u_color_map": np.array(batch.color_texture)
+                    "u_color_map": np.array(color_texture)
                 },
-                framebuffer=target_framebuffer,
-                context_state=ContextState(
-                    flags=()
-                )
+                framebuffer=target_framebuffer
             )

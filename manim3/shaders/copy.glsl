@@ -1,7 +1,7 @@
 uniform sampler2D u_color_map;
-#if defined COPY_DEPTH
-uniform sampler2D u_depth_map;
-#endif
+//#if defined COPY_DEPTH
+//uniform sampler2D u_depth_map;
+//#endif
 
 
 /***********************/
@@ -37,12 +37,12 @@ out vec4 frag_color;
 
 void main() {
     frag_color = texture(u_color_map, fs_in.uv);
-    if (frag_color.a == 0.0) {
-        discard;
-    }
-    #if defined COPY_DEPTH
-    gl_FragDepth = texture(u_depth_map, fs_in.uv).x;
-    #endif
+    //if (frag_color.a == 0.0) {
+    //    discard;
+    //}
+    //#if defined COPY_DEPTH
+    //gl_FragDepth = texture(u_depth_map, fs_in.uv).x;
+    //#endif
 }
 
 

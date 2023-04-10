@@ -1,10 +1,6 @@
 __all__ = ["ColorUtils"]
 
 
-from abc import (
-    ABC,
-    abstractmethod
-)
 import re
 
 from colour import Color
@@ -16,12 +12,11 @@ from ..custom_typing import (
 )
 
 
-class ColorUtils(ABC):
+class ColorUtils:
     __slots__ = ()
 
-    @abstractmethod
-    def __new__(cls) -> None:
-        pass
+    def __new__(cls):
+        raise TypeError
 
     @classmethod
     def decompose_color(

@@ -82,7 +82,7 @@ class ShapeMobject(MeshMobject):
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
@@ -92,7 +92,7 @@ class ShapeMobject(MeshMobject):
             mobjects=mobjects,
             color=color,
             opacity=opacity,
-            apply_oit=apply_oit,
+            is_transparent=is_transparent,
             ambient_strength=ambient_strength,
             specular_strength=specular_strength,
             shininess=shininess,
@@ -104,7 +104,7 @@ class ShapeMobject(MeshMobject):
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
@@ -115,7 +115,7 @@ class ShapeMobject(MeshMobject):
             mobjects=self.iter_shape_descendants(broadcast=broadcast),
             color=color,
             opacity=opacity,
-            apply_oit=apply_oit,
+            is_transparent=is_transparent,
             ambient_strength=ambient_strength,
             specular_strength=specular_strength,
             shininess=shininess,
@@ -134,7 +134,7 @@ class ShapeMobject(MeshMobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        apply_oit: bool | None = None
+        is_transparent: bool | None = None
     ) -> None:
         if all(param is None for param in (
             width,
@@ -143,7 +143,7 @@ class ShapeMobject(MeshMobject):
             color,
             opacity,
             dilate,
-            apply_oit
+            is_transparent
         )):
             return
 
@@ -164,7 +164,7 @@ class ShapeMobject(MeshMobject):
             color=color,
             opacity=opacity,
             dilate=dilate,
-            apply_oit=apply_oit
+            is_transparent=is_transparent
         )
 
     def add_stroke(
@@ -176,7 +176,7 @@ class ShapeMobject(MeshMobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         broadcast: bool = True
     ):
         self.class_add_stroke(
@@ -187,7 +187,7 @@ class ShapeMobject(MeshMobject):
             color=color,
             opacity=opacity,
             dilate=dilate,
-            apply_oit=apply_oit
+            is_transparent=is_transparent
         )
         return self
 
@@ -203,7 +203,7 @@ class ShapeMobject(MeshMobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        apply_oit: bool | None = None
+        is_transparent: bool | None = None
     ) -> None:
         index_is_none = index is None
         index = index if index is not None else 0
@@ -224,7 +224,7 @@ class ShapeMobject(MeshMobject):
             color=color,
             opacity=opacity,
             dilate=dilate,
-            apply_oit=apply_oit
+            is_transparent=is_transparent
         )
         cls.class_add_stroke(
             mobjects=shape_mobjects,
@@ -234,7 +234,7 @@ class ShapeMobject(MeshMobject):
             color=color,
             opacity=opacity,
             dilate=dilate,
-            apply_oit=apply_oit
+            is_transparent=is_transparent
         )
 
     def set_stroke(
@@ -247,7 +247,7 @@ class ShapeMobject(MeshMobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         broadcast: bool = True
     ):
         self.class_set_stroke(
@@ -259,7 +259,7 @@ class ShapeMobject(MeshMobject):
             color=color,
             opacity=opacity,
             dilate=dilate,
-            apply_oit=apply_oit
+            is_transparent=is_transparent
         )
         return self
 
@@ -270,7 +270,7 @@ class ShapeMobject(MeshMobject):
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
@@ -282,13 +282,13 @@ class ShapeMobject(MeshMobject):
         stroke_color: ColorType | None = None,
         stroke_opacity: float | None = None,
         stroke_dilate: float | None = None,
-        stroke_apply_oit: bool | None = None
+        stroke_is_transparent: bool | None = None
     ) -> None:
         cls.class_set_fill(
             mobjects=mobjects,
             color=color,
             opacity=opacity,
-            apply_oit=apply_oit,
+            is_transparent=is_transparent,
             ambient_strength=ambient_strength,
             specular_strength=specular_strength,
             shininess=shininess,
@@ -303,7 +303,7 @@ class ShapeMobject(MeshMobject):
             color=stroke_color,
             opacity=stroke_opacity,
             dilate=stroke_dilate,
-            apply_oit=stroke_apply_oit
+            is_transparent=stroke_is_transparent
         )
 
     def set_style(
@@ -311,7 +311,7 @@ class ShapeMobject(MeshMobject):
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
-        apply_oit: bool | None = None,
+        is_transparent: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
@@ -323,14 +323,14 @@ class ShapeMobject(MeshMobject):
         stroke_color: ColorType | None = None,
         stroke_opacity: float | None = None,
         stroke_dilate: float | None = None,
-        stroke_apply_oit: bool | None = None,
+        stroke_is_transparent: bool | None = None,
         broadcast: bool = True
     ):
         self.class_set_style(
             mobjects=self.iter_shape_descendants(broadcast=broadcast),
             color=color,
             opacity=opacity,
-            apply_oit=apply_oit,
+            is_transparent=is_transparent,
             ambient_strength=ambient_strength,
             specular_strength=specular_strength,
             shininess=shininess,
@@ -342,7 +342,7 @@ class ShapeMobject(MeshMobject):
             stroke_color=stroke_color,
             stroke_opacity=stroke_opacity,
             stroke_dilate=stroke_dilate,
-            stroke_apply_oit=stroke_apply_oit
+            stroke_is_transparent=stroke_is_transparent
         )
         return self
 

@@ -65,40 +65,65 @@ in VS_FS {
     vec2 uv;
 } fs_in;
 
+#if defined IS_TRANSPARENT
+out vec4 frag_accum;
+out float frag_revealage;
+#else
 out vec4 frag_color;
+#endif
 
 
-void main() {
-    #if defined APPLY_PHONG_LIGHTING
-
+vec4 enable_phong_lighting() {
     // From https://learnopengl.com/Lighting/Basic-Lighting
-    frag_color = vec4(0.0);
-    frag_color += u_ambient_light_color * u_ambient_strength;
+    vec4 result = vec4(0.0);
+    result += u_ambient_light_color * u_ambient_strength;
     vec3 normal = normalize(fs_in.world_normal);
     #if NUM_U_POINT_LIGHTS
     for (int i = 0; i < NUM_U_POINT_LIGHTS; ++i) {
         PointLight point_light = u_point_lights[i];
         vec3 light_direction = normalize(point_light.position - fs_in.world_position);
         vec4 diffuse = max(dot(normal, light_direction), 0.0) * point_light.color;
-        frag_color += diffuse;
+        result += diffuse;
         vec3 view_direction = normalize(u_view_position - fs_in.world_position);
         vec3 reflect_direction = reflect(-light_direction, normal);
         vec4 specular = pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
-        frag_color += specular * u_specular_strength;
+        result += specular * u_specular_strength;
     }
     #endif
+    return result;
+}
 
-    #else
 
-    frag_color = vec4(1.0);
+vec4 disable_phong_lighting() {
+    return vec4(1.0);
+}
 
-    #endif
 
-    frag_color *= u_color;
+void main() {
+    //#if defined APPLY_PHONG_LIGHTING
+
+    
+
+    //#else
+
+    //frag_color = vec4(1.0);
+
+    //#endif
+
+    vec4 color = phong_lighting_subroutine();
+    color *= u_color;
     #if NUM_U_COLOR_MAPS
     for (int i = 0; i < NUM_U_COLOR_MAPS; ++i) {
-        frag_color *= texture(u_color_maps[i], fs_in.uv);
+        color *= texture(u_color_maps[i], fs_in.uv);
     }
+    #endif
+
+    #if defined IS_TRANSPARENT
+    frag_accum = color;
+    frag_accum.rgb *= color.a;
+    frag_revealage = color.a;
+    #else
+    frag_color = color;
     #endif
 }
 

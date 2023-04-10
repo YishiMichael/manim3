@@ -5,7 +5,6 @@ __all__ = [
 ]
 
 
-from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 from typing import (
@@ -37,7 +36,7 @@ class RegroupItem:
     targets: Mobject | Iterable[Mobject]
 
 
-class Animation(ABC):
+class Animation:
     __slots__ = (
         "_time_animate_func",
         "_time_regroup_items",

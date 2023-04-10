@@ -173,7 +173,7 @@ _PropertyParameters = ParamSpec("_PropertyParameters")
 
 
 @final
-class TreeNode(ABC, Generic[_TreeNodeContentT]):
+class TreeNode(Generic[_TreeNodeContentT]):
     __slots__ = (
         "_children",
         "_content"
