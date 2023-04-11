@@ -935,10 +935,10 @@ class GLBuffer(LazyObject):
     #) -> None:
     #    cls._VACANT_BUFFERS.append(buffer)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
-    def _buffer_(cls) -> moderngl.Buffer:
-        return NotImplemented
+    #@Lazy.variable(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _buffer_(cls) -> moderngl.Buffer:
+    #    return NotImplemented
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -992,10 +992,10 @@ class GLBuffer(LazyObject):
 
         #return np.zeros(shape, dtype=buffer_format__dtype)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
-    @classmethod
-    def _data_dict_(cls) -> dict[str, np.ndarray]:
-        return NotImplemented
+    #@Lazy.variable(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _data_dict_(cls) -> dict[str, np.ndarray]:
+    #    return NotImplemented
 
     @Lazy.property(LazyMode.SHARED)
     @classmethod
@@ -1098,6 +1098,11 @@ class GLWriteOnlyBuffer(GLBuffer):
     ) -> None:
         cls._finalize_buffer(buffer)
 
+    @Lazy.variable(LazyMode.UNWRAPPED)
+    @classmethod
+    def _data_dict_(cls) -> dict[str, np.ndarray]:
+        return {}
+
     def write(
         self,
         data_dict: dict[str, np.ndarray]
@@ -1111,19 +1116,19 @@ class GLWriteOnlyBuffer(GLBuffer):
 class GLReadOnlyBuffer(GLBuffer):
     __slots__ = ()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
-    @classmethod
-    def _data_dict_(
-        cls,
-        buffer: moderngl.Buffer,
-        np_buffer: np.ndarray,
-        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
-    ) -> dict[str, np.ndarray]:
-        return cls._read_from_buffer(
-            buffer=buffer,
-            np_buffer=np_buffer,
-            np_buffer_pointers=np_buffer_pointers
-        )
+    #@Lazy.property(LazyMode.UNWRAPPED)
+    #@classmethod
+    #def _data_dict_(
+    #    cls,
+    #    buffer: moderngl.Buffer,
+    #    np_buffer: np.ndarray,
+    #    np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
+    #) -> dict[str, np.ndarray]:
+    #    return cls._read_from_buffer(
+    #        buffer=buffer,
+    #        np_buffer=np_buffer,
+    #        np_buffer_pointers=np_buffer_pointers
+    #    )
 
     @contextmanager
     def temporary_buffer(self) -> Generator[moderngl.Buffer, None, None]:
@@ -1136,8 +1141,11 @@ class GLReadOnlyBuffer(GLBuffer):
         self,
         buffer: moderngl.Buffer
     ) -> dict[str, np.ndarray]:
-        self._buffer_ = buffer
-        return self._data_dict_.value
+        return self._read_from_buffer(
+            buffer=buffer,
+            np_buffer=self._np_buffer_.value,
+            np_buffer_pointers=self._np_buffer_pointers_.value
+        )
 
 
 #class DTypeNode(LazyObject):

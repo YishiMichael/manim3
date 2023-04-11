@@ -10,7 +10,7 @@ from ..lazy.interface import (
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
-from ..rendering.context import ContextState
+#from ..rendering.context import ContextState
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.texture import TextureFactory
@@ -33,24 +33,23 @@ class PixelatedPass(RenderPass):
     def _pixelated_width_(cls) -> float:
         return 0.1
 
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
-    def _u_color_map_(cls) -> TextureIDBuffer:
-        return TextureIDBuffer(
-            field="sampler2D u_color_map"
-        )
+    #@Lazy.property(LazyMode.OBJECT)
+    #@classmethod
+    #def _color_map_tid_(cls) -> TextureIDBuffer:
+    #    return TextureIDBuffer(
+    #        field="sampler2D t_color_map"
+    #    )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _vertex_array_(
-        cls,
-        _u_color_map_: TextureIDBuffer
-    ) -> VertexArray:
+    def _pixelated_va_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             #custom_macros=[],
             texture_id_buffers=[
-                _u_color_map_
+                TextureIDBuffer(
+                    field="sampler2D t_color_map"
+                )
             ]
             #uniform_block_buffers=[]
         )
@@ -67,23 +66,23 @@ class PixelatedPass(RenderPass):
         )
         with TextureFactory.texture(size=texture_size) as color_texture:
             color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)  # TODO: typing
-            self._vertex_array_.render(
+            self._pixelated_va_.render(
                 texture_array_dict={
-                    "u_color_map": np.array(texture)
+                    "t_color_map": np.array(texture)
                 },
                 framebuffer=ColorFramebuffer(
                     color_texture=color_texture
-                ),
-                context_state=ContextState(
-                    flags=()
                 )
+                #context_state=ContextState(
+                #    flags=()
+                #)
             )
-            self._vertex_array_.render(
+            self._pixelated_va_.render(
                 texture_array_dict={
-                    "u_color_map": np.array(color_texture)
+                    "t_color_map": np.array(color_texture)
                 },
-                framebuffer=target_framebuffer,
-                context_state=ContextState(
-                    flags=()
-                )
+                framebuffer=target_framebuffer
+                #context_state=ContextState(
+                #    flags=()
+                #)
             )

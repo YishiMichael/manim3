@@ -18,8 +18,8 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
-        text = Text("Text").scale(3).add_stroke(width=0.04, color=BLUE).add_stroke(width=0.08, color=GREEN).concatenate()
-        tex = Tex("Tex").scale(3).set_fill(color=BLUE).set_stroke(width=0.06, color=PINK).concatenate()
+        text = Text("Text").scale(3).set_fill(color=ORANGE, opacity=0.1).add_stroke(width=0.04, color=BLUE).add_stroke(width=0.08, color=GREEN).concatenate()
+        tex = Tex("Tex").scale(3).set_fill(color=BLUE, opacity=0.1).set_stroke(width=0.06, color=PINK).concatenate()
         self.add(text)
         self.wait()
         self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))

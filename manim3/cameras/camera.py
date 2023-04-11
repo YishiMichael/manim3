@@ -65,7 +65,7 @@ class Camera(LazyObject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _ub_camera_(
+    def _camera_uniform_block_buffer_(
         cls,
         projection_matrix: Mat4T,
         view_matrix: Mat4T,

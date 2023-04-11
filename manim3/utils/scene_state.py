@@ -83,7 +83,7 @@ class SceneState(LazyObject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _ub_lights_(
+    def _lights_uniform_block_buffer_(
         cls,
         ambient_light_color: Vec3T,
         ambient_light_opacity: float,

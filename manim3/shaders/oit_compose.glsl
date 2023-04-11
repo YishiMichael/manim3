@@ -1,5 +1,5 @@
-uniform sampler2D u_accum_map;
-uniform sampler2D u_revealage_map;
+uniform sampler2D t_accum_map;
+uniform sampler2D t_revealage_map;
 
 
 /***********************/
@@ -34,12 +34,15 @@ out vec4 frag_color;
 
 
 void main() {
-    float revealage = texture(u_revealage_map, fs_in.uv).x;
+    // From `https://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html`
+    // `accum = sum(rgb * a, a)`
+    // `revealage = prod(1 - a)`
+    float revealage = texture(t_revealage_map, fs_in.uv).x;
     if (revealage == 1.0) {
-        // Save the blending and color texture fetch cost
+        // Save the blending and color texture fetch cost.
         discard;
     }
-    vec4 accum = texture(u_accum_map, fs_in.uv);
+    vec4 accum = texture(t_accum_map, fs_in.uv);
     vec3 average_color = accum.rgb / max(accum.a, 1e-5);
     frag_color = vec4(average_color, 1.0 - revealage);
 }

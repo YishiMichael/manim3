@@ -257,7 +257,7 @@ class Mobject(LazyObject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _ub_model_(
+    def _model_uniform_block_buffer_(
         cls,
         model_matrix: Mat4T
     ) -> UniformBlockBuffer:

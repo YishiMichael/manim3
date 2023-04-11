@@ -32,7 +32,7 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
-from ..rendering.context import ContextState
+#from ..rendering.context import ContextState
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
     OpaqueFramebuffer
@@ -43,10 +43,7 @@ from ..rendering.gl_buffer import (
     TransformFeedbackBuffer,
     UniformBlockBuffer
 )
-from ..rendering.mgl_enums import (
-    ContextFlag,
-    PrimitiveMode
-)
+from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
@@ -120,14 +117,14 @@ class StrokeMobject(Mobject):
     ) -> Vec3sT:
         return all_points
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _all_position_(
+    def _stroke_preprocess_vertex_array_(
         cls,
         all_points: Vec3sT,
-        _scene_state__camera__ub_camera_: UniformBlockBuffer,
-        _ub_model_: UniformBlockBuffer
-    ) -> Vec3sT:
+        _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _model_uniform_block_buffer_: UniformBlockBuffer
+    ) -> VertexArray:
         #if not _multi_line_string_._line_strings_:
         #    position = np.zeros((0, 3))
         #else:
@@ -157,18 +154,25 @@ class StrokeMobject(Mobject):
             ],
             num_vertex=len(all_points)
         )
-        vertex_array = VertexArray(
+        return VertexArray(
             shader_filename="stroke_preprocess",
             uniform_block_buffers=[
-                _scene_state__camera__ub_camera_,
-                _ub_model_
+                _scene_state__camera__camera_uniform_block_buffer_,
+                _model_uniform_block_buffer_
             ],
             indexed_attributes_buffer=indexed_attributes_buffer,
             transform_feedback_buffer=transform_feedback_buffer
         )
+
+    @Lazy.property(LazyMode.UNWRAPPED)
+    @classmethod
+    def _all_position_(
+        cls,
+        _stroke_preprocess_vertex_array_: VertexArray
+    ) -> Vec3sT:
         #print(model_matrix)
-        #print(np.frombuffer(_ub_model_.get_buffer().read(), dtype=np.float32))
-        data_dict = vertex_array.transform()
+        #print(np.frombuffer(_model_ub_.get_buffer().read(), dtype=np.float32))
+        data_dict = _stroke_preprocess_vertex_array_.transform()
         #print(data_dict)
         return data_dict["out_position"]
 
@@ -234,7 +238,7 @@ class StrokeMobject(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _ub_stroke_(
+    def _stroke_uniform_block_buffer_(
         cls,
         width: float,
         color: Vec3T,
@@ -257,7 +261,7 @@ class StrokeMobject(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _ub_winding_sign_(
+    def _winding_sign_uniform_block_buffer_(
         cls,
         #position_list: list[Vec3sT],
         #width: float,
@@ -283,7 +287,7 @@ class StrokeMobject(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _attributes_buffer_(
+    def _position_attributes_buffer_(
         cls,
         position_list: list[Vec3sT],
         multi_line_string__line_strings__is_ring: list[bool]
@@ -366,16 +370,16 @@ class StrokeMobject(Mobject):
 
     @Lazy.property(LazyMode.COLLECTION)
     @classmethod
-    def _vertex_arrays_(
+    def _stroke_vertex_arrays_(
         cls,
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
-        _scene_state__camera__ub_camera_: UniformBlockBuffer,
-        #_ub_model_: UniformBlockBuffer,
-        _ub_stroke_: UniformBlockBuffer,
-        _ub_winding_sign_: UniformBlockBuffer,
+        _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        #_model_uniform_block_buffer_: UniformBlockBuffer,
+        _stroke_uniform_block_buffer_: UniformBlockBuffer,
+        _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
         is_transparent: bool,
-        _attributes_buffer_: AttributesBuffer,
+        _position_attributes_buffer_: AttributesBuffer,
         single_sided: bool,
         has_linecap: bool
     ) -> list[VertexArray]:
@@ -442,10 +446,10 @@ class StrokeMobject(Mobject):
             return [0, points_len - 1]
 
         uniform_block_buffers = [
-            _scene_state__camera__ub_camera_,
-            #_ub_model_,
-            _ub_stroke_,
-            _ub_winding_sign_
+            _scene_state__camera__camera_uniform_block_buffer_,
+            #_model_uniform_block_buffer_,
+            _stroke_uniform_block_buffer_,
+            _winding_sign_uniform_block_buffer_
         ]
 
         def get_vertex_array(
@@ -460,7 +464,7 @@ class StrokeMobject(Mobject):
                 custom_macros=custom_macros,
                 uniform_block_buffers=uniform_block_buffers,
                 indexed_attributes_buffer=IndexedAttributesBuffer(
-                    attributes_buffer=_attributes_buffer_,
+                    attributes_buffer=_position_attributes_buffer_,
                     index_buffer=IndexBuffer(
                         data=lump_index_from_getter(index_getter)
                     ),
@@ -511,7 +515,7 @@ class StrokeMobject(Mobject):
         # TODO: Is this already the best practice?
         # Render color.
         #target_framebuffer.depth_mask = False
-        for vertex_array in self._vertex_arrays_:
+        for vertex_array in self._stroke_vertex_arrays_:
             vertex_array.render(
                 framebuffer=target_framebuffer
                 #context_state=context_state
@@ -524,7 +528,7 @@ class StrokeMobject(Mobject):
         #target_framebuffer.depth_mask = True
         # Render depth.
         #target_framebuffer.color_mask = (False, False, False, False)
-        #for vertex_array in self._vertex_arrays_:
+        #for vertex_array in self._stroke_vertex_arrays_:
         #    vertex_array.render(
         #        framebuffer=target_framebuffer,
         #        context_state=ContextState(

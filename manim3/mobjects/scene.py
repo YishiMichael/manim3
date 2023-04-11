@@ -74,26 +74,26 @@ class Scene(Mobject):
     def _render_passes_(cls) -> list[RenderPass]:
         return []
 
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
-    def _u_color_map_(cls) -> TextureIDBuffer:
-        return TextureIDBuffer(
-            field="sampler2D u_color_map"
-        )
+    #@Lazy.property(LazyMode.OBJECT)
+    #@classmethod
+    #def _color_map_tid_(cls) -> TextureIDBuffer:
+    #    return TextureIDBuffer(
+    #        field="sampler2D t_color_map"
+    #    )
 
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
-    def _u_accum_map_(cls) -> TextureIDBuffer:
-        return TextureIDBuffer(
-            field="sampler2D u_accum_map"
-        )
+    #@Lazy.property(LazyMode.OBJECT)
+    #@classmethod
+    #def _accum_map_tid_(cls) -> TextureIDBuffer:
+    #    return TextureIDBuffer(
+    #        field="sampler2D t_accum_map"
+    #    )
 
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
-    def _u_revealage_map_(cls) -> TextureIDBuffer:
-        return TextureIDBuffer(
-            field="sampler2D u_revealage_map"
-        )
+    #@Lazy.property(LazyMode.OBJECT)
+    #@classmethod
+    #def _revealage_map_tid_(cls) -> TextureIDBuffer:
+    #    return TextureIDBuffer(
+    #        field="sampler2D t_revealage_map"
+    #    )
 
     #@Lazy.property(LazyMode.OBJECT)
     #@classmethod
@@ -152,29 +152,28 @@ class Scene(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _copy_vertex_array_(
-        cls,
-        _u_color_map_: TextureIDBuffer
-    ) -> VertexArray:
+    def _pixelated_va_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             texture_id_buffers=[
-                _u_color_map_
+                TextureIDBuffer(
+                    field="sampler2D t_color_map"
+                )
             ]
         )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _oit_compose_vertex_array_(
-        cls,
-        _u_accum_map_: TextureIDBuffer,
-        _u_revealage_map_: TextureIDBuffer
-    ) -> VertexArray:
+    def _oit_compose_va_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="oit_compose",
             texture_id_buffers=[
-                _u_accum_map_,
-                _u_revealage_map_
+                TextureIDBuffer(
+                    field="sampler2D t_accum_map"
+                ),
+                TextureIDBuffer(
+                    field="sampler2D t_revealage_map"
+                )
             ]
         )
 
@@ -268,10 +267,10 @@ class Scene(Mobject):
             #        blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
             #    )
             #)
-            self._oit_compose_vertex_array_.render(
+            self._oit_compose_va_.render(
                 texture_array_dict={
-                    "u_accum_map": np.array(accum_texture),
-                    "u_revealage_map": np.array(revealage_texture)
+                    "t_accum_map": np.array(accum_texture),
+                    "t_revealage_map": np.array(revealage_texture)
                 },
                 framebuffer=target_framebuffer
                 #context_state=ContextState(
@@ -338,9 +337,9 @@ class Scene(Mobject):
                     if window.is_closing:
                         raise KeyboardInterrupt
                     window.clear()
-                    self._copy_vertex_array_.render(
+                    self._pixelated_va_.render(
                         texture_array_dict={
-                            "u_color_map": np.array(color_texture)
+                            "t_color_map": np.array(color_texture)
                         },
                         framebuffer=Framebuffer(
                             framebuffer=Context.window_framebuffer,

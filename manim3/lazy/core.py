@@ -1,5 +1,6 @@
 """
-This module implements lazy evaluation based on weak reference.
+This module implements lazy evaluation based on weak reference. Meanwhile,
+this also introduces functional programming into the project paradigm.
 
 Every child class of `LazyData` shall define `__slots__`, and all methods
 shall basically be sorted in the following way:

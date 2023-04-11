@@ -87,23 +87,23 @@ class MeshMobject(Mobject):
     ) -> Vec3sT:
         return _geometry_._geometry_data_.value.position
 
-    @Lazy.property(LazyMode.OBJECT)
-    @classmethod
-    def _u_color_maps_(
-        cls,
-        color_map: moderngl.Texture | None
-    ) -> TextureIDBuffer:
-        texture_len = int(color_map is not None)
-        return TextureIDBuffer(
-            field="sampler2D u_color_maps[NUM_U_COLOR_MAPS]",
-            array_lens={
-                "NUM_U_COLOR_MAPS": texture_len
-            }
-        )
+    #@Lazy.property(LazyMode.OBJECT)
+    #@classmethod
+    #def _color_maps_tid_(
+    #    cls,
+    #    color_map: moderngl.Texture | None
+    #) -> TextureIDBuffer:
+    #    texture_len = int(color_map is not None)
+    #    return TextureIDBuffer(
+    #        field="sampler2D t_color_maps[NUM_COLOR_MAPS]",
+    #        array_lens={
+    #            "NUM_COLOR_MAPS": texture_len
+    #        }
+    #    )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _ub_material_(
+    def _material_uniform_block_buffer_(
         cls,
         color: Vec3T,
         opacity: float,
@@ -129,15 +129,15 @@ class MeshMobject(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _vertex_array_(
+    def _mesh_vertex_array_(
         cls,
         is_transparent: bool,
         apply_phong_lighting: bool,
-        _u_color_maps_: TextureIDBuffer,
-        _scene_state__camera__ub_camera_: UniformBlockBuffer,
-        _ub_model_: UniformBlockBuffer,
-        _scene_state__ub_lights_: UniformBlockBuffer,
-        _ub_material_: UniformBlockBuffer,
+        color_map: moderngl.Texture | None,
+        _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _model_uniform_block_buffer_: UniformBlockBuffer,
+        _scene_state__lights_uniform_block_buffer_: UniformBlockBuffer,
+        _material_uniform_block_buffer_: UniformBlockBuffer,
         _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         custom_macros: list[str] = []
@@ -151,13 +151,18 @@ class MeshMobject(Mobject):
                 f"#define phong_lighting_subroutine {phong_lighting_subroutine}"
             ],
             texture_id_buffers=[
-                _u_color_maps_
+                TextureIDBuffer(
+                    field="sampler2D t_color_maps[NUM_COLOR_MAPS]",
+                    array_lens={
+                        "NUM_COLOR_MAPS": int(color_map is not None)
+                    }
+                )
             ],
             uniform_block_buffers=[
-                _scene_state__camera__ub_camera_,
-                _ub_model_,
-                _scene_state__ub_lights_,
-                _ub_material_
+                _scene_state__camera__camera_uniform_block_buffer_,
+                _model_uniform_block_buffer_,
+                _scene_state__lights_uniform_block_buffer_,
+                _material_uniform_block_buffer_
             ],
             indexed_attributes_buffer=_geometry__indexed_attributes_buffer_
         )
@@ -173,9 +178,9 @@ class MeshMobject(Mobject):
         textures: list[moderngl.Texture] = []
         if (color_map := self._color_map_.value) is not None:
             textures.append(color_map)
-        self._vertex_array_.render(
+        self._mesh_vertex_array_.render(
             texture_array_dict={
-                "u_color_maps": np.array(textures, dtype=moderngl.Texture)
+                "t_color_maps": np.array(textures, dtype=moderngl.Texture)
             },
             framebuffer=target_framebuffer,
             #context_state=ContextState(

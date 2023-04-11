@@ -3,8 +3,8 @@ struct PointLight {
     vec4 color;
 };
 
-#if NUM_U_COLOR_MAPS
-uniform sampler2D u_color_maps[NUM_U_COLOR_MAPS];
+#if NUM_COLOR_MAPS
+uniform sampler2D t_color_maps[NUM_COLOR_MAPS];
 #endif
 
 layout (std140) uniform ub_camera {
@@ -112,9 +112,9 @@ void main() {
 
     vec4 color = phong_lighting_subroutine();
     color *= u_color;
-    #if NUM_U_COLOR_MAPS
-    for (int i = 0; i < NUM_U_COLOR_MAPS; ++i) {
-        color *= texture(u_color_maps[i], fs_in.uv);
+    #if NUM_COLOR_MAPS
+    for (int i = 0; i < NUM_COLOR_MAPS; ++i) {
+        color *= texture(t_color_maps[i], fs_in.uv);
     }
     #endif
 
