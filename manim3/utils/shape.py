@@ -508,18 +508,44 @@ class Shape(LazyObject):
             ring_ends = np.cumsum([len(ring_points) for ring_points in ring_points_list], dtype=np.uint32)
             return triangulate_float32(points, ring_ends), points
 
-        item_list: list[tuple[VertexIndexType, Vec2sT]] = []
-        points_len = 0
-        for polygon in get_shapely_polygons(shapely_obj):
-            index, points = get_polygon_triangulation(polygon)
-            item_list.append((index + points_len, points))
-            points_len += len(points)
+        def concatenate_triangulations(
+            triangulations: list[tuple[VertexIndexType, Vec2sT]]
+        ) -> tuple[VertexIndexType, Vec2sT]:
+            if not triangulations:
+                return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
 
-        if not item_list:
-            return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+            offsets = np.cumsum((0, *(len(points) for _, points in triangulations[:-1])))
+            all_index = np.concatenate([
+                index + offset
+                for (index, _), offset in zip(triangulations, offsets, strict=True)
+            ], dtype=np.uint32)
+            all_points = np.concatenate([
+                points
+                for _, points in triangulations
+            ])
+            return all_index, all_points
 
-        index_list, points_list = zip(*item_list)
-        return np.concatenate(index_list), np.concatenate(points_list)
+        return concatenate_triangulations([
+            get_polygon_triangulation(polygon)
+            for polygon in get_shapely_polygons(shapely_obj)
+        ])
+
+        #item_list: list[tuple[VertexIndexType, int, Vec2sT]] = []
+        #offset: int = 0
+        #for polygon in get_shapely_polygons(shapely_obj):
+        #    index, points = get_polygon_triangulation(polygon)
+        #    item_list.append((index, offset, points))
+        #    offset += len(points)
+
+        #if not item_list:
+        #    return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+
+        #index_list, offsets, points_list = zip(*item_list)
+        #index = np.concatenate([index + offset for index, offset, _ in item_list])
+        #points = 
+        #return , np.concatenate([
+        #    points for _, _, points in item_list
+        #])
 
     @classmethod
     def from_multi_line_string(

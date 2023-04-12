@@ -320,7 +320,7 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
         self,
         src: "LazyDynamicContainer[_ElementT]"
     ) -> None:
-        self._elements = src._elements
+        self._elements = list(src._elements)
 
     def _copy(self) -> "LazyDynamicContainer[_ElementT]":
         return LazyDynamicContainer(

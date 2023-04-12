@@ -49,9 +49,9 @@ void main() {
 
 
 // For every point `p`, `direction_angle` and `delta_angle` satisfies
-// `polar(direction_angle - delta_angle) = normalize(p - p_prev)`
-// `polar(direction_angle + delta_angle) = normalize(p_next - p)`
-// `-PI_HALF <= delta_angle < PI_HALF`
+// `polar(direction_angle - delta_angle) = normalize(p - p_prev)`,
+// `polar(direction_angle + delta_angle) = normalize(p_next - p)`,
+// `-PI_HALF < delta_angle < PI_HALF`.
 in VS_GS {
     vec3 position;
     float direction_angle;
@@ -61,6 +61,10 @@ in VS_GS {
 out GS_FS {
     vec2 offset_vec;
 } gs_out;
+
+
+const float width = abs(u_width);
+const float winding_sign = sign(u_width) * u_winding_sign;  // Requires `u_width != 0.0`.
 
 
 //vec2 to_ndc_space(vec4 position) {
@@ -79,7 +83,7 @@ out GS_FS {
 void emit_vertex_by_polar(vec3 center_position, float magnitude, float angle) {
     vec2 offset_vec = magnitude * vec2(cos(angle), sin(angle));
     gs_out.offset_vec = offset_vec;
-    gl_Position = vec4((center_position + vec3(u_width * offset_vec, 0.0)) / vec3(u_frame_radius, 1.0), 1.0);
+    gl_Position = vec4((center_position + vec3(width * offset_vec, 0.0)) / vec3(u_frame_radius, 1.0), 1.0);
     EmitVertex();
 }
 
@@ -124,21 +128,20 @@ layout (triangle_strip, max_vertices = 8) out;
 
 void emit_one_side(vec3 position_0, vec3 position_1, float delta_angle_0, float delta_angle_1, float normal_angle) {
     float line_length = length(position_1 - position_0);
-    float ratio_0 = 0.0;
-    float ratio_1 = 0.0;
-    if (delta_angle_0 < 0.0) {
-        if (delta_angle_0 + PI_HALF < 1e-5) {
-            return;
-        }
-        ratio_0 = tan(-delta_angle_0) * u_width / line_length;
-    }
-    if (delta_angle_1 < 0.0) {
-        if (delta_angle_1 + PI_HALF < 1e-5) {
-            return;
-        }
-        ratio_1 = tan(-delta_angle_1) * u_width / line_length;
-    }
-    //float ratio_1 = delta_angle_1 < 0.0 ? tan(-delta_angle_1) * u_width / line_length : 0.0;
+    float ratio_0 = delta_angle_0 < 0.0 ? tan(-delta_angle_0) * width / line_length : 0.0;
+    float ratio_1 = delta_angle_1 < 0.0 ? tan(-delta_angle_1) * width / line_length : 0.0;
+    //if (delta_angle_0 < 0.0) {
+    //    if (delta_angle_0 + PI_HALF < 1e-5) {
+    //        return;
+    //    }
+    //    ratio_0 = tan(-delta_angle_0) * width / line_length;
+    //}
+    //if (delta_angle_1 < 0.0) {
+    //    if (delta_angle_1 + PI_HALF < 1e-5) {
+    //        return;
+    //    }
+    //    ratio_1 = tan(-delta_angle_1) * width / line_length;
+    //}
     if (ratio_0 + ratio_1 > 1.0) {
         emit_vertex_by_polar(position_0, 0.0, normal_angle);
         emit_vertex_by_polar(position_1, 0.0, normal_angle);
@@ -174,7 +177,7 @@ void both_sided(vec3 position_0, vec3 position_1, float delta_angle_0, float del
 void single_sided(vec3 position_0, vec3 position_1, float delta_angle_0, float delta_angle_1, float line_angle) {
     emit_one_side(
         position_0, position_1,
-        u_winding_sign * delta_angle_0, u_winding_sign * delta_angle_1, line_angle - u_winding_sign * PI_HALF
+        winding_sign * delta_angle_0, winding_sign * delta_angle_1, line_angle - winding_sign * PI_HALF
     );
     //emit_vertex_by_polar(position_0, 1.0, normal_angle);
     //emit_vertex_by_polar(position_1, 1.0, normal_angle);
@@ -210,7 +213,7 @@ void both_sided(vec3 position, float direction_angle, float delta_angle) {
 
 
 void single_sided(vec3 position, float direction_angle, float delta_angle) {
-    if (u_winding_sign * delta_angle > 0.0) {
+    if (winding_sign * delta_angle > 0.0) {
         both_sided(position, direction_angle, delta_angle);
     }
 }

@@ -6,10 +6,10 @@ from manim3 import *
 class ShapeTransformExample(Scene):
     def construct(self) -> None:
         circle = Circle()
-        circle.set_fill(color=PINK, opacity=0.9)
-        circle.set_stroke(color=YELLOW, width=0.4)
+        circle.set_style(color=PINK, opacity=0.9)
+        circle.add(circle.build_stroke().set_style(color=YELLOW, width=0.4))
         square = Square()
-        square.set_fill(opacity=1.0)
+        square.set_style(opacity=1.0)
 
         self.add(square)
         self.play(Transform(square, circle, replace=False))
@@ -18,8 +18,22 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def construct(self) -> None:
-        text = Text("Text").scale(3).set_fill(color=ORANGE, opacity=0.1).add_stroke(width=0.04, color=BLUE).add_stroke(width=0.08, color=GREEN).concatenate()
-        tex = Tex("Tex").scale(3).set_fill(color=BLUE, opacity=0.1).set_stroke(width=0.06, color=PINK).concatenate()
+        text = (Text("Text")
+            .scale(3)
+            .set_style(color=ORANGE, opacity=None)
+            .concatenate()
+        )
+        text.add(
+            text.build_stroke().set_style(width=0.04, color=BLUE),
+            text.build_stroke().set_style(width=0.08, color=GREEN)
+        )
+        tex = (Tex("Tex")
+            .scale(3)
+            .set_style(color=BLUE, opacity=None)
+            .concatenate()
+        )
+        tex.add(tex.build_stroke().set_style(width=0.06, color=PINK))
+        #print(len(text._stroke_mobjects_[0]._local_sample_points_.value))
         self.add(text)
         self.wait()
         self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))

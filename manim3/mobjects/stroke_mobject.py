@@ -23,10 +23,7 @@ from ..custom_typing import (
     VertexIndexType,
     #VertexIndexType
 )
-from ..lazy.core import (
-    LazyDynamicVariableDescriptor,
-    LazyWrapper
-)
+from ..lazy.core import LazyWrapper
 from ..lazy.interface import (
     Lazy,
     LazyMode
@@ -197,8 +194,7 @@ class StrokeMobject(Mobject):
     @classmethod
     def _winding_sign_(
         cls,
-        position_list: list[Vec3sT],
-        width: float
+        position_list: list[Vec3sT]
     ) -> bool:
 
         def get_signed_area(
@@ -210,7 +206,8 @@ class StrokeMobject(Mobject):
             get_signed_area(SpaceUtils.decrease_dimension(position))
             for position in position_list
         )
-        return bool(area * width >= 0.0)
+        return area >= 0.0
+        #return bool(area * width >= 0.0)
 
     #@Lazy.property(LazyMode.SHARED)
     #@classmethod
@@ -253,7 +250,7 @@ class StrokeMobject(Mobject):
                 "float u_dilate"
             ],
             data={
-                "u_width": np.array(abs(width)),
+                "u_width": np.array(width),
                 "u_color": np.append(color, opacity),
                 "u_dilate": np.array(dilate)
             }
@@ -353,7 +350,8 @@ class StrokeMobject(Mobject):
             ))
             all_position = np.concatenate(position_list)
             direction_angle = np.concatenate(direction_angles_tuple)
-            delta_angle = np.concatenate(delta_angles_tuple)
+            threshold = PI / 2.0 - 1e-5
+            delta_angle = np.concatenate(delta_angles_tuple).clip(-threshold, threshold)
         return AttributesBuffer(
             fields=[
                 "vec3 in_position",
@@ -372,6 +370,7 @@ class StrokeMobject(Mobject):
     @classmethod
     def _stroke_vertex_arrays_(
         cls,
+        width: float,
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
         _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
@@ -383,13 +382,15 @@ class StrokeMobject(Mobject):
         single_sided: bool,
         has_linecap: bool
     ) -> list[VertexArray]:
+        if np.isclose(width, 0.0):
+            return []
 
         def lump_index_from_getter(
             index_getter: Callable[[int, bool], list[int]]
         ) -> VertexIndexType:
             if not multi_line_string__line_strings__points_len:
                 return np.zeros(0, dtype=np.uint32)
-            offsets = np.array((0, *multi_line_string__line_strings__points_len[:-1])).cumsum()
+            offsets = np.cumsum((0, *multi_line_string__line_strings__points_len[:-1]))
             return np.concatenate([
                 np.array(index_getter(points_len, is_ring), dtype=np.uint32) + offset
                 for points_len, is_ring, offset in zip(
@@ -537,6 +538,11 @@ class StrokeMobject(Mobject):
         #    )
         #target_framebuffer.color_mask = (True, True, True, True)
 
+    def iter_stroke_children(self) -> "Generator[StrokeMobject, None, None]":
+        for mobject in self.iter_children():
+            if isinstance(mobject, StrokeMobject):
+                yield mobject
+
     def iter_stroke_descendants(
         self,
         broadcast: bool = True
@@ -544,6 +550,44 @@ class StrokeMobject(Mobject):
         for mobject in self.iter_descendants(broadcast=broadcast):
             if isinstance(mobject, StrokeMobject):
                 yield mobject
+
+    @classmethod
+    def class_concatenate(
+        cls,
+        *mobjects: "StrokeMobject"
+    ) -> "StrokeMobject":
+        return StrokeMobject._concatenate_by_descriptor(
+            target_descriptor=StrokeMobject._multi_line_string_,
+            concatenate_method=MultiLineString.concatenate,
+            mobjects=list(mobjects)
+        )
+        #result = StrokeMobject()
+        #if not mobjects:
+        #    return result
+        ##result = mobjects[0]._copy()
+        #for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+        #    if isinstance(descriptor, LazyDynamicVariableDescriptor):
+        #        continue
+        #    if descriptor is cls._multi_line_string_:
+        #        continue
+        #    unique_values = set(
+        #        descriptor.__get__(mobject)
+        #        for mobject in mobjects
+        #    )
+        #    descriptor.__set__(result, unique_values.pop())
+        #    assert not unique_values
+        #    #assert all(
+        #    #    descriptor.__get__(result) is descriptor.__get__(mobject)
+        #    #    for mobject in mobjects
+        #    #)
+        #result._multi_line_string_ = MultiLineString.concatenate(
+        #    mobject._multi_line_string_
+        #    for mobject in mobjects
+        #)
+        #return result
+
+    def concatenate(self) -> "StrokeMobject":
+        return self.class_concatenate(*self.iter_stroke_children())
 
     @classmethod
     def class_set_style(
@@ -609,26 +653,3 @@ class StrokeMobject(Mobject):
             is_transparent=is_transparent
         )
         return self
-
-    @classmethod
-    def class_concatenate(
-        cls,
-        *mobjects: "StrokeMobject"
-    ) -> "StrokeMobject":
-        if not mobjects:
-            return StrokeMobject()
-        result = mobjects[0]._copy()
-        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
-            if isinstance(descriptor, LazyDynamicVariableDescriptor):
-                continue
-            if descriptor is cls._multi_line_string_:
-                continue
-            assert all(
-                descriptor.__get__(result) is descriptor.__get__(mobject)
-                for mobject in mobjects
-            )
-        result._multi_line_string_ = MultiLineString.concatenate(
-            mobject._multi_line_string_
-            for mobject in mobjects
-        )
-        return result
