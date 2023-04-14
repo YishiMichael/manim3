@@ -33,11 +33,11 @@ class BezierCurve(BSpline):
         self,
         control_points: Vec2sT
     ) -> None:
-        order = len(control_points) - 1
+        degree = len(control_points) - 1
         super().__init__(
-            t=np.append(np.zeros(order + 1), np.ones(order + 1)),
+            t=np.append(np.zeros(degree + 1), np.ones(degree + 1)),
             c=control_points,
-            k=order
+            k=degree
         )
 
     @overload
@@ -148,10 +148,10 @@ class SVGMobject(ShapeMobject):
             large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
             if not len(large_angle_indices):
                 return samples
-            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain(*(
+            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain.from_iterable(
                 ((i, i + 1), (i + 1, i + 2))
                 for i in large_angle_indices
-            )))))
+            ))))
             new_samples = np.average(samples[insertion_index_pairs], axis=1)
             return smoothen_samples(curve, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
 

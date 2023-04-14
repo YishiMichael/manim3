@@ -401,10 +401,10 @@ class MultiLineString(ShapeInterpolant):
         multi_line_strings: "Iterable[MultiLineString]"
     ) -> "MultiLineString":
         result = MultiLineString()
-        result._line_strings_.add(*it.chain(*(
+        result._line_strings_.add(*it.chain.from_iterable(
             multi_line_string._line_strings_
             for multi_line_string in multi_line_strings
-        )))
+        ))
         return result
 
 

@@ -588,11 +588,11 @@ class VertexArray(LazyObject):
         #array_len_items.update(dict(indexed_attributes_buffer__attributes_buffer__array_len_items))
         return tuple(
             (array_len_name, array_len)
-            for array_len_name, array_len in (
-                *it.chain(*texture_id_buffers__array_len_items),
-                *it.chain(*uniform_block_buffers__array_len_items),
-                *indexed_attributes_buffer__attributes_buffer__array_len_items,
-                *transform_feedback_buffer__array_len_items
+            for array_len_name, array_len in it.chain(
+                it.chain.from_iterable(texture_id_buffers__array_len_items),
+                it.chain.from_iterable(uniform_block_buffers__array_len_items),
+                indexed_attributes_buffer__attributes_buffer__array_len_items,
+                transform_feedback_buffer__array_len_items
             )
             if not re.fullmatch(r"__\w+__", array_len_name)
         )

@@ -1,5 +1,4 @@
 __all__ = [
-    "MarkupText",
     "Text",
     "Code"
 ]
@@ -27,7 +26,8 @@ from ..mobjects.string_mobject import (
     CommandFlag,
     EdgeFlag,
     StringFileWriter,
-    StringMobject
+    StringMobject,
+    StringParser
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.color import ColorUtils
@@ -152,7 +152,7 @@ class MarkupTextFileWriter(StringFileWriter):
         )
 
 
-class MarkupText(StringMobject):
+class MarkupTextParser(StringParser):
     __slots__ = ()
 
     # See `https://docs.gtk.org/Pango/pango_markup.html`.
@@ -178,65 +178,19 @@ class MarkupText(StringMobject):
         v: k
         for k, v in _MARKUP_ENTITY_DICT.items()
     }
-    _TEXT_SCALE_FACTOR: ClassVar[float] = 0.0076  # TODO
 
     def __init__(
         self,
         string: str,
-        *,
-        isolate: Selector = (),
-        protect: Selector = (),
-        local_configs: dict[Selector, dict[str, str]] | None = None,
-        justify: bool = ...,
-        indent: float = ...,
-        alignment: str = ...,
-        line_width: float | None = ...,
-        font_size: float = ...,
-        font: str = ...,
-        slant: str = ...,
-        weight: str = ...,
-        base_color: ColorType = ...,
-        line_spacing_height: float = ...,
-        global_config: dict[str, str] = ...
+        isolate: Selector,
+        protect: Selector,
+        #configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
+        #get_content_by_body: Callable[[str, bool], str],
+        file_writer: StringFileWriter,
+        frame_scale: float,
+        local_configs: dict[Selector, dict[str, str]],
+        global_attrs: dict[str, str]
     ) -> None:
-        if not isinstance(self, Text):
-            PangoUtils.validate_markup_string(string)
-        if local_configs is None:
-            local_configs = {}
-
-        config = ConfigSingleton().text
-        if justify is ...:
-            justify = config.justify
-        if indent is ...:
-            indent = config.indent
-        if alignment is ...:
-            alignment = config.alignment
-        if line_width is ...:
-            line_width = config.line_width
-        if font_size is ...:
-            font_size = config.font_size
-        if font is ...:
-            font = config.font
-        if slant is ...:
-            slant = config.slant
-        if weight is ...:
-            weight = config.weight
-        if base_color is ...:
-            base_color = config.base_color
-        if line_spacing_height is ...:
-            line_spacing_height = config.line_spacing_height
-        if global_config is ...:
-            global_config = config.global_config
-
-        global_attrs = self._get_global_attrs(
-            font_size=font_size,
-            font=font,
-            slant=slant,
-            weight=weight,
-            base_color=base_color,
-            line_spacing_height=line_spacing_height,
-            global_config=global_config
-        )
 
         def get_content_by_body(
             body: str,
@@ -262,16 +216,23 @@ class MarkupText(StringMobject):
                 for span in self._iter_spans_by_selector(selector, string)
             ),
             get_content_by_body=get_content_by_body,
-            file_writer=MarkupTextFileWriter(
-                justify=justify,
-                indent=indent,
-                alignment=PangoAlignment[alignment],
-                line_width=line_width
-            ),
-            frame_scale=self._TEXT_SCALE_FACTOR
+            file_writer=file_writer,
+            frame_scale=frame_scale
         )
 
-    # parsing
+    @classmethod
+    def _escape_markup_char(
+        cls,
+        substr: str
+    ) -> str:
+        return cls._MARKUP_ENTITY_DICT.get(substr, substr)
+
+    @classmethod
+    def _unescape_markup_char(
+        cls,
+        substr: str
+    ) -> str:
+        return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
 
     @classmethod
     def _iter_command_matches(
@@ -383,21 +344,144 @@ class MarkupText(StringMobject):
         ])
         return f"<span {attrs_str}>"
 
-    # toolkits
+
+class TextParser(MarkupTextParser):
+    __slots__ = ()
 
     @classmethod
-    def _escape_markup_char(
+    def _iter_command_matches(
         cls,
-        substr: str
-    ) -> str:
-        return cls._MARKUP_ENTITY_DICT.get(substr, substr)
+        string: str
+    ) -> Generator[re.Match[str], None, None]:
+        pattern = re.compile(r"""[<>&"']""")
+        yield from pattern.finditer(string)
 
     @classmethod
-    def _unescape_markup_char(
+    def _get_command_flag(
         cls,
-        substr: str
+        match_obj: re.Match[str]
+    ) -> CommandFlag:
+        return CommandFlag.OTHER
+
+    @classmethod
+    def _replace_for_content(
+        cls,
+        match_obj: re.Match[str]
     ) -> str:
-        return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
+        return cls._escape_markup_char(match_obj.group())
+
+    @classmethod
+    def _replace_for_matching(
+        cls,
+        match_obj: re.Match[str]
+    ) -> str:
+        return match_obj.group()
+
+
+class Text(StringMobject):
+    __slots__ = ()
+
+    _TEXT_SCALE_FACTOR: ClassVar[float] = 0.0076  # TODO
+
+    def __init__(
+        self,
+        string: str,
+        *,
+        isolate: Selector = (),
+        protect: Selector = (),
+        local_configs: dict[Selector, dict[str, str]] | None = None,
+        justify: bool = ...,
+        indent: float = ...,
+        alignment: str = ...,
+        line_width: float | None = ...,
+        font_size: float = ...,
+        font: str = ...,
+        slant: str = ...,
+        weight: str = ...,
+        base_color: ColorType = ...,
+        line_spacing_height: float = ...,
+        global_config: dict[str, str] = ...,
+        markup: bool = False
+    ) -> None:
+        if markup:
+            PangoUtils.validate_markup_string(string)
+        if local_configs is None:
+            local_configs = {}
+
+        config = ConfigSingleton().text
+        if justify is ...:
+            justify = config.justify
+        if indent is ...:
+            indent = config.indent
+        if alignment is ...:
+            alignment = config.alignment
+        if line_width is ...:
+            line_width = config.line_width
+        if font_size is ...:
+            font_size = config.font_size
+        if font is ...:
+            font = config.font
+        if slant is ...:
+            slant = config.slant
+        if weight is ...:
+            weight = config.weight
+        if base_color is ...:
+            base_color = config.base_color
+        if line_spacing_height is ...:
+            line_spacing_height = config.line_spacing_height
+        if global_config is ...:
+            global_config = config.global_config
+
+        global_attrs = self._get_global_attrs(
+            font_size=font_size,
+            font=font,
+            slant=slant,
+            weight=weight,
+            base_color=base_color,
+            line_spacing_height=line_spacing_height,
+            global_config=global_config
+        )
+        parser_class = MarkupTextParser if markup else TextParser
+        parser = parser_class(
+            string=string,
+            isolate=isolate,
+            protect=protect,
+            #configured_items_generator=(
+            #    (span, local_config)
+            #    for selector, local_config in local_configs.items()
+            #    for span in self._iter_spans_by_selector(selector, string)
+            #),
+            #get_content_by_body=get_content_by_body,
+            file_writer=MarkupTextFileWriter(
+                justify=justify,
+                indent=indent,
+                alignment=PangoAlignment[alignment],
+                line_width=line_width
+            ),
+            frame_scale=self._TEXT_SCALE_FACTOR,
+            local_configs=local_configs,
+            global_attrs=global_attrs
+        )
+
+        super().__init__(
+            string=string,
+            parser=parser
+            #isolate=isolate,
+            #protect=protect,
+            #configured_items_generator=(
+            #    (span, local_config)
+            #    for selector, local_config in local_configs.items()
+            #    for span in self._iter_spans_by_selector(selector, string)
+            #),
+            #get_content_by_body=get_content_by_body,
+            #file_writer=MarkupTextFileWriter(
+            #    justify=justify,
+            #    indent=indent,
+            #    alignment=PangoAlignment[alignment],
+            #    line_width=line_width
+            #),
+            #frame_scale=self._TEXT_SCALE_FACTOR
+        )
 
     @classmethod
     def _get_global_attrs(
@@ -431,40 +515,7 @@ class MarkupText(StringMobject):
         return global_attrs
 
 
-class Text(MarkupText):
-    __slots__ = ()
-
-    @classmethod
-    def _iter_command_matches(
-        cls,
-        string: str
-    ) -> Generator[re.Match[str], None, None]:
-        pattern = re.compile(r"""[<>&"']""")
-        yield from pattern.finditer(string)
-
-    @classmethod
-    def _get_command_flag(
-        cls,
-        match_obj: re.Match[str]
-    ) -> CommandFlag:
-        return CommandFlag.OTHER
-
-    @classmethod
-    def _replace_for_content(
-        cls,
-        match_obj: re.Match[str]
-    ) -> str:
-        return cls._escape_markup_char(match_obj.group())
-
-    @classmethod
-    def _replace_for_matching(
-        cls,
-        match_obj: re.Match[str]
-    ) -> str:
-        return match_obj.group()
-
-
-class Code(MarkupText):
+class Code(Text):
     __slots__ = ()
 
     def __init__(
@@ -489,5 +540,6 @@ class Code(MarkupText):
         markup_string = re.sub(r"</?tt>", "", markup_string)
         return super().__init__(
             string=markup_string,
+            markup=True,
             **kwargs
         )

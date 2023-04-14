@@ -7,7 +7,7 @@ class ShapeTransformExample(Scene):
     def construct(self) -> None:
         circle = Circle()
         circle.set_style(color=PINK, opacity=0.9)
-        circle.add(circle.build_stroke().set_style(color=YELLOW, width=0.4))
+        circle.add(circle.build_stroke(color=YELLOW, width=0.4))
         square = Square()
         square.set_style(opacity=1.0)
 
@@ -24,15 +24,15 @@ class TexTransformExample(Scene):
             .concatenate()
         )
         text.add(
-            text.build_stroke().set_style(width=0.04, color=BLUE),
-            text.build_stroke().set_style(width=0.08, color=GREEN)
+            text.build_stroke(width=0.04, color=BLUE),
+            text.build_stroke(width=0.08, color=GREEN)
         )
         tex = (Tex("Tex")
             .scale(3)
             .set_style(color=BLUE, opacity=None)
             .concatenate()
         )
-        tex.add(tex.build_stroke().set_style(width=0.06, color=PINK))
+        tex.add(tex.build_stroke(width=0.06, color=PINK))
         #print(len(text._stroke_mobjects_[0]._local_sample_points_.value))
         self.add(text)
         self.wait()

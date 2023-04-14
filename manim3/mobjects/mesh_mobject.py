@@ -1,11 +1,8 @@
 __all__ = ["MeshMobject"]
 
 
-from typing import Iterable
-
 import moderngl
 import numpy as np
-
 
 from ..custom_typing import (
     ColorType,
@@ -189,10 +186,8 @@ class MeshMobject(Mobject):
             #context_state=context_state
         )
 
-    @classmethod
-    def class_set_style(
-        cls,
-        mobjects: "Iterable[MeshMobject]",
+    def set_style(
+        self,
         *,
         color: ColorType | None = None,
         opacity: float | None = None,
@@ -200,8 +195,9 @@ class MeshMobject(Mobject):
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
-        apply_phong_lighting: bool | None = None
-    ) -> None:
+        apply_phong_lighting: bool | None = None,
+        broadcast: bool = True
+    ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
         color_value = LazyWrapper(color_component) if color_component is not None else None
         opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
@@ -216,7 +212,7 @@ class MeshMobject(Mobject):
                 specular_strength,
                 shininess
             )) else None
-        for mobject in mobjects:
+        for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject, broadcast=broadcast):
             if color_value is not None:
                 mobject._color_ = color_value
             if opacity_value is not None:
@@ -231,31 +227,32 @@ class MeshMobject(Mobject):
                 mobject._shininess_ = shininess_value
             if apply_phong_lighting_value is not None:
                 mobject._apply_phong_lighting_ = apply_phong_lighting_value
-
-    def set_style(
-        self,
-        *,
-        color: ColorType | None = None,
-        opacity: float | None = None,
-        is_transparent: bool | None = None,
-        ambient_strength: float | None = None,
-        specular_strength: float | None = None,
-        shininess: float | None = None,
-        apply_phong_lighting: bool | None = None,
-        broadcast: bool = True
-    ):
-        self.class_set_style(
-            mobjects=(
-                mobject
-                for mobject in self.iter_descendants(broadcast=broadcast)
-                if isinstance(mobject, MeshMobject)
-            ),
-            color=color,
-            opacity=opacity,
-            is_transparent=is_transparent,
-            ambient_strength=ambient_strength,
-            specular_strength=specular_strength,
-            shininess=shininess,
-            apply_phong_lighting=apply_phong_lighting
-        )
         return self
+
+    #def set_style(
+    #    self,
+    #    *,
+    #    color: ColorType | None = None,
+    #    opacity: float | None = None,
+    #    is_transparent: bool | None = None,
+    #    ambient_strength: float | None = None,
+    #    specular_strength: float | None = None,
+    #    shininess: float | None = None,
+    #    apply_phong_lighting: bool | None = None,
+    #    broadcast: bool = True
+    #):
+    #    self.class_set_style(
+    #        mobjects=(
+    #            mobject
+    #            for mobject in self.iter_descendants(broadcast=broadcast)
+    #            if isinstance(mobject, MeshMobject)
+    #        ),
+    #        color=color,
+    #        opacity=opacity,
+    #        is_transparent=is_transparent,
+    #        ambient_strength=ambient_strength,
+    #        specular_strength=specular_strength,
+    #        shininess=shininess,
+    #        apply_phong_lighting=apply_phong_lighting
+    #    )
+    #    return self

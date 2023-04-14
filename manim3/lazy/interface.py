@@ -34,7 +34,7 @@ from ..lazy.core import (
 
 
 _T = TypeVar("_T")
-_HashableT = TypeVar("_HashableT", bound=Hashable)
+_HT = TypeVar("_HT", bound=Hashable)
 _ElementT = TypeVar("_ElementT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 _PropertyParameters = ParamSpec("_PropertyParameters")
@@ -77,7 +77,7 @@ class AnnotationUtils:
     ) -> tuple[tuple[tuple[str, ...], ...], tuple[bool, ...]]:
         parameter_items = tuple(
             (name, False) if re.fullmatch(r"_\w+_", name) else (f"_{name}_", True)
-            for name in tuple(inspect.signature(method).parameters)[1:]  # remove `cls`
+            for name in tuple(inspect.signature(method).parameters)[1:]  # Remove `cls`.
         )
         parameter_name_chains = tuple(
             tuple(re.findall(r"_\w+?_(?=_|$)", parameter_name))
@@ -141,14 +141,14 @@ class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_Insta
 
 
 @final
-class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
+class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_HT], _HT | LazyWrapper[_HT]]):
     __slots__ = ("content_to_element_dict",)
 
     def __init__(
         self,
-        method: Callable[[type[_InstanceT]], _HashableT]
+        method: Callable[[type[_InstanceT]], _HT]
     ) -> None:
-        self.content_to_element_dict: weakref.WeakValueDictionary[_HashableT, LazyWrapper[_HashableT]] = weakref.WeakValueDictionary()
+        self.content_to_element_dict: weakref.WeakValueDictionary[_HT, LazyWrapper[_HT]] = weakref.WeakValueDictionary()
         super().__init__(
             element_type=LazyWrapper,
             method=method
@@ -156,13 +156,16 @@ class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_Instance
 
     def convert_set(
         self,
-        new_value: _HashableT
-    ) -> LazyUnitaryContainer[LazyWrapper[_HashableT]]:
-        if (cached_element := self.content_to_element_dict.get(new_value)) is None:
-            cached_element = LazyWrapper(new_value)
-            self.content_to_element_dict[new_value] = cached_element
+        new_value: _HT | LazyWrapper[_HT]
+    ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
+        if isinstance(new_value, LazyWrapper):
+            value = new_value
+        else:
+            if (value := self.content_to_element_dict.get(new_value)) is None:
+                value = LazyWrapper(new_value)
+                self.content_to_element_dict[new_value] = value
         return LazyUnitaryContainer(
-            element=cached_element
+            element=value
         )
 
 
@@ -255,14 +258,14 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
 
 
 @final
-class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_HashableT], _HashableT]):
+class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_HT], _HT]):
     __slots__ = ("content_to_element_dict",)
 
     def __init__(
         self,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]
+        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
     ) -> None:
-        self.content_to_element_dict: weakref.WeakValueDictionary[_HashableT, LazyWrapper[_HashableT]] = weakref.WeakValueDictionary()
+        self.content_to_element_dict: weakref.WeakValueDictionary[_HT, LazyWrapper[_HT]] = weakref.WeakValueDictionary()
         parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
         super().__init__(
             element_type=LazyWrapper,
@@ -273,13 +276,13 @@ class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_Instance
 
     def convert_set(
         self,
-        new_value: _HashableT
-    ) -> LazyUnitaryContainer[LazyWrapper[_HashableT]]:
-        if (cached_element := self.content_to_element_dict.get(new_value)) is None:
-            cached_element = LazyWrapper(new_value)
-            self.content_to_element_dict[new_value] = cached_element
+        new_value: _HT
+    ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
+        if (value := self.content_to_element_dict.get(new_value)) is None:
+            value = LazyWrapper(new_value)
+            self.content_to_element_dict[new_value] = value
         return LazyUnitaryContainer(
-            element=cached_element
+            element=value
         )
 
 
@@ -349,8 +352,8 @@ class Lazy:
         cls,
         mode: Literal[LazyMode.SHARED]
     ) -> Callable[
-        [Callable[[type[_InstanceT]], _HashableT]],
-        LazyUnitaryVariableSharedDecorator[_InstanceT, _HashableT]
+        [Callable[[type[_InstanceT]], _HT]],
+        LazyUnitaryVariableSharedDecorator[_InstanceT, _HT]
     ]: ...
 
     @overload
@@ -413,8 +416,8 @@ class Lazy:
         cls,
         mode: Literal[LazyMode.SHARED]
     ) -> Callable[
-        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HashableT]],
-        LazyUnitaryPropertySharedDecorator[_InstanceT, _HashableT]
+        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]],
+        LazyUnitaryPropertySharedDecorator[_InstanceT, _HT]
     ]: ...
 
     @overload

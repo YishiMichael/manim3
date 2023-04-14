@@ -150,10 +150,10 @@ class Mobject(LazyObject):
         for mobject in mobjects:
             if mobject in self.iter_ancestors():
                 raise ValueError(f"Circular relationship occurred when adding {mobject} to {self}")
-        all_descendants = list(it.chain(*(
+        all_descendants = list(it.chain.from_iterable(
             mobject.iter_descendants()
             for mobject in mobjects
-        )))
+        ))
         self._children_.add(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
             ancestor_mobject._real_descendants_.add(*all_descendants)
@@ -167,10 +167,10 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        all_descendants = list(it.chain(*(
+        all_descendants = list(it.chain.from_iterable(
             mobject.iter_descendants()
             for mobject in mobjects
-        )))
+        ))
         self._children_.discard(*mobjects)
         for ancestor_mobject in self.iter_ancestors():
             ancestor_mobject._real_descendants_.discard(*all_descendants)
@@ -249,7 +249,24 @@ class Mobject(LazyObject):
             result.clear()
         return result
 
-    # concatenation
+    # class-variant methods
+
+    def iter_children_by_type(
+        self,
+        mobject_type: type[_MobjectT]
+    ) -> Generator[_MobjectT, None, None]:
+        for mobject in self.iter_children():
+            if isinstance(mobject, mobject_type):
+                yield mobject
+
+    def iter_descendants_by_type(
+        self,
+        mobject_type: type[_MobjectT],
+        broadcast: bool = True
+    ) -> Generator[_MobjectT, None, None]:
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if isinstance(mobject, mobject_type):
+                yield mobject
 
     @classmethod
     def _concatenate_by_descriptor(
@@ -358,14 +375,14 @@ class Mobject(LazyObject):
         bounding_box_without_descendants: BoundingBox | None,
         real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
     ) -> BoundingBox | None:
-        points_array = np.array(list(it.chain(*(
+        points_array = np.array(list(it.chain.from_iterable(
             (aabb.maximum, aabb.minimum)
             for aabb in (
                 bounding_box_without_descendants,
                 *real_descendants__bounding_box_without_descendants
             )
             if aabb is not None
-        ))))
+        )))
         if not len(points_array):
             return None
         return BoundingBox(

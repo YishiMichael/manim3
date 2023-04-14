@@ -56,7 +56,7 @@ class VariableInterpolant(Generic[_InstanceT, _ContainerT, _ElementT, _Descripto
         method: Callable[[_DescriptorGetT, _DescriptorGetT], Callable[[float], _DescriptorSetT]]
     ) -> None:
         super().__init__()
-        self._descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT] = descriptor  # type checker bug?
+        self._descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT] = descriptor
         self._method: Callable[[_DescriptorGetT, _DescriptorGetT], Callable[[float], _DescriptorSetT]] = method
 
     def _get_intermediate_instance_callback(
@@ -307,8 +307,8 @@ class Transform(Animation):
                 )
             ]
         }
-        return tuple(it.chain(*(
+        return tuple(it.chain.from_iterable(
             interpolants
             for parent_cls, interpolants in class_specialized_interpolants_dict.items()
             if issubclass(mobject_cls, parent_cls)
-        )))
+        ))

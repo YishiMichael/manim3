@@ -21,7 +21,8 @@ from ..mobjects.string_mobject import (
     CommandFlag,
     EdgeFlag,
     StringFileWriter,
-    StringMobject
+    StringMobject,
+    StringParser
 )
 from ..rendering.config import ConfigSingleton
 from ..utils.color import ColorUtils
@@ -206,48 +207,21 @@ class TexFileWriter(StringFileWriter):
         }
 
 
-class Tex(StringMobject):
+class TexParser(StringParser):
     __slots__ = ()
-
-    _TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
-    _MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5  # TODO
 
     def __init__(
         self,
         string: str,
-        *,
-        isolate: Selector = (),
-        protect: Selector = (),
-        tex_to_color_map: dict[str, ColorType] | None = None,
-        use_mathjax: bool = ...,
-        preamble: str = ...,
-        template: str = ...,
-        alignment: str | None = ...,
-        environment: str | None = ...,
-        base_color: ColorType = ...,
-        font_size: float = ...
+        isolate: Selector,
+        protect: Selector,
+        #configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
+        #get_content_by_body: Callable[[str, bool], str],
+        file_writer: StringFileWriter,
+        frame_scale: float,
+        tex_to_color_map: dict[str, ColorType],
+        base_color: ColorType
     ) -> None:
-        # Prevent from passing an empty string.
-        if not string.strip():
-            string = "\\\\"
-        if tex_to_color_map is None:
-            tex_to_color_map = {}
-
-        config = ConfigSingleton().tex
-        if use_mathjax is ...:
-            use_mathjax = config.use_mathjax
-        if preamble is ...:
-            preamble = config.preamble
-        if template is ...:
-            template = config.template
-        if alignment is ...:
-            alignment = config.alignment
-        if environment is ...:
-            environment = config.environment
-        if base_color is ...:
-            base_color = config.base_color
-        if font_size is ...:
-            font_size = config.font_size
 
         def get_content_by_body(
             body: str,
@@ -261,34 +235,29 @@ class Tex(StringMobject):
                 body
             ))
 
-        frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
-        if use_mathjax:
-            frame_scale *= self._MATHJAX_SCALE_FACTOR
-
         super().__init__(
             string=string,
             isolate=isolate,
             protect=protect,
+            #tex_to_color_map=tex_to_color_map,
             configured_items_generator=(
                 (span, {})
                 for selector in tex_to_color_map
                 for span in self._iter_spans_by_selector(selector, string)
             ),
             get_content_by_body=get_content_by_body,
-            file_writer=TexFileWriter(
-                use_mathjax=use_mathjax,
-                preamble=preamble,
-                template=template,
-                alignment=alignment,
-                environment=environment
-            ),
+            file_writer=file_writer,
             frame_scale=frame_scale
         )
 
-        for selector, color in tex_to_color_map.items():
-            self.select_parts(selector).set_style(color=color)
-
-    # parsing
+    @classmethod
+    def _get_color_command(
+        cls,
+        rgb: int
+    ) -> str:
+        rg, b = divmod(rgb, 256)
+        r, g = divmod(rg, 256)
+        return f"\\color[RGB]{{{r}, {g}, {b}}}"
 
     @classmethod
     def _iter_command_matches(
@@ -373,15 +342,6 @@ class Tex(StringMobject):
         return None
 
     @classmethod
-    def _get_color_command(
-        cls,
-        rgb: int
-    ) -> str:
-        rg, b = divmod(rgb, 256)
-        r, g = divmod(rg, 256)
-        return f"\\color[RGB]{{{r}, {g}, {b}}}"
-
-    @classmethod
     def _get_command_string(
         cls,
         attrs: dict[str, str],
@@ -393,3 +353,80 @@ class Tex(StringMobject):
         if edge_flag == EdgeFlag.STOP:
             return "}}"
         return "{{" + cls._get_color_command(label)
+
+
+class Tex(StringMobject):
+    __slots__ = ()
+
+    _TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
+    _MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5  # TODO
+
+    def __init__(
+        self,
+        string: str,
+        *,
+        isolate: Selector = (),
+        protect: Selector = (),
+        tex_to_color_map: dict[str, ColorType] | None = None,
+        use_mathjax: bool = ...,
+        preamble: str = ...,
+        template: str = ...,
+        alignment: str | None = ...,
+        environment: str | None = ...,
+        base_color: ColorType = ...,
+        font_size: float = ...
+    ) -> None:
+        # Prevent from passing an empty string.
+        if not string.strip():
+            string = "\\\\"
+        if tex_to_color_map is None:
+            tex_to_color_map = {}
+
+        config = ConfigSingleton().tex
+        if use_mathjax is ...:
+            use_mathjax = config.use_mathjax
+        if preamble is ...:
+            preamble = config.preamble
+        if template is ...:
+            template = config.template
+        if alignment is ...:
+            alignment = config.alignment
+        if environment is ...:
+            environment = config.environment
+        if base_color is ...:
+            base_color = config.base_color
+        if font_size is ...:
+            font_size = config.font_size
+
+        frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
+        if use_mathjax:
+            frame_scale *= self._MATHJAX_SCALE_FACTOR
+
+        parser = TexParser(
+            string=string,
+            isolate=isolate,
+            protect=protect,
+            #configured_items_generator=(
+            #    (span, {})
+            #    for selector in tex_to_color_map
+            #    for span in TexParser._iter_spans_by_selector(selector, string)
+            #),
+            #get_content_by_body=get_content_by_body,
+            file_writer=TexFileWriter(
+                use_mathjax=use_mathjax,
+                preamble=preamble,
+                template=template,
+                alignment=alignment,
+                environment=environment
+            ),
+            frame_scale=frame_scale,
+            tex_to_color_map=tex_to_color_map,
+            base_color=base_color
+        )
+        super().__init__(
+            string=string,
+            parser=parser
+        )
+
+        for selector, color in tex_to_color_map.items():
+            self.select_parts(selector).set_style(color=color)

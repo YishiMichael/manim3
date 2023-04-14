@@ -2,7 +2,8 @@ __all__ = [
     "CommandFlag",
     "EdgeFlag",
     "StringFileWriter",
-    "StringMobject"
+    "StringMobject",
+    "StringParser"
 ]
 
 
@@ -50,7 +51,10 @@ class EdgeFlag(Enum):
 
 
 class Span:
-    __slots__ = ("start", "stop")
+    __slots__ = (
+        "start",
+        "stop"
+    )
 
     def __init__(
         self,
@@ -224,43 +228,21 @@ class StringFileWriter(ABC):
             print(" " * len(message), end="\r")
 
 
-class StringMobject(SVGMobject):
-    """
-    An abstract base class for `Tex` and `MarkupText`.
-
-    This class aims to optimize the logic of "slicing children
-    via substrings". This could be much clearer and more user-friendly
-    than slicing through numerical indices explicitly.
-
-    Users are expected to specify substrings in `isolate` parameter
-    if they want to do anything with their corresponding children.
-    `isolate` parameter can be either a string, a `re.Pattern` object,
-    or a 2-tuple containing integers or None, or a collection of the above.
-    Note, substrings specified cannot *partly* overlap with each other.
-
-    Each instance of `StringMobject` generates 2 svg files.
-    The additional one is generated with some color commands inserted,
-    so that each child of the original `SVGMobject` will be labelled
-    by the color of its paired child from the additional `SVGMobject`.
-    """
-    __slots__ = (
-        "_string",
-        "_parsing_result"
-    )
+class StringParser(ABC):
+    __slots__ = ("_parsing_result",)
 
     def __init__(
         self,
-        *,
         string: str,
-        isolate: Selector = (),
-        protect: Selector = (),
+        isolate: Selector,
+        protect: Selector,
         configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> None:
         super().__init__()
-        parsing_result = self._parse(
+        self._parsing_result: ParsingResult = self._parse(
             string=string,
             isolate=isolate,
             protect=protect,
@@ -269,12 +251,6 @@ class StringMobject(SVGMobject):
             file_writer=file_writer,
             frame_scale=frame_scale
         )
-        self._string: str = string
-        self._parsing_result: ParsingResult = parsing_result
-        self.add(*(
-            shape_item.shape_mobject
-            for shape_item in parsing_result.shape_items
-        ))
 
     @classmethod
     def _parse(
@@ -474,42 +450,6 @@ class StringMobject(SVGMobject):
         return labelled_items, replaced_items
 
     @classmethod
-    def _iter_spans_by_selector(
-        cls,
-        selector: Selector,
-        string: str
-    ) -> Generator[Span, None, None]:
-
-        def iter_spans_by_single_selector(
-            sel: str | re.Pattern[str] | slice,
-            string: str
-        ) -> Generator[Span, None, None]:
-            if isinstance(sel, str):
-                for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
-                    yield Span(*match_obj.span())
-            elif isinstance(sel, re.Pattern):
-                for match_obj in sel.finditer(string):
-                    yield Span(*match_obj.span())
-            elif isinstance(sel, slice):
-                start = sel.start
-                stop = sel.stop
-                assert isinstance(start, int | None)
-                assert isinstance(stop, int | None)
-                if start is None or start < 0:
-                    start = 0
-                if stop is None or stop > len(string):
-                    stop = len(string)
-                yield Span(start, stop)
-            else:
-                raise TypeError(f"Invalid selector: '{sel}'")
-
-        if isinstance(selector, str | re.Pattern | slice):
-            yield from iter_spans_by_single_selector(selector, string)
-        else:
-            for sel in selector:
-                yield from iter_spans_by_single_selector(sel, string)
-
-    @classmethod
     def _get_replaced_pieces(
         cls,
         replaced_items: list[CommandItem | LabelledInsertionItem],
@@ -535,7 +475,7 @@ class StringMobject(SVGMobject):
         start_index: int,
         stop_index: int
     ) -> str:
-        return "".join(it.chain(*zip(
+        return "".join(it.chain.from_iterable(zip(
             original_pieces[start_index:stop_index],
             (*replaced_pieces[start_index + 1:stop_index], ""),
             strict=True
@@ -575,7 +515,7 @@ class StringMobject(SVGMobject):
             return list(SVGMobject(
                 file_path=svg_path,
                 frame_scale=frame_scale
-            ).iter_shape_children())
+            ).iter_children_by_type(mobject_type=ShapeMobject))
 
         plain_shapes = get_shape_mobjects(is_labelled=False)
         if labels_count == 1:
@@ -681,26 +621,6 @@ class StringMobject(SVGMobject):
         ]
 
     @classmethod
-    def _get_shape_mobject_list_by_span(
-        cls,
-        arbitrary_span: Span,
-        shape_items: list[ShapeItem]
-    ) -> list[ShapeMobject]:
-        return [
-            shape_item.shape_mobject
-            for shape_item in shape_items
-            if cls._span_contains(arbitrary_span, shape_item.span)
-        ]
-
-    @classmethod
-    def _span_contains(
-        cls,
-        span_0: Span,
-        span_1: Span
-    ) -> bool:
-        return span_0.start <= span_1.start and span_0.stop >= span_1.stop
-
-    @classmethod
     def _get_group_part_items(
         cls,
         original_pieces: list[str],
@@ -764,6 +684,62 @@ class StringMobject(SVGMobject):
             for part_range in it.pairwise((0, *it.accumulate(range_lens)))
         ]))
 
+    @classmethod
+    def _iter_spans_by_selector(
+        cls,
+        selector: Selector,
+        string: str
+    ) -> Generator[Span, None, None]:
+
+        def iter_spans_by_single_selector(
+            sel: str | re.Pattern[str] | slice,
+            string: str
+        ) -> Generator[Span, None, None]:
+            if isinstance(sel, str):
+                for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
+                    yield Span(*match_obj.span())
+            elif isinstance(sel, re.Pattern):
+                for match_obj in sel.finditer(string):
+                    yield Span(*match_obj.span())
+            elif isinstance(sel, slice):
+                start = sel.start
+                stop = sel.stop
+                assert isinstance(start, int | None)
+                assert isinstance(stop, int | None)
+                if start is None or start < 0:
+                    start = 0
+                if stop is None or stop > len(string):
+                    stop = len(string)
+                yield Span(start, stop)
+            else:
+                raise TypeError(f"Invalid selector: '{sel}'")
+
+        if isinstance(selector, str | re.Pattern | slice):
+            yield from iter_spans_by_single_selector(selector, string)
+        else:
+            for sel in selector:
+                yield from iter_spans_by_single_selector(sel, string)
+
+    @classmethod
+    def _span_contains(
+        cls,
+        span_0: Span,
+        span_1: Span
+    ) -> bool:
+        return span_0.start <= span_1.start and span_0.stop >= span_1.stop
+
+    @classmethod
+    def _get_shape_mobject_list_by_span(
+        cls,
+        arbitrary_span: Span,
+        shape_items: list[ShapeItem]
+    ) -> list[ShapeMobject]:
+        return [
+            shape_item.shape_mobject
+            for shape_item in shape_items
+            if cls._span_contains(arbitrary_span, shape_item.span)
+        ]
+
     # Implemented in subclasses.
 
     @classmethod
@@ -817,17 +793,76 @@ class StringMobject(SVGMobject):
     ) -> str:
         pass
 
+
+class StringMobject(SVGMobject):
+    """
+    An abstract base class for `Tex` and `MarkupText`.
+
+    This class aims to optimize the logic of "slicing children
+    via substrings". This could be much clearer and more user-friendly
+    than slicing through numerical indices explicitly.
+
+    Users are expected to specify substrings in `isolate` parameter
+    if they want to do anything with their corresponding children.
+    `isolate` parameter can be either a string, a `re.Pattern` object,
+    or a 2-tuple containing integers or None, or a collection of the above.
+    Note, substrings specified cannot *partly* overlap with each other.
+
+    Each instance of `StringMobject` generates 2 svg files.
+    The additional one is generated with some color commands inserted,
+    so that each child of the original `SVGMobject` will be labelled
+    by the color of its paired child from the additional `SVGMobject`.
+    """
+    __slots__ = (
+        "_string",
+        "_parser"
+    )
+
+    def __init__(
+        self,
+        *,
+        string: str,
+        parser: StringParser
+        #isolate: Selector = (),
+        #protect: Selector = (),
+        #configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
+        #get_content_by_body: Callable[[str, bool], str],
+        #file_writer: StringFileWriter,
+        #frame_scale: float
+    ) -> None:
+        super().__init__()
+        #parsing_result = self._parse(
+        #    string=string,
+        #    isolate=isolate,
+        #    protect=protect,
+        #    configured_items_generator=configured_items_generator,
+        #    get_content_by_body=get_content_by_body,
+        #    file_writer=file_writer,
+        #    frame_scale=frame_scale
+        #)
+        self._string: str = string
+        self._parser: StringParser = parser
+        #self._parsing_result: ParsingResult = parsing_result
+        self.add(*(
+            shape_item.shape_mobject
+            for shape_item in parser._parsing_result.shape_items
+        ))
+
     # Selector
 
     def _iter_shape_mobject_lists_by_selector(
         self,
         selector: Selector
     ) -> Generator[list[ShapeMobject], None, None]:
-        return (
-            shape_mobject_list
-            for span in self._iter_spans_by_selector(selector, self._string)
-            if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.shape_items))
-        )
+        parser = self._parser
+        for span in parser._iter_spans_by_selector(selector, self._string):
+            if (shape_mobject_list := parser._get_shape_mobject_list_by_span(span, parser._parsing_result.shape_items)):
+                yield shape_mobject_list
+        #return (
+        #    shape_mobject_list
+        #    for span in self._iter_spans_by_selector(selector, self._string)
+        #    if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.shape_items))
+        #)
 
     def select_parts(
         self,

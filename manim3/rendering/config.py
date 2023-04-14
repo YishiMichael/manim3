@@ -15,7 +15,6 @@ from ..custom_typing import ColorType
 
 
 @dataclass(
-    order=True,
     kw_only=True,
     slots=True
 )
@@ -57,7 +56,6 @@ class PathConfig:
         return self._ensure_directory_exists(self.output_dir.joinpath("_text"))
 
 @dataclass(
-    order=True,
     kw_only=True,
     slots=True
 )
@@ -123,7 +121,6 @@ class RenderingConfig:
 
 
 @dataclass(
-    order=True,
     kw_only=True,
     slots=True
 )
@@ -190,7 +187,6 @@ class SizeConfig:
 
 
 @dataclass(
-    order=True,
     kw_only=True,
     slots=True
 )
@@ -201,7 +197,6 @@ class CameraConfig:
 
 
 @dataclass(
-    order=True,
     kw_only=True,
     slots=True
 )
@@ -216,7 +211,6 @@ class TexConfig:
 
 
 @dataclass(
-    order=True,
     kw_only=True,
     slots=True
 )

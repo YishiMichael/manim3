@@ -1,9 +1,9 @@
 __all__ = ["ShapeMobject"]
 
 
-from typing import Generator
+#from typing import Generator
 
-#from ..custom_typing import ColorType
+from ..custom_typing import ColorType
 from ..geometries.shape_geometry import ShapeGeometry
 #from ..lazy.core import LazyDynamicVariableDescriptor
 from ..lazy.interface import (
@@ -59,35 +59,29 @@ class ShapeMobject(MeshMobject):
         #    stroke._multi_line_string_ = shape._multi_line_string_
         return self
 
-    def build_stroke(self) -> StrokeMobject:
-        stroke = StrokeMobject()
-        stroke._model_matrix_ = self._model_matrix_
-        stroke._multi_line_string_ = self._shape_._multi_line_string_
-        return stroke
+    #def iter_shape_children(self) -> "Generator[ShapeMobject, None, None]":
+    #    for mobject in self.iter_children():
+    #        if isinstance(mobject, ShapeMobject):
+    #            yield mobject
 
-    def iter_shape_children(self) -> "Generator[ShapeMobject, None, None]":
-        for mobject in self.iter_children():
-            if isinstance(mobject, ShapeMobject):
-                yield mobject
+    #def iter_shape_descendants(
+    #    self,
+    #    broadcast: bool = True
+    #) -> "Generator[ShapeMobject, None, None]":
+    #    for mobject in self.iter_descendants(broadcast=broadcast):
+    #        if isinstance(mobject, ShapeMobject):
+    #            yield mobject
 
-    def iter_shape_descendants(
-        self,
-        broadcast: bool = True
-    ) -> "Generator[ShapeMobject, None, None]":
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if isinstance(mobject, ShapeMobject):
-                yield mobject
-
-    @classmethod
-    def class_concatenate(
-        cls,
-        *mobjects: "ShapeMobject"
-    ) -> "ShapeMobject":
-        return ShapeMobject._concatenate_by_descriptor(
-            target_descriptor=ShapeMobject._shape_,
-            concatenate_method=Shape.concatenate,
-            mobjects=list(mobjects)
-        )
+    #@classmethod
+    #def class_concatenate(
+    #    cls,
+    #    *mobjects: "ShapeMobject"
+    #) -> "ShapeMobject":
+    #    return ShapeMobject._concatenate_by_descriptor(
+    #        target_descriptor=ShapeMobject._shape_,
+    #        concatenate_method=Shape.concatenate,
+    #        mobjects=list(mobjects)
+    #    )
         #result = ShapeMobject()
         #if not mobjects:
         #    return result
@@ -125,7 +119,34 @@ class ShapeMobject(MeshMobject):
         #return result
 
     def concatenate(self) -> "ShapeMobject":
-        return self.class_concatenate(*self.iter_shape_children())
+        return ShapeMobject._concatenate_by_descriptor(
+            target_descriptor=ShapeMobject._shape_,
+            concatenate_method=Shape.concatenate,
+            mobjects=list(self.iter_children_by_type(ShapeMobject))
+        )
+
+    def build_stroke(
+        self,
+        width: float | None = None,
+        single_sided: bool | None = None,
+        has_linecap: bool | None = None,
+        color: ColorType | None = None,
+        opacity: float | None = None,
+        dilate: float | None = None,
+        is_transparent: bool | None = None
+    ) -> StrokeMobject:
+        stroke = StrokeMobject()
+        stroke._model_matrix_ = self._model_matrix_
+        stroke._multi_line_string_ = self._shape_._multi_line_string_
+        return stroke.set_style(
+            width=width,
+            single_sided=single_sided,
+            has_linecap=has_linecap,
+            color=color,
+            opacity=opacity,
+            dilate=dilate,
+            is_transparent=is_transparent
+        )
 
     #@classmethod
     #def class_set_fill(

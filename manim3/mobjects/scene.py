@@ -152,7 +152,7 @@ class Scene(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _pixelated_va_(cls) -> VertexArray:
+    def _pixelated_vertex_array_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             texture_id_buffers=[
@@ -164,7 +164,7 @@ class Scene(Mobject):
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
-    def _oit_compose_va_(cls) -> VertexArray:
+    def _oit_compose_vertex_array_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="oit_compose",
             texture_id_buffers=[
@@ -267,7 +267,7 @@ class Scene(Mobject):
             #        blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
             #    )
             #)
-            self._oit_compose_va_.render(
+            self._oit_compose_vertex_array_.render(
                 texture_array_dict={
                     "t_accum_map": np.array(accum_texture),
                     "t_revealage_map": np.array(revealage_texture)
@@ -337,7 +337,7 @@ class Scene(Mobject):
                     if window.is_closing:
                         raise KeyboardInterrupt
                     window.clear()
-                    self._pixelated_va_.render(
+                    self._pixelated_vertex_array_.render(
                         texture_array_dict={
                             "t_color_map": np.array(color_texture)
                         },

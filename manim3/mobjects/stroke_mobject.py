@@ -2,12 +2,7 @@ __all__ = ["StrokeMobject"]
 
 
 import itertools as it
-from typing import (
-    #Callable,
-    Callable,
-    Generator,
-    Iterable
-)
+from typing import Callable
 
 import numpy as np
 
@@ -69,7 +64,7 @@ class StrokeMobject(Mobject):
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
     def _width_(cls) -> float:
-        return 0.04
+        return 0.04  # TODO: check if the auto-scaling remains
 
     @Lazy.variable(LazyMode.UNWRAPPED)
     @classmethod
@@ -420,12 +415,12 @@ class StrokeMobject(Mobject):
         ) -> list[int]:
             if is_ring:
                 # (0, 1, 1, 2, ..., n-2, n-1, n-1, 0)
-                return list(it.chain(*zip(*(
+                return list(it.chain.from_iterable(zip(*(
                     np.roll(range(points_len), -i)
                     for i in range(2)
                 ))))
             # (0, 1, 1, 2, ..., n-2, n-1)
-            return list(it.chain(*zip(*(
+            return list(it.chain.from_iterable(zip(*(
                 range(i, points_len - 1 + i)
                 for i in range(2)
             ))))
@@ -538,29 +533,29 @@ class StrokeMobject(Mobject):
         #    )
         #target_framebuffer.color_mask = (True, True, True, True)
 
-    def iter_stroke_children(self) -> "Generator[StrokeMobject, None, None]":
-        for mobject in self.iter_children():
-            if isinstance(mobject, StrokeMobject):
-                yield mobject
+    #def iter_stroke_children(self) -> "Generator[StrokeMobject, None, None]":
+    #    for mobject in self.iter_children():
+    #        if isinstance(mobject, StrokeMobject):
+    #            yield mobject
 
-    def iter_stroke_descendants(
-        self,
-        broadcast: bool = True
-    ) -> "Generator[StrokeMobject, None, None]":
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if isinstance(mobject, StrokeMobject):
-                yield mobject
+    #def iter_stroke_descendants(
+    #    self,
+    #    broadcast: bool = True
+    #) -> "Generator[StrokeMobject, None, None]":
+    #    for mobject in self.iter_descendants(broadcast=broadcast):
+    #        if isinstance(mobject, StrokeMobject):
+    #            yield mobject
 
-    @classmethod
-    def class_concatenate(
-        cls,
-        *mobjects: "StrokeMobject"
-    ) -> "StrokeMobject":
-        return StrokeMobject._concatenate_by_descriptor(
-            target_descriptor=StrokeMobject._multi_line_string_,
-            concatenate_method=MultiLineString.concatenate,
-            mobjects=list(mobjects)
-        )
+    #@classmethod
+    #def class_concatenate(
+    #    cls,
+    #    *mobjects: "StrokeMobject"
+    #) -> "StrokeMobject":
+    #    return StrokeMobject._concatenate_by_descriptor(
+    #        target_descriptor=StrokeMobject._multi_line_string_,
+    #        concatenate_method=MultiLineString.concatenate,
+    #        mobjects=list(mobjects)
+    #    )
         #result = StrokeMobject()
         #if not mobjects:
         #    return result
@@ -587,12 +582,14 @@ class StrokeMobject(Mobject):
         #return result
 
     def concatenate(self) -> "StrokeMobject":
-        return self.class_concatenate(*self.iter_stroke_children())
+        return StrokeMobject._concatenate_by_descriptor(
+            target_descriptor=StrokeMobject._multi_line_string_,
+            concatenate_method=MultiLineString.concatenate,
+            mobjects=list(self.iter_children_by_type(StrokeMobject))
+        )
 
-    @classmethod
-    def class_set_style(
-        cls,
-        mobjects: "Iterable[StrokeMobject]",
+    def set_style(
+        self,
         *,
         width: float | None = None,
         single_sided: bool | None = None,
@@ -600,8 +597,9 @@ class StrokeMobject(Mobject):
         color: ColorType | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
-        is_transparent: bool | None = None
-    ) -> None:
+        is_transparent: bool | None = None,
+        broadcast: bool = True
+    ):
         width_value = LazyWrapper(width) if width is not None else None
         single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
         has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
@@ -614,7 +612,7 @@ class StrokeMobject(Mobject):
                 opacity_component,
                 dilate
             )) else None
-        for mobject in mobjects:
+        for mobject in self.iter_descendants_by_type(mobject_type=StrokeMobject, broadcast=broadcast):
             if width_value is not None:
                 mobject._width_ = width_value
             if single_sided_value is not None:
@@ -629,27 +627,28 @@ class StrokeMobject(Mobject):
                 mobject._dilate_ = dilate_value
             if is_transparent_value is not None:
                 mobject._is_transparent_ = is_transparent_value
-
-    def set_style(
-        self,
-        *,
-        width: float | None = None,
-        single_sided: bool | None = None,
-        has_linecap: bool | None = None,
-        color: ColorType | None = None,
-        opacity: float | None = None,
-        dilate: float | None = None,
-        is_transparent: bool | None = None,
-        broadcast: bool = True
-    ):
-        self.class_set_style(
-            mobjects=self.iter_stroke_descendants(broadcast=broadcast),
-            width=width,
-            single_sided=single_sided,
-            has_linecap=has_linecap,
-            color=color,
-            opacity=opacity,
-            dilate=dilate,
-            is_transparent=is_transparent
-        )
         return self
+
+    #def set_style(
+    #    self,
+    #    *,
+    #    width: float | None = None,
+    #    single_sided: bool | None = None,
+    #    has_linecap: bool | None = None,
+    #    color: ColorType | None = None,
+    #    opacity: float | None = None,
+    #    dilate: float | None = None,
+    #    is_transparent: bool | None = None,
+    #    broadcast: bool = True
+    #):
+    #    self.class_set_style(
+    #        mobjects=self.iter_stroke_descendants(broadcast=broadcast),
+    #        width=width,
+    #        single_sided=single_sided,
+    #        has_linecap=has_linecap,
+    #        color=color,
+    #        opacity=opacity,
+    #        dilate=dilate,
+    #        is_transparent=is_transparent
+    #    )
+    #    return self
