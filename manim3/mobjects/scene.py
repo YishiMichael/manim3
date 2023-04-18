@@ -118,7 +118,7 @@ class Scene(Mobject):
             for mobject in opaque_mobjects:
                 mobject._render(opaque_framebuffer)
 
-            with TextureFactory.texture() as accum_texture, \
+            with TextureFactory.texture(dtype="f2") as accum_texture, \
                     TextureFactory.texture(components=1, dtype="f2") as revealage_texture:
                 transparent_framebuffer = TransparentFramebuffer(
                     accum_texture=accum_texture,
@@ -141,7 +141,7 @@ class Scene(Mobject):
                     "t_revealage_map": np.array(revealage_texture)
                 },
                 context_state=ContextState(
-                    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
+                    flags=(ContextFlag.BLEND,)
                 )
             )
 

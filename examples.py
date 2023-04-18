@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.spatial.transform import Rotation
 
 from manim3 import *
@@ -66,10 +67,27 @@ class ThreeDTextExample(Scene):
         text = Text("Text").concatenate()
         text_3d = MeshMobject().set_geometry(PrismoidGeometry(text.get_shape()))
         text_3d.scale(5.0).stretch_to_fit_depth(0.5)
-        text_3d.set_style(color="#00FFAA55")
+        text_3d.set_style(color="#00FFAA44")
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         self.wait(10)
+
+
+class OITExample(Scene):
+    def construct(self) -> None:
+        self.add(*reversed([
+            (Circle()
+                .set_style(color=color, opacity=opacity)
+                .shift(RIGHT * 0.5)
+                .rotate_about_origin(Rotation.from_rotvec(OUT * angle))
+            )
+            for color, opacity, angle in zip(
+                (RED, GREEN, BLUE),
+                (0.3, 0.5, 0.6),
+                np.linspace(0, TAU, 3, endpoint=False)
+            )
+        ]))
+        self.wait(5)
 
 
 if __name__ == "__main__":

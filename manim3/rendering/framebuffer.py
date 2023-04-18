@@ -13,6 +13,7 @@ from ..rendering.context import (
     ContextState
 )
 from ..rendering.mgl_enums import (
+    BlendEquation,
     BlendFunc,
     ContextFlag
 )
@@ -84,7 +85,8 @@ class TransparentFramebuffer(Framebuffer):
             depth_attachment=depth_texture,
             context_state=ContextState(
                 flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-                blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_COLOR))
+                blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_COLOR)),
+                blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
             )
         )
         self.accum_texture: moderngl.Texture = accum_texture
