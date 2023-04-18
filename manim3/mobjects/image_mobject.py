@@ -20,7 +20,6 @@ from ..rendering.framebuffer import (
     OpaqueFramebuffer
 )
 from ..rendering.texture import TextureFactory
-#from ..rendering.temporary_resource import ColorFramebufferBatch
 
 
 class ImageMobject(MeshMobject):

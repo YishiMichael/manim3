@@ -131,7 +131,6 @@ class Transform(Animation):
         rate_func: Callable[[float], float] | None = None,
         replace: bool = False
     ) -> None:
-        #print(list(start_mobject.iter_descendants()))
         intermediate_mobjects_with_callback: list[tuple[Mobject, Callable[[Mobject, float], None]]] = [
             (mobject_0.copy(broadcast=False), VariableInterpolant._get_intermediate_instance_composed_callback(
                 interpolants=self._get_class_interpolants(mobject_cls),
@@ -143,7 +142,6 @@ class Transform(Animation):
                 stop_mobject.iter_descendants()
             )
         ]
-        #print(list(start_mobject.iter_descendants()))
 
         def alpha_animate_func(
             alpha_0: float,

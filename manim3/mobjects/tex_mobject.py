@@ -215,8 +215,6 @@ class TexParser(StringParser):
         string: str,
         isolate: Selector,
         protect: Selector,
-        #configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
-        #get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float,
         tex_to_color_map: dict[str, ColorType],
@@ -239,7 +237,6 @@ class TexParser(StringParser):
             string=string,
             isolate=isolate,
             protect=protect,
-            #tex_to_color_map=tex_to_color_map,
             configured_items_generator=(
                 (span, {})
                 for selector in tex_to_color_map
@@ -406,12 +403,6 @@ class Tex(StringMobject):
             string=string,
             isolate=isolate,
             protect=protect,
-            #configured_items_generator=(
-            #    (span, {})
-            #    for selector in tex_to_color_map
-            #    for span in TexParser._iter_spans_by_selector(selector, string)
-            #),
-            #get_content_by_body=get_content_by_body,
             file_writer=TexFileWriter(
                 use_mathjax=use_mathjax,
                 preamble=preamble,

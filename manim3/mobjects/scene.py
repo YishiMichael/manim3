@@ -33,21 +33,12 @@ from ..rendering.context import (
 from ..rendering.framebuffer import (
     ColorFramebuffer,
     Framebuffer,
-    #Framebuffer,
     TransparentFramebuffer,
     OpaqueFramebuffer
 )
 from ..rendering.gl_buffer import TextureIDBuffer
-#from ..rendering.mgl_enums import (
-#    BlendFunc,
-#    ContextFlag
-#)
+from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
-#from ..rendering.temporary_resource import (
-#    ColorFramebufferBatch,
-#    TransparentFramebufferBatch,
-#    OpaqueFramebufferBatch
-#)
 from ..rendering.vertex_array import VertexArray
 
 
@@ -73,82 +64,6 @@ class Scene(Mobject):
     @classmethod
     def _render_passes_(cls) -> list[RenderPass]:
         return []
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _color_map_tid_(cls) -> TextureIDBuffer:
-    #    return TextureIDBuffer(
-    #        field="sampler2D t_color_map"
-    #    )
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _accum_map_tid_(cls) -> TextureIDBuffer:
-    #    return TextureIDBuffer(
-    #        field="sampler2D t_accum_map"
-    #    )
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _revealage_map_tid_(cls) -> TextureIDBuffer:
-    #    return TextureIDBuffer(
-    #        field="sampler2D t_revealage_map"
-    #    )
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _u_depth_map_(cls) -> TextureIDBuffer:
-    #    return TextureIDBuffer(
-    #        field="sampler2D u_depth_map"
-    #    )
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _copy_vertex_array_(
-    #    cls,
-    #    _u_color_map_: TextureIDBuffer,
-    #    _u_depth_map_: TextureIDBuffer
-    #) -> VertexArray:
-    #    return VertexArray(
-    #        shader_filename="copy",
-    #        custom_macros=[
-    #            "#define COPY_DEPTH"
-    #        ],
-    #        texture_id_buffers=[
-    #            _u_color_map_,
-    #            _u_depth_map_
-    #        ]
-    #    )
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _oit_accum_vertex_array_(
-    #    cls,
-    #    _u_color_map_: TextureIDBuffer,
-    #    _u_depth_map_: TextureIDBuffer
-    #) -> VertexArray:
-    #    return VertexArray(
-    #        shader_filename="oit_accum",
-    #        texture_id_buffers=[
-    #            _u_color_map_,
-    #            _u_depth_map_
-    #        ]
-    #    )
-
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _oit_revealage_vertex_array_(
-    #    cls,
-    #    _u_color_map_: TextureIDBuffer,
-    #    _u_depth_map_: TextureIDBuffer
-    #) -> VertexArray:
-    #    return VertexArray(
-    #        shader_filename="oit_revealage",
-    #        texture_id_buffers=[
-    #            _u_color_map_,
-    #            _u_depth_map_
-    #        ]
-    #    )
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -194,7 +109,6 @@ class Scene(Mobject):
             else:
                 opaque_mobjects.append(mobject)
 
-        #with TransparentFramebufferBatch(depth_texture=) as scene_batch:
         with TextureFactory.depth_texture() as depth_texture:
             opaque_framebuffer = OpaqueFramebuffer(
                 color_texture=target_framebuffer.color_texture,
@@ -203,19 +117,6 @@ class Scene(Mobject):
             opaque_framebuffer.framebuffer.clear()
             for mobject in opaque_mobjects:
                 mobject._render(opaque_framebuffer)
-                #with OpaqueFramebufferBatch() as batch:
-                #    mobject._render_with_passes(batch.framebuffer)
-                #    self._copy_vertex_array_.render(
-                #        texture_array_dict={
-                #            "u_color_map": np.array(batch.color_texture),
-                #            "u_depth_map": np.array(batch.depth_texture)
-                #        },
-                #        framebuffer=scene_batch.opaque_framebuffer,
-                #        context_state=ContextState(
-                #            flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-                #            blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
-                #        )
-                #    )
 
             with TextureFactory.texture() as accum_texture, \
                     TextureFactory.texture(components=1, dtype="f2") as revealage_texture:
@@ -232,50 +133,16 @@ class Scene(Mobject):
                 revealage_texture.write(np.ones(revealage_texture.size, dtype="f2").tobytes())
                 for mobject in transparent_mobjects:
                     mobject._render(transparent_framebuffer)
-                    #with OpaqueFramebufferBatch() as batch:
-                    #    self._oit_accum_vertex_array_.render(
-                    #        texture_array_dict={
-                    #            "u_color_map": np.array(batch.color_texture),
-                    #            "u_depth_map": np.array(batch.depth_texture)
-                    #        },
-                    #        framebuffer=scene_batch.accum_framebuffer,
-                    #        context_state=ContextState(
-                    #            flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-                    #            blend_funcs=((BlendFunc.ONE, BlendFunc.ONE),)
-                    #        )
-                    #    )
-                    #    self._oit_revealage_vertex_array_.render(
-                    #        texture_array_dict={
-                    #            "u_color_map": np.array(batch.color_texture),
-                    #            "u_depth_map": np.array(batch.depth_texture)
-                    #        },
-                    #        framebuffer=scene_batch.revealage_framebuffer,
-                    #        context_state=ContextState(
-                    #            flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-                    #            blend_funcs=((BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_COLOR),)
-                    #        )
-                    #    )
 
-            #self._copy_vertex_array_.render(
-            #    texture_array_dict={
-            #        "u_color_map": np.array(scene_batch.opaque_texture),
-            #        "u_depth_map": np.array(scene_batch.depth_texture)
-            #    },
-            #    framebuffer=target_framebuffer,
-            #    context_state=ContextState(
-            #        flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-            #        blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
-            #    )
-            #)
             self._oit_compose_vertex_array_.render(
+                framebuffer=target_framebuffer,
                 texture_array_dict={
                     "t_accum_map": np.array(accum_texture),
                     "t_revealage_map": np.array(revealage_texture)
                 },
-                framebuffer=target_framebuffer
-                #context_state=ContextState(
-                #    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
-                #)
+                context_state=ContextState(
+                    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
+                )
             )
 
     def _render_scene_with_passes(
@@ -296,7 +163,6 @@ class Scene(Mobject):
                     color_texture=teture_1
                 )
             )
-            #batches = (batch_0, batch_1)
             target_id = 0
             self._render_scene(framebuffers[0])
             for render_pass in render_passes[:-1]:
@@ -305,12 +171,10 @@ class Scene(Mobject):
                     texture=framebuffers[1 - target_id].color_texture,
                     target_framebuffer=framebuffers[target_id]
                 )
-            #target_framebuffer.depth_mask = False  # TODO: shall we disable writing to depth?
             render_passes[-1]._render(
                 texture=framebuffers[target_id].color_texture,
                 target_framebuffer=target_framebuffer
             )
-            #target_framebuffer.depth_mask = True
 
     def _process_rendering(
         self,
@@ -338,15 +202,15 @@ class Scene(Mobject):
                         raise KeyboardInterrupt
                     window.clear()
                     self._pixelated_vertex_array_.render(
-                        texture_array_dict={
-                            "t_color_map": np.array(color_texture)
-                        },
                         framebuffer=Framebuffer(
                             framebuffer=Context.window_framebuffer,
                             context_state=ContextState(
                                 flags=()
                             )
-                        )
+                        ),
+                        texture_array_dict={
+                            "t_color_map": np.array(color_texture)
+                        }
                     )
                     if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
                             (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:

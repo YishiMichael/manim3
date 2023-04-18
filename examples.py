@@ -20,7 +20,7 @@ class TexTransformExample(Scene):
     def construct(self) -> None:
         text = (Text("Text")
             .scale(3)
-            .set_style(color=ORANGE, opacity=None)
+            .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
@@ -29,7 +29,7 @@ class TexTransformExample(Scene):
         )
         tex = (Tex("Tex")
             .scale(3)
-            .set_style(color=BLUE, opacity=None)
+            .set_style(color=BLUE, opacity=0.5)
             .concatenate()
         )
         tex.add(tex.build_stroke(width=0.06, color=PINK))
@@ -64,11 +64,9 @@ class ThreeDTextExample(Scene):
     def construct(self) -> None:
         self.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
         text = Text("Text").concatenate()
-        text_3d = MeshMobject()
-        text_3d._geometry_ = PrismoidGeometry(text._shape_)
-        text_3d._model_matrix_ = text._model_matrix_
+        text_3d = MeshMobject().set_geometry(PrismoidGeometry(text.get_shape()))
         text_3d.scale(5.0).stretch_to_fit_depth(0.5)
-        text_3d.set_style(color="#00FFAA99")
+        text_3d.set_style(color="#00FFAA55")
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         self.wait(10)
@@ -78,7 +76,7 @@ if __name__ == "__main__":
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 3
+    #config.rendering.fps = 3
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)

@@ -1,12 +1,10 @@
 __all__ = [
-    #"LineStringKind",
     "MultiLineString",
     "Shape"
 ]
 
 
 from abc import abstractmethod
-#from enum import Enum
 from functools import reduce
 import itertools as it
 from typing import (
@@ -35,12 +33,6 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..utils.space import SpaceUtils
-
-
-#class LineStringKind(Enum):
-#    POINT = 0
-#    LINE_STRING = 1
-#    LINEAR_RING = 2
 
 
 class ShapeInterpolant(LazyObject):
@@ -167,7 +159,6 @@ class LineString(ShapeInterpolant):
         *,
         is_ring: bool
     ) -> None:
-        # TODO: shall we first remove redundant adjacent points?
         assert len(points)
         super().__init__()
         self._points_ = points
@@ -201,20 +192,6 @@ class LineString(ShapeInterpolant):
         if not is_ring:
             return points.copy()
         return np.append(points, (points[0],), axis=0)
-
-    # TODO: remove
-    #@Lazy.property(LazyMode.UNWRAPPED)
-    #@classmethod
-    #def _kind_(
-    #    cls,
-    #    points: Vec3sT,
-    #    is_ring: bool
-    #) -> LineStringKind:
-    #    if len(points) == 1:
-    #        return LineStringKind.POINT
-    #    if not is_ring:
-    #        return LineStringKind.LINEAR_RING
-    #    return LineStringKind.LINE_STRING
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -529,23 +506,6 @@ class Shape(LazyObject):
             get_polygon_triangulation(polygon)
             for polygon in get_shapely_polygons(shapely_obj)
         ])
-
-        #item_list: list[tuple[VertexIndexType, int, Vec2sT]] = []
-        #offset: int = 0
-        #for polygon in get_shapely_polygons(shapely_obj):
-        #    index, points = get_polygon_triangulation(polygon)
-        #    item_list.append((index, offset, points))
-        #    offset += len(points)
-
-        #if not item_list:
-        #    return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
-
-        #index_list, offsets, points_list = zip(*item_list)
-        #index = np.concatenate([index + offset for index, offset, _ in item_list])
-        #points = 
-        #return , np.concatenate([
-        #    points for _, _, points in item_list
-        #])
 
     @classmethod
     def from_multi_line_string(

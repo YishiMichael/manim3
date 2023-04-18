@@ -404,7 +404,6 @@ class LazyVariableSlot(LazySlot[_ContainerT]):
         src: "LazyVariableSlot[_ContainerT]"
     ) -> None:
         self.set_variable_container(src.get_variable_container())
-        #self.expire_property_slots()
         self._linked_property_slots.clear()
         self._is_writable = src._is_writable
 
@@ -451,15 +450,13 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
         if self._container is not None:
             self._container._write(container)
         else:
-            #if isinstance(container, LazyUnitaryContainer):
-            #    print(self._container._element if self._container is not None else None)
-            #    print(container._element)
-            self._container = container#._copy()  # TODO
+            self._container = container  # TODO
 
     def copy_from(
         self,
         src: "LazyPropertySlot[_ContainerT]"
     ) -> None:
+        # TODO: Shall we keep references to objects under property slots?
         #self.set_property_container(src.get_property_container())  # TODO
         self.set_property_container(None)
         self._linked_variable_slots.clear()
@@ -680,8 +677,8 @@ class LazyPropertyDescriptor(LazyDescriptor[
         self.parameter_name_chains: tuple[tuple[str, ...], ...] = parameter_name_chains
         self.requires_unwrapping_tuple: tuple[bool, ...] = requires_unwrapping_tuple
         self.descriptor_overloading_chains: tuple[tuple[LazyDescriptorOverloading, ...], ...] = NotImplemented
-        self.instance_to_key_dict: weakref.WeakKeyDictionary[_InstanceT, int] = weakref.WeakKeyDictionary()
-        self.key_to_container_dict: weakref.WeakValueDictionary[int, _ContainerT] = weakref.WeakValueDictionary()
+        self.instance_to_key_dict: weakref.WeakKeyDictionary[_InstanceT, tuple] = weakref.WeakKeyDictionary()
+        self.key_to_container_dict: weakref.WeakValueDictionary[tuple, _ContainerT] = weakref.WeakValueDictionary()
 
     def get_container(
         self,
@@ -763,7 +760,8 @@ class LazyPropertyDescriptor(LazyDescriptor[
             tree_node: TreeNode[_TreeNodeContentT]
         ) -> Hashable:
             if tree_node._children is None:
-                return tree_node._content
+                assert (isinstance(content := tree_node._content, LazyWrapper))
+                return content._hash_value
             # The additional `type` is crucial for constructing the key,
             # as different classes overridding the same lazy property may
             # process the same set of parameters in different ways.
@@ -806,14 +804,11 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 parameter_tree
                 for parameter_tree, _ in parameter_items
             )
-            key = hash(tuple(
+            key = tuple(
                 construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
                 for parameter_tree in parameter_trees
-            ))
+            )
             self.instance_to_key_dict[instance] = key
-            #if self.method.__name__ == "_all_points_":
-            #    print(key)
-            #    print(list(self.key_to_container_dict.keys()))
 
             if (container := self.key_to_container_dict.get(key)) is None:
                 parameters = tuple(
@@ -1038,14 +1033,22 @@ class LazyObject:
 
 @final
 class LazyWrapper(LazyObject, Generic[_T]):
-    __slots__ = ("_value",)
+    __slots__ = (
+        "_value",
+        "_hash_value"
+    )
+
+    _HASH_COUNTER: ClassVar[int] = 1
 
     def __init__(
         self,
         value: _T
     ) -> None:
         super().__init__()
+        cls = type(self)
         self._value: _T = value
+        self._hash_value: int = cls._HASH_COUNTER  # Unique for each instance.
+        cls._HASH_COUNTER += 1
 
     @property
     def value(self) -> _T:

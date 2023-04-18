@@ -11,7 +11,6 @@ from ..lazy.interface import (
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
-#from ..rendering.context import ContextState
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import (
     UniformBlockBuffer,
@@ -48,13 +47,6 @@ class GaussianBlurPass(RenderPass):
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _color_map_tid_(cls) -> TextureIDBuffer:
-    #    return TextureIDBuffer(
-    #        field="sampler2D t_color_map"
-    #    )
-
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _gaussian_blur_uniform_block_buffer_(
@@ -80,7 +72,6 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _gaussian_blur_vertex_arrays_(
         cls,
-        #_color_map_tid_: TextureIDBuffer,
         _gaussian_blur_uniform_block_buffer_: UniformBlockBuffer
     ) -> list[VertexArray]:
         return [
@@ -101,26 +92,6 @@ class GaussianBlurPass(RenderPass):
             for blur_subroutine in ("horizontal_dilate", "vertical_dilate")
         ]
 
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _vertical_va_(
-    #    cls,
-    #    _color_map_tid_: TextureIDBuffer,
-    #    _gaussian_blur_uniform_block_buffer_: UniformBlockBuffer
-    #) -> VertexArray:
-    #    return VertexArray(
-    #        shader_filename="gaussian_blur",
-    #        custom_macros=[
-    #            "#define blur_subroutine vertical_dilate"
-    #        ],
-    #        texture_id_buffers=[
-    #            _color_map_tid_
-    #        ],
-    #        uniform_block_buffers=[
-    #            _gaussian_blur_uniform_block_buffer_
-    #        ]
-    #    )
-
     def _render(
         self,
         texture: moderngl.Texture,
@@ -128,16 +99,16 @@ class GaussianBlurPass(RenderPass):
     ) -> None:
         with TextureFactory.texture() as color_texture:
             self._gaussian_blur_vertex_arrays_[0].render(
-                texture_array_dict={
-                    "t_color_map": np.array(texture)
-                },
                 framebuffer=ColorFramebuffer(
                     color_texture=color_texture
-                )
+                ),
+                texture_array_dict={
+                    "t_color_map": np.array(texture)
+                }
             )
             self._gaussian_blur_vertex_arrays_[1].render(
+                framebuffer=target_framebuffer,
                 texture_array_dict={
                     "t_color_map": np.array(color_texture)
-                },
-                framebuffer=target_framebuffer
+                }
             )

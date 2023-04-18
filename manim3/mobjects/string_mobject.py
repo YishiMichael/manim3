@@ -823,32 +823,14 @@ class StringMobject(SVGMobject):
         *,
         string: str,
         parser: StringParser
-        #isolate: Selector = (),
-        #protect: Selector = (),
-        #configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
-        #get_content_by_body: Callable[[str, bool], str],
-        #file_writer: StringFileWriter,
-        #frame_scale: float
     ) -> None:
         super().__init__()
-        #parsing_result = self._parse(
-        #    string=string,
-        #    isolate=isolate,
-        #    protect=protect,
-        #    configured_items_generator=configured_items_generator,
-        #    get_content_by_body=get_content_by_body,
-        #    file_writer=file_writer,
-        #    frame_scale=frame_scale
-        #)
         self._string: str = string
         self._parser: StringParser = parser
-        #self._parsing_result: ParsingResult = parsing_result
         self.add(*(
             shape_item.shape_mobject
             for shape_item in parser._parsing_result.shape_items
         ))
-
-    # Selector
 
     def _iter_shape_mobject_lists_by_selector(
         self,
@@ -858,11 +840,6 @@ class StringMobject(SVGMobject):
         for span in parser._iter_spans_by_selector(selector, self._string):
             if (shape_mobject_list := parser._get_shape_mobject_list_by_span(span, parser._parsing_result.shape_items)):
                 yield shape_mobject_list
-        #return (
-        #    shape_mobject_list
-        #    for span in self._iter_spans_by_selector(selector, self._string)
-        #    if (shape_mobject_list := self._get_shape_mobject_list_by_span(span, self._parsing_result.shape_items))
-        #)
 
     def select_parts(
         self,

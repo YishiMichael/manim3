@@ -16,7 +16,6 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
-#from ..rendering.context import ContextState
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
     OpaqueFramebuffer
@@ -25,7 +24,6 @@ from ..rendering.gl_buffer import (
     TextureIDBuffer,
     UniformBlockBuffer
 )
-#from ..rendering.mgl_enums import ContextFlag
 from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
@@ -84,20 +82,6 @@ class MeshMobject(Mobject):
     ) -> Vec3sT:
         return _geometry_._geometry_data_.value.position
 
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _color_maps_tid_(
-    #    cls,
-    #    color_map: moderngl.Texture | None
-    #) -> TextureIDBuffer:
-    #    texture_len = int(color_map is not None)
-    #    return TextureIDBuffer(
-    #        field="sampler2D t_color_maps[NUM_COLOR_MAPS]",
-    #        array_lens={
-    #            "NUM_COLOR_MAPS": texture_len
-    #        }
-    #    )
-
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _material_uniform_block_buffer_(
@@ -144,9 +128,7 @@ class MeshMobject(Mobject):
         custom_macros.append(f"#define phong_lighting_subroutine {phong_lighting_subroutine}")
         return VertexArray(
             shader_filename="mesh",
-            custom_macros=[
-                f"#define phong_lighting_subroutine {phong_lighting_subroutine}"
-            ],
+            custom_macros=custom_macros,
             texture_id_buffers=[
                 TextureIDBuffer(
                     field="sampler2D t_color_maps[NUM_COLOR_MAPS]",
@@ -167,24 +149,26 @@ class MeshMobject(Mobject):
     def _render(
         self,
         target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
-        #context_state: ContextState
     ) -> None:
-        #custom_macros: list[str] = []
-        #if self._apply_phong_lighting_.value:
-        #    custom_macros.append("#define APPLY_PHONG_LIGHTING")
         textures: list[moderngl.Texture] = []
         if (color_map := self._color_map_.value) is not None:
             textures.append(color_map)
         self._mesh_vertex_array_.render(
+            framebuffer=target_framebuffer,
             texture_array_dict={
                 "t_color_maps": np.array(textures, dtype=moderngl.Texture)
-            },
-            framebuffer=target_framebuffer,
-            #context_state=ContextState(
-            #    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
-            #)
-            #context_state=context_state
+            }
         )
+
+    def get_geometry(self) -> Geometry:
+        return self._geometry_
+
+    def set_geometry(
+        self,
+        geometry: Geometry
+    ):
+        self._geometry_ = geometry
+        return self
 
     def set_style(
         self,
@@ -228,31 +212,3 @@ class MeshMobject(Mobject):
             if apply_phong_lighting_value is not None:
                 mobject._apply_phong_lighting_ = apply_phong_lighting_value
         return self
-
-    #def set_style(
-    #    self,
-    #    *,
-    #    color: ColorType | None = None,
-    #    opacity: float | None = None,
-    #    is_transparent: bool | None = None,
-    #    ambient_strength: float | None = None,
-    #    specular_strength: float | None = None,
-    #    shininess: float | None = None,
-    #    apply_phong_lighting: bool | None = None,
-    #    broadcast: bool = True
-    #):
-    #    self.class_set_style(
-    #        mobjects=(
-    #            mobject
-    #            for mobject in self.iter_descendants(broadcast=broadcast)
-    #            if isinstance(mobject, MeshMobject)
-    #        ),
-    #        color=color,
-    #        opacity=opacity,
-    #        is_transparent=is_transparent,
-    #        ambient_strength=ambient_strength,
-    #        specular_strength=specular_strength,
-    #        shininess=shininess,
-    #        apply_phong_lighting=apply_phong_lighting
-    #    )
-    #    return self

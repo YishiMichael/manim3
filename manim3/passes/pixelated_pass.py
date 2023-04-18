@@ -10,7 +10,6 @@ from ..lazy.interface import (
 )
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
-#from ..rendering.context import ContextState
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.texture import TextureFactory
@@ -33,25 +32,16 @@ class PixelatedPass(RenderPass):
     def _pixelated_width_(cls) -> float:
         return 0.1
 
-    #@Lazy.property(LazyMode.OBJECT)
-    #@classmethod
-    #def _color_map_tid_(cls) -> TextureIDBuffer:
-    #    return TextureIDBuffer(
-    #        field="sampler2D t_color_map"
-    #    )
-
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
     def _pixelated_va_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
-            #custom_macros=[],
             texture_id_buffers=[
                 TextureIDBuffer(
                     field="sampler2D t_color_map"
                 )
             ]
-            #uniform_block_buffers=[]
         )
 
     def _render(
@@ -67,22 +57,16 @@ class PixelatedPass(RenderPass):
         with TextureFactory.texture(size=texture_size) as color_texture:
             color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)  # TODO: typing
             self._pixelated_va_.render(
-                texture_array_dict={
-                    "t_color_map": np.array(texture)
-                },
                 framebuffer=ColorFramebuffer(
                     color_texture=color_texture
-                )
-                #context_state=ContextState(
-                #    flags=()
-                #)
+                ),
+                texture_array_dict={
+                    "t_color_map": np.array(texture)
+                }
             )
             self._pixelated_va_.render(
+                framebuffer=target_framebuffer,
                 texture_array_dict={
                     "t_color_map": np.array(color_texture)
-                },
-                framebuffer=target_framebuffer
-                #context_state=ContextState(
-                #    flags=()
-                #)
+                }
             )

@@ -74,7 +74,7 @@ out vec4 frag_color;
 
 
 vec4 enable_phong_lighting() {
-    // From https://learnopengl.com/Lighting/Basic-Lighting
+    // From `https://learnopengl.com/Lighting/Basic-Lighting`
     vec4 result = vec4(0.0);
     result += u_ambient_light_color * u_ambient_strength;
     vec3 normal = normalize(fs_in.world_normal);
@@ -100,16 +100,6 @@ vec4 disable_phong_lighting() {
 
 
 void main() {
-    //#if defined APPLY_PHONG_LIGHTING
-
-    
-
-    //#else
-
-    //frag_color = vec4(1.0);
-
-    //#endif
-
     vec4 color = phong_lighting_subroutine();
     color *= u_color;
     #if NUM_COLOR_MAPS

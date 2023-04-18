@@ -184,8 +184,6 @@ class MarkupTextParser(StringParser):
         string: str,
         isolate: Selector,
         protect: Selector,
-        #configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
-        #get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float,
         local_configs: dict[Selector, dict[str, str]],
@@ -446,12 +444,6 @@ class Text(StringMobject):
             string=string,
             isolate=isolate,
             protect=protect,
-            #configured_items_generator=(
-            #    (span, local_config)
-            #    for selector, local_config in local_configs.items()
-            #    for span in self._iter_spans_by_selector(selector, string)
-            #),
-            #get_content_by_body=get_content_by_body,
             file_writer=MarkupTextFileWriter(
                 justify=justify,
                 indent=indent,
@@ -466,21 +458,6 @@ class Text(StringMobject):
         super().__init__(
             string=string,
             parser=parser
-            #isolate=isolate,
-            #protect=protect,
-            #configured_items_generator=(
-            #    (span, local_config)
-            #    for selector, local_config in local_configs.items()
-            #    for span in self._iter_spans_by_selector(selector, string)
-            #),
-            #get_content_by_body=get_content_by_body,
-            #file_writer=MarkupTextFileWriter(
-            #    justify=justify,
-            #    indent=indent,
-            #    alignment=PangoAlignment[alignment],
-            #    line_width=line_width
-            #),
-            #frame_scale=self._TEXT_SCALE_FACTOR
         )
 
     @classmethod

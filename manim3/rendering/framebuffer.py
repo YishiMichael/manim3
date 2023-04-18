@@ -8,8 +8,6 @@ __all__ = [
 
 import moderngl
 
-#import numpy as np
-
 from ..rendering.context import (
     Context,
     ContextState
@@ -67,24 +65,6 @@ class OpaqueFramebuffer(Framebuffer):
         self.depth_texture: moderngl.Texture = depth_texture
 
 
-class ColorFramebuffer(Framebuffer):
-    __slots__ = ("color_texture",)
-
-    def __init__(
-        self,
-        *,
-        color_texture: moderngl.Texture
-    ) -> None:
-        super().__init__(
-            color_attachments=(color_texture,),
-            depth_attachment=None,
-            context_state=ContextState(
-                flags=()
-            )
-        )
-        self.color_texture: moderngl.Texture = color_texture
-
-
 class TransparentFramebuffer(Framebuffer):
     __slots__ = (
         "accum_texture",
@@ -111,10 +91,20 @@ class TransparentFramebuffer(Framebuffer):
         self.revealage_texture: moderngl.Texture = revealage_texture
         self.depth_texture: moderngl.Texture = depth_texture
 
-        #framebuffer = self.framebuffer
-        ## Test against each fragment by the depth buffer, but never write to it.
-        #framebuffer.depth_mask = False
-        #framebuffer.clear()
-        ## Initialize `revealage` with 1.0.
-        ## TODO: There should be a more elegant way using `clear`.
-        #revealage_texture.write(np.ones(revealage_texture.size, dtype="f2").tobytes())
+
+class ColorFramebuffer(Framebuffer):
+    __slots__ = ("color_texture",)
+
+    def __init__(
+        self,
+        *,
+        color_texture: moderngl.Texture
+    ) -> None:
+        super().__init__(
+            color_attachments=(color_texture,),
+            depth_attachment=None,
+            context_state=ContextState(
+                flags=()
+            )
+        )
+        self.color_texture: moderngl.Texture = color_texture

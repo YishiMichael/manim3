@@ -10,13 +10,10 @@ from ..constants import PI
 from ..custom_typing import (
     ColorType,
     FloatsT,
-    #FloatsT,
-    #Mat4T,
     Vec2sT,
     Vec3T,
     Vec3sT,
-    VertexIndexType,
-    #VertexIndexType
+    VertexIndexType
 )
 from ..lazy.core import LazyWrapper
 from ..lazy.interface import (
@@ -24,7 +21,6 @@ from ..lazy.interface import (
     LazyMode
 )
 from ..mobjects.mobject import Mobject
-#from ..rendering.context import ContextState
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
     OpaqueFramebuffer
@@ -117,14 +113,6 @@ class StrokeMobject(Mobject):
         _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
         _model_uniform_block_buffer_: UniformBlockBuffer
     ) -> VertexArray:
-        #if not _multi_line_string_._line_strings_:
-        #    position = np.zeros((0, 3))
-        #else:
-        #    position = np.concatenate([
-        #        line_string._points_.value
-        #        for line_string in _multi_line_string_._line_strings_
-        #    ])
-
         indexed_attributes_buffer = IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
                 fields=[
@@ -135,9 +123,6 @@ class StrokeMobject(Mobject):
                     "in_position": all_points
                 }
             ),
-            #index_buffer=IndexBuffer(
-            #    data=np.arange(len(all_points), dtype=np.uint32)
-            #),
             mode=PrimitiveMode.POINTS
         )
         transform_feedback_buffer = TransformFeedbackBuffer(
@@ -162,13 +147,8 @@ class StrokeMobject(Mobject):
         cls,
         _stroke_preprocess_vertex_array_: VertexArray
     ) -> Vec3sT:
-        #print(model_matrix)
-        #print(np.frombuffer(_model_ub_.get_buffer().read(), dtype=np.float32))
         data_dict = _stroke_preprocess_vertex_array_.transform()
-        #print(data_dict)
         return data_dict["out_position"]
-
-        #return [get_position(points) for points in multi_line_string__line_strings__points]
 
     @Lazy.property(LazyMode.UNWRAPPED)
     @classmethod
@@ -202,31 +182,6 @@ class StrokeMobject(Mobject):
             for position in position_list
         )
         return area >= 0.0
-        #return bool(area * width >= 0.0)
-
-    #@Lazy.property(LazyMode.SHARED)
-    #@classmethod
-    #def _winding_sign_(
-    #    cls,
-    #    scene_state__camera__projection_matrix: Mat4T,
-    #    scene_state__camera__view_matrix: Mat4T,
-    #    model_matrix: Mat4T,
-    #    multi_line_string__line_strings__points: list[Vec3sT],
-    #    width: float
-    #) -> bool:
-    #    # TODO: The calculation here is somehow redundant with what shader does...
-
-    #    def get_signed_area(
-    #        points: Vec2sT
-    #    ) -> float:
-    #        return np.cross(points, np.roll(points, -1, axis=0)).sum() / 2.0
-
-    #    transform = scene_state__camera__projection_matrix @ scene_state__camera__view_matrix @ model_matrix
-    #    area = sum(
-    #        get_signed_area(SpaceUtils.decrease_dimension(SpaceUtils.apply_affine(transform, points)))
-    #        for points in multi_line_string__line_strings__points
-    #    )
-    #    return bool(area * width >= 0.0)
 
     @Lazy.property(LazyMode.OBJECT)
     @classmethod
@@ -255,18 +210,8 @@ class StrokeMobject(Mobject):
     @classmethod
     def _winding_sign_uniform_block_buffer_(
         cls,
-        #position_list: list[Vec3sT],
-        #width: float,
         winding_sign: bool
     ) -> UniformBlockBuffer:
-
-        #def get_winding_sign(
-        #    position: Vec3sT
-        #) -> float:
-        #    points = SpaceUtils.decrease_dimension(position)
-        #    signed_area = float(np.cross(points, np.roll(points, 1, axis=0)).sum()) / 2.0
-        #    return 1.0 if signed_area * width >= 0.0 else -1.0
-
         return UniformBlockBuffer(
             name="ub_winding_sign",
             fields=[
@@ -305,35 +250,12 @@ class StrokeMobject(Mobject):
                 index_increments = np.zeros(len(vectors), dtype=np.int32)
                 index_increments[nonzero_length_indices[1:]] = 1
                 filled_vectors = vectors[nonzero_length_indices[index_increments.cumsum()]]
-                #diff = vectors.copy()
-                #diff[nonzero_length_indices[1:]] -= diff[nonzero_length_indices[:-1]]
-                #filled_vectors = diff.cumsum(axis=0)
-                #filled_vectors[:nonzero_length_indices[0]] += diff[nonzero_length_indices[0]]
 
             angles = np.arctan2(filled_vectors[:, 1], filled_vectors[:, 0])
             delta_angles = ((angles[1:] - angles[:-1] + PI) % (2.0 * PI) - PI) / 2.0
             direction_angles = angles[:-1] + delta_angles
             return direction_angles, delta_angles
 
-        #def get_angles(
-        #    position: Vec3sT,
-        #    is_ring: bool
-        #) -> tuple[FloatsT, FloatsT]:
-        #    points = SpaceUtils.decrease_dimension(position)
-        #    if not is_ring:
-        #        return get_angles(points)
-        #    points_extended = np.array((points[-1], *points, points[0]))
-        #    direction_angles, delta_angles = get_angles(points_extended)
-        #    return direction_angles[1:-1], delta_angles[1:-1]
-
-
-        #if not _multi_line_string_._line_strings_:
-        #    position = np.zeros((0, 3))
-        #else:
-        #    position = np.concatenate([
-        #        line_string._points_.value
-        #        for line_string in _multi_line_string_._line_strings_
-        #    ])
         if not position_list:
             all_position = np.zeros((0, 3))
             direction_angle = np.zeros((0, 1))
@@ -369,7 +291,6 @@ class StrokeMobject(Mobject):
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
         _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
-        #_model_uniform_block_buffer_: UniformBlockBuffer,
         _stroke_uniform_block_buffer_: UniformBlockBuffer,
         _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
         is_transparent: bool,
@@ -395,19 +316,6 @@ class StrokeMobject(Mobject):
                     strict=True
                 )
             ], dtype=np.uint32)
-            #index_arrays: list[VertexIndexType] = []
-            #for points_len, is_ring in zip(
-            #    multi_line_string__line_strings__points_len,
-            #    multi_line_string__line_strings__is_ring,
-            #    strict=True
-            #):
-            #    #points_len = line_string._points_len_.value
-            #    #is_ring = line_string._is_ring_.value
-            #    index_arrays.append(np.array(index_getter(points_len, is_ring), dtype=np.uint32) + offset)
-            #    offset += points_len
-            #if not index_arrays:
-            #    return np.zeros(0, dtype=np.uint32)
-            #return np.concatenate(index_arrays, dtype=np.uint32)
 
         def line_index_getter(
             points_len: int,
@@ -443,7 +351,6 @@ class StrokeMobject(Mobject):
 
         uniform_block_buffers = [
             _scene_state__camera__camera_uniform_block_buffer_,
-            #_model_uniform_block_buffer_,
             _stroke_uniform_block_buffer_,
             _winding_sign_uniform_block_buffer_
         ]
@@ -484,111 +391,19 @@ class StrokeMobject(Mobject):
                 get_vertex_array(cap_index_getter, PrimitiveMode.LINES, [
                     "#define STROKE_CAP"
                 ])
-                #get_vertex_array(cls._point_index_getter, moderngl.POINTS, [
-                #    "#define STROKE_POINT"
-                #])
             )
         return vertex_arrays
-
-    #@classmethod
-    #def _point_index_getter(
-    #    cls,
-    #    points_len: int,
-    #    is_ring: bool
-    #) -> list[int]:
-    #    if kind == LineStringKind.POINT:
-    #        return [0]
-    #    if kind == LineStringKind.LINE_STRING:
-    #        return []
-    #    if kind == LineStringKind.LINEAR_RING:
-    #        return []
 
     def _render(
         self,
         target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
-        #context_state: ContextState
     ) -> None:
-        # TODO: Is this already the best practice?
-        # Render color.
-        #target_framebuffer.depth_mask = False
-        #print(len(self._all_points_.value), sum(line_string._points_len_.value for line_string in self._multi_line_string_._line_strings_))
-        #StrokeMobject._all_points_.instance_to_slot_dict[self].expire()
-        #print(len(self._all_points_.value), sum(line_string._points_len_.value for line_string in self._multi_line_string_._line_strings_))
-        #print()
         for vertex_array in self._stroke_vertex_arrays_:
             vertex_array.render(
                 framebuffer=target_framebuffer
-                #context_state=context_state
-                #context_state=ContextState(
-                #    flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST)
-                #    #blend_func=moderngl.ADDITIVE_BLENDING
-                #    #blend_equation=moderngl.MAX
-                #)
             )
-        #target_framebuffer.depth_mask = True
-        # Render depth.
-        #target_framebuffer.color_mask = (False, False, False, False)
-        #for vertex_array in self._stroke_vertex_arrays_:
-        #    vertex_array.render(
-        #        framebuffer=target_framebuffer,
-        #        context_state=ContextState(
-        #            enable_only=moderngl.DEPTH_TEST
-        #        )
-        #    )
-        #target_framebuffer.color_mask = (True, True, True, True)
-
-    #def iter_stroke_children(self) -> "Generator[StrokeMobject, None, None]":
-    #    for mobject in self.iter_children():
-    #        if isinstance(mobject, StrokeMobject):
-    #            yield mobject
-
-    #def iter_stroke_descendants(
-    #    self,
-    #    broadcast: bool = True
-    #) -> "Generator[StrokeMobject, None, None]":
-    #    for mobject in self.iter_descendants(broadcast=broadcast):
-    #        if isinstance(mobject, StrokeMobject):
-    #            yield mobject
-
-    #@classmethod
-    #def class_concatenate(
-    #    cls,
-    #    *mobjects: "StrokeMobject"
-    #) -> "StrokeMobject":
-    #    return StrokeMobject._concatenate_by_descriptor(
-    #        target_descriptor=StrokeMobject._multi_line_string_,
-    #        concatenate_method=MultiLineString.concatenate,
-    #        mobjects=list(mobjects)
-    #    )
-        #result = StrokeMobject()
-        #if not mobjects:
-        #    return result
-        ##result = mobjects[0]._copy()
-        #for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
-        #    if isinstance(descriptor, LazyDynamicVariableDescriptor):
-        #        continue
-        #    if descriptor is cls._multi_line_string_:
-        #        continue
-        #    unique_values = set(
-        #        descriptor.__get__(mobject)
-        #        for mobject in mobjects
-        #    )
-        #    descriptor.__set__(result, unique_values.pop())
-        #    assert not unique_values
-        #    #assert all(
-        #    #    descriptor.__get__(result) is descriptor.__get__(mobject)
-        #    #    for mobject in mobjects
-        #    #)
-        #result._multi_line_string_ = MultiLineString.concatenate(
-        #    mobject._multi_line_string_
-        #    for mobject in mobjects
-        #)
-        #return result
 
     def concatenate(self):
-        #if not mobjects:
-        #    return result
-        #result = mobjects[0]._copy()
         self._multi_line_string_ = MultiLineString.concatenate(
             child._multi_line_string_
             for child in self.iter_children_by_type(mobject_type=StrokeMobject)
@@ -636,27 +451,3 @@ class StrokeMobject(Mobject):
             if is_transparent_value is not None:
                 mobject._is_transparent_ = is_transparent_value
         return self
-
-    #def set_style(
-    #    self,
-    #    *,
-    #    width: float | None = None,
-    #    single_sided: bool | None = None,
-    #    has_linecap: bool | None = None,
-    #    color: ColorType | None = None,
-    #    opacity: float | None = None,
-    #    dilate: float | None = None,
-    #    is_transparent: bool | None = None,
-    #    broadcast: bool = True
-    #):
-    #    self.class_set_style(
-    #        mobjects=self.iter_stroke_descendants(broadcast=broadcast),
-    #        width=width,
-    #        single_sided=single_sided,
-    #        has_linecap=has_linecap,
-    #        color=color,
-    #        opacity=opacity,
-    #        dilate=dilate,
-    #        is_transparent=is_transparent
-    #    )
-    #    return self
