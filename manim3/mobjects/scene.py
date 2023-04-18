@@ -3,7 +3,6 @@ __all__ = ["Scene"]
 
 import time
 
-#import moderngl
 import numpy as np
 from PIL import Image
 
@@ -119,7 +118,7 @@ class Scene(Mobject):
                 mobject._render(opaque_framebuffer)
 
             with TextureFactory.texture(dtype="f2") as accum_texture, \
-                    TextureFactory.texture(components=1, dtype="f2") as revealage_texture:
+                    TextureFactory.texture(components=1) as revealage_texture:
                 transparent_framebuffer = TransparentFramebuffer(
                     accum_texture=accum_texture,
                     revealage_texture=revealage_texture,
@@ -130,7 +129,7 @@ class Scene(Mobject):
                 transparent_framebuffer.framebuffer.clear()
                 # Initialize `revealage` with 1.0.
                 # TODO: There should be a more elegant way using `clear`.
-                revealage_texture.write(np.ones(revealage_texture.size, dtype="f2").tobytes())
+                revealage_texture.write(b"\xff" * (revealage_texture.width * revealage_texture.height))
                 for mobject in transparent_mobjects:
                     mobject._render(transparent_framebuffer)
 

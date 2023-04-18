@@ -70,7 +70,7 @@ class TransparentFramebuffer(Framebuffer):
     __slots__ = (
         "accum_texture",
         "revealage_texture",
-        "depth_texture",
+        "depth_texture"
     )
 
     def __init__(

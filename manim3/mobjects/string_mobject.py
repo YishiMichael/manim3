@@ -779,7 +779,7 @@ class StringParser(ABC):
     def _get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
-        close_command: re.Match[str],
+        close_command: re.Match[str]
     ) -> dict[str, str] | None:
         pass
 

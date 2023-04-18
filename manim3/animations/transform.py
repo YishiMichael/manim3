@@ -285,7 +285,7 @@ class Transform(Animation):
             StrokeMobject: [
                 VariableInterpolant(
                     descriptor=StrokeMobject._multi_line_string_,
-                    method=MultiLineString.interpolate_shape_callback,
+                    method=MultiLineString.interpolate_shape_callback
                 ),
                 VariableInterpolant(
                     descriptor=StrokeMobject._color_,

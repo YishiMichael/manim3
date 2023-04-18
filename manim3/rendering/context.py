@@ -4,7 +4,7 @@ __all__ = [
 ]
 
 
-import atexit
+#import atexit
 from dataclasses import dataclass
 from functools import reduce
 import operator as op
@@ -74,7 +74,8 @@ class Context:
                 standalone=True
             )
             window_framebuffer = None
-        atexit.register(lambda: mgl_context.release())
+        mgl_context.gc_mode = "auto"
+        #atexit.register(lambda: mgl_context.release())
         cls._MGL_CONTEXT = mgl_context
         cls._WINDOW = window
         cls._WINDOW_FRAMEBUFFER = window_framebuffer
@@ -162,7 +163,7 @@ class Context:
             components=components,
             dtype=dtype
         )
-        atexit.register(lambda: texture.release())
+        #atexit.register(lambda: texture.release())
         return texture
 
     @classmethod
@@ -174,7 +175,7 @@ class Context:
         depth_texture = cls.mgl_context.depth_texture(
             size=size
         )
-        atexit.register(lambda: depth_texture.release())
+        #atexit.register(lambda: depth_texture.release())
         return depth_texture
 
     @classmethod
@@ -188,7 +189,7 @@ class Context:
             color_attachments=color_attachments,
             depth_attachment=depth_attachment
         )
-        atexit.register(lambda: framebuffer.release())
+        #atexit.register(lambda: framebuffer.release())
         return framebuffer
 
     @classmethod
@@ -199,7 +200,7 @@ class Context:
         dynamic: bool = True
     ) -> moderngl.Buffer:
         buffer = cls.mgl_context.buffer(reserve=reserve, dynamic=dynamic)  # TODO: dynamic?
-        atexit.register(lambda: buffer.release())
+        #atexit.register(lambda: buffer.release())
         return buffer
 
     @classmethod

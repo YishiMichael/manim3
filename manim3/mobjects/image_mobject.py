@@ -1,10 +1,8 @@
 __all__ = ["ImageMobject"]
 
 
-#import moderngl
 import numpy as np
 from PIL import Image
-
 
 from ..constants import X_AXIS
 from ..geometries.geometry import Geometry
