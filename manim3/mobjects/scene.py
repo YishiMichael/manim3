@@ -361,7 +361,7 @@ class Scene(Mobject):
                     framebuffer.framebuffer.read(components=4),
                     "raw"
                 ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-                image.save(ConfigSingleton().path.output_dir.joinpath(f"{self.__class__.__name__}.png"))
+                image.save(ConfigSingleton().path.output_dir.joinpath(f"{type(self).__name__}.png"))
 
     @classmethod
     def _find_frame_range(

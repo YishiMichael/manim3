@@ -119,11 +119,17 @@ class ShapeMobject(MeshMobject):
         #return result
 
     def concatenate(self) -> "ShapeMobject":
-        return ShapeMobject._concatenate_by_descriptor(
-            target_descriptor=ShapeMobject._shape_,
-            concatenate_method=Shape.concatenate,
-            mobjects=list(self.iter_children_by_type(ShapeMobject))
+        #return ShapeMobject._concatenate_by_descriptor(
+        #    target_descriptor=ShapeMobject._shape_,
+        #    concatenate_method=Shape.concatenate,
+        #    mobjects=list(self.iter_children_by_type(ShapeMobject))
+        #)
+        self._shape_ = Shape.concatenate(
+            child._shape_
+            for child in self.iter_children_by_type(mobject_type=ShapeMobject)
         )
+        self.clear()
+        return self
 
     def build_stroke(
         self,

@@ -12,16 +12,15 @@ import numpy as np
 from scipy.interpolate import BSpline
 import svgelements as se
 
-from ..constants import X_AXIS
 from ..custom_typing import (
     FloatsT,
     Vec2T,
-    Vec2sT,
-    Vec3T
+    Vec2sT
+    #Vec3T
 )
-from ..lazy.core import LazyWrapper
+#from ..lazy.core import LazyWrapper
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.color import ColorUtils
+#from ..utils.color import ColorUtils
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
@@ -81,51 +80,109 @@ class SVGMobject(ShapeMobject):
 
         # Handle transform before constructing `ShapeGeometry`
         # so that the center of the geometry falls on the origin.
-        x_min, y_min, x_max, y_max = bbox
-        x_scale, y_scale = self._get_frame_scale_vector(
-            original_width=x_max - x_min,
-            original_height=y_max - y_min,
-            specified_frame_scale=frame_scale,
-            specified_width=width,
-            specified_height=height
+        transform = self._get_transform(
+            bbox=bbox,
+            frame_scale=frame_scale,
+            width=width,
+            height=height
         )
-        transform = se.Matrix(
-            x_scale,
-            0.0,
-            0.0,
-            y_scale,
-            -(x_max + x_min) * x_scale / 2.0,
-            -(y_max + y_min) * y_scale / 2.0
-        )
-
-        shape_mobjects = [
+        self.add(*(
             shape_mobject.set_style(
+                # TODO: handle other attributes including opacity, strokes, etc.
                 color=None if shape.fill is None else shape.fill.hexrgb
-                #opacity=None if shape.fill is None else shape.fill.opacity
-                #stroke_color=None if shape.stroke is None else shape.stroke.hexrgb,
-                #stroke_opacity=None if shape.stroke is None else shape.stroke.opacity,
-                # Don't know why, svgelements may parse stroke_width out of nothing...
-                #stroke_width=shape.stroke_width
             )
             for shape in svg.elements()
             if isinstance(shape, se.Shape) and (
                 shape_mobject := self._get_mobject_from_se_shape(shape * transform)
             )._has_local_sample_points_.value
-        ]
+        ))
 
         # Share the `_color_` values.
         # Useful when calling `concatenate()` method.
-        color_hex_to_value_dict: dict[str, LazyWrapper[Vec3T]] = {}
-        for mobject in shape_mobjects:
-            color = mobject._color_.value
-            color_hex = ColorUtils.color_to_hex(color)
-            if (color_value := color_hex_to_value_dict.get(color_hex)) is None:
-                color_value = LazyWrapper(color)
-                color_hex_to_value_dict[color_hex] = color_value
-            mobject._color_ = color_value
+        #color_hex_to_value_dict: dict[str, LazyWrapper[Vec3T]] = {}
+        #for mobject in shape_mobjects:
+        #    color = mobject._color_.value
+        #    color_hex = ColorUtils.color_to_hex(color)
+        #    if (color_value := color_hex_to_value_dict.get(color_hex)) is None:
+        #        color_value = LazyWrapper(color)
+        #        color_hex_to_value_dict[color_hex] = color_value
+        #    mobject._color_ = color_value
 
-        self.add(*shape_mobjects)
-        self.flip(X_AXIS)
+        #self.add(*shape_mobjects)
+        #self.flip(X_AXIS)
+
+    @classmethod
+    def _get_transform(
+        cls,
+        bbox: tuple[float, float, float, float],
+        frame_scale: float | None,
+        width: float | None,
+        height: float | None
+    ) -> se.Matrix:
+
+        def perspective(
+            origin_x: float,
+            origin_y: float,
+            radius_x: float,
+            radius_y: float
+        ) -> se.Matrix:
+            # `(origin=(0.0, 0.0), radius=(1.0, 1.0))` ->
+            # `(origin=(origin_x, origin_y), radius=(radius_x, radius_y))`
+            return se.Matrix(
+                radius_x,
+                0.0,
+                0.0,
+                radius_y,
+                origin_x,
+                origin_y
+            )
+
+        x_min, y_min, x_max, y_max = bbox
+        origin_x = (x_min + x_max) / 2.0
+        origin_y = (y_min + y_max) / 2.0
+        radius_x = (x_max - x_min) / 2.0
+        radius_y = (y_max - y_min) / 2.0
+        transform = ~perspective(
+            origin_x=origin_x,
+            origin_y=origin_y,
+            radius_x=radius_x,
+            radius_y=radius_y
+        )
+        x_scale, y_scale = cls._get_frame_scale_vector(
+            original_width=radius_x * 2.0,
+            original_height=radius_y * 2.0,
+            specified_frame_scale=frame_scale,
+            specified_width=width,
+            specified_height=height
+        )
+        transform *= perspective(
+            origin_x=0.0,
+            origin_y=0.0,
+            radius_x=x_scale * radius_x,
+            radius_y=-y_scale * radius_y  # Flip y.
+        )
+        # transform = flip_mat @ shift_origin_mat @ scale_mat
+        # flip_mat = (
+        #     (1.0,  0.0, 0.0),
+        #     (0.0, -1.0, 0.0)
+        # )
+        # shift_origin_mat = (
+        #     (1.0, 0.0, (x_max + x_min) / 2.0),
+        #     (0.0, 1.0, (y_max + y_min) / 2.0)
+        # )
+        # scale_mat = (
+        #     (x_scale,     0.0, 0.0),
+        #     (    0.0, y_scale, 0.0)
+        # )
+        #transform = se.Matrix(
+        #    x_scale,
+        #    0.0,
+        #    0.0,
+        #    -y_scale,
+        #    -(x_max + x_min) * x_scale / 2.0,
+        #    (y_max + y_min) * y_scale / 2.0
+        #)
+        return transform
 
     @classmethod
     def _get_mobject_from_se_shape(

@@ -68,7 +68,7 @@
 #        exc_value,
 #        exc_traceback
 #    ) -> None:
-#        cls = self.__class__
+#        cls = type(self)
 #        parameters = cls._INSTANCE_TO_PARAMETERS_DICT[self]
 #        cls._VACANT_INSTANCES.setdefault(parameters, []).append(self)
 

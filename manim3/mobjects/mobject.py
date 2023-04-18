@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from functools import reduce
 import itertools as it
 from typing import (
-    Callable,
+    #Callable,
     Generator,
-    Iterable,
+    #Iterable,
     Iterator,
     TypeVar,
     overload
@@ -48,7 +48,7 @@ from ..utils.space import SpaceUtils
 
 
 _MobjectT = TypeVar("_MobjectT", bound="Mobject")
-_ElementT = TypeVar("_ElementT", bound="LazyObject")
+#_ElementT = TypeVar("_ElementT", bound="LazyObject")
 
 
 @dataclass(
@@ -233,7 +233,7 @@ class Mobject(LazyObject):
                 for mobject in descendant._real_ancestors
             )
 
-        for descriptor in self.__class__._LAZY_VARIABLE_DESCRIPTORS:
+        for descriptor in type(self)._LAZY_VARIABLE_DESCRIPTORS:
             if not issubclass(descriptor.element_type, Mobject):
                 continue
             if isinstance(descriptor, LazyUnitaryVariableDescriptor):
@@ -268,52 +268,52 @@ class Mobject(LazyObject):
             if isinstance(mobject, mobject_type):
                 yield mobject
 
-    @classmethod
-    def _concatenate_by_descriptor(
-        cls: type[_MobjectT],
-        target_descriptor: LazyUnitaryVariableDescriptor[_MobjectT, _ElementT, _ElementT],
-        concatenate_method: Callable[[Iterable[_ElementT]], _ElementT],
-        mobjects: list[_MobjectT]
-    ) -> _MobjectT:
-        result = cls()
-        if not mobjects:
-            return result
-        #result = mobjects[0]._copy()
-        for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
-            if not isinstance(descriptor, LazyUnitaryVariableDescriptor):
-                continue
-            values = (
-                descriptor.__get__(mobject)
-                for mobject in mobjects
-            )
-            if descriptor is target_descriptor:
-                value = concatenate_method(values)
-            else:
-                unique_values = set(values)
-                value = unique_values.pop()
-                assert not unique_values, f"Unmatched values detected from `{descriptor}`"
-            descriptor.__set__(result, value)
+    #@classmethod
+    #def _concatenate_by_descriptor(
+    #    cls: type[_MobjectT],
+    #    target_descriptor: LazyUnitaryVariableDescriptor[_MobjectT, _ElementT, _ElementT],
+    #    concatenate_method: Callable[[Iterable[_ElementT]], _ElementT],
+    #    mobjects: list[_MobjectT]
+    #) -> _MobjectT:
+    #    result = cls()
+    #    if not mobjects:
+    #        return result
+    #    #result = mobjects[0]._copy()
+    #    for descriptor in cls._LAZY_VARIABLE_DESCRIPTORS:
+    #        if not isinstance(descriptor, LazyUnitaryVariableDescriptor):
+    #            continue
+    #        values = (
+    #            descriptor.__get__(mobject)
+    #            for mobject in mobjects
+    #        )
+    #        if descriptor is target_descriptor:
+    #            value = concatenate_method(values)
+    #        else:
+    #            unique_values = set(values)
+    #            value = unique_values.pop()
+    #            assert not unique_values, f"Unmatched values detected from `{descriptor}`"
+    #        descriptor.__set__(result, value)
 
-            #assert all(
-            #    descriptor.__get__(result) is descriptor.__get__(mobject)
-            #    for mobject in mobjects
-            #)
-        #result._shape_ = Shape.concatenate(
-        #    mobject._shape_
-        #    for mobject in mobjects
-        #)
+    #        #assert all(
+    #        #    descriptor.__get__(result) is descriptor.__get__(mobject)
+    #        #    for mobject in mobjects
+    #        #)
+    #    #result._shape_ = Shape.concatenate(
+    #    #    mobject._shape_
+    #    #    for mobject in mobjects
+    #    #)
 
-        #stroke_mobjects = [
-        #    StrokeMobject.class_concatenate(*zipped_stroke_mobjects)
-        #    for zipped_stroke_mobjects in zip(*(
-        #        mobject._stroke_mobjects_
-        #        for mobject in mobjects
-        #    ), strict=True)
-        #]
-        #result._stroke_mobjects_ = stroke_mobjects
-        #result.clear()
-        #result.add(*stroke_mobjects)
-        return result
+    #    #stroke_mobjects = [
+    #    #    StrokeMobject.class_concatenate(*zipped_stroke_mobjects)
+    #    #    for zipped_stroke_mobjects in zip(*(
+    #    #        mobject._stroke_mobjects_
+    #    #        for mobject in mobjects
+    #    #    ), strict=True)
+    #    #]
+    #    #result._stroke_mobjects_ = stroke_mobjects
+    #    #result.clear()
+    #    #result.add(*stroke_mobjects)
+    #    return result
 
     # matrix & transform
 

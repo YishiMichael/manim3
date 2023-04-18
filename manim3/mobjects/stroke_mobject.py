@@ -511,6 +511,10 @@ class StrokeMobject(Mobject):
         # TODO: Is this already the best practice?
         # Render color.
         #target_framebuffer.depth_mask = False
+        #print(len(self._all_points_.value), sum(line_string._points_len_.value for line_string in self._multi_line_string_._line_strings_))
+        #StrokeMobject._all_points_.instance_to_slot_dict[self].expire()
+        #print(len(self._all_points_.value), sum(line_string._points_len_.value for line_string in self._multi_line_string_._line_strings_))
+        #print()
         for vertex_array in self._stroke_vertex_arrays_:
             vertex_array.render(
                 framebuffer=target_framebuffer
@@ -581,12 +585,16 @@ class StrokeMobject(Mobject):
         #)
         #return result
 
-    def concatenate(self) -> "StrokeMobject":
-        return StrokeMobject._concatenate_by_descriptor(
-            target_descriptor=StrokeMobject._multi_line_string_,
-            concatenate_method=MultiLineString.concatenate,
-            mobjects=list(self.iter_children_by_type(StrokeMobject))
+    def concatenate(self):
+        #if not mobjects:
+        #    return result
+        #result = mobjects[0]._copy()
+        self._multi_line_string_ = MultiLineString.concatenate(
+            child._multi_line_string_
+            for child in self.iter_children_by_type(mobject_type=StrokeMobject)
         )
+        self.clear()
+        return self
 
     def set_style(
         self,

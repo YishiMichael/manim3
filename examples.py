@@ -78,7 +78,7 @@ if __name__ == "__main__":
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    #config.rendering.fps = 3
+    config.rendering.fps = 3
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)

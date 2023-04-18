@@ -404,6 +404,7 @@ class LazyVariableSlot(LazySlot[_ContainerT]):
         src: "LazyVariableSlot[_ContainerT]"
     ) -> None:
         self.set_variable_container(src.get_variable_container())
+        #self.expire_property_slots()
         self._linked_property_slots.clear()
         self._is_writable = src._is_writable
 
@@ -444,16 +445,23 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
         self,
         container: _ContainerT | None
     ) -> None:
-        if self._container is not None and container is not None:
+        if container is None:
+            self._container = None
+            return
+        if self._container is not None:
             self._container._write(container)
         else:
-            self._container = container
+            #if isinstance(container, LazyUnitaryContainer):
+            #    print(self._container._element if self._container is not None else None)
+            #    print(container._element)
+            self._container = container#._copy()  # TODO
 
     def copy_from(
         self,
         src: "LazyPropertySlot[_ContainerT]"
     ) -> None:
-        self.set_property_container(src.get_property_container())
+        #self.set_property_container(src.get_property_container())  # TODO
+        self.set_property_container(None)
         self._linked_variable_slots.clear()
         self._is_expired = True
 
@@ -468,122 +476,6 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
         for linked_variable_slot in linked_variable_slots:
             linked_variable_slot._linked_property_slots.add(self)
         self._linked_variable_slots.update(linked_variable_slots)
-
-
-class LazyObject(ABC):
-    __slots__ = ("__weakref__",)
-
-    _LAZY_DESCRIPTORS: "ClassVar[tuple[LazyDescriptor, ...]]"
-    _LAZY_VARIABLE_DESCRIPTORS: "ClassVar[tuple[LazyVariableDescriptor, ...]]"
-    _LAZY_DESCRIPTOR_OVERLOADING_DICT: "ClassVar[dict[str, LazyDescriptorOverloading]]"
-    _PY_SLOTS: "ClassVar[tuple[str, ...]]"
-
-    def __init_subclass__(cls) -> None:
-        super().__init_subclass__()
-
-        base_cls = cls.__base__
-        assert issubclass(base_cls, LazyObject)
-        if base_cls is not LazyObject:
-            descriptor_overloading_dict = base_cls._LAZY_DESCRIPTOR_OVERLOADING_DICT.copy()
-        else:
-            descriptor_overloading_dict = {}
-
-        overridden_descriptor_overloadings: list[LazyDescriptorOverloading] = []
-        for name, attr in cls.__dict__.items():
-            if not isinstance(attr, LazyDescriptor):
-                continue
-            assert re.fullmatch(r"_\w+_", name)
-            if attr.element_type is NotImplemented:
-                attr.element_type = cls
-            if (descriptor_overloading := descriptor_overloading_dict.get(name)) is not None:
-                if isinstance(descriptor_overloading, LazyUnitaryDescriptorOverloading):
-                    assert isinstance(attr, LazyUnitaryVariableDescriptor | LazyUnitaryPropertyDescriptor)
-                    descriptor_overloading.set_descriptor(cls, attr)
-                elif isinstance(descriptor_overloading, LazyDynamicDescriptorOverloading):
-                    assert isinstance(attr, LazyDynamicVariableDescriptor | LazyDynamicPropertyDescriptor)
-                    descriptor_overloading.set_descriptor(cls, attr)
-                else:
-                    raise TypeError
-            else:
-                if isinstance(attr, LazyUnitaryVariableDescriptor | LazyUnitaryPropertyDescriptor):
-                    descriptor_overloading = LazyUnitaryDescriptorOverloading(cls, attr)
-                elif isinstance(attr, LazyDynamicVariableDescriptor | LazyDynamicPropertyDescriptor):
-                    descriptor_overloading = LazyDynamicDescriptorOverloading(cls, attr)
-                else:
-                    raise TypeError
-                descriptor_overloading_dict[name] = descriptor_overloading
-            overridden_descriptor_overloadings.append(descriptor_overloading)
-
-        lazy_descriptors: list[LazyDescriptor] = []
-        for descriptor_overloading in descriptor_overloading_dict.values():
-            if descriptor_overloading not in overridden_descriptor_overloadings:
-                descriptor_overloading.set_descriptor(cls, descriptor_overloading.get_descriptor(base_cls))
-            lazy_descriptors.append(descriptor_overloading.get_descriptor(cls))
-
-        cls._LAZY_DESCRIPTORS = tuple(lazy_descriptors)
-        cls._LAZY_VARIABLE_DESCRIPTORS = tuple(
-            descriptor for descriptor in lazy_descriptors
-            if isinstance(descriptor, LazyVariableDescriptor)
-        )
-        cls._LAZY_DESCRIPTOR_OVERLOADING_DICT = descriptor_overloading_dict
-        # Use dict.fromkeys to preserve order (by first occurrance).
-        cls._PY_SLOTS = tuple(dict.fromkeys(
-            slot
-            for parent_cls in reversed(cls.__mro__)
-            if issubclass(parent_cls, LazyObject)
-            for slot in parent_cls.__slots__
-            if slot != "__weakref__"
-        ))
-
-        for attr in cls.__dict__.values():
-            if not isinstance(attr, LazyPropertyDescriptor):
-                continue
-            descriptor_overloading_chains: list[tuple[LazyDescriptorOverloading, ...]] = []
-            for parameter_name_chain in attr.parameter_name_chains:
-                element_type = cls
-                descriptor_overloading_chain: list[LazyDescriptorOverloading] = []
-                for parameter_name in parameter_name_chain:
-                    descriptor_overloading = element_type._LAZY_DESCRIPTOR_OVERLOADING_DICT[parameter_name]
-                    element_type = descriptor_overloading.element_type
-                    descriptor_overloading_chain.append(descriptor_overloading)
-                descriptor_overloading_chains.append(tuple(descriptor_overloading_chain))
-            attr.descriptor_overloading_chains = tuple(descriptor_overloading_chains)
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._initialize_descriptors()
-
-    def _initialize_descriptors(self) -> None:
-        cls = type(self)
-        for descriptor in cls._LAZY_DESCRIPTORS:
-            descriptor.initialize(self)
-
-    def _becomes(
-        self: _ElementT,
-        src: _ElementT
-    ) -> None:
-        # Two instances can "become" each other if the type of one is inherited from that of another,
-        # and the inheritance does not commit any addition or overloading of lazy descriptors,
-        # or addition of slots.
-        assert (descriptors := type(self)._LAZY_DESCRIPTORS) == type(src)._LAZY_DESCRIPTORS
-        for descriptor in descriptors:
-            descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
-        assert (slot_names := type(self)._PY_SLOTS) == type(src)._PY_SLOTS
-        for slot_name in slot_names:
-            self.__setattr__(slot_name, copy.copy(src.__getattribute__(slot_name)))
-
-    def _copy(self: _ElementT) -> _ElementT:
-        cls = type(self)
-        result = cls.__new__(cls)
-        result._initialize_descriptors()
-        result._becomes(self)
-        return result
-
-    def _iter_variable_slots(self) -> Generator[LazyVariableSlot, None, None]:
-        for descriptor in type(self)._LAZY_DESCRIPTORS:
-            if not isinstance(descriptor, LazyVariableDescriptor):
-                continue
-            yield descriptor.get_slot(self)
 
 
 class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
@@ -919,6 +811,9 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 for parameter_tree in parameter_trees
             ))
             self.instance_to_key_dict[instance] = key
+            #if self.method.__name__ == "_all_points_":
+            #    print(key)
+            #    print(list(self.key_to_container_dict.keys()))
 
             if (container := self.key_to_container_dict.get(key)) is None:
                 parameters = tuple(
@@ -1025,20 +920,136 @@ class LazyDynamicDescriptorOverloading(LazyDescriptorOverloading[_InstanceT, _El
     __slots__ = ()
 
 
+class LazyObject:
+    __slots__ = ("__weakref__",)
+
+    _LAZY_DESCRIPTORS: ClassVar[tuple[LazyDescriptor, ...]]
+    _LAZY_VARIABLE_DESCRIPTORS: ClassVar[tuple[LazyVariableDescriptor, ...]]
+    _LAZY_DESCRIPTOR_OVERLOADING_DICT: ClassVar[dict[str, LazyDescriptorOverloading]]
+    _PY_SLOTS: ClassVar[tuple[str, ...]]
+
+    def __init_subclass__(cls) -> None:
+        super().__init_subclass__()
+
+        base_cls = cls.__base__
+        assert issubclass(base_cls, LazyObject)
+        if base_cls is not LazyObject:
+            descriptor_overloading_dict = base_cls._LAZY_DESCRIPTOR_OVERLOADING_DICT.copy()
+        else:
+            descriptor_overloading_dict = {}
+
+        overridden_descriptor_overloadings: list[LazyDescriptorOverloading] = []
+        for name, attr in cls.__dict__.items():
+            if not isinstance(attr, LazyDescriptor):
+                continue
+            assert re.fullmatch(r"_\w+_", name)
+            if attr.element_type is NotImplemented:
+                attr.element_type = cls
+            if (descriptor_overloading := descriptor_overloading_dict.get(name)) is not None:
+                if isinstance(descriptor_overloading, LazyUnitaryDescriptorOverloading):
+                    assert isinstance(attr, LazyUnitaryVariableDescriptor | LazyUnitaryPropertyDescriptor)
+                    descriptor_overloading.set_descriptor(cls, attr)
+                elif isinstance(descriptor_overloading, LazyDynamicDescriptorOverloading):
+                    assert isinstance(attr, LazyDynamicVariableDescriptor | LazyDynamicPropertyDescriptor)
+                    descriptor_overloading.set_descriptor(cls, attr)
+                else:
+                    raise TypeError
+            else:
+                if isinstance(attr, LazyUnitaryVariableDescriptor | LazyUnitaryPropertyDescriptor):
+                    descriptor_overloading = LazyUnitaryDescriptorOverloading(cls, attr)
+                elif isinstance(attr, LazyDynamicVariableDescriptor | LazyDynamicPropertyDescriptor):
+                    descriptor_overloading = LazyDynamicDescriptorOverloading(cls, attr)
+                else:
+                    raise TypeError
+                descriptor_overloading_dict[name] = descriptor_overloading
+            overridden_descriptor_overloadings.append(descriptor_overloading)
+
+        lazy_descriptors: list[LazyDescriptor] = []
+        for descriptor_overloading in descriptor_overloading_dict.values():
+            if descriptor_overloading not in overridden_descriptor_overloadings:
+                descriptor_overloading.set_descriptor(cls, descriptor_overloading.get_descriptor(base_cls))
+            lazy_descriptors.append(descriptor_overloading.get_descriptor(cls))
+
+        cls._LAZY_DESCRIPTORS = tuple(lazy_descriptors)
+        cls._LAZY_VARIABLE_DESCRIPTORS = tuple(
+            descriptor for descriptor in lazy_descriptors
+            if isinstance(descriptor, LazyVariableDescriptor)
+        )
+        cls._LAZY_DESCRIPTOR_OVERLOADING_DICT = descriptor_overloading_dict
+        # Use dict.fromkeys to preserve order (by first occurrance).
+        cls._PY_SLOTS = tuple(dict.fromkeys(
+            slot
+            for parent_cls in reversed(cls.__mro__)
+            if issubclass(parent_cls, LazyObject)
+            for slot in parent_cls.__slots__
+            if slot != "__weakref__"
+        ))
+
+        for attr in cls.__dict__.values():
+            if not isinstance(attr, LazyPropertyDescriptor):
+                continue
+            descriptor_overloading_chains: list[tuple[LazyDescriptorOverloading, ...]] = []
+            for parameter_name_chain in attr.parameter_name_chains:
+                element_type = cls
+                descriptor_overloading_chain: list[LazyDescriptorOverloading] = []
+                for parameter_name in parameter_name_chain:
+                    descriptor_overloading = element_type._LAZY_DESCRIPTOR_OVERLOADING_DICT[parameter_name]
+                    element_type = descriptor_overloading.element_type
+                    descriptor_overloading_chain.append(descriptor_overloading)
+                descriptor_overloading_chains.append(tuple(descriptor_overloading_chain))
+            attr.descriptor_overloading_chains = tuple(descriptor_overloading_chains)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._initialize_descriptors()
+
+    def _initialize_descriptors(self) -> None:
+        cls = type(self)
+        for descriptor in cls._LAZY_DESCRIPTORS:
+            descriptor.initialize(self)
+
+    def _becomes(
+        self: _ElementT,
+        src: _ElementT
+    ) -> None:
+        # Two instances can "become" each other if the type of one is inherited from that of another,
+        # and the inheritance does not commit any addition or overloading of lazy descriptors,
+        # or addition of slots.
+        assert (descriptors := type(self)._LAZY_DESCRIPTORS) == type(src)._LAZY_DESCRIPTORS
+        for descriptor in descriptors:
+            descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
+        assert (slot_names := type(self)._PY_SLOTS) == type(src)._PY_SLOTS
+        for slot_name in slot_names:
+            self.__setattr__(slot_name, copy.copy(src.__getattribute__(slot_name)))
+
+    def _copy(self: _ElementT) -> _ElementT:
+        cls = type(self)
+        result = cls.__new__(cls)
+        result._initialize_descriptors()
+        result._becomes(self)
+        return result
+
+    def _iter_variable_slots(self) -> Generator[LazyVariableSlot, None, None]:
+        for descriptor in type(self)._LAZY_DESCRIPTORS:
+            if not isinstance(descriptor, LazyVariableDescriptor):
+                continue
+            yield descriptor.get_slot(self)
+
+
 @final
 class LazyWrapper(LazyObject, Generic[_T]):
-    __slots__ = ("__value",)
+    __slots__ = ("_value",)
 
     def __init__(
         self,
         value: _T
     ) -> None:
         super().__init__()
-        self.__value: _T = value
+        self._value: _T = value
 
     @property
     def value(self) -> _T:
-        return self.__value
+        return self._value
 
     def _becomes(
         self: _ElementT,
