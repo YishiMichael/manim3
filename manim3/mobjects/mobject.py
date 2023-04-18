@@ -140,6 +140,23 @@ class Mobject(LazyObject):
         if broadcast:
             yield from self._real_ancestors
 
+    def iter_children_by_type(
+        self,
+        mobject_type: type[_MobjectT]
+    ) -> Generator[_MobjectT, None, None]:
+        for mobject in self.iter_children():
+            if isinstance(mobject, mobject_type):
+                yield mobject
+
+    def iter_descendants_by_type(
+        self,
+        mobject_type: type[_MobjectT],
+        broadcast: bool = True
+    ) -> Generator[_MobjectT, None, None]:
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            if isinstance(mobject, mobject_type):
+                yield mobject
+
     def add(
         self,
         *mobjects: "Mobject"
@@ -245,25 +262,6 @@ class Mobject(LazyObject):
         if not broadcast:
             result.clear()
         return result
-
-    # class-variant methods
-
-    def iter_children_by_type(
-        self,
-        mobject_type: type[_MobjectT]
-    ) -> Generator[_MobjectT, None, None]:
-        for mobject in self.iter_children():
-            if isinstance(mobject, mobject_type):
-                yield mobject
-
-    def iter_descendants_by_type(
-        self,
-        mobject_type: type[_MobjectT],
-        broadcast: bool = True
-    ) -> Generator[_MobjectT, None, None]:
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if isinstance(mobject, mobject_type):
-                yield mobject
 
     # matrix & transform
 

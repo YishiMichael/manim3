@@ -16,11 +16,8 @@ from ..custom_typing import (
     FloatsT,
     Vec2T,
     Vec2sT
-    #Vec3T
 )
-#from ..lazy.core import LazyWrapper
 from ..mobjects.shape_mobject import ShapeMobject
-#from ..utils.color import ColorUtils
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
@@ -97,20 +94,6 @@ class SVGMobject(ShapeMobject):
             )._has_local_sample_points_.value
         ))
 
-        # Share the `_color_` values.
-        # Useful when calling `concatenate()` method.
-        #color_hex_to_value_dict: dict[str, LazyWrapper[Vec3T]] = {}
-        #for mobject in shape_mobjects:
-        #    color = mobject._color_.value
-        #    color_hex = ColorUtils.color_to_hex(color)
-        #    if (color_value := color_hex_to_value_dict.get(color_hex)) is None:
-        #        color_value = LazyWrapper(color)
-        #        color_hex_to_value_dict[color_hex] = color_value
-        #    mobject._color_ = color_value
-
-        #self.add(*shape_mobjects)
-        #self.flip(X_AXIS)
-
     @classmethod
     def _get_transform(
         cls,
@@ -161,27 +144,6 @@ class SVGMobject(ShapeMobject):
             radius_x=x_scale * radius_x,
             radius_y=-y_scale * radius_y  # Flip y.
         )
-        # transform = flip_mat @ shift_origin_mat @ scale_mat
-        # flip_mat = (
-        #     (1.0,  0.0, 0.0),
-        #     (0.0, -1.0, 0.0)
-        # )
-        # shift_origin_mat = (
-        #     (1.0, 0.0, (x_max + x_min) / 2.0),
-        #     (0.0, 1.0, (y_max + y_min) / 2.0)
-        # )
-        # scale_mat = (
-        #     (x_scale,     0.0, 0.0),
-        #     (    0.0, y_scale, 0.0)
-        # )
-        #transform = se.Matrix(
-        #    x_scale,
-        #    0.0,
-        #    0.0,
-        #    -y_scale,
-        #    -(x_max + x_min) * x_scale / 2.0,
-        #    (y_max + y_min) * y_scale / 2.0
-        #)
         return transform
 
     @classmethod
