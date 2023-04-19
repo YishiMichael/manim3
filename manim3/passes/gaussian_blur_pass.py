@@ -5,10 +5,7 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import FloatsT
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer import ColorFramebuffer
@@ -31,12 +28,12 @@ class GaussianBlurPass(RenderPass):
         if sigma_width is not None:
             self._sigma_width_ = sigma_width
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _sigma_width_(cls) -> float:
         return 0.1
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _convolution_core_(
         cls,
@@ -47,7 +44,7 @@ class GaussianBlurPass(RenderPass):
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
         return convolution_core / (2.0 * convolution_core.sum() - convolution_core[0])
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _gaussian_blur_uniform_block_buffer_(
         cls,
@@ -68,7 +65,7 @@ class GaussianBlurPass(RenderPass):
             }
         )
 
-    @Lazy.property(LazyMode.COLLECTION)
+    @Lazy.property_collection
     @classmethod
     def _gaussian_blur_vertex_arrays_(
         cls,

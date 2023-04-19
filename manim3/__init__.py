@@ -38,7 +38,6 @@ from .rendering.framebuffer import *
 from .rendering.gl_buffer import *
 from .rendering.mgl_enums import *
 from .rendering.texture import *
-#from .rendering.temporary_resource import *
 from .rendering.vertex_array import *
 
 from .utils.color import *

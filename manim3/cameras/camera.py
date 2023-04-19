@@ -13,10 +13,7 @@ from ..custom_typing import (
     Vec3T
 )
 from ..lazy.core import LazyObject
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..rendering.config import ConfigSingleton
 from ..rendering.gl_buffer import UniformBlockBuffer
 from ..utils.space import SpaceUtils
@@ -25,27 +22,27 @@ from ..utils.space import SpaceUtils
 class Camera(LazyObject):
     __slots__ = ()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _projection_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _eye_(cls) -> Vec3T:
         return ConfigSingleton().camera.altitude * OUT
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _target_(cls) -> Vec3T:
         return ORIGIN
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _up_(cls) -> Vec3T:
         return UP
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _view_matrix_(
         cls,
@@ -63,7 +60,7 @@ class Camera(LazyObject):
         m[:3, 3] = -rot_mat @ eye
         return m
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _camera_uniform_block_buffer_(
         cls,

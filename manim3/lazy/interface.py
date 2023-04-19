@@ -1,34 +1,38 @@
-__all__ = [
-    "Lazy",
-    "LazyMode"
-]
+__all__ = ["Lazy"]
 
 
-from enum import Enum
-import inspect
-import re
+#import inspect
+#import re
 from typing import (
     Any,
     Callable,
     Concatenate,
     Hashable,
     Iterable,
-    Literal,
+    #Literal,
     ParamSpec,
-    TypeVar,
-    final,
-    overload
+    TypeVar
+    #final,
+    #overload
 )
-import weakref
+#import weakref
 
 from ..lazy.core import (
+    #LazyConverter,
+    LazyCollectionConverter,
     LazyDynamicContainer,
-    LazyDynamicPropertyDescriptor,
-    LazyDynamicVariableDescriptor,
+    LazyExternalConverter,
+    LazyIndividualConverter,
+    #LazyMode,
+    #LazyDynamicPropertyDescriptor,
+    #LazyDynamicVariableDescriptor,
     LazyObject,
+    LazyPropertyDescriptor,
+    LazySharedConverter,
     LazyUnitaryContainer,
-    LazyUnitaryPropertyDescriptor,
-    LazyUnitaryVariableDescriptor,
+    LazyVariableDescriptor,
+    #LazyUnitaryPropertyDescriptor,
+    #LazyUnitaryVariableDescriptor,
     LazyWrapper
 )
 
@@ -37,208 +41,179 @@ _T = TypeVar("_T")
 _HT = TypeVar("_HT", bound=Hashable)
 _ElementT = TypeVar("_ElementT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
+#_DescriptorSetT = TypeVar("_DescriptorSetT")
 _PropertyParameters = ParamSpec("_PropertyParameters")
 
 
-class AnnotationUtils:
-    __slots__ = ()
+#class AnnotationUtils:
+#    __slots__ = ()
 
-    def __new__(cls):
-        raise TypeError
+#    def __new__(cls):
+#        raise TypeError
 
-    @classmethod
-    def get_return_type(
-        cls,
-        method: Callable
-    ) -> Any:
-        if isinstance(return_type := inspect.signature(method).return_annotation, str):
-            return NotImplemented
-        if isinstance(return_type, type):
-            return return_type
-        return return_type.__origin__
+#    @classmethod
+#    def get_return_type(
+#        cls,
+#        method: Callable
+#    ) -> Any:
+#        if isinstance(return_type := inspect.signature(method).return_annotation, str):
+#            return NotImplemented
+#        if isinstance(return_type, type):
+#            return return_type
+#        return return_type.__origin__
 
-    @classmethod
-    def get_element_return_type(
-        cls,
-        method: Callable
-    ) -> Any:
-        if isinstance(collection_type := inspect.signature(method).return_annotation, str):
-            return NotImplemented
-        assert issubclass(collection_type.__origin__, Iterable)
-        return_type = collection_type.__args__[0]
-        if isinstance(return_type, type):
-            return return_type
-        return return_type.__origin__
+#    @classmethod
+#    def get_element_return_type(
+#        cls,
+#        method: Callable
+#    ) -> Any:
+#        if isinstance(collection_type := inspect.signature(method).return_annotation, str):
+#            return NotImplemented
+#        assert issubclass(collection_type.__origin__, Iterable)
+#        return_type = collection_type.__args__[0]
+#        if isinstance(return_type, type):
+#            return return_type
+#        return return_type.__origin__
 
-    @classmethod
-    def get_parameter_items(
-        cls,
-        method: Callable
-    ) -> tuple[tuple[tuple[str, ...], ...], tuple[bool, ...]]:
-        parameter_items = tuple(
-            (name, False) if re.fullmatch(r"_\w+_", name) else (f"_{name}_", True)
-            for name in tuple(inspect.signature(method).parameters)[1:]  # Remove `cls`.
-        )
-        parameter_name_chains = tuple(
-            tuple(re.findall(r"_\w+?_(?=_|$)", parameter_name))
-            for parameter_name, _ in parameter_items
-        )
-        assert all(
-            "".join(parameter_name_chain) == parameter_name
-            for parameter_name_chain, (parameter_name, _) in zip(parameter_name_chains, parameter_items, strict=True)
-        )
-        requires_unwrapping_tuple = tuple(
-            requires_unwrapping
-            for _, requires_unwrapping in parameter_items
-        )
-        return parameter_name_chains, requires_unwrapping_tuple
+#    @classmethod
+#    def get_parameter_items(
+#        cls,
+#        method: Callable
+#    ) -> tuple[tuple[tuple[str, ...], ...], tuple[bool, ...]]:
+#        parameter_items = tuple(
+#            (name, False) if re.fullmatch(r"_\w+_", name) else (f"_{name}_", True)
+#            for name in tuple(inspect.signature(method).parameters)[1:]  # Remove `cls`.
+#        )
+#        parameter_name_chains = tuple(
+#            tuple(re.findall(r"_\w+?_(?=_|$)", parameter_name))
+#            for parameter_name, _ in parameter_items
+#        )
+#        assert all(
+#            "".join(parameter_name_chain) == parameter_name
+#            for parameter_name_chain, (parameter_name, _) in zip(parameter_name_chains, parameter_items, strict=True)
+#        )
+#        requires_unwrapping_tuple = tuple(
+#            requires_unwrapping
+#            for _, requires_unwrapping in parameter_items
+#        )
+#        return parameter_name_chains, requires_unwrapping_tuple
 
 
-@final
-class LazyUnitaryVariableDecorator(LazyUnitaryVariableDescriptor[_InstanceT, _ElementT, _ElementT]):
+
+
+#class LazyUnitaryVariableDescriptor(LazyVariableDescriptor[
+#    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _DescriptorSetT
+#]):
+#    __slots__ = ()
+
+#    def convert_get(
+#        self,
+#        container: LazyUnitaryContainer[_ElementT]
+#    ) -> _ElementT:
+#        return container._element
+
+
+#class LazyDynamicVariableDescriptor(LazyVariableDescriptor[
+#    _InstanceT, LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], _DescriptorSetT
+#]):
+#    __slots__ = ()
+
+#    def convert_get(
+#        self,
+#        container: LazyDynamicContainer[_ElementT]
+#    ) -> LazyDynamicContainer[_ElementT]:
+#        return container
+
+
+class LazyVariableIndividualDecorator(LazyVariableDescriptor[
+    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _ElementT
+]):
     __slots__ = ()
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _ElementT]
     ) -> None:
-        super().__init__(
-            element_type=AnnotationUtils.get_return_type(method),
-            method=method
-        )
+        super().__init__(method)
+        self.converter = LazyIndividualConverter()
 
-    def convert_set(
+
+class LazyVariableCollectionDecorator(LazyVariableDescriptor[
+    _InstanceT, LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], Iterable[_ElementT]
+]):
+    __slots__ = ()
+
+    def __init__(
         self,
-        new_value: _ElementT
-    ) -> LazyUnitaryContainer[_ElementT]:
-        return LazyUnitaryContainer(
-            element=new_value
-        )
+        method: Callable[[type[_InstanceT]], list[_ElementT]]
+    ) -> None:
+        super().__init__(method)
+        self.converter = LazyCollectionConverter()
 
 
-@final
-class LazyUnitaryVariableUnwrappedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_T], _T | LazyWrapper[_T]]):
+class LazyVariableExternalDecorator(LazyVariableDescriptor[
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], LazyWrapper[_T], _T | LazyWrapper[_T]
+]):
     __slots__ = ()
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _T]
     ) -> None:
-        super().__init__(
-            element_type=LazyWrapper,
-            method=method
-        )
-
-    def convert_set(
-        self,
-        new_value: _T | LazyWrapper[_T]
-    ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
-        if not isinstance(new_value, LazyWrapper):
-            new_value = LazyWrapper(new_value)
-        return LazyUnitaryContainer(
-            element=new_value
-        )
+        super().__init__(method)
+        self.converter = LazyExternalConverter()
 
 
-@final
-class LazyUnitaryVariableSharedDecorator(LazyUnitaryVariableDescriptor[_InstanceT, LazyWrapper[_HT], _HT | LazyWrapper[_HT]]):
-    __slots__ = ("content_to_element_dict",)
+class LazyVariableSharedDecorator(LazyVariableDescriptor[
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], LazyWrapper[_HT], _HT | LazyWrapper[_HT]
+]):
+    __slots__ = ()
 
     def __init__(
         self,
         method: Callable[[type[_InstanceT]], _HT]
     ) -> None:
-        self.content_to_element_dict: weakref.WeakValueDictionary[_HT, LazyWrapper[_HT]] = weakref.WeakValueDictionary()
-        super().__init__(
-            element_type=LazyWrapper,
-            method=method
-        )
-
-    def convert_set(
-        self,
-        new_value: _HT | LazyWrapper[_HT]
-    ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
-        if isinstance(new_value, LazyWrapper):
-            value = new_value
-        else:
-            if (value := self.content_to_element_dict.get(new_value)) is None:
-                value = LazyWrapper(new_value)
-                self.content_to_element_dict[new_value] = value
-        return LazyUnitaryContainer(
-            element=value
-        )
+        super().__init__(method)
+        self.converter = LazySharedConverter()
 
 
-@final
-class LazyDynamicVariableDecorator(LazyDynamicVariableDescriptor[_InstanceT, _ElementT, Iterable[_ElementT]]):
-    __slots__ = ()
-
-    def __init__(
-        self,
-        method: Callable[[type[_InstanceT]], Iterable[_ElementT]]
-    ) -> None:
-        super().__init__(
-            element_type=AnnotationUtils.get_element_return_type(method),
-            method=method
-        )
-
-    def convert_set(
-        self,
-        new_value: Iterable[_ElementT]
-    ) -> LazyDynamicContainer[_ElementT]:
-        return LazyDynamicContainer(
-            elements=new_value
-        )
-
-
-@final
-class LazyUnitaryPropertyDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, _ElementT, _ElementT]):
+class LazyPropertyIndividualDecorator(LazyPropertyDescriptor[
+    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _ElementT
+]):
     __slots__ = ()
 
     def __init__(
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]
     ) -> None:
-        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
-        super().__init__(
-            element_type=AnnotationUtils.get_return_type(method),
-            method=method,
-            parameter_name_chains=parameter_name_chains,
-            requires_unwrapping_tuple=requires_unwrapping_tuple
-        )
+        super().__init__(method)
+        self.converter = LazyIndividualConverter()
 
-    def convert_set(
+
+class LazyPropertyCollectionDecorator(LazyPropertyDescriptor[
+    _InstanceT, LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], Iterable[_ElementT]
+]):
+    __slots__ = ()
+
+    def __init__(
         self,
-        new_value: _ElementT
-    ) -> LazyUnitaryContainer[_ElementT]:
-        return LazyUnitaryContainer(
-            element=new_value
-        )
+        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], list[_ElementT]]
+    ) -> None:
+        super().__init__(method)
+        self.converter = LazyCollectionConverter()
 
 
-@final
-class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_T], _T]):
+class LazyPropertyExternalDecorator(LazyPropertyDescriptor[
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], LazyWrapper[_T], _T | LazyWrapper[_T]
+]):
     __slots__ = ()
 
     def __init__(
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
     ) -> None:
-        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
-        super().__init__(
-            element_type=LazyWrapper,
-            method=method,
-            parameter_name_chains=parameter_name_chains,
-            requires_unwrapping_tuple=requires_unwrapping_tuple
-        )
-
-    def convert_set(
-        self,
-        new_value: _T
-    ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
-        return LazyUnitaryContainer(
-            element=LazyWrapper(new_value)
-        )
+        super().__init__(method)
+        self.converter = LazyExternalConverter()
 
     def finalizer(
         self,
@@ -257,199 +232,254 @@ class LazyUnitaryPropertyUnwrappedDecorator(LazyUnitaryPropertyDescriptor[_Insta
         return finalize_method
 
 
-@final
-class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_HT], _HT]):
-    __slots__ = ("content_to_element_dict",)
+class LazyPropertySharedDecorator(LazyPropertyDescriptor[
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], LazyWrapper[_HT], _HT | LazyWrapper[_HT]
+]):
+    __slots__ = ()
 
     def __init__(
         self,
         method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
     ) -> None:
-        self.content_to_element_dict: weakref.WeakValueDictionary[_HT, LazyWrapper[_HT]] = weakref.WeakValueDictionary()
-        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
-        super().__init__(
-            element_type=LazyWrapper,
-            method=method,
-            parameter_name_chains=parameter_name_chains,
-            requires_unwrapping_tuple=requires_unwrapping_tuple
-        )
-
-    def convert_set(
-        self,
-        new_value: _HT
-    ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
-        if (value := self.content_to_element_dict.get(new_value)) is None:
-            value = LazyWrapper(new_value)
-            self.content_to_element_dict[new_value] = value
-        return LazyUnitaryContainer(
-            element=value
-        )
+        super().__init__(method)
+        self.converter = LazySharedConverter()
 
 
-@final
-class LazyDynamicPropertyDecorator(LazyDynamicPropertyDescriptor[_InstanceT, _ElementT, Iterable[_ElementT]]):
-    __slots__ = ()
+#class LazyUnitaryPropertyDescriptor(LazyPropertyDescriptor[
+#    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _DescriptorSetT
+#]):
+#    __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], Iterable[_ElementT]]
-    ) -> None:
-        parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
-        super().__init__(
-            element_type=AnnotationUtils.get_element_return_type(method),
-            method=method,
-            parameter_name_chains=parameter_name_chains,
-            requires_unwrapping_tuple=requires_unwrapping_tuple
-        )
-
-    def convert_set(
-        self,
-        new_value: Iterable[_ElementT]
-    ) -> LazyDynamicContainer[_ElementT]:
-        return LazyDynamicContainer(
-            elements=new_value
-        )
+#    def convert_get(
+#        self,
+#        container: LazyUnitaryContainer[_ElementT]
+#    ) -> _ElementT:
+#        return container._element
 
 
-@final
-class LazyMode(Enum):
-    OBJECT = 0
-    UNWRAPPED = 1
-    SHARED = 2
-    COLLECTION = 3
+#class LazyDynamicPropertyDescriptor(LazyPropertyDescriptor[
+#    _InstanceT, LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], _DescriptorSetT
+#]):
+#    __slots__ = ()
+
+#    def convert_get(
+#        self,
+#        container: LazyDynamicContainer[_ElementT]
+#    ) -> LazyDynamicContainer[_ElementT]:
+#        return container
 
 
-@final
+#class LazyUnitaryPropertyDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, _ElementT, _ElementT]):
+#    __slots__ = ()
+
+#    def __init__(
+#        self,
+#        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]
+#    ) -> None:
+#        #parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
+#        super().__init__(method)
+
+#    def convert_set(
+#        self,
+#        new_value: _ElementT
+#    ) -> LazyUnitaryContainer[_ElementT]:
+#        return LazyUnitaryContainer(
+#            element=new_value
+#        )
+
+
+#class LazyDynamicPropertyDecorator(LazyDynamicPropertyDescriptor[_InstanceT, _ElementT, Iterable[_ElementT]]):
+#    __slots__ = ()
+
+#    def __init__(
+#        self,
+#        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], Iterable[_ElementT]]
+#    ) -> None:
+#        #parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
+#        super().__init__(method)
+
+#    def convert_set(
+#        self,
+#        new_value: Iterable[_ElementT]
+#    ) -> LazyDynamicContainer[_ElementT]:
+#        return LazyDynamicContainer(
+#            elements=new_value
+#        )
+
+
+#class LazyUnitaryPropertyExternalDecorator(LazyUnitaryPropertyDescriptor[_InstanceT, LazyWrapper[_T], _T | LazyWrapper[_T]]):
+#    __slots__ = ()
+
+#    def __init__(
+#        self,
+#        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
+#    ) -> None:
+#        #parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
+#        super().__init__(method)
+
+#    def convert_set(
+#        self,
+#        new_value: _T | LazyWrapper[_T]
+#    ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
+#        if not isinstance(new_value, LazyWrapper):
+#            new_value = LazyWrapper(new_value)
+#        return LazyUnitaryContainer(
+#            element=new_value
+#        )
+
+#    def finalizer(
+#        self,
+#        finalize_method: Any
+#    ) -> Any:
+#        assert isinstance(finalize_method, classmethod)
+#        func = finalize_method.__func__
+
+#        def new_finalize_method(
+#            cls: type[_InstanceT],
+#            value: LazyWrapper[_T]
+#        ) -> None:
+#            func(cls, value.value)
+
+#        self.finalize_method = new_finalize_method
+#        return finalize_method
+
+
+#class LazyUnitaryPropertySharedDecorator(LazyUnitaryPropertyExternalDecorator[_InstanceT, _HT]):
+#    __slots__ = ("content_to_element_dict",)
+
+#    def __init__(
+#        self,
+#        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
+#    ) -> None:
+#        self.content_to_element_dict: weakref.WeakValueDictionary[_HT, LazyWrapper[_HT]] = weakref.WeakValueDictionary()
+#        #parameter_name_chains, requires_unwrapping_tuple = AnnotationUtils.get_parameter_items(method)
+#        super().__init__(method)
+
+#    def convert_set(
+#        self,
+#        new_value: _HT | LazyWrapper[_HT]
+#    ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
+#        if not isinstance(new_value, LazyWrapper) and (cached_value := self.content_to_element_dict.get(new_value)) is None:
+#            cached_value = LazyWrapper(new_value)
+#            self.content_to_element_dict[new_value] = cached_value
+#            new_value = cached_value
+#        return super().convert_set(new_value)
+
+
 class Lazy:
     __slots__ = ()
 
     def __new__(cls) -> None:
         raise TypeError
 
-    @overload
+    #@overload
     @classmethod
     def variable(
         cls,
-        mode: Literal[LazyMode.OBJECT]
-    ) -> Callable[
-        [Callable[[type[_InstanceT]], _ElementT]],
-        LazyUnitaryVariableDecorator[_InstanceT, _ElementT]
-    ]: ...
+        method: Callable[[type[_InstanceT]], _ElementT]
+    ) -> LazyVariableIndividualDecorator[_InstanceT, _ElementT]:
+        return LazyVariableIndividualDecorator(method.__func__)
 
-    @overload
+    #@overload
     @classmethod
-    def variable(
+    def variable_collection(
         cls,
-        mode: Literal[LazyMode.UNWRAPPED]
-    ) -> Callable[
-        [Callable[[type[_InstanceT]], _T]],
-        LazyUnitaryVariableUnwrappedDecorator[_InstanceT, _T]
-    ]: ...
+        method: Callable[[type[_InstanceT]], list[_ElementT]]
+    ) -> LazyVariableCollectionDecorator[_InstanceT, _ElementT]:
+        return LazyVariableCollectionDecorator(method.__func__)
 
-    @overload
+    #@overload
     @classmethod
-    def variable(
+    def variable_external(
         cls,
-        mode: Literal[LazyMode.SHARED]
-    ) -> Callable[
-        [Callable[[type[_InstanceT]], _HT]],
-        LazyUnitaryVariableSharedDecorator[_InstanceT, _HT]
-    ]: ...
+        method: Callable[[type[_InstanceT]], _T]
+    ) -> LazyVariableExternalDecorator[_InstanceT, _T]:
+        return LazyVariableExternalDecorator(method.__func__)
 
-    @overload
+    #@overload
     @classmethod
-    def variable(
+    def variable_shared(
         cls,
-        mode: Literal[LazyMode.COLLECTION]
-    ) -> Callable[
-        [Callable[[type[_InstanceT]], Iterable[_ElementT]]],
-        LazyDynamicVariableDecorator[_InstanceT, _ElementT]
-    ]: ...
+        method: Callable[[type[_InstanceT]], _HT]
+    ) -> LazyVariableSharedDecorator[_InstanceT, _HT]:
+        return LazyVariableSharedDecorator(method.__func__)
 
-    @classmethod
-    def variable(
-        cls,
-        mode: LazyMode
-    ) -> Callable[[Callable], Any]:
-        if mode is LazyMode.OBJECT:
-            decorator_cls = LazyUnitaryVariableDecorator
-        elif mode is LazyMode.UNWRAPPED:
-            decorator_cls = LazyUnitaryVariableUnwrappedDecorator
-        elif mode is LazyMode.SHARED:
-            decorator_cls = LazyUnitaryVariableSharedDecorator
-        elif mode is LazyMode.COLLECTION:
-            decorator_cls = LazyDynamicVariableDecorator
-        else:
-            raise ValueError
+    #@classmethod
+    #def variable(
+    #    cls,
+    #    mode: LazyMode
+    #) -> Callable[[Callable], Any]:
+    #    if mode is LazyMode.OBJECT:
+    #        decorator_cls = LazyVariableIndividualDecorator
+    #    elif mode is LazyMode.UNWRAPPED:
+    #        decorator_cls = LazyUnitaryVariableUnwrappedDecorator
+    #    elif mode is LazyMode.SHARED:
+    #        decorator_cls = LazyUnitaryVariableSharedDecorator
+    #    elif mode is LazyMode.COLLECTION:
+    #        decorator_cls = LazyDynamicVariableDecorator
+    #    else:
+    #        raise ValueError
 
-        def result(
-            cls_method: Callable
-        ) -> Any:
-            assert isinstance(cls_method, classmethod)
-            return decorator_cls(cls_method.__func__)
+    #    def result(
+    #        cls_method: Callable
+    #    ) -> Any:
+    #        assert isinstance(cls_method, classmethod)
+    #        return decorator_cls(cls_method.__func__)
 
-        return result
+    #    return result
 
-    @overload
+    #@overload
     @classmethod
     def property(
         cls,
-        mode: Literal[LazyMode.OBJECT]
-    ) -> Callable[
-        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]],
-        LazyUnitaryPropertyDecorator[_InstanceT, _ElementT]
-    ]: ...
+        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]
+    ) -> LazyPropertyIndividualDecorator[_InstanceT, _ElementT]:
+        return LazyPropertyIndividualDecorator(method.__func__)
 
-    @overload
+    #@overload
     @classmethod
-    def property(
+    def property_collection(
         cls,
-        mode: Literal[LazyMode.UNWRAPPED]
-    ) -> Callable[
-        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]],
-        LazyUnitaryPropertyUnwrappedDecorator[_InstanceT, _T]
-    ]: ...
+        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], list[_ElementT]]
+    ) -> LazyPropertyCollectionDecorator[_InstanceT, _ElementT]:
+        return LazyPropertyCollectionDecorator(method.__func__)
 
-    @overload
+    #@overload
     @classmethod
-    def property(
+    def property_external(
         cls,
-        mode: Literal[LazyMode.SHARED]
-    ) -> Callable[
-        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]],
-        LazyUnitaryPropertySharedDecorator[_InstanceT, _HT]
-    ]: ...
+        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
+    ) -> LazyPropertyExternalDecorator[_InstanceT, _T]:
+        return LazyPropertyExternalDecorator(method.__func__)
 
-    @overload
+    #@overload
     @classmethod
-    def property(
+    def property_shared(
         cls,
-        mode: Literal[LazyMode.COLLECTION]
-    ) -> Callable[
-        [Callable[Concatenate[type[_InstanceT], _PropertyParameters], Iterable[_ElementT]]],
-        LazyDynamicPropertyDecorator[_InstanceT, _ElementT]
-    ]: ...
+        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
+    ) -> LazyPropertySharedDecorator[_InstanceT, _HT]:
+        return LazyPropertySharedDecorator(method.__func__)
 
-    @classmethod
-    def property(
-        cls,
-        mode: LazyMode
-    ) -> Callable[[Callable], Any]:
-        if mode is LazyMode.OBJECT:
-            decorator_cls = LazyUnitaryPropertyDecorator
-        elif mode is LazyMode.UNWRAPPED:
-            decorator_cls = LazyUnitaryPropertyUnwrappedDecorator
-        elif mode is LazyMode.SHARED:
-            decorator_cls = LazyUnitaryPropertySharedDecorator
-        elif mode is LazyMode.COLLECTION:
-            decorator_cls = LazyDynamicPropertyDecorator
-        else:
-            raise ValueError
+    #@classmethod
+    #def property(
+    #    cls,
+    #    mode: LazyMode
+    #) -> Callable[[Callable], Any]:
+    #    if mode is LazyMode.OBJECT:
+    #        decorator_cls = LazyUnitaryPropertyDecorator
+    #    elif mode is LazyMode.UNWRAPPED:
+    #        decorator_cls = LazyUnitaryPropertyUnwrappedDecorator
+    #    elif mode is LazyMode.SHARED:
+    #        decorator_cls = LazyUnitaryPropertySharedDecorator
+    #    elif mode is LazyMode.COLLECTION:
+    #        decorator_cls = LazyDynamicPropertyDecorator
+    #    else:
+    #        raise ValueError
 
-        def result(
-            cls_method: Callable
-        ) -> Any:
-            assert isinstance(cls_method, classmethod)
-            return decorator_cls(cls_method.__func__)
+    #    def result(
+    #        cls_method: Callable
+    #    ) -> Any:
+    #        assert isinstance(cls_method, classmethod)
+    #        return decorator_cls(cls_method.__func__)
 
-        return result
+    #    return result

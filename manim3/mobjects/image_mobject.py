@@ -7,10 +7,7 @@ from PIL import Image
 from ..constants import X_AXIS
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer import (
@@ -44,7 +41,7 @@ class ImageMobject(MeshMobject):
         )
         self.scale(np.array((x_scale, y_scale, 1.0))).flip(X_AXIS)
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
         return PlaneGeometry()

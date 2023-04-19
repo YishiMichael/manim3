@@ -9,10 +9,7 @@ import moderngl
 import numpy as np
 
 from ..lazy.core import LazyObject
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import (
     Context,
@@ -48,7 +45,7 @@ class IndexedAttributesBuffer(LazyObject):
             self._index_buffer_ = index_buffer
         self._mode_ = mode
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _attributes_buffer_(cls) -> AttributesBuffer:
         return AttributesBuffer(
@@ -57,14 +54,14 @@ class IndexedAttributesBuffer(LazyObject):
             data={}
         )
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _index_buffer_(cls) -> IndexBuffer:
         return IndexBuffer(
             data=None
         )
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _mode_(cls) -> PrimitiveMode:
         return PrimitiveMode.TRIANGLES
@@ -99,32 +96,32 @@ class Program(LazyObject):
         self._texture_id_buffer_formats_.add(*texture_id_buffer_formats)
         self._varyings_ = varyings
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _shader_filename_(cls) -> str:
         return ""
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
         return ()
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _array_len_items_(cls) -> tuple[tuple[str, int], ...]:
         return ()
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _texture_id_buffer_formats_(cls) -> list[BufferFormat]:
         return []
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _varyings_(cls) -> tuple[str, ...]:
         return ()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _info_(
         cls,
@@ -140,7 +137,7 @@ class Program(LazyObject):
             custom_macros: tuple[str, ...],
             array_len_items: tuple[tuple[str, int], ...]
         ) -> moderngl.Program:
-            version_string = f"#version {Context.mgl_context.version_code} core"
+            version_string = f"#version {Context.version_code} core"
             array_len_macros = [
                 f"#define {array_len_name} {array_len}"
                 for array_len_name, array_len in array_len_items
@@ -369,27 +366,27 @@ class VertexArray(LazyObject):
         if transform_feedback_buffer is not None:
             self._transform_feedback_buffer_ = transform_feedback_buffer
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _shader_filename_(cls) -> str:
         return ""
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
         return ()
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _texture_id_buffers_(cls) -> list[TextureIDBuffer]:
         return []
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _uniform_block_buffers_(cls) -> list[UniformBlockBuffer]:
         return []
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
         # For full-screen rendering.
@@ -418,7 +415,7 @@ class VertexArray(LazyObject):
             mode=PrimitiveMode.TRIANGLE_FAN
         )
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _transform_feedback_buffer_(cls) -> TransformFeedbackBuffer:
         return TransformFeedbackBuffer(
@@ -426,7 +423,7 @@ class VertexArray(LazyObject):
             num_vertex=0
         )
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property_shared
     @classmethod
     def _array_len_items_(
         cls,
@@ -446,7 +443,7 @@ class VertexArray(LazyObject):
             if not re.fullmatch(r"__\w+__", array_len_name)
         )
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _program_(
         cls,
@@ -464,7 +461,7 @@ class VertexArray(LazyObject):
             varyings=transform_feedback_buffer__np_buffer_pointer_keys
         )
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _vertex_array_(
         cls,
@@ -482,7 +479,7 @@ class VertexArray(LazyObject):
         if vertex_array is not None:
             vertex_array.release()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _uniform_block_bindings_(
         cls,
@@ -506,7 +503,7 @@ class VertexArray(LazyObject):
             texture_array_dict = {}
         if context_state is None:
             context_state = framebuffer.context_state
-        with Context.mgl_context.scope(
+        with Context.scope(
             framebuffer=framebuffer.framebuffer,
             textures=self._program_._get_texture_bindings(texture_array_dict),
             uniform_buffers=self._uniform_block_bindings_.value
@@ -518,7 +515,7 @@ class VertexArray(LazyObject):
         transform_feedback_buffer = self._transform_feedback_buffer_
         with transform_feedback_buffer.temporary_buffer() as buffer:
             if (vertex_array := self._vertex_array_.value) is not None:
-                with Context.mgl_context.scope(
+                with Context.scope(
                     uniform_buffers=self._uniform_block_bindings_.value
                 ):
                     vertex_array.transform(buffer=buffer)

@@ -11,10 +11,7 @@ from ..geometries.geometry import (
     Geometry,
     GeometryData
 )
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
@@ -30,12 +27,12 @@ class ShapeGeometry(Geometry):
         if shape is not None:
             self._shape_ = shape
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _shape_(cls) -> Shape:
         return Shape()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _geometry_data_(
         cls,

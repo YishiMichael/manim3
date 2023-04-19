@@ -11,10 +11,7 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import Geometry
 from ..lazy.core import LazyWrapper
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
@@ -34,47 +31,47 @@ from ..utils.color import ColorUtils
 class MeshMobject(Mobject):
     __slots__ = ()
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
         return Geometry()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _ambient_strength_(cls) -> float:
         return 1.0
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _specular_strength_(cls) -> float:
         return 0.5
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _shininess_(cls) -> float:
         return 32.0
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _apply_phong_lighting_(cls) -> bool:
         return True
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _local_sample_points_(
         cls,
@@ -82,7 +79,7 @@ class MeshMobject(Mobject):
     ) -> Vec3sT:
         return _geometry_._geometry_data_.value.position
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _material_uniform_block_buffer_(
         cls,
@@ -108,7 +105,7 @@ class MeshMobject(Mobject):
             }
         )
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _mesh_vertex_array_(
         cls,

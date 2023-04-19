@@ -27,15 +27,11 @@ from ..custom_typing import (
     Vec3sT
 )
 from ..lazy.core import (
-    LazyDynamicVariableDescriptor,
     LazyObject,
-    LazyUnitaryVariableDescriptor,
+    LazyVariableDescriptor,
     LazyWrapper
 )
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
     OpaqueFramebuffer
@@ -106,12 +102,12 @@ class Mobject(LazyObject):
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _children_(cls) -> "list[Mobject]":
         return []
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _real_descendants_(cls) -> "list[Mobject]":
         return []
@@ -247,17 +243,28 @@ class Mobject(LazyObject):
                 for mobject in descendant._real_ancestors
             )
 
-        for descriptor in type(self)._LAZY_VARIABLE_DESCRIPTORS:
-            if not issubclass(descriptor.element_type, Mobject):
+        for descriptor in type(self)._lazy_descriptors:
+            if not isinstance(descriptor, LazyVariableDescriptor):
                 continue
-            if isinstance(descriptor, LazyUnitaryVariableDescriptor):
-                mobject = descriptor.__get__(self)
-                descriptor.__set__(result, get_matched_descendant_mobject(mobject))
-            elif isinstance(descriptor, LazyDynamicVariableDescriptor):
-                descriptor.__set__(result, (
+            if not issubclass(descriptor.converter.element_type, Mobject):
+                continue
+            mobject_or_mobjects = descriptor.__get__(self)
+            if isinstance(mobject_or_mobjects, Mobject):
+                matched_result = get_matched_descendant_mobject(mobject_or_mobjects)
+            else:
+                matched_result = (
                     get_matched_descendant_mobject(mobject)
-                    for mobject in descriptor.__get__(self)
-                ))
+                    for mobject in mobject_or_mobjects
+                )
+            descriptor.__set__(result, matched_result)
+            #if descriptor.lazy_mode == LazyMode.OBJECT:
+            #    mobject = descriptor.__get__(self)
+            #    
+            #elif descriptor.lazy_mode == LazyMode.COLLECTION:
+            #    descriptor.__set__(result, (
+            #        get_matched_descendant_mobject(mobject)
+            #        for mobject in descriptor.__get__(self)
+            #    ))
 
         if not broadcast:
             result.clear()
@@ -265,18 +272,18 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _local_sample_points_(cls) -> Vec3sT:
         # Implemented in subclasses.
         return np.zeros((0, 3))
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _model_uniform_block_buffer_(
         cls,
@@ -292,7 +299,7 @@ class Mobject(LazyObject):
             }
         )
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _has_local_sample_points_(
         cls,
@@ -300,7 +307,7 @@ class Mobject(LazyObject):
     ) -> bool:
         return bool(len(local_sample_points))
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _bounding_box_without_descendants_(
         cls,
@@ -316,7 +323,7 @@ class Mobject(LazyObject):
             minimum=world_sample_points.min(axis=0)
         )
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _bounding_box_with_descendants_(
         cls,
@@ -694,12 +701,12 @@ class Mobject(LazyObject):
 
     # render
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _is_transparent_(cls) -> bool:
         return False
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _scene_state_(cls) -> SceneState:
         return SceneState()

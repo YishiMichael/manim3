@@ -3,10 +3,7 @@ __all__ = ["ShapeMobject"]
 
 from ..custom_typing import ColorType
 from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..utils.shape import Shape
@@ -24,17 +21,17 @@ class ShapeMobject(MeshMobject):
             self.set_shape(shape)
         self.set_style(apply_phong_lighting=False)
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _shape_(cls) -> Shape:
         return Shape()
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _apply_phong_lighting_(cls) -> bool:
         return False
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _geometry_(
         cls,

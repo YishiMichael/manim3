@@ -15,10 +15,7 @@ from ..custom_typing import (
     ColorType,
     Vec3T
 )
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..mobjects.mobject import Mobject
 from ..passes.render_pass import RenderPass
 from ..rendering.config import (
@@ -59,12 +56,12 @@ class Scene(Mobject):
         self._frame_floating_index: float = 0.0
         self._previous_frame_rendering_timestamp: float | None = None
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _render_passes_(cls) -> list[RenderPass]:
         return []
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _pixelated_vertex_array_(cls) -> VertexArray:
         return VertexArray(
@@ -76,7 +73,7 @@ class Scene(Mobject):
             ]
         )
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _oit_compose_vertex_array_(cls) -> VertexArray:
         return VertexArray(

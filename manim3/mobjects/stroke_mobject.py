@@ -16,10 +16,7 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..lazy.core import LazyWrapper
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
@@ -52,42 +49,42 @@ class StrokeMobject(Mobject):
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _width_(cls) -> float:
         return 0.04  # TODO: check if the auto-scaling remains
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _dilate_(cls) -> float:
         return 0.0
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _all_points_(
         cls,
@@ -97,7 +94,7 @@ class StrokeMobject(Mobject):
             return np.zeros((0, 3))
         return np.concatenate(multi_line_string__line_strings__points)
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _local_sample_points_(
         cls,
@@ -105,7 +102,7 @@ class StrokeMobject(Mobject):
     ) -> Vec3sT:
         return all_points
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _stroke_preprocess_vertex_array_(
         cls,
@@ -141,7 +138,7 @@ class StrokeMobject(Mobject):
             transform_feedback_buffer=transform_feedback_buffer
         )
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _all_position_(
         cls,
@@ -150,7 +147,7 @@ class StrokeMobject(Mobject):
         data_dict = _stroke_preprocess_vertex_array_.transform()
         return data_dict["out_position"]
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _position_list_(
         cls,
@@ -165,7 +162,7 @@ class StrokeMobject(Mobject):
             for start, stop in zip(starts, stops, strict=True)
         ]
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property_shared
     @classmethod
     def _winding_sign_(
         cls,
@@ -183,7 +180,7 @@ class StrokeMobject(Mobject):
         )
         return area >= 0.0
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _stroke_uniform_block_buffer_(
         cls,
@@ -206,7 +203,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _winding_sign_uniform_block_buffer_(
         cls,
@@ -222,7 +219,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _position_attributes_buffer_(
         cls,
@@ -283,7 +280,7 @@ class StrokeMobject(Mobject):
             }
         )
 
-    @Lazy.property(LazyMode.COLLECTION)
+    @Lazy.property_collection
     @classmethod
     def _stroke_vertex_arrays_(
         cls,

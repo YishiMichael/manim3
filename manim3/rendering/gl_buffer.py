@@ -25,10 +25,7 @@ import numpy as np
 
 from ..custom_typing import VertexIndexType
 from ..lazy.core import LazyObject
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..rendering.context import Context
 
 
@@ -50,23 +47,23 @@ class BufferFormat(LazyObject):
         self._name_ = name
         self._shape_ = shape
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _name_(cls) -> str:
         return ""
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _shape_(cls) -> tuple[int, ...]:
         return ()
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _itemsize_(cls) -> int:
         # Implemented in subclasses.
         return 0
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property_shared
     @classmethod
     def _size_(
         cls,
@@ -74,7 +71,7 @@ class BufferFormat(LazyObject):
     ) -> int:
         return reduce(op.mul, shape, 1)
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property_shared
     @classmethod
     def _nbytes_(
         cls,
@@ -83,7 +80,7 @@ class BufferFormat(LazyObject):
     ) -> int:
         return itemsize * size
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property_shared
     @classmethod
     def _is_empty_(
         cls,
@@ -91,7 +88,7 @@ class BufferFormat(LazyObject):
     ) -> bool:
         return not size
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _dtype_(cls) -> np.dtype:
         # Implemented in subclasses.
@@ -124,37 +121,37 @@ class AtomicBufferFormat(BufferFormat):
         self._n_row_ = n_row
         self._row_itemsize_factor_ = row_itemsize_factor
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _base_char_(cls) -> str:
         return ""
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _base_itemsize_(cls) -> int:
         return 0
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _base_ndim_(cls) -> int:
         return 0
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _n_col_(cls) -> int:
         return 0
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _n_row_(cls) -> int:
         return 0
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _row_itemsize_factor_(cls) -> int:
         return 0
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _row_itemsize_(
         cls,
@@ -163,7 +160,7 @@ class AtomicBufferFormat(BufferFormat):
     ) -> int:
         return row_itemsize_factor * base_itemsize
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _itemsize_(
         cls,
@@ -172,7 +169,7 @@ class AtomicBufferFormat(BufferFormat):
     ) -> int:
         return n_row * row_itemsize
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _dtype_(
         cls,
@@ -209,17 +206,17 @@ class StructuredBufferFormat(BufferFormat):
         self._offsets_ = offsets
         self._itemsize_ = itemsize
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _children_(cls) -> list[BufferFormat]:
         return []
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _offsets_(cls) -> tuple[int, ...]:
         return ()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _dtype_(
         cls,
@@ -294,27 +291,27 @@ class GLBuffer(LazyObject):
         if array_lens is not None:
             self._array_len_items_ = tuple(array_lens.items())
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _field_(cls) -> str:
         return ""
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _child_struct_items_(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
         return ()
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _array_len_items_(cls) -> tuple[tuple[str, int], ...]:
         return ()
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
         return GLBufferLayout.PACKED
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _buffer_format_(
         cls,
@@ -422,7 +419,7 @@ class GLBuffer(LazyObject):
 
         return get_buffer_format(field)
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _np_buffer_(
         cls,
@@ -431,7 +428,7 @@ class GLBuffer(LazyObject):
     ) -> np.ndarray:
         return np.zeros(buffer_format__shape, dtype=buffer_format__dtype)
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _np_buffer_pointers_(
         cls,
@@ -460,11 +457,11 @@ class GLBuffer(LazyObject):
             for key, np_buffer_pointer, base_ndim in get_pointers(np_buffer, _buffer_format_, ())
         }
 
-    @Lazy.property(LazyMode.SHARED)
+    @Lazy.property_shared
     @classmethod
     def _np_buffer_pointer_keys_(
         cls,
-        np_buffer_pointers: dict[str, np.ndarray]
+        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
     ) -> tuple[str, ...]:
         return tuple(np_buffer_pointers)
 
@@ -520,7 +517,7 @@ class GLBuffer(LazyObject):
 class GLWriteOnlyBuffer(GLBuffer):
     __slots__ = ()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _buffer_(
         cls,
@@ -545,7 +542,7 @@ class GLWriteOnlyBuffer(GLBuffer):
     ) -> None:
         cls._finalize_buffer(buffer)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _data_dict_(cls) -> dict[str, np.ndarray]:
         return {}
@@ -623,7 +620,7 @@ class UniformBlockBuffer(GLWriteOnlyBuffer):
         )
         self.write(data)
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
         return GLBufferLayout.STD140
@@ -655,7 +652,7 @@ class AttributesBuffer(GLWriteOnlyBuffer):
         )
         self.write(data)
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
         # Let's keep using std140 layout, hopefully giving a faster processing speed.
@@ -684,7 +681,7 @@ class IndexBuffer(GLWriteOnlyBuffer):
             })
             self._omitted_ = False
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _omitted_(cls) -> bool:
         return True

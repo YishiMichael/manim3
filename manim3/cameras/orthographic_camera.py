@@ -5,10 +5,7 @@ import numpy as np
 
 from ..cameras.camera import Camera
 from ..custom_typing import Mat4T
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..rendering.config import ConfigSingleton
 
 
@@ -33,27 +30,27 @@ class OrthographicCamera(Camera):
         if far is not None:
             self._far_ = far
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _width_(cls) -> float:
         return ConfigSingleton().size.frame_width
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _height_(cls) -> float:
         return ConfigSingleton().size.frame_height
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _near_(cls) -> float:
         return ConfigSingleton().camera.near
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _far_(cls) -> float:
         return ConfigSingleton().camera.far
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _projection_matrix_(
         cls,

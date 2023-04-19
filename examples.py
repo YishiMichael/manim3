@@ -34,7 +34,6 @@ class TexTransformExample(Scene):
             .concatenate()
         )
         tex.add(tex.build_stroke(width=0.06, color=PINK))
-        #print(len(text._stroke_mobjects_[0]._local_sample_points_.value))
         self.add(text)
         self.wait()
         self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))

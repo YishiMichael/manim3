@@ -10,10 +10,7 @@ from ..custom_typing import (
     Vec3T
 )
 from ..lazy.core import LazyObject
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..rendering.gl_buffer import UniformBlockBuffer
 from ..utils.color import ColorUtils
 
@@ -21,17 +18,17 @@ from ..utils.color import ColorUtils
 class PointLight(LazyObject):
     __slots__ = ()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _position_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
@@ -56,32 +53,32 @@ class PointLight(LazyObject):
 class SceneState(LazyObject):
     __slots__ = ()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _background_color_(cls) -> Vec3T:
         return np.zeros(3)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _background_opacity_(cls) -> float:
         return 1.0
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _ambient_light_color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _ambient_light_opacity_(cls) -> float:
         return 1.0
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _point_lights_(cls) -> list[PointLight]:
         return []
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _lights_uniform_block_buffer_(
         cls,
@@ -117,7 +114,7 @@ class SceneState(LazyObject):
             }
         )
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _camera_(cls) -> Camera:
         return PerspectiveCamera()

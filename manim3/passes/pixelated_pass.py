@@ -4,10 +4,7 @@ __all__ = ["PixelatedPass"]
 import moderngl
 import numpy as np
 
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer import ColorFramebuffer
@@ -27,12 +24,12 @@ class PixelatedPass(RenderPass):
         if pixelated_width is not None:
             self._pixelated_width_ = pixelated_width
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _pixelated_width_(cls) -> float:
         return 0.1
 
-    @Lazy.property(LazyMode.OBJECT)
+    @Lazy.property
     @classmethod
     def _pixelated_va_(cls) -> VertexArray:
         return VertexArray(

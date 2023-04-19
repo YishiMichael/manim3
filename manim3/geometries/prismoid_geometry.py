@@ -11,10 +11,7 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import GeometryData
 from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 
@@ -22,7 +19,7 @@ from ..utils.space import SpaceUtils
 class PrismoidGeometry(ShapeGeometry):
     __slots__ = ()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _geometry_data_(
         cls,

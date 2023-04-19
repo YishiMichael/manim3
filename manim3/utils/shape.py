@@ -28,23 +28,20 @@ from ..custom_typing import (
     VertexIndexType
 )
 from ..lazy.core import LazyObject
-from ..lazy.interface import (
-    Lazy,
-    LazyMode
-)
+from ..lazy.interface import Lazy
 from ..utils.space import SpaceUtils
 
 
 class ShapeInterpolant(LazyObject):
     __slots__ = ()
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _lengths_(cls) -> FloatsT:
         # Make sure all entries are non-zero to avoid zero divisions
         return np.zeros((0, 1))
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _length_(
         cls,
@@ -52,7 +49,7 @@ class ShapeInterpolant(LazyObject):
     ) -> float:
         return lengths.sum()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _length_knots_(
         cls,
@@ -164,17 +161,17 @@ class LineString(ShapeInterpolant):
         self._points_ = points
         self._is_ring_ = is_ring
 
-    @Lazy.variable(LazyMode.UNWRAPPED)
+    @Lazy.variable_external
     @classmethod
     def _points_(cls) -> Vec3sT:
         return np.zeros((0, 3))
 
-    @Lazy.variable(LazyMode.SHARED)
+    @Lazy.variable_shared
     @classmethod
     def _is_ring_(cls) -> bool:
         return False
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _points_len_(
         cls,
@@ -182,7 +179,7 @@ class LineString(ShapeInterpolant):
     ) -> int:
         return len(points)
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _path_points_(
         cls,
@@ -193,7 +190,7 @@ class LineString(ShapeInterpolant):
             return points.copy()
         return np.append(points, (points[0],), axis=0)
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _lengths_(
         cls,
@@ -273,12 +270,12 @@ class MultiLineString(ShapeInterpolant):
         if line_strings is not None:
             self._line_strings_.add(*line_strings)
 
-    @Lazy.variable(LazyMode.COLLECTION)
+    @Lazy.variable_collection
     @classmethod
     def _line_strings_(cls) -> list[LineString]:
         return []
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _lengths_(
         cls,
@@ -424,12 +421,12 @@ class Shape(LazyObject):
     ) -> "Shape":
         return self.symmetric_difference(other)
 
-    @Lazy.variable(LazyMode.OBJECT)
+    @Lazy.variable
     @classmethod
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _shapely_obj_(
         cls,
@@ -451,7 +448,7 @@ class Shape(LazyObject):
             for line_string in _multi_line_string__line_strings_
         ], shapely.geometry.GeometryCollection())
 
-    @Lazy.property(LazyMode.UNWRAPPED)
+    @Lazy.property_external
     @classmethod
     def _triangulation_(
         cls,

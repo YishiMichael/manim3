@@ -4,7 +4,6 @@ __all__ = [
 ]
 
 
-#import atexit
 from dataclasses import dataclass
 from functools import reduce
 import operator as op
@@ -75,7 +74,6 @@ class Context:
             )
             window_framebuffer = None
         mgl_context.gc_mode = "auto"
-        #atexit.register(lambda: mgl_context.release())
         cls._MGL_CONTEXT = mgl_context
         cls._WINDOW = window
         cls._WINDOW_FRAMEBUFFER = window_framebuffer
@@ -103,7 +101,7 @@ class Context:
 
     @classmethod
     @property
-    def mgl_context(cls) -> moderngl.Context:
+    def _mgl_context(cls) -> moderngl.Context:
         assert (mgl_context := cls._MGL_CONTEXT) is not None
         return mgl_context
 
@@ -130,25 +128,29 @@ class Context:
         cls,
         context_state: ContextState
     ) -> None:
-        context = Context.mgl_context
+        context = Context._mgl_context
         context.enable_only(reduce(op.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
-        for index, (src_blend_func, dst_blend_func) in enumerate(context_state.blend_funcs):
+        for index, ((src_blend_func, dst_blend_func), blend_equation) in enumerate(
+            zip(context_state.blend_funcs, context_state.blend_equations, strict=True)
+        ):
             gl.glBlendFunci(
                 index,
                 src_blend_func.value,
                 dst_blend_func.value
             )
-        for index, blend_equation in enumerate(context_state.blend_equations):
             gl.glBlendEquationi(
                 index,
                 blend_equation.value
             )
-        #context.blend_func = tuple(func.value for func in context_state.blend_func)
-        #context.blend_equation = context_state.blend_equation.value
         context.depth_func = context_state.depth_func
         context.front_face = context_state.front_face
         context.cull_face = context_state.cull_face
         context.wireframe = context_state.wireframe
+
+    @classmethod
+    @property
+    def version_code(cls) -> int:
+        return cls._mgl_context.version_code
 
     @classmethod
     def texture(
@@ -158,13 +160,11 @@ class Context:
         components: int,
         dtype: str
     ) -> moderngl.Texture:
-        texture = cls.mgl_context.texture(
+        return cls._mgl_context.texture(
             size=size,
             components=components,
             dtype=dtype
         )
-        #atexit.register(lambda: texture.release())
-        return texture
 
     @classmethod
     def depth_texture(
@@ -172,11 +172,9 @@ class Context:
         *,
         size: tuple[int, int]
     ) -> moderngl.Texture:
-        depth_texture = cls.mgl_context.depth_texture(
+        return cls._mgl_context.depth_texture(
             size=size
         )
-        #atexit.register(lambda: depth_texture.release())
-        return depth_texture
 
     @classmethod
     def framebuffer(
@@ -185,23 +183,15 @@ class Context:
         color_attachments: tuple[moderngl.Texture, ...],
         depth_attachment: moderngl.Texture | None
     ) -> moderngl.Framebuffer:
-        framebuffer = cls.mgl_context.framebuffer(
+        return cls._mgl_context.framebuffer(
             color_attachments=color_attachments,
             depth_attachment=depth_attachment
         )
-        #atexit.register(lambda: framebuffer.release())
-        return framebuffer
 
     @classmethod
-    def buffer(
-        cls,
-        *,
-        reserve: int = 1,
-        dynamic: bool = True
-    ) -> moderngl.Buffer:
-        buffer = cls.mgl_context.buffer(reserve=reserve, dynamic=dynamic)  # TODO: dynamic?
-        #atexit.register(lambda: buffer.release())
-        return buffer
+    def buffer(cls) -> moderngl.Buffer:
+        # TODO: what effect does `dynamic` flag take?
+        return cls._mgl_context.buffer(reserve=1, dynamic=True)
 
     @classmethod
     def program(
@@ -214,7 +204,7 @@ class Context:
         tess_evaluation_shader: str | None = None,
         varyings: tuple[str, ...] = ()
     ) -> moderngl.Program:
-        program = cls.mgl_context.program(
+        return cls._mgl_context.program(
             vertex_shader=vertex_shader,
             fragment_shader=fragment_shader,
             geometry_shader=geometry_shader,
@@ -222,8 +212,6 @@ class Context:
             tess_evaluation_shader=tess_evaluation_shader,
             varyings=varyings
         )
-        #atexit.register(lambda: program.release())
-        return program
 
     @classmethod
     def vertex_array(
@@ -239,11 +227,23 @@ class Context:
         content = []
         if attribute_names:
             content.append((attributes_buffer, buffer_format_str, *attribute_names))
-        vertex_array = cls.mgl_context.vertex_array(
+        return cls._mgl_context.vertex_array(
             program=program,
             content=content,
             index_buffer=index_buffer,
             mode=mode.value
         )
-        #atexit.register(lambda: vertex_array.release())
-        return vertex_array
+
+    @classmethod
+    def scope(
+        cls,
+        *,
+        framebuffer: moderngl.Framebuffer | None = None,
+        textures: tuple[tuple[moderngl.Texture, int], ...] = (),
+        uniform_buffers: tuple[tuple[moderngl.Buffer, int], ...] = ()
+    ) -> moderngl.Scope:
+        return cls._mgl_context.scope(
+            framebuffer=framebuffer,
+            textures=textures,
+            uniform_buffers=uniform_buffers
+        )
