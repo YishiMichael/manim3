@@ -130,12 +130,14 @@ class LazyVariableIndividualDecorator(LazyVariableDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[[type[_InstanceT]], _ElementT]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazyIndividualConverter()
+    _converter_class: type[LazyIndividualConverter[_ElementT]] = LazyIndividualConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[[type[_InstanceT]], _ElementT]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazyIndividualConverter()
 
 
 class LazyVariableCollectionDecorator(LazyVariableDescriptor[
@@ -143,12 +145,14 @@ class LazyVariableCollectionDecorator(LazyVariableDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[[type[_InstanceT]], list[_ElementT]]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazyCollectionConverter()
+    _converter_class: type[LazyCollectionConverter[_ElementT]] = LazyCollectionConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[[type[_InstanceT]], list[_ElementT]]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazyCollectionConverter()
 
 
 class LazyVariableExternalDecorator(LazyVariableDescriptor[
@@ -156,12 +160,14 @@ class LazyVariableExternalDecorator(LazyVariableDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[[type[_InstanceT]], _T]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazyExternalConverter()
+    _converter_class: type[LazyExternalConverter[_T]] = LazyExternalConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[[type[_InstanceT]], _T]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazyExternalConverter()
 
 
 class LazyVariableSharedDecorator(LazyVariableDescriptor[
@@ -169,12 +175,14 @@ class LazyVariableSharedDecorator(LazyVariableDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[[type[_InstanceT]], _HT]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazySharedConverter()
+    _converter_class: type[LazyExternalConverter[_HT]] = LazySharedConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[[type[_InstanceT]], _HT]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazySharedConverter()
 
 
 class LazyPropertyIndividualDecorator(LazyPropertyDescriptor[
@@ -182,12 +190,14 @@ class LazyPropertyIndividualDecorator(LazyPropertyDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazyIndividualConverter()
+    _converter_class: type[LazyIndividualConverter[_ElementT]] = LazyIndividualConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazyIndividualConverter()
 
 
 class LazyPropertyCollectionDecorator(LazyPropertyDescriptor[
@@ -195,12 +205,14 @@ class LazyPropertyCollectionDecorator(LazyPropertyDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], list[_ElementT]]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazyCollectionConverter()
+    _converter_class: type[LazyCollectionConverter[_ElementT]] = LazyCollectionConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], list[_ElementT]]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazyCollectionConverter()
 
 
 class LazyPropertyExternalDecorator(LazyPropertyDescriptor[
@@ -208,12 +220,14 @@ class LazyPropertyExternalDecorator(LazyPropertyDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazyExternalConverter()
+    _converter_class: type[LazyExternalConverter[_T]] = LazyExternalConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazyExternalConverter()
 
     def finalizer(
         self,
@@ -237,12 +251,14 @@ class LazyPropertySharedDecorator(LazyPropertyDescriptor[
 ]):
     __slots__ = ()
 
-    def __init__(
-        self,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
-    ) -> None:
-        super().__init__(method)
-        self.converter = LazySharedConverter()
+    _converter_class: type[LazyExternalConverter[_HT]] = LazySharedConverter
+
+    #def __init__(
+    #    self,
+    #    method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
+    #) -> None:
+    #    super().__init__(method)
+    #    self.converter = LazySharedConverter()
 
 
 #class LazyUnitaryPropertyDescriptor(LazyPropertyDescriptor[

@@ -8,7 +8,7 @@ import pathlib
 import re
 from typing import (
     ClassVar,
-    Generator
+    Iterator
 )
 
 import toml
@@ -237,7 +237,7 @@ class TexParser(StringParser):
             string=string,
             isolate=isolate,
             protect=protect,
-            configured_items_generator=(
+            configured_items_iterator=(
                 (span, {})
                 for selector in tex_to_color_map
                 for span in self._iter_spans_by_selector(selector, string)
@@ -260,7 +260,7 @@ class TexParser(StringParser):
     def _iter_command_matches(
         cls,
         string: str
-    ) -> Generator[re.Match[str], None, None]:
+    ) -> Iterator[re.Match[str]]:
         # Lump together adjacent brace pairs.
         pattern = re.compile(r"""
             (?P<command>\\(?:[a-zA-Z]+|.))

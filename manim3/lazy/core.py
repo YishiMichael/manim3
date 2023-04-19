@@ -156,7 +156,6 @@ from typing import (
     Callable,
     ClassVar,
     Concatenate,
-    Generator,
     Generic,
     Hashable,
     Iterable,
@@ -246,7 +245,7 @@ class LazyContainer(ABC, Generic[_ElementT]):
         return slot
 
     @abstractmethod
-    def _iter_elements(self) -> Generator[_ElementT, None, None]:
+    def _iter_elements(self) -> Iterator[_ElementT]:
         pass
 
     @abstractmethod
@@ -271,7 +270,7 @@ class LazyUnitaryContainer(LazyContainer[_ElementT]):
         super().__init__()
         self._element: _ElementT = element
 
-    def _iter_elements(self) -> Generator[_ElementT, None, None]:
+    def _iter_elements(self) -> Iterator[_ElementT]:
         yield self._element
 
     def _write(
@@ -321,7 +320,7 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
     ) -> _ElementT | list[_ElementT]:
         return self._elements.__getitem__(index)
 
-    def _iter_elements(self) -> Generator[_ElementT, None, None]:
+    def _iter_elements(self) -> Iterator[_ElementT]:
         yield from self._elements
 
     def _write(
@@ -414,7 +413,7 @@ class LazyVariableSlot(LazySlot[_ContainerT]):
             expired_property_slot.expire()
         self._linked_property_slots.clear()
 
-    def yield_descendant_variable_slots(self) -> "Generator[LazyVariableSlot, None, None]":
+    def yield_descendant_variable_slots(self) -> "Iterator[LazyVariableSlot]":
         yield self
         for element in self.get_variable_container()._iter_elements():
             for slot in element._iter_variable_slots():
@@ -529,9 +528,11 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _D
         "instance_to_slot_dict"
     )
 
+    _converter_class: type[LazyConverter[_ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]] = LazyConverter
+
     def __init__(self) -> None:
         super().__init__()
-        self.converter: LazyConverter[_ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT] = NotImplemented
+        self.converter: LazyConverter[_ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT] = type(self)._converter_class()
         self.instance_to_slot_dict: weakref.WeakKeyDictionary[_InstanceT, _SlotT] = weakref.WeakKeyDictionary()
 
     @overload
@@ -1103,7 +1104,7 @@ class LazyObject:
         result._becomes(self)
         return result
 
-    def _iter_variable_slots(self) -> Generator[LazyVariableSlot, None, None]:
+    def _iter_variable_slots(self) -> Iterator[LazyVariableSlot]:
         for descriptor in type(self)._lazy_descriptors:
             if not isinstance(descriptor, LazyVariableDescriptor):
                 continue

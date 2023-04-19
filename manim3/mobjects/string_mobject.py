@@ -20,7 +20,7 @@ import pathlib
 import re
 from typing import (
     Callable,
-    Generator
+    Iterator
 )
 import warnings
 
@@ -215,7 +215,7 @@ class StringFileWriter(ABC):
     def display_during_execution(
         cls,
         string: str
-    ) -> Generator[None, None, None]:
+    ) -> Iterator[None]:
         max_characters = 60
         summary = string.replace("\n", "")
         if len(summary) > max_characters:
@@ -236,7 +236,7 @@ class StringParser(ABC):
         string: str,
         isolate: Selector,
         protect: Selector,
-        configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
+        configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float
@@ -246,7 +246,7 @@ class StringParser(ABC):
             string=string,
             isolate=isolate,
             protect=protect,
-            configured_items_generator=configured_items_generator,
+            configured_items_iterator=configured_items_iterator,
             get_content_by_body=get_content_by_body,
             file_writer=file_writer,
             frame_scale=frame_scale
@@ -258,7 +258,7 @@ class StringParser(ABC):
         string: str,
         isolate: Selector,
         protect: Selector,
-        configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None],
+        configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float
@@ -267,7 +267,7 @@ class StringParser(ABC):
             string=string,
             isolate=isolate,
             protect=protect,
-            configured_items_generator=configured_items_generator
+            configured_items_iterator=configured_items_iterator
         )
         replaced_spans = [replaced_item.span for replaced_item in replaced_items]
         original_pieces = [
@@ -318,7 +318,7 @@ class StringParser(ABC):
         string: str,
         isolate: Selector,
         protect: Selector,
-        configured_items_generator: Generator[tuple[Span, dict[str, str]], None, None]
+        configured_items_iterator: Iterator[tuple[Span, dict[str, str]]]
     ) -> tuple[list[LabelledItem], list[CommandItem | LabelledInsertionItem]]:
 
         def get_key(
@@ -339,7 +339,7 @@ class StringParser(ABC):
         index_items: list[tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, EdgeFlag, int, int]] = sorted((
             (span_item, edge_flag, priority, i)
             for priority, span_item_iter in enumerate((
-                (ConfiguredItem(span=span, attrs=attrs) for span, attrs in configured_items_generator),
+                (ConfiguredItem(span=span, attrs=attrs) for span, attrs in configured_items_iterator),
                 (IsolatedItem(span=span) for span in cls._iter_spans_by_selector(isolate, string)),
                 (ProtectedItem(span=span) for span in cls._iter_spans_by_selector(protect, string)),
                 (CommandItem(match_obj=match_obj) for match_obj in cls._iter_command_matches(string))
@@ -689,12 +689,12 @@ class StringParser(ABC):
         cls,
         selector: Selector,
         string: str
-    ) -> Generator[Span, None, None]:
+    ) -> Iterator[Span]:
 
         def iter_spans_by_single_selector(
             sel: str | re.Pattern[str] | slice,
             string: str
-        ) -> Generator[Span, None, None]:
+        ) -> Iterator[Span]:
             if isinstance(sel, str):
                 for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
                     yield Span(*match_obj.span())
@@ -747,7 +747,7 @@ class StringParser(ABC):
     def _iter_command_matches(
         cls,
         string: str
-    ) -> Generator[re.Match[str], None, None]:
+    ) -> Iterator[re.Match[str]]:
         pass
 
     @classmethod
@@ -835,7 +835,7 @@ class StringMobject(SVGMobject):
     def _iter_shape_mobject_lists_by_selector(
         self,
         selector: Selector
-    ) -> Generator[list[ShapeMobject], None, None]:
+    ) -> Iterator[list[ShapeMobject]]:
         parser = self._parser
         for span in parser._iter_spans_by_selector(selector, self._string):
             if (shape_mobject_list := parser._get_shape_mobject_list_by_span(span, parser._parsing_result.shape_items)):

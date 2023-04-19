@@ -4,7 +4,7 @@ __all__ = ["TextureFactory"]
 from contextlib import contextmanager
 from typing import (
     ClassVar,
-    Generator
+    Iterator
 )
 
 import moderngl
@@ -29,7 +29,7 @@ class TextureFactory:
         size: tuple[int, int] | None = None,
         components: int = 4,
         dtype: str = "f1"
-    ) -> Generator[moderngl.Texture, None, None]:
+    ) -> Iterator[moderngl.Texture]:
         if size is None:
             size = ConfigSingleton().size.pixel_size
         parameters = (size, components, dtype)
@@ -50,7 +50,7 @@ class TextureFactory:
     def depth_texture(
         cls,
         size: tuple[int, int] | None = None
-    ) -> Generator[moderngl.Texture, None, None]:
+    ) -> Iterator[moderngl.Texture]:
         if size is None:
             size = ConfigSingleton().size.pixel_size
         parameters = (size,)

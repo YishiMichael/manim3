@@ -17,7 +17,7 @@ import operator as op
 import re
 from typing import (
     ClassVar,
-    Generator
+    Iterator
 )
 
 import moderngl
@@ -440,7 +440,7 @@ class GLBuffer(LazyObject):
             np_buffer_pointer: np.ndarray,
             buffer_format: BufferFormat,
             name_chain: tuple[str, ...]
-        ) -> Generator[tuple[str, np.ndarray, int], None, None]:
+        ) -> Iterator[tuple[str, np.ndarray, int]]:
             if isinstance(buffer_format, AtomicBufferFormat):
                 yield ".".join(name_chain), np_buffer_pointer["_"], buffer_format._base_ndim_.value
             elif isinstance(buffer_format, StructuredBufferFormat):
@@ -561,7 +561,7 @@ class GLReadOnlyBuffer(GLBuffer):
     __slots__ = ()
 
     @contextmanager
-    def temporary_buffer(self) -> Generator[moderngl.Buffer, None, None]:
+    def temporary_buffer(self) -> Iterator[moderngl.Buffer]:
         buffer = self._fetch_buffer()
         buffer.orphan(self._buffer_format_._nbytes_.value)
         yield buffer

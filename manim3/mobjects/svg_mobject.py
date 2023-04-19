@@ -4,7 +4,7 @@ __all__ = ["SVGMobject"]
 import itertools as it
 import pathlib
 from typing import (
-    Generator,
+    Iterator,
     overload
 )
 
@@ -185,7 +185,7 @@ class SVGMobject(ShapeMobject):
 
         def iter_args_from_se_shape(
             se_shape: se.Shape
-        ) -> Generator[tuple[Vec2sT, bool], None, None]:
+        ) -> Iterator[tuple[Vec2sT, bool]]:
             se_path = se.Path(se_shape.segments(transformed=True))
             se_path.approximate_arcs_with_cubics()
             points_list: list[Vec2T] = []

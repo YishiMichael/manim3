@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from functools import reduce
 import itertools as it
 from typing import (
-    Generator,
     Iterator,
     TypeVar,
     overload
@@ -112,17 +111,17 @@ class Mobject(LazyObject):
     def _real_descendants_(cls) -> "list[Mobject]":
         return []
 
-    def iter_children(self) -> "Generator[Mobject, None, None]":
+    def iter_children(self) -> "Iterator[Mobject]":
         yield from self._children_
 
-    def iter_parents(self) -> "Generator[Mobject, None, None]":
+    def iter_parents(self) -> "Iterator[Mobject]":
         yield from self._parents
 
     def iter_descendants(
         self,
         *,
         broadcast: bool = True
-    ) -> "Generator[Mobject, None, None]":
+    ) -> "Iterator[Mobject]":
         yield self
         if broadcast:
             yield from self._real_descendants_
@@ -131,7 +130,7 @@ class Mobject(LazyObject):
         self,
         *,
         broadcast: bool = True
-    ) -> "Generator[Mobject, None, None]":
+    ) -> "Iterator[Mobject]":
         yield self
         if broadcast:
             yield from self._real_ancestors
@@ -139,7 +138,7 @@ class Mobject(LazyObject):
     def iter_children_by_type(
         self,
         mobject_type: type[_MobjectT]
-    ) -> Generator[_MobjectT, None, None]:
+    ) -> Iterator[_MobjectT]:
         for mobject in self.iter_children():
             if isinstance(mobject, mobject_type):
                 yield mobject
@@ -148,7 +147,7 @@ class Mobject(LazyObject):
         self,
         mobject_type: type[_MobjectT],
         broadcast: bool = True
-    ) -> Generator[_MobjectT, None, None]:
+    ) -> Iterator[_MobjectT]:
         for mobject in self.iter_descendants(broadcast=broadcast):
             if isinstance(mobject, mobject_type):
                 yield mobject

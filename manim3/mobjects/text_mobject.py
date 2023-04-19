@@ -9,7 +9,7 @@ import pathlib
 import re
 from typing import (
     ClassVar,
-    Generator
+    Iterator
 )
 import warnings
 
@@ -208,7 +208,7 @@ class MarkupTextParser(StringParser):
             string=string,
             isolate=isolate,
             protect=protect,
-            configured_items_generator=(
+            configured_items_iterator=(
                 (span, local_config)
                 for selector, local_config in local_configs.items()
                 for span in self._iter_spans_by_selector(selector, string)
@@ -236,7 +236,7 @@ class MarkupTextParser(StringParser):
     def _iter_command_matches(
         cls,
         string: str
-    ) -> Generator[re.Match[str], None, None]:
+    ) -> Iterator[re.Match[str]]:
         pattern = re.compile(r"""
             (?P<tag>
                 <
@@ -350,7 +350,7 @@ class TextParser(MarkupTextParser):
     def _iter_command_matches(
         cls,
         string: str
-    ) -> Generator[re.Match[str], None, None]:
+    ) -> Iterator[re.Match[str]]:
         pattern = re.compile(r"""[<>&"']""")
         yield from pattern.finditer(string)
 

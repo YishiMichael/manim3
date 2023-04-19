@@ -6,9 +6,9 @@ import itertools as it
 from typing import (
     Any,
     Callable,
-    Generator,
     Generic,
     Iterable,
+    Iterator,
     TypeVar
 )
 
@@ -199,7 +199,7 @@ class Transform(Animation):
         cls,
         mobjects_0: Iterable[Mobject],
         mobjects_1: Iterable[Mobject]
-    ) -> Generator[tuple[type[Mobject], Mobject, Mobject], None, None]:
+    ) -> Iterator[tuple[type[Mobject], Mobject, Mobject]]:
 
         def get_class(
             mobject: Mobject

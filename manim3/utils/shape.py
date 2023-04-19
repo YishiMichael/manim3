@@ -9,8 +9,8 @@ from functools import reduce
 import itertools as it
 from typing import (
     Callable,
-    Generator,
     Iterable,
+    Iterator,
     Literal
 )
 
@@ -457,7 +457,7 @@ class Shape(LazyObject):
 
         def get_shapely_polygons(
             shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Generator[shapely.geometry.Polygon, None, None]:
+        ) -> Iterator[shapely.geometry.Polygon]:
             if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
                 pass
             elif isinstance(shapely_obj, shapely.geometry.Polygon):
@@ -521,7 +521,7 @@ class Shape(LazyObject):
 
         def iter_args_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Generator[tuple[Vec2sT, bool], None, None]:
+        ) -> Iterator[tuple[Vec2sT, bool]]:
             if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
                 yield np.array(shapely_obj.coords), False
             elif isinstance(shapely_obj, shapely.geometry.Polygon):
