@@ -166,7 +166,7 @@ class SceneState(LazyObject):
         color: ColorType | None = None,
         opacity: float | None = None
     ):
-        self._point_lights_.add(PointLight().set_style(
+        self._point_lights_.append(PointLight().set_style(
             position=position,
             color=color,
             opacity=opacity

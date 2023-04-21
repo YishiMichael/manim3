@@ -146,11 +146,14 @@ from abc import (
     ABC,
     abstractmethod
 )
+#from collections.abc import MutableSequence
 import copy
 #from enum import Enum
 import inspect
 import itertools as it
+from functools import wraps
 import re
+import sys
 from typing import (
     Any,
     Callable,
@@ -179,7 +182,8 @@ _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 _DescriptorGetT = TypeVar("_DescriptorGetT")
 _DescriptorSetT = TypeVar("_DescriptorSetT")
 _DescriptorT = TypeVar("_DescriptorT", bound="LazyDescriptor")
-_PropertyParameters = ParamSpec("_PropertyParameters")
+_Parameters = ParamSpec("_Parameters")
+#_PropertyParameters = ParamSpec("_PropertyParameters")
 _AnnotationT = Any
 
 
@@ -215,17 +219,17 @@ class TreeNode(Generic[_TreeNodeContentT]):
             for child in children
         ))
 
-    def transform(
-        self,
-        callback: Callable[[_TreeNodeContentT], _T]
-    ) -> "TreeNode[_T]":
-        result = TreeNode(callback(self._content))
-        if (children := self._children) is not None:
-            result.bind_only(*(
-                child.transform(callback)
-                for child in children
-            ))
-        return result
+    #def transform(
+    #    self,
+    #    callback: Callable[[_TreeNodeContentT], _T]
+    #) -> "TreeNode[_T]":
+    #    result = TreeNode(callback(self._content))
+    #    if (children := self._children) is not None:
+    #        result.bind_only(*(
+    #            child.transform(callback)
+    #            for child in children
+    #        ))
+    #    return result
 
 
 class LazyContainer(ABC, Generic[_ElementT]):
@@ -256,7 +260,7 @@ class LazyContainer(ABC, Generic[_ElementT]):
         pass
 
     @abstractmethod
-    def _copy(self) -> "LazyContainer[_ElementT]":
+    def _copy_container(self) -> "LazyContainer[_ElementT]":
         pass
 
 
@@ -280,7 +284,7 @@ class LazyUnitaryContainer(LazyContainer[_ElementT]):
         # TODO: shall we copy expired property slots to maintain references?
         self._element = src._element
 
-    def _copy(self) -> "LazyUnitaryContainer[_ElementT]":
+    def _copy_container(self) -> "LazyUnitaryContainer[_ElementT]":
         return LazyUnitaryContainer(
             element=self._element
         )
@@ -296,11 +300,54 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
         super().__init__()
         self._elements: list[_ElementT] = list(elements)
 
-    def __iter__(self) -> Iterator[_ElementT]:
-        return self._elements.__iter__()
+    def _iter_elements(self) -> Iterator[_ElementT]:
+        yield from self._elements
+
+    def _write(
+        self,
+        src: "LazyDynamicContainer[_ElementT]"
+    ) -> None:
+        self._elements = list(src._elements)
+
+    def _copy_container(self) -> "LazyDynamicContainer[_ElementT]":
+        return LazyDynamicContainer(
+            elements=self._elements
+        )
+
+    # list methods
+    # Only those considered necessary are ported.
+
+    @staticmethod
+    def force_expire(
+        method: "Callable[Concatenate[LazyDynamicContainer[_ElementT], _Parameters], _T]",
+    ) -> "Callable[Concatenate[LazyDynamicContainer[_ElementT], _Parameters], _T]":
+
+        @wraps(method)
+        def new_method(
+            self: "LazyDynamicContainer[_ElementT]",
+            *args: _Parameters.args,
+            **kwargs: _Parameters.kwargs
+        ) -> _T:
+            slot = self._get_writable_slot_with_verification()
+            slot.expire_property_slots()
+            return method(self, *args, **kwargs)
+
+        return new_method
 
     def __len__(self) -> int:
         return self._elements.__len__()
+
+    def __iter__(self) -> Iterator[_ElementT]:
+        return self._elements.__iter__()
+
+    def __contains__(
+        self,
+        element: _ElementT
+    ) -> bool:
+        return self._elements.__contains__(element)
+
+    def __reversed__(self) -> Iterator[_ElementT]:
+        return self._elements.__reversed__()
 
     @overload
     def __getitem__(
@@ -320,47 +367,108 @@ class LazyDynamicContainer(LazyContainer[_ElementT]):
     ) -> _ElementT | list[_ElementT]:
         return self._elements.__getitem__(index)
 
-    def _iter_elements(self) -> Iterator[_ElementT]:
-        yield from self._elements
-
-    def _write(
+    def index(
         self,
-        src: "LazyDynamicContainer[_ElementT]"
+        value: _ElementT,
+        start: int = 0,
+        stop: int = sys.maxsize
+    ) -> int:
+        return self._elements.index(value, start, stop)
+
+    def count(
+        self,
+        value: _ElementT
+    ) -> int:
+        return self._elements.count(value)
+
+    @force_expire
+    def insert(
+        self,
+        index: int,
+        value: _ElementT
     ) -> None:
-        self._elements = list(src._elements)
+        return self._elements.insert(index, value)
 
-    def _copy(self) -> "LazyDynamicContainer[_ElementT]":
-        return LazyDynamicContainer(
-            elements=self._elements
-        )
-
-    def add(
+    @force_expire
+    def append(
         self,
-        *elements: _ElementT
-    ):
-        slot = self._get_writable_slot_with_verification()
-        if not elements:
-            return self
-        for element in elements:
-            if element in self._elements:
-                continue
-            self._elements.append(element)
-        slot.expire_property_slots()
-        return self
+        value: _ElementT
+    ) -> None:
+        return self._elements.append(value)
 
-    def discard(
+    @force_expire
+    def extend(
         self,
-        *elements: _ElementT
-    ):
-        slot = self._get_writable_slot_with_verification()
-        if not elements:
-            return self
-        for element in elements:
-            if element not in self._elements:
-                continue
-            self._elements.remove(element)
-        slot.expire_property_slots()
-        return self
+        values: Iterable[_ElementT]
+    ) -> None:
+        return self._elements.extend(values)
+
+    @force_expire
+    def reverse(self) -> None:
+        return self._elements.reverse()
+
+    @force_expire
+    def pop(
+        self,
+        index: int = -1
+    ) -> _ElementT:
+        return self._elements.pop(index)
+
+    @force_expire
+    def remove(
+        self,
+        value: _ElementT
+    ) -> None:
+        return self._elements.remove(value)
+
+    @force_expire
+    def clear(self) -> None:
+        return self._elements.clear()
+
+    # For convenience.
+    @force_expire
+    def eliminate(
+        self,
+        values: Iterable[_ElementT]
+    ) -> None:
+        for value in values:
+            self._elements.remove(value)
+
+    @force_expire
+    def reset(
+        self,
+        values: Iterable[_ElementT]
+    ) -> None:
+        self._elements.clear()
+        self._elements.extend(values)
+
+    #def add(
+    #    self,
+    #    *elements: _ElementT
+    #):
+    #    slot = self._get_writable_slot_with_verification()
+    #    if not elements:
+    #        return self
+    #    for element in elements:
+    #        if element in self._elements:
+    #            continue
+    #        self._elements.append(element)
+    #    slot.expire_property_slots()
+    #    return self
+
+    #def discard(
+    #    self,
+    #    *elements: _ElementT
+    #):
+    #    slot = self._get_writable_slot_with_verification()
+    #    if not elements:
+    #        return self
+    #    for element in elements:
+    #        if element not in self._elements:
+    #            continue
+    #        self._elements.remove(element)
+    #    slot.expire_property_slots()
+    #    return self
 
 
 class LazySlot(ABC, Generic[_ContainerT]):
@@ -458,7 +566,10 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
     ) -> None:
         # TODO: Shall we keep references to objects under property slots?
         #self.set_property_container(src.get_property_container())  # TODO
-        self.set_property_container(None)
+        if src._is_expired:
+            self.set_property_container(src.get_property_container())
+        else:
+            self.set_property_container(None)
         self._linked_variable_slots.clear()
         self._is_expired = True
 
@@ -491,21 +602,17 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
 #        return self != LazyMode.EXTERNAL
 
 
-class LazyConverter(ABC, Generic[_ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
+class LazyConverter(ABC, Generic[_ContainerT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = (
         #"lazy_mode",
         #"name",
-        "element_type",
-        "return_annotation",
-        "instance_to_slot_dict"
+        #"instance_to_slot_dict",
     )
 
-    def __init__(self) -> None:
-        super().__init__()
-        #self.lazy_mode: LazyMode = NotImplemented
-        #self.name: str = NotImplemented
-        self.element_type: type[_ElementT] = NotImplemented
-        self.return_annotation: _AnnotationT = NotImplemented
+    #def __init__(self) -> None:
+    #    super().__init__()
+    #    #self.lazy_mode: LazyMode = NotImplemented
+    #    #self.name: str = NotImplemented
 
     @abstractmethod
     def convert_get(
@@ -524,15 +631,19 @@ class LazyConverter(ABC, Generic[_ContainerT, _ElementT, _DescriptorGetT, _Descr
 
 class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = (
+        "element_type",
+        "return_annotation",
         "converter",
         "instance_to_slot_dict"
     )
 
-    _converter_class: type[LazyConverter[_ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]] = LazyConverter
+    _converter_class: type[LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT]] = LazyConverter
 
     def __init__(self) -> None:
         super().__init__()
-        self.converter: LazyConverter[_ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT] = type(self)._converter_class()
+        self.element_type: type[_ElementT] = NotImplemented
+        self.return_annotation: _AnnotationT = NotImplemented
+        self.converter: LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT] = type(self)._converter_class()
         self.instance_to_slot_dict: weakref.WeakKeyDictionary[_InstanceT, _SlotT] = weakref.WeakKeyDictionary()
 
     @overload
@@ -650,7 +761,7 @@ class LazyVariableDescriptor(LazyDescriptor[
             default_container = self.converter.convert_set(self.method(type(instance)))
             self.default_container = default_container
         self.set_slot(instance, LazyVariableSlot(
-            container=default_container._copy()
+            container=default_container._copy_container()
         ))
 
 
@@ -670,12 +781,12 @@ class LazyPropertyDescriptor(LazyDescriptor[
     def __init__(
         self,
         #lazy_mode: LazyMode,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _DescriptorSetT]
+        method: Callable[Concatenate[type[_InstanceT], _Parameters], _DescriptorSetT]
         #parameter_name_chains: tuple[tuple[str, ...], ...],
         #requires_unwrapping_tuple: tuple[bool, ...]
     ) -> None:
         super().__init__()
-        self.method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _DescriptorSetT] = method
+        self.method: Callable[Concatenate[type[_InstanceT], _Parameters], _DescriptorSetT] = method
         self.finalize_method: Callable[[type[_InstanceT], _DescriptorGetT], None] | None = None
         self.descriptor_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
         self.requires_unwrapping_tuple: tuple[bool, ...] = NotImplemented
@@ -693,35 +804,35 @@ class LazyPropertyDescriptor(LazyDescriptor[
             instance: _InstanceT
         ) -> tuple[TreeNode[LazyObject], list[LazyVariableSlot]]:
 
-            def construct_parameter_tagged_tree(
+            def construct_parameter_tree(
                 descriptor_name: str,
                 is_chain_tail: bool,
                 linked_variable_slots: list[LazyVariableSlot]
-            ) -> Callable[[tuple[LazyObject, bool]], TreeNode[tuple[LazyObject, bool]]]:
+            ) -> Callable[[LazyObject], TreeNode[LazyObject]]:
 
                 def callback(
-                    obj_tagged: tuple[LazyObject, bool]
-                ) -> TreeNode[tuple[LazyObject, bool]]:
-                    obj, binding_completed = obj_tagged
+                    obj: LazyObject
+                ) -> TreeNode[LazyObject]:
+                    #obj, binding_completed = obj_tagged
                     descriptor = type(obj)._lazy_descriptor_dict[descriptor_name]
                     slot = descriptor.get_slot(obj)
                     container = descriptor.get_container(obj)
-                    if not binding_completed:
-                        if isinstance(slot, LazyVariableSlot):
-                            if is_chain_tail:
-                                linked_variable_slots.extend(slot.yield_descendant_variable_slots())
-                            else:
-                                linked_variable_slots.append(slot)
-                        elif isinstance(slot, LazyPropertySlot):
-                            binding_completed = True
-                            linked_variable_slots.extend(slot._linked_variable_slots)
+                    #if not binding_completed:
+                    if isinstance(slot, LazyVariableSlot):
+                        if is_chain_tail:
+                            linked_variable_slots.extend(slot.yield_descendant_variable_slots())
                         else:
-                            raise TypeError
+                            linked_variable_slots.append(slot)
+                    elif isinstance(slot, LazyPropertySlot):
+                        #binding_completed = True
+                        linked_variable_slots.extend(slot._linked_variable_slots)
+                    else:
+                        raise TypeError
                     if isinstance(container, LazyUnitaryContainer):
-                        result = TreeNode((container._element, binding_completed))
+                        result = TreeNode(container._element)
                     elif isinstance(container, LazyDynamicContainer):
-                        result = TreeNode((obj, binding_completed)).bind_only(*(
-                            TreeNode((element, binding_completed)) for element in container._elements
+                        result = TreeNode(obj).bind_only(*(
+                            TreeNode(element) for element in container._elements
                         ))
                     else:
                         raise TypeError
@@ -729,19 +840,22 @@ class LazyPropertyDescriptor(LazyDescriptor[
 
                 return callback
 
-            def remove_tag(
-                obj_tagged: tuple[LazyObject, bool]
-            ) -> LazyObject:
-                obj, _ = obj_tagged
-                return obj
+            #def remove_tag(
+            #    obj_tagged: tuple[LazyObject, bool]
+            #) -> LazyObject:
+            #    obj, _ = obj_tagged
+            #    return obj
 
-            parameter_tagged_tree: TreeNode[tuple[LazyObject, bool]] = TreeNode((instance, False))
+            parameter_tree: TreeNode[LazyObject] = TreeNode(instance)
             linked_variable_slots: list[LazyVariableSlot] = []
             for reversed_index, descriptor_name in reversed(list(zip(it.count(), reversed(descriptor_name_chain)))):
-                parameter_tagged_tree = parameter_tagged_tree.apply_deepest(
-                    construct_parameter_tagged_tree(descriptor_name, not reversed_index, linked_variable_slots)
+                parameter_tree = parameter_tree.apply_deepest(
+                    construct_parameter_tree(descriptor_name, not reversed_index, linked_variable_slots)
                 )
-            return parameter_tagged_tree.transform(remove_tag), linked_variable_slots
+            return parameter_tree, [
+                linked_variable_slot for linked_variable_slot in linked_variable_slots
+                if linked_variable_slot._is_writable
+            ]
 
         def expand_dependencies(
             obj: LazyObject
@@ -905,29 +1019,29 @@ class LazyObject:
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()
 
-        def conplete_descriptor_info(
-            name: str,
-            descriptor: LazyDescriptor,
+        def complete_descriptor_info(
+            #name: str,
+            descriptor: LazyVariableDescriptor | LazyPropertyDescriptor,
+            method_signature: inspect.Signature,
             overridden_descriptor: LazyDescriptor | None
         ) -> None:
-            assert re.fullmatch(r"_\w+_", name)
-            method = attr.method
-            assert name == method.__name__
+            #method = descriptor.method
+            #assert name == method.__name__
 
-            converter = descriptor.converter
-            return_annotation: _AnnotationT = inspect.signature(method).return_annotation
-            if isinstance(return_annotation, str):
-                if return_annotation == cls.__name__:
-                    return_annotation = cls
-                elif return_annotation == f"list[{cls.__name__}]":
-                    return_annotation = list[cls]
-                else:
-                    raise ValueError
-            converter.return_annotation = return_annotation
+            return_annotation: _AnnotationT = method_signature.return_annotation
+            #if isinstance(return_annotation, str):
+            #    if return_annotation == cls.__name__:
+            #        return_annotation = cls
+            #    elif return_annotation == f"list[{cls.__name__}]":
+            #        return_annotation = list[cls]
+            #    else:
+            #        raise ValueError
+            descriptor.return_annotation = return_annotation
             #lazy_mode = converter.lazy_mode
-            if not isinstance(converter, LazyExternalConverter):
+            converter_class = descriptor._converter_class
+            if not issubclass(converter_class, LazyExternalConverter):
                 element_type = return_annotation
-                if isinstance(converter, LazyCollectionConverter):
+                if issubclass(converter_class, LazyCollectionConverter):
                     assert element_type.__origin__ is list
                     element_type = element_type.__args__[0]
                     #assert (match_obj := re.fullmatch(r"list\[(.+)\]", element_type_str)) is not None
@@ -936,22 +1050,24 @@ class LazyObject:
             else:
                 element_type = LazyWrapper
             assert issubclass(element_type, LazyObject)
-            converter.element_type = element_type
+            descriptor.element_type = element_type
 
             if overridden_descriptor is not None:
-                overridden_converter = overridden_descriptor.converter
+                #overridden_converter = overridden_descriptor.converter
                 #print(name, type(converter), type(overridden_converter))
                 #assert type(converter) is type(overridden_converter)
-                assert issubclass(element_type, overridden_converter.element_type)
-                assert return_annotation == overridden_converter.return_annotation or \
-                    issubclass(return_annotation, overridden_converter.return_annotation)
+                assert issubclass(element_type, overridden_descriptor.element_type)
+                assert return_annotation == overridden_descriptor.return_annotation or \
+                    issubclass(return_annotation, overridden_descriptor.return_annotation)
 
         def complete_property_descriptor_info(
-            property_descriptor: LazyPropertyDescriptor
+            property_descriptor: LazyPropertyDescriptor,
+            method_signature: inspect.Signature,
+            root_cls: type[LazyObject]
         ) -> None:
             descriptor_name_chain_list: list[tuple[str, ...]] = []
             requires_unwrapping_list: list[bool] = []
-            for name, parameter in inspect.signature(property_descriptor.method).parameters.items():
+            for name, parameter in method_signature.parameters.items():
                 if name == "cls":
                     continue
                 if (requires_unwrapping := re.fullmatch(r"_\w+_", name) is None):
@@ -962,23 +1078,25 @@ class LazyObject:
                 requires_unwrapping_list.append(requires_unwrapping)
 
                 #descriptor: LazyDescriptor = NotImplemented
-                element_type: type[LazyObject] = cls
+                element_type: type[LazyObject] = root_cls
                 collection_level: int = 0
                 for descriptor_name in descriptor_name_chain[:-1]:
                     descriptor = element_type._lazy_descriptor_dict[descriptor_name]
-                    assert not isinstance(descriptor.converter, LazyExternalConverter)
-                    if isinstance(descriptor.converter, LazyCollectionConverter):
+                    converter_class = descriptor._converter_class
+                    assert not issubclass(converter_class, LazyExternalConverter)
+                    if issubclass(converter_class, LazyCollectionConverter):
                         collection_level += 1
-                    element_type = descriptor.converter.element_type
+                    element_type = descriptor.element_type
                 descriptor = element_type._lazy_descriptor_dict[descriptor_name_chain[-1]]
                 if requires_unwrapping:
-                    assert descriptor.converter.element_type is LazyWrapper
-                expected_annotation = descriptor.converter.return_annotation
+                    assert descriptor.element_type is LazyWrapper
+                expected_annotation = descriptor.return_annotation
                 for _ in range(collection_level):
                     expected_annotation = list[expected_annotation]
-                if expected_annotation != parameter.annotation:
-                    print(descriptor.converter.return_annotation)
-                    print(cls, collection_level, name, expected_annotation, parameter.annotation)
+                assert expected_annotation == parameter.annotation
+                #if expected_annotation != parameter.annotation:
+                #    print(descriptor.converter.return_annotation)
+                #    print(cls, collection_level, name, expected_annotation, parameter.annotation)
 
             property_descriptor.descriptor_name_chains = tuple(descriptor_name_chain_list)
             property_descriptor.requires_unwrapping_tuple = tuple(requires_unwrapping_list)
@@ -993,6 +1111,11 @@ class LazyObject:
             for base_cls in base_classes
             for name, descriptor in base_cls._lazy_descriptor_dict.items()
         }
+        new_descriptor_items = tuple(
+            (name, descriptor, inspect.signature(descriptor.method, locals={cls.__name__: cls}, eval_str=True))
+            for name, descriptor in cls.__dict__.items()
+            if isinstance(descriptor, LazyVariableDescriptor | LazyPropertyDescriptor)
+        )
         #for base_cls in reversed(cls.__mro__):
         #    #base_cls = cls.__bases__
         #    if not issubclass(base_cls, LazyObject):
@@ -1007,16 +1130,21 @@ class LazyObject:
         #    #    descriptor_overloading_dict = {}
 
         #overridden_descriptor_overloadings: list[LazyDescriptorOverloading] = []
-        for name, attr in cls.__dict__.items():
-            if not isinstance(attr, LazyDescriptor):
-                continue
-            assert isinstance(attr, LazyVariableDescriptor | LazyPropertyDescriptor)
-            conplete_descriptor_info(name, attr, descriptor_dict.get(name))
+        for name, descriptor, method_signature in new_descriptor_items:
+            #if not isinstance(attr, LazyDescriptor):
+            #    continue
+            #assert isinstance(attr, LazyVariableDescriptor | LazyPropertyDescriptor)
+            assert re.fullmatch(r"_\w+_", name)
+            complete_descriptor_info(
+                descriptor=descriptor,
+                method_signature=method_signature,
+                overridden_descriptor=descriptor_dict.get(name)
+            )
             #element_type, return_annotation = get_element_type_and_return_annotation(
             #    annotation=,
             #    lazy_mode=attr.lazy_mode
             #)
-            descriptor_dict[name] = attr
+            descriptor_dict[name] = descriptor
             #if attr.element_type is NotImplemented:
             #    attr.element_type = cls
             #if (descriptor_overloading := descriptor_overloading_dict.get(name)) is not None:
@@ -1059,10 +1187,14 @@ class LazyObject:
             if slot != "__weakref__"
         ))
 
-        for attr in cls.__dict__.values():
-            if not isinstance(attr, LazyPropertyDescriptor):
+        for _, descriptor, method_signature in new_descriptor_items:
+            if not isinstance(descriptor, LazyPropertyDescriptor):
                 continue
-            complete_property_descriptor_info(attr)
+            complete_property_descriptor_info(
+                property_descriptor=descriptor,
+                method_signature=method_signature,
+                root_cls=cls
+            )
             #descriptor_overloading_chains: list[tuple[LazyDescriptorOverloading, ...]] = []
             #for parameter_name_chain in attr.parameter_name_chains:
             #    element_type = cls
@@ -1141,7 +1273,7 @@ class LazyWrapper(LazyObject, Generic[_T]):
 
 
 class LazyIndividualConverter(LazyConverter[
-    LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _ElementT
+    LazyUnitaryContainer[_ElementT], _ElementT, _ElementT
 ]):
     __slots__ = ()
 
@@ -1161,7 +1293,7 @@ class LazyIndividualConverter(LazyConverter[
 
 
 class LazyCollectionConverter(LazyConverter[
-    LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], Iterable[_ElementT]
+    LazyDynamicContainer[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT]
 ]):
     __slots__ = ()
 
@@ -1181,7 +1313,7 @@ class LazyCollectionConverter(LazyConverter[
 
 
 class LazyExternalConverter(LazyConverter[
-    LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], LazyWrapper[_T], _T | LazyWrapper[_T]
+    LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], _T | LazyWrapper[_T]
 ]):
     __slots__ = ()
 

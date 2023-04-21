@@ -268,7 +268,7 @@ class MultiLineString(ShapeInterpolant):
     ) -> None:
         super().__init__()
         if line_strings is not None:
-            self._line_strings_.add(*line_strings)
+            self._line_strings_.extend(line_strings)
 
     @Lazy.variable_collection
     @classmethod
@@ -305,13 +305,13 @@ class MultiLineString(ShapeInterpolant):
         start_index, start_residue = self._integer_interpolate(start, side="right")
         stop_index, stop_residue = self._integer_interpolate(stop, side="left")
         if start_index == stop_index:
-            result._line_strings_.add(line_strings[start_index - 1].partial(start_residue, stop_residue))
+            result._line_strings_.append(line_strings[start_index - 1].partial(start_residue, stop_residue))
         else:
-            result._line_strings_.add(
+            result._line_strings_.extend((
                 line_strings[start_index - 1].partial(start_residue, 1.0),
                 *line_strings[start_index:stop_index - 1],
                 line_strings[stop_index - 1].partial(0.0, stop_residue)
-            )
+            ))
         return result
 
     @classmethod
@@ -357,15 +357,15 @@ class MultiLineString(ShapeInterpolant):
             alpha: float
         ) -> MultiLineString:
             result = MultiLineString()
-            result._line_strings_.add(*(
+            result._line_strings_.extend(
                 line_string_callback(alpha)
                 for line_string_callback in line_string_callbacks
-            ))
+            )
             if has_inlay:
-                result._line_strings_.add(*(
+                result._line_strings_.extend(
                     LineString(inlay_callback(alpha), is_ring=True)
                     for inlay_callback in inlay_callbacks
-                ))
+                )
             return result
         return callback
 
@@ -375,7 +375,7 @@ class MultiLineString(ShapeInterpolant):
         multi_line_strings: "Iterable[MultiLineString]"
     ) -> "MultiLineString":
         result = MultiLineString()
-        result._line_strings_.add(*it.chain.from_iterable(
+        result._line_strings_.extend(it.chain.from_iterable(
             multi_line_string._line_strings_
             for multi_line_string in multi_line_strings
         ))

@@ -93,7 +93,7 @@ class Program(LazyObject):
         self._shader_filename_ = shader_filename
         self._custom_macros_ = custom_macros
         self._array_len_items_ = array_len_items
-        self._texture_id_buffer_formats_.add(*texture_id_buffer_formats)
+        self._texture_id_buffer_formats_.extend(texture_id_buffer_formats)
         self._varyings_ = varyings
 
     @Lazy.variable_shared
@@ -358,9 +358,9 @@ class VertexArray(LazyObject):
         if custom_macros is not None:
             self._custom_macros_ = tuple(custom_macros)
         if texture_id_buffers is not None:
-            self._texture_id_buffers_.add(*texture_id_buffers)
+            self._texture_id_buffers_.extend(texture_id_buffers)
         if uniform_block_buffers is not None:
-            self._uniform_block_buffers_.add(*uniform_block_buffers)
+            self._uniform_block_buffers_.extend(uniform_block_buffers)
         if indexed_attributes_buffer is not None:
             self._indexed_attributes_buffer_ = indexed_attributes_buffer
         if transform_feedback_buffer is not None:

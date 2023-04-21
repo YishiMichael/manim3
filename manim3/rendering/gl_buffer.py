@@ -202,7 +202,7 @@ class StructuredBufferFormat(BufferFormat):
             name=name,
             shape=shape
         )
-        self._children_.add(*children)
+        self._children_.extend(children)
         self._offsets_ = offsets
         self._itemsize_ = itemsize
 

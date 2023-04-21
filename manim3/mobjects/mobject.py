@@ -27,7 +27,7 @@ from ..custom_typing import (
 )
 from ..lazy.core import (
     LazyObject,
-    LazyVariableDescriptor,
+    #LazyVariableDescriptor,
     LazyWrapper
 )
 from ..lazy.interface import Lazy
@@ -152,6 +152,34 @@ class Mobject(LazyObject):
             if isinstance(mobject, mobject_type):
                 yield mobject
 
+    def _update_ancestors_and_descendants(self) -> None:
+
+        def iter_descendants_by_children(
+            mobject: Mobject
+        ) -> Iterator[Mobject]:
+            yield mobject
+            for child in mobject._children_:
+                yield from iter_descendants_by_children(child)
+
+        def iter_ancestors_by_parents(
+            mobject: Mobject
+        ) -> Iterator[Mobject]:
+            yield mobject
+            for parent in mobject._parents:
+                yield from iter_ancestors_by_parents(parent)
+
+        for ancestor in self.iter_ancestors():
+            ancestor._real_descendants_.reset(dict.fromkeys(it.chain.from_iterable(
+                iter_descendants_by_children(child)
+                for child in ancestor._children_
+            )))
+        for descendant in self.iter_descendants():
+            descendant._real_ancestors.clear()
+            descendant._real_ancestors.update(dict.fromkeys(it.chain.from_iterable(
+                iter_ancestors_by_parents(parent)
+                for parent in descendant._parents
+            )))
+
     def add(
         self,
         *mobjects: "Mobject"
@@ -159,34 +187,47 @@ class Mobject(LazyObject):
         for mobject in mobjects:
             if mobject in self.iter_ancestors():
                 raise ValueError(f"Circular relationship occurred when adding {mobject} to {self}")
-        all_descendants = list(it.chain.from_iterable(
-            mobject.iter_descendants()
-            for mobject in mobjects
-        ))
-        self._children_.add(*mobjects)
-        for ancestor_mobject in self.iter_ancestors():
-            ancestor_mobject._real_descendants_.add(*all_descendants)
-        for mobject in mobjects:
+        filtered_mobjects = [
+            mobject for mobject in dict.fromkeys(mobjects)
+            if mobject not in self._children_
+        ]
+        #all_descendants = list(dict.fromkeys(it.chain.from_iterable(
+        #    mobject.iter_descendants()
+        #    for mobject in filtered_mobjects
+        #)))
+        self._children_.extend(filtered_mobjects)
+        #for ancestor_mobject in self.iter_ancestors():
+        #    ancestor_mobject._real_descendants_.extend(
+        #        descendant for descendant in all_descendants
+        #        if descendant not in ancestor_mobject._real_descendants_
+        #    )
+        for mobject in filtered_mobjects:
             mobject._parents.add(self)
-        for descendant_mobject in all_descendants:
-            descendant_mobject._real_ancestors.update(self.iter_ancestors())
+        self._update_ancestors_and_descendants()
+        #for descendant_mobject in all_descendants:
+        #    descendant_mobject._real_ancestors.update(self.iter_ancestors())
         return self
 
     def discard(
         self,
         *mobjects: "Mobject"
     ):
-        all_descendants = list(it.chain.from_iterable(
-            mobject.iter_descendants()
-            for mobject in mobjects
-        ))
-        self._children_.discard(*mobjects)
-        for ancestor_mobject in self.iter_ancestors():
-            ancestor_mobject._real_descendants_.discard(*all_descendants)
-        for mobject in mobjects:
-            mobject._parents.discard(self)
-        for descendant_mobject in all_descendants:
-            descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
+        filtered_mobjects = [
+            mobject for mobject in dict.fromkeys(mobjects)
+            if mobject in self._children_
+        ]
+        #all_descendants = list(dict.fromkeys(it.chain.from_iterable(
+        #    mobject.iter_descendants()
+        #    for mobject in filtered_mobjects
+        #)))
+        self._children_.eliminate(filtered_mobjects)
+        #for ancestor_mobject in self.iter_ancestors():
+        #    ancestor_mobject._real_descendants_.eliminate(all_descendants)
+        for mobject in filtered_mobjects:
+            mobject._parents.remove(self)
+        self._update_ancestors_and_descendants()
+        #for descendant_mobject in all_descendants:
+        #    descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
         return self
 
     def clear(self):
@@ -200,12 +241,12 @@ class Mobject(LazyObject):
         if self is src:
             return self
 
-        parents = list(self.iter_parents())
-        self.clear()
+        #parents = list(self.iter_parents())
+        #self.clear()
         self._becomes(src)
-        self.add(*src.iter_children())
-        for parent in parents:
-            parent.add(self)
+        #self.add(*src.iter_children())
+        #for parent in parents:
+        #    parent.add(self)
         return self
 
     def copy(
@@ -231,10 +272,18 @@ class Mobject(LazyObject):
             return descendants_copy[descendants.index(mobject)]
 
         for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
+            descendant_copy._children_.reset(
+                get_matched_descendant_mobject(mobject)
+                for mobject in descendant._children_
+            )
             descendant_copy._parents.clear()
             descendant_copy._parents.update(
                 get_matched_descendant_mobject(mobject)
                 for mobject in descendant._parents
+            )
+            descendant_copy._real_descendants_.reset(
+                get_matched_descendant_mobject(mobject)
+                for mobject in descendant._real_descendants_
             )
             descendant_copy._real_ancestors.clear()
             descendant_copy._real_ancestors.update(
@@ -242,28 +291,28 @@ class Mobject(LazyObject):
                 for mobject in descendant._real_ancestors
             )
 
-        for descriptor in type(self)._lazy_descriptors:
-            if not isinstance(descriptor, LazyVariableDescriptor):
-                continue
-            if not issubclass(descriptor.converter.element_type, Mobject):
-                continue
-            mobject_or_mobjects = descriptor.__get__(self)
-            if isinstance(mobject_or_mobjects, Mobject):
-                matched_result = get_matched_descendant_mobject(mobject_or_mobjects)
-            else:
-                matched_result = (
-                    get_matched_descendant_mobject(mobject)
-                    for mobject in mobject_or_mobjects
-                )
-            descriptor.__set__(result, matched_result)
-            #if descriptor.lazy_mode == LazyMode.OBJECT:
-            #    mobject = descriptor.__get__(self)
-            #    
-            #elif descriptor.lazy_mode == LazyMode.COLLECTION:
-            #    descriptor.__set__(result, (
-            #        get_matched_descendant_mobject(mobject)
-            #        for mobject in descriptor.__get__(self)
-            #    ))
+        #for descriptor in type(self)._lazy_descriptors:
+        #    if not isinstance(descriptor, LazyVariableDescriptor):
+        #        continue
+        #    if not issubclass(descriptor.element_type, Mobject):
+        #        continue
+        #    mobject_or_mobjects = descriptor.__get__(self)
+        #    if isinstance(mobject_or_mobjects, Mobject):
+        #        matched_result = get_matched_descendant_mobject(mobject_or_mobjects)
+        #    else:
+        #        matched_result = (
+        #            get_matched_descendant_mobject(mobject)
+        #            for mobject in mobject_or_mobjects
+        #        )
+        #    descriptor.__set__(result, matched_result)
+        #    #if descriptor.lazy_mode == LazyMode.OBJECT:
+        #    #    mobject = descriptor.__get__(self)
+        #    #    
+        #    #elif descriptor.lazy_mode == LazyMode.COLLECTION:
+        #    #    descriptor.__set__(result, (
+        #    #        get_matched_descendant_mobject(mobject)
+        #    #        for mobject in descriptor.__get__(self)
+        #    #    ))
 
         if not broadcast:
             result.clear()
@@ -421,8 +470,8 @@ class Mobject(LazyObject):
             matrix,
             SpaceUtils.matrix_from_translation(-about_point)
         ))
-        #if np.isclose(np.linalg.det(matrix), 0.0):
-        #    warnings.warn("Applying a singular matrix transform")
+        if np.isclose(np.linalg.det(matrix), 0.0):
+            warnings.warn("Applying a singular matrix transform")
         self.apply_transform(
             matrix=matrix,
             broadcast=broadcast
