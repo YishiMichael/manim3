@@ -1,13 +1,6 @@
-__all__ = [
-    "Geometry",
-    "GeometryData"
-]
-
-
 from dataclasses import dataclass
 
 import numpy as np
-
 
 from ..custom_typing import (
     Vec2sT,

@@ -1,13 +1,6 @@
-__all__ = [
-    "Animation"
-    #"RegroupItem",
-    #"RegroupVerb"
-]
-
-
 from dataclasses import dataclass
 from enum import Enum
-from functools import partial
+#from functools import partial
 #from enum import Enum
 #import asyncio
 #import operator as op
@@ -229,7 +222,7 @@ class Animation:
         current_time = start_time
         rate_func = self._rate_func
         rate_func_inv = RateUtils.inverse(rate_func)
-        timeline = self._timeline
+        #timeline = self._timeline
         #updater = self._updater
         #timeline = self.timeline()
 
@@ -255,11 +248,11 @@ class Animation:
             timestamp=lag_time,
             verb=UpdaterItemVerb.APPEND
         )
-        while True:
-            try:
-                wait_delta_alpha = timeline.send(None)
-            except StopIteration:
-                break
+        for wait_delta_alpha in self._timeline:
+            #try:
+            #    wait_delta_alpha = timeline.send(None)
+            #except StopIteration:
+            #    break
             assert wait_delta_alpha >= 0.0
             new_time = rate_func_inv(rate_func(current_time) + wait_delta_alpha)
             if stop_time is not None and new_time > stop_time:
@@ -349,16 +342,14 @@ class Animation:
                     break
                 target_accumulated_timeline = min(
                     awaiting_accumulated_timelines,
-                    key=partial(
-                        lambda child_accumulated_timeline: awaiting_accumulated_timelines[child_accumulated_timeline].timestamp
-                    )
+                    key=lambda child_accumulated_timeline: awaiting_accumulated_timelines[child_accumulated_timeline].timestamp
                 )
                 #min_stop_alpha = min(
                 #    child_state.stop_time
                 #    for child_state in awaiting_accumulated_timelines.values()
                 #)
-                child_stop_time = rate_func_inv(awaiting_accumulated_timelines[target_accumulated_timeline].timestamp)
-                if child_stop_time > new_time:
+                child_timestamp = rate_func_inv(awaiting_accumulated_timelines[target_accumulated_timeline].timestamp)
+                if child_timestamp > new_time:
                     break
                 child_state = awaiting_accumulated_timelines.pop(target_accumulated_timeline)
                 processing_accumulated_timelines.append(target_accumulated_timeline)
@@ -368,14 +359,14 @@ class Animation:
                         updater=child_state.updater_item.updater,
                         absolute_rate_func=RateUtils.compose(
                             child_state.updater_item.absolute_rate_func,
-                            lag_rate_func(child_stop_time),
+                            lag_rate_func(child_timestamp),
                             rate_func
                         )
                     )
                     updater_item_convert_dict[child_state.updater_item] = child_updater_item
                 yield AccumulatedTimelineState(
                     updater_item=child_updater_item,
-                    timestamp=lag_time + child_stop_time - start_time,
+                    timestamp=lag_time + child_timestamp - start_time,
                     verb=child_state.verb
                 )
                 #for child_accumulated_timeline, child_state in awaiting_accumulated_timelines.copy().items():

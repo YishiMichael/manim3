@@ -1,6 +1,3 @@
-__all__ = ["MeshMobject"]
-
-
 import moderngl
 import numpy as np
 

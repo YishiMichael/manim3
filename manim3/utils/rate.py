@@ -1,10 +1,7 @@
-__all__ = ["RateUtils"]
-
-
 from typing import Callable
 
 import numpy as np
-import scipy
+import scipy.optimize
 
 
 class RateUtils:

@@ -1,53 +1,103 @@
-from .animations.animation import *
-from .animations.transform import *
+from .animations.animation import Animation
+from .animations.transform import Transform
 
-from .cameras.camera import *
-from .cameras.orthographic_camera import *
-from .cameras.perspective_camera import *
+from .cameras.camera import Camera
+from .cameras.orthographic_camera import OrthographicCamera
+from .cameras.perspective_camera import PerspectiveCamera
 
-from .geometries.geometry import *
-from .geometries.parametric_surface_geometry import *
-from .geometries.plane_geometry import *
-from .geometries.prismoid_geometry import *
-from .geometries.shape_geometry import *
-from .geometries.sphere_geometry import *
+from .geometries.geometry import (
+    Geometry,
+    GeometryData
+)
+from .geometries.parametric_surface_geometry import ParametricSurfaceGeometry
+from .geometries.plane_geometry import PlaneGeometry
+from .geometries.prismoid_geometry import PrismoidGeometry
+from .geometries.shape_geometry import ShapeGeometry
+from .geometries.sphere_geometry import SphereGeometry
 
-from .lazy.core import *
-from .lazy.interface import *
+from .mobjects.image_mobject import ImageMobject
+from .mobjects.mesh_mobject import MeshMobject
+from .mobjects.mobject import Mobject
+from .mobjects.polyhedra import (
+    Cube,
+    Dodecahedron,
+    Icosahedron,
+    Octahedron,
+    Polyhedron,
+    Tetrahedron
+)
+from .mobjects.scene_frame import SceneFrame
+from .mobjects.shape_mobject import ShapeMobject
+from .mobjects.shapes import (
+    Arc,
+    Circle,
+    Line,
+    Point,
+    Polygon,
+    Polyline,
+    RegularPolygon,
+    Square,
+    Triangle
+)
+from .mobjects.stroke_mobject import StrokeMobject
+from .mobjects.svg_mobject import SVGMobject
+from .mobjects.tex_mobject import Tex
+from .mobjects.text_mobject import (
+    Code,
+    Text
+)
 
-from .mobjects.image_mobject import *
-from .mobjects.mesh_mobject import *
-from .mobjects.mobject import *
-from .mobjects.polyhedra import *
-from .mobjects.scene_frame import *
-from .mobjects.shape_mobject import *
-from .mobjects.shapes import *
-from .mobjects.string_mobject import *
-from .mobjects.stroke_mobject import *
-from .mobjects.svg_mobject import *
-from .mobjects.tex_mobject import *
-from .mobjects.text_mobject import *
+from .passes.gaussian_blur_pass import GaussianBlurPass
+from .passes.pixelated_pass import PixelatedPass
+from .passes.render_pass import RenderPass
 
-from .passes.gaussian_blur_pass import *
-from .passes.pixelated_pass import *
-from .passes.render_pass import *
+from .rendering.config import Config
+from .rendering.context import ContextState
+from .rendering.framebuffer import Framebuffer
+from .rendering.gl_buffer import (
+    AttributesBuffer,
+    IndexBuffer,
+    TextureIDBuffer,
+    TransformFeedbackBuffer,
+    UniformBlockBuffer
+)
+from .rendering.mgl_enums import (
+    BlendEquation,
+    BlendFunc,
+    ContextFlag,
+    PrimitiveMode,
+    TextureFilter
+)
+from .rendering.texture import TextureFactory
+from .rendering.vertex_array import VertexArray
 
-from .rendering.config import *
-from .rendering.context import *
-from .rendering.framebuffer import *
-from .rendering.gl_buffer import *
-from .rendering.mgl_enums import *
-from .rendering.texture import *
-from .rendering.vertex_array import *
+from .scene.scene import Scene
 
-from .scene.scene import *
-from .scene.scene_state import *
+from .utils.color import ColorUtils
+from .utils.rate import RateUtils
+from .utils.palette import Palette
+from .utils.shape import (
+    MultiLineString,
+    Shape
+)
+from .utils.space import SpaceUtils
 
-from .utils.color import *
-from .utils.rate import *
-from .utils.shape import *
-from .utils.space import *
-
-from .constants import *
-from .custom_colors import *
-from .custom_typing import *
+from .constants import (
+    DEGREES,
+    DL,
+    DOWN,
+    DR,
+    IN,
+    LEFT,
+    ORIGIN,
+    OUT,
+    PI,
+    RIGHT,
+    TAU,
+    UL,
+    UP,
+    UR,
+    X_AXIS,
+    Y_AXIS,
+    Z_AXIS
+)

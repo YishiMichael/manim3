@@ -1,6 +1,3 @@
-__all__ = ["ShapeGeometry"]
-
-
 import numpy as np
 
 from ..custom_typing import (

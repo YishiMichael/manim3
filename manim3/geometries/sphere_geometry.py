@@ -1,6 +1,3 @@
-__all__ = ["SphereGeometry"]
-
-
 import numpy as np
 
 from ..constants import (

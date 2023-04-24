@@ -1,9 +1,3 @@
-__all__ = [
-    "Text",
-    "Code"
-]
-
-
 from enum import Enum
 import pathlib
 import re

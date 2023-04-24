@@ -8,8 +8,8 @@ from manim3 import *
 class ShapeTransformExample(Scene):
     def timeline(self) -> Generator[float, None, None]:
         circle = Circle()
-        circle.set_style(color=PINK, opacity=0.9)
-        circle.add(circle.build_stroke(color=YELLOW, width=0.4))
+        circle.set_style(color=Palette.PINK, opacity=0.9)
+        circle.add(circle.build_stroke(color=Palette.YELLOW, width=0.4))
         square = Square()
         square.set_style(opacity=1.0)
 
@@ -22,19 +22,19 @@ class TexTransformExample(Scene):
     def timeline(self) -> Generator[float, None, None]:
         text = (Text("Text")
             .scale(3)
-            .set_style(color=ORANGE, opacity=0.5)
+            .set_style(color=Palette.ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
-            text.build_stroke(width=0.04, color=BLUE),
-            text.build_stroke(width=0.08, color=GREEN)
+            text.build_stroke(width=0.04, color=Palette.BLUE),
+            text.build_stroke(width=0.08, color=Palette.GREEN)
         )
         tex = (Tex("Tex")
             .scale(3)
-            .set_style(color=BLUE, opacity=0.5)
+            .set_style(color=Palette.BLUE, opacity=0.5)
             .concatenate()
         )
-        tex.add(tex.build_stroke(width=0.06, color=PINK))
+        tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
         yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
@@ -88,7 +88,7 @@ class OITExample(Scene):
                 .rotate_about_origin(Rotation.from_rotvec(OUT * angle))
             )
             for color, opacity, angle in zip(
-                (RED, GREEN, BLUE),
+                (Palette.RED, Palette.GREEN, Palette.BLUE),
                 (0.3, 0.5, 0.6),
                 np.linspace(0, TAU, 3, endpoint=False)
             )

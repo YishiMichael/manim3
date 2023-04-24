@@ -1,6 +1,3 @@
-__all__ = ["Mobject"]
-
-
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
@@ -111,6 +108,56 @@ class Mobject(LazyObject):
     def _real_descendants_(cls) -> "list[Mobject]":
         return []
 
+    @classmethod
+    def _update_families(
+        cls,
+        *mobjects: "Mobject"
+    ) -> None:
+
+        def iter_descendants_by_children(
+            mobject: Mobject
+        ) -> Iterator[Mobject]:
+            yield mobject
+            for child in mobject._children_:
+                yield from iter_descendants_by_children(child)
+
+        def iter_ancestors_by_parents(
+            mobject: Mobject
+        ) -> Iterator[Mobject]:
+            yield mobject
+            for parent in mobject._parents:
+                yield from iter_ancestors_by_parents(parent)
+
+        for ancestor in dict.fromkeys(it.chain.from_iterable(
+            iter_ancestors_by_parents(mobject)
+            for mobject in mobjects
+        )):
+            ancestor._real_descendants_.reset(dict.fromkeys(it.chain.from_iterable(
+                iter_descendants_by_children(child)
+                for child in ancestor._children_
+            )))
+        for descendant in dict.fromkeys(it.chain.from_iterable(
+            iter_descendants_by_children(mobject)
+            for mobject in mobjects
+        )):
+            descendant._real_ancestors.clear()
+            descendant._real_ancestors.update(dict.fromkeys(it.chain.from_iterable(
+                iter_ancestors_by_parents(parent)
+                for parent in descendant._parents
+            )))
+        #for mobject in mobjects:
+        #    for ancestor in iter_ancestors_by_parents(mobject):
+        #        ancestor._real_descendants_.reset(dict.fromkeys(it.chain.from_iterable(
+        #            iter_descendants_by_children(child)
+        #            for child in ancestor._children_
+        #        )))
+        #    for descendant in iter_descendants_by_children(mobject):
+        #        descendant._real_ancestors.clear()
+        #        descendant._real_ancestors.update(dict.fromkeys(it.chain.from_iterable(
+        #            iter_ancestors_by_parents(parent)
+        #            for parent in descendant._parents
+        #        )))
+
     def iter_children(self) -> "Iterator[Mobject]":
         yield from self._children_
 
@@ -152,34 +199,6 @@ class Mobject(LazyObject):
             if isinstance(mobject, mobject_type):
                 yield mobject
 
-    def _update_family(self) -> None:
-
-        def iter_descendants_by_children(
-            mobject: Mobject
-        ) -> Iterator[Mobject]:
-            yield mobject
-            for child in mobject._children_:
-                yield from iter_descendants_by_children(child)
-
-        def iter_ancestors_by_parents(
-            mobject: Mobject
-        ) -> Iterator[Mobject]:
-            yield mobject
-            for parent in mobject._parents:
-                yield from iter_ancestors_by_parents(parent)
-
-        for ancestor in self.iter_ancestors():
-            ancestor._real_descendants_.reset(dict.fromkeys(it.chain.from_iterable(
-                iter_descendants_by_children(child)
-                for child in ancestor._children_
-            )))
-        for descendant in self.iter_descendants():
-            descendant._real_ancestors.clear()
-            descendant._real_ancestors.update(dict.fromkeys(it.chain.from_iterable(
-                iter_ancestors_by_parents(parent)
-                for parent in descendant._parents
-            )))
-
     def add(
         self,
         *mobjects: "Mobject"
@@ -203,7 +222,7 @@ class Mobject(LazyObject):
         #    )
         for mobject in filtered_mobjects:
             mobject._parents.add(self)
-        self._update_family()
+        self._update_families(self, *filtered_mobjects)
         #for descendant_mobject in all_descendants:
         #    descendant_mobject._real_ancestors.update(self.iter_ancestors())
         return self
@@ -225,7 +244,7 @@ class Mobject(LazyObject):
         #    ancestor_mobject._real_descendants_.eliminate(all_descendants)
         for mobject in filtered_mobjects:
             mobject._parents.remove(self)
-        self._update_family()
+        self._update_families(self, *filtered_mobjects)
         #for descendant_mobject in all_descendants:
         #    descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
         return self
@@ -253,7 +272,7 @@ class Mobject(LazyObject):
         #    )
         for mobject in filtered_mobjects:
             mobject._children_.append(self)
-        self._update_family()
+        self._update_families(self, *filtered_mobjects)
         #for descendant_mobject in all_descendants:
         #    descendant_mobject._real_ancestors.update(self.iter_ancestors())
         return self
@@ -275,7 +294,7 @@ class Mobject(LazyObject):
         #    ancestor_mobject._real_descendants_.eliminate(all_descendants)
         for mobject in filtered_mobjects:
             mobject._children_.remove(self)
-        self._update_family()
+        self._update_families(self, *filtered_mobjects)
         #for descendant_mobject in all_descendants:
         #    descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
         return self

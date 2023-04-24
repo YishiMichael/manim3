@@ -1,6 +1,3 @@
-__all__ = ["ShapeMobject"]
-
-
 from ..custom_typing import ColorT
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.interface import Lazy

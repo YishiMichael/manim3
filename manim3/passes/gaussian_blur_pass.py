@@ -1,6 +1,3 @@
-__all__ = ["GaussianBlurPass"]
-
-
 import moderngl
 import numpy as np
 

@@ -1,12 +1,3 @@
-__all__ = [
-    "BlendEquation",
-    "BlendFunc",
-    "ContextFlag",
-    "PrimitiveMode",
-    "TextureFilter"
-]
-
-
 from enum import Enum
 
 import moderngl

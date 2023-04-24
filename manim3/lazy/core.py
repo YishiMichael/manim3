@@ -129,20 +129,6 @@ calculation result of some property.
 """
 
 
-__all__ = [
-    "LazyCollectionConverter",
-    "LazyDynamicContainer",
-    "LazyExternalConverter",
-    "LazyIndividualConverter",
-    "LazyObject",
-    "LazyPropertyDescriptor",
-    "LazySharedConverter",
-    "LazyUnitaryContainer",
-    "LazyVariableDescriptor",
-    "LazyWrapper"
-]
-
-
 from abc import (
     ABC,
     abstractmethod
@@ -1010,7 +996,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
 #    __slots__ = ()
 
 
-class LazyObject:
+class LazyObject(ABC):
     __slots__ = ("__weakref__",)
 
     #_subclasses: "ClassVar[dict[str, type[LazyObject]]]" = {}

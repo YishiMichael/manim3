@@ -1,6 +1,3 @@
-__all__ = ["ColorUtils"]
-
-
 import re
 
 from colour import Color

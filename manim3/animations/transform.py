@@ -1,6 +1,3 @@
-__all__ = ["Transform"]
-
-
 from functools import lru_cache
 import itertools as it
 from typing import (
@@ -13,11 +10,7 @@ from typing import (
     TypeVar
 )
 
-from ..animations.animation import (
-    Animation,
-    #RegroupItem,
-    #RegroupVerb
-)
+from ..animations.animation import Animation
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobject import ShapeMobject

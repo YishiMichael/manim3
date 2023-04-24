@@ -1,6 +1,3 @@
-__all__ = ["PrismoidGeometry"]
-
-
 import itertools as it
 
 import numpy as np

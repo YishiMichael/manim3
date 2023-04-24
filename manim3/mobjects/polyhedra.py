@@ -1,13 +1,3 @@
-__all__ = [
-    "Cube",
-    "Dodecahedron",
-    "Icosahedron",
-    "Octahedron",
-    "Polyhedron",
-    "Tetrahedron"
-]
-
-
 import numpy as np
 
 from ..custom_typing import (

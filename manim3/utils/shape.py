@@ -1,9 +1,3 @@
-__all__ = [
-    "MultiLineString",
-    "Shape"
-]
-
-
 from abc import abstractmethod
 from functools import reduce
 import itertools as it

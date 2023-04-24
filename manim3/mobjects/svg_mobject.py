@@ -1,6 +1,3 @@
-__all__ = ["SVGMobject"]
-
-
 import itertools as it
 import pathlib
 from typing import (

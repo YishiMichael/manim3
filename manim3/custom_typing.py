@@ -1,21 +1,3 @@
-__all__ = [
-    "ColorT",
-    "FloatsT",
-    "Mat3T",
-    "Mat4T",
-    "Mat3sT",
-    "Mat4sT",
-    "SelectorT",
-    "Vec2T",
-    "Vec3T",
-    "Vec4T",
-    "Vec2sT",
-    "Vec3sT",
-    "Vec4sT",
-    "VertexIndexT"
-]
-
-
 from colour import Color
 import re
 from typing import (

@@ -1,6 +1,3 @@
-__all__ = ["Scene"]
-
-
 #import asyncio
 #from typing import Coroutine
 
@@ -155,26 +152,27 @@ class Scene(Animation):
                     continue
                 updater(updater_item.absolute_rate_func(timestamp))
 
-        timeline = self._accumulated_timeline()
+        #timeline = self._accumulated_timeline()
         #prev_timestamp = self._lag_time
-        timestamp = self._lag_time
+        spf = 1.0 / ConfigSingleton().rendering.fps
+        timestamp = 0.0
         updater_items: list[UpdaterItem] = []
-        while True:
-            try:
-                state = timeline.send(None)
-            except StopIteration:
-                break
+        for state in self._accumulated_timeline():
+            #try:
+            #    state = timeline.send(None)
+            #except StopIteration:
+            #    break
 
-            final_timestamp = state.timestamp
             if state.verb == UpdaterItemVerb.APPEND:
                 updater_items.append(state.updater_item)
             elif state.verb == UpdaterItemVerb.REMOVE:
                 updater_items.remove(state.updater_item)
 
+            final_timestamp = state.timestamp
             while timestamp < final_timestamp:
                 update(timestamp, updater_items)
                 self._scene_frame._process_rendering(render_to_video=True)
-                timestamp += 1.0 / ConfigSingleton().rendering.fps
+                timestamp += spf
             update(final_timestamp, updater_items)
 
     def add(

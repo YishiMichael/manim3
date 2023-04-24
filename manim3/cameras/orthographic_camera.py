@@ -1,6 +1,3 @@
-__all__ = ["OrthographicCamera"]
-
-
 import numpy as np
 
 from ..cameras.camera import Camera

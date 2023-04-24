@@ -1,6 +1,3 @@
-__all__ = ["PixelatedPass"]
-
-
 import moderngl
 import numpy as np
 

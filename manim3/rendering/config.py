@@ -1,9 +1,3 @@
-__all__ = [
-    "Config",
-    "ConfigSingleton"
-]
-
-
 from dataclasses import dataclass
 import pathlib
 import sys

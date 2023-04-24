@@ -1,24 +1,3 @@
-__all__ = [
-    "DEGREES",
-    "DL",
-    "DOWN",
-    "DR",
-    "IN",
-    "LEFT",
-    "ORIGIN",
-    "OUT",
-    "PI",
-    "RIGHT",
-    "TAU",
-    "UL",
-    "UP",
-    "UR",
-    "X_AXIS",
-    "Y_AXIS",
-    "Z_AXIS"
-]
-
-
 import numpy as np
 
 from .custom_typing import Vec3T

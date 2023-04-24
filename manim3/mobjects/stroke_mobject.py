@@ -1,6 +1,3 @@
-__all__ = ["StrokeMobject"]
-
-
 import itertools as it
 from typing import Callable
 

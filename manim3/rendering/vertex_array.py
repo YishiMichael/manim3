@@ -1,6 +1,3 @@
-__all__ = ["VertexArray"]
-
-
 from dataclasses import dataclass
 import itertools as it
 import re

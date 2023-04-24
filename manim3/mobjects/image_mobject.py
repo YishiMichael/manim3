@@ -1,6 +1,3 @@
-__all__ = ["ImageMobject"]
-
-
 import numpy as np
 from PIL import Image
 

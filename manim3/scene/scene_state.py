@@ -1,6 +1,3 @@
-__all__ = ["SceneState"]
-
-
 import numpy as np
 
 from ..cameras.camera import Camera

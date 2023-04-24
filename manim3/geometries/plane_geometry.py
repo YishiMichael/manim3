@@ -1,6 +1,3 @@
-__all__ = ["PlaneGeometry"]
-
-
 import numpy as np
 
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry

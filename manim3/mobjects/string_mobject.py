@@ -1,12 +1,3 @@
-__all__ = [
-    "CommandFlag",
-    "EdgeFlag",
-    "StringFileWriter",
-    "StringMobject",
-    "StringParser"
-]
-
-
 from abc import (
     ABC,
     abstractmethod

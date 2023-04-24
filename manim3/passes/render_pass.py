@@ -1,6 +1,3 @@
-__all__ = ["RenderPass"]
-
-
 from abc import abstractmethod
 
 import moderngl
