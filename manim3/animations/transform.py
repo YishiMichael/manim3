@@ -6,6 +6,7 @@ import itertools as it
 from typing import (
     Any,
     Callable,
+    Generator,
     Generic,
     Iterable,
     Iterator,
@@ -14,8 +15,8 @@ from typing import (
 
 from ..animations.animation import (
     Animation,
-    RegroupItem,
-    RegroupVerb
+    #RegroupItem,
+    #RegroupVerb
 )
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import Mobject
@@ -143,55 +144,70 @@ class Transform(Animation):
             )
         ]
 
-        def alpha_animate_func(
-            alpha_0: float,
+        def updater(
+            #alpha_0: float,
             alpha: float
         ) -> None:
             for mobject, callback in intermediate_mobjects_with_callback:
                 callback(mobject, alpha)
 
-        intermediate_mobject = Mobject().add(*(mobject for mobject, _ in intermediate_mobjects_with_callback))
-        all_parents = [
-            *start_mobject.iter_parents(),
-            *stop_mobject.iter_parents()
-        ]  # TODO
-        alpha_regroup_items = [
-            (0.0, RegroupItem(
-                mobjects=all_parents,
-                verb=RegroupVerb.DISCARD,
-                targets=start_mobject
-            )),
-            (0.0, RegroupItem(
-                mobjects=all_parents,
-                verb=RegroupVerb.ADD,
-                targets=intermediate_mobject
-            )),
-            (1.0, RegroupItem(
-                mobjects=all_parents,
-                verb=RegroupVerb.DISCARD,
-                targets=intermediate_mobject
-            )),
-            (1.0, RegroupItem(
-                mobjects=all_parents,
-                verb=RegroupVerb.ADD,
-                targets=stop_mobject if replace else start_mobject
+        def timeline() -> Generator[float, None, None]:
+            intermediate_mobject = Mobject().add(*(
+                mobject for mobject, _ in intermediate_mobjects_with_callback
             ))
-        ]
-        if not replace:
-            alpha_regroup_items.append((1.0, RegroupItem(
-                mobjects=start_mobject,
-                verb=RegroupVerb.BECOMES,
-                targets=stop_mobject
-            )))
+            all_parents = [
+                *start_mobject.iter_parents(),
+                *stop_mobject.iter_parents()
+            ]  # TODO
+            start_mobject.discarded_by(*all_parents)
+            intermediate_mobject.added_by(*all_parents)
+            yield from self.wait(1.0)
+            intermediate_mobject.discarded_by(*all_parents)
+            if replace:
+                stop_mobject.added_by(*all_parents)
+            else:
+                start_mobject.becomes(stop_mobject)
+                start_mobject.added_by(*all_parents)
+
+        #    alpha_regroup_items = [
+        #        (0.0, RegroupItem(
+        #            mobjects=all_parents,
+        #            verb=RegroupVerb.DISCARD,
+        #            targets=start_mobject
+        #        )),
+        #        (0.0, RegroupItem(
+        #            mobjects=all_parents,
+        #            verb=RegroupVerb.ADD,
+        #            targets=intermediate_mobject
+        #        )),
+        #        (1.0, RegroupItem(
+        #            mobjects=all_parents,
+        #            verb=RegroupVerb.DISCARD,
+        #            targets=intermediate_mobject
+        #        )),
+        #        (1.0, RegroupItem(
+        #            mobjects=all_parents,
+        #            verb=RegroupVerb.ADD,
+        #            targets=stop_mobject if replace else start_mobject
+        #        ))
+        #    ]
+        #if not replace:
+        #    alpha_regroup_items.append((1.0, RegroupItem(
+        #        mobjects=start_mobject,
+        #        verb=RegroupVerb.BECOMES,
+        #        targets=stop_mobject
+        #    )))
 
         if rate_func is None:
             rate_func = RateUtils.smooth
         super().__init__(
-            alpha_animate_func=alpha_animate_func,
-            alpha_regroup_items=alpha_regroup_items,
-            start_time=0.0,
-            stop_time=run_time,
-            rate_func=RateUtils.compose(rate_func, lambda t: t / run_time)
+            #alpha_animate_func=alpha_animate_func,
+            #alpha_regroup_items=alpha_regroup_items,
+            #start_time=0.0,
+            run_time=run_time,
+            rate_func=RateUtils.compose(rate_func, lambda t: t / run_time),
+            updater=updater,
+            timeline=timeline()
         )
 
     @classmethod

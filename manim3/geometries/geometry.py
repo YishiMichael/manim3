@@ -12,7 +12,7 @@ import numpy as np
 from ..custom_typing import (
     Vec2sT,
     Vec3sT,
-    VertexIndexType
+    VertexIndexT
 )
 from ..lazy.core import LazyObject
 from ..lazy.interface import Lazy
@@ -30,7 +30,7 @@ from ..rendering.vertex_array import IndexedAttributesBuffer
     slots=True
 )
 class GeometryData:
-    index: VertexIndexType
+    index: VertexIndexT
     position: Vec3sT
     normal: Vec3sT
     uv: Vec2sT

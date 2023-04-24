@@ -6,7 +6,7 @@ import numpy as np
 from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
 from ..custom_typing import (
-    ColorType,
+    ColorT,
     Vec3T
 )
 from ..lazy.core import LazyObject
@@ -37,7 +37,7 @@ class PointLight(LazyObject):
         self,
         *,
         position: Vec3T | None = None,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
@@ -136,7 +136,7 @@ class SceneState(LazyObject):
     def set_background(
         self,
         *,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
@@ -149,7 +149,7 @@ class SceneState(LazyObject):
     def set_ambient_light(
         self,
         *,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
@@ -163,7 +163,7 @@ class SceneState(LazyObject):
         self,
         *,
         position: Vec3T | None = None,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None
     ):
         self._point_lights_.append(PointLight().set_style(
@@ -178,7 +178,7 @@ class SceneState(LazyObject):
         *,
         index: int | None = None,
         position: Vec3T | None = None,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None
     ):
         if self._point_lights_:
@@ -207,12 +207,12 @@ class SceneState(LazyObject):
     def set_style(
         self,
         *,
-        background_color: ColorType | None = None,
+        background_color: ColorT | None = None,
         background_opacity: float | None = None,
-        ambient_light_color: ColorType | None = None,
+        ambient_light_color: ColorT | None = None,
         ambient_light_opacity: float | None = None,
         point_light_position: Vec3T | None = None,
-        point_light_color: ColorType | None = None,
+        point_light_color: ColorT | None = None,
         point_light_opacity: float | None = None
     ):
         self.set_background(

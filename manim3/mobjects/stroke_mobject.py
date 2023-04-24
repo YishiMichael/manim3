@@ -8,12 +8,12 @@ import numpy as np
 
 from ..constants import PI
 from ..custom_typing import (
-    ColorType,
+    ColorT,
     FloatsT,
     Vec2sT,
     Vec3T,
     Vec3sT,
-    VertexIndexType
+    VertexIndexT
 )
 from ..lazy.core import LazyWrapper
 from ..lazy.interface import Lazy
@@ -300,7 +300,7 @@ class StrokeMobject(Mobject):
 
         def lump_index_from_getter(
             index_getter: Callable[[int, bool], list[int]]
-        ) -> VertexIndexType:
+        ) -> VertexIndexT:
             if not multi_line_string__line_strings__points_len:
                 return np.zeros(0, dtype=np.uint32)
             offsets = np.cumsum((0, *multi_line_string__line_strings__points_len[:-1]))
@@ -414,7 +414,7 @@ class StrokeMobject(Mobject):
         width: float | None = None,
         single_sided: bool | None = None,
         has_linecap: bool | None = None,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
         is_transparent: bool | None = None,

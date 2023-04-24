@@ -23,7 +23,7 @@ from typing import (
 import moderngl
 import numpy as np
 
-from ..custom_typing import VertexIndexType
+from ..custom_typing import VertexIndexT
 from ..lazy.core import LazyObject
 from ..lazy.interface import Lazy
 from ..rendering.context import Context
@@ -665,7 +665,7 @@ class IndexBuffer(GLWriteOnlyBuffer):
     def __init__(
         self,
         *,
-        data: VertexIndexType | None
+        data: VertexIndexT | None
     ) -> None:
         data_len = 0 if data is None else len(data)
         super().__init__(

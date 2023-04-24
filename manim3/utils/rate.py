@@ -13,6 +13,7 @@ class RateUtils:
     def __new__(cls):
         raise TypeError
 
+    # TODO: remove
     @classmethod
     def compose(
         cls,
@@ -32,15 +33,19 @@ class RateUtils:
     @classmethod
     def inverse(
         cls,
-        func: Callable[[float], float],
-        y: float,
-        x0: float = 0.5
-    ) -> float:
-        for x0 in np.linspace(0.0, 1.0, 5):
-            optimize_result = scipy.optimize.root(lambda x: func(x) - y, x0)
-            if optimize_result.success:
-                return float(optimize_result.x)
-        raise ValueError
+        func: Callable[[float], float]
+    ) -> Callable[[float], float]:
+
+        def result(
+            y: float
+        ) -> float:
+            for x0 in np.linspace(0.0, 1.0, 5):
+                optimize_result = scipy.optimize.root(lambda x: func(x) - y, x0)
+                if optimize_result.success:
+                    return float(optimize_result.x)
+            raise ValueError
+
+        return result
 
     @classmethod
     def linear(

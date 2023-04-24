@@ -5,7 +5,7 @@ import numpy as np
 
 from ..custom_typing import (
     Vec2sT,
-    VertexIndexType
+    VertexIndexT
 )
 from ..geometries.geometry import (
     Geometry,
@@ -36,7 +36,7 @@ class ShapeGeometry(Geometry):
     @classmethod
     def _geometry_data_(
         cls,
-        shape__triangulation: tuple[VertexIndexType, Vec2sT]
+        shape__triangulation: tuple[VertexIndexT, Vec2sT]
     ) -> GeometryData:
         index, points = shape__triangulation
         position = SpaceUtils.increase_dimension(points)

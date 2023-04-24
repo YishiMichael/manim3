@@ -1,7 +1,7 @@
 __all__ = ["ShapeMobject"]
 
 
-from ..custom_typing import ColorType
+from ..custom_typing import ColorT
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.interface import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
@@ -62,7 +62,7 @@ class ShapeMobject(MeshMobject):
         width: float | None = None,
         single_sided: bool | None = None,
         has_linecap: bool | None = None,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None,
         dilate: float | None = None,
         is_transparent: bool | None = None

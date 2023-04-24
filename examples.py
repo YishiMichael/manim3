@@ -1,3 +1,4 @@
+from typing import Generator
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -5,7 +6,7 @@ from manim3 import *
 
 
 class ShapeTransformExample(Scene):
-    def construct(self) -> None:
+    def timeline(self) -> Generator[float, None, None]:
         circle = Circle()
         circle.set_style(color=PINK, opacity=0.9)
         circle.add(circle.build_stroke(color=YELLOW, width=0.4))
@@ -13,12 +14,12 @@ class ShapeTransformExample(Scene):
         square.set_style(opacity=1.0)
 
         self.add(square)
-        self.play(Transform(square, circle, replace=False))
-        self.wait()
+        yield from self.play(Transform(square, circle, replace=False))
+        yield from self.wait()
 
 
 class TexTransformExample(Scene):
-    def construct(self) -> None:
+    def timeline(self) -> Generator[float, None, None]:
         text = (Text("Text")
             .scale(3)
             .set_style(color=ORANGE, opacity=0.5)
@@ -35,9 +36,9 @@ class TexTransformExample(Scene):
         )
         tex.add(tex.build_stroke(width=0.06, color=PINK))
         self.add(text)
-        self.wait()
-        self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
-        self.wait(3)
+        yield from self.wait()
+        yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
+        yield from self.wait(3)
 
 
 class Rotating(Animation):
@@ -45,23 +46,29 @@ class Rotating(Animation):
         self,
         mobject: Mobject
     ) -> None:
+        initial_model_matrix = mobject._model_matrix_
+        initial_mobject = mobject.copy()
 
-        def alpha_animate_func(
-            alpha_0: float,
+        def updater(
+            #alpha_0: float,
             alpha: float
         ) -> None:
-            mobject.rotate(Rotation.from_rotvec(DOWN * (alpha - alpha_0) * 0.5))
+            initial_mobject.rotate(Rotation.from_rotvec(DOWN * alpha * 0.5))
+            mobject._model_matrix_ = initial_mobject._model_matrix_
+            initial_mobject._model_matrix_ = initial_model_matrix
+            #mobject.rotate(Rotation.from_rotvec(DOWN * (alpha - alpha_0) * 0.5))
 
         super().__init__(
-            alpha_animate_func=alpha_animate_func,
-            alpha_regroup_items=[],
-            start_time=0.0,
-            stop_time=None
+            updater=updater
+            #alpha_animate_func=alpha_animate_func,
+            #alpha_regroup_items=[],
+            #start_time=0.0,
+            #stop_time=None
         )
 
 
 class ThreeDTextExample(Scene):
-    def construct(self) -> None:
+    def timeline(self) -> Generator[float, None, None]:
         self.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
         text = Text("Text").concatenate()
         text_3d = MeshMobject().set_geometry(PrismoidGeometry(text.get_shape()))
@@ -69,11 +76,11 @@ class ThreeDTextExample(Scene):
         text_3d.set_style(color="#00FFAA44")
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
-        self.wait(10)
+        yield from self.wait(10)
 
 
 class OITExample(Scene):
-    def construct(self) -> None:
+    def timeline(self) -> Generator[float, None, None]:
         self.add(*reversed([
             (Circle()
                 .set_style(color=color, opacity=opacity)
@@ -86,7 +93,7 @@ class OITExample(Scene):
                 np.linspace(0, TAU, 3, endpoint=False)
             )
         ]))
-        self.wait(5)
+        yield from self.wait(5)
 
 
 if __name__ == "__main__":

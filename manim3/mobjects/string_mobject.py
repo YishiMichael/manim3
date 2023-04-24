@@ -27,7 +27,7 @@ import warnings
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from ..custom_typing import Selector
+from ..custom_typing import SelectorT
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
@@ -234,8 +234,8 @@ class StringParser(ABC):
     def __init__(
         self,
         string: str,
-        isolate: Selector,
-        protect: Selector,
+        isolate: SelectorT,
+        protect: SelectorT,
         configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
@@ -256,8 +256,8 @@ class StringParser(ABC):
     def _parse(
         cls,
         string: str,
-        isolate: Selector,
-        protect: Selector,
+        isolate: SelectorT,
+        protect: SelectorT,
         configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
         get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
@@ -316,8 +316,8 @@ class StringParser(ABC):
     def _get_labelled_items_and_replaced_items(
         cls,
         string: str,
-        isolate: Selector,
-        protect: Selector,
+        isolate: SelectorT,
+        protect: SelectorT,
         configured_items_iterator: Iterator[tuple[Span, dict[str, str]]]
     ) -> tuple[list[LabelledItem], list[CommandItem | LabelledInsertionItem]]:
 
@@ -687,7 +687,7 @@ class StringParser(ABC):
     @classmethod
     def _iter_spans_by_selector(
         cls,
-        selector: Selector,
+        selector: SelectorT,
         string: str
     ) -> Iterator[Span]:
 
@@ -834,7 +834,7 @@ class StringMobject(SVGMobject):
 
     def _iter_shape_mobject_lists_by_selector(
         self,
-        selector: Selector
+        selector: SelectorT
     ) -> Iterator[list[ShapeMobject]]:
         parser = self._parser
         for span in parser._iter_spans_by_selector(selector, self._string):
@@ -843,7 +843,7 @@ class StringMobject(SVGMobject):
 
     def select_parts(
         self,
-        selector: Selector
+        selector: SelectorT
     ) -> ShapeMobject:
         return ShapeMobject().add(*(
             ShapeMobject().add(*shape_mobject_list)
@@ -852,7 +852,7 @@ class StringMobject(SVGMobject):
 
     def select_part(
         self,
-        selector: Selector,
+        selector: SelectorT,
         index: int = 0
     ) -> ShapeMobject:
         return ShapeMobject().add(*(

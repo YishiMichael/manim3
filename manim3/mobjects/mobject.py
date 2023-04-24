@@ -36,7 +36,7 @@ from ..rendering.framebuffer import (
     OpaqueFramebuffer
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
-from ..utils.scene_state import SceneState
+from ..scene.scene_state import SceneState
 from ..utils.space import SpaceUtils
 
 
@@ -152,7 +152,7 @@ class Mobject(LazyObject):
             if isinstance(mobject, mobject_type):
                 yield mobject
 
-    def _update_ancestors_and_descendants(self) -> None:
+    def _update_family(self) -> None:
 
         def iter_descendants_by_children(
             mobject: Mobject
@@ -203,7 +203,7 @@ class Mobject(LazyObject):
         #    )
         for mobject in filtered_mobjects:
             mobject._parents.add(self)
-        self._update_ancestors_and_descendants()
+        self._update_family()
         #for descendant_mobject in all_descendants:
         #    descendant_mobject._real_ancestors.update(self.iter_ancestors())
         return self
@@ -225,7 +225,57 @@ class Mobject(LazyObject):
         #    ancestor_mobject._real_descendants_.eliminate(all_descendants)
         for mobject in filtered_mobjects:
             mobject._parents.remove(self)
-        self._update_ancestors_and_descendants()
+        self._update_family()
+        #for descendant_mobject in all_descendants:
+        #    descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
+        return self
+
+    def added_by(
+        self,
+        *mobjects: "Mobject"
+    ):
+        for mobject in mobjects:
+            if mobject in self.iter_descendants():
+                raise ValueError(f"Circular relationship occurred when adding {self} to {mobject}")
+        filtered_mobjects = [
+            mobject for mobject in dict.fromkeys(mobjects)
+            if mobject not in self._parents
+        ]
+        #all_descendants = list(dict.fromkeys(it.chain.from_iterable(
+        #    mobject.iter_descendants()
+        #    for mobject in filtered_mobjects
+        #)))
+        self._parents.update(filtered_mobjects)
+        #for ancestor_mobject in self.iter_ancestors():
+        #    ancestor_mobject._real_descendants_.extend(
+        #        descendant for descendant in all_descendants
+        #        if descendant not in ancestor_mobject._real_descendants_
+        #    )
+        for mobject in filtered_mobjects:
+            mobject._children_.append(self)
+        self._update_family()
+        #for descendant_mobject in all_descendants:
+        #    descendant_mobject._real_ancestors.update(self.iter_ancestors())
+        return self
+
+    def discarded_by(
+        self,
+        *mobjects: "Mobject"
+    ):
+        filtered_mobjects = [
+            mobject for mobject in dict.fromkeys(mobjects)
+            if mobject in self._parents
+        ]
+        #all_descendants = list(dict.fromkeys(it.chain.from_iterable(
+        #    mobject.iter_descendants()
+        #    for mobject in filtered_mobjects
+        #)))
+        self._parents.difference_update(filtered_mobjects)
+        #for ancestor_mobject in self.iter_ancestors():
+        #    ancestor_mobject._real_descendants_.eliminate(all_descendants)
+        for mobject in filtered_mobjects:
+            mobject._children_.remove(self)
+        self._update_family()
         #for descendant_mobject in all_descendants:
         #    descendant_mobject._real_ancestors.difference_update(self.iter_ancestors())
         return self

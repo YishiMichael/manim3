@@ -19,8 +19,8 @@ import pygments.formatters
 import pygments.lexers
 
 from ..custom_typing import (
-    ColorType,
-    Selector
+    ColorT,
+    SelectorT
 )
 from ..mobjects.string_mobject import (
     CommandFlag,
@@ -182,11 +182,11 @@ class MarkupTextParser(StringParser):
     def __init__(
         self,
         string: str,
-        isolate: Selector,
-        protect: Selector,
+        isolate: SelectorT,
+        protect: SelectorT,
         file_writer: StringFileWriter,
         frame_scale: float,
-        local_configs: dict[Selector, dict[str, str]],
+        local_configs: dict[SelectorT, dict[str, str]],
         global_attrs: dict[str, str]
     ) -> None:
 
@@ -385,9 +385,9 @@ class Text(StringMobject):
         self,
         string: str,
         *,
-        isolate: Selector = (),
-        protect: Selector = (),
-        local_configs: dict[Selector, dict[str, str]] | None = None,
+        isolate: SelectorT = (),
+        protect: SelectorT = (),
+        local_configs: dict[SelectorT, dict[str, str]] | None = None,
         justify: bool = ...,
         indent: float = ...,
         alignment: str = ...,
@@ -396,7 +396,7 @@ class Text(StringMobject):
         font: str = ...,
         slant: str = ...,
         weight: str = ...,
-        base_color: ColorType = ...,
+        base_color: ColorT = ...,
         line_spacing_height: float = ...,
         global_config: dict[str, str] = ...,
         markup: bool = False
@@ -467,7 +467,7 @@ class Text(StringMobject):
         font: str,
         slant: str,
         weight: str,
-        base_color: ColorType,
+        base_color: ColorT,
         line_spacing_height: float,
         global_config: dict[str, str]
     ) -> dict[str, str]:

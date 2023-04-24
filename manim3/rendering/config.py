@@ -11,7 +11,7 @@ from typing import ClassVar
 
 from colour import Color
 
-from ..custom_typing import ColorType
+from ..custom_typing import ColorT
 
 
 @dataclass(
@@ -61,63 +61,65 @@ class PathConfig:
 )
 class RenderingConfig:
     fps: int
-    start_frame_index: int | None
-    stop_frame_index: int | None
+    start_time: float
+    run_time: float | None
+    #start_frame_index: int | None
+    #stop_frame_index: int | None
     write_video: bool
     write_last_frame: bool
     preview: bool
 
-    @property
-    def start_time(self) -> float | None:
-        return None if self.start_frame_index is None else self.start_frame_index / self.fps
+    #@property
+    #def start_time(self) -> float | None:
+    #    return None if self.start_frame_index is None else self.start_frame_index / self.fps
 
-    @property
-    def stop_time(self) -> float | None:
-        return None if self.stop_frame_index is None else self.stop_frame_index / self.fps
+    #@property
+    #def stop_time(self) -> float | None:
+    #    return None if self.stop_frame_index is None else self.stop_frame_index / self.fps
 
-    @property
-    def time_span(self) -> tuple[float | None, float | None]:
-        return (self.start_time, self.stop_time)
+    #@property
+    #def time_span(self) -> tuple[float | None, float | None]:
+    #    return (self.start_time, self.start_time + self.run_time)
 
-    @start_time.setter
-    def start_time(
-        self,
-        start_time: float | None
-    ) -> None:
-        start_frame_index = None if start_time is None else int(start_time * self.fps)
-        self._validate_frame_index_span(start_frame_index, self.stop_frame_index)
-        self.start_frame_index = start_frame_index
+    #@start_time.setter
+    #def start_time(
+    #    self,
+    #    start_time: float | None
+    #) -> None:
+    #    start_frame_index = None if start_time is None else int(start_time * self.fps)
+    #    self._validate_frame_index_span(start_frame_index, self.stop_frame_index)
+    #    self.start_frame_index = start_frame_index
 
-    @stop_time.setter
-    def stop_time(
-        self,
-        stop_time: float | None
-    ) -> None:
-        stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
-        self._validate_frame_index_span(self.start_frame_index, stop_frame_index)
-        self.stop_frame_index = stop_frame_index
+    #@stop_time.setter
+    #def stop_time(
+    #    self,
+    #    stop_time: float | None
+    #) -> None:
+    #    stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
+    #    self._validate_frame_index_span(self.start_frame_index, stop_frame_index)
+    #    self.stop_frame_index = stop_frame_index
 
-    @time_span.setter
-    def time_span(
-        self,
-        time_span: tuple[float | None, float | None]
-    ) -> None:
-        start_time, stop_time = time_span
-        start_frame_index = None if start_time is None else int(start_time * self.fps)
-        stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
-        self._validate_frame_index_span(start_frame_index, stop_frame_index)
-        self.start_frame_index = start_frame_index
-        self.stop_frame_index = stop_frame_index
+    #@time_span.setter
+    #def time_span(
+    #    self,
+    #    time_span: tuple[float | None, float | None]
+    #) -> None:
+    #    start_time, stop_time = time_span
+    #    start_frame_index = None if start_time is None else int(start_time * self.fps)
+    #    stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
+    #    self._validate_frame_index_span(start_frame_index, stop_frame_index)
+    #    self.start_frame_index = start_frame_index
+    #    self.stop_frame_index = stop_frame_index
 
-    @classmethod
-    def _validate_frame_index_span(
-        cls,
-        start_frame_index: int | None,
-        stop_frame_index: int | None
-    ) -> None:
-        assert (start_frame_index is None or start_frame_index >= 0) and (
-            start_frame_index is None or stop_frame_index is None or start_frame_index <= stop_frame_index
-        )
+    #@classmethod
+    #def _validate_frame_index_span(
+    #    cls,
+    #    start_frame_index: int | None,
+    #    stop_frame_index: int | None
+    #) -> None:
+    #    assert (start_frame_index is None or start_frame_index >= 0) and (
+    #        start_frame_index is None or stop_frame_index is None or start_frame_index <= stop_frame_index
+    #    )
 
 
 @dataclass(
@@ -206,7 +208,7 @@ class TexConfig:
     template: str
     alignment: str | None
     environment: str | None
-    base_color: ColorType
+    base_color: ColorT
     font_size: float
 
 
@@ -223,7 +225,7 @@ class TextConfig:
     font: str
     slant: str
     weight: str
-    base_color: ColorType
+    base_color: ColorT
     line_spacing_height: float
     global_config: dict[str, str]
     language: str
@@ -244,8 +246,8 @@ class Config:
         self._path: PathConfig = PathConfig()
         self._rendering: RenderingConfig = RenderingConfig(
             fps=30,
-            start_frame_index=None,
-            stop_frame_index=None,
+            start_time=0.0,
+            run_time=None,
             write_video=False,
             write_last_frame=False,
             preview=True

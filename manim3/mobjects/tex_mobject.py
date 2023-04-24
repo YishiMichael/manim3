@@ -14,8 +14,8 @@ from typing import (
 import toml
 
 from ..custom_typing import (
-    ColorType,
-    Selector
+    ColorT,
+    SelectorT
 )
 from ..mobjects.string_mobject import (
     CommandFlag,
@@ -213,12 +213,12 @@ class TexParser(StringParser):
     def __init__(
         self,
         string: str,
-        isolate: Selector,
-        protect: Selector,
+        isolate: SelectorT,
+        protect: SelectorT,
         file_writer: StringFileWriter,
         frame_scale: float,
-        tex_to_color_map: dict[str, ColorType],
-        base_color: ColorType
+        tex_to_color_map: dict[str, ColorT],
+        base_color: ColorT
     ) -> None:
 
         def get_content_by_body(
@@ -362,15 +362,15 @@ class Tex(StringMobject):
         self,
         string: str,
         *,
-        isolate: Selector = (),
-        protect: Selector = (),
-        tex_to_color_map: dict[str, ColorType] | None = None,
+        isolate: SelectorT = (),
+        protect: SelectorT = (),
+        tex_to_color_map: dict[str, ColorT] | None = None,
         use_mathjax: bool = ...,
         preamble: str = ...,
         template: str = ...,
         alignment: str | None = ...,
         environment: str | None = ...,
-        base_color: ColorType = ...,
+        base_color: ColorT = ...,
         font_size: float = ...
     ) -> None:
         # Prevent from passing an empty string.

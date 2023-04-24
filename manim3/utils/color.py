@@ -7,7 +7,7 @@ from colour import Color
 import numpy as np
 
 from ..custom_typing import (
-    ColorType,
+    ColorT,
     Vec3T
 )
 
@@ -21,7 +21,7 @@ class ColorUtils:
     @classmethod
     def decompose_color(
         cls,
-        color: ColorType
+        color: ColorT
     ) -> tuple[Vec3T, float | None]:
         error_message = f"Invalid color: {color}"
         if isinstance(color, Color):
@@ -51,7 +51,7 @@ class ColorUtils:
     @classmethod
     def color_to_hex(
         cls,
-        color: ColorType
+        color: ColorT
     ) -> str:
         rgb, _ = cls.decompose_color(color)
         return "#{:02x}{:02x}{:02x}".format(*(rgb * 255.0).astype(int))
@@ -59,7 +59,7 @@ class ColorUtils:
     @classmethod
     def normalize_color_input(
         cls,
-        color: ColorType | None,
+        color: ColorT | None,
         opacity: float | None
     ) -> tuple[Vec3T | None, float | None]:
         color_component = None

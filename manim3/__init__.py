@@ -19,7 +19,7 @@ from .mobjects.image_mobject import *
 from .mobjects.mesh_mobject import *
 from .mobjects.mobject import *
 from .mobjects.polyhedra import *
-from .mobjects.scene import *
+from .mobjects.scene_frame import *
 from .mobjects.shape_mobject import *
 from .mobjects.shapes import *
 from .mobjects.string_mobject import *
@@ -40,9 +40,11 @@ from .rendering.mgl_enums import *
 from .rendering.texture import *
 from .rendering.vertex_array import *
 
+from .scene.scene import *
+from .scene.scene_state import *
+
 from .utils.color import *
 from .utils.rate import *
-from .utils.scene_state import *
 from .utils.shape import *
 from .utils.space import *
 

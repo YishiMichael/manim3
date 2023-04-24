@@ -25,7 +25,7 @@ from ..custom_typing import (
     Vec3T,
     Vec2sT,
     Vec3sT,
-    VertexIndexType
+    VertexIndexT
 )
 from ..lazy.core import LazyObject
 from ..lazy.interface import Lazy
@@ -453,7 +453,7 @@ class Shape(LazyObject):
     def _triangulation_(
         cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
-    ) -> tuple[VertexIndexType, Vec2sT]:
+    ) -> tuple[VertexIndexT, Vec2sT]:
 
         def get_shapely_polygons(
             shapely_obj: shapely.geometry.base.BaseGeometry
@@ -470,7 +470,7 @@ class Shape(LazyObject):
 
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
-        ) -> tuple[VertexIndexType, Vec2sT]:
+        ) -> tuple[VertexIndexT, Vec2sT]:
             ring_points_list = [
                 np.array(boundary.coords, dtype=np.float32)
                 for boundary in [polygon.exterior, *polygon.interiors]
@@ -483,8 +483,8 @@ class Shape(LazyObject):
             return triangulate_float32(points, ring_ends), points
 
         def concatenate_triangulations(
-            triangulations: list[tuple[VertexIndexType, Vec2sT]]
-        ) -> tuple[VertexIndexType, Vec2sT]:
+            triangulations: list[tuple[VertexIndexT, Vec2sT]]
+        ) -> tuple[VertexIndexT, Vec2sT]:
             if not triangulations:
                 return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
 

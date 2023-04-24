@@ -1,3 +1,4 @@
+# TODO: The documentation is outdated.
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.
@@ -763,6 +764,9 @@ class LazyVariableDescriptor(LazyDescriptor[
         self.set_slot(instance, LazyVariableSlot(
             container=default_container._copy_container()
         ))
+
+
+# TODO: Add LazyParameter class
 
 
 class LazyPropertyDescriptor(LazyDescriptor[

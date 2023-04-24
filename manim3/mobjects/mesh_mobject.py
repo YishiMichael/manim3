@@ -5,7 +5,7 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import (
-    ColorType,
+    ColorT,
     Vec3T,
     Vec3sT
 )
@@ -170,7 +170,7 @@ class MeshMobject(Mobject):
     def set_style(
         self,
         *,
-        color: ColorType | None = None,
+        color: ColorT | None = None,
         opacity: float | None = None,
         is_transparent: bool | None = None,
         ambient_strength: float | None = None,
