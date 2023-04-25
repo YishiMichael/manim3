@@ -2,11 +2,13 @@ from dataclasses import dataclass
 from functools import reduce
 import itertools as it
 from typing import (
+    Iterable,
     Iterator,
     TypeVar,
     overload
 )
 import warnings
+import weakref
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -71,8 +73,8 @@ class Mobject(LazyObject):
         super().__init__()
         # If `_parents` and `_real_ancestors` are implemented with `LazyDynamicContainer` also,
         # loops will pop up in the DAG of the lazy system.
-        self._parents: set[Mobject] = set()
-        self._real_ancestors: set[Mobject] = set()
+        self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._real_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
 
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children_)
@@ -203,13 +205,15 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        for mobject in mobjects:
-            if mobject in self.iter_ancestors():
-                raise ValueError(f"Circular relationship occurred when adding {mobject} to {self}")
         filtered_mobjects = [
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject not in self._children_
         ]
+        if (invalid_mobjects := [
+            mobject for mobject in filtered_mobjects
+            if mobject in self.iter_ancestors()
+        ]):
+            raise ValueError(f"Circular relationship occurred when adding {invalid_mobjects} to {self}")
         #all_descendants = list(dict.fromkeys(it.chain.from_iterable(
         #    mobject.iter_descendants()
         #    for mobject in filtered_mobjects
@@ -253,13 +257,15 @@ class Mobject(LazyObject):
         self,
         *mobjects: "Mobject"
     ):
-        for mobject in mobjects:
-            if mobject in self.iter_descendants():
-                raise ValueError(f"Circular relationship occurred when adding {self} to {mobject}")
         filtered_mobjects = [
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject not in self._parents
         ]
+        if (invalid_mobjects := [
+            mobject for mobject in filtered_mobjects
+            if mobject in self.iter_descendants()
+        ]):
+            raise ValueError(f"Circular relationship occurred when adding {self} to {invalid_mobjects}")
         #all_descendants = list(dict.fromkeys(it.chain.from_iterable(
         #    mobject.iter_descendants()
         #    for mobject in filtered_mobjects
@@ -312,53 +318,59 @@ class Mobject(LazyObject):
 
         #parents = list(self.iter_parents())
         #self.clear()
-        self._becomes(src)
+        self._becomes(src)  # TODO
         #self.add(*src.iter_children())
         #for parent in parents:
         #    parent.add(self)
         return self
 
-    def copy(
-        self,
-        broadcast: bool = True
-    ):
+    def copy(self):
+        # Copy all descendants. The result mobject is bound to all `self._parents`.
         result = self._copy()
-        descendants: list[Mobject] = [self]
-        descendants_copy: list[Mobject] = [result]
-        if broadcast:
-            real_descendants_copy = [
-                descendant._copy()
-                for descendant in self._real_descendants_
-            ]
-            descendants.extend(self._real_descendants_)
-            descendants_copy.extend(real_descendants_copy)
+        real_descendants: list[Mobject] = list(self._real_descendants_)
+        real_descendants_copy: list[Mobject] = [
+            descendant._copy()
+            for descendant in real_descendants
+        ]
+        descendants = [self, *real_descendants]
+        descendants_copy = [result, *real_descendants_copy]
+        #if broadcast:
+        #    real_descendants_copy = [
+        #        descendant._copy()
+        #        for descendant in self._real_descendants_
+        #    ]
+        #    descendants.extend(self._real_descendants_)
+        #    descendants_copy.extend(real_descendants_copy)
 
-        def get_matched_descendant_mobject(
-            mobject: Mobject
-        ) -> Mobject:
-            if mobject not in descendants:
-                return mobject
-            return descendants_copy[descendants.index(mobject)]
 
-        for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
-            descendant_copy._children_.reset(
-                get_matched_descendant_mobject(mobject)
-                for mobject in descendant._children_
-            )
-            descendant_copy._parents.clear()
-            descendant_copy._parents.update(
-                get_matched_descendant_mobject(mobject)
-                for mobject in descendant._parents
-            )
-            descendant_copy._real_descendants_.reset(
-                get_matched_descendant_mobject(mobject)
-                for mobject in descendant._real_descendants_
-            )
-            descendant_copy._real_ancestors.clear()
-            descendant_copy._real_ancestors.update(
-                get_matched_descendant_mobject(mobject)
-                for mobject in descendant._real_ancestors
-            )
+        def match_descendants(
+            mobjects: Iterable[Mobject]
+        ) -> Iterator[Mobject]:
+            for mobject in mobjects:
+                #if mobject not in descendants:
+                #    yield mobject
+                #else:
+                yield descendants_copy[descendants.index(mobject)]
+
+        result._children_.reset(match_descendants(self._children_))
+        result._parents.clear()
+        #result._parents.update(self._parents)
+        for real_descendant, real_descendant_copy in zip(real_descendants, real_descendants_copy, strict=True):
+            real_descendant_copy._children_.reset(match_descendants(real_descendant._children_))
+            real_descendant_copy._parents.clear()
+            real_descendant_copy._parents.update(match_descendants(real_descendant._parents))
+
+        self._update_families(*descendants)
+        result.added_by(*self._parents)
+
+
+        #for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
+        #    descendant_copy._children_.reset(match_descendants(descendant._children_))
+        #    descendant_copy._parents.clear()
+        #    descendant_copy._parents.update(match_descendants(descendant._parents))
+        #    descendant_copy._real_descendants_.reset(match_descendants(descendant._real_descendants_))
+        #    descendant_copy._real_ancestors.clear()
+        #    descendant_copy._real_ancestors.update(match_descendants(descendant._real_ancestors))
 
         #for descriptor in type(self)._lazy_descriptors:
         #    if not isinstance(descriptor, LazyVariableDescriptor):
@@ -383,8 +395,15 @@ class Mobject(LazyObject):
         #    #        for mobject in descriptor.__get__(self)
         #    #    ))
 
-        if not broadcast:
-            result.clear()
+        #if not broadcast:
+        #    result.clear()
+        return result
+
+    def copy_standalone(self):
+        # Copy without any real descendant. The result mobject is not bound.
+        result = self._copy()
+        result._children_.clear()
+        result._parents.clear()
         return result
 
     # matrix & transform

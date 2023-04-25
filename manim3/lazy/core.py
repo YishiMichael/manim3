@@ -1217,7 +1217,14 @@ class LazyObject(ABC):
             descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
         assert (slot_names := type(self)._py_slots) == type(src)._py_slots
         for slot_name in slot_names:
-            self.__setattr__(slot_name, copy.copy(src.__getattribute__(slot_name)))
+            src_value = copy.copy(src.__getattribute__(slot_name))
+            # TODO: This looks like a temporary patch... Is there any better practice?
+            if isinstance(src_value, weakref.WeakSet):
+                # Use `WeakSet.update` instead of `copy.copy` for better behavior.
+                dst_value = src_value.copy()
+            else:
+                dst_value = copy.copy(src_value)
+            self.__setattr__(slot_name, dst_value)
 
     def _copy(self: _ElementT) -> _ElementT:
         cls = type(self)

@@ -15,6 +15,9 @@ from .geometries.prismoid_geometry import PrismoidGeometry
 from .geometries.shape_geometry import ShapeGeometry
 from .geometries.sphere_geometry import SphereGeometry
 
+from .lazy.core import LazyObject
+from .lazy.interface import Lazy
+
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mesh_mobject import MeshMobject
 from .mobjects.mobject import Mobject

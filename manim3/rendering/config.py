@@ -54,6 +54,7 @@ class PathConfig:
     slots=True
 )
 class RenderingConfig:
+    scene_name: str
     fps: int
     start_time: float
     run_time: float | None
@@ -237,8 +238,10 @@ class Config:
     )
 
     def __init__(self) -> None:
+        super().__init__()
         self._path: PathConfig = PathConfig()
         self._rendering: RenderingConfig = RenderingConfig(
+            scene_name=NotImplemented,
             fps=30,
             start_time=0.0,
             run_time=None,

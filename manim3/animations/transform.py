@@ -3,7 +3,6 @@ import itertools as it
 from typing import (
     Any,
     Callable,
-    Generator,
     Generic,
     Iterable,
     Iterator,
@@ -114,7 +113,13 @@ class VariableInterpolant(Generic[_InstanceT, _ContainerT, _ElementT, _Descripto
 
 
 class Transform(Animation):
-    __slots__ = ()
+    __slots__ = (
+        "_start_mobject",
+        "_stop_mobject",
+        "_intermediate_mobject",
+        "_replace"
+        #"_intermediate_mobjects_with_callback"
+    )
 
     def __init__(
         self,
@@ -126,7 +131,7 @@ class Transform(Animation):
         replace: bool = False
     ) -> None:
         intermediate_mobjects_with_callback: list[tuple[Mobject, Callable[[Mobject, float], None]]] = [
-            (mobject_0.copy(broadcast=False), VariableInterpolant._get_intermediate_instance_composed_callback(
+            (mobject_0.copy_standalone(), VariableInterpolant._get_intermediate_instance_composed_callback(
                 interpolants=self._get_class_interpolants(mobject_cls),
                 instance_0=mobject_0,
                 instance_1=mobject_1
@@ -138,29 +143,47 @@ class Transform(Animation):
         ]
 
         def updater(
+            #self,
             #alpha_0: float,
             alpha: float
         ) -> None:
             for mobject, callback in intermediate_mobjects_with_callback:
                 callback(mobject, alpha)
 
-        def timeline() -> Generator[float, None, None]:
-            intermediate_mobject = Mobject().add(*(
-                mobject for mobject, _ in intermediate_mobjects_with_callback
-            ))
-            all_parents = [
-                *start_mobject.iter_parents(),
-                *stop_mobject.iter_parents()
-            ]  # TODO
-            start_mobject.discarded_by(*all_parents)
-            intermediate_mobject.added_by(*all_parents)
-            yield from self.wait(1.0)
-            intermediate_mobject.discarded_by(*all_parents)
-            if replace:
-                stop_mobject.added_by(*all_parents)
-            else:
-                start_mobject.becomes(stop_mobject)
-                start_mobject.added_by(*all_parents)
+        if rate_func is None:
+            rate_func = RateUtils.smooth
+        super().__init__(
+            #alpha_animate_func=alpha_animate_func,
+            #alpha_regroup_items=alpha_regroup_items,
+            #start_time=0.0,
+            run_time=run_time,
+            rate_func=RateUtils.adjust(rate_func, run_time_scale=run_time),
+            updater=updater
+        )
+        self._start_mobject: Mobject = start_mobject
+        self._stop_mobject: Mobject = stop_mobject
+        self._intermediate_mobject: Mobject = Mobject().add(*(
+            mobject for mobject, _ in intermediate_mobjects_with_callback
+        ))
+        self._replace: bool = replace
+
+    def timeline(self) -> Iterator[float]:
+        start_mobject = self._start_mobject
+        stop_mobject = self._stop_mobject
+        intermediate_mobject = self._intermediate_mobject
+        all_parents = [
+            *start_mobject.iter_parents(),
+            *stop_mobject.iter_parents()
+        ]  # TODO
+        start_mobject.discarded_by(*all_parents)
+        intermediate_mobject.added_by(*all_parents)
+        yield from self.wait(1.0)
+        intermediate_mobject.discarded_by(*all_parents)
+        if self._replace:
+            stop_mobject.added_by(*all_parents)
+        else:
+            start_mobject.becomes(stop_mobject)
+            start_mobject.added_by(*all_parents)
 
         #    alpha_regroup_items = [
         #        (0.0, RegroupItem(
@@ -191,18 +214,6 @@ class Transform(Animation):
         #        targets=stop_mobject
         #    )))
 
-        if rate_func is None:
-            rate_func = RateUtils.smooth
-        super().__init__(
-            #alpha_animate_func=alpha_animate_func,
-            #alpha_regroup_items=alpha_regroup_items,
-            #start_time=0.0,
-            run_time=run_time,
-            rate_func=RateUtils.compose(rate_func, lambda t: t / run_time),
-            updater=updater,
-            timeline=timeline()
-        )
-
     @classmethod
     def _zip_mobjects_by_class(
         cls,
@@ -226,7 +237,7 @@ class Transform(Animation):
         def get_placeholder_mobject(
             mobject: _MobjectT
         ) -> _MobjectT:
-            result = mobject.copy(broadcast=False)
+            result = mobject.copy_standalone()
             if isinstance(result, MeshMobject):
                 result.set_style(opacity=0.0, is_transparent=mobject._is_transparent_.value)  # TODO
             elif isinstance(result, StrokeMobject):

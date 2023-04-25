@@ -9,10 +9,10 @@ from ..animations.animation import (
     UpdaterItem,
     UpdaterItemVerb
 )
-from ..custom_typing import (
-    ColorT,
-    Vec3T
-)
+#from ..custom_typing import (
+#    ColorT,
+#    Vec3T
+#)
 from ..mobjects.mobject import Mobject
 from ..mobjects.scene_frame import SceneFrame
 from ..rendering.config import (
@@ -23,8 +23,8 @@ from ..rendering.context import Context
 from ..scene.scene_state import SceneState
 
 
-class EndSceneException(Exception):
-    pass
+#class EndSceneException(Exception):
+#    pass
 
 
 class Scene(Animation):
@@ -172,6 +172,7 @@ class Scene(Animation):
             while timestamp < final_timestamp:
                 update(timestamp, updater_items)
                 self._scene_frame._process_rendering(render_to_video=True)
+                # TODO: async wait spf if ConfigSingleton().rendering.preview
                 timestamp += spf
             update(final_timestamp, updater_items)
 
@@ -240,95 +241,99 @@ class Scene(Animation):
     #async def construct(self) -> None:
     #    await asyncio.sleep(0.0)
 
-    def set_view(
-        self,
-        *,
-        eye: Vec3T | None = None,
-        target: Vec3T | None = None,
-        up: Vec3T | None = None
-    ):
-        self._scene_state.set_view(
-            eye=eye,
-            target=target,
-            up=up
-        )
-        return self
+    #def set_view(
+    #    self,
+    #    *,
+    #    eye: Vec3T | None = None,
+    #    target: Vec3T | None = None,
+    #    up: Vec3T | None = None
+    #):
+    #    self._scene_state.set_view(
+    #        eye=eye,
+    #        target=target,
+    #        up=up
+    #    )
+    #    return self
 
-    def set_background(
-        self,
-        *,
-        color: ColorT | None = None,
-        opacity: float | None = None
-    ):
-        self._scene_state.set_background(
-            color=color,
-            opacity=opacity
-        )
-        return self
+    #def set_background(
+    #    self,
+    #    *,
+    #    color: ColorT | None = None,
+    #    opacity: float | None = None
+    #):
+    #    self._scene_state.set_background(
+    #        color=color,
+    #        opacity=opacity
+    #    )
+    #    return self
 
-    def set_ambient_light(
-        self,
-        *,
-        color: ColorT | None = None,
-        opacity: float | None = None
-    ):
-        self._scene_state.set_ambient_light(
-            color=color,
-            opacity=opacity
-        )
-        return self
+    #def set_ambient_light(
+    #    self,
+    #    *,
+    #    color: ColorT | None = None,
+    #    opacity: float | None = None
+    #):
+    #    self._scene_state.set_ambient_light(
+    #        color=color,
+    #        opacity=opacity
+    #    )
+    #    return self
 
-    def add_point_light(
-        self,
-        *,
-        position: Vec3T | None = None,
-        color: ColorT | None = None,
-        opacity: float | None = None
-    ):
-        self._scene_state.add_point_light(
-            position=position,
-            color=color,
-            opacity=opacity
-        )
-        return self
+    #def add_point_light(
+    #    self,
+    #    *,
+    #    position: Vec3T | None = None,
+    #    color: ColorT | None = None,
+    #    opacity: float | None = None
+    #):
+    #    self._scene_state.add_point_light(
+    #        position=position,
+    #        color=color,
+    #        opacity=opacity
+    #    )
+    #    return self
 
-    def set_point_light(
-        self,
-        *,
-        index: int | None = None,
-        position: Vec3T | None = None,
-        color: ColorT | None = None,
-        opacity: float | None = None
-    ):
-        self._scene_state.set_point_light(
-            index=index,
-            position=position,
-            color=color,
-            opacity=opacity
-        )
-        return self
+    #def set_point_light(
+    #    self,
+    #    *,
+    #    index: int | None = None,
+    #    position: Vec3T | None = None,
+    #    color: ColorT | None = None,
+    #    opacity: float | None = None
+    #):
+    #    self._scene_state.set_point_light(
+    #        index=index,
+    #        position=position,
+    #        color=color,
+    #        opacity=opacity
+    #    )
+    #    return self
 
-    def set_style(
-        self,
-        *,
-        background_color: ColorT | None = None,
-        background_opacity: float | None = None,
-        ambient_light_color: ColorT | None = None,
-        ambient_light_opacity: float | None = None,
-        point_light_position: Vec3T | None = None,
-        point_light_color: ColorT | None = None,
-        point_light_opacity: float | None = None
-    ):
-        self._scene_state.set_style(
-            background_color=background_color,
-            background_opacity=background_opacity,
-            ambient_light_color=ambient_light_color,
-            ambient_light_opacity=ambient_light_opacity,
-            point_light_position=point_light_position,
-            point_light_color=point_light_color,
-            point_light_opacity=point_light_opacity
-        )
-        return self
+    #def set_style(
+    #    self,
+    #    *,
+    #    background_color: ColorT | None = None,
+    #    background_opacity: float | None = None,
+    #    ambient_light_color: ColorT | None = None,
+    #    ambient_light_opacity: float | None = None,
+    #    point_light_position: Vec3T | None = None,
+    #    point_light_color: ColorT | None = None,
+    #    point_light_opacity: float | None = None
+    #):
+    #    self._scene_state.set_style(
+    #        background_color=background_color,
+    #        background_opacity=background_opacity,
+    #        ambient_light_color=ambient_light_color,
+    #        ambient_light_opacity=ambient_light_opacity,
+    #        point_light_position=point_light_position,
+    #        point_light_color=point_light_color,
+    #        point_light_opacity=point_light_opacity
+    #    )
+    #    return self
+
+    @property
+    def scene_state(self) -> SceneState:
+        return self._scene_state
 
     @classmethod
     def render(
@@ -339,20 +344,24 @@ class Scene(Animation):
             config = Config()
 
         ConfigSingleton.set(config)
+        if ConfigSingleton().rendering.scene_name is NotImplemented:
+            ConfigSingleton().rendering.scene_name = cls.__name__
+
         Context.activate()
         if ConfigSingleton().rendering.write_video:
-            Context.setup_writing_process(cls.__name__)
+            Context.setup_writing_process()
 
         self = cls()
 
         try:
-            try:
-                self._run()
-            except EndSceneException:
-                pass
-            finally:
-                if ConfigSingleton().rendering.write_last_frame:
-                    self._scene_frame._process_rendering(render_to_image=True)
+            #try:
+            #    self._run()
+            #except EndSceneException:
+            #    pass
+            #finally:
+            self._run()
+            if ConfigSingleton().rendering.write_last_frame:
+                self._scene_frame._process_rendering(render_to_image=True)
         except KeyboardInterrupt:
             pass
         finally:

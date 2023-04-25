@@ -67,7 +67,7 @@ class AccumulatedTimelineState:
 
 
 #UpdaterItemT = tuple[Callable[[float], None], Callable[[float], float]]
-AccumulatedTimelineT = Generator[AccumulatedTimelineState, None, None]
+#_AccumulatedTimelineT = Generator[AccumulatedTimelineState, None, None]
 
 
 class Animation:
@@ -78,10 +78,10 @@ class Animation:
         "_rate_func",
         #"_rate_func_inv",
         "_updater",
-        "_timeline",
+        #"_timeline",
         #"_timeline",
         #"_current_alpha",
-        "_new_children",
+        "_new_children"
         #"_absolute_rate_func",
         #"_all_children"
         #"_rest_wait_time"
@@ -100,14 +100,12 @@ class Animation:
         # `(0, run_time) |-> (0, run_alpha)`
         # Must be an increasing function.
         rate_func: Callable[[float], float] = RateUtils.linear,
-        # Update continuously (per frame). Called on `alpha`.
-        updater: Callable[[float], None] | None = None,
-        # Yield `delta_alpha` values.
-        timeline: Generator[float, None, None] | None = None
+        # Update continuously (per frame).
+        updater: Callable[[float], None] | None = None
     ) -> None:
         super().__init__()
-        if timeline is None:
-            timeline = self.timeline()
+        #if timeline is None:
+        #    timeline = self.timeline()
         assert start_time >= 0.0
         assert run_time is None or run_time >= 0.0
         assert lag_time >= 0.0
@@ -117,7 +115,8 @@ class Animation:
         self._rate_func: Callable[[float], float] = rate_func
         #self._rate_func_inv: Callable[[float], float] = RateUtils.inverse(rate_func)
         self._updater: Callable[[float], None] | None = updater
-        self._timeline: Generator[float, None, None] = timeline
+        #self._updater: Callable[[float], None] | None = updater
+        #self._timeline: Generator[float, None, None] = timeline
         # General updater.
         #self._timeline: Generator[float, None, None] = self.timeline()
         #self._current_alpha: float = 0.0
@@ -128,6 +127,16 @@ class Animation:
 
         #self._absolute_rate_func: Callable[[float], float] = NotImplemented
         #self._all_children: list[Animation] = []
+
+    #def updater(
+    #    self,
+    #    alpha: float
+    #) -> None:
+    #    pass
+
+    # Yield `delta_alpha` values.
+    def timeline(self) -> Iterator[float]:
+        raise StopIteration
 
     #@property
     #def _suitable_play_wait_time(self) -> float | None:
@@ -201,19 +210,19 @@ class Animation:
     #    for child in self._children:
     #        yield from child._iter_animation_descendants()
 
-    def _accumulated_timeline(self) -> AccumulatedTimelineT:
+    def _accumulated_timeline(self) -> Generator[AccumulatedTimelineState, None, None]:
 
-        def lag_rate_func(
-            #rate_func: Callable[[float], float],
-            lag_time: float
-        ) -> Callable[[float], float]:
+        #def lag_rate_func(
+        #    #rate_func: Callable[[float], float],
+        #    lag_time: float
+        #) -> Callable[[float], float]:
 
-            def result(
-                t: float
-            ) -> float:
-                return t - lag_time
+        #    def result(
+        #        t: float
+        #    ) -> float:
+        #        return t - lag_time
 
-            return result
+        #    return result
 
         start_time = self._start_time
         run_time = self._run_time
@@ -226,12 +235,12 @@ class Animation:
         #updater = self._updater
         #timeline = self.timeline()
 
-        #accumuted_timeline_to_updater_item: dict[AccumulatedTimelineT, UpdaterItem] = {}
-        #accumulated_timelines: dict[AccumulatedTimelineT, UpdaterItem] = {}
-        awaiting_accumulated_timelines: dict[AccumulatedTimelineT, AccumulatedTimelineState] = {}
-        processing_accumulated_timelines: list[AccumulatedTimelineT] = []
+        #accumuted_timeline_to_updater_item: dict[_AccumulatedTimelineT, UpdaterItem] = {}
+        #accumulated_timelines: dict[_AccumulatedTimelineT, UpdaterItem] = {}
+        awaiting_accumulated_timelines: dict[Generator[AccumulatedTimelineState, None, None], AccumulatedTimelineState] = {}
+        processing_accumulated_timelines: list[Generator[AccumulatedTimelineState, None, None]] = []
         updater_item_convert_dict: dict[UpdaterItem, UpdaterItem] = {}
-        #absolute_rate_func_cache: dict[AccumulatedTimelineT, Callable[[float], float]] = {}
+        #absolute_rate_func_cache: dict[_AccumulatedTimelineT, Callable[[float], float]] = {}
         #updater_items: list[UpdaterItem] = []
 
         #yield AccumulatedTimelineState(
@@ -248,7 +257,7 @@ class Animation:
             timestamp=lag_time,
             verb=UpdaterItemVerb.APPEND
         )
-        for wait_delta_alpha in self._timeline:
+        for wait_delta_alpha in self.timeline():
             #try:
             #    wait_delta_alpha = timeline.send(None)
             #except StopIteration:
@@ -299,7 +308,7 @@ class Animation:
             #self._new_children.clear()
 
             while True:
-                #pending_accumulated_timelines: dict[AccumulatedTimelineT, AccumulatedTimelineState] = []
+                #pending_accumulated_timelines: dict[_AccumulatedTimelineT, AccumulatedTimelineState] = []
                 for child_accumulated_timeline in processing_accumulated_timelines:
                     try:
                         child_state = child_accumulated_timeline.send(None)
@@ -354,16 +363,20 @@ class Animation:
                 child_state = awaiting_accumulated_timelines.pop(target_accumulated_timeline)
                 processing_accumulated_timelines.append(target_accumulated_timeline)
 
-                if (child_updater_item := updater_item_convert_dict.pop(child_state.updater_item)) is None:
+                if (child_updater_item := updater_item_convert_dict.pop(child_state.updater_item, None)) is None:
+                    assert child_state.verb == UpdaterItemVerb.APPEND
                     child_updater_item = UpdaterItem(
                         updater=child_state.updater_item.updater,
                         absolute_rate_func=RateUtils.compose(
                             child_state.updater_item.absolute_rate_func,
-                            lag_rate_func(child_timestamp),
-                            rate_func
+                            RateUtils.adjust(rate_func, lag_time=child_timestamp)
+                            #lag_rate_func(child_timestamp),
+                            #rate_func
                         )
                     )
                     updater_item_convert_dict[child_state.updater_item] = child_updater_item
+                else:
+                    assert child_state.verb == UpdaterItemVerb.REMOVE
                 yield AccumulatedTimelineState(
                     updater_item=child_updater_item,
                     timestamp=lag_time + child_timestamp - start_time,
@@ -374,9 +387,9 @@ class Animation:
                 #        awaiting_accumulated_timelines.pop(child_accumulated_timeline)
                 #        processing_accumulated_timelines.append(child_accumulated_timeline)
 
+            current_time = new_time
             if early_break:
                 break
-            current_time = new_time
 
         yield AccumulatedTimelineState(
             updater_item=updater_item,
@@ -458,7 +471,4 @@ class Animation:
     #    #    wait_time = max(t for animation in animations if (t := animation._stop_time) is not None)
     #    #except ValueError:
     #    #    wait_time = 0.0
-    #    #await self.wait(wait_time)
-
-    def timeline(self) -> Generator[float, None, None]:
-        raise StopIteration
+    #    #await self.wait(wait_time),

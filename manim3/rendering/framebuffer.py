@@ -14,7 +14,7 @@ from ..rendering.mgl_enums import (
 class Framebuffer:
     __slots__ = (
         "framebuffer",
-        "context_state"
+        "default_context_state"
     )
 
     def __init__(
@@ -23,7 +23,7 @@ class Framebuffer:
         color_attachments: tuple[moderngl.Texture, ...] = (),
         depth_attachment: moderngl.Texture | None = None,
         framebuffer: moderngl.Framebuffer | None = None,
-        context_state: ContextState
+        default_context_state: ContextState
     ) -> None:
         if framebuffer is None:
             framebuffer = Context.framebuffer(
@@ -31,7 +31,7 @@ class Framebuffer:
                 depth_attachment=depth_attachment
             )
         self.framebuffer: moderngl.Framebuffer = framebuffer
-        self.context_state: ContextState = context_state
+        self.default_context_state: ContextState = default_context_state
 
 
 class OpaqueFramebuffer(Framebuffer):
@@ -49,7 +49,7 @@ class OpaqueFramebuffer(Framebuffer):
         super().__init__(
             color_attachments=(color_texture,),
             depth_attachment=depth_texture,
-            context_state=ContextState(
+            default_context_state=ContextState(
                 flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
                 blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
             )
@@ -75,7 +75,7 @@ class TransparentFramebuffer(Framebuffer):
         super().__init__(
             color_attachments=(accum_texture, revealage_texture),
             depth_attachment=depth_texture,
-            context_state=ContextState(
+            default_context_state=ContextState(
                 flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
                 blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_COLOR)),
                 blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
@@ -97,7 +97,7 @@ class ColorFramebuffer(Framebuffer):
         super().__init__(
             color_attachments=(color_texture,),
             depth_attachment=None,
-            context_state=ContextState(
+            default_context_state=ContextState(
                 flags=()
             )
         )

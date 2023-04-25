@@ -1,4 +1,4 @@
-import time
+#import time
 
 import numpy as np
 from PIL import Image
@@ -15,8 +15,8 @@ from ..rendering.context import (
 from ..rendering.framebuffer import (
     ColorFramebuffer,
     Framebuffer,
-    TransparentFramebuffer,
-    OpaqueFramebuffer
+    OpaqueFramebuffer,
+    TransparentFramebuffer
 )
 from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.mgl_enums import ContextFlag
@@ -145,6 +145,7 @@ class SceneFrame(Mobject):
 
     def _process_rendering(
         self,
+        *,
         render_to_video: bool = False,
         render_to_image: bool = False
     ) -> None:
@@ -171,7 +172,7 @@ class SceneFrame(Mobject):
                     self._pixelated_vertex_array_.render(
                         framebuffer=Framebuffer(
                             framebuffer=Context.window_framebuffer,
-                            context_state=ContextState(
+                            default_context_state=ContextState(
                                 flags=()
                             )
                         ),
@@ -179,20 +180,21 @@ class SceneFrame(Mobject):
                             "t_color_map": np.array(color_texture)
                         }
                     )
-                    if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
-                            (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:
-                        time.sleep(sleep_t)
+                    #if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
+                    #        (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:
+                    #    time.sleep(sleep_t)
                     window.swap_buffers()
-                self._previous_frame_rendering_timestamp = time.time()
+                #self._previous_frame_rendering_timestamp = time.time()
 
             if render_to_image:
+                scene_name = ConfigSingleton().rendering.scene_name
                 image = Image.frombytes(
                     "RGBA",
                     ConfigSingleton().size.pixel_size,
                     framebuffer.framebuffer.read(components=4),
                     "raw"
                 ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-                image.save(ConfigSingleton().path.output_dir.joinpath(f"{type(self).__name__}.png"))
+                image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
 
     #def add_pass(
     #    self,

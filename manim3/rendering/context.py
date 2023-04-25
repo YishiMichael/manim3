@@ -73,10 +73,8 @@ class Context:
         cls._WINDOW_FRAMEBUFFER = window_framebuffer
 
     @classmethod
-    def setup_writing_process(
-        cls,
-        scene_name: str
-    ) -> None:
+    def setup_writing_process(cls) -> None:
+        scene_name = ConfigSingleton().rendering.scene_name
         cls._WRITING_PROCESS = sp.Popen((
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.

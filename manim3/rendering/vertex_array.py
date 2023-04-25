@@ -128,7 +128,7 @@ class Program(LazyObject):
         _texture_id_buffer_formats_: list[BufferFormat],
         varyings: tuple[str, ...]
     ) -> ProgramInfo:
-        
+
         def construct_moderngl_program(
             shader_str: str,
             custom_macros: tuple[str, ...],
@@ -499,7 +499,7 @@ class VertexArray(LazyObject):
         if texture_array_dict is None:
             texture_array_dict = {}
         if context_state is None:
-            context_state = framebuffer.context_state
+            context_state = framebuffer.default_context_state
         with Context.scope(
             framebuffer=framebuffer.framebuffer,
             textures=self._program_._get_texture_bindings(texture_array_dict),

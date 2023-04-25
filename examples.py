@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Iterator
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -6,7 +6,7 @@ from manim3 import *
 
 
 class ShapeTransformExample(Scene):
-    def timeline(self) -> Generator[float, None, None]:
+    def timeline(self) -> Iterator[float]:
         circle = Circle()
         circle.set_style(color=Palette.PINK, opacity=0.9)
         circle.add(circle.build_stroke(color=Palette.YELLOW, width=0.4))
@@ -19,7 +19,7 @@ class ShapeTransformExample(Scene):
 
 
 class TexTransformExample(Scene):
-    def timeline(self) -> Generator[float, None, None]:
+    def timeline(self) -> Iterator[float]:
         text = (Text("Text")
             .scale(3)
             .set_style(color=Palette.ORANGE, opacity=0.5)
@@ -68,7 +68,7 @@ class Rotating(Animation):
 
 
 class ThreeDTextExample(Scene):
-    def timeline(self) -> Generator[float, None, None]:
+    def timeline(self) -> Iterator[float]:
         self.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
         text = Text("Text").concatenate()
         text_3d = MeshMobject().set_geometry(PrismoidGeometry(text.get_shape()))
@@ -80,7 +80,7 @@ class ThreeDTextExample(Scene):
 
 
 class OITExample(Scene):
-    def timeline(self) -> Generator[float, None, None]:
+    def timeline(self) -> Iterator[float]:
         self.add(*reversed([
             (Circle()
                 .set_style(color=color, opacity=opacity)
