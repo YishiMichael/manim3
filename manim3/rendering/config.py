@@ -58,63 +58,9 @@ class RenderingConfig:
     fps: int
     start_time: float
     stop_time: float | None
-    #start_frame_index: int | None
-    #stop_frame_index: int | None
     write_video: bool
     write_last_frame: bool
     preview: bool
-
-    #@property
-    #def start_time(self) -> float | None:
-    #    return None if self.start_frame_index is None else self.start_frame_index / self.fps
-
-    #@property
-    #def stop_time(self) -> float | None:
-    #    return None if self.stop_frame_index is None else self.stop_frame_index / self.fps
-
-    #@property
-    #def time_span(self) -> tuple[float | None, float | None]:
-    #    return (self.start_time, self.start_time + self.run_time)
-
-    #@start_time.setter
-    #def start_time(
-    #    self,
-    #    start_time: float | None
-    #) -> None:
-    #    start_frame_index = None if start_time is None else int(start_time * self.fps)
-    #    self._validate_frame_index_span(start_frame_index, self.stop_frame_index)
-    #    self.start_frame_index = start_frame_index
-
-    #@stop_time.setter
-    #def stop_time(
-    #    self,
-    #    stop_time: float | None
-    #) -> None:
-    #    stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
-    #    self._validate_frame_index_span(self.start_frame_index, stop_frame_index)
-    #    self.stop_frame_index = stop_frame_index
-
-    #@time_span.setter
-    #def time_span(
-    #    self,
-    #    time_span: tuple[float | None, float | None]
-    #) -> None:
-    #    start_time, stop_time = time_span
-    #    start_frame_index = None if start_time is None else int(start_time * self.fps)
-    #    stop_frame_index = None if stop_time is None else int(stop_time * self.fps)
-    #    self._validate_frame_index_span(start_frame_index, stop_frame_index)
-    #    self.start_frame_index = start_frame_index
-    #    self.stop_frame_index = stop_frame_index
-
-    #@classmethod
-    #def _validate_frame_index_span(
-    #    cls,
-    #    start_frame_index: int | None,
-    #    stop_frame_index: int | None
-    #) -> None:
-    #    assert (start_frame_index is None or start_frame_index >= 0) and (
-    #        start_frame_index is None or stop_frame_index is None or start_frame_index <= stop_frame_index
-    #    )
 
 
 @dataclass(
@@ -241,7 +187,7 @@ class Config:
         super().__init__()
         self._path: PathConfig = PathConfig()
         self._rendering: RenderingConfig = RenderingConfig(
-            scene_name=NotImplemented,
+            scene_name=NotImplemented,  # Represents the class name.
             fps=30,
             start_time=0.0,
             stop_time=None,

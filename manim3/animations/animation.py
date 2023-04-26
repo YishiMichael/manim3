@@ -1,17 +1,10 @@
 from dataclasses import dataclass
-#from enum import Enum
 from typing import (
     Callable,
     Iterator
 )
 
 from ..utils.rate import RateUtils
-
-
-#class UpdaterItemVerb(Enum):
-#    APPEND = 1
-#    NONE = 0
-#    REMOVE = -1
 
 
 @dataclass(
@@ -59,8 +52,6 @@ class AwaitSignal:
 class TimelineState:
     timestamp: float
     signal: UpdaterItemAppendSignal | UpdaterItemRemoveSignal | AwaitSignal
-    #updater_item: UpdaterItem | None
-    #verb: UpdaterItemVerb
 
 
 class TimelineManager:
@@ -142,7 +133,7 @@ class Animation:
 
     # Yield `delta_alpha` values.
     def timeline(self) -> Iterator[float]:
-        raise StopIteration
+        yield from ()
 
     def _absolute_timeline(self) -> Iterator[TimelineState]:
         relative_rate = self._relative_rate
@@ -163,12 +154,15 @@ class Animation:
             self_updater_item = None
 
         if self_updater_item is not None:
-            yield TimelineState(
-                timestamp=0.0,
-                signal=UpdaterItemAppendSignal(
-                    updater_item=self_updater_item
-                )
+            signal = UpdaterItemAppendSignal(
+                updater_item=self_updater_item
             )
+        else:
+            signal = AwaitSignal()
+        yield TimelineState(
+            timestamp=0.0,
+            signal=signal
+        )
 
         for wait_delta_alpha in self.timeline():
             for child in self._new_children:
@@ -221,41 +215,24 @@ class Animation:
                 )
                 manager.advance_state(timeline)
 
-                #updater_item = state.updater_item
-                #verb = state.verb
-                #if verb == UpdaterItemVerb.APPEND:
-                #    assert updater_item is not None
-                #    updater_item_convert_dict[updater_item] = new_updater_item
-                #elif verb == UpdaterItemVerb.REMOVE:
-                #    assert updater_item is not None
-                #    new_updater_item = updater_item_convert_dict.pop(updater_item)
-                #else:
-                #    assert updater_item is None
-                #    new_updater_item = None
-                #manager.advance_state(timeline)
-                #yield TimelineState(
-                #    timestamp=relative_rate_inv(next_alpha),
-                #    updater_item=new_updater_item,
-                #    verb=verb
-                #)
-
             yield TimelineState(
                 timestamp=relative_rate_inv(current_alpha),
                 signal=AwaitSignal()
-                #updater_item=None,
-                #verb=UpdaterItemVerb.NONE
             )
 
             if early_break:
                 break
 
         if self_updater_item is not None:
-            yield TimelineState(
-                timestamp=relative_rate_inv(current_alpha),
-                signal=UpdaterItemRemoveSignal(
-                    updater_item=self_updater_item
-                )
+            signal = UpdaterItemRemoveSignal(
+                updater_item=self_updater_item
             )
+        else:
+            signal = AwaitSignal()
+        yield TimelineState(
+            timestamp=relative_rate_inv(current_alpha),
+            signal=signal
+        )
 
     def prepare(
         self,

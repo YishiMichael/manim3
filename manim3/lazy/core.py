@@ -1084,9 +1084,6 @@ class LazyObject(ABC):
                 for _ in range(collection_level):
                     expected_annotation = list[expected_annotation]
                 assert expected_annotation == parameter.annotation
-                #if expected_annotation != parameter.annotation:
-                #    print(descriptor.converter.return_annotation)
-                #    print(cls, collection_level, name, expected_annotation, parameter.annotation)
 
             property_descriptor.descriptor_name_chains = tuple(descriptor_name_chain_list)
             property_descriptor.requires_unwrapping_tuple = tuple(requires_unwrapping_list)
@@ -1234,10 +1231,11 @@ class LazyObject(ABC):
         return result
 
     def _iter_variable_slots(self) -> Iterator[LazyVariableSlot]:
-        for descriptor in type(self)._lazy_descriptors:
-            if not isinstance(descriptor, LazyVariableDescriptor):
-                continue
-            yield descriptor.get_slot(self)
+        return (
+            descriptor.get_slot(self)
+            for descriptor in type(self)._lazy_descriptors
+            if isinstance(descriptor, LazyVariableDescriptor)
+        )
 
 
 class LazyWrapper(LazyObject, Generic[_T]):

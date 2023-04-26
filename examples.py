@@ -38,6 +38,10 @@ class TexTransformExample(Scene):
         self.add(text)
         yield from self.wait()
         yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
+        yield from self.wait()
+        yield from self.play(Transform(tex, tex.copy().shift(LEFT * 2), replace=False))
+        yield from self.wait()
+        yield from self.play(Transform(tex, tex.copy().shift(LEFT * 2), replace=False))
         yield from self.wait(3)
 
 
@@ -50,7 +54,6 @@ class Rotating(Animation):
         initial_mobject = mobject.copy()
 
         def updater(
-            #alpha_0: float,
             alpha: float
         ) -> None:
             initial_mobject.rotate(Rotation.from_rotvec(DOWN * alpha * 0.5))

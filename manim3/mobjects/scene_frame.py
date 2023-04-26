@@ -1,5 +1,3 @@
-#import time
-
 import numpy as np
 from PIL import Image
 
@@ -180,11 +178,7 @@ class SceneFrame(Mobject):
                             "t_color_map": np.array(color_texture)
                         }
                     )
-                    #if (previous_timestamp := self._previous_frame_rendering_timestamp) is not None and \
-                    #        (sleep_t := (1.0 / ConfigSingleton().rendering.fps) - (time.time() - previous_timestamp)) > 0.0:
-                    #    time.sleep(sleep_t)
                     window.swap_buffers()
-                #self._previous_frame_rendering_timestamp = time.time()
 
             if render_to_image:
                 scene_name = ConfigSingleton().rendering.scene_name
@@ -195,20 +189,6 @@ class SceneFrame(Mobject):
                     "raw"
                 ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
                 image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
-
-    #def add_pass(
-    #    self,
-    #    *render_passes: RenderPass
-    #):
-    #    self._render_passes_.extend(render_passes)
-    #    return self
-
-    #def discard_pass(
-    #    self,
-    #    *render_passes: RenderPass
-    #):
-    #    self._render_passes_.discard(*render_passes)
-    #    return self
 
     @property
     def render_passes(self) -> LazyDynamicContainer[RenderPass]:

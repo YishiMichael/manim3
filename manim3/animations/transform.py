@@ -118,7 +118,6 @@ class Transform(Animation):
         "_stop_mobject",
         "_intermediate_mobject",
         "_replace"
-        #"_intermediate_mobjects_with_callback"
     )
 
     def __init__(
@@ -127,7 +126,6 @@ class Transform(Animation):
         stop_mobject: Mobject,
         *,
         run_time: float = 2.0,
-        #lag_time: float = 0.0,
         rate_func: Callable[[float], float] | None = None,
         replace: bool = False
     ) -> None:
@@ -144,8 +142,6 @@ class Transform(Animation):
         ]
 
         def updater(
-            #self,
-            #alpha_0: float,
             alpha: float
         ) -> None:
             for mobject, callback in intermediate_mobjects_with_callback:
@@ -154,11 +150,7 @@ class Transform(Animation):
         if rate_func is None:
             rate_func = RateUtils.smooth
         super().__init__(
-            #alpha_animate_func=alpha_animate_func,
-            #alpha_regroup_items=alpha_regroup_items,
-            #start_time=0.0,
             run_time=run_time,
-            #lag_time=lag_time,
             relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time),
             updater=updater
         )
@@ -186,35 +178,6 @@ class Transform(Animation):
         else:
             start_mobject.becomes(stop_mobject)
             start_mobject.added_by(*all_parents)
-
-        #    alpha_regroup_items = [
-        #        (0.0, RegroupItem(
-        #            mobjects=all_parents,
-        #            verb=RegroupVerb.DISCARD,
-        #            targets=start_mobject
-        #        )),
-        #        (0.0, RegroupItem(
-        #            mobjects=all_parents,
-        #            verb=RegroupVerb.ADD,
-        #            targets=intermediate_mobject
-        #        )),
-        #        (1.0, RegroupItem(
-        #            mobjects=all_parents,
-        #            verb=RegroupVerb.DISCARD,
-        #            targets=intermediate_mobject
-        #        )),
-        #        (1.0, RegroupItem(
-        #            mobjects=all_parents,
-        #            verb=RegroupVerb.ADD,
-        #            targets=stop_mobject if replace else start_mobject
-        #        ))
-        #    ]
-        #if not replace:
-        #    alpha_regroup_items.append((1.0, RegroupItem(
-        #        mobjects=start_mobject,
-        #        verb=RegroupVerb.BECOMES,
-        #        targets=stop_mobject
-        #    )))
 
     @classmethod
     def _zip_mobjects_by_class(

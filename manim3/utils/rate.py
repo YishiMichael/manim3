@@ -10,7 +10,6 @@ class RateUtils:
     def __new__(cls):
         raise TypeError
 
-    # TODO: remove
     @classmethod
     def compose(
         cls,
