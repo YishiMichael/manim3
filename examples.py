@@ -37,7 +37,7 @@ class TexTransformExample(Scene):
         tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
-        yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True, rate_func=RateUtils.linear))
+        yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
         yield from self.wait(3)
 
 

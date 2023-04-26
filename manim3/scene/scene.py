@@ -9,8 +9,11 @@ from typing import Iterator
 from manim3.utils.rate import RateUtils
 from ..animations.animation import (
     Animation,
+    AwaitSignal,
     UpdaterItem,
-    UpdaterItemVerb
+    UpdaterItemAppendSignal,
+    UpdaterItemRemoveSignal,
+    #UpdaterItemVerb
 )
 #from ..custom_typing import (
 #    ColorT,
@@ -169,10 +172,10 @@ class Scene(Animation):
             updater_items: list[UpdaterItem]
         ) -> None:
             for updater_item in updater_items:
-                if (updater := updater_item.updater) is None:
-                    continue
-                print(updater_item.absolute_rate(timestamp))
-                updater(updater_item.absolute_rate(timestamp))
+                #if (updater := updater_item.updater) is None:
+                #    continue
+                #print(timestamp, updater_item.absolute_rate(timestamp))
+                updater_item.updater(updater_item.absolute_rate(timestamp))
 
         #timeline = self._absolute_timeline()
         #prev_timestamp = self._lag_time
@@ -193,11 +196,23 @@ class Scene(Animation):
                     terminated = True
                     break
                 state_final_timestamp = state.timestamp
-                print(state_final_timestamp)
-                if state.verb == UpdaterItemVerb.APPEND:
-                    updater_items.append(state.updater_item)
-                elif state.verb == UpdaterItemVerb.REMOVE:
-                    updater_items.remove(state.updater_item)
+                #print(state_final_timestamp)
+                signal = state.signal
+                if isinstance(signal, UpdaterItemAppendSignal):
+                    updater_items.append(signal.updater_item)
+                elif isinstance(signal, UpdaterItemRemoveSignal):
+                    updater_items.remove(signal.updater_item)
+                elif isinstance(signal, AwaitSignal):
+                    pass
+                else:
+                    raise TypeError
+                #updater_item = state.updater_item
+                #if state.verb == UpdaterItemVerb.APPEND:
+                #    assert updater_item is not None
+                #    updater_items.append(updater_item)
+                #elif state.verb == UpdaterItemVerb.REMOVE:
+                #    assert updater_item is not None
+                #    updater_items.remove(updater_item)
             if terminated:
                 break
             update(timestamp, updater_items)
