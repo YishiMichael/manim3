@@ -57,7 +57,7 @@ class RenderingConfig:
     scene_name: str
     fps: int
     start_time: float
-    run_time: float | None
+    stop_time: float | None
     #start_frame_index: int | None
     #stop_frame_index: int | None
     write_video: bool
@@ -244,7 +244,7 @@ class Config:
             scene_name=NotImplemented,
             fps=30,
             start_time=0.0,
-            run_time=None,
+            stop_time=None,
             write_video=False,
             write_last_frame=False,
             preview=True

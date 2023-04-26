@@ -3,7 +3,10 @@
 
 #import numpy as np
 
-#from typing import Generator
+import time
+from typing import Iterator
+
+from manim3.utils.rate import RateUtils
 from ..animations.animation import (
     Animation,
     UpdaterItem,
@@ -38,9 +41,11 @@ class Scene(Animation):
     )
 
     def __init__(self) -> None:
+        start_time = ConfigSingleton().rendering.start_time
+        stop_time = ConfigSingleton().rendering.stop_time
         super().__init__(
-            start_time=ConfigSingleton().rendering.start_time,
-            run_time=ConfigSingleton().rendering.run_time
+            run_time=stop_time - start_time if stop_time is not None else None,
+            relative_rate=RateUtils.adjust(RateUtils.linear, lag_time=-start_time)
         )
         self._scene_state: SceneState = SceneState()
         self._scene_frame: SceneFrame = SceneFrame()
@@ -143,6 +148,22 @@ class Scene(Animation):
         #            continue
         #        animation._coroutine.send(None)
 
+        def frame_clock(
+            fps: float,
+            sleep: bool
+        ) -> Iterator[float]:
+            spf = 1.0 / fps
+            # Do integer increment to avoid accumulated error in float addition.
+            frame_index: int = 0
+            prev_real_time: float = 0.0
+            while True:
+                yield frame_index * spf
+                frame_index += 1
+                real_time = time.time()
+                if sleep and (sleep_time := spf - (real_time - prev_real_time)) > 0.0:
+                    time.sleep(sleep_time)
+                prev_real_time = real_time
+
         def update(
             timestamp: float,
             updater_items: list[UpdaterItem]
@@ -150,31 +171,59 @@ class Scene(Animation):
             for updater_item in updater_items:
                 if (updater := updater_item.updater) is None:
                     continue
-                updater(updater_item.absolute_rate_func(timestamp))
+                print(updater_item.absolute_rate(timestamp))
+                updater(updater_item.absolute_rate(timestamp))
 
-        #timeline = self._accumulated_timeline()
+        #timeline = self._absolute_timeline()
         #prev_timestamp = self._lag_time
-        spf = 1.0 / ConfigSingleton().rendering.fps
-        timestamp = 0.0
+        #spf = 1.0 / ConfigSingleton().rendering.fps
+        absolute_timeline = self._absolute_timeline()
+        state_final_timestamp = 0.0
         updater_items: list[UpdaterItem] = []
-        for state in self._accumulated_timeline():
-            #try:
-            #    state = timeline.send(None)
-            #except StopIteration:
-            #    break
+        terminated: bool = False
+        for timestamp in frame_clock(
+            fps=ConfigSingleton().rendering.fps,
+            sleep=ConfigSingleton().rendering.preview
+        ):
+            while timestamp > state_final_timestamp:
+                update(state_final_timestamp, updater_items)
+                try:
+                    state = next(absolute_timeline)
+                except StopIteration:
+                    terminated = True
+                    break
+                state_final_timestamp = state.timestamp
+                print(state_final_timestamp)
+                if state.verb == UpdaterItemVerb.APPEND:
+                    updater_items.append(state.updater_item)
+                elif state.verb == UpdaterItemVerb.REMOVE:
+                    updater_items.remove(state.updater_item)
+            if terminated:
+                break
+            update(timestamp, updater_items)
+            self._scene_frame._process_rendering(render_to_video=True)
+            # TODO: async wait spf if ConfigSingleton().rendering.preview
 
-            if state.verb == UpdaterItemVerb.APPEND:
-                updater_items.append(state.updater_item)
-            elif state.verb == UpdaterItemVerb.REMOVE:
-                updater_items.remove(state.updater_item)
+        #clock = frame_clock(spf)
+        #timestamp = next(clock)
+        #for state in self._absolute_timeline():
+        #    #try:
+        #    #    state = timeline.send(None)
+        #    #except StopIteration:
+        #    #    break
 
-            final_timestamp = state.timestamp
-            while timestamp < final_timestamp:
-                update(timestamp, updater_items)
-                self._scene_frame._process_rendering(render_to_video=True)
-                # TODO: async wait spf if ConfigSingleton().rendering.preview
-                timestamp += spf
-            update(final_timestamp, updater_items)
+        #    if state.verb == UpdaterItemVerb.APPEND:
+        #        updater_items.append(state.updater_item)
+        #    elif state.verb == UpdaterItemVerb.REMOVE:
+        #        updater_items.remove(state.updater_item)
+
+        #    final_timestamp = state.timestamp
+        #    while timestamp <= final_timestamp:
+        #        update(timestamp, updater_items)
+        #        self._scene_frame._process_rendering(render_to_video=True)
+        #        # TODO: async wait spf if ConfigSingleton().rendering.preview
+        #        timestamp = next(clock)
+        #    update(final_timestamp, updater_items)
 
     def add(
         self,

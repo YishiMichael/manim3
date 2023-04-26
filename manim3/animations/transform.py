@@ -127,6 +127,7 @@ class Transform(Animation):
         stop_mobject: Mobject,
         *,
         run_time: float = 2.0,
+        #lag_time: float = 0.0,
         rate_func: Callable[[float], float] | None = None,
         replace: bool = False
     ) -> None:
@@ -157,7 +158,8 @@ class Transform(Animation):
             #alpha_regroup_items=alpha_regroup_items,
             #start_time=0.0,
             run_time=run_time,
-            rate_func=RateUtils.adjust(rate_func, run_time_scale=run_time),
+            #lag_time=lag_time,
+            relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time),
             updater=updater
         )
         self._start_mobject: Mobject = start_mobject

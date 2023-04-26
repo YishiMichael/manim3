@@ -37,7 +37,7 @@ class TexTransformExample(Scene):
         tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
-        yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
+        yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True, rate_func=RateUtils.linear))
         yield from self.wait(3)
 
 
@@ -69,7 +69,7 @@ class Rotating(Animation):
 
 class ThreeDTextExample(Scene):
     def timeline(self) -> Iterator[float]:
-        self.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
+        self.scene_state.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
         text = Text("Text").concatenate()
         text_3d = MeshMobject().set_geometry(PrismoidGeometry(text.get_shape()))
         text_3d.scale(5.0).stretch_to_fit_depth(0.5)
