@@ -1202,32 +1202,21 @@ class LazyObject(ABC):
         for descriptor in cls._lazy_descriptors:
             descriptor.initialize(self)
 
-    def _becomes(
-        self: _ElementT,
-        src: _ElementT
-    ) -> None:
-        # Two instances can "become" each other if the type of one is inherited from that of another,
-        # and the inheritance does not commit any addition or overloading of lazy descriptors,
-        # or addition of slots.
-        assert (descriptors := type(self)._lazy_descriptors) == type(src)._lazy_descriptors
-        for descriptor in descriptors:
-            descriptor.get_slot(self).copy_from(descriptor.get_slot(src))
-        assert (slot_names := type(self)._py_slots) == type(src)._py_slots
-        for slot_name in slot_names:
-            src_value = copy.copy(src.__getattribute__(slot_name))
+    def _copy(self: _ElementT) -> _ElementT:
+        cls = type(self)
+        result = cls.__new__(cls)
+        result._initialize_descriptors()
+        for descriptor in cls._lazy_descriptors:
+            descriptor.get_slot(result).copy_from(descriptor.get_slot(self))
+        for slot_name in cls._py_slots:
+            src_value = copy.copy(self.__getattribute__(slot_name))
             # TODO: This looks like a temporary patch... Is there any better practice?
             if isinstance(src_value, weakref.WeakSet):
                 # Use `WeakSet.update` instead of `copy.copy` for better behavior.
                 dst_value = src_value.copy()
             else:
                 dst_value = copy.copy(src_value)
-            self.__setattr__(slot_name, dst_value)
-
-    def _copy(self: _ElementT) -> _ElementT:
-        cls = type(self)
-        result = cls.__new__(cls)
-        result._initialize_descriptors()
-        result._becomes(self)
+            result.__setattr__(slot_name, dst_value)
         return result
 
     def _iter_variable_slots(self) -> Iterator[LazyVariableSlot]:

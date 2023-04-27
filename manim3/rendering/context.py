@@ -36,6 +36,7 @@ class Context:
     __slots__ = ()
 
     _GL_VERSION: ClassVar[tuple[int, int]] = (4, 3)
+    _GL_VERSION_CODE: ClassVar[int] = 430
     _MGL_CONTEXT: ClassVar[moderngl.Context | None] = None
     _WINDOW: ClassVar[Window | None] = None
     _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
@@ -63,7 +64,7 @@ class Context:
         else:
             window = None
             mgl_context = moderngl.create_context(
-                require=cls._GL_VERSION[0] * 100 + cls._GL_VERSION[1] * 10,
+                require=cls._GL_VERSION_CODE,
                 standalone=True
             )
             window_framebuffer = None

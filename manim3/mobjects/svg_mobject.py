@@ -59,9 +59,9 @@ class SVGMobject(ShapeMobject):
         self,
         file_path: str | pathlib.Path | None = None,
         *,
-        frame_scale: float | None = None,
         width: float | None = None,
-        height: float | None = None
+        height: float | None = None,
+        frame_scale: float | None = None
     ) -> None:
         super().__init__()
         if file_path is None:
@@ -76,9 +76,9 @@ class SVGMobject(ShapeMobject):
         # so that the center of the geometry falls on the origin.
         transform = self._get_transform(
             bbox=bbox,
-            frame_scale=frame_scale,
             width=width,
-            height=height
+            height=height,
+            frame_scale=frame_scale
         )
         self.add(*(
             shape_mobject.set_style(
@@ -95,9 +95,9 @@ class SVGMobject(ShapeMobject):
     def _get_transform(
         cls,
         bbox: tuple[float, float, float, float],
-        frame_scale: float | None,
         width: float | None,
-        height: float | None
+        height: float | None,
+        frame_scale: float | None
     ) -> se.Matrix:
 
         def perspective(
@@ -131,9 +131,9 @@ class SVGMobject(ShapeMobject):
         x_scale, y_scale = cls._get_frame_scale_vector(
             original_width=radius_x * 2.0,
             original_height=radius_y * 2.0,
-            specified_frame_scale=frame_scale,
             specified_width=width,
-            specified_height=height
+            specified_height=height,
+            specified_frame_scale=frame_scale
         )
         transform *= perspective(
             origin_x=0.0,

@@ -110,7 +110,7 @@ class Mobject(LazyObject):
         return []
 
     @classmethod
-    def _update_families(
+    def _refresh_families(
         cls,
         *mobjects: "Mobject"
     ) -> None:
@@ -204,7 +204,7 @@ class Mobject(LazyObject):
         self._children_.extend(filtered_mobjects)
         for mobject in filtered_mobjects:
             mobject._parents.add(self)
-        self._update_families(self, *filtered_mobjects)
+        self._refresh_families(self)
         return self
 
     def discard(
@@ -218,7 +218,7 @@ class Mobject(LazyObject):
         self._children_.eliminate(filtered_mobjects)
         for mobject in filtered_mobjects:
             mobject._parents.remove(self)
-        self._update_families(self, *filtered_mobjects)
+        self._refresh_families(self, *filtered_mobjects)
         return self
 
     def added_by(
@@ -237,7 +237,7 @@ class Mobject(LazyObject):
         self._parents.update(filtered_mobjects)
         for mobject in filtered_mobjects:
             mobject._children_.append(self)
-        self._update_families(self, *filtered_mobjects)
+        self._refresh_families(self)
         return self
 
     def discarded_by(
@@ -251,62 +251,48 @@ class Mobject(LazyObject):
         self._parents.difference_update(filtered_mobjects)
         for mobject in filtered_mobjects:
             mobject._children_.remove(self)
-        self._update_families(self, *filtered_mobjects)
+        self._refresh_families(self, *filtered_mobjects)
         return self
 
     def clear(self):
         self.discard(*self.iter_children())
         return self
 
-    def becomes(
-        self,
-        src: "Mobject"
-    ):
-        #if self is src:
-        #    return self
-        parents = list(self.iter_parents())
-        #self.clear()
-        self._becomes(src)  # TODO
-        self._parents.update(parents)
-        self._update_families(self)
-        #self.add(*src.iter_children())
-        #for parent in parents:
-        #    parent.add(self)
-        return self
-
     def copy(self):
-        # Copy all descendants. The result mobject is bound to all `self._parents`.
+        # Copy all descendants. The result is not bound to any mobject.
         result = self._copy()
-        real_descendants: list[Mobject] = list(self._real_descendants_)
-        real_descendants_copy: list[Mobject] = [
+        real_descendants = list(self._real_descendants_)
+        real_descendants_copy = [
             descendant._copy()
             for descendant in real_descendants
         ]
         descendants = [self, *real_descendants]
         descendants_copy = [result, *real_descendants_copy]
 
-        def match_descendants(
+        def match_copies(
             mobjects: Iterable[Mobject]
         ) -> Iterator[Mobject]:
-            for mobject in mobjects:
-                yield descendants_copy[descendants.index(mobject)]
+            return (
+                descendants_copy[descendants.index(mobject)] if mobject in descendants else mobject
+                for mobject in mobjects
+            )
 
-        result._children_.reset(match_descendants(self._children_))
+        result._children_.reset(match_copies(self._children_))
         result._parents.clear()
         for real_descendant, real_descendant_copy in zip(real_descendants, real_descendants_copy, strict=True):
-            real_descendant_copy._children_.reset(match_descendants(real_descendant._children_))
+            real_descendant_copy._children_.reset(match_copies(real_descendant._children_))
             real_descendant_copy._parents.clear()
-            real_descendant_copy._parents.update(match_descendants(real_descendant._parents))
+            real_descendant_copy._parents.update(match_copies(real_descendant._parents))
 
-        self._update_families(*descendants)
-        result.added_by(*self._parents)
+        self._refresh_families(*descendants_copy)
         return result
 
     def copy_standalone(self):
-        # Copy without any real descendant. The result mobject is not bound.
+        # Copy without any real descendant. The result is not bound to any mobject.
         result = self._copy()
         result._children_.clear()
         result._parents.clear()
+        self._refresh_families(result)
         return result
 
     # matrix & transform
@@ -425,6 +411,18 @@ class Mobject(LazyObject):
     ) -> Vec3T:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
+    @classmethod
+    def get_relative_transform_matrix(
+        cls,
+        matrix: Mat4T,
+        about_point: Vec3T
+    ) -> Mat4T:
+        return reduce(np.ndarray.__matmul__, (
+            SpaceUtils.matrix_from_translation(about_point),
+            matrix,
+            SpaceUtils.matrix_from_translation(-about_point)
+        ))
+
     def apply_transform(
         self,
         matrix: Mat4T,
@@ -456,15 +454,14 @@ class Mobject(LazyObject):
         elif about_edge is not None:
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
-        matrix = reduce(np.ndarray.__matmul__, (
-            SpaceUtils.matrix_from_translation(about_point),
-            matrix,
-            SpaceUtils.matrix_from_translation(-about_point)
-        ))
-        if np.isclose(np.linalg.det(matrix), 0.0):
+        relative_matrix = self.get_relative_transform_matrix(
+            matrix=matrix,
+            about_point=about_point
+        )
+        if np.isclose(np.linalg.det(relative_matrix), 0.0):
             warnings.warn("Applying a singular matrix transform")
         self.apply_transform(
-            matrix=matrix,
+            matrix=relative_matrix,
             broadcast=broadcast
         )
         return self
@@ -669,26 +666,24 @@ class Mobject(LazyObject):
         *,
         original_width: float,
         original_height: float,
-        specified_frame_scale: float | None,
         specified_width: float | None,
-        specified_height: float | None
-    ) -> Vec2T:
-        scale_factor = np.ones(2)
-        if specified_width is None and specified_height is None:
-            if specified_frame_scale is not None:
-                scale_factor *= specified_frame_scale
-        elif specified_width is not None and specified_height is None:
-            scale_factor *= specified_width / original_width
+        specified_height: float | None,
+        specified_frame_scale: float | None
+    ) -> tuple[float, float]:
+        if specified_width is not None and specified_height is not None:
+            return specified_width / original_width, specified_height / original_height
+        if specified_width is not None and specified_height is None:
+            scale_factor = specified_width / original_width
         elif specified_width is None and specified_height is not None:
-            scale_factor *= specified_height / original_height
-        elif specified_width is not None and specified_height is not None:
-            scale_factor *= np.array((
-                specified_width / original_width,
-                specified_height / original_height
-            ))
+            scale_factor = specified_height / original_height
+        elif specified_width is None and specified_height is None:
+            if specified_frame_scale is None:
+                scale_factor = 1.0
+            else:
+                scale_factor = specified_frame_scale
         else:
             raise ValueError  # never
-        return scale_factor
+        return scale_factor, scale_factor
 
     # rotate relatives
 

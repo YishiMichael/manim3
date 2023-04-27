@@ -106,13 +106,13 @@ class MarkupTextFileWriter(StringFileWriter):
         justify: bool,
         indent: float,
         alignment: PangoAlignment,
-        line_width: float | None
+        line_width: float
     ) -> None:
         super().__init__()
         self._justify: bool = justify
         self._indent: float = indent
         self._alignment: PangoAlignment = alignment
-        self._line_width: float | None = line_width
+        self._line_width: float = line_width
 
     def get_svg_path(
         self,
@@ -140,7 +140,7 @@ class MarkupTextFileWriter(StringFileWriter):
             indent=self._indent,
             alignment=self._alignment,
             pango_width=(
-                -1 if (line_width := self._line_width) is None
+                -1 if (line_width := self._line_width) < 0.0
                 else line_width * ConfigSingleton().size.pixel_per_unit
             )
         )
@@ -382,17 +382,17 @@ class Text(StringMobject):
         isolate: SelectorT = (),
         protect: SelectorT = (),
         local_configs: dict[SelectorT, dict[str, str]] | None = None,
-        justify: bool = ...,
-        indent: float = ...,
-        alignment: str = ...,
-        line_width: float | None = ...,
-        font_size: float = ...,
-        font: str = ...,
-        slant: str = ...,
-        weight: str = ...,
-        base_color: ColorT = ...,
-        line_spacing_height: float = ...,
-        global_config: dict[str, str] = ...,
+        justify: bool | None = None,
+        indent: float | None = None,
+        alignment: str | None = None,
+        line_width: float | None = None,
+        font_size: float | None = None,
+        font: str | None = None,
+        slant: str | None = None,
+        weight: str | None = None,
+        base_color: ColorT | None = None,
+        line_spacing_height: float | None = None,
+        global_config: dict[str, str] | None = None,
         markup: bool = False
     ) -> None:
         if markup:
@@ -401,27 +401,27 @@ class Text(StringMobject):
             local_configs = {}
 
         config = ConfigSingleton().text
-        if justify is ...:
+        if justify is None:
             justify = config.justify
-        if indent is ...:
+        if indent is None:
             indent = config.indent
-        if alignment is ...:
+        if alignment is None:
             alignment = config.alignment
-        if line_width is ...:
+        if line_width is None:
             line_width = config.line_width
-        if font_size is ...:
+        if font_size is None:
             font_size = config.font_size
-        if font is ...:
+        if font is None:
             font = config.font
-        if slant is ...:
+        if slant is None:
             slant = config.slant
-        if weight is ...:
+        if weight is None:
             weight = config.weight
-        if base_color is ...:
+        if base_color is None:
             base_color = config.base_color
-        if line_spacing_height is ...:
+        if line_spacing_height is None:
             line_spacing_height = config.line_spacing_height
-        if global_config is ...:
+        if global_config is None:
             global_config = config.global_config
 
         global_attrs = self._get_global_attrs(

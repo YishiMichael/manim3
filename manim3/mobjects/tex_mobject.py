@@ -61,15 +61,15 @@ class TexFileWriter(StringFileWriter):
         use_mathjax: bool,
         preamble: str,
         template: str,
-        alignment: str | None,
-        environment: str | None
+        alignment: str,
+        environment: str
     ) -> None:
         super().__init__()
         self._use_mathjax: bool = use_mathjax
         self._preamble: str = preamble
         self._template: str = template
-        self._alignment: str | None = alignment
-        self._environment: str | None = environment
+        self._alignment: str = alignment
+        self._environment: str = environment
 
     def get_svg_path(
         self,
@@ -122,10 +122,10 @@ class TexFileWriter(StringFileWriter):
                 self._preamble,
                 tex_template.preamble,
                 "\\begin{document}",
-                alignment if alignment is not None else "",
-                f"\\begin{{{environment}}}" if environment is not None else "",
+                alignment,
+                f"\\begin{{{environment}}}" if environment else "",
                 content,
-                f"\\end{{{environment}}}" if environment is not None else "",
+                f"\\end{{{environment}}}" if environment else "",
                 "\\end{document}"
             ))) + "\n"
             tex_file.write(full_content)
@@ -362,13 +362,13 @@ class Tex(StringMobject):
         isolate: SelectorT = (),
         protect: SelectorT = (),
         tex_to_color_map: dict[str, ColorT] | None = None,
-        use_mathjax: bool = ...,
-        preamble: str = ...,
-        template: str = ...,
-        alignment: str | None = ...,
-        environment: str | None = ...,
-        base_color: ColorT = ...,
-        font_size: float = ...
+        use_mathjax: bool | None = None,
+        preamble: str | None = None,
+        template: str | None = None,
+        alignment: str | None = None,
+        environment: str | None = None,
+        base_color: ColorT | None = None,
+        font_size: float | None = None
     ) -> None:
         # Prevent from passing an empty string.
         if not string.strip():
@@ -377,19 +377,19 @@ class Tex(StringMobject):
             tex_to_color_map = {}
 
         config = ConfigSingleton().tex
-        if use_mathjax is ...:
+        if use_mathjax is None:
             use_mathjax = config.use_mathjax
-        if preamble is ...:
+        if preamble is None:
             preamble = config.preamble
-        if template is ...:
+        if template is None:
             template = config.template
-        if alignment is ...:
+        if alignment is None:
             alignment = config.alignment
-        if environment is ...:
+        if environment is None:
             environment = config.environment
-        if base_color is ...:
+        if base_color is None:
             base_color = config.base_color
-        if font_size is ...:
+        if font_size is None:
             font_size = config.font_size
 
         frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT

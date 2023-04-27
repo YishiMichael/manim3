@@ -16,7 +16,7 @@ A window running a scene shall pop up.
 
 
 ## Requirements
-Manim3 runs on Python 3.10 and OpenGL 3.3+.
+Manim3 runs on Python 3.10 and OpenGL 4.3.
 
 
 ## License

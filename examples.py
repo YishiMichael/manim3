@@ -33,15 +33,15 @@ class TexTransformExample(Scene):
             .scale(3)
             .set_style(color=Palette.BLUE, opacity=0.5)
             .concatenate()
+            .shift(RIGHT * 2)
         )
         tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
-        yield from self.play(Transform(text, tex.shift(RIGHT * 2), replace=True))
+        yield from self.play(Transform(text, tex.shift(RIGHT * 2)))
         yield from self.wait()
-        yield from self.play(Transform(tex, tex.copy().shift(LEFT * 2), replace=False))
-        yield from self.wait()
-        yield from self.play(Transform(tex, tex.copy().shift(LEFT * 2), replace=False))
+        tex_copy = tex.copy().shift(RIGHT * 2)
+        yield from self.play(Transform(tex, tex_copy))
         yield from self.wait(3)
 
 
@@ -50,15 +50,19 @@ class Rotating(Animation):
         self,
         mobject: Mobject
     ) -> None:
-        initial_model_matrix = mobject._model_matrix_
-        initial_mobject = mobject.copy()
+        initial_model_matrix = mobject._model_matrix_.value
+        about_point = mobject.get_bounding_box_point(ORIGIN)
+        #initial_mobject = mobject.copy()
 
         def updater(
             alpha: float
         ) -> None:
-            initial_mobject.rotate(Rotation.from_rotvec(DOWN * alpha * 0.5))
-            mobject._model_matrix_ = initial_mobject._model_matrix_
-            initial_mobject._model_matrix_ = initial_model_matrix
+            #initial_mobject.rotate(Rotation.from_rotvec(DOWN * alpha * 0.5))
+            mobject._model_matrix_ = mobject.get_relative_transform_matrix(
+                matrix=SpaceUtils.matrix_from_rotation(Rotation.from_rotvec(DOWN * alpha * 0.5)),
+                about_point=about_point
+            ) @ initial_model_matrix
+            #initial_mobject._model_matrix_ = initial_model_matrix
             #mobject.rotate(Rotation.from_rotvec(DOWN * (alpha - alpha_0) * 0.5))
 
         super().__init__(
@@ -84,7 +88,7 @@ class ThreeDTextExample(Scene):
 
 class OITExample(Scene):
     def timeline(self) -> Iterator[float]:
-        self.add(*reversed([
+        self.add(*(
             (Circle()
                 .set_style(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
@@ -95,7 +99,7 @@ class OITExample(Scene):
                 (0.3, 0.5, 0.6),
                 np.linspace(0, TAU, 3, endpoint=False)
             )
-        ]))
+        ))
         yield from self.wait(5)
 
 

@@ -116,8 +116,7 @@ class Transform(Animation):
     __slots__ = (
         "_start_mobject",
         "_stop_mobject",
-        "_intermediate_mobject",
-        "_replace"
+        "_intermediate_mobject"
     )
 
     def __init__(
@@ -126,8 +125,7 @@ class Transform(Animation):
         stop_mobject: Mobject,
         *,
         run_time: float = 2.0,
-        rate_func: Callable[[float], float] | None = None,
-        replace: bool = False
+        rate_func: Callable[[float], float] | None = None
     ) -> None:
         intermediate_mobjects_with_callback: list[tuple[Mobject, Callable[[Mobject, float], None]]] = [
             (mobject_0.copy_standalone(), VariableInterpolant._get_intermediate_instance_composed_callback(
@@ -159,25 +157,17 @@ class Transform(Animation):
         self._intermediate_mobject: Mobject = Mobject().add(*(
             mobject for mobject, _ in intermediate_mobjects_with_callback
         ))
-        self._replace: bool = replace
 
     def timeline(self) -> Iterator[float]:
         start_mobject = self._start_mobject
         stop_mobject = self._stop_mobject
         intermediate_mobject = self._intermediate_mobject
-        all_parents = [
-            *start_mobject.iter_parents(),
-            *stop_mobject.iter_parents()
-        ]  # TODO
-        start_mobject.discarded_by(*all_parents)
-        intermediate_mobject.added_by(*all_parents)
+        parents = list(start_mobject.iter_parents())
+        start_mobject.discarded_by(*parents)
+        intermediate_mobject.added_by(*parents)
         yield from self.wait(1.0)
-        intermediate_mobject.discarded_by(*all_parents)
-        if self._replace:
-            stop_mobject.added_by(*all_parents)
-        else:
-            start_mobject.becomes(stop_mobject)
-            start_mobject.added_by(*all_parents)
+        intermediate_mobject.discarded_by(*parents)
+        stop_mobject.added_by(*parents)
 
     @classmethod
     def _zip_mobjects_by_class(

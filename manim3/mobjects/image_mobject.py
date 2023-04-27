@@ -21,9 +21,9 @@ class ImageMobject(MeshMobject):
         self,
         image_path: str,
         *,
-        frame_scale: float | None = None,
         width: float | None = None,
-        height: float | None = 4.0
+        height: float | None = 4.0,
+        frame_scale: float | None = None
     ) -> None:
         super().__init__()
         image = Image.open(image_path)
@@ -32,9 +32,9 @@ class ImageMobject(MeshMobject):
         x_scale, y_scale = self._get_frame_scale_vector(
             original_width=image.width / ConfigSingleton().size.pixel_per_unit,
             original_height=image.height / ConfigSingleton().size.pixel_per_unit,
-            specified_frame_scale=frame_scale,
             specified_width=width,
-            specified_height=height
+            specified_height=height,
+            specified_frame_scale=frame_scale
         )
         self.scale(np.array((x_scale, y_scale, 1.0))).flip(X_AXIS)
 
