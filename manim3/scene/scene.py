@@ -88,9 +88,11 @@ class Scene(Animation):
             if terminated:
                 break
             update(timestamp, updater_items)
+            self._scene_frame._scene_state_ = self._scene_state
             self._scene_frame._process_rendering(render_to_video=True)
 
         if ConfigSingleton().rendering.write_last_frame:
+            self._scene_frame._scene_state_ = self._scene_state
             self._scene_frame._process_rendering(render_to_image=True)
 
     def add(

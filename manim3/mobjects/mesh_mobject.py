@@ -65,7 +65,7 @@ class MeshMobject(Mobject):
 
     @Lazy.variable_shared
     @classmethod
-    def _apply_phong_lighting_(cls) -> bool:
+    def _enable_phong_lighting_(cls) -> bool:
         return True
 
     @Lazy.property_external
@@ -107,7 +107,7 @@ class MeshMobject(Mobject):
     def _mesh_vertex_array_(
         cls,
         is_transparent: bool,
-        apply_phong_lighting: bool,
+        enable_phong_lighting: bool,
         color_map: moderngl.Texture | None,
         _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
         _model_uniform_block_buffer_: UniformBlockBuffer,
@@ -118,7 +118,7 @@ class MeshMobject(Mobject):
         custom_macros: list[str] = []
         if is_transparent:
             custom_macros.append("#define IS_TRANSPARENT")
-        phong_lighting_subroutine = "enable_phong_lighting" if apply_phong_lighting else "disable_phong_lighting"
+        phong_lighting_subroutine = "enable_phong_lighting" if enable_phong_lighting else "disable_phong_lighting"
         custom_macros.append(f"#define phong_lighting_subroutine {phong_lighting_subroutine}")
         return VertexArray(
             shader_filename="mesh",
@@ -173,7 +173,7 @@ class MeshMobject(Mobject):
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
-        apply_phong_lighting: bool | None = None,
+        enable_phong_lighting: bool | None = None,
         broadcast: bool = True
     ):
         color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
@@ -184,7 +184,7 @@ class MeshMobject(Mobject):
         ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
         specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
         shininess_value = LazyWrapper(shininess) if shininess is not None else None
-        apply_phong_lighting_value = apply_phong_lighting if apply_phong_lighting is not None else \
+        enable_phong_lighting_value = enable_phong_lighting if enable_phong_lighting is not None else \
             True if any(param is not None for param in (
                 ambient_strength,
                 specular_strength,
@@ -203,6 +203,6 @@ class MeshMobject(Mobject):
                 mobject._specular_strength_ = specular_strength_value
             if shininess_value is not None:
                 mobject._shininess_ = shininess_value
-            if apply_phong_lighting_value is not None:
-                mobject._apply_phong_lighting_ = apply_phong_lighting_value
+            if enable_phong_lighting_value is not None:
+                mobject._enable_phong_lighting_ = enable_phong_lighting_value
         return self

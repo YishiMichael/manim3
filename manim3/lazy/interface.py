@@ -26,7 +26,7 @@ _T = TypeVar("_T")
 _HT = TypeVar("_HT", bound=Hashable)
 _ElementT = TypeVar("_ElementT", bound="LazyObject")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
-_PropertyParameters = ParamSpec("_PropertyParameters")
+_Parameters = ParamSpec("_Parameters")
 
 
 class LazyVariableIndividualDecorator(LazyVariableDescriptor[
@@ -146,27 +146,27 @@ class Lazy:
     @classmethod
     def property(
         cls,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _ElementT]
+        method: Callable[Concatenate[type[_InstanceT], _Parameters], _ElementT]
     ) -> LazyPropertyIndividualDecorator[_InstanceT, _ElementT]:
         return LazyPropertyIndividualDecorator(method.__func__)
 
     @classmethod
     def property_collection(
         cls,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], list[_ElementT]]
+        method: Callable[Concatenate[type[_InstanceT], _Parameters], list[_ElementT]]
     ) -> LazyPropertyCollectionDecorator[_InstanceT, _ElementT]:
         return LazyPropertyCollectionDecorator(method.__func__)
 
     @classmethod
     def property_external(
         cls,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _T]
+        method: Callable[Concatenate[type[_InstanceT], _Parameters], _T]
     ) -> LazyPropertyExternalDecorator[_InstanceT, _T]:
         return LazyPropertyExternalDecorator(method.__func__)
 
     @classmethod
     def property_shared(
         cls,
-        method: Callable[Concatenate[type[_InstanceT], _PropertyParameters], _HT]
+        method: Callable[Concatenate[type[_InstanceT], _Parameters], _HT]
     ) -> LazyPropertySharedDecorator[_InstanceT, _HT]:
         return LazyPropertySharedDecorator(method.__func__)

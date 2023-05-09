@@ -33,7 +33,6 @@ _ContainerT = TypeVar("_ContainerT", bound=LazyContainer)
 _InstanceT = TypeVar("_InstanceT", bound=LazyObject)
 _DescriptorGetT = TypeVar("_DescriptorGetT")
 _DescriptorSetT = TypeVar("_DescriptorSetT")
-_MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
 class VariableInterpolant(Generic[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT]):
@@ -189,8 +188,8 @@ class Transform(Animation):
             raise TypeError
 
         def get_placeholder_mobject(
-            mobject: _MobjectT
-        ) -> _MobjectT:
+            mobject: Mobject
+        ) -> Mobject:
             result = mobject.copy_standalone()
             if isinstance(result, MeshMobject):
                 result.set_style(opacity=0.0, is_transparent=mobject._is_transparent_.value)  # TODO
@@ -218,8 +217,8 @@ class Transform(Animation):
     @lru_cache(maxsize=16)
     def _get_class_interpolants(
         cls,
-        mobject_cls: type[_MobjectT]
-    ) -> tuple[VariableInterpolant[_MobjectT, Any, Any, Any], ...]:
+        mobject_cls: type[Mobject]
+    ) -> tuple[VariableInterpolant[Mobject, Any, Any, Any], ...]:
         class_specialized_interpolants_dict = {
             Mobject: [
                 VariableInterpolant(

@@ -9,6 +9,7 @@ from ..geometries.geometry import (
 )
 
 
+# TODO: Refactor with isosurfaces
 class ParametricSurfaceGeometry(Geometry):
     __slots__ = ()
 

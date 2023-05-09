@@ -54,35 +54,31 @@ class Rotating(Animation):
     ) -> None:
         initial_model_matrix = mobject._model_matrix_.value
         about_point = mobject.get_bounding_box_point(ORIGIN)
-        #initial_mobject = mobject.copy()
 
         def updater(
             alpha: float
         ) -> None:
-            #initial_mobject.rotate(Rotation.from_rotvec(DOWN * alpha * 0.5))
             mobject._model_matrix_ = mobject.get_relative_transform_matrix(
                 matrix=SpaceUtils.matrix_from_rotation(Rotation.from_rotvec(DOWN * alpha * 0.5)),
                 about_point=about_point
             ) @ initial_model_matrix
-            #initial_mobject._model_matrix_ = initial_model_matrix
-            #mobject.rotate(Rotation.from_rotvec(DOWN * (alpha - alpha_0) * 0.5))
 
         super().__init__(
             updater=updater
-            #alpha_animate_func=alpha_animate_func,
-            #alpha_regroup_items=[],
-            #start_time=0.0,
-            #stop_time=None
         )
 
 
 class ThreeDTextExample(Scene):
     def timeline(self) -> Iterator[float]:
-        self.scene_state.add_point_light(position=4 * RIGHT + 4 * UP + 2 * OUT)
+        self.scene_state.add_point_light(position=RIGHT)
         text = Text("Text").concatenate()
-        text_3d = MeshMobject().set_geometry(PrismoidGeometry(text.get_shape()))
-        text_3d.scale(5.0).stretch_to_fit_depth(0.5)
-        text_3d.set_style(color="#00FFAA44")
+        text_3d = (
+            MeshMobject()
+            .set_geometry(PrismoidGeometry(text.get_shape()))
+            .scale(5.0)
+            .stretch_to_fit_depth(0.5)
+            .set_style(color="#00FFAA44")
+        )
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         yield from self.wait(10)
@@ -115,7 +111,7 @@ def main():
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)
     #config.rendering.write_last_frame = True
-    TexTransformExample.render(config)
+    ThreeDTextExample.render(config)
 
 
 if __name__ == "__main__":

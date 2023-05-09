@@ -24,7 +24,7 @@ class Polyhedron(ShapeMobject):
             shape = Polygon(points)
             shape.apply_transform(matrix)
             self.add(shape)
-        self.set_style(apply_phong_lighting=True)
+        self.set_style(enable_phong_lighting=True)
 
     @classmethod
     def _convert_coplanar_vertices(

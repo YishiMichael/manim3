@@ -478,7 +478,7 @@ class GLBuffer(LazyObject):
             data = data_dict[key]
             if not np_buffer_pointer.size:
                 assert not data.size
-                return
+                continue
             data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
             assert np_buffer_pointer.shape == data_expanded.shape
             np_buffer_pointer[...] = data_expanded

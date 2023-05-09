@@ -133,7 +133,7 @@ class Animation:
 
     # Yield `delta_alpha` values.
     def timeline(self) -> Iterator[float]:
-        yield from ()
+        yield from self.wait(1024)  # Wait forever...
 
     def _absolute_timeline(self) -> Iterator[TimelineState]:
         relative_rate = self._relative_rate

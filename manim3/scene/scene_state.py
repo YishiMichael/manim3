@@ -18,7 +18,7 @@ class PointLight(LazyObject):
     @Lazy.variable_external
     @classmethod
     def _position_(cls) -> Vec3T:
-        return np.ones(3)
+        return np.zeros(3)
 
     @Lazy.variable_external
     @classmethod

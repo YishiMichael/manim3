@@ -16,7 +16,7 @@ class ShapeMobject(MeshMobject):
         super().__init__()
         if shape is not None:
             self.set_shape(shape)
-        self.set_style(apply_phong_lighting=False)
+        self.set_style(enable_phong_lighting=False)
 
     @Lazy.variable
     @classmethod
@@ -25,7 +25,7 @@ class ShapeMobject(MeshMobject):
 
     @Lazy.variable_shared
     @classmethod
-    def _apply_phong_lighting_(cls) -> bool:
+    def _enable_phong_lighting_(cls) -> bool:
         return False
 
     @Lazy.property
