@@ -189,9 +189,9 @@ class TexFileWriter(StringFileWriter):
                 if (error_match_obj := re.search(r"(?<=data\-mjx\-error\=\")(.*?)(?=\")", svg_file.read())) is not None:
                     raise LaTeXError(error_match_obj.group())
 
-        except LaTeXError as error:
+        except LaTeXError:
             svg_path.unlink()
-            raise error from None
+            raise
 
     @staticmethod
     @lru_cache(maxsize=1)

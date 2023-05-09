@@ -20,7 +20,7 @@ from ..constants import (
 )
 from ..custom_typing import (
     Mat4T,
-    Vec2T,
+    #Vec2T,
     Vec3T,
     Vec3sT
 )
@@ -356,12 +356,12 @@ class Mobject(LazyObject):
         real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
     ) -> BoundingBox | None:
         points_array = np.array(list(it.chain.from_iterable(
-            (aabb.maximum, aabb.minimum)
-            for aabb in (
+            (bounding_box.maximum, bounding_box.minimum)
+            for bounding_box in (
                 bounding_box_without_descendants,
                 *real_descendants__bounding_box_without_descendants
             )
-            if aabb is not None
+            if bounding_box is not None
         )))
         if not len(points_array):
             return None
@@ -392,8 +392,8 @@ class Mobject(LazyObject):
         *,
         broadcast: bool = True
     ) -> Vec3T:
-        aabb = self.get_bounding_box(broadcast=broadcast)
-        return aabb.radius * 2.0
+        bounding_box = self.get_bounding_box(broadcast=broadcast)
+        return bounding_box.radius * 2.0
 
     def get_bounding_box_point(
         self,
@@ -401,8 +401,8 @@ class Mobject(LazyObject):
         *,
         broadcast: bool = True
     ) -> Vec3T:
-        aabb = self.get_bounding_box(broadcast=broadcast)
-        return aabb.origin + direction * aabb.radius
+        bounding_box = self.get_bounding_box(broadcast=broadcast)
+        return bounding_box.origin + direction * bounding_box.radius
 
     def get_center(
         self,
@@ -436,7 +436,7 @@ class Mobject(LazyObject):
             if (transformed_matrix := transform_dict.get(original_matrix)) is None:
                 transformed_matrix = LazyWrapper(matrix @ original_matrix.value)
                 transform_dict[original_matrix] = transformed_matrix
-            mobject._model_matrix_ = transformed_matrix
+            mobject._model_matrix_ = matrix @ original_matrix.value
         return self
 
     def apply_relative_transform(

@@ -437,10 +437,10 @@ class Shape(LazyObject):
                 return shapely.geometry.LineString(points)
             return shapely.validation.make_valid(shapely.geometry.Polygon(points))
 
-        return reduce(shapely.geometry.base.BaseGeometry.__xor__, [
+        return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
             get_shapely_component(line_string)
             for line_string in _multi_line_string__line_strings_
-        ], shapely.geometry.GeometryCollection())
+        ), shapely.geometry.GeometryCollection())
 
     @Lazy.property_external
     @classmethod
