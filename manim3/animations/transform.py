@@ -199,8 +199,7 @@ class Transform(Animation):
                 result.set_style(width=0.0)
             return result
 
-        # Why `list()` is needed here?
-        for mobject_0, mobject_1 in it.zip_longest(list(mobjects_0), list(mobjects_1), fillvalue=None):
+        for mobject_0, mobject_1 in it.zip_longest(mobjects_0, mobjects_1, fillvalue=None):
             if mobject_0 is not None and mobject_1 is None:
                 mobject_1 = get_placeholder_mobject(mobject_0)
             elif mobject_0 is None and mobject_1 is not None:

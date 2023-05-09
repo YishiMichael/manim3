@@ -3,7 +3,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from manim3 import *
-from manim3.lazy.core import LazyWrapper
 
 
 class ShapeTransformExample(Scene):
@@ -46,40 +45,6 @@ class TexTransformExample(Scene):
         self.add(text)
         yield from self.wait()
         yield from self.play(Transform(text, tex.shift(RIGHT * 2)))
-        yield from self.wait(1)
-        #print(ShapeMobject._geometry_.get_slot(tex)._linked_variable_slots)
-        #print(tex._shape_._multi_line_string_._line_strings_[0]._points_.value)
-        #print(ShapeMobject._shape_.get_slot(tex))
-        #print(Shape._multi_line_string_.get_slot(tex._shape_))
-        #print(MultiLineString._line_strings_.get_slot(tex._shape_._multi_line_string_))
-        #print(ShapeMobject._geometry_.get_slot(tex)._linked_variable_slots)
-        #print([
-        #    element.value if isinstance(element, LazyWrapper) else element
-        #    for variable_slot in ShapeMobject._geometry_.get_slot(tex)._linked_variable_slots
-        #    for element in variable_slot.get_variable_container()._iter_elements()
-        #])
-        #print(ShapeMobject._geometry_.get_slot(tex)._is_expired)
-        #tex._shape_ = tex._shape_
-        #print(sum(line_string._points_len_.value for line_string in text._shape_._multi_line_string_._line_strings_))
-        #print(text._geometry_._geometry_data_.value.position)
-        #print(sum(line_string._points_len_.value for line_string in tex._shape_._multi_line_string_._line_strings_))
-        #print(tex._geometry_._geometry_data_.value.position)
-        #print(ShapeGeometry._geometry_data_.get_slot(tex._geometry_))
-        #print(ShapeMobject._geometry_.get_slot(tex)._is_expired)
-        #ShapeMobject._geometry_.get_slot(tex).expire()
-        #MeshMobject._mesh_vertex_array_.get_slot(tex).expire()
-        #mesh_vertex_array = tex._mesh_vertex_array_
-        print([
-            element.value if isinstance(element, LazyWrapper) else element
-            for variable_slot in ShapeMobject._mesh_vertex_array_.get_slot(tex)._linked_variable_slots
-            for element in variable_slot.get_variable_container()._iter_elements()
-        ])
-        #ShapeMobject._geometry_.get_slot(tex).expire()
-        #ShapeGeometry._geometry_data_.get_slot(tex._geometry_).expire()
-        #breakpoint()
-        #print(sum(line_string._points_len_.value for line_string in tex._shape_._multi_line_string_._line_strings_))
-        #print(tex._geometry_._geometry_data_.value.position)
-        #MeshMobject._mesh_vertex_array_.get_slot(tex).expire()
         yield from self.wait(1)
         tex_copy = tex.copy().shift(RIGHT * 2)
         yield from self.play(Transform(tex, tex_copy))
@@ -149,7 +114,7 @@ def main():
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 3
+    #config.rendering.fps = 3
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)
