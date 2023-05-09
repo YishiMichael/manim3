@@ -1,4 +1,3 @@
-from typing import Iterator
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -6,7 +5,7 @@ from manim3 import *
 
 
 class ShapeTransformExample(Scene):
-    def timeline(self) -> Iterator[float]:
+    def timeline(self) -> TimelineT:
         circle = Circle()
         circle.set_style(color=Palette.PINK, opacity=0.9)
         circle.add(circle.build_stroke(color=Palette.YELLOW, width=0.4))
@@ -14,12 +13,12 @@ class ShapeTransformExample(Scene):
         square.set_style(opacity=1.0)
 
         self.add(square)
-        yield from self.play(Transform(square, circle))
+        yield from self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
         yield from self.wait()
 
 
 class TexTransformExample(Scene):
-    def timeline(self) -> Iterator[float]:
+    def timeline(self) -> TimelineT:
         text = (
             Text("Text")
             .scale(3)
@@ -40,10 +39,10 @@ class TexTransformExample(Scene):
         tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
-        yield from self.play(Transform(text, tex))
-        yield from self.wait(1)
+        yield from self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
+        yield from self.wait()
         tex_copy = tex.copy().shift(RIGHT * 2)
-        yield from self.play(Transform(tex, tex_copy))
+        yield from self.play(Transform(tex, tex_copy, run_time=2, rate_func=RateUtils.smooth))
         yield from self.wait(3)
 
 
@@ -69,7 +68,7 @@ class Rotating(Animation):
 
 
 class ThreeDTextExample(Scene):
-    def timeline(self) -> Iterator[float]:
+    def timeline(self) -> TimelineT:
         self.scene_state.add_point_light(position=RIGHT)
         text = Text("Text").concatenate()
         text_3d = (
@@ -85,7 +84,7 @@ class ThreeDTextExample(Scene):
 
 
 class OITExample(Scene):
-    def timeline(self) -> Iterator[float]:
+    def timeline(self) -> TimelineT:
         self.add(*(
             (Circle()
                 .set_style(color=color, opacity=opacity)

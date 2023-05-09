@@ -104,3 +104,18 @@ from .constants import (
     Y_AXIS,
     Z_AXIS
 )
+from .custom_typing import (
+    ColorT,
+    FloatsT,
+    Mat3T,
+    Mat4T,
+    Mat3sT,
+    Mat4sT,
+    TimelineT,
+    Vec2T,
+    Vec3T,
+    Vec4T,
+    Vec2sT,
+    Vec3sT,
+    Vec4sT
+)

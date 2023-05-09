@@ -2,6 +2,7 @@ from colour import Color
 import re
 from typing import (
     Iterable,
+    Iterator,
     Literal
 )
 
@@ -30,3 +31,5 @@ VertexIndexT = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
 ColorT = Color | str | Vec3T | Vec4T
 SelectorT = str | re.Pattern[str] | slice | Iterable[str | re.Pattern[str] | slice]
+
+TimelineT = Iterator[float]

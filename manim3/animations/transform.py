@@ -10,6 +10,7 @@ from typing import (
 )
 
 from ..animations.animation import Animation
+from ..custom_typing import TimelineT
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobject import ShapeMobject
@@ -122,8 +123,8 @@ class Transform(Animation):
         start_mobject: Mobject,
         stop_mobject: Mobject,
         *,
-        run_time: float = 2.0,
-        rate_func: Callable[[float], float] | None = None
+        run_time: float = 1.0,
+        rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         intermediate_mobjects_with_callback: list[tuple[Mobject, Callable[[Mobject, float], None]]] = [
             (mobject_0.copy_standalone(), VariableInterpolant._get_intermediate_instance_composed_callback(
@@ -143,8 +144,6 @@ class Transform(Animation):
             for mobject, callback in intermediate_mobjects_with_callback:
                 callback(mobject, alpha)
 
-        if rate_func is None:
-            rate_func = RateUtils.smooth
         super().__init__(
             run_time=run_time,
             relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time),
@@ -156,14 +155,14 @@ class Transform(Animation):
             mobject for mobject, _ in intermediate_mobjects_with_callback
         ))
 
-    def timeline(self) -> Iterator[float]:
+    def timeline(self) -> TimelineT:
         start_mobject = self._start_mobject
         stop_mobject = self._stop_mobject
         intermediate_mobject = self._intermediate_mobject
         parents = list(start_mobject.iter_parents())
         start_mobject.discarded_by(*parents)
         intermediate_mobject.added_by(*parents)
-        yield from self.wait(1.0)
+        yield from self.wait()
         intermediate_mobject.discarded_by(*parents)
         stop_mobject.added_by(*parents)
 

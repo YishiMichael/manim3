@@ -4,6 +4,7 @@ from typing import (
     Iterator
 )
 
+from ..custom_typing import TimelineT
 from ..utils.rate import RateUtils
 
 
@@ -99,7 +100,8 @@ class TimelineManager:
         def get_next_alpha(
             timeline: Iterator[TimelineState]
         ) -> float:
-            return timeline_start_alpha_dict[timeline] + state_dict[timeline].timestamp
+            next_alpha = timeline_start_alpha_dict[timeline] + state_dict[timeline].timestamp
+            return round(next_alpha, 3)  # Avoid floating error.
 
         timeline = min(state_dict, key=get_next_alpha)
         return timeline, timeline_start_alpha_dict[timeline], state_dict[timeline]
@@ -132,7 +134,7 @@ class Animation:
         self._new_children: list[Animation] = []
 
     # Yield `delta_alpha` values.
-    def timeline(self) -> Iterator[float]:
+    def timeline(self) -> TimelineT:
         yield from self.wait(1024)  # Wait forever...
 
     def _absolute_timeline(self) -> Iterator[TimelineState]:
@@ -243,13 +245,13 @@ class Animation:
     def wait(
         self,
         delta_alpha: float = 1.0
-    ) -> Iterator[float]:
+    ) -> TimelineT:
         yield delta_alpha
 
     def play(
         self,
         *animations: "Animation"
-    ) -> Iterator[float]:
+    ) -> TimelineT:
         self.prepare(*animations)
         delta_alpha = max((
             run_time

@@ -20,6 +20,7 @@ from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
+from ..scene.scene_state import SceneState
 
 
 class SceneFrame(Mobject):
@@ -144,10 +145,11 @@ class SceneFrame(Mobject):
     def _process_rendering(
         self,
         *,
+        scene_state: SceneState,
         render_to_video: bool = False,
         render_to_image: bool = False
     ) -> None:
-        scene_state = self._scene_state_
+        self._scene_state_ = scene_state
         red, green, blue = scene_state._background_color_.value
         alpha = scene_state._background_opacity_.value
         with TextureFactory.texture() as color_texture:
