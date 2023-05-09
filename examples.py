@@ -21,10 +21,8 @@ class ShapeTransformExample(Scene):
 class TexTransformExample(Scene):
     def timeline(self) -> Iterator[float]:
         text = (
-            #Text("Text")
-            ShapeMobject().add(
-            RegularPolygon(4))
-            .scale(1)
+            Text("Text")
+            .scale(3)
             .set_style(color=Palette.ORANGE, opacity=0.5)
             .concatenate()
         )
@@ -33,18 +31,16 @@ class TexTransformExample(Scene):
             text.build_stroke(width=0.08, color=Palette.GREEN)
         )
         tex = (
-            #Tex("Tex")
-            ShapeMobject().add(
-            RegularPolygon(6))
-            .scale(1)
+            Tex("Tex")
+            .scale(3)
             .set_style(color=Palette.BLUE, opacity=0.5)
             .concatenate()
-            .shift(RIGHT * 0)
+            .shift(RIGHT * 2)
         )
         tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
-        yield from self.play(Transform(text, tex.shift(RIGHT * 2)))
+        yield from self.play(Transform(text, tex))
         yield from self.wait(1)
         tex_copy = tex.copy().shift(RIGHT * 2)
         yield from self.play(Transform(tex, tex_copy))

@@ -30,14 +30,13 @@ from ..utils.shape import (
 
 _T = TypeVar("_T")
 _ContainerT = TypeVar("_ContainerT", bound=LazyContainer)
-_ElementT = TypeVar("_ElementT", bound=LazyObject)
 _InstanceT = TypeVar("_InstanceT", bound=LazyObject)
 _DescriptorGetT = TypeVar("_DescriptorGetT")
 _DescriptorSetT = TypeVar("_DescriptorSetT")
 _MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
-class VariableInterpolant(Generic[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
+class VariableInterpolant(Generic[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = (
         "_descriptor",
         "_method"
@@ -45,11 +44,11 @@ class VariableInterpolant(Generic[_InstanceT, _ContainerT, _ElementT, _Descripto
 
     def __init__(
         self,
-        descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT],
+        descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT],
         method: Callable[[_DescriptorGetT, _DescriptorGetT], Callable[[float], _DescriptorSetT]]
     ) -> None:
         super().__init__()
-        self._descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT] = descriptor
+        self._descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT] = descriptor
         self._method: Callable[[_DescriptorGetT, _DescriptorGetT], Callable[[float], _DescriptorSetT]] = method
 
     def _get_intermediate_instance_callback(
@@ -76,7 +75,7 @@ class VariableInterpolant(Generic[_InstanceT, _ContainerT, _ElementT, _Descripto
     @classmethod
     def _get_intermediate_instance_composed_callback(
         cls,
-        interpolants: "tuple[VariableInterpolant[_InstanceT, Any, Any, Any, Any], ...]",
+        interpolants: "tuple[VariableInterpolant[_InstanceT, Any, Any, Any], ...]",
         instance_0: _InstanceT,
         instance_1: _InstanceT
     ) -> Callable[[_InstanceT, float], None]:
@@ -220,7 +219,7 @@ class Transform(Animation):
     def _get_class_interpolants(
         cls,
         mobject_cls: type[_MobjectT]
-    ) -> tuple[VariableInterpolant[_MobjectT, Any, Any, Any, Any], ...]:
+    ) -> tuple[VariableInterpolant[_MobjectT, Any, Any, Any], ...]:
         class_specialized_interpolants_dict = {
             Mobject: [
                 VariableInterpolant(

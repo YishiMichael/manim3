@@ -30,7 +30,7 @@ _PropertyParameters = ParamSpec("_PropertyParameters")
 
 
 class LazyVariableIndividualDecorator(LazyVariableDescriptor[
-    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _ElementT
+    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT
 ]):
     __slots__ = ()
 
@@ -38,7 +38,7 @@ class LazyVariableIndividualDecorator(LazyVariableDescriptor[
 
 
 class LazyVariableCollectionDecorator(LazyVariableDescriptor[
-    _InstanceT, LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], Iterable[_ElementT]
+    _InstanceT, LazyDynamicContainer[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT]
 ]):
     __slots__ = ()
 
@@ -46,7 +46,7 @@ class LazyVariableCollectionDecorator(LazyVariableDescriptor[
 
 
 class LazyVariableExternalDecorator(LazyVariableDescriptor[
-    _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], LazyWrapper[_T], _T | LazyWrapper[_T]
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], _T | LazyWrapper[_T]
 ]):
     __slots__ = ()
 
@@ -54,7 +54,7 @@ class LazyVariableExternalDecorator(LazyVariableDescriptor[
 
 
 class LazyVariableSharedDecorator(LazyVariableDescriptor[
-    _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], LazyWrapper[_HT], _HT | LazyWrapper[_HT]
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], _HT | LazyWrapper[_HT]
 ]):
     __slots__ = ()
 
@@ -62,7 +62,7 @@ class LazyVariableSharedDecorator(LazyVariableDescriptor[
 
 
 class LazyPropertyIndividualDecorator(LazyPropertyDescriptor[
-    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT, _ElementT
+    _InstanceT, LazyUnitaryContainer[_ElementT], _ElementT, _ElementT
 ]):
     __slots__ = ()
 
@@ -70,7 +70,7 @@ class LazyPropertyIndividualDecorator(LazyPropertyDescriptor[
 
 
 class LazyPropertyCollectionDecorator(LazyPropertyDescriptor[
-    _InstanceT, LazyDynamicContainer[_ElementT], _ElementT, LazyDynamicContainer[_ElementT], Iterable[_ElementT]
+    _InstanceT, LazyDynamicContainer[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT]
 ]):
     __slots__ = ()
 
@@ -78,7 +78,7 @@ class LazyPropertyCollectionDecorator(LazyPropertyDescriptor[
 
 
 class LazyPropertyExternalDecorator(LazyPropertyDescriptor[
-    _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], LazyWrapper[_T], _T | LazyWrapper[_T]
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], _T | LazyWrapper[_T]
 ]):
     __slots__ = ()
 
@@ -102,7 +102,7 @@ class LazyPropertyExternalDecorator(LazyPropertyDescriptor[
 
 
 class LazyPropertySharedDecorator(LazyPropertyDescriptor[
-    _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], LazyWrapper[_HT], _HT | LazyWrapper[_HT]
+    _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], _HT | LazyWrapper[_HT]
 ]):
     __slots__ = ()
 

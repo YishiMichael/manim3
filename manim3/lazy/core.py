@@ -1,4 +1,3 @@
-# TODO: The documentation is outdated.
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.
@@ -472,8 +471,9 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
         self._linked_variable_slots: weakref.WeakSet[LazyVariableSlot] = weakref.WeakSet()
         self._is_expired: bool = True
 
-    def get_property_container(self) -> _ContainerT | None:
-        return self._container
+    def get_property_container(self) -> _ContainerT:
+        assert (container := self._container) is not None
+        return container
 
     def set_property_container(
         self,
@@ -518,7 +518,7 @@ class LazyConverter(ABC, Generic[_ContainerT, _DescriptorGetT, _DescriptorSetT])
         pass
 
 
-class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT]):
+class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = (
         "element_type",
         "return_annotation",
@@ -530,7 +530,7 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _D
 
     def __init__(self) -> None:
         super().__init__()
-        self.element_type: type[_ElementT] = NotImplemented
+        self.element_type: type[LazyObject] = LazyObject
         self.return_annotation: _AnnotationT = NotImplemented
         self.converter: LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT] = type(self)._converter_class()
         self.instance_to_slot_dict: weakref.WeakKeyDictionary[_InstanceT, _SlotT] = weakref.WeakKeyDictionary()
@@ -608,7 +608,7 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _ElementT, _D
 
 
 class LazyVariableDescriptor(LazyDescriptor[
-    _InstanceT, LazyVariableSlot[_ContainerT], _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT
+    _InstanceT, LazyVariableSlot[_ContainerT], _ContainerT, _DescriptorGetT, _DescriptorSetT
 ]):
     __slots__ = (
         "method",
@@ -654,18 +654,14 @@ class LazyVariableDescriptor(LazyDescriptor[
         ))
 
 
-# TODO: Add LazyParameter class
-
-
 class LazyPropertyDescriptor(LazyDescriptor[
-    _InstanceT, LazyPropertySlot[_ContainerT], _ContainerT, _ElementT, _DescriptorGetT, _DescriptorSetT
+    _InstanceT, LazyPropertySlot[_ContainerT], _ContainerT, _DescriptorGetT, _DescriptorSetT
 ]):
     __slots__ = (
         "method",
         "finalize_method",
         "descriptor_name_chains",
         "requires_unwrapping_tuple",
-        "instance_to_key_dict",
         "key_to_container_dict"
     )
 
@@ -678,7 +674,6 @@ class LazyPropertyDescriptor(LazyDescriptor[
         self.finalize_method: Callable[[type[_InstanceT], _DescriptorGetT], None] | None = None
         self.descriptor_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
         self.requires_unwrapping_tuple: tuple[bool, ...] = NotImplemented
-        self.instance_to_key_dict: weakref.WeakKeyDictionary[_InstanceT, tuple] = weakref.WeakKeyDictionary()
         self.key_to_container_dict: weakref.WeakValueDictionary[tuple, _ContainerT] = weakref.WeakValueDictionary()
 
     def get_container(
@@ -730,10 +725,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 parameter_tree = parameter_tree.apply_deepest(
                     construct_parameter_tree(descriptor_name, not reversed_index, linked_variable_slots)
                 )
-            return parameter_tree, [
-                linked_variable_slot for linked_variable_slot in linked_variable_slots
-                if linked_variable_slot._is_writable
-            ]
+            return parameter_tree, linked_variable_slots
 
         def expand_dependencies(
             obj: LazyObject
@@ -783,15 +775,16 @@ class LazyPropertyDescriptor(LazyDescriptor[
         slot = self.get_slot(instance)
         if not slot._is_expired:
             container = slot.get_property_container()
-            assert container is not None
         else:
             parameter_items = tuple(
                 construct_parameter_item(descriptor_name_chain, instance)
                 for descriptor_name_chain in self.descriptor_name_chains
             )
-            slot.link_variable_slots(it.chain.from_iterable(
-                linked_variable_slots
+            slot.link_variable_slots(dict.fromkeys(
+                linked_variable_slot
                 for _, linked_variable_slots in parameter_items
+                for linked_variable_slot in linked_variable_slots
+                if linked_variable_slot._is_writable
             ))
             parameter_trees = tuple(
                 parameter_tree
@@ -801,7 +794,6 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
                 for parameter_tree in parameter_trees
             )
-            self.instance_to_key_dict[instance] = key
 
             if (container := self.key_to_container_dict.get(key)) is None:
                 parameters = tuple(
@@ -993,7 +985,7 @@ class LazyWrapper(LazyObject, Generic[_T]):
         "_hash_value"
     )
 
-    _hash_counter: ClassVar[int] = 1  # TODO: Use gc and weakset to recycle ids
+    _hash_counter: ClassVar[int] = 1
 
     def __init__(
         self,
