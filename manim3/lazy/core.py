@@ -155,6 +155,8 @@ import weakref
 
 
 _T = TypeVar("_T")
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
 _HT = TypeVar("_HT", bound=Hashable)
 _TreeNodeContentT = TypeVar("_TreeNodeContentT", bound=Hashable)
 _ElementT = TypeVar("_ElementT", bound="LazyObject")
@@ -199,6 +201,42 @@ class TreeNode(Generic[_TreeNodeContentT]):
             child.apply_deepest(callback)
             for child in children
         )
+
+
+class Cache(dict[_KT, _VT]):
+    # Use `Cache` instead of `weakref.WeakValueDictionary` to
+    # keep strong references to objects for a while even after
+    # all external references to them disappear.
+    __slots__ = ()
+
+    _MAX_SIZE: ClassVar[int] = 64
+
+    @staticmethod
+    def restrict_size(
+        method: "Callable[Concatenate[Cache, _Parameters], _T]",
+    ) -> "Callable[Concatenate[Cache, _Parameters], _T]":
+
+        @wraps(method)
+        def new_method(
+            self: "Cache",
+            *args: _Parameters.args,
+            **kwargs: _Parameters.kwargs
+        ) -> _T:
+            result = method(self, *args, **kwargs)
+            max_size = type(self)._MAX_SIZE
+            while len(self) > max_size:
+                self.pop(next(iter(self)))
+            return result
+
+        return new_method
+
+    @restrict_size
+    def __setitem__(
+        self,
+        key: _KT,
+        value: _VT
+    ) -> None:
+        return super().__setitem__(key, value)
 
 
 class LazyContainer(ABC, Generic[_ElementT]):
@@ -662,7 +700,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
         "finalize_method",
         "descriptor_name_chains",
         "requires_unwrapping_tuple",
-        "key_to_container_dict"
+        "key_to_container_cache"
     )
 
     def __init__(
@@ -674,7 +712,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
         self.finalize_method: Callable[[type[_InstanceT], _DescriptorGetT], None] | None = None
         self.descriptor_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
         self.requires_unwrapping_tuple: tuple[bool, ...] = NotImplemented
-        self.key_to_container_dict: weakref.WeakValueDictionary[tuple, _ContainerT] = weakref.WeakValueDictionary()
+        self.key_to_container_cache: Cache[tuple, _ContainerT] = Cache()
 
     def get_container(
         self,
@@ -795,7 +833,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 for parameter_tree in parameter_trees
             )
 
-            if (container := self.key_to_container_dict.get(key)) is None:
+            if (container := self.key_to_container_cache.get(key)) is None:
                 parameters = tuple(
                     construct_parameter(parameter_tree, requires_unwrapping=requires_unwrapping)
                     for parameter_tree, requires_unwrapping in zip(
@@ -806,7 +844,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 for element in container._iter_elements():
                     for variable_slot in element._iter_variable_slots():
                         variable_slot.make_readonly()
-                self.key_to_container_dict[key] = container
+                self.key_to_container_cache[key] = container
 
                 if (finalize_method := self.finalize_method) is not None:
                     weakref.finalize(container, finalize_method, type(instance), self.converter.convert_get(container))
@@ -1065,18 +1103,19 @@ class LazyExternalConverter(LazyConverter[
 
 
 class LazySharedConverter(LazyExternalConverter[_HT]):
-    __slots__ = ("content_to_element_dict",)
+    __slots__ = ("content_to_element_cache",)
 
     def __init__(self) -> None:
         super().__init__()
-        self.content_to_element_dict: weakref.WeakValueDictionary[_HT, LazyWrapper[_HT]] = weakref.WeakValueDictionary()
+        self.content_to_element_cache: Cache[_HT, LazyWrapper[_HT]] = Cache()
 
     def convert_set(
         self,
         new_value: _HT | LazyWrapper[_HT]
     ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
-        if not isinstance(new_value, LazyWrapper) and (cached_value := self.content_to_element_dict.get(new_value)) is None:
-            cached_value = LazyWrapper(new_value)
-            self.content_to_element_dict[new_value] = cached_value
+        if not isinstance(new_value, LazyWrapper):
+            if (cached_value := self.content_to_element_cache.get(new_value)) is None:
+                cached_value = LazyWrapper(new_value)
+                self.content_to_element_cache[new_value] = cached_value
             new_value = cached_value
         return super().convert_set(new_value)
