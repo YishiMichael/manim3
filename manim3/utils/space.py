@@ -1,26 +1,23 @@
-from functools import partial
+#from functools import partial
 from typing import (
     Callable,
     Literal,
-    Union,
+    #Union,
     overload
 )
 
 import numpy as np
-from scipy.spatial.transform import (
-    Rotation,
-    Slerp
-)
+from scipy.spatial.transform import Rotation
 
 from ..custom_typing import (
     FloatsT,
     Mat3T,
     Mat4T,
     Vec2T,
-    Vec3T,
-    Vec4T,
     Vec2sT,
+    Vec3T,
     Vec3sT,
+    Vec4T,
     Vec4sT
 )
 
@@ -190,147 +187,12 @@ class SpaceUtils:
     def lerp(
         cls,
         tensor_0: float,
-        tensor_1: float,
-        alpha: float
-    ) -> float: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: FloatsT,
-        tensor_1: float,
-        alpha: float
-    ) -> FloatsT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: FloatsT,
-        alpha: float
-    ) -> FloatsT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec2T,
-        tensor_1: Vec2T,
-        alpha: float
-    ) -> Vec2T: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec2sT,
-        tensor_1: Vec2T,
-        alpha: float
-    ) -> Vec2sT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec2T,
-        tensor_1: Vec2sT,
-        alpha: float
-    ) -> Vec2sT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec3T,
-        tensor_1: Vec3T,
-        alpha: float
-    ) -> Vec3T: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec3sT,
-        tensor_1: Vec3T,
-        alpha: float
-    ) -> Vec3sT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec3T,
-        tensor_1: Vec3sT,
-        alpha: float
-    ) -> Vec3sT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec4T,
-        tensor_1: Vec4T,
-        alpha: float
-    ) -> Vec4T: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec4sT,
-        tensor_1: Vec4T,
-        alpha: float
-    ) -> Vec4sT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec4T,
-        tensor_1: Vec4sT,
-        alpha: float
-    ) -> Vec4sT: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Mat3T,
-        tensor_1: Mat3T,
-        alpha: float
-    ) -> Mat3T: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Mat4T,
-        tensor_1: Mat4T,
-        alpha: float
-    ) -> Mat4T: ...
-
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
-        tensor_1: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
-        alpha: float
-    ) -> float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T:
-        return (1.0 - alpha) * tensor_0 + alpha * tensor_1
-
-    @overload
-    @classmethod
-    def lerp_callback(
-        cls,
-        tensor_0: float,
         tensor_1: float
     ) -> Callable[[float], float]: ...
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: FloatsT,
         tensor_1: float
@@ -338,7 +200,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: float,
         tensor_1: FloatsT
@@ -346,7 +208,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec2T,
         tensor_1: Vec2T
@@ -354,7 +216,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec2sT,
         tensor_1: Vec2T
@@ -362,7 +224,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec2T,
         tensor_1: Vec2sT
@@ -370,7 +232,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec3T,
         tensor_1: Vec3T
@@ -378,7 +240,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec3sT,
         tensor_1: Vec3T
@@ -386,7 +248,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec3T,
         tensor_1: Vec3sT
@@ -394,7 +256,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec4T,
         tensor_1: Vec4T
@@ -402,7 +264,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec4sT,
         tensor_1: Vec4T
@@ -410,7 +272,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Vec4T,
         tensor_1: Vec4sT
@@ -418,7 +280,7 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Mat3T,
         tensor_1: Mat3T
@@ -426,54 +288,49 @@ class SpaceUtils:
 
     @overload
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: Mat4T,
         tensor_1: Mat4T
     ) -> Callable[[float], Mat4T]: ...
 
     @classmethod
-    def lerp_callback(
+    def lerp(
         cls,
         tensor_0: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T,
         tensor_1: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T
-    ) -> Union[
-        Callable[[float], float],
-        Callable[[float], FloatsT],
-        Callable[[float], Vec2T],
-        Callable[[float], Vec2sT],
-        Callable[[float], Vec3T],
-        Callable[[float], Vec3sT],
-        Callable[[float], Vec4T],
-        Callable[[float], Vec4sT],
-        Callable[[float], Mat3T],
-        Callable[[float], Mat4T]
-    ]:
-        return partial(cls.lerp, tensor_0, tensor_1)
+    ) -> Callable[[float], float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T]:
 
-    @classmethod
-    def rotational_interpolate_callback(
-        cls,
-        matrix_0: Mat4T,
-        matrix_1: Mat4T
-    ) -> Callable[[float], Mat4T]:
-        rotation_part_0 = matrix_0[:3, :3]
-        translation_0 = matrix_0[:3, 3]
-        rotation_0 = Rotation.from_matrix(rotation_part_0)
-        shear_0 = rotation_part_0 @ np.linalg.inv(rotation_0.as_matrix())
-        rotation_part_1 = matrix_1[:3, :3]
-        translation_1 = matrix_1[:3, 3]
-        rotation_1 = Rotation.from_matrix(rotation_part_1)
-        shear_1 = rotation_part_1 @ np.linalg.inv(rotation_1.as_matrix())
-        slerp = Slerp((0.0, 1.0), Rotation.concatenate((rotation_0, rotation_1)))
+        def interpolant(
+            alpha: float
+        ) -> float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T:
+            return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
-        def callback(alpha: float) -> Mat4T:
-            m = np.identity(4)
-            m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ Rotation.as_matrix(slerp(alpha))
-            m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
-            return m
+        return interpolant
 
-        return callback
+    #@classmethod
+    #def rotational_interpolate_callback(
+    #    cls,
+    #    matrix_0: Mat4T,
+    #    matrix_1: Mat4T
+    #) -> Callable[[float], Mat4T]:
+    #    rotation_part_0 = matrix_0[:3, :3]
+    #    translation_0 = matrix_0[:3, 3]
+    #    rotation_0 = Rotation.from_matrix(rotation_part_0)
+    #    shear_0 = rotation_part_0 @ np.linalg.inv(rotation_0.as_matrix())
+    #    rotation_part_1 = matrix_1[:3, :3]
+    #    translation_1 = matrix_1[:3, 3]
+    #    rotation_1 = Rotation.from_matrix(rotation_part_1)
+    #    shear_1 = rotation_part_1 @ np.linalg.inv(rotation_1.as_matrix())
+    #    slerp = Slerp((0.0, 1.0), Rotation.concatenate((rotation_0, rotation_1)))
+
+    #    def callback(alpha: float) -> Mat4T:
+    #        m = np.identity(4)
+    #        m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ Rotation.as_matrix(slerp(alpha))
+    #        m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
+    #        return m
+
+    #    return callback
 
     @classmethod
     def increase_dimension(

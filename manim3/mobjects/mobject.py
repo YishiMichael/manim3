@@ -20,21 +20,20 @@ from ..constants import (
 )
 from ..custom_typing import (
     Mat4T,
-    #Vec2T,
     Vec3T,
     Vec3sT
 )
-from ..lazy.core import (
-    LazyObject,
-    LazyWrapper
-)
-from ..lazy.interface import Lazy
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
     OpaqueFramebuffer
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
 from ..scene.scene_state import SceneState
+from ..utils.lazy import (
+    Lazy,
+    LazyObject,
+    LazyWrapper
+)
 from ..utils.space import SpaceUtils
 
 
@@ -99,11 +98,13 @@ class Mobject(LazyObject):
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
+    @Lazy.interpolater(NotImplemented)
     @Lazy.variable_collection
     @classmethod
     def _children_(cls) -> "list[Mobject]":
         return []
 
+    @Lazy.interpolater(NotImplemented)
     @Lazy.variable_collection
     @classmethod
     def _real_descendants_(cls) -> "list[Mobject]":
@@ -297,12 +298,13 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
+    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @Lazy.variable_external
+    @Lazy.property_external
     @classmethod
     def _local_sample_points_(cls) -> Vec3sT:
         # Implemented in subclasses.
@@ -740,6 +742,7 @@ class Mobject(LazyObject):
     def _is_transparent_(cls) -> bool:
         return False
 
+    @Lazy.interpolater(NotImplemented)
     @Lazy.variable
     @classmethod
     def _scene_state_(cls) -> SceneState:

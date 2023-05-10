@@ -8,7 +8,7 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import GeometryData
 from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.interface import Lazy
+from ..utils.lazy import Lazy
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 

@@ -1,8 +1,8 @@
 from ..custom_typing import ColorT
 from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.interface import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
+from ..utils.lazy import Lazy
 from ..utils.shape import Shape
 
 
@@ -16,8 +16,8 @@ class ShapeMobject(MeshMobject):
         super().__init__()
         if shape is not None:
             self.set_shape(shape)
-        self.set_style(enable_phong_lighting=False)
 
+    @Lazy.interpolater(Shape.get_interpolant)
     @Lazy.variable
     @classmethod
     def _shape_(cls) -> Shape:
@@ -76,3 +76,10 @@ class ShapeMobject(MeshMobject):
             dilate=dilate,
             is_transparent=is_transparent
         )
+
+    def add_stroke(
+        self,
+        **kwargs
+    ):
+        self.add(self.build_stroke(**kwargs))
+        return self

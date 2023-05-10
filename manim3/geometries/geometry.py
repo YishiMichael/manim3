@@ -7,14 +7,16 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexT
 )
-from ..lazy.core import LazyObject
-from ..lazy.interface import Lazy
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer
 )
 from ..rendering.vertex_array import IndexedAttributesBuffer
+from ..utils.lazy import (
+    Lazy,
+    LazyObject
+)
 
 
 @dataclass(

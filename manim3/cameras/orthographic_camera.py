@@ -2,8 +2,8 @@ import numpy as np
 
 from ..cameras.camera import Camera
 from ..custom_typing import Mat4T
-from ..lazy.interface import Lazy
 from ..rendering.config import ConfigSingleton
+from ..utils.lazy import Lazy
 
 
 class OrthographicCamera(Camera):

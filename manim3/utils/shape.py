@@ -21,8 +21,10 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexT
 )
-from ..lazy.core import LazyObject
-from ..lazy.interface import Lazy
+from ..utils.lazy import (
+    Lazy,
+    LazyObject
+)
 from ..utils.space import SpaceUtils
 
 
@@ -200,13 +202,14 @@ class LineString(ShapeInterpolant):
         if len(path_points) == 1:
             return path_points[0]
         index, residue = self._integer_interpolate(alpha)
-        return SpaceUtils.lerp(path_points[index - 1], path_points[index], residue)
+        return SpaceUtils.lerp(path_points[index - 1], path_points[index])(residue)
 
     def partial(
         self,
         start: float,
         stop: float
     ) -> "LineString":
+        assert start <= stop
         path_points = self._path_points_.value
         if len(path_points) == 1:
             new_points = [path_points[0]]
@@ -215,18 +218,18 @@ class LineString(ShapeInterpolant):
             stop_index, stop_residue = self._integer_interpolate(stop, side="left")
             if start_index == stop_index and start_residue == stop_residue:
                 new_points = [
-                    SpaceUtils.lerp(path_points[start_index - 1], path_points[start_index], start_residue)
+                    SpaceUtils.lerp(path_points[start_index - 1], path_points[start_index])(start_residue)
                 ]
             else:
                 new_points = [
-                    SpaceUtils.lerp(path_points[start_index - 1], path_points[start_index], start_residue),
+                    SpaceUtils.lerp(path_points[start_index - 1], path_points[start_index])(start_residue),
                     *path_points[start_index:stop_index],
-                    SpaceUtils.lerp(path_points[stop_index - 1], path_points[stop_index], stop_residue)
+                    SpaceUtils.lerp(path_points[stop_index - 1], path_points[stop_index])(stop_residue)
                 ]
         return LineString(np.array(new_points), is_ring=False)
 
     @classmethod
-    def interpolate_shape_callback(
+    def get_interpolant(
         cls,
         line_string_0: "LineString",
         line_string_1: "LineString"
@@ -237,20 +240,20 @@ class LineString(ShapeInterpolant):
             all_knots = all_knots[:-1]
             is_ring = True
 
-        point_callbacks: list[Callable[[float], Vec3T]] = [
-            SpaceUtils.lerp_callback(line_string_0.interpolate_point(knot), line_string_1.interpolate_point(knot))
+        point_interpolants = [
+            SpaceUtils.lerp(line_string_0.interpolate_point(knot), line_string_1.interpolate_point(knot))
             for knot in all_knots
         ]
 
-        def callback(
+        def interpolant(
             alpha: float
         ) -> LineString:
             return LineString(np.array([
-                point_callback(alpha)
-                for point_callback in point_callbacks
+                point_interpolant(alpha)
+                for point_interpolant in point_interpolants
             ]), is_ring=is_ring)
 
-        return callback
+        return interpolant
 
 
 class MultiLineString(ShapeInterpolant):
@@ -309,7 +312,7 @@ class MultiLineString(ShapeInterpolant):
         return result
 
     @classmethod
-    def interpolate_shape_callback(
+    def get_interpolant(
         cls,
         multi_line_string_0: "MultiLineString",
         multi_line_string_1: "MultiLineString",
@@ -324,44 +327,44 @@ class MultiLineString(ShapeInterpolant):
         (residue_list_list_0, residue_list_list_1), triplet_tuple_list = cls._zip_knots(
             multi_line_string_0._length_knots_.value, multi_line_string_1._length_knots_.value
         )
-        line_string_callbacks: list[Callable[[float], LineString]] = [
-            LineString.interpolate_shape_callback(
+        line_string_interpolants: list[Callable[[float], LineString]] = [
+            LineString.get_interpolant(
                 line_strings_0[index_0].partial(start_residue_0, stop_residue_0),
                 line_strings_1[index_1].partial(start_residue_1, stop_residue_1)
             )
             for (index_0, start_residue_0, stop_residue_0), (index_1, start_residue_1, stop_residue_1) in triplet_tuple_list
         ]
 
-        inlay_callbacks: list[Callable[[float], Vec3sT]] = []
+        inlay_interpolants: list[Callable[[float], Vec3sT]] = []
         for index_0, residues in enumerate(residue_list_list_0):
             points = line_strings_0[index_0].interpolate_points(residues)
             if len(points) == 2:
                 continue
-            points_center = np.average(points, axis=0)
-            inlay_callbacks.append(SpaceUtils.lerp_callback(points, points_center))
+            points_center: Vec3T = np.average(points, axis=0)
+            inlay_interpolants.append(SpaceUtils.lerp(points, points_center))
 
         for index_1, residues in enumerate(residue_list_list_1):
             points = line_strings_1[index_1].interpolate_points(residues)
             if len(points) == 2:
                 continue
-            points_center = np.average(points, axis=0)
-            inlay_callbacks.append(SpaceUtils.lerp_callback(points_center, points))
+            points_center: Vec3T = np.average(points, axis=0)
+            inlay_interpolants.append(SpaceUtils.lerp(points_center, points))
 
-        def callback(
+        def interpolant(
             alpha: float
         ) -> MultiLineString:
             result = MultiLineString()
             result._line_strings_.extend(
-                line_string_callback(alpha)
-                for line_string_callback in line_string_callbacks
+                line_string_interpolant(alpha)
+                for line_string_interpolant in line_string_interpolants
             )
             if has_inlay:
                 result._line_strings_.extend(
-                    LineString(inlay_callback(alpha), is_ring=True)
-                    for inlay_callback in inlay_callbacks
+                    LineString(inlay_interpolant(alpha), is_ring=True)
+                    for inlay_interpolant in inlay_interpolants
                 )
             return result
-        return callback
+        return interpolant
 
     @classmethod
     def concatenate(
@@ -545,25 +548,25 @@ class Shape(LazyObject):
         return Shape.from_multi_line_string(self._multi_line_string_.partial(start, stop))
 
     @classmethod
-    def interpolate_shape_callback(
+    def get_interpolant(
         cls,
         shape_0: "Shape",
         shape_1: "Shape",
         *,
         has_inlay: bool = True
     ) -> "Callable[[float], Shape]":
-        multi_line_string_callback = MultiLineString.interpolate_shape_callback(
+        multi_line_string_interpolant = MultiLineString.get_interpolant(
             shape_0._multi_line_string_,
             shape_1._multi_line_string_,
             has_inlay=has_inlay
         )
 
-        def callback(
+        def interpolant(
             alpha: float
         ) -> Shape:
-            return Shape.from_multi_line_string(multi_line_string_callback(alpha))
+            return Shape.from_multi_line_string(multi_line_string_interpolant(alpha))
 
-        return callback
+        return interpolant
 
     @classmethod
     def concatenate(

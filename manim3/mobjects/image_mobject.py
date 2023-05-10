@@ -4,7 +4,6 @@ from PIL import Image
 from ..constants import X_AXIS
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
-from ..lazy.interface import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer import (
@@ -12,6 +11,7 @@ from ..rendering.framebuffer import (
     OpaqueFramebuffer
 )
 from ..rendering.texture import TextureFactory
+from ..utils.lazy import Lazy
 
 
 class ImageMobject(MeshMobject):

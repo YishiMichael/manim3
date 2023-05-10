@@ -6,9 +6,11 @@ from manim3 import *
 
 class ShapeTransformExample(Scene):
     def timeline(self) -> TimelineT:
-        circle = Circle()
-        circle.set_style(color=Palette.PINK, opacity=0.9)
-        circle.add(circle.build_stroke(color=Palette.YELLOW, width=0.4))
+        circle = (
+            Circle()
+            .set_style(color=Palette.PINK, opacity=0.9)
+            .add_stroke(color=Palette.YELLOW, width=0.4)
+        )
         square = Square()
         square.set_style(opacity=1.0)
 
@@ -24,10 +26,7 @@ class TexTransformExample(Scene):
             .scale(3)
             .set_style(color=Palette.ORANGE, opacity=0.5)
             .concatenate()
-        )
-        text.add(
-            text.build_stroke(width=0.04, color=Palette.BLUE),
-            text.build_stroke(width=0.08, color=Palette.GREEN)
+            .add_stroke(width=0.04, color=Palette.BLUE)
         )
         tex = (
             Tex("Tex")
@@ -35,8 +34,8 @@ class TexTransformExample(Scene):
             .set_style(color=Palette.BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)
+            .add_stroke(width=0.06, color=Palette.PINK)
         )
-        tex.add(tex.build_stroke(width=0.06, color=Palette.PINK))
         self.add(text)
         yield from self.wait()
         yield from self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
@@ -100,7 +99,6 @@ class OITExample(Scene):
         yield from self.wait(5)
 
 
-
 def main():
     config = Config()
     #config.tex.use_mathjax = True
@@ -110,7 +108,7 @@ def main():
     #config.rendering.write_video = True
     #config.size.pixel_size = (960, 540)
     #config.rendering.write_last_frame = True
-    ThreeDTextExample.render(config)
+    TexTransformExample.render(config)
 
 
 if __name__ == "__main__":

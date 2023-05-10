@@ -1,14 +1,14 @@
 import moderngl
 import numpy as np
 
+from manim3.utils.space import SpaceUtils
+
 from ..custom_typing import (
     ColorT,
     Vec3T,
     Vec3sT
 )
 from ..geometries.geometry import Geometry
-from ..lazy.core import LazyWrapper
-from ..lazy.interface import Lazy
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffer import (
     TransparentFramebuffer,
@@ -23,6 +23,10 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.color import ColorUtils
+from ..utils.lazy import (
+    Lazy,
+    LazyWrapper
+)
 
 
 class MeshMobject(Mobject):
@@ -38,26 +42,31 @@ class MeshMobject(Mobject):
     def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
+    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
+    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
 
+    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _ambient_strength_(cls) -> float:
         return 1.0
 
+    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _specular_strength_(cls) -> float:
         return 0.5
 
+    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _shininess_(cls) -> float:

@@ -8,7 +8,7 @@ from ..geometries.geometry import (
     Geometry,
     GeometryData
 )
-from ..lazy.interface import Lazy
+from ..utils.lazy import Lazy
 from ..utils.shape import Shape
 from ..utils.space import SpaceUtils
 

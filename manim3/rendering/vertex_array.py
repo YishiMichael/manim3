@@ -5,8 +5,6 @@ import re
 import moderngl
 import numpy as np
 
-from ..lazy.core import LazyObject
-from ..lazy.interface import Lazy
 from ..rendering.config import ConfigSingleton
 from ..rendering.context import (
     Context,
@@ -24,6 +22,10 @@ from ..rendering.gl_buffer import (
     UniformBlockBuffer
 )
 from ..rendering.mgl_enums import PrimitiveMode
+from ..utils.lazy import (
+    Lazy,
+    LazyObject
+)
 
 
 class IndexedAttributesBuffer(LazyObject):
@@ -118,6 +120,14 @@ class Program(LazyObject):
     def _varyings_(cls) -> tuple[str, ...]:
         return ()
 
+    @classmethod
+    def _info_finalizer(
+        cls,
+        info: ProgramInfo
+    ) -> None:
+        info.program.release()
+
+    @Lazy.finalizer(_info_finalizer.__func__)
     @Lazy.property_external
     @classmethod
     def _info_(
@@ -236,14 +246,6 @@ class Program(LazyObject):
             texture_binding_offset_dict=texture_binding_offset_dict,
             uniform_block_binding_dict=uniform_block_binding_dict
         )
-
-    @_info_.finalizer
-    @classmethod
-    def _info_finalizer(
-        cls,
-        info: ProgramInfo
-    ) -> None:
-        info.program.release()
 
     def _get_vertex_array(
         self,
@@ -458,6 +460,15 @@ class VertexArray(LazyObject):
             varyings=transform_feedback_buffer__np_buffer_pointer_keys
         )
 
+    @classmethod
+    def _vertex_array_finalizer(
+        cls,
+        vertex_array: moderngl.VertexArray | None
+    ) -> None:
+        if vertex_array is not None:
+            vertex_array.release()
+
+    @Lazy.finalizer(_vertex_array_finalizer.__func__)
     @Lazy.property_external
     @classmethod
     def _vertex_array_(
@@ -466,15 +477,6 @@ class VertexArray(LazyObject):
         _indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> moderngl.VertexArray | None:
         return _program_._get_vertex_array(_indexed_attributes_buffer_)
-
-    @_vertex_array_.finalizer
-    @classmethod
-    def _vertex_array_finalizer(
-        cls,
-        vertex_array: moderngl.VertexArray | None
-    ) -> None:
-        if vertex_array is not None:
-            vertex_array.release()
 
     @Lazy.property_external
     @classmethod

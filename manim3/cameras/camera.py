@@ -9,10 +9,12 @@ from ..custom_typing import (
     Mat4T,
     Vec3T
 )
-from ..lazy.core import LazyObject
-from ..lazy.interface import Lazy
 from ..rendering.config import ConfigSingleton
 from ..rendering.gl_buffer import UniformBlockBuffer
+from ..utils.lazy import (
+    Lazy,
+    LazyObject
+)
 from ..utils.space import SpaceUtils
 
 

@@ -12,9 +12,11 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import VertexIndexT
-from ..lazy.core import LazyObject
-from ..lazy.interface import Lazy
 from ..rendering.context import Context
+from ..utils.lazy import (
+    Lazy,
+    LazyObject
+)
 
 
 class GLBufferLayout(Enum):
@@ -505,6 +507,14 @@ class GLBuffer(LazyObject):
 class GLWriteOnlyBuffer(GLBuffer):
     __slots__ = ()
 
+    @classmethod
+    def _buffer_finalizer(
+        cls,
+        buffer: moderngl.Buffer
+    ) -> None:
+        cls._finalize_buffer(buffer)
+
+    @Lazy.finalizer(_buffer_finalizer.__func__)
     @Lazy.property_external
     @classmethod
     def _buffer_(
@@ -521,14 +531,6 @@ class GLWriteOnlyBuffer(GLBuffer):
             data_dict=data_dict
         )
         return buffer
-
-    @_buffer_.finalizer
-    @classmethod
-    def _buffer_finalizer(
-        cls,
-        buffer: moderngl.Buffer
-    ) -> None:
-        cls._finalize_buffer(buffer)
 
     @Lazy.variable_external
     @classmethod

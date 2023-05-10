@@ -1,8 +1,6 @@
 import numpy as np
 from PIL import Image
 
-from ..lazy.core import LazyDynamicContainer
-from ..lazy.interface import Lazy
 from ..mobjects.mobject import Mobject
 from ..passes.render_pass import RenderPass
 from ..rendering.config import ConfigSingleton
@@ -21,6 +19,10 @@ from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
 from ..scene.scene_state import SceneState
+from ..utils.lazy import (
+    Lazy,
+    LazyDynamicContainer
+)
 
 
 class SceneFrame(Mobject):
@@ -67,9 +69,9 @@ class SceneFrame(Mobject):
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
         for mobject in self.iter_descendants():
+            mobject._scene_state_ = self._scene_state_
             if not mobject._has_local_sample_points_.value:
                 continue
-            mobject._scene_state_ = self._scene_state_
             if mobject._is_transparent_.value:
                 transparent_mobjects.append(mobject)
             else:

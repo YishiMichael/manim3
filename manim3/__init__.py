@@ -15,9 +15,6 @@ from .geometries.prismoid_geometry import PrismoidGeometry
 from .geometries.shape_geometry import ShapeGeometry
 from .geometries.sphere_geometry import SphereGeometry
 
-from .lazy.core import LazyObject
-from .lazy.interface import Lazy
-
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mesh_mobject import MeshMobject
 from .mobjects.mobject import Mobject
@@ -77,6 +74,10 @@ from .rendering.vertex_array import VertexArray
 from .scene.scene import Scene
 
 from .utils.color import ColorUtils
+from .utils.lazy import (
+    Lazy,
+    LazyObject
+)
 from .utils.rate import RateUtils
 from .utils.palette import Palette
 from .utils.shape import (
@@ -108,14 +109,14 @@ from .custom_typing import (
     ColorT,
     FloatsT,
     Mat3T,
-    Mat4T,
     Mat3sT,
+    Mat4T,
     Mat4sT,
     TimelineT,
     Vec2T,
-    Vec3T,
-    Vec4T,
     Vec2sT,
+    Vec3T,
     Vec3sT,
+    Vec4T,
     Vec4sT
 )
