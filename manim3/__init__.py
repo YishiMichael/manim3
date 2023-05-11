@@ -62,7 +62,7 @@ from .rendering.framebuffer import Framebuffer
 from .rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
-    TextureIDBuffer,
+    TextureIdBuffer,
     TransformFeedbackBuffer,
     UniformBlockBuffer
 )

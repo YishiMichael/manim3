@@ -1083,6 +1083,9 @@ class LazyObject(ABC):
         self: _ElementT,
         other: _ElementT
     ) -> Callable[[_ElementT, float], None]:
+        # Two objects are said to be "interpolable" if their lazy variable descriptors match
+        # (a weaker condition than being of the same type), and their lazy variables without
+        # `interpolate_method` specified should match in values.
         assert (lazy_descriptors := type(self)._lazy_variable_descriptors) == type(other)._lazy_variable_descriptors
         descriptor_callbacks = [
             descriptor_callback

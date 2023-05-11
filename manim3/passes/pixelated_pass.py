@@ -5,7 +5,7 @@ from ..config import ConfigSingleton
 from ..lazy.lazy import Lazy
 from ..passes.render_pass import RenderPass
 from ..rendering.framebuffer import ColorFramebuffer
-from ..rendering.gl_buffer import TextureIDBuffer
+from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
 
@@ -28,11 +28,11 @@ class PixelatedPass(RenderPass):
 
     @Lazy.property
     @classmethod
-    def _pixelated_va_(cls) -> VertexArray:
+    def _pixelated_vertex_array_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             texture_id_buffers=[
-                TextureIDBuffer(
+                TextureIdBuffer(
                     field="sampler2D t_color_map"
                 )
             ]
@@ -50,7 +50,7 @@ class PixelatedPass(RenderPass):
         )
         with TextureFactory.texture(size=texture_size) as color_texture:
             color_texture.filter = (moderngl.NEAREST, moderngl.NEAREST)  # TODO: typing
-            self._pixelated_va_.render(
+            self._pixelated_vertex_array_.render(
                 framebuffer=ColorFramebuffer(
                     color_texture=color_texture
                 ),
@@ -58,7 +58,7 @@ class PixelatedPass(RenderPass):
                     "t_color_map": np.array(texture)
                 }
             )
-            self._pixelated_va_.render(
+            self._pixelated_vertex_array_.render(
                 framebuffer=target_framebuffer,
                 texture_array_dict={
                     "t_color_map": np.array(color_texture)

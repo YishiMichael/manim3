@@ -20,7 +20,7 @@ class ParametricSurfaceGeometry(Geometry):
         normal_func: Callable[[float, float], Vec3T],
         u_range: tuple[float, float],
         v_range: tuple[float, float],
-        resolution: tuple[int, int] = (100, 100)
+        resolution: tuple[int, int] = (128, 128)
     ) -> None:
         u_start, u_stop = u_range
         v_start, v_stop = v_range

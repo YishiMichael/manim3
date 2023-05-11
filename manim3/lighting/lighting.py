@@ -92,7 +92,7 @@ class Lighting(LazyObject):
         _point_lights_: list[PointLight]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
-            name="ub_lights",
+            name="ub_lighting",
             fields=[
                 "vec4 u_ambient_light_color",
                 "float u_ambient_strength",
@@ -124,25 +124,6 @@ class Lighting(LazyObject):
                 ])
             }
         )
-
-    #@Lazy.variable
-    #@classmethod
-    #def _camera_(cls) -> Camera:
-    #    return PerspectiveCamera()
-
-    #def set_view(
-    #    self,
-    #    *,
-    #    eye: Vec3T | None = None,
-    #    target: Vec3T | None = None,
-    #    up: Vec3T | None = None
-    #):
-    #    self._camera_.set_view(
-    #        eye=eye,
-    #        target=target,
-    #        up=up
-    #    )
-    #    return self
 
     def set_ambient_light(
         self,
@@ -201,30 +182,3 @@ class Lighting(LazyObject):
                     opacity=opacity
                 )
         return self
-
-    #def set_style(
-    #    self,
-    #    *,
-    #    #background_color: ColorT | None = None,
-    #    #background_opacity: float | None = None,
-    #    ambient_light_color: ColorT | None = None,
-    #    ambient_light_opacity: float | None = None,
-    #    point_light_position: Vec3T | None = None,
-    #    point_light_color: ColorT | None = None,
-    #    point_light_opacity: float | None = None
-    #):
-    #    #self.set_background(
-    #    #    color=background_color,
-    #    #    opacity=background_opacity
-    #    #)
-    #    self.set_ambient_light(
-    #        color=ambient_light_color,
-    #        opacity=ambient_light_opacity
-    #    )
-    #    self.set_point_light(
-    #        index=None,
-    #        position=point_light_position,
-    #        color=point_light_color,
-    #        opacity=point_light_opacity
-    #    )
-    #    return self

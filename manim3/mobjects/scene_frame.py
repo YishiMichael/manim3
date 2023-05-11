@@ -2,6 +2,8 @@ import moderngl
 import numpy as np
 from PIL import Image
 
+from ..cameras.camera import Camera
+from ..cameras.perspective_camera import PerspectiveCamera
 from ..config import ConfigSingleton
 from ..custom_typing import (
     ColorT,
@@ -20,7 +22,7 @@ from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
 )
-from ..rendering.gl_buffer import TextureIDBuffer
+from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
@@ -30,11 +32,10 @@ from ..utils.color import ColorUtils
 class SceneFrame(Mobject):
     __slots__ = ()
 
-    #def __init__(self) -> None:
-    #    super().__init__()
-    #    self.set_background(
-    #        color=ConfigSingleton().camera.background_color
-    #    )
+    @Lazy.variable
+    @classmethod
+    def _camera_(cls) -> Camera:
+        return PerspectiveCamera()
 
     @Lazy.variable_external
     @classmethod
@@ -57,7 +58,7 @@ class SceneFrame(Mobject):
         return VertexArray(
             shader_filename="copy",
             texture_id_buffers=[
-                TextureIDBuffer(
+                TextureIdBuffer(
                     field="sampler2D t_color_map"
                 )
             ]
@@ -69,10 +70,10 @@ class SceneFrame(Mobject):
         return VertexArray(
             shader_filename="oit_compose",
             texture_id_buffers=[
-                TextureIDBuffer(
+                TextureIdBuffer(
                     field="sampler2D t_accum_map"
                 ),
-                TextureIDBuffer(
+                TextureIdBuffer(
                     field="sampler2D t_revealage_map"
                 )
             ]
@@ -100,7 +101,10 @@ class SceneFrame(Mobject):
                 color_texture=target_framebuffer.color_texture,
                 depth_texture=depth_texture
             )
-            opaque_framebuffer.framebuffer.clear()
+
+            red, green, blue = self._background_color_.value
+            alpha = self._background_opacity_.value
+            opaque_framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
             for mobject in opaque_mobjects:
                 mobject._render(opaque_framebuffer)
 
@@ -140,13 +144,13 @@ class SceneFrame(Mobject):
             self._render_scene(target_framebuffer)
             return
 
-        with TextureFactory.texture() as teture_0, TextureFactory.texture() as teture_1:
+        with TextureFactory.texture() as texture_0, TextureFactory.texture() as texture_1:
             framebuffers = (
                 ColorFramebuffer(
-                    color_texture=teture_0
+                    color_texture=texture_0
                 ),
                 ColorFramebuffer(
-                    color_texture=teture_1
+                    color_texture=texture_1
                 )
             )
             target_id = 0
@@ -165,21 +169,15 @@ class SceneFrame(Mobject):
     def _render_to_texture(
         self,
         color_texture: moderngl.Texture
-        #scene_state: SceneState
-    ) -> ColorFramebuffer:
-        #self._scene_state_ = scene_state
+    ) -> None:
         framebuffer = ColorFramebuffer(
             color_texture=color_texture
         )
-        red, green, blue = self._background_color_.value
-        alpha = self._background_opacity_.value
-        framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
         self._render_scene_with_passes(framebuffer)
-        return framebuffer
 
     def _render_to_window(
         self,
-        framebuffer: ColorFramebuffer
+        color_texture: moderngl.Texture
     ) -> None:
         window = Context.window
         if window.is_closing:
@@ -193,29 +191,29 @@ class SceneFrame(Mobject):
                 )
             ),
             texture_array_dict={
-                "t_color_map": np.array(framebuffer.color_texture)
+                "t_color_map": np.array(color_texture)
             }
         )
         window.swap_buffers()
 
     def _write_to_writing_process(
         self,
-        framebuffer: ColorFramebuffer
+        color_texture: moderngl.Texture
     ) -> None:
         writing_process = Context.writing_process
         assert writing_process.stdin is not None
-        writing_process.stdin.write(framebuffer.framebuffer.read(components=4))
+        writing_process.stdin.write(color_texture.read())
 
     @classmethod
     def _write_to_image(
         cls,
-        framebuffer: ColorFramebuffer
+        color_texture: moderngl.Texture
     ) -> None:
         scene_name = ConfigSingleton().rendering.scene_name
         image = Image.frombytes(
             "RGBA",
             ConfigSingleton().size.pixel_size,
-            framebuffer.framebuffer.read(components=4),
+            color_texture.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
@@ -232,57 +230,3 @@ class SceneFrame(Mobject):
         if opacity_component is not None:
             self._background_opacity_ = opacity_component
         return self
-
-    #def _process_rendering(
-    #    self,
-    #    *,
-    #    scene_state: SceneState,
-    #    render_to_video: bool = False,
-    #    render_to_image: bool = False
-    #) -> None:
-    #    
-    #    with TextureFactory.texture() as color_texture:
-    #        framebuffer = self._render_to_texture(
-    #            color_texture=color_texture,
-    #            scene_state=scene_state
-    #        )
-    #        #framebuffer = ColorFramebuffer(
-    #        #    color_texture=color_texture
-    #        #)
-    #        #red, green, blue = scene_state._background_color_.value
-    #        #alpha = scene_state._background_opacity_.value
-    #        #framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
-    #        #self._render_scene_with_passes(framebuffer)
-
-    #        if render_to_video:
-    #            if ConfigSingleton().rendering.write_video:
-    #                writing_process = Context.writing_process
-    #                assert writing_process.stdin is not None
-    #                writing_process.stdin.write(framebuffer.framebuffer.read(components=4))
-    #            if ConfigSingleton().rendering.preview:
-    #                window = Context.window
-    #                if window.is_closing:
-    #                    raise KeyboardInterrupt
-    #                window.clear()
-    #                self._pixelated_vertex_array_.render(
-    #                    framebuffer=Framebuffer(
-    #                        framebuffer=Context.window_framebuffer,
-    #                        default_context_state=ContextState(
-    #                            flags=()
-    #                        )
-    #                    ),
-    #                    texture_array_dict={
-    #                        "t_color_map": np.array(color_texture)
-    #                    }
-    #                )
-    #                window.swap_buffers()
-
-    #        if render_to_image:
-    #            scene_name = ConfigSingleton().rendering.scene_name
-    #            image = Image.frombytes(
-    #                "RGBA",
-    #                ConfigSingleton().size.pixel_size,
-    #                framebuffer.framebuffer.read(components=4),
-    #                "raw"
-    #            ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-    #            image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))

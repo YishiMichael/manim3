@@ -568,7 +568,7 @@ class GLReadOnlyBuffer(GLBuffer):
         )
 
 
-class TextureIDBuffer(GLBuffer):
+class TextureIdBuffer(GLBuffer):
     __slots__ = ()
 
     def __init__(

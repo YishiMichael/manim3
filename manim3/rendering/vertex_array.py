@@ -21,7 +21,7 @@ from ..rendering.gl_buffer import (
     BufferFormat,
     IndexBuffer,
     StructuredBufferFormat,
-    TextureIDBuffer,
+    TextureIdBuffer,
     TransformFeedbackBuffer,
     UniformBlockBuffer
 )
@@ -347,7 +347,7 @@ class VertexArray(LazyObject):
         *,
         shader_filename: str,
         custom_macros: list[str] | None = None,
-        texture_id_buffers: list[TextureIDBuffer] | None = None,
+        texture_id_buffers: list[TextureIdBuffer] | None = None,
         uniform_block_buffers: list[UniformBlockBuffer] | None = None,
         indexed_attributes_buffer: IndexedAttributesBuffer | None = None,
         transform_feedback_buffer: TransformFeedbackBuffer | None = None
@@ -377,7 +377,7 @@ class VertexArray(LazyObject):
 
     @Lazy.variable_collection
     @classmethod
-    def _texture_id_buffers_(cls) -> list[TextureIDBuffer]:
+    def _texture_id_buffers_(cls) -> list[TextureIdBuffer]:
         return []
 
     @Lazy.variable_collection

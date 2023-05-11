@@ -18,7 +18,7 @@ from ..rendering.framebuffer import (
     TransparentFramebuffer
 )
 from ..rendering.gl_buffer import (
-    TextureIDBuffer,
+    TextureIdBuffer,
     UniformBlockBuffer
 )
 from ..rendering.vertex_array import (
@@ -78,20 +78,14 @@ class MeshMobject(Mobject):
         cls,
         color: Vec3T,
         opacity: float
-        #ambient_strength: float,
-        #specular_strength: float,
-        #shininess: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
-            name="ub_material",
+            name="ub_color",
             fields=[
                 "vec4 u_color"
             ],
             data={
                 "u_color": np.append(color, opacity)
-                #"u_ambient_strength": np.array(ambient_strength),
-                #"u_specular_strength": np.array(specular_strength),
-                #"u_shininess": np.array(shininess)
             }
         )
 
@@ -117,7 +111,7 @@ class MeshMobject(Mobject):
             shader_filename="mesh",
             custom_macros=custom_macros,
             texture_id_buffers=[
-                TextureIDBuffer(
+                TextureIdBuffer(
                     field="sampler2D t_color_maps[NUM_COLOR_MAPS]",
                     array_lens={
                         "NUM_COLOR_MAPS": int(color_map is not None)
@@ -157,15 +151,15 @@ class MeshMobject(Mobject):
         self._geometry_ = geometry
         return self
 
+    def get_lighting(self) -> Lighting:
+        return self._lighting_
+
     def set_style(
         self,
         *,
         color: ColorT | None = None,
         opacity: float | None = None,
         is_transparent: bool | None = None,
-        #ambient_strength: float | None = None,
-        #specular_strength: float | None = None,
-        #shininess: float | None = None,
         lighting: Lighting | None = None,
         enable_phong_lighting: bool | None = None,
         broadcast: bool = True
@@ -175,9 +169,6 @@ class MeshMobject(Mobject):
         opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
         is_transparent_value = is_transparent if is_transparent is not None else \
             True if opacity_component is not None else None
-        #ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
-        #specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
-        #shininess_value = LazyWrapper(shininess) if shininess is not None else None
         enable_phong_lighting_value = enable_phong_lighting if enable_phong_lighting is not None else \
             True if lighting is not None else None
         for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject, broadcast=broadcast):
@@ -187,12 +178,6 @@ class MeshMobject(Mobject):
                 mobject._opacity_ = opacity_value
             if is_transparent_value is not None:
                 mobject._is_transparent_ = is_transparent_value
-            #if ambient_strength_value is not None:
-            #    mobject._ambient_strength_ = ambient_strength_value
-            #if specular_strength_value is not None:
-            #    mobject._specular_strength_ = specular_strength_value
-            #if shininess_value is not None:
-            #    mobject._shininess_ = shininess_value
             if lighting is not None:
                 mobject._lighting_ = lighting
             if enable_phong_lighting_value is not None:

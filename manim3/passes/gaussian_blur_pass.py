@@ -8,7 +8,7 @@ from ..passes.render_pass import RenderPass
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import (
     UniformBlockBuffer,
-    TextureIDBuffer
+    TextureIdBuffer
 )
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
@@ -75,7 +75,7 @@ class GaussianBlurPass(RenderPass):
                     f"#define blur_subroutine {blur_subroutine}"
                 ],
                 texture_id_buffers=[
-                    TextureIDBuffer(
+                    TextureIdBuffer(
                         field="sampler2D t_color_map"
                     )
                 ],

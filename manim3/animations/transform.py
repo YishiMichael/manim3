@@ -21,6 +21,8 @@ class Transform(Animation):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
+        # Requires descendants of `start_mobject` and `stop_mobject` perfectly aligned.
+        # Each component pair should be interpolable.
         intermediate_mobjects_with_callback = list(
             (
                 mobject_0.copy_standalone(),

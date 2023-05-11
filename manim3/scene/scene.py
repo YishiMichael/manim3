@@ -1,11 +1,6 @@
 import time
 from typing import Iterator
 
-#import moderngl
-#import numpy as np
-
-#from manim3.cameras.camera import Camera
-
 from ..animations.animation import (
     Animation,
     AwaitSignal,
@@ -19,21 +14,13 @@ from ..config import (
 )
 from ..mobjects.mobject import Mobject
 from ..mobjects.scene_frame import SceneFrame
-#from ..passes.render_pass import RenderPass
 from ..rendering.context import Context
-#from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.texture import TextureFactory
-#from ..scene.scene_state import SceneState
-#from ..utils.lazy import LazyDynamicContainer
 from ..utils.rate import RateUtils
 
 
 class Scene(Animation):
-    __slots__ = (
-        #"_background_color",
-        #"_background_opacity",
-        "_scene_frame",
-    )
+    __slots__ = ("_scene_frame",)
 
     def __init__(self) -> None:
         start_time = ConfigSingleton().rendering.start_time
@@ -42,7 +29,6 @@ class Scene(Animation):
             run_time=stop_time - start_time if stop_time is not None else None,
             relative_rate=RateUtils.adjust(RateUtils.linear, lag_time=-start_time)
         )
-        #self._scene_state: SceneState = SceneState()
         self._scene_frame: SceneFrame = SceneFrame()
 
     def _run_timeline(self) -> None:
@@ -101,32 +87,15 @@ class Scene(Animation):
                     break
                 update(timestamp, updater_items)
 
-                framebuffer = scene_frame._render_to_texture(color_texture)
+                scene_frame._render_to_texture(color_texture)
                 if ConfigSingleton().rendering.preview:
-                    scene_frame._render_to_window(framebuffer)
+                    scene_frame._render_to_window(color_texture)
                 if ConfigSingleton().rendering.write_video:
-                    scene_frame._write_to_writing_process(framebuffer)
+                    scene_frame._write_to_writing_process(color_texture)
 
-                #scene_frame._process_rendering(
-                #    scene_state=self._scene_state,
-                #    render_to_video=True
-                #)
-
-            #with TextureFactory.texture() as color_texture:
-            framebuffer = scene_frame._render_to_texture(color_texture)
+            scene_frame._render_to_texture(color_texture)
             if ConfigSingleton().rendering.write_last_frame:
-                scene_frame._write_to_image(framebuffer)
-
-            #scene_frame._process_rendering(
-            #    scene_state=self._scene_state,
-            #    render_to_image=True
-            #)
-
-    #def _render_frame(
-    #    self,
-    #    color_texture: moderngl.Texture
-    #) -> ColorFramebuffer:
-    #    return self._scene_frame._render_to_texture(color_texture)
+                scene_frame._write_to_image(color_texture)
 
     @property
     def frame(self) -> SceneFrame:

@@ -12,8 +12,11 @@ class ShapeTransformExample(Scene):
             .set_style(color=Palette.PINK, opacity=0.9)
             .add_stroke(color=Palette.YELLOW, width=0.4)
         )
-        square = Square()
-        square.set_style(opacity=1.0)
+        square = (
+            Square()
+            .set_style(opacity=1.0)
+            .add_stroke(color=Palette.YELLOW, width=0.0)
+        )
 
         self.add(square)
         yield from self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
@@ -22,7 +25,7 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def timeline(self) -> TimelineT:
-        self.frame.set_background(color=Palette.TEAL)  # TODO
+        #self.frame.set_background(color=Palette.TEAL, opacity=0.2)  # TODO
         text = (
             Text("Text")
             .scale(3)
@@ -79,7 +82,7 @@ class ThreeDTextExample(Scene):
             .stretch_to_fit_depth(0.5)
             .set_style(color="#00FFAA44")
         )
-        text_3d._lighting_.add_point_light(position=RIGHT)
+        text_3d.get_lighting().add_point_light(position=RIGHT)
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         yield from self.wait(10)
@@ -113,9 +116,9 @@ def main():
     #config.rendering.time_span = (2.0, 3.0)
     #config.rendering.fps = 3
     #config.rendering.preview = False
-    #config.rendering.write_video = True
+    config.rendering.write_video = True
+    config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    #config.rendering.write_last_frame = True
     TexTransformExample.render(config)
 
 
