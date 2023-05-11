@@ -10,6 +10,7 @@ from typing import (
 
 import toml
 
+from ..config import ConfigSingleton
 from ..custom_typing import (
     ColorT,
     SelectorT
@@ -21,7 +22,6 @@ from ..mobjects.string_mobject import (
     StringMobject,
     StringParser
 )
-from ..rendering.config import ConfigSingleton
 from ..utils.color import ColorUtils
 
 

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from manim3 import *
+from manim3.custom_typing import TimelineT
 
 
 class ShapeTransformExample(Scene):
@@ -21,6 +22,7 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def timeline(self) -> TimelineT:
+        self.frame.set_background(color=Palette.TEAL)  # TODO
         text = (
             Text("Text")
             .scale(3)
@@ -68,7 +70,7 @@ class Rotating(Animation):
 
 class ThreeDTextExample(Scene):
     def timeline(self) -> TimelineT:
-        self.scene_state.add_point_light(position=RIGHT)
+        #self.frame.lighting.add_point_light(position=RIGHT)
         text = Text("Text").concatenate()
         text_3d = (
             MeshMobject()
@@ -77,6 +79,7 @@ class ThreeDTextExample(Scene):
             .stretch_to_fit_depth(0.5)
             .set_style(color="#00FFAA44")
         )
+        text_3d._lighting_.add_point_light(position=RIGHT)
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         yield from self.wait(10)
@@ -97,6 +100,11 @@ class OITExample(Scene):
             )
         ))
         yield from self.wait(5)
+
+
+#class ChildSceneExample(Scene):
+#    def timeline(self) -> TimelineT:
+#        child_scene_1 = ChildSceneMobject()
 
 
 def main():

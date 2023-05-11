@@ -1,9 +1,15 @@
+import moderngl
 import numpy as np
 from PIL import Image
 
+from ..config import ConfigSingleton
+from ..custom_typing import (
+    ColorT,
+    Vec3T
+)
+from ..lazy.lazy import Lazy
 from ..mobjects.mobject import Mobject
 from ..passes.render_pass import RenderPass
-from ..rendering.config import ConfigSingleton
 from ..rendering.context import (
     Context,
     ContextState
@@ -18,15 +24,27 @@ from ..rendering.gl_buffer import TextureIDBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-from ..scene.scene_state import SceneState
-from ..utils.lazy import (
-    Lazy,
-    LazyDynamicContainer
-)
+from ..utils.color import ColorUtils
 
 
 class SceneFrame(Mobject):
     __slots__ = ()
+
+    #def __init__(self) -> None:
+    #    super().__init__()
+    #    self.set_background(
+    #        color=ConfigSingleton().camera.background_color
+    #    )
+
+    @Lazy.variable_external
+    @classmethod
+    def _background_color_(cls) -> Vec3T:
+        return np.zeros(3)
+
+    @Lazy.variable_external
+    @classmethod
+    def _background_opacity_(cls) -> float:
+        return 1.0
 
     @Lazy.variable_collection
     @classmethod
@@ -69,9 +87,9 @@ class SceneFrame(Mobject):
         opaque_mobjects: list[Mobject] = []
         transparent_mobjects: list[Mobject] = []
         for mobject in self.iter_descendants():
-            mobject._scene_state_ = self._scene_state_
             if not mobject._has_local_sample_points_.value:
                 continue
+            mobject._camera_ = self._camera_
             if mobject._is_transparent_.value:
                 transparent_mobjects.append(mobject)
             else:
@@ -144,56 +162,127 @@ class SceneFrame(Mobject):
                 target_framebuffer=target_framebuffer
             )
 
-    def _process_rendering(
+    def _render_to_texture(
+        self,
+        color_texture: moderngl.Texture
+        #scene_state: SceneState
+    ) -> ColorFramebuffer:
+        #self._scene_state_ = scene_state
+        framebuffer = ColorFramebuffer(
+            color_texture=color_texture
+        )
+        red, green, blue = self._background_color_.value
+        alpha = self._background_opacity_.value
+        framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
+        self._render_scene_with_passes(framebuffer)
+        return framebuffer
+
+    def _render_to_window(
+        self,
+        framebuffer: ColorFramebuffer
+    ) -> None:
+        window = Context.window
+        if window.is_closing:
+            raise KeyboardInterrupt
+        window.clear()
+        self._pixelated_vertex_array_.render(
+            framebuffer=Framebuffer(
+                framebuffer=Context.window_framebuffer,
+                default_context_state=ContextState(
+                    flags=()
+                )
+            ),
+            texture_array_dict={
+                "t_color_map": np.array(framebuffer.color_texture)
+            }
+        )
+        window.swap_buffers()
+
+    def _write_to_writing_process(
+        self,
+        framebuffer: ColorFramebuffer
+    ) -> None:
+        writing_process = Context.writing_process
+        assert writing_process.stdin is not None
+        writing_process.stdin.write(framebuffer.framebuffer.read(components=4))
+
+    @classmethod
+    def _write_to_image(
+        cls,
+        framebuffer: ColorFramebuffer
+    ) -> None:
+        scene_name = ConfigSingleton().rendering.scene_name
+        image = Image.frombytes(
+            "RGBA",
+            ConfigSingleton().size.pixel_size,
+            framebuffer.framebuffer.read(components=4),
+            "raw"
+        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
+
+    def set_background(
         self,
         *,
-        scene_state: SceneState,
-        render_to_video: bool = False,
-        render_to_image: bool = False
-    ) -> None:
-        self._scene_state_ = scene_state
-        red, green, blue = scene_state._background_color_.value
-        alpha = scene_state._background_opacity_.value
-        with TextureFactory.texture() as color_texture:
-            framebuffer = ColorFramebuffer(
-                color_texture=color_texture
-            )
-            framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
-            self._render_scene_with_passes(framebuffer)
+        color: ColorT | None = None,
+        opacity: float | None = None
+    ):
+        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        if color_component is not None:
+            self._background_color_ = color_component
+        if opacity_component is not None:
+            self._background_opacity_ = opacity_component
+        return self
 
-            if render_to_video:
-                if ConfigSingleton().rendering.write_video:
-                    writing_process = Context.writing_process
-                    assert writing_process.stdin is not None
-                    writing_process.stdin.write(framebuffer.framebuffer.read(components=4))
-                if ConfigSingleton().rendering.preview:
-                    window = Context.window
-                    if window.is_closing:
-                        raise KeyboardInterrupt
-                    window.clear()
-                    self._pixelated_vertex_array_.render(
-                        framebuffer=Framebuffer(
-                            framebuffer=Context.window_framebuffer,
-                            default_context_state=ContextState(
-                                flags=()
-                            )
-                        ),
-                        texture_array_dict={
-                            "t_color_map": np.array(color_texture)
-                        }
-                    )
-                    window.swap_buffers()
+    #def _process_rendering(
+    #    self,
+    #    *,
+    #    scene_state: SceneState,
+    #    render_to_video: bool = False,
+    #    render_to_image: bool = False
+    #) -> None:
+    #    
+    #    with TextureFactory.texture() as color_texture:
+    #        framebuffer = self._render_to_texture(
+    #            color_texture=color_texture,
+    #            scene_state=scene_state
+    #        )
+    #        #framebuffer = ColorFramebuffer(
+    #        #    color_texture=color_texture
+    #        #)
+    #        #red, green, blue = scene_state._background_color_.value
+    #        #alpha = scene_state._background_opacity_.value
+    #        #framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
+    #        #self._render_scene_with_passes(framebuffer)
 
-            if render_to_image:
-                scene_name = ConfigSingleton().rendering.scene_name
-                image = Image.frombytes(
-                    "RGBA",
-                    ConfigSingleton().size.pixel_size,
-                    framebuffer.framebuffer.read(components=4),
-                    "raw"
-                ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-                image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
+    #        if render_to_video:
+    #            if ConfigSingleton().rendering.write_video:
+    #                writing_process = Context.writing_process
+    #                assert writing_process.stdin is not None
+    #                writing_process.stdin.write(framebuffer.framebuffer.read(components=4))
+    #            if ConfigSingleton().rendering.preview:
+    #                window = Context.window
+    #                if window.is_closing:
+    #                    raise KeyboardInterrupt
+    #                window.clear()
+    #                self._pixelated_vertex_array_.render(
+    #                    framebuffer=Framebuffer(
+    #                        framebuffer=Context.window_framebuffer,
+    #                        default_context_state=ContextState(
+    #                            flags=()
+    #                        )
+    #                    ),
+    #                    texture_array_dict={
+    #                        "t_color_map": np.array(color_texture)
+    #                    }
+    #                )
+    #                window.swap_buffers()
 
-    @property
-    def render_passes(self) -> LazyDynamicContainer[RenderPass]:
-        return self._render_passes_
+    #        if render_to_image:
+    #            scene_name = ConfigSingleton().rendering.scene_name
+    #            image = Image.frombytes(
+    #                "RGBA",
+    #                ConfigSingleton().size.pixel_size,
+    #                framebuffer.framebuffer.read(components=4),
+    #                "raw"
+    #            ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    #            image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))

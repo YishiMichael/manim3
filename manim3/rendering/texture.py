@@ -6,7 +6,7 @@ from typing import (
 
 import moderngl
 
-from ..rendering.config import ConfigSingleton
+from ..config import ConfigSingleton
 from ..rendering.context import Context
 
 

@@ -1,8 +1,6 @@
-#from functools import partial
 from typing import (
     Callable,
     Literal,
-    #Union,
     overload
 )
 
@@ -307,30 +305,6 @@ class SpaceUtils:
             return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
         return interpolant
-
-    #@classmethod
-    #def rotational_interpolate_callback(
-    #    cls,
-    #    matrix_0: Mat4T,
-    #    matrix_1: Mat4T
-    #) -> Callable[[float], Mat4T]:
-    #    rotation_part_0 = matrix_0[:3, :3]
-    #    translation_0 = matrix_0[:3, 3]
-    #    rotation_0 = Rotation.from_matrix(rotation_part_0)
-    #    shear_0 = rotation_part_0 @ np.linalg.inv(rotation_0.as_matrix())
-    #    rotation_part_1 = matrix_1[:3, :3]
-    #    translation_1 = matrix_1[:3, 3]
-    #    rotation_1 = Rotation.from_matrix(rotation_part_1)
-    #    shear_1 = rotation_part_1 @ np.linalg.inv(rotation_1.as_matrix())
-    #    slerp = Slerp((0.0, 1.0), Rotation.concatenate((rotation_0, rotation_1)))
-
-    #    def callback(alpha: float) -> Mat4T:
-    #        m = np.identity(4)
-    #        m[:3, :3] = cls.lerp(shear_0, shear_1, alpha) @ Rotation.as_matrix(slerp(alpha))
-    #        m[:3, 3] = cls.lerp(translation_0, translation_1, alpha)
-    #        return m
-
-    #    return callback
 
     @classmethod
     def increase_dimension(

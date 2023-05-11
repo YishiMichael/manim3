@@ -2,16 +2,16 @@ import numpy as np
 from PIL import Image
 
 from ..constants import X_AXIS
+from ..config import ConfigSingleton
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
+from ..lazy.lazy import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
-from ..rendering.config import ConfigSingleton
 from ..rendering.framebuffer import (
-    TransparentFramebuffer,
-    OpaqueFramebuffer
+    OpaqueFramebuffer,
+    TransparentFramebuffer
 )
 from ..rendering.texture import TextureFactory
-from ..utils.lazy import Lazy
 
 
 class ImageMobject(MeshMobject):
@@ -29,9 +29,10 @@ class ImageMobject(MeshMobject):
         image = Image.open(image_path)
         self._image: Image.Image = image
 
+        pixel_per_unit = ConfigSingleton().size.pixel_per_unit
         x_scale, y_scale = self._get_frame_scale_vector(
-            original_width=image.width / ConfigSingleton().size.pixel_per_unit,
-            original_height=image.height / ConfigSingleton().size.pixel_per_unit,
+            original_width=image.width / pixel_per_unit,
+            original_height=image.height / pixel_per_unit,
             specified_width=width,
             specified_height=height,
             specified_frame_scale=frame_scale

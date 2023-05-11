@@ -2,8 +2,8 @@ from abc import abstractmethod
 
 import moderngl
 
+from ..lazy.lazy import LazyObject
 from ..rendering.framebuffer import ColorFramebuffer
-from ..utils.lazy import LazyObject
 
 
 class RenderPass(LazyObject):

@@ -12,11 +12,11 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import VertexIndexT
-from ..rendering.context import Context
-from ..utils.lazy import (
+from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
+from ..rendering.context import Context
 
 
 class GLBufferLayout(Enum):

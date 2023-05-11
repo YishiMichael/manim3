@@ -13,6 +13,7 @@ import weakref
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+from ..cameras.camera import Camera
 from ..constants import (
     ORIGIN,
     PI,
@@ -23,17 +24,16 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-from ..rendering.framebuffer import (
-    TransparentFramebuffer,
-    OpaqueFramebuffer
-)
-from ..rendering.gl_buffer import UniformBlockBuffer
-from ..scene.scene_state import SceneState
-from ..utils.lazy import (
+from ..lazy.lazy import (
     Lazy,
     LazyObject,
     LazyWrapper
 )
+from ..rendering.framebuffer import (
+    OpaqueFramebuffer,
+    TransparentFramebuffer
+)
+from ..rendering.gl_buffer import UniformBlockBuffer
 from ..utils.space import SpaceUtils
 
 
@@ -745,8 +745,8 @@ class Mobject(LazyObject):
     @Lazy.interpolater(NotImplemented)
     @Lazy.variable
     @classmethod
-    def _scene_state_(cls) -> SceneState:
-        return SceneState()
+    def _camera_(cls) -> Camera:
+        return Camera()
 
     def _render(
         self,

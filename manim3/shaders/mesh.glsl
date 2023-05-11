@@ -16,17 +16,17 @@ layout (std140) uniform ub_camera {
 layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
-layout (std140) uniform ub_lights {
+layout (std140) uniform ub_lighting {
     vec4 u_ambient_light_color;
+    float u_ambient_strength;
+    float u_specular_strength;
+    float u_shininess;
     #if NUM_U_POINT_LIGHTS
     PointLight u_point_lights[NUM_U_POINT_LIGHTS];
     #endif
 };
-layout (std140) uniform ub_material {
+layout (std140) uniform ub_color {
     vec4 u_color;
-    float u_ambient_strength;
-    float u_specular_strength;
-    float u_shininess;
 };
 
 

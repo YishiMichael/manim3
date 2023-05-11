@@ -5,16 +5,16 @@ from ..constants import (
     OUT,
     UP
 )
+from ..config import ConfigSingleton
 from ..custom_typing import (
     Mat4T,
     Vec3T
 )
-from ..rendering.config import ConfigSingleton
-from ..rendering.gl_buffer import UniformBlockBuffer
-from ..utils.lazy import (
+from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
+from ..rendering.gl_buffer import UniformBlockBuffer
 from ..utils.space import SpaceUtils
 
 

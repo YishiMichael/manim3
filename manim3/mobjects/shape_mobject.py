@@ -1,9 +1,9 @@
 from ..custom_typing import ColorT
 from ..geometries.shape_geometry import ShapeGeometry
+from ..lazy.lazy import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.stroke_mobject import StrokeMobject
-from ..utils.lazy import Lazy
-from ..utils.shape import Shape
+from ..shape.shape import Shape
 
 
 class ShapeMobject(MeshMobject):

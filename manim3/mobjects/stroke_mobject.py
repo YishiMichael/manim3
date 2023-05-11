@@ -12,10 +12,14 @@ from ..custom_typing import (
     Vec3sT,
     VertexIndexT
 )
+from ..lazy.lazy import (
+    Lazy,
+    LazyWrapper
+)
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffer import (
-    TransparentFramebuffer,
-    OpaqueFramebuffer
+    OpaqueFramebuffer,
+    TransparentFramebuffer
 )
 from ..rendering.gl_buffer import (
     AttributesBuffer,
@@ -28,12 +32,8 @@ from ..rendering.vertex_array import (
     IndexedAttributesBuffer,
     VertexArray
 )
+from ..shape.shape import MultiLineString
 from ..utils.color import ColorUtils
-from ..utils.lazy import (
-    Lazy,
-    LazyWrapper
-)
-from ..utils.shape import MultiLineString
 from ..utils.space import SpaceUtils
 
 
@@ -111,7 +111,7 @@ class StrokeMobject(Mobject):
     def _stroke_preprocess_vertex_array_(
         cls,
         all_points: Vec3sT,
-        _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
         _model_uniform_block_buffer_: UniformBlockBuffer
     ) -> VertexArray:
         indexed_attributes_buffer = IndexedAttributesBuffer(
@@ -135,7 +135,7 @@ class StrokeMobject(Mobject):
         return VertexArray(
             shader_filename="stroke_preprocess",
             uniform_block_buffers=[
-                _scene_state__camera__camera_uniform_block_buffer_,
+                _camera__camera_uniform_block_buffer_,
                 _model_uniform_block_buffer_
             ],
             indexed_attributes_buffer=indexed_attributes_buffer,
@@ -291,7 +291,7 @@ class StrokeMobject(Mobject):
         width: float,
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
-        _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
         _stroke_uniform_block_buffer_: UniformBlockBuffer,
         _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
         is_transparent: bool,
@@ -351,7 +351,7 @@ class StrokeMobject(Mobject):
             return [0, points_len - 1]
 
         uniform_block_buffers = [
-            _scene_state__camera__camera_uniform_block_buffer_,
+            _camera__camera_uniform_block_buffer_,
             _stroke_uniform_block_buffer_,
             _winding_sign_uniform_block_buffer_
         ]

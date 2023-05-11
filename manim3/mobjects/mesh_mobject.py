@@ -1,18 +1,21 @@
 import moderngl
 import numpy as np
 
-from manim3.utils.space import SpaceUtils
-
 from ..custom_typing import (
     ColorT,
     Vec3T,
     Vec3sT
 )
 from ..geometries.geometry import Geometry
+from ..lazy.lazy import (
+    Lazy,
+    LazyWrapper
+)
+from ..lighting.lighting import Lighting
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffer import (
-    TransparentFramebuffer,
-    OpaqueFramebuffer
+    OpaqueFramebuffer,
+    TransparentFramebuffer
 )
 from ..rendering.gl_buffer import (
     TextureIDBuffer,
@@ -23,10 +26,7 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.color import ColorUtils
-from ..utils.lazy import (
-    Lazy,
-    LazyWrapper
-)
+from ..utils.space import SpaceUtils
 
 
 class MeshMobject(Mobject):
@@ -54,23 +54,10 @@ class MeshMobject(Mobject):
     def _opacity_(cls) -> float:
         return 1.0
 
-    @Lazy.interpolater(SpaceUtils.lerp)
-    @Lazy.variable_external
+    @Lazy.variable
     @classmethod
-    def _ambient_strength_(cls) -> float:
-        return 1.0
-
-    @Lazy.interpolater(SpaceUtils.lerp)
-    @Lazy.variable_external
-    @classmethod
-    def _specular_strength_(cls) -> float:
-        return 0.5
-
-    @Lazy.interpolater(SpaceUtils.lerp)
-    @Lazy.variable_external
-    @classmethod
-    def _shininess_(cls) -> float:
-        return 32.0
+    def _lighting_(cls) -> Lighting:
+        return Lighting()
 
     @Lazy.variable_shared
     @classmethod
@@ -87,27 +74,24 @@ class MeshMobject(Mobject):
 
     @Lazy.property
     @classmethod
-    def _material_uniform_block_buffer_(
+    def _color_uniform_block_buffer_(
         cls,
         color: Vec3T,
-        opacity: float,
-        ambient_strength: float,
-        specular_strength: float,
-        shininess: float
+        opacity: float
+        #ambient_strength: float,
+        #specular_strength: float,
+        #shininess: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_material",
             fields=[
-                "vec4 u_color",
-                "float u_ambient_strength",
-                "float u_specular_strength",
-                "float u_shininess"
+                "vec4 u_color"
             ],
             data={
-                "u_color": np.append(color, opacity),
-                "u_ambient_strength": np.array(ambient_strength),
-                "u_specular_strength": np.array(specular_strength),
-                "u_shininess": np.array(shininess)
+                "u_color": np.append(color, opacity)
+                #"u_ambient_strength": np.array(ambient_strength),
+                #"u_specular_strength": np.array(specular_strength),
+                #"u_shininess": np.array(shininess)
             }
         )
 
@@ -118,10 +102,10 @@ class MeshMobject(Mobject):
         is_transparent: bool,
         enable_phong_lighting: bool,
         color_map: moderngl.Texture | None,
-        _scene_state__camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
         _model_uniform_block_buffer_: UniformBlockBuffer,
-        _scene_state__lights_uniform_block_buffer_: UniformBlockBuffer,
-        _material_uniform_block_buffer_: UniformBlockBuffer,
+        _lighting__lighting_uniform_block_buffer_: UniformBlockBuffer,
+        _color_uniform_block_buffer_: UniformBlockBuffer,
         _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
     ) -> VertexArray:
         custom_macros: list[str] = []
@@ -141,10 +125,10 @@ class MeshMobject(Mobject):
                 )
             ],
             uniform_block_buffers=[
-                _scene_state__camera__camera_uniform_block_buffer_,
+                _camera__camera_uniform_block_buffer_,
                 _model_uniform_block_buffer_,
-                _scene_state__lights_uniform_block_buffer_,
-                _material_uniform_block_buffer_
+                _lighting__lighting_uniform_block_buffer_,
+                _color_uniform_block_buffer_
             ],
             indexed_attributes_buffer=_geometry__indexed_attributes_buffer_
         )
@@ -179,9 +163,10 @@ class MeshMobject(Mobject):
         color: ColorT | None = None,
         opacity: float | None = None,
         is_transparent: bool | None = None,
-        ambient_strength: float | None = None,
-        specular_strength: float | None = None,
-        shininess: float | None = None,
+        #ambient_strength: float | None = None,
+        #specular_strength: float | None = None,
+        #shininess: float | None = None,
+        lighting: Lighting | None = None,
         enable_phong_lighting: bool | None = None,
         broadcast: bool = True
     ):
@@ -190,15 +175,11 @@ class MeshMobject(Mobject):
         opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
         is_transparent_value = is_transparent if is_transparent is not None else \
             True if opacity_component is not None else None
-        ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
-        specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
-        shininess_value = LazyWrapper(shininess) if shininess is not None else None
+        #ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
+        #specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
+        #shininess_value = LazyWrapper(shininess) if shininess is not None else None
         enable_phong_lighting_value = enable_phong_lighting if enable_phong_lighting is not None else \
-            True if any(param is not None for param in (
-                ambient_strength,
-                specular_strength,
-                shininess
-            )) else None
+            True if lighting is not None else None
         for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject, broadcast=broadcast):
             if color_value is not None:
                 mobject._color_ = color_value
@@ -206,12 +187,14 @@ class MeshMobject(Mobject):
                 mobject._opacity_ = opacity_value
             if is_transparent_value is not None:
                 mobject._is_transparent_ = is_transparent_value
-            if ambient_strength_value is not None:
-                mobject._ambient_strength_ = ambient_strength_value
-            if specular_strength_value is not None:
-                mobject._specular_strength_ = specular_strength_value
-            if shininess_value is not None:
-                mobject._shininess_ = shininess_value
+            #if ambient_strength_value is not None:
+            #    mobject._ambient_strength_ = ambient_strength_value
+            #if specular_strength_value is not None:
+            #    mobject._specular_strength_ = specular_strength_value
+            #if shininess_value is not None:
+            #    mobject._shininess_ = shininess_value
+            if lighting is not None:
+                mobject._lighting_ = lighting
             if enable_phong_lighting_value is not None:
                 mobject._enable_phong_lighting_ = enable_phong_lighting_value
         return self

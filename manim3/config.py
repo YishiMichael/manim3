@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from colour import Color
 
-from ..custom_typing import ColorT
+from .custom_typing import ColorT
 
 
 @dataclass(
@@ -23,7 +23,7 @@ class PathConfig:
 
     @property
     def manim3_dir(self) -> pathlib.Path:
-        return pathlib.Path(__file__).absolute().parent.parent
+        return pathlib.Path(__file__).absolute().parent
 
     @property
     def shaders_dir(self) -> pathlib.Path:
@@ -137,6 +137,7 @@ class CameraConfig:
     altitude: float
     near: float
     far: float
+    background_color: ColorT
 
 
 @dataclass(
@@ -204,7 +205,8 @@ class Config:
         self._camera: CameraConfig = CameraConfig(
             altitude=5.0,
             near=0.1,
-            far=100.0
+            far=100.0,
+            background_color=Color("black")
         )
         self._tex: TexConfig = TexConfig(
             use_mathjax=False,

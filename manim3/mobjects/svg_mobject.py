@@ -15,7 +15,7 @@ from ..custom_typing import (
     Vec2sT
 )
 from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.shape import Shape
+from ..shape.shape import Shape
 from ..utils.space import SpaceUtils
 
 

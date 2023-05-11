@@ -960,7 +960,7 @@ class LazyObject(ABC):
         def complete_property_descriptor_info(
             property_descriptor: LazyPropertyDescriptor,
             method_signature: inspect.Signature,
-            root_cls: type[LazyObject]
+            root_class: type[LazyObject]
         ) -> None:
             descriptor_name_chain_list: list[tuple[str, ...]] = []
             requires_unwrapping_list: list[bool] = []
@@ -974,7 +974,7 @@ class LazyObject(ABC):
                 descriptor_name_chain_list.append(descriptor_name_chain)
                 requires_unwrapping_list.append(requires_unwrapping)
 
-                element_type: type[LazyObject] = root_cls
+                element_type: type[LazyObject] = root_class
                 collection_level: int = 0
                 for descriptor_name in descriptor_name_chain[:-1]:
                     descriptor = element_type._lazy_descriptor_dict[descriptor_name]
@@ -995,14 +995,14 @@ class LazyObject(ABC):
             property_descriptor.requires_unwrapping_tuple = tuple(requires_unwrapping_list)
 
         base_classes = tuple(
-            base_cls
-            for base_cls in reversed(cls.__mro__)
-            if issubclass(base_cls, LazyObject)
+            base_class
+            for base_class in reversed(cls.__mro__)
+            if issubclass(base_class, LazyObject)
         )
         descriptor_dict = {
             name: descriptor
-            for base_cls in base_classes
-            for name, descriptor in base_cls._lazy_descriptor_dict.items()
+            for base_class in base_classes
+            for name, descriptor in base_class._lazy_descriptor_dict.items()
         }
         new_descriptor_items = tuple(
             (name, descriptor, inspect.signature(descriptor.method, locals={cls.__name__: cls}, eval_str=True))
@@ -1031,8 +1031,8 @@ class LazyObject(ABC):
         # Use dict.fromkeys to preserve order (by first occurrance).
         cls._py_slots = tuple(dict.fromkeys(
             slot
-            for base_cls in base_classes
-            for slot in base_cls.__slots__
+            for base_class in base_classes
+            for slot in base_class.__slots__
             if slot != "__weakref__"
         ))
 
@@ -1042,7 +1042,7 @@ class LazyObject(ABC):
             complete_property_descriptor_info(
                 property_descriptor=descriptor,
                 method_signature=method_signature,
-                root_cls=cls
+                root_class=cls
             )
 
     def __init__(self) -> None:

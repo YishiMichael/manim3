@@ -5,7 +5,11 @@ import re
 import moderngl
 import numpy as np
 
-from ..rendering.config import ConfigSingleton
+from ..config import ConfigSingleton
+from ..lazy.lazy import (
+    Lazy,
+    LazyObject
+)
 from ..rendering.context import (
     Context,
     ContextState
@@ -22,10 +26,6 @@ from ..rendering.gl_buffer import (
     UniformBlockBuffer
 )
 from ..rendering.mgl_enums import PrimitiveMode
-from ..utils.lazy import (
-    Lazy,
-    LazyObject
-)
 
 
 class IndexedAttributesBuffer(LazyObject):

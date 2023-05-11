@@ -8,7 +8,7 @@ import moderngl
 from moderngl_window.context.pyglet.window import Window
 import OpenGL.GL as gl
 
-from ..rendering.config import ConfigSingleton
+from ..config import ConfigSingleton
 from ..rendering.mgl_enums import (
     BlendEquation,
     BlendFunc,
@@ -91,6 +91,14 @@ class Context:
             "-loglevel", "error",
             ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.mp4")
         ), stdin=sp.PIPE)
+
+    @classmethod
+    def terminate_writing_process(cls) -> None:
+        writing_process = cls.writing_process
+        assert writing_process.stdin is not None
+        writing_process.stdin.close()
+        writing_process.wait()
+        writing_process.terminate()
 
     @classmethod
     @property
