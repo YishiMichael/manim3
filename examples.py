@@ -73,7 +73,6 @@ class Rotating(Animation):
 
 class ThreeDTextExample(Scene):
     def timeline(self) -> TimelineT:
-        #self.frame.lighting.add_point_light(position=RIGHT)
         text = Text("Text").concatenate()
         text_3d = (
             MeshMobject()
@@ -82,7 +81,7 @@ class ThreeDTextExample(Scene):
             .stretch_to_fit_depth(0.5)
             .set_style(color="#00FFAA44")
         )
-        text_3d.get_lighting().add_point_light(position=RIGHT)
+        text_3d.lighting.add_point_light(position=RIGHT)
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         yield from self.wait(10)
@@ -105,9 +104,26 @@ class OITExample(Scene):
         yield from self.wait(5)
 
 
-#class ChildSceneExample(Scene):
-#    def timeline(self) -> TimelineT:
-#        child_scene_1 = ChildSceneMobject()
+class ChildSceneExample(Scene):
+    def timeline(self) -> TimelineT:
+        child_scene_1 = ThreeDTextExample()
+        child_scene_1.frame.render_passes.append(PixelatedPass())
+        self.prepare(child_scene_1)
+        self.add(
+            ChildSceneMobject(child_scene_1)
+            .scale(0.5)
+            .shift(LEFT * 1)
+            .set_style(is_transparent=True)
+        )
+        child_scene_2 = TexTransformExample()
+        self.prepare(child_scene_2)
+        self.add(
+            ChildSceneMobject(child_scene_2)
+            .scale(0.5)
+            .shift(RIGHT * 1)
+            .set_style(is_transparent=True)
+        )
+        yield from self.wait(6)
 
 
 def main():
@@ -116,10 +132,10 @@ def main():
     #config.rendering.time_span = (2.0, 3.0)
     #config.rendering.fps = 3
     #config.rendering.preview = False
-    config.rendering.write_video = True
-    config.rendering.write_last_frame = True
+    #config.rendering.write_video = True
+    #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    TexTransformExample.render(config)
+    ChildSceneExample.render(config)
 
 
 if __name__ == "__main__":

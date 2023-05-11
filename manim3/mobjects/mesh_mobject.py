@@ -151,7 +151,8 @@ class MeshMobject(Mobject):
         self._geometry_ = geometry
         return self
 
-    def get_lighting(self) -> Lighting:
+    @property
+    def lighting(self) -> Lighting:
         return self._lighting_
 
     def set_style(

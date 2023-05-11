@@ -18,10 +18,10 @@ class ChildSceneMobject(MeshMobject):
 
     def __init__(
         self,
-        scene_class: type[Scene]
+        scene: Scene
     ) -> None:
         super().__init__()
-        self._scene: Scene = scene_class()
+        self._scene: Scene = scene
         self.scale(np.array((
             ConfigSingleton().size.frame_width,
             ConfigSingleton().size.frame_height,

@@ -9,7 +9,10 @@ from ..custom_typing import (
     ColorT,
     Vec3T
 )
-from ..lazy.lazy import Lazy
+from ..lazy.lazy import (
+    Lazy,
+    LazyDynamicContainer
+)
 from ..mobjects.mobject import Mobject
 from ..passes.render_pass import RenderPass
 from ..rendering.context import (
@@ -45,7 +48,7 @@ class SceneFrame(Mobject):
     @Lazy.variable_external
     @classmethod
     def _background_opacity_(cls) -> float:
-        return 1.0
+        return 0.0
 
     @Lazy.variable_collection
     @classmethod
@@ -230,3 +233,7 @@ class SceneFrame(Mobject):
         if opacity_component is not None:
             self._background_opacity_ = opacity_component
         return self
+
+    @property
+    def render_passes(self) -> LazyDynamicContainer[RenderPass]:
+        return self._render_passes_
