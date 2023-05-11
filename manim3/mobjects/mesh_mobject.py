@@ -26,7 +26,6 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.color import ColorUtils
-from ..utils.space import SpaceUtils
 
 
 class MeshMobject(Mobject):
@@ -42,13 +41,11 @@ class MeshMobject(Mobject):
     def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:

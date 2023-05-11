@@ -581,8 +581,6 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGe
         "instance_to_slot_dict"
     )
 
-    #_converter_class: type[LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]] = LazyConverter
-
     def __init__(
         self,
         method: Callable[..., _DescriptorSetT],
@@ -663,11 +661,7 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGe
 class LazyVariableDescriptor(LazyDescriptor[
     _InstanceT, LazyVariableSlot[_ContainerT], _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT
 ]):
-    __slots__ = (
-        #"method",
-        "interpolate_method",
-        "default_container"
-    )
+    __slots__ = ("default_container",)
 
     def __init__(
         self,
@@ -678,8 +672,6 @@ class LazyVariableDescriptor(LazyDescriptor[
             method=method,
             converter_class=converter_class
         )
-        #self.method: Callable[[type[_InstanceT]], _DescriptorSetT] = method
-        self.interpolate_method: Callable[[_DescriptorRGetT, _DescriptorRGetT], Callable[[float], _DescriptorSetT]] | None = None
         self.default_container: _ContainerT | None = None
 
     def get_container(
@@ -712,42 +704,11 @@ class LazyVariableDescriptor(LazyDescriptor[
             container=default_container._copy_container()
         ))
 
-    def get_interpolate_descriptor_callback(
-        self,
-        instance_0: _InstanceT,
-        instance_1: _InstanceT
-    ) -> Callable[[_InstanceT, float], None] | None:
-        if (interpolate_method := self.interpolate_method) is NotImplemented:
-            # Ignore variables with `interpolate_method` explicitly assigned to `NotImplemented`.
-            return None
-
-        container_0 = self.get_container(instance_0)
-        container_1 = self.get_container(instance_1)
-        if container_0._match_elements(container_1):
-            return None
-
-        if interpolate_method is None:
-            raise ValueError
-        interpolant = interpolate_method(
-            self.converter.convert_rget(container_0),
-            self.converter.convert_rget(container_1)
-        )
-
-        def callback(
-            dst: _InstanceT,
-            alpha: float
-        ) -> None:
-            new_container = self.converter.convert_set(interpolant(alpha))
-            self.set_container(dst, new_container)
-        
-        return callback
-
 
 class LazyPropertyDescriptor(LazyDescriptor[
     _InstanceT, LazyPropertySlot[_ContainerT], _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT
 ]):
     __slots__ = (
-        #"method",
         "finalize_method",
         "descriptor_name_chains",
         "requires_unwrapping_tuple",
@@ -763,7 +724,6 @@ class LazyPropertyDescriptor(LazyDescriptor[
             method=method,
             converter_class=converter_class
         )
-        #self.method: Callable[Concatenate[type[_InstanceT], _Parameters], _DescriptorSetT] = method
         self.finalize_method: Callable[[type[_InstanceT], _DescriptorRGetT], None] | None = None
         self.descriptor_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
         self.requires_unwrapping_tuple: tuple[bool, ...] = NotImplemented
@@ -919,6 +879,13 @@ class LazyPropertyDescriptor(LazyDescriptor[
         instance: _InstanceT
     ) -> None:
         self.set_slot(instance, LazyPropertySlot())
+
+    def finalizer(
+        self,
+        finalize_method: Callable[[type[_InstanceT], _DescriptorRGetT], None]
+    ) -> Callable[[type[_InstanceT], _DescriptorRGetT], None]:
+        self.finalize_method = finalize_method.__func__
+        return finalize_method
 
 
 class LazyObject(ABC):
@@ -1078,29 +1045,6 @@ class LazyObject(ABC):
                 dst_value = copy.copy(src_value)
             result.__setattr__(slot_name, dst_value)
         return result
-
-    def get_interpolate_callback(
-        self: _ElementT,
-        other: _ElementT
-    ) -> Callable[[_ElementT, float], None]:
-        # Two objects are said to be "interpolable" if their lazy variable descriptors match
-        # (a weaker condition than being of the same type), and their lazy variables without
-        # `interpolate_method` specified should match in values.
-        assert (lazy_descriptors := type(self)._lazy_variable_descriptors) == type(other)._lazy_variable_descriptors
-        descriptor_callbacks = [
-            descriptor_callback
-            for descriptor in lazy_descriptors
-            if (descriptor_callback := descriptor.get_interpolate_descriptor_callback(self, other)) is not None
-        ]
-
-        def callback(
-            dst: _ElementT,
-            alpha: float
-        ) -> None:
-            for descriptor_callback in descriptor_callbacks:
-                descriptor_callback(dst, alpha)
-
-        return callback
 
 
 class LazyWrapper(LazyObject, Generic[_T]):
@@ -1326,31 +1270,3 @@ class Lazy:
             method.__func__,
             LazySharedConverter
         )
-
-    @classmethod
-    def interpolater(
-        cls,
-        interpolate_method: Callable[[Any, Any], Callable[[float], Any]]
-    ) -> Callable[[_VariableDescriptorT], _VariableDescriptorT]:  # TODO: annotation
-
-        def callback(
-            descriptor: _VariableDescriptorT
-        ) -> _VariableDescriptorT:
-            descriptor.interpolate_method = interpolate_method
-            return descriptor
-
-        return callback
-
-    @classmethod
-    def finalizer(
-        cls,
-        finalize_method: Callable[[type[Any], Any], None]
-    ) -> Callable[[_PropertyDescriptorT], _PropertyDescriptorT]:  # TODO: annotation
-
-        def callback(
-            descriptor: _PropertyDescriptorT
-        ) -> _PropertyDescriptorT:
-            descriptor.finalize_method = finalize_method
-            return descriptor
-
-        return callback

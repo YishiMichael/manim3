@@ -25,7 +25,6 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     def timeline(self) -> TimelineT:
-        #self.frame.set_background(color=Palette.TEAL, opacity=0.2)  # TODO
         text = (
             Text("Text")
             .scale(3)
@@ -135,7 +134,7 @@ def main():
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample.render(config)
+    TexTransformExample.render(config)
 
 
 if __name__ == "__main__":

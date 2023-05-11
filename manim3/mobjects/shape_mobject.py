@@ -17,7 +17,6 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self.set_shape(shape)
 
-    @Lazy.interpolater(Shape.get_interpolant)
     @Lazy.variable
     @classmethod
     def _shape_(cls) -> Shape:

@@ -48,13 +48,11 @@ class StrokeMobject(Mobject):
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
 
-    @Lazy.interpolater(MultiLineString.get_interpolant)
     @Lazy.variable
     @classmethod
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _width_(cls) -> float:
@@ -70,19 +68,16 @@ class StrokeMobject(Mobject):
     def _has_linecap_(cls) -> bool:
         return True
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _dilate_(cls) -> float:

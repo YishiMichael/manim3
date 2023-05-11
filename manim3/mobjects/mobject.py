@@ -98,13 +98,11 @@ class Mobject(LazyObject):
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    @Lazy.interpolater(NotImplemented)
     @Lazy.variable_collection
     @classmethod
     def _children_(cls) -> "list[Mobject]":
         return []
 
-    @Lazy.interpolater(NotImplemented)
     @Lazy.variable_collection
     @classmethod
     def _real_descendants_(cls) -> "list[Mobject]":
@@ -298,7 +296,6 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
-    @Lazy.interpolater(SpaceUtils.lerp)
     @Lazy.variable_external
     @classmethod
     def _model_matrix_(cls) -> Mat4T:
@@ -742,7 +739,6 @@ class Mobject(LazyObject):
     def _is_transparent_(cls) -> bool:
         return False
 
-    @Lazy.interpolater(NotImplemented)
     @Lazy.variable
     @classmethod
     def _camera_(cls) -> Camera:
