@@ -133,10 +133,6 @@ class Animation:
         self._updater: Callable[[float], None] | None = updater
         self._new_children: list[Animation] = []
 
-    # Yield `delta_alpha` values.
-    def timeline(self) -> TimelineT:
-        yield from self.wait(1024)  # Wait forever...
-
     def _absolute_timeline(self) -> Iterator[TimelineState]:
         relative_rate = self._relative_rate
         relative_rate_inv = RateUtils.inverse(relative_rate)
@@ -235,6 +231,10 @@ class Animation:
             timestamp=relative_rate_inv(current_alpha),
             signal=signal
         )
+
+    # Yield `delta_alpha` values.
+    def timeline(self) -> TimelineT:
+        yield from self.wait(1024)  # Wait forever...
 
     def prepare(
         self,

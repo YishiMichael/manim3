@@ -92,7 +92,7 @@ class Triangle(RegularPolygon):
 
     def __init__(self) -> None:
         super().__init__(3)
-        self.rotate_about_origin(Rotation.from_rotvec(OUT * PI / 2.0))
+        self.rotate(Rotation.from_rotvec(OUT * PI / 2.0))
 
 
 class Square(RegularPolygon):
@@ -100,4 +100,4 @@ class Square(RegularPolygon):
 
     def __init__(self) -> None:
         super().__init__(4)
-        self.rotate_about_origin(Rotation.from_rotvec(OUT * PI / 4.0))
+        self.rotate(Rotation.from_rotvec(OUT * PI / 4.0))

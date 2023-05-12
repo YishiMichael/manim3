@@ -38,14 +38,16 @@ class Transform(Animation):
         Mobject._children_: NotImplemented,
         Mobject._real_descendants_: NotImplemented,
         Mobject._camera_: NotImplemented,
+        MeshMobject._lighting_: NotImplemented,
         Mobject._model_matrix_: SpaceUtils.lerp,
-        MeshMobject._color_: SpaceUtils.lerp,
-        MeshMobject._opacity_: SpaceUtils.lerp,
+        Mobject._color_: SpaceUtils.lerp,
+        Mobject._opacity_: SpaceUtils.lerp,
+        MeshMobject._ambient_strength_: SpaceUtils.lerp,
+        MeshMobject._specular_strength_: SpaceUtils.lerp,
+        MeshMobject._shininess_: SpaceUtils.lerp,
         ShapeMobject._shape_: Shape.get_interpolant,
         StrokeMobject._multi_line_string_: MultiLineString.get_interpolant,
         StrokeMobject._width_: SpaceUtils.lerp,
-        StrokeMobject._color_: SpaceUtils.lerp,
-        StrokeMobject._opacity_: SpaceUtils.lerp,
         StrokeMobject._dilate_: SpaceUtils.lerp
     }
 

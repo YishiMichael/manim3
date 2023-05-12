@@ -5,10 +5,8 @@ import numpy as np
 
 from ..constants import PI
 from ..custom_typing import (
-    ColorT,
     FloatsT,
     Vec2sT,
-    Vec3T,
     Vec3sT,
     VertexIndexT
 )
@@ -33,7 +31,6 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..shape.shape import MultiLineString
-from ..utils.color import ColorUtils
 from ..utils.space import SpaceUtils
 
 
@@ -67,16 +64,6 @@ class StrokeMobject(Mobject):
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
-
-    @Lazy.variable_external
-    @classmethod
-    def _color_(cls) -> Vec3T:
-        return np.ones(3)
-
-    @Lazy.variable_external
-    @classmethod
-    def _opacity_(cls) -> float:
-        return 1.0
 
     @Lazy.variable_external
     @classmethod
@@ -184,20 +171,20 @@ class StrokeMobject(Mobject):
     def _stroke_uniform_block_buffer_(
         cls,
         width: float,
-        color: Vec3T,
-        opacity: float,
+        #color: Vec3T,
+        #opacity: float,
         dilate: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
             fields=[
                 "float u_width",
-                "vec4 u_color",
+                #"vec4 u_color",
                 "float u_dilate"
             ],
             data={
                 "u_width": np.array(width),
-                "u_color": np.append(color, opacity),
+                #"u_color": np.append(color, opacity),
                 "u_dilate": np.array(dilate)
             }
         )
@@ -287,6 +274,7 @@ class StrokeMobject(Mobject):
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
         _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _color_uniform_block_buffer_: UniformBlockBuffer,
         _stroke_uniform_block_buffer_: UniformBlockBuffer,
         _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
         is_transparent: bool,
@@ -347,6 +335,7 @@ class StrokeMobject(Mobject):
 
         uniform_block_buffers = [
             _camera__camera_uniform_block_buffer_,
+            _color_uniform_block_buffer_,
             _stroke_uniform_block_buffer_,
             _winding_sign_uniform_block_buffer_
         ]
@@ -407,41 +396,37 @@ class StrokeMobject(Mobject):
         self.clear()
         return self
 
-    def set_style(
+    def set_stroke_style(
         self,
         *,
         width: float | None = None,
         single_sided: bool | None = None,
         has_linecap: bool | None = None,
-        color: ColorT | None = None,
-        opacity: float | None = None,
+        #color: ColorT | None = None,
+        #opacity: float | None = None,
         dilate: float | None = None,
         is_transparent: bool | None = None,
-        broadcast: bool = True
+        broadcast: bool = True,
+        type_filter: "type[StrokeMobject] | None" = None
     ):
         width_value = LazyWrapper(width) if width is not None else None
         single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
         has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
-        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = LazyWrapper(color_component) if color_component is not None else None
-        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
+        #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        #color_value = LazyWrapper(color_component) if color_component is not None else None
+        #opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
         dilate_value = LazyWrapper(dilate) if dilate is not None else None
         is_transparent_value = is_transparent if is_transparent is not None else \
-            True if any(param is not None for param in (
-                opacity_component,
-                dilate
-            )) else None
-        for mobject in self.iter_descendants_by_type(mobject_type=StrokeMobject, broadcast=broadcast):
+            True if dilate is not None else None
+        if type_filter is None:
+            type_filter = StrokeMobject
+        for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
             if width_value is not None:
                 mobject._width_ = width_value
             if single_sided_value is not None:
                 mobject._single_sided_ = single_sided_value
             if has_linecap_value is not None:
                 mobject._has_linecap_ = has_linecap_value
-            if color_value is not None:
-                mobject._color_ = color_value
-            if opacity_value is not None:
-                mobject._opacity_ = opacity_value
             if dilate_value is not None:
                 mobject._dilate_ = dilate_value
             if is_transparent_value is not None:

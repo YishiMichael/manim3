@@ -22,6 +22,7 @@ class ChildSceneMobject(MeshMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene
+        self.set_material(enable_phong_lighting=False)
         self.scale(np.array((
             ConfigSingleton().size.frame_width,
             ConfigSingleton().size.frame_height,
@@ -39,6 +40,6 @@ class ChildSceneMobject(MeshMobject):
     ) -> None:
         scene = self._scene
         with TextureFactory.texture() as color_texture:
-            scene._scene_frame._render_to_texture(color_texture)
+            scene._render_to_texture(color_texture)
             self._color_map_ = color_texture
             super()._render(target_framebuffer)

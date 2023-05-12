@@ -286,6 +286,7 @@ class MultiLineString(ShapeInterpolant):
         start: float,
         stop: float
     ) -> "MultiLineString":
+        assert start <= stop
         result = MultiLineString()
         line_strings = self._line_strings_
         if not line_strings:

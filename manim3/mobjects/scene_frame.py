@@ -1,18 +1,7 @@
 import moderngl
 import numpy as np
-from PIL import Image
 
-from ..cameras.camera import Camera
-from ..cameras.perspective_camera import PerspectiveCamera
-from ..config import ConfigSingleton
-from ..custom_typing import (
-    ColorT,
-    Vec3T
-)
-from ..lazy.lazy import (
-    Lazy,
-    LazyDynamicContainer
-)
+from ..lazy.lazy import Lazy
 from ..mobjects.mobject import Mobject
 from ..passes.render_pass import RenderPass
 from ..rendering.context import (
@@ -29,26 +18,26 @@ from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-from ..utils.color import ColorUtils
+#from ..utils.color import ColorUtils
 
 
 class SceneFrame(Mobject):
     __slots__ = ()
 
-    @Lazy.variable
-    @classmethod
-    def _camera_(cls) -> Camera:
-        return PerspectiveCamera()
+    #@Lazy.variable
+    #@classmethod
+    #def _camera_(cls) -> Camera:
+    #    return PerspectiveCamera()
 
-    @Lazy.variable_external
-    @classmethod
-    def _background_color_(cls) -> Vec3T:
-        return np.zeros(3)
+    #@Lazy.variable_external
+    #@classmethod
+    #def _background_color_(cls) -> Vec3T:
+    #    return np.zeros(3)
 
-    @Lazy.variable_external
-    @classmethod
-    def _background_opacity_(cls) -> float:
-        return 0.0
+    #@Lazy.variable_external
+    #@classmethod
+    #def _background_opacity_(cls) -> float:
+    #    return 0.0
 
     @Lazy.variable_collection
     @classmethod
@@ -93,7 +82,6 @@ class SceneFrame(Mobject):
         for mobject in self.iter_descendants():
             if not mobject._has_local_sample_points_.value:
                 continue
-            mobject._camera_ = self._camera_
             if mobject._is_transparent_.value:
                 transparent_mobjects.append(mobject)
             else:
@@ -105,8 +93,8 @@ class SceneFrame(Mobject):
                 depth_texture=depth_texture
             )
 
-            red, green, blue = self._background_color_.value
-            alpha = self._background_opacity_.value
+            red, green, blue = self._color_.value
+            alpha = self._opacity_.value
             opaque_framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
             for mobject in opaque_mobjects:
                 mobject._render(opaque_framebuffer)
@@ -169,14 +157,20 @@ class SceneFrame(Mobject):
                 target_framebuffer=target_framebuffer
             )
 
-    def _render_to_texture(
-        self,
-        color_texture: moderngl.Texture
-    ) -> None:
-        framebuffer = ColorFramebuffer(
-            color_texture=color_texture
-        )
-        self._render_scene_with_passes(framebuffer)
+    #def _render_to_texture(
+    #    self,
+    #    color_texture: moderngl.Texture,
+    #    camera: Camera,
+    #    lighting: Lighting
+    #) -> None:
+    #    for mobject in self.iter_descendants_by_type(mobject_type=Mobject):
+    #        mobject._camera_ = camera
+    #    for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject):
+    #        mobject._lighting_ = lighting
+    #    framebuffer = ColorFramebuffer(
+    #        color_texture=color_texture
+    #    )
+    #    self._render_scene_with_passes(framebuffer)
 
     def _render_to_window(
         self,
@@ -199,41 +193,19 @@ class SceneFrame(Mobject):
         )
         window.swap_buffers()
 
-    def _write_to_writing_process(
-        self,
-        color_texture: moderngl.Texture
-    ) -> None:
-        writing_process = Context.writing_process
-        assert writing_process.stdin is not None
-        writing_process.stdin.write(color_texture.read())
+    #def set_background(
+    #    self,
+    #    color: ColorT | None = None,
+    #    *,
+    #    opacity: float | None = None
+    #):
+    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+    #    if color_component is not None:
+    #        self._background_color_ = color_component
+    #    if opacity_component is not None:
+    #        self._background_opacity_ = opacity_component
+    #    return self
 
-    @classmethod
-    def _write_to_image(
-        cls,
-        color_texture: moderngl.Texture
-    ) -> None:
-        scene_name = ConfigSingleton().rendering.scene_name
-        image = Image.frombytes(
-            "RGBA",
-            ConfigSingleton().size.pixel_size,
-            color_texture.read(),
-            "raw"
-        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
-
-    def set_background(
-        self,
-        *,
-        color: ColorT | None = None,
-        opacity: float | None = None
-    ):
-        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        if color_component is not None:
-            self._background_color_ = color_component
-        if opacity_component is not None:
-            self._background_opacity_ = opacity_component
-        return self
-
-    @property
-    def render_passes(self) -> LazyDynamicContainer[RenderPass]:
-        return self._render_passes_
+    #@property
+    #def render_passes(self) -> LazyDynamicContainer[RenderPass]:
+    #    return self._render_passes_

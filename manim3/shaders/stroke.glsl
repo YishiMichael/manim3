@@ -4,9 +4,11 @@ layout (std140) uniform ub_camera {
     vec3 u_view_position;
     vec2 u_frame_radius;
 };
+layout (std140) uniform ub_color {
+    vec4 u_color;
+};
 layout (std140) uniform ub_stroke {
     float u_width;
-    vec4 u_color;
     float u_dilate;
 };
 layout (std140) uniform ub_winding_sign {

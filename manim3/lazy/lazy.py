@@ -167,8 +167,6 @@ _DescriptorGetT = TypeVar("_DescriptorGetT")
 _DescriptorSetT = TypeVar("_DescriptorSetT")
 _DescriptorRGetT = TypeVar("_DescriptorRGetT")
 _DescriptorT = TypeVar("_DescriptorT", bound="LazyDescriptor")
-_VariableDescriptorT = TypeVar("_VariableDescriptorT", bound="LazyVariableDescriptor")
-_PropertyDescriptorT = TypeVar("_PropertyDescriptorT", bound="LazyPropertyDescriptor")
 _Parameters = ParamSpec("_Parameters")
 _AnnotationT = Any
 

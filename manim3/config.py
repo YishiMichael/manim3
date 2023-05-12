@@ -55,6 +55,7 @@ class PathConfig:
 )
 class RenderingConfig:
     scene_name: str
+    background_color: ColorT
     fps: int
     start_time: float
     stop_time: float | None
@@ -137,7 +138,6 @@ class CameraConfig:
     altitude: float
     near: float
     far: float
-    background_color: ColorT
 
 
 @dataclass(
@@ -188,7 +188,8 @@ class Config:
         super().__init__()
         self._path: PathConfig = PathConfig()
         self._rendering: RenderingConfig = RenderingConfig(
-            scene_name=NotImplemented,  # Represents the class name.
+            scene_name=NotImplemented,  # Represents the class name.,
+            background_color=Color("black"),
             fps=30,
             start_time=0.0,
             stop_time=None,
@@ -205,8 +206,7 @@ class Config:
         self._camera: CameraConfig = CameraConfig(
             altitude=5.0,
             near=0.1,
-            far=100.0,
-            background_color=Color("black")
+            far=100.0
         )
         self._tex: TexConfig = TexConfig(
             use_mathjax=False,

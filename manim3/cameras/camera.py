@@ -21,10 +21,52 @@ from ..utils.space import SpaceUtils
 class Camera(LazyObject):
     __slots__ = ()
 
+    def __init__(
+        self,
+        *,
+        width: float | None = None,
+        height: float | None = None,
+        near: float | None = None,
+        far: float | None = None,
+        altitude: float | None = None
+    ) -> None:
+        super().__init__()
+        if width is not None:
+            self._width_ = width
+        if height is not None:
+            self._height_ = height
+        if near is not None:
+            self._near_ = near
+        if far is not None:
+            self._far_ = far
+        if altitude is not None:
+            self._altitude_ = altitude
+            self._eye_ = altitude * OUT
+
     @Lazy.variable_external
     @classmethod
-    def _projection_matrix_(cls) -> Mat4T:
-        return np.identity(4)
+    def _width_(cls) -> float:
+        return ConfigSingleton().size.frame_width
+
+    @Lazy.variable_external
+    @classmethod
+    def _height_(cls) -> float:
+        return ConfigSingleton().size.frame_height
+
+    @Lazy.variable_external
+    @classmethod
+    def _near_(cls) -> float:
+        return ConfigSingleton().camera.near
+
+    @Lazy.variable_external
+    @classmethod
+    def _far_(cls) -> float:
+        return ConfigSingleton().camera.far
+
+    @Lazy.variable_external
+    @classmethod
+    def _altitude_(cls) -> float:
+        return ConfigSingleton().camera.altitude
 
     @Lazy.variable_external
     @classmethod
@@ -40,6 +82,12 @@ class Camera(LazyObject):
     @classmethod
     def _up_(cls) -> Vec3T:
         return UP
+
+    @Lazy.property_external
+    @classmethod
+    def _projection_matrix_(cls) -> Mat4T:
+        # Implemented in subclasses.
+        return np.identity(4)
 
     @Lazy.property_external
     @classmethod
@@ -65,7 +113,9 @@ class Camera(LazyObject):
         cls,
         projection_matrix: Mat4T,
         view_matrix: Mat4T,
-        eye: Vec3T
+        eye: Vec3T,
+        width: float,
+        height: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_camera",
@@ -79,7 +129,7 @@ class Camera(LazyObject):
                 "u_projection_matrix": projection_matrix.T,
                 "u_view_matrix": view_matrix.T,
                 "u_view_position": eye,
-                "u_frame_radius": np.array(ConfigSingleton().size.frame_size) / 2.0
+                "u_frame_radius": np.array((width, height)) / 2.0
             }
         )
 

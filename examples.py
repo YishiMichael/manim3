@@ -9,13 +9,21 @@ class ShapeTransformExample(Scene):
     def timeline(self) -> TimelineT:
         circle = (
             Circle()
-            .set_style(color=Palette.PINK, opacity=0.9)
-            .add_stroke(color=Palette.YELLOW, width=0.4)
+            .set_color(color=Palette.PINK, opacity=0.9)
+        )
+        circle.add(
+            circle.build_stroke()
+            .set_stroke_style(width=0.4)
+            .set_color(color=Palette.YELLOW)
         )
         square = (
             Square()
-            .set_style(opacity=1.0)
-            .add_stroke(color=Palette.YELLOW, width=0.0)
+            .set_color(opacity=1.0)
+        )
+        square.add(
+            square.build_stroke()
+            .set_stroke_style(width=0.0)
+            .set_color(color=Palette.YELLOW)
         )
 
         self.add(square)
@@ -28,17 +36,25 @@ class TexTransformExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_style(color=Palette.ORANGE, opacity=0.5)
+            .set_color(color=Palette.ORANGE, opacity=0.5)
             .concatenate()
-            .add_stroke(width=0.04, color=Palette.BLUE)
+        )
+        text.add(
+            text.build_stroke()
+            .set_stroke_style(width=0.04)
+            .set_color(color=Palette.BLUE)
         )
         tex = (
             Tex("Tex")
             .scale(3)
-            .set_style(color=Palette.BLUE, opacity=0.5)
+            .set_color(color=Palette.BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)
-            .add_stroke(width=0.06, color=Palette.PINK)
+        )
+        tex.add(
+            tex.build_stroke()
+            .set_stroke_style(width=0.06)
+            .set_color(color=Palette.PINK)
         )
         self.add(text)
         yield from self.wait()
@@ -78,9 +94,10 @@ class ThreeDTextExample(Scene):
             .set_geometry(PrismoidGeometry(text.get_shape()))
             .scale(5.0)
             .stretch_to_fit_depth(0.5)
-            .set_style(color="#00FFAA44")
+            .set_color(color="#00FFAA44")
         )
-        text_3d.lighting.add_point_light(position=RIGHT)
+        self.add(AmbientLight().set_color(opacity=0.3))
+        self.add(PointLight().shift(RIGHT * 5))
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
         yield from self.wait(10)
@@ -90,9 +107,9 @@ class OITExample(Scene):
     def timeline(self) -> TimelineT:
         self.add(*(
             (Circle()
-                .set_style(color=color, opacity=opacity)
+                .set_color(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
-                .rotate_about_origin(Rotation.from_rotvec(OUT * angle))
+                .rotate(Rotation.from_rotvec(OUT * angle))
             )
             for color, opacity, angle in zip(
                 (Palette.RED, Palette.GREEN, Palette.BLUE),
@@ -106,13 +123,13 @@ class OITExample(Scene):
 class ChildSceneExample(Scene):
     def timeline(self) -> TimelineT:
         child_scene_1 = ThreeDTextExample()
-        child_scene_1.frame.render_passes.append(PixelatedPass())
+        child_scene_1.render_passes.append(PixelatedPass())
         self.prepare(child_scene_1)
         self.add(
             ChildSceneMobject(child_scene_1)
             .scale(0.5)
             .shift(LEFT * 1)
-            .set_style(is_transparent=True)
+            .set_color(is_transparent=True)
         )
         child_scene_2 = TexTransformExample()
         self.prepare(child_scene_2)
@@ -120,7 +137,7 @@ class ChildSceneExample(Scene):
             ChildSceneMobject(child_scene_2)
             .scale(0.5)
             .shift(RIGHT * 1)
-            .set_style(is_transparent=True)
+            .set_color(is_transparent=True)
         )
         yield from self.wait(6)
 
@@ -134,7 +151,7 @@ def main():
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    TexTransformExample.render(config)
+    ChildSceneExample.render(config)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,9 @@ from .lazy.lazy import (
     LazyObject
 )
 
+from .lighting.ambient_light import AmbientLight
+from .lighting.point_light import PointLight
+
 from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mesh_mobject import MeshMobject

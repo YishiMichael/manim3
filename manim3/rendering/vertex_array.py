@@ -196,12 +196,12 @@ class Program(LazyObject):
                     int(index_match.group(1))
                     for index_match in re.finditer(r"\[(\d+?)\]", match_obj.group("multi_index"))
                 )
-                if not texture_id_buffer_format._shape_.value:
+                if not (shape := texture_id_buffer_format._shape_.value):
                     assert not multi_index
                     uniform_size = 1
                     local_offset = 0
                 else:
-                    *dims, uniform_size = texture_id_buffer_format._shape_.value
+                    *dims, uniform_size = shape
                     local_offset = np.ravel_multi_index(multi_index, dims) * uniform_size
                 assert member.array_length == uniform_size
                 offset = texture_binding_offset_dict[name] + local_offset
@@ -330,11 +330,13 @@ class Program(LazyObject):
             if texture_id_buffer_format._is_empty_.value:
                 continue
             name = texture_id_buffer_format._name_.value
+            if (binding_offset := texture_binding_offset_dict.get(name)) is None:
+                continue
             texture_array = texture_array_dict[name]
             assert texture_id_buffer_format._shape_.value == texture_array.shape
             texture_bindings.extend(
                 (texture, binding)
-                for binding, texture in enumerate(texture_array.flat, start=texture_binding_offset_dict[name])
+                for binding, texture in enumerate(texture_array.flat, start=binding_offset)
             )
         return tuple(texture_bindings)
 

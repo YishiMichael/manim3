@@ -1,10 +1,13 @@
+struct AmbientLight {
+    vec4 color;
+};
 struct PointLight {
     vec3 position;
     vec4 color;
 };
 
-#if NUM_COLOR_MAPS
-uniform sampler2D t_color_maps[NUM_COLOR_MAPS];
+#if NUM_T_COLOR_MAPS
+uniform sampler2D t_color_maps[NUM_T_COLOR_MAPS];
 #endif
 
 layout (std140) uniform ub_camera {
@@ -13,20 +16,27 @@ layout (std140) uniform ub_camera {
     vec3 u_view_position;
     vec2 u_frame_radius;
 };
-layout (std140) uniform ub_model {
-    mat4 u_model_matrix;
-};
+#if NUM_U_AMBIENT_LIGHTS || NUM_U_POINT_LIGHTS
 layout (std140) uniform ub_lighting {
-    vec4 u_ambient_light_color;
-    float u_ambient_strength;
-    float u_specular_strength;
-    float u_shininess;
+    //vec4 u_ambient_light_color;
+    #if NUM_U_AMBIENT_LIGHTS
+    AmbientLight u_ambient_lights[NUM_U_AMBIENT_LIGHTS];
+    #endif
     #if NUM_U_POINT_LIGHTS
     PointLight u_point_lights[NUM_U_POINT_LIGHTS];
     #endif
 };
+#endif
 layout (std140) uniform ub_color {
     vec4 u_color;
+};
+layout (std140) uniform ub_model {
+    mat4 u_model_matrix;
+};
+layout (std140) uniform ub_material {
+    float u_ambient_strength;
+    float u_specular_strength;
+    float u_shininess;
 };
 
 
@@ -75,22 +85,31 @@ out vec4 frag_color;
 
 vec4 enable_phong_lighting() {
     // From `https://learnopengl.com/Lighting/Basic-Lighting`
-    vec4 result = vec4(0.0);
-    result += u_ambient_light_color * u_ambient_strength;
+    vec3 world_position = fs_in.world_position;
     vec3 normal = normalize(fs_in.world_normal);
+
+    vec4 ambient = vec4(0.0);
+    #if NUM_U_AMBIENT_LIGHTS
+    for (int i = 0; i < NUM_U_AMBIENT_LIGHTS; ++i) {
+        ambient += u_ambient_lights[i].color;
+    }
+    #endif
+    //vec4 result = vec4(0.0);
+    //result += u_ambient_light_color * u_ambient_strength;
+
+    vec4 diffuse = vec4(0.0);
+    vec4 specular = vec4(0.0);
     #if NUM_U_POINT_LIGHTS
     for (int i = 0; i < NUM_U_POINT_LIGHTS; ++i) {
         PointLight point_light = u_point_lights[i];
-        vec3 light_direction = normalize(point_light.position - fs_in.world_position);
-        vec4 diffuse = max(dot(normal, light_direction), 0.0) * point_light.color;
-        result += diffuse;
-        vec3 view_direction = normalize(u_view_position - fs_in.world_position);
+        vec3 light_direction = normalize(point_light.position - world_position);
+        diffuse += max(dot(normal, light_direction), 0.0) * point_light.color;
+        vec3 view_direction = normalize(u_view_position - world_position);
         vec3 reflect_direction = reflect(-light_direction, normal);
-        vec4 specular = pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
-        result += specular * u_specular_strength;
+        specular += pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
     }
     #endif
-    return result;
+    return ambient * u_ambient_strength + diffuse + specular * u_specular_strength;
 }
 
 
@@ -102,8 +121,8 @@ vec4 disable_phong_lighting() {
 void main() {
     vec4 color = phong_lighting_subroutine();
     color *= u_color;
-    #if NUM_COLOR_MAPS
-    for (int i = 0; i < NUM_COLOR_MAPS; ++i) {
+    #if NUM_T_COLOR_MAPS
+    for (int i = 0; i < NUM_T_COLOR_MAPS; ++i) {
         color *= texture(t_color_maps[i], fs_in.uv);
     }
     #endif

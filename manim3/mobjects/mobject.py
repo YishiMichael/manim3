@@ -20,9 +20,11 @@ from ..constants import (
     RIGHT
 )
 from ..custom_typing import (
+    ColorT,
     Mat4T,
     Vec3T,
-    Vec3sT
+    Vec3sT,
+    Vec4T
 )
 from ..lazy.lazy import (
     Lazy,
@@ -34,6 +36,7 @@ from ..rendering.framebuffer import (
     TransparentFramebuffer
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
+from ..utils.color import ColorUtils
 from ..utils.space import SpaceUtils
 
 
@@ -301,12 +304,6 @@ class Mobject(LazyObject):
     def _model_matrix_(cls) -> Mat4T:
         return np.identity(4)
 
-    @Lazy.property_external
-    @classmethod
-    def _local_sample_points_(cls) -> Vec3sT:
-        # Implemented in subclasses.
-        return np.zeros((0, 3))
-
     @Lazy.property
     @classmethod
     def _model_uniform_block_buffer_(
@@ -322,6 +319,12 @@ class Mobject(LazyObject):
                 "u_model_matrix": model_matrix.T
             }
         )
+
+    @Lazy.property_external
+    @classmethod
+    def _local_sample_points_(cls) -> Vec3sT:
+        # Implemented in subclasses.
+        return np.zeros((0, 3))
 
     @Lazy.property_external
     @classmethod
@@ -378,12 +381,7 @@ class Mobject(LazyObject):
             result = self._bounding_box_with_descendants_.value
         else:
             result = self._bounding_box_without_descendants_.value
-        if result is None:
-            warnings.warn("Trying to calculate the bounding box of some mobject with no points")
-            return BoundingBox(
-                maximum=ORIGIN,
-                minimum=ORIGIN
-            )
+        assert result is not None, "Trying to calculate the bounding box of some mobject with no points"
         return result
 
     def get_bounding_box_size(
@@ -446,10 +444,12 @@ class Mobject(LazyObject):
         about_edge: Vec3T | None = None,
         broadcast: bool = True
     ):
+        # Defaults to `about_point=ORIGIN`.
         if about_point is None:
             if about_edge is None:
-                about_edge = ORIGIN
-            about_point = self.get_bounding_box_point(about_edge, broadcast=broadcast)
+                about_point = ORIGIN
+            else:
+                about_point = self.get_bounding_box_point(about_edge, broadcast=broadcast)
         elif about_edge is not None:
             raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
 
@@ -703,18 +703,18 @@ class Mobject(LazyObject):
         )
         return self
 
-    def rotate_about_origin(
-        self,
-        rotation: Rotation,
-        *,
-        broadcast: bool = True
-    ):
-        self.rotate(
-            rotation=rotation,
-            about_point=ORIGIN,
-            broadcast=broadcast
-        )
-        return self
+    #def rotate_about_origin(
+    #    self,
+    #    rotation: Rotation,
+    #    *,
+    #    broadcast: bool = True
+    #):
+    #    self.rotate(
+    #        rotation=rotation,
+    #        about_point=ORIGIN,
+    #        broadcast=broadcast
+    #    )
+    #    return self
 
     def flip(
         self,
@@ -732,16 +732,86 @@ class Mobject(LazyObject):
         )
         return self
 
-    # render
+    # color
+    # Meanings of `_color_` and `_opacity_` may vary among subclasses,
+    # so they may currently be understood as abstract variables.
+    # - `MeshMobject`: color of the mesh.
+    # - `StrokeMobject`: color of the stroke.
+    # - `SceneFrame`: background color of the scene.
+    # - `AmbientLight`: color of the ambient light.
+    # - `PointLight`: color of the point light.
+    # Fading animations control the common `_opacity_` variable.
+
+    @Lazy.variable_external
+    @classmethod
+    def _color_(cls) -> Vec3T:
+        return np.ones(3)
+
+    @Lazy.variable_external
+    @classmethod
+    def _opacity_(cls) -> float:
+        return 1.0
 
     @Lazy.variable_shared
     @classmethod
     def _is_transparent_(cls) -> bool:
         return False
 
+    @Lazy.property_external
+    @classmethod
+    def _color_vec4_(
+        cls,
+        color: Vec3T,
+        opacity: float
+    ) -> Vec4T:
+        return np.append(color, opacity)
+
+    @Lazy.property
+    @classmethod
+    def _color_uniform_block_buffer_(
+        cls,
+        color_vec4: Vec4T
+    ) -> UniformBlockBuffer:
+        return UniformBlockBuffer(
+            name="ub_color",
+            fields=[
+                "vec4 u_color"
+            ],
+            data={
+                "u_color": color_vec4
+            }
+        )
+
+    def set_color(
+        self,
+        color: ColorT | None = None,
+        *,
+        opacity: float | None = None,
+        is_transparent: bool | None = None,
+        broadcast: bool = True,
+        type_filter: "type[Mobject] | None" = None
+    ):
+        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+        color_value = LazyWrapper(color_component) if color_component is not None else None
+        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
+        is_transparent_value = is_transparent if is_transparent is not None else \
+            True if opacity_component is not None else None
+        if type_filter is None:
+            type_filter = Mobject
+        for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
+            if color_value is not None:
+                mobject._color_ = color_value
+            if opacity_value is not None:
+                mobject._opacity_ = opacity_value
+            if is_transparent_value is not None:
+                mobject._is_transparent_ = is_transparent_value
+        return self
+
+    # render
+
     @Lazy.variable
     @classmethod
-    def _camera_(cls) -> Camera:
+    def _camera_(cls) -> Camera:  # Keep updated with `Scene._camera`.
         return Camera()
 
     def _render(

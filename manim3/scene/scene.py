@@ -1,6 +1,9 @@
 import time
 from typing import Iterator
 
+import moderngl
+from PIL import Image
+
 from ..animations.animation import (
     Animation,
     AwaitSignal,
@@ -8,19 +11,33 @@ from ..animations.animation import (
     UpdaterItemAppendSignal,
     UpdaterItemRemoveSignal
 )
+from ..cameras.camera import Camera
+from ..cameras.perspective_camera import PerspectiveCamera
 from ..config import (
     Config,
     ConfigSingleton
 )
+from ..custom_typing import ColorT
+from ..lazy.lazy import Lazy, LazyDynamicContainer
+from ..lighting.ambient_light import AmbientLight
+from ..lighting.lighting import Lighting
+from ..lighting.point_light import PointLight
+from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import Mobject
 from ..mobjects.scene_frame import SceneFrame
+from ..passes.render_pass import RenderPass
 from ..rendering.context import Context
+from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.texture import TextureFactory
 from ..utils.rate import RateUtils
 
 
 class Scene(Animation):
-    __slots__ = ("_scene_frame",)
+    __slots__ = (
+        "_scene_frame",
+        "_camera",
+        "_lighting"
+    )
 
     def __init__(self) -> None:
         start_time = ConfigSingleton().rendering.start_time
@@ -30,6 +47,12 @@ class Scene(Animation):
             relative_rate=RateUtils.adjust(RateUtils.linear, lag_time=-start_time)
         )
         self._scene_frame: SceneFrame = SceneFrame()
+        self._camera: Camera = PerspectiveCamera()
+        self._lighting: Lighting = Lighting()
+        #self._scene_frame: SceneFrame = SceneFrame()
+        self.set_background(
+            color=ConfigSingleton().rendering.background_color
+        )
 
     def _run_timeline(self) -> None:
 
@@ -56,7 +79,6 @@ class Scene(Animation):
             for updater_item in updater_items:
                 updater_item.updater(updater_item.absolute_rate(timestamp))
 
-        scene_frame = self._scene_frame
         absolute_timeline = self._absolute_timeline()
         state_final_timestamp = 0.0
         updater_items: list[UpdaterItem] = []
@@ -87,47 +109,106 @@ class Scene(Animation):
                     break
                 update(timestamp, updater_items)
 
-                scene_frame._render_to_texture(color_texture)
+                self._render_to_texture(color_texture)
                 if ConfigSingleton().rendering.preview:
-                    scene_frame._render_to_window(color_texture)
+                    self._scene_frame._render_to_window(color_texture)
                 if ConfigSingleton().rendering.write_video:
-                    scene_frame._write_to_writing_process(color_texture)
+                    self._write_to_writing_process(color_texture)
 
-            scene_frame._render_to_texture(color_texture)
+            self._render_to_texture(color_texture)
             if ConfigSingleton().rendering.write_last_frame:
-                scene_frame._write_to_image(color_texture)
+                self._write_to_image(color_texture)
 
-    @property
-    def frame(self) -> SceneFrame:
-        return self._scene_frame
+    def _render_to_texture(
+        self,
+        color_texture: moderngl.Texture
+    ) -> None:
+        scene_frame = self._scene_frame
 
-    # shortcuts
+        camera = self._camera
+        for mobject in scene_frame.iter_descendants_by_type(mobject_type=Mobject):
+            mobject._camera_ = camera
+
+        lighting = self._lighting
+        lighting._ambient_lights_ = scene_frame.iter_descendants_by_type(mobject_type=AmbientLight)
+        lighting._point_lights_ = scene_frame.iter_descendants_by_type(mobject_type=PointLight)
+        for mobject in scene_frame.iter_descendants_by_type(mobject_type=MeshMobject):
+            mobject._lighting_ = lighting
+
+        framebuffer = ColorFramebuffer(
+            color_texture=color_texture
+        )
+        scene_frame._render_scene_with_passes(framebuffer)
+
+    @classmethod
+    def _write_to_writing_process(
+        cls,
+        color_texture: moderngl.Texture
+    ) -> None:
+        writing_process = Context.writing_process
+        assert writing_process.stdin is not None
+        writing_process.stdin.write(color_texture.read())
+
+    @classmethod
+    def _write_to_image(
+        cls,
+        color_texture: moderngl.Texture
+    ) -> None:
+        scene_name = ConfigSingleton().rendering.scene_name
+        image = Image.frombytes(
+            "RGBA",
+            ConfigSingleton().size.pixel_size,
+            color_texture.read(),
+            "raw"
+        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
 
     def add(
         self,
         *mobjects: "Mobject"
     ):
-        self.frame.add(*mobjects)
+        self._scene_frame.add(*mobjects)
         return self
 
     def discard(
         self,
         *mobjects: "Mobject"
     ):
-        self.frame.discard(*mobjects)
+        self._scene_frame.discard(*mobjects)
         return self
 
     def clear(self):
-        self.frame.clear()
+        self._scene_frame.clear()
         return self
 
     #@property
     #def camera(self) -> Camera:
     #    return self._scene_frame._camera_
 
+    def set_background(
+        self,
+        color: ColorT | None = None,
+        *,
+        opacity: float | None = None
+    ):
+        self._scene_frame.set_color(
+            color=color,
+            opacity=opacity,
+            broadcast=False
+        )
+        return self
+
+    @property
+    def render_passes(self) -> LazyDynamicContainer[RenderPass]:
+        return self._scene_frame._render_passes_
+
+    @property
+    def camera(self) -> Camera:
+        return self._camera
+
     #@property
-    #def render_passes(self) -> LazyDynamicContainer[RenderPass]:
-    #    return self._scene_frame._render_passes_
+    #def lighting(self) -> Lighting:
+    #    return self._lighting_
 
     @classmethod
     def render(
@@ -146,9 +227,9 @@ class Scene(Animation):
             Context.setup_writing_process()
 
         self = cls()
-        self.frame.set_background(
-            color=ConfigSingleton().camera.background_color
-        )
+        #self.frame.set_background(
+        #    color=ConfigSingleton().camera.background_color
+        #)
 
         try:
             self._run_timeline()
