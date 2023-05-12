@@ -65,6 +65,27 @@ class TexTransformExample(Scene):
         yield from self.wait(3)
 
 
+class CreateTexExample(Scene):
+    def timeline(self) -> TimelineT:
+        text = (
+            Text("Text")
+            .scale(3)
+            .set_color(color=Palette.ORANGE, opacity=0.5)
+            .concatenate()
+        )
+        text.add(
+            text.build_stroke()
+            .set_stroke_style(width=0.04)
+            .set_color(color=Palette.BLUE)
+        )
+        yield from self.wait()
+        self.add(text)
+        yield from self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
+        yield from self.wait()
+        yield from self.play(PartialUncreate(text, run_time=2, rate_func=RateUtils.smooth, backwards=True))
+        yield from self.wait()
+
+
 class Rotating(Animation):
     def __init__(
         self,
@@ -151,7 +172,7 @@ def main():
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample.render(config)
+    CreateTexExample.render(config)
 
 
 if __name__ == "__main__":

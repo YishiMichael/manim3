@@ -221,7 +221,7 @@ class LineString(ShapeInterpolant):
         return LineString(np.array(new_points), is_ring=False)
 
     @classmethod
-    def get_interpolant(
+    def get_interpolator(
         cls,
         line_string_0: "LineString",
         line_string_1: "LineString"
@@ -232,20 +232,20 @@ class LineString(ShapeInterpolant):
             all_knots = all_knots[:-1]
             is_ring = True
 
-        point_interpolants = [
+        point_interpolators = [
             SpaceUtils.lerp(line_string_0.interpolate_point(knot), line_string_1.interpolate_point(knot))
             for knot in all_knots
         ]
 
-        def interpolant(
+        def interpolator(
             alpha: float
         ) -> LineString:
             return LineString(np.array([
-                point_interpolant(alpha)
-                for point_interpolant in point_interpolants
+                point_interpolator(alpha)
+                for point_interpolator in point_interpolators
             ]), is_ring=is_ring)
 
-        return interpolant
+        return interpolator
 
 
 class MultiLineString(ShapeInterpolant):
@@ -304,8 +304,11 @@ class MultiLineString(ShapeInterpolant):
             ))
         return result
 
+    def get_partialor(self) -> "Callable[[float, float], MultiLineString]":
+        return self.partial
+
     @classmethod
-    def get_interpolant(
+    def get_interpolator(
         cls,
         multi_line_string_0: "MultiLineString",
         multi_line_string_1: "MultiLineString",
@@ -320,44 +323,44 @@ class MultiLineString(ShapeInterpolant):
         (residue_list_list_0, residue_list_list_1), triplet_tuple_list = cls._zip_knots(
             multi_line_string_0._length_knots_.value, multi_line_string_1._length_knots_.value
         )
-        line_string_interpolants: list[Callable[[float], LineString]] = [
-            LineString.get_interpolant(
+        line_string_interpolators: list[Callable[[float], LineString]] = [
+            LineString.get_interpolator(
                 line_strings_0[index_0].partial(start_residue_0, stop_residue_0),
                 line_strings_1[index_1].partial(start_residue_1, stop_residue_1)
             )
             for (index_0, start_residue_0, stop_residue_0), (index_1, start_residue_1, stop_residue_1) in triplet_tuple_list
         ]
 
-        inlay_interpolants: list[Callable[[float], Vec3sT]] = []
+        inlay_interpolators: list[Callable[[float], Vec3sT]] = []
         for index_0, residues in enumerate(residue_list_list_0):
             points = line_strings_0[index_0].interpolate_points(residues)
             if len(points) == 2:
                 continue
             points_center: Vec3T = np.average(points, axis=0)
-            inlay_interpolants.append(SpaceUtils.lerp(points, points_center))
+            inlay_interpolators.append(SpaceUtils.lerp(points, points_center))
 
         for index_1, residues in enumerate(residue_list_list_1):
             points = line_strings_1[index_1].interpolate_points(residues)
             if len(points) == 2:
                 continue
             points_center: Vec3T = np.average(points, axis=0)
-            inlay_interpolants.append(SpaceUtils.lerp(points_center, points))
+            inlay_interpolators.append(SpaceUtils.lerp(points_center, points))
 
-        def interpolant(
+        def interpolator(
             alpha: float
         ) -> MultiLineString:
             result = MultiLineString()
             result._line_strings_.extend(
-                line_string_interpolant(alpha)
-                for line_string_interpolant in line_string_interpolants
+                line_string_interpolator(alpha)
+                for line_string_interpolator in line_string_interpolators
             )
             if has_inlay:
                 result._line_strings_.extend(
-                    LineString(inlay_interpolant(alpha), is_ring=True)
-                    for inlay_interpolant in inlay_interpolants
+                    LineString(inlay_interpolator(alpha), is_ring=True)
+                    for inlay_interpolator in inlay_interpolators
                 )
             return result
-        return interpolant
+        return interpolator
 
     @classmethod
     def concatenate(

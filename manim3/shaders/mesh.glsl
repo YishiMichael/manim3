@@ -18,7 +18,6 @@ layout (std140) uniform ub_camera {
 };
 #if NUM_U_AMBIENT_LIGHTS || NUM_U_POINT_LIGHTS
 layout (std140) uniform ub_lighting {
-    //vec4 u_ambient_light_color;
     #if NUM_U_AMBIENT_LIGHTS
     AmbientLight u_ambient_lights[NUM_U_AMBIENT_LIGHTS];
     #endif
@@ -94,8 +93,6 @@ vec4 enable_phong_lighting() {
         ambient += u_ambient_lights[i].color;
     }
     #endif
-    //vec4 result = vec4(0.0);
-    //result += u_ambient_light_color * u_ambient_strength;
 
     vec4 diffuse = vec4(0.0);
     vec4 specular = vec4(0.0);

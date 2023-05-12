@@ -19,4 +19,5 @@ class PointLight(Mobject):
     ) -> Vec3T:
         # The position is initially set at the origin and tracked by `model_matrix`.
         # We can then control the light position via methods like `shift()`.
+        # Light-moving animations are automatically applicable.
         return SpaceUtils.apply_affine(model_matrix, ORIGIN)

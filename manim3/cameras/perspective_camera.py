@@ -1,7 +1,6 @@
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..config import ConfigSingleton
 from ..custom_typing import Mat4T
 from ..lazy.lazy import Lazy
 

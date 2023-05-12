@@ -136,10 +136,25 @@ class Camera(LazyObject):
     def set_view(
         self,
         *,
+        width: float | None = None,
+        height: float | None = None,
+        near: float | None = None,
+        far: float | None = None,
+        altitude: float | None = None,
         eye: Vec3T | None = None,
         target: Vec3T | None = None,
         up: Vec3T | None = None
     ):
+        if width is not None:
+            self._width_ = width
+        if height is not None:
+            self._height_ = height
+        if near is not None:
+            self._near_ = near
+        if far is not None:
+            self._far_ = far
+        if altitude is not None:
+            self._altitude_ = altitude
         if eye is not None:
             self._eye_ = eye
         if target is not None:

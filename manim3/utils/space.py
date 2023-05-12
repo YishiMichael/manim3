@@ -299,12 +299,12 @@ class SpaceUtils:
         tensor_1: float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T
     ) -> Callable[[float], float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T]:
 
-        def interpolant(
+        def interpolator(
             alpha: float
         ) -> float | FloatsT | Vec2T | Vec2sT | Vec3T | Vec3sT | Vec4T | Vec4sT | Mat3T | Mat4T:
             return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
-        return interpolant
+        return interpolator
 
     @classmethod
     def increase_dimension(

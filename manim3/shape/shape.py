@@ -181,11 +181,11 @@ class Shape(LazyObject):
 
         return Shape(iter_args_from_shapely_obj(shapely_obj))
 
-    def interpolate_point(
-        self,
-        alpha: float
-    ) -> Vec2T:
-        return self._multi_line_string_.interpolate_point(alpha)[:2]
+    #def interpolate_point(
+    #    self,
+    #    alpha: float
+    #) -> Vec2T:
+    #    return self._multi_line_string_.interpolate_point(alpha)[:2]
 
     def partial(
         self,
@@ -194,26 +194,29 @@ class Shape(LazyObject):
     ) -> "Shape":
         return Shape.from_multi_line_string(self._multi_line_string_.partial(start, stop))
 
+    def get_partialor(self) -> "Callable[[float, float], Shape]":
+        return self.partial
+
     @classmethod
-    def get_interpolant(
+    def get_interpolator(
         cls,
         shape_0: "Shape",
         shape_1: "Shape",
         *,
         has_inlay: bool = True
     ) -> "Callable[[float], Shape]":
-        multi_line_string_interpolant = MultiLineString.get_interpolant(
+        multi_line_string_interpolator = MultiLineString.get_interpolator(
             shape_0._multi_line_string_,
             shape_1._multi_line_string_,
             has_inlay=has_inlay
         )
 
-        def interpolant(
+        def interpolator(
             alpha: float
         ) -> Shape:
-            return Shape.from_multi_line_string(multi_line_string_interpolant(alpha))
+            return Shape.from_multi_line_string(multi_line_string_interpolator(alpha))
 
-        return interpolant
+        return interpolator
 
     @classmethod
     def concatenate(

@@ -18,7 +18,7 @@ from ..config import (
     ConfigSingleton
 )
 from ..custom_typing import ColorT
-from ..lazy.lazy import Lazy, LazyDynamicContainer
+from ..lazy.lazy import LazyDynamicContainer
 from ..lighting.ambient_light import AmbientLight
 from ..lighting.lighting import Lighting
 from ..lighting.point_light import PointLight
@@ -49,7 +49,6 @@ class Scene(Animation):
         self._scene_frame: SceneFrame = SceneFrame()
         self._camera: Camera = PerspectiveCamera()
         self._lighting: Lighting = Lighting()
-        #self._scene_frame: SceneFrame = SceneFrame()
         self.set_background(
             color=ConfigSingleton().rendering.background_color
         )
@@ -181,10 +180,6 @@ class Scene(Animation):
         self._scene_frame.clear()
         return self
 
-    #@property
-    #def camera(self) -> Camera:
-    #    return self._scene_frame._camera_
-
     def set_background(
         self,
         color: ColorT | None = None,
@@ -206,10 +201,6 @@ class Scene(Animation):
     def camera(self) -> Camera:
         return self._camera
 
-    #@property
-    #def lighting(self) -> Lighting:
-    #    return self._lighting_
-
     @classmethod
     def render(
         cls,
@@ -227,9 +218,6 @@ class Scene(Animation):
             Context.setup_writing_process()
 
         self = cls()
-        #self.frame.set_background(
-        #    color=ConfigSingleton().camera.background_color
-        #)
 
         try:
             self._run_timeline()

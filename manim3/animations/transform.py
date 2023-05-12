@@ -45,8 +45,8 @@ class Transform(Animation):
         MeshMobject._ambient_strength_: SpaceUtils.lerp,
         MeshMobject._specular_strength_: SpaceUtils.lerp,
         MeshMobject._shininess_: SpaceUtils.lerp,
-        ShapeMobject._shape_: Shape.get_interpolant,
-        StrokeMobject._multi_line_string_: MultiLineString.get_interpolant,
+        ShapeMobject._shape_: Shape.get_interpolator,
+        StrokeMobject._multi_line_string_: MultiLineString.get_interpolator,
         StrokeMobject._width_: SpaceUtils.lerp,
         StrokeMobject._dilate_: SpaceUtils.lerp
     }
@@ -147,7 +147,7 @@ class Transform(Animation):
 
         if interpolate_method is None:
             raise ValueError
-        interpolant = interpolate_method(
+        interpolator = interpolate_method(
             descriptor.converter.convert_rget(container_0),
             descriptor.converter.convert_rget(container_1)
         )
@@ -156,7 +156,7 @@ class Transform(Animation):
             dst: _InstanceT,
             alpha: float
         ) -> None:
-            new_container = descriptor.converter.convert_set(interpolant(alpha))
+            new_container = descriptor.converter.convert_set(interpolator(alpha))
             descriptor.set_container(dst, new_container)
-        
+
         return callback

@@ -171,20 +171,16 @@ class StrokeMobject(Mobject):
     def _stroke_uniform_block_buffer_(
         cls,
         width: float,
-        #color: Vec3T,
-        #opacity: float,
         dilate: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
             fields=[
                 "float u_width",
-                #"vec4 u_color",
                 "float u_dilate"
             ],
             data={
                 "u_width": np.array(width),
-                #"u_color": np.append(color, opacity),
                 "u_dilate": np.array(dilate)
             }
         )
@@ -402,8 +398,6 @@ class StrokeMobject(Mobject):
         width: float | None = None,
         single_sided: bool | None = None,
         has_linecap: bool | None = None,
-        #color: ColorT | None = None,
-        #opacity: float | None = None,
         dilate: float | None = None,
         is_transparent: bool | None = None,
         broadcast: bool = True,
@@ -412,9 +406,6 @@ class StrokeMobject(Mobject):
         width_value = LazyWrapper(width) if width is not None else None
         single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
         has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
-        #color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        #color_value = LazyWrapper(color_component) if color_component is not None else None
-        #opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
         dilate_value = LazyWrapper(dilate) if dilate is not None else None
         is_transparent_value = is_transparent if is_transparent is not None else \
             True if dilate is not None else None

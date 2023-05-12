@@ -1,4 +1,9 @@
 from .animations.animation import Animation
+from .animations.partial import (
+    PartialCreate,
+    PartialFlash,
+    PartialUncreate
+)
 from .animations.transform import Transform
 
 from .cameras.camera import Camera

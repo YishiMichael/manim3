@@ -18,26 +18,10 @@ from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-#from ..utils.color import ColorUtils
 
 
 class SceneFrame(Mobject):
     __slots__ = ()
-
-    #@Lazy.variable
-    #@classmethod
-    #def _camera_(cls) -> Camera:
-    #    return PerspectiveCamera()
-
-    #@Lazy.variable_external
-    #@classmethod
-    #def _background_color_(cls) -> Vec3T:
-    #    return np.zeros(3)
-
-    #@Lazy.variable_external
-    #@classmethod
-    #def _background_opacity_(cls) -> float:
-    #    return 0.0
 
     @Lazy.variable_collection
     @classmethod
@@ -157,21 +141,6 @@ class SceneFrame(Mobject):
                 target_framebuffer=target_framebuffer
             )
 
-    #def _render_to_texture(
-    #    self,
-    #    color_texture: moderngl.Texture,
-    #    camera: Camera,
-    #    lighting: Lighting
-    #) -> None:
-    #    for mobject in self.iter_descendants_by_type(mobject_type=Mobject):
-    #        mobject._camera_ = camera
-    #    for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject):
-    #        mobject._lighting_ = lighting
-    #    framebuffer = ColorFramebuffer(
-    #        color_texture=color_texture
-    #    )
-    #    self._render_scene_with_passes(framebuffer)
-
     def _render_to_window(
         self,
         color_texture: moderngl.Texture
@@ -192,20 +161,3 @@ class SceneFrame(Mobject):
             }
         )
         window.swap_buffers()
-
-    #def set_background(
-    #    self,
-    #    color: ColorT | None = None,
-    #    *,
-    #    opacity: float | None = None
-    #):
-    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-    #    if color_component is not None:
-    #        self._background_color_ = color_component
-    #    if opacity_component is not None:
-    #        self._background_opacity_ = opacity_component
-    #    return self
-
-    #@property
-    #def render_passes(self) -> LazyDynamicContainer[RenderPass]:
-    #    return self._render_passes_

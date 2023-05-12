@@ -703,19 +703,6 @@ class Mobject(LazyObject):
         )
         return self
 
-    #def rotate_about_origin(
-    #    self,
-    #    rotation: Rotation,
-    #    *,
-    #    broadcast: bool = True
-    #):
-    #    self.rotate(
-    #        rotation=rotation,
-    #        about_point=ORIGIN,
-    #        broadcast=broadcast
-    #    )
-    #    return self
-
     def flip(
         self,
         axis: Vec3T,

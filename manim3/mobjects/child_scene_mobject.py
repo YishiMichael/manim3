@@ -24,8 +24,8 @@ class ChildSceneMobject(MeshMobject):
         self._scene: Scene = scene
         self.set_material(enable_phong_lighting=False)
         self.scale(np.array((
-            ConfigSingleton().size.frame_width,
-            ConfigSingleton().size.frame_height,
+            scene.camera._width_.value,
+            scene.camera._height_.value,
             1.0
         )))
 
