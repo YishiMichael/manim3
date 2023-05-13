@@ -36,24 +36,6 @@ class ShapeMobject(MeshMobject):
     ) -> ShapeGeometry:
         return ShapeGeometry(_shape_)
 
-    #def get_shape(self) -> Shape:
-    #    return self._shape_
-
-    #def set_shape(
-    #    self,
-    #    shape: Shape
-    #):
-    #    self._shape_ = shape
-    #    return self
-
-    #def concatenate(self) -> "ShapeMobject":
-    #    self._shape_ = Shape.concatenate(
-    #        child._shape_
-    #        for child in self.iter_children_by_type(mobject_type=ShapeMobject)
-    #    )
-    #    self.clear()
-    #    return self
-
     def build_stroke(self) -> StrokeMobject:
         stroke = StrokeMobject()
         stroke._model_matrix_ = self._model_matrix_

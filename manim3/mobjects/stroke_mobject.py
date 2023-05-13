@@ -422,46 +422,6 @@ class StrokeMobject(Mobject):
                 framebuffer=target_framebuffer
             )
 
-    #def concatenate(self):
-    #    self._multi_line_string_ = MultiLineString.concatenate(
-    #        child._multi_line_string_
-    #        for child in self.iter_children_by_type(mobject_type=StrokeMobject)
-    #    )
-    #    self.clear()
-    #    return self
-
-    #def set_stroke_style(
-    #    self,
-    #    *,
-    #    width: float | None = None,
-    #    single_sided: bool | None = None,
-    #    has_linecap: bool | None = None,
-    #    dilate: float | None = None,
-    #    is_transparent: bool | None = None,
-    #    broadcast: bool = True,
-    #    type_filter: "type[StrokeMobject] | None" = None
-    #):
-    #    width_value = LazyWrapper(width) if width is not None else None
-    #    single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
-    #    has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
-    #    dilate_value = LazyWrapper(dilate) if dilate is not None else None
-    #    is_transparent_value = is_transparent if is_transparent is not None else \
-    #        True if dilate is not None else None
-    #    if type_filter is None:
-    #        type_filter = StrokeMobject
-    #    for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
-    #        if width_value is not None:
-    #            mobject._width_ = width_value
-    #        if single_sided_value is not None:
-    #            mobject._single_sided_ = single_sided_value
-    #        if has_linecap_value is not None:
-    #            mobject._has_linecap_ = has_linecap_value
-    #        if dilate_value is not None:
-    #            mobject._dilate_ = dilate_value
-    #        if is_transparent_value is not None:
-    #            mobject._is_transparent_ = is_transparent_value
-    #    return self
-
     @property
     def multi_line_string(self) -> MultiLineString:
         return self._multi_line_string_

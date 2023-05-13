@@ -4,34 +4,15 @@ import numpy as np
 
 from ..animations.animation import Animation
 from ..custom_typing import TimelineT
-#from ..lazy.lazy import (
-#    LazyContainer,
-#    LazyObject,
-#    LazyVariableDescriptor
-#)
 from ..mobjects.mobject import (
     Mobject,
     MobjectMeta
 )
-#from ..mobjects.shape_mobject import ShapeMobject
-#from ..mobjects.stroke_mobject import StrokeMobject
-#from ..shape.line_string import MultiLineString
-#from ..shape.shape import Shape
 from ..utils.rate import RateUtils
-
-
-#_InstanceT = TypeVar("_InstanceT", bound="LazyObject")
-#_DescriptorSetT = TypeVar("_DescriptorSetT")
-#_DescriptorRawT = TypeVar("_DescriptorRawT")
 
 
 class PartialAnimation(Animation):
     __slots__ = ("_mobject",)
-
-    #_partial_methods: ClassVar[dict[LazyVariableDescriptor, Callable[[Any], Callable[[float, float], Any]]]] = {
-    #    ShapeMobject._shape_: Shape.get_partialor,
-    #    StrokeMobject._multi_line_string_: MultiLineString.get_partialor
-    #}
 
     def __init__(
         self,
@@ -46,13 +27,6 @@ class PartialAnimation(Animation):
             MobjectMeta._partial(descendant)(descendant)
             for descendant in mobject.iter_descendants()
         ]
-        #descendant_mobjects_with_callback = list(
-        #    (
-        #        descendant,
-        #        self._get_partial_callback(descendant, alpha_to_boundary_values, backwards)
-        #    )
-        #    for descendant in mobject.iter_descendants()
-        #)
 
         def updater(
             alpha: float
@@ -72,58 +46,6 @@ class PartialAnimation(Animation):
 
     def timeline(self) -> TimelineT:
         yield from self.wait()
-
-    #@classmethod
-    #def _get_partial_callback(
-    #    cls,
-    #    instance: _InstanceT,
-    #    alpha_to_boundary_values: Callable[[float], tuple[float, float]],
-    #    backwards: bool
-    #) -> Callable[[_InstanceT, float], None]:
-    #    descriptor_callbacks = [
-    #        descriptor_callback
-    #        for descriptor in type(instance)._lazy_variable_descriptors
-    #        if (descriptor_callback := cls._get_partial_descriptor_callback(
-    #            descriptor, cls._partial_methods.get(descriptor), instance
-    #        )) is not None
-    #    ]
-
-    #    def callback(
-    #        dst: _InstanceT,
-    #        alpha: float
-    #    ) -> None:
-    #        start, stop = alpha_to_boundary_values(alpha)
-    #        if backwards:
-    #            start, stop = 1.0 - stop, 1.0 - start
-    #        for descriptor_callback in descriptor_callbacks:
-    #            descriptor_callback(dst, start, stop)
-
-    #    return callback
-
-    #@classmethod
-    #def _get_partial_descriptor_callback(
-    #    cls,
-    #    descriptor: LazyVariableDescriptor[_InstanceT, LazyContainer, Any, _DescriptorSetT, _DescriptorRawT],
-    #    partial_method: Callable[[_DescriptorRawT], Callable[[float, float], _DescriptorSetT]] | None,
-    #    instance: _InstanceT
-    #) -> Callable[[_InstanceT, float, float], None] | None:
-    #    if partial_method is None:
-    #        return None
-
-    #    container = descriptor.get_container(instance)
-    #    partialor = partial_method(
-    #        descriptor.converter.convert_rget(container)
-    #    )
-
-    #    def callback(
-    #        dst: _InstanceT,
-    #        start: float,
-    #        stop: float
-    #    ) -> None:
-    #        new_container = descriptor.converter.convert_set(partialor(start, stop))
-    #        descriptor.set_container(dst, new_container)
-
-    #    return callback
 
 
 class PartialCreate(PartialAnimation):

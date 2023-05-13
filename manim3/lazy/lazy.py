@@ -271,12 +271,6 @@ class LazyContainer(ABC, Generic[_ElementT]):
     def _copy_container(self) -> "LazyContainer[_ElementT]":
         pass
 
-    #def _match_elements(
-    #    self,
-    #    container: "LazyContainer[_ElementT]"
-    #) -> bool:
-    #    return tuple(self._iter_elements()) == tuple(container._iter_elements())
-
 
 class LazyUnitaryContainer(LazyContainer[_ElementT]):
     __slots__ = ("_element",)
@@ -853,11 +847,6 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 for parameter_tree in parameter_trees
             )
 
-            #if self.method.__name__ == "_local_sample_points_" and parameter_trees:
-            #    print(key)
-            #    print(construct_parameter(parameter_trees[0], requires_unwrapping=self.requires_unwrapping_tuple[0]))
-            #    print(self.key_to_container_cache)
-            #    print()
             if (container := self.key_to_container_cache.get(key)) is None:
                 parameters = tuple(
                     construct_parameter(parameter_tree, requires_unwrapping=requires_unwrapping)

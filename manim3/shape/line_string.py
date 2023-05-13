@@ -48,16 +48,6 @@ class ShapeInterpolant(LazyObject):
         # Ensure the last entry is always precisely 1.0
         return unnormalized_knots / unnormalized_knots[-1]
 
-    #@abstractmethod
-    #def interpolate_point(self) -> Callable[[float], Vec3T]:
-    #    pass
-
-    #def interpolate_points(
-    #    self,
-    #    alphas: Iterable[float]
-    #) -> Vec3sT:
-    #    return np.array([self.interpolate_point(alpha) for alpha in alphas])
-
     @classmethod
     def _get_residue(
         cls,

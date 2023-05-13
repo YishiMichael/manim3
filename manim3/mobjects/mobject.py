@@ -85,7 +85,7 @@ class MobjectMeta:
 
     _descriptor_partial_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any], Callable[[float, float], Any]]]] = {}
     _descriptor_interpolate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any, Any], Callable[[float], Any]]]] = {}
-    _descriptor_concatenate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Iterable[Any]], Callable[[], Any]]]] = {}
+    _descriptor_concatenate_method: ClassVar[dict[LazyVariableDescriptor, Callable[..., Callable[[], Any]]]] = {}
     _descriptor_related_styles: ClassVar[dict[LazyVariableDescriptor, tuple[tuple[LazyVariableDescriptor, Any], ...]]] = {}
 
     def __new__(cls):
@@ -96,7 +96,7 @@ class MobjectMeta:
         cls,
         partial_method: Callable[[_DescriptorRawT], Callable[[float, float], _DescriptorRawT]] | None = None,
         interpolate_method: Callable[[_DescriptorRawT, _DescriptorRawT], Callable[[float], _DescriptorRawT]] | None = None,
-        concatenate_method: Callable[[Iterable[_DescriptorRawT]], Callable[[], _DescriptorRawT]] | None = None,
+        concatenate_method: Callable[..., Callable[[], _DescriptorRawT]] | None = None,
         related_styles: tuple[tuple[LazyVariableDescriptor, Any], ...] = ()
     ):
 
@@ -216,18 +216,6 @@ class MobjectMeta:
             srcs=srcs
         )
 
-    #@classmethod
-    #def _set_style_by_name(
-    #    cls,
-    #    mobject: "Mobject",
-    #    name: str,
-    #    value: LazyObject
-    #) -> None:
-    #    descriptor = type(mobject)._lazy_descriptor_dict.get(name)
-    #    if descriptor is None:
-    #        return
-    #    related_styles
-
     @classmethod
     def _set_style(
         cls,
@@ -238,19 +226,14 @@ class MobjectMeta:
             f"_{key}_": value if isinstance(value, LazyObject) else LazyWrapper(value)
             for key, value in style.items() if value is not None
         }
-        #print(values)
         for mobject in mobjects:
             for style_name, style_value in values.items():
-                #print("-----")
                 descriptor = type(mobject)._lazy_descriptor_dict.get(style_name)
-                #print(descriptor)
                 if descriptor is None:
                     continue
                 if not isinstance(descriptor, LazyVariableDescriptor):
                     continue
-                #print(descriptor in cls._descriptor_related_styles)
                 related_styles = cls._descriptor_related_styles.get(descriptor)
-                #print(related_styles)
                 if related_styles is None:
                     continue
                 descriptor.__set__(mobject, style_value)
@@ -917,66 +900,6 @@ class Mobject(LazyObject):
         )
         return self
 
-    # color
-    # Meanings of `_color_` and `_opacity_` may vary among subclasses,
-    # so they may currently be understood as abstract variables.
-    # - `MeshMobject`: color of the mesh.
-    # - `StrokeMobject`: color of the stroke.
-    # - `SceneFrame`: background color of the scene.
-    # - `AmbientLight`: color of the ambient light.
-    # - `PointLight`: color of the point light.
-    # Fading animations control the common `_opacity_` variable.
-
-    #@Lazy.property_external
-    #@classmethod
-    #def _color_vec4_(
-    #    cls,
-    #    color: Vec3T,
-    #    opacity: float
-    #) -> Vec4T:
-    #    return np.append(color, opacity)
-
-    #@Lazy.property
-    #@classmethod
-    #def _color_uniform_block_buffer_(
-    #    cls,
-    #    color_vec4: Vec4T
-    #) -> UniformBlockBuffer:
-    #    return UniformBlockBuffer(
-    #        name="ub_color",
-    #        fields=[
-    #            "vec4 u_color"
-    #        ],
-    #        data={
-    #            "u_color": color_vec4
-    #        }
-    #    )
-
-    #def set_color(
-    #    self,
-    #    color: ColorT | None = None,
-    #    *,
-    #    opacity: float | None = None,
-    #    is_transparent: bool | None = None,
-    #    broadcast: bool = True,
-    #    type_filter: "type[Mobject] | None" = None
-    #):
-    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-    #    color_value = LazyWrapper(color_component) if color_component is not None else None
-    #    opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
-    #    is_transparent_value = is_transparent if is_transparent is not None else \
-    #        True if opacity_component is not None else None
-    #    if type_filter is None:
-    #        type_filter = Mobject
-    #    for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
-    #        if color_value is not None:
-    #            mobject._color_ = color_value
-    #        if opacity_value is not None:
-    #            mobject._opacity_ = opacity_value
-    #        if is_transparent_value is not None:
-    #            mobject._is_transparent_ = is_transparent_value
-    #    return self
-
     # render
 
     @MobjectMeta.register(
@@ -1038,28 +961,6 @@ class Mobject(LazyObject):
         type_filter: "type[Mobject] | None" = None
     ):
         color_component, opacity_component = ColorUtils.standardize_color_input(color, opacity)
-        #values = {
-        #    "color": color_component,
-        #    "opacity": opacity_component,
-        #    "is_transparent": is_transparent,
-        #    "geometry": geometry,
-        #    "color_map": color_map,
-        #    "enable_phong_lighting": enable_phong_lighting,
-        #    "ambient_strength": ambient_strength,
-        #    "specular_strength": specular_strength,
-        #    "shininess": shininess,
-        #    "shape": shape,
-        #    "width": width,
-        #    "single_sided": single_sided,
-        #    "has_linecap": has_linecap,
-        #    "dilate": dilate
-        #}
-        #for key, value in values.copy().items():
-        #    if value is None:
-        #        values.pop(key)
-        #    if not isinstance(value, LazyObject):
-        #        values[key] = LazyWrapper(value)
-
         if type_filter is None:
             type_filter = Mobject
         MobjectMeta._set_style(
@@ -1083,29 +984,6 @@ class Mobject(LazyObject):
                 "dilate": dilate
             }
         )
-
-        #width_value = LazyWrapper(width) if width is not None else None
-        #single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
-        #has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
-        #dilate_value = LazyWrapper(dilate) if dilate is not None else None
-        #is_transparent_value = is_transparent if is_transparent is not None else \
-        #    True if dilate is not None else None
-        #if type_filter is None:
-        #    type_filter = StrokeMobject
-        #for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
-        #    if width_value is not None:
-        #        mobject._width_ = width_value
-        #    if single_sided_value is not None:
-        #        mobject._single_sided_ = single_sided_value
-        #    if has_linecap_value is not None:
-        #        mobject._has_linecap_ = has_linecap_value
-        #    if dilate_value is not None:
-        #        mobject._dilate_ = dilate_value
-        #    if is_transparent_value is not None:
-        #        mobject._is_transparent_ = is_transparent_value
-        #if geometry is not None:
-        #    breakpoint()
-        self._local_sample_points_
         return self
 
     @property

@@ -189,48 +189,6 @@ class MeshMobject(Mobject):
             }
         )
 
-    #def get_geometry(self) -> Geometry:
-    #    return self._geometry_
-
-    #def set_geometry(
-    #    self,
-    #    geometry: Geometry
-    #):
-    #    self._geometry_ = geometry
-    #    return self
-
-    #def set_material(
-    #    self,
-    #    *,
-    #    ambient_strength: float | None = None,
-    #    specular_strength: float | None = None,
-    #    shininess: float | None = None,
-    #    enable_phong_lighting: bool | None = None,
-    #    broadcast: bool = True,
-    #    type_filter: "type[MeshMobject] | None" = None
-    #):
-    #    ambient_strength_value = LazyWrapper(ambient_strength) if ambient_strength is not None else None
-    #    specular_strength_value = LazyWrapper(specular_strength) if specular_strength is not None else None
-    #    shininess_value = LazyWrapper(shininess) if shininess is not None else None
-    #    enable_phong_lighting_value = enable_phong_lighting if enable_phong_lighting is not None else \
-    #        True if any(param is not None for param in (
-    #            ambient_strength,
-    #            specular_strength,
-    #            shininess
-    #        )) else None
-    #    if type_filter is None:
-    #        type_filter = MeshMobject
-    #    for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
-    #        if ambient_strength_value is not None:
-    #            mobject._ambient_strength_ = ambient_strength_value
-    #        if specular_strength_value is not None:
-    #            mobject._specular_strength_ = specular_strength_value
-    #        if shininess_value is not None:
-    #            mobject._shininess_ = shininess_value
-    #        if enable_phong_lighting_value is not None:
-    #            mobject._enable_phong_lighting_ = enable_phong_lighting_value
-    #    return self
-
     @property
     def geometry(self) -> Geometry:
         return self._geometry_
