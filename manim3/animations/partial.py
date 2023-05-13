@@ -5,9 +5,10 @@ from typing import (
     TypeVar
 )
 
-from manim3.custom_typing import TimelineT
+import numpy as np
 
 from ..animations.animation import Animation
+from ..custom_typing import TimelineT
 from ..lazy.lazy import (
     LazyContainer,
     LazyObject,
@@ -188,14 +189,19 @@ class PartialFlash(PartialAnimation):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        assert 0.0 <= flash_proportion <= 1.0
+        assert flash_proportion >= 0.0
+
+        def clip_proportion(
+            alpha: float
+        ) -> float:
+            return float(np.clip(alpha, 0.0, 1.0))
 
         def alpha_to_boundary_values(
             alpha: float
         ) -> tuple[float, float]:
             return (
-                alpha * (1.0 - flash_proportion),
-                alpha * (1.0 - flash_proportion) + flash_proportion
+                clip_proportion(alpha * (1.0 + flash_proportion) - flash_proportion),
+                clip_proportion(alpha * (1.0 + flash_proportion))
             )
 
         super().__init__(

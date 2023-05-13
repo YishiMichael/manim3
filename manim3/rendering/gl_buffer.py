@@ -296,7 +296,7 @@ class GLBuffer(LazyObject):
     def _array_len_items_(cls) -> tuple[tuple[str, int], ...]:
         return ()
 
-    @Lazy.variable_shared
+    @Lazy.property_shared
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
         return GLBufferLayout.PACKED
@@ -610,7 +610,7 @@ class UniformBlockBuffer(GLWriteOnlyBuffer):
         )
         self.write(data)
 
-    @Lazy.variable_shared
+    @Lazy.property_shared
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
         return GLBufferLayout.STD140
@@ -642,7 +642,7 @@ class AttributesBuffer(GLWriteOnlyBuffer):
         )
         self.write(data)
 
-    @Lazy.variable_shared
+    @Lazy.property_shared
     @classmethod
     def _layout_(cls) -> GLBufferLayout:
         # Let's keep using std140 layout, hopefully giving a faster processing speed.

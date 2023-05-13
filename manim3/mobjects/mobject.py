@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from functools import reduce
 import itertools as it
 from typing import (
+    Any,
+    Callable,
+    ClassVar,
     Iterable,
     Iterator,
     TypeVar,
@@ -28,7 +31,9 @@ from ..custom_typing import (
 )
 from ..lazy.lazy import (
     Lazy,
+    LazyContainer,
     LazyObject,
+    LazyVariableDescriptor,
     LazyWrapper
 )
 from ..rendering.framebuffer import (
@@ -40,6 +45,11 @@ from ..utils.color import ColorUtils
 from ..utils.space import SpaceUtils
 
 
+_ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
+_InstanceT = TypeVar("_InstanceT", bound="LazyObject")
+_DescriptorGetT = TypeVar("_DescriptorGetT")
+_DescriptorSetT = TypeVar("_DescriptorSetT")
+_DescriptorRGetT = TypeVar("_DescriptorRGetT")
 _MobjectT = TypeVar("_MobjectT", bound="Mobject")
 
 
@@ -807,3 +817,148 @@ class Mobject(LazyObject):
     ) -> None:
         # Implemented in subclasses.
         pass
+
+    # class-level interface
+
+    _descriptor_partial_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any], Callable[[float, float], Any]]]] = {}
+    _descriptor_interpolate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any, Any], Callable[[float], Any]]]] = {}
+    _descriptor_concatenate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Iterable[Any]], Any]]] = {}
+    _descriptor_related_styles: ClassVar[dict[LazyVariableDescriptor, tuple[tuple[LazyVariableDescriptor, Any], ...]]] = {}
+
+    @classmethod
+    def register(
+        cls,
+        partial_method: Callable[[_DescriptorRGetT], Callable[[float, float], _DescriptorSetT]] | None = None,
+        interpolate_method: Callable[[_DescriptorRGetT, _DescriptorRGetT], Callable[[float], _DescriptorSetT]] | None = None,
+        concatenate_method: Callable[[Iterable[_DescriptorRGetT]], _DescriptorSetT] | None = None,
+        related_styles: tuple[tuple[LazyVariableDescriptor, Any], ...] = ()
+    ) -> Callable[
+        [LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]],
+        LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]
+    ]:
+
+        def callback(
+            descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]
+        ) -> LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]:
+            if partial_method is not None:
+                cls._descriptor_partial_method[descriptor] = partial_method
+            if interpolate_method is not None:
+                cls._descriptor_interpolate_method[descriptor] = interpolate_method
+            if concatenate_method is not None:
+                cls._descriptor_concatenate_method[descriptor] = concatenate_method
+            if related_styles is not None:
+                cls._descriptor_related_styles[descriptor] = related_styles
+            return descriptor
+
+        return callback
+
+    @classmethod
+    def _partial(
+        cls,
+        src: _MobjectT
+    ) -> Callable[[_MobjectT], Callable[[float, float], None]]:
+
+        def get_descriptor_callback(
+            src: _MobjectT,
+            descriptor: LazyVariableDescriptor,
+            partial_method: Callable[[Any], Callable[[float, float], Any]]
+        ) -> Callable[[_MobjectT], Callable[[float, float], None]]:
+            partial_callback = partial_method(
+                descriptor.converter.convert_rget(descriptor.get_container(src))
+            )
+
+            def descriptor_callback(
+                dst: _MobjectT
+            ) -> Callable[[float, float], None]:
+
+                def descriptor_dst_callback(
+                    start: float,
+                    stop: float
+                ) -> None:
+                    new_container = descriptor.converter.convert_set(partial_callback(start, stop))
+                    descriptor.set_container(dst, new_container)
+
+                return descriptor_dst_callback
+
+            return descriptor_callback
+
+        descriptor_callbacks = [
+            get_descriptor_callback(src, descriptor, partial_method)
+            for descriptor, partial_method in cls._descriptor_partial_method.items()
+            if descriptor in type(src)._lazy_variable_descriptors
+        ]
+
+        def callback(
+            dst: _MobjectT
+        ) -> Callable[[float, float], None]:
+            descriptor_dst_callbacks = [
+                descriptor_callback(dst)
+                for descriptor_callback in descriptor_callbacks
+            ]
+
+            def dst_callback(
+                start: float,
+                stop: float
+            ) -> None:
+                for descriptor_dst_callback in descriptor_dst_callbacks:
+                    descriptor_dst_callback(start, stop)
+
+            return dst_callback
+
+        return callback
+
+    @classmethod
+    def _interpolate(
+        cls,
+        src_0: _MobjectT,
+        src_1: _MobjectT
+    ) -> Callable[[_MobjectT], Callable[[float], None]]:
+
+        def get_descriptor_callback(
+            src_0: _MobjectT,
+            src_1: _MobjectT,
+            descriptor: LazyVariableDescriptor,
+            interpolate_method: Callable[[Any, Any], Callable[[float], Any]]
+        ) -> Callable[[_MobjectT], Callable[[float], None]]:
+            interpolate_callback = interpolate_method(
+                descriptor.converter.convert_rget(descriptor.get_container(src_0)),
+                descriptor.converter.convert_rget(descriptor.get_container(src_1))
+            )
+
+            def descriptor_callback(
+                dst: _MobjectT
+            ) -> Callable[[float], None]:
+
+                def descriptor_dst_callback(
+                    alpha: float
+                ) -> None:
+                    new_container = descriptor.converter.convert_set(interpolate_callback(alpha))
+                    descriptor.set_container(dst, new_container)
+
+                return descriptor_dst_callback
+
+            return descriptor_callback
+
+        descriptor_callbacks = [
+            get_descriptor_callback(src_0, src_1, descriptor, interpolate_method)
+            for descriptor in type(src_0)._lazy_variable_descriptors
+            if (interpolate_method := cls._descriptor_interpolate_method.get(descriptor)) is not None
+        ]
+
+        def callback(
+            dst: _MobjectT
+        ) -> Callable[[float], None]:
+            descriptor_dst_callbacks = [
+                descriptor_callback(dst)
+                for descriptor_callback in descriptor_callbacks
+            ]
+
+            def dst_callback(
+                alpha: float
+            ) -> None:
+                for descriptor_dst_callback in descriptor_dst_callbacks:
+                    descriptor_dst_callback(alpha)
+
+            return dst_callback
+
+        return callback

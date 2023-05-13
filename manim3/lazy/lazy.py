@@ -916,6 +916,8 @@ class LazyObject(ABC):
             descriptor.element_type = element_type
 
             if overridden_descriptor is not None:
+                # Only `LazyPropertyDescriptor` can override other `LazyDescriptor`s.
+                assert isinstance(descriptor, LazyPropertyDescriptor)
                 assert isinstance(converter, LazyCollectionConverter) \
                     == isinstance(overridden_descriptor.converter, LazyCollectionConverter)
                 assert issubclass(element_type, overridden_descriptor.element_type)
