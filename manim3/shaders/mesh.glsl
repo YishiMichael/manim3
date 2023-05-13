@@ -26,13 +26,11 @@ layout (std140) uniform ub_lighting {
     #endif
 };
 #endif
-layout (std140) uniform ub_color {
-    vec4 u_color;
-};
 layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
 layout (std140) uniform ub_material {
+    vec4 u_color;
     float u_ambient_strength;
     float u_specular_strength;
     float u_shininess;

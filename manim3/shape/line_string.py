@@ -1,4 +1,3 @@
-from abc import abstractmethod
 import itertools as it
 from typing import (
     Callable,
@@ -406,11 +405,15 @@ class MultiLineString(ShapeInterpolant):
     @classmethod
     def concatenate(
         cls,
-        multi_line_strings: "Iterable[MultiLineString]"
-    ) -> "MultiLineString":
+        *multi_line_strings: "MultiLineString"
+    ) -> "Callable[[], MultiLineString]":
         result = MultiLineString()
         result._line_strings_.extend(it.chain.from_iterable(
             multi_line_string._line_strings_
             for multi_line_string in multi_line_strings
         ))
-        return result
+
+        def callback() -> MultiLineString:
+            return result
+
+        return callback

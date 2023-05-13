@@ -54,7 +54,7 @@ class ColorUtils:
         return "#{:02x}{:02x}{:02x}".format(*(rgb * 255.0).astype(int))
 
     @classmethod
-    def normalize_color_input(
+    def standardize_color_input(
         cls,
         color: ColorT | None,
         opacity: float | None

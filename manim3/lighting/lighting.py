@@ -50,7 +50,7 @@ class Lighting(LazyObject):
             },
             data={
                 "u_ambient_lights.color": np.array([
-                    ambient_light._color_vec4_.value
+                    np.append(ambient_light._color_.value, ambient_light._opacity_.value)
                     for ambient_light in _ambient_lights_
                 ]),
                 "u_point_lights.position": np.array([
@@ -58,7 +58,7 @@ class Lighting(LazyObject):
                     for point_light in _point_lights_
                 ]),
                 "u_point_lights.color": np.array([
-                    point_light._color_vec4_.value
+                    np.append(point_light._color_.value, point_light._opacity_.value)
                     for point_light in _point_lights_
                 ])
             }

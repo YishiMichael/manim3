@@ -306,6 +306,32 @@ class SpaceUtils:
 
         return callback
 
+    # Type specifications of `lerp`.
+
+    @classmethod
+    def lerp_float(
+        cls,
+        tensor_0: float,
+        tensor_1: float
+    ) -> Callable[[float], float]:
+        return cls.lerp(tensor_0, tensor_1)
+
+    @classmethod
+    def lerp_vec3(
+        cls,
+        tensor_0: Vec3T,
+        tensor_1: Vec3T
+    ) -> Callable[[float], Vec3T]:
+        return cls.lerp(tensor_0, tensor_1)
+
+    @classmethod
+    def lerp_mat4(
+        cls,
+        tensor_0: Mat4T,
+        tensor_1: Mat4T
+    ) -> Callable[[float], Mat4T]:
+        return cls.lerp(tensor_0, tensor_1)
+
     @classmethod
     def increase_dimension(
         cls,

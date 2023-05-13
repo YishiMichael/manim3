@@ -9,21 +9,19 @@ class ShapeTransformExample(Scene):
     def timeline(self) -> TimelineT:
         circle = (
             Circle()
-            .set_color(color=Palette.PINK, opacity=0.9)
+            .set_style(color=Palette.PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_stroke_style(width=0.4)
-            .set_color(color=Palette.YELLOW)
+            .set_style(color=Palette.YELLOW, width=0.4)
         )
         square = (
             Square()
-            .set_color(opacity=1.0)
+            .set_style(opacity=1.0)
         )
         square.add(
             square.build_stroke()
-            .set_stroke_style(width=0.0)
-            .set_color(color=Palette.YELLOW)
+            .set_style(color=Palette.YELLOW, width=0.0)
         )
 
         self.add(square)
@@ -36,25 +34,23 @@ class TexTransformExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_color(color=Palette.ORANGE, opacity=0.5)
+            .set_style(color=Palette.ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_stroke_style(width=0.04)
-            .set_color(color=Palette.BLUE)
+            .set_style(color=Palette.BLUE, width=0.04)
         )
         tex = (
             Tex("Tex")
             .scale(3)
-            .set_color(color=Palette.BLUE, opacity=0.5)
+            .set_style(color=Palette.BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)
         )
         tex.add(
             tex.build_stroke()
-            .set_stroke_style(width=0.06)
-            .set_color(color=Palette.PINK)
+            .set_style(color=Palette.PINK, width=0.06)
         )
         self.add(text)
         yield from self.wait()
@@ -70,13 +66,12 @@ class CreateTexExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_color(color=Palette.ORANGE, opacity=0.5)
+            .set_style(color=Palette.ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_stroke_style(width=0.04)
-            .set_color(color=Palette.BLUE)
+            .set_style(color=Palette.BLUE, width=0.04)
         )
         yield from self.wait()
         self.add(text)
@@ -112,12 +107,12 @@ class ThreeDTextExample(Scene):
         text = Text("Text").concatenate()
         text_3d = (
             MeshMobject()
-            .set_geometry(PrismoidGeometry(text.get_shape()))
+            .set_style(geometry=PrismoidGeometry(text.shape))
             .scale(5.0)
             .stretch_to_fit_depth(0.5)
-            .set_color(color="#00FFAA44")
+            .set_style(color="#00FFAA44")
         )
-        self.add(AmbientLight().set_color(opacity=0.3))
+        self.add(AmbientLight().set_style(opacity=0.3))
         self.add(PointLight().shift(RIGHT * 5))
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
@@ -128,7 +123,7 @@ class OITExample(Scene):
     def timeline(self) -> TimelineT:
         self.add(*(
             (Circle()
-                .set_color(color=color, opacity=opacity)
+                .set_style(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
                 .rotate(Rotation.from_rotvec(OUT * angle))
             )
@@ -150,7 +145,7 @@ class ChildSceneExample(Scene):
             ChildSceneMobject(child_scene_1)
             .scale(0.5)
             .shift(LEFT * 1)
-            .set_color(is_transparent=True)
+            .set_style(is_transparent=True)
         )
         child_scene_2 = TexTransformExample()
         self.prepare(child_scene_2)
@@ -158,7 +153,7 @@ class ChildSceneExample(Scene):
             ChildSceneMobject(child_scene_2)
             .scale(0.5)
             .shift(RIGHT * 1)
-            .set_color(is_transparent=True)
+            .set_style(is_transparent=True)
         )
         yield from self.wait(6)
 

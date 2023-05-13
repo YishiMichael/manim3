@@ -19,8 +19,8 @@ class ChildSceneMobject(MeshMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene
-        self.set_geometry(PlaneGeometry())
-        self.set_material(enable_phong_lighting=False)
+        self._geometry_ = PlaneGeometry()
+        self._enable_phong_lighting_ = False
         self.scale(np.array((
             scene.camera._width_.value,
             scene.camera._height_.value,

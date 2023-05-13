@@ -81,7 +81,7 @@ class SVGMobject(ShapeMobject):
             frame_scale=frame_scale
         )
         self.add(*(
-            shape_mobject.set_color(
+            shape_mobject.set_style(
                 # TODO: handle other attributes including opacity, strokes, etc.
                 color=None if shape.fill is None else shape.fill.hexrgb
             )

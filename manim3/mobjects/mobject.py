@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from functools import reduce
 import itertools as it
+import operator as op
 from typing import (
     Any,
     Callable,
@@ -8,13 +9,16 @@ from typing import (
     Iterable,
     Iterator,
     TypeVar,
+    ParamSpec,
     overload
 )
 import warnings
 import weakref
+import moderngl
 
 import numpy as np
 from scipy.spatial.transform import Rotation
+from shapely import Geometry
 
 from ..cameras.camera import Camera
 from ..constants import (
@@ -26,8 +30,7 @@ from ..custom_typing import (
     ColorT,
     Mat4T,
     Vec3T,
-    Vec3sT,
-    Vec4T
+    Vec3sT
 )
 from ..lazy.lazy import (
     Lazy,
@@ -41,16 +44,19 @@ from ..rendering.framebuffer import (
     TransparentFramebuffer
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
+from ..shape.line_string import MultiLineString
+from ..shape.shape import Shape
 from ..utils.color import ColorUtils
 from ..utils.space import SpaceUtils
 
 
+_MobjectT = TypeVar("_MobjectT", bound="Mobject")
 _ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 _DescriptorGetT = TypeVar("_DescriptorGetT")
 _DescriptorSetT = TypeVar("_DescriptorSetT")
-_DescriptorRGetT = TypeVar("_DescriptorRGetT")
-_MobjectT = TypeVar("_MobjectT", bound="Mobject")
+_DescriptorRawT = TypeVar("_DescriptorRawT")
+_MethodParams = ParamSpec("_MethodParams")
 
 
 @dataclass(
@@ -72,6 +78,185 @@ class BoundingBox:
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division.
         radius[np.isclose(radius, 0.0)] = 1e-8
         return radius
+
+
+class MobjectMeta:
+    __slots__ = ()
+
+    _descriptor_partial_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any], Callable[[float, float], Any]]]] = {}
+    _descriptor_interpolate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any, Any], Callable[[float], Any]]]] = {}
+    _descriptor_concatenate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Iterable[Any]], Callable[[], Any]]]] = {}
+    _descriptor_related_styles: ClassVar[dict[LazyVariableDescriptor, tuple[tuple[LazyVariableDescriptor, Any], ...]]] = {}
+
+    def __new__(cls):
+        raise TypeError
+
+    @classmethod
+    def register(
+        cls,
+        partial_method: Callable[[_DescriptorRawT], Callable[[float, float], _DescriptorRawT]] | None = None,
+        interpolate_method: Callable[[_DescriptorRawT, _DescriptorRawT], Callable[[float], _DescriptorRawT]] | None = None,
+        concatenate_method: Callable[[Iterable[_DescriptorRawT]], Callable[[], _DescriptorRawT]] | None = None,
+        related_styles: tuple[tuple[LazyVariableDescriptor, Any], ...] = ()
+    ):
+
+        def callback(
+            descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]
+        ) -> LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]:
+            if partial_method is not None:
+                cls._descriptor_partial_method[descriptor] = partial_method
+            if interpolate_method is not None:
+                cls._descriptor_interpolate_method[descriptor] = interpolate_method
+            if concatenate_method is not None:
+                cls._descriptor_concatenate_method[descriptor] = concatenate_method
+            cls._descriptor_related_styles[descriptor] = related_styles
+            return descriptor
+
+        return callback
+
+    @classmethod
+    def _get_callback_from(
+        cls,
+        method_dict: dict[LazyVariableDescriptor, Callable[..., Callable[_MethodParams, Any]]],
+        ignore_condition: Callable[..., bool] | None,
+        srcs: "tuple[Mobject, ...]"
+    ) -> "Callable[[Mobject], Callable[_MethodParams, None]]":
+
+        def get_descriptor_callback(
+            descriptor: LazyVariableDescriptor,
+            method: Callable[..., Callable[_MethodParams, Any]],
+            srcs: tuple[Mobject, ...]
+        ) -> Callable[[Mobject], Callable[_MethodParams, None]] | None:
+            src_args = tuple(
+                descriptor.converter.convert_rget(descriptor.get_container(src))
+                for src in srcs
+            )
+            if ignore_condition is not None and ignore_condition(*src_args):
+                return None
+
+            method_callback = method(*src_args)
+
+            def descriptor_callback(
+                dst: Mobject
+            ) -> Callable[_MethodParams, None]:
+
+                def descriptor_dst_callback(
+                    *args: _MethodParams.args,
+                    **kwargs: _MethodParams.kwargs
+                ) -> None:
+                    if descriptor not in type(dst)._lazy_variable_descriptors:
+                        return
+                    new_container = descriptor.converter.convert_set(method_callback(*args, **kwargs))
+                    descriptor.set_container(dst, new_container)
+
+                return descriptor_dst_callback
+
+            return descriptor_callback
+
+        descriptor_callbacks = [
+            descriptor_callback
+            for descriptor, method in method_dict.items()
+            if all(
+                descriptor in type(src)._lazy_variable_descriptors
+                for src in srcs
+            )
+            and (descriptor_callback := get_descriptor_callback(descriptor, method, srcs)) is not None
+        ]
+
+        def callback(
+            dst: Mobject
+        ) -> Callable[_MethodParams, None]:
+            descriptor_dst_callbacks = [
+                descriptor_callback(dst)
+                for descriptor_callback in descriptor_callbacks
+            ]
+
+            def dst_callback(
+                *args: _MethodParams.args,
+                **kwargs: _MethodParams.kwargs
+            ) -> None:
+                for descriptor_dst_callback in descriptor_dst_callbacks:
+                    descriptor_dst_callback(*args, **kwargs)
+
+            return dst_callback
+
+        return callback
+
+    @classmethod
+    def _partial(
+        cls,
+        src: "Mobject"
+    ) -> "Callable[[Mobject], Callable[[float, float], None]]":
+        return cls._get_callback_from(
+            method_dict=cls._descriptor_partial_method,
+            ignore_condition=None,
+            srcs=(src,)
+        )
+
+    @classmethod
+    def _interpolate(
+        cls,
+        src_0: "Mobject",
+        src_1: "Mobject"
+    ) -> "Callable[[Mobject], Callable[[float], None]]":
+        return cls._get_callback_from(
+            method_dict=cls._descriptor_interpolate_method,
+            ignore_condition=op.is_,
+            srcs=(src_0, src_1)
+        )
+
+    @classmethod
+    def _concatenate(
+        cls,
+        *srcs: "Mobject"
+    ) -> "Callable[[Mobject], Callable[[], None]]":
+        return cls._get_callback_from(
+            method_dict=cls._descriptor_concatenate_method,
+            ignore_condition=None,
+            srcs=srcs
+        )
+
+    #@classmethod
+    #def _set_style_by_name(
+    #    cls,
+    #    mobject: "Mobject",
+    #    name: str,
+    #    value: LazyObject
+    #) -> None:
+    #    descriptor = type(mobject)._lazy_descriptor_dict.get(name)
+    #    if descriptor is None:
+    #        return
+    #    related_styles
+
+    @classmethod
+    def _set_style(
+        cls,
+        mobjects: "Iterable[Mobject]",
+        style: dict[str, Any]
+    ) -> None:
+        values = {
+            f"_{key}_": value if isinstance(value, LazyObject) else LazyWrapper(value)
+            for key, value in style.items() if value is not None
+        }
+        #print(values)
+        for mobject in mobjects:
+            for style_name, style_value in values.items():
+                #print("-----")
+                descriptor = type(mobject)._lazy_descriptor_dict.get(style_name)
+                #print(descriptor)
+                if descriptor is None:
+                    continue
+                if not isinstance(descriptor, LazyVariableDescriptor):
+                    continue
+                #print(descriptor in cls._descriptor_related_styles)
+                related_styles = cls._descriptor_related_styles.get(descriptor)
+                #print(related_styles)
+                if related_styles is None:
+                    continue
+                descriptor.__set__(mobject, style_value)
+                for related_style_descriptor, related_style_value in related_styles:
+                    if related_style_descriptor.method.__name__ not in values:
+                        related_style_descriptor.__set__(mobject, related_style_value)
 
 
 class Mobject(LazyObject):
@@ -309,6 +494,9 @@ class Mobject(LazyObject):
 
     # matrix & transform
 
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_mat4
+    )
     @Lazy.variable_external
     @classmethod
     def _model_matrix_(cls) -> Mat4T:
@@ -739,72 +927,65 @@ class Mobject(LazyObject):
     # - `PointLight`: color of the point light.
     # Fading animations control the common `_opacity_` variable.
 
-    @Lazy.variable_external
-    @classmethod
-    def _color_(cls) -> Vec3T:
-        return np.ones(3)
+    #@Lazy.property_external
+    #@classmethod
+    #def _color_vec4_(
+    #    cls,
+    #    color: Vec3T,
+    #    opacity: float
+    #) -> Vec4T:
+    #    return np.append(color, opacity)
 
-    @Lazy.variable_external
-    @classmethod
-    def _opacity_(cls) -> float:
-        return 1.0
+    #@Lazy.property
+    #@classmethod
+    #def _color_uniform_block_buffer_(
+    #    cls,
+    #    color_vec4: Vec4T
+    #) -> UniformBlockBuffer:
+    #    return UniformBlockBuffer(
+    #        name="ub_color",
+    #        fields=[
+    #            "vec4 u_color"
+    #        ],
+    #        data={
+    #            "u_color": color_vec4
+    #        }
+    #    )
 
+    #def set_color(
+    #    self,
+    #    color: ColorT | None = None,
+    #    *,
+    #    opacity: float | None = None,
+    #    is_transparent: bool | None = None,
+    #    broadcast: bool = True,
+    #    type_filter: "type[Mobject] | None" = None
+    #):
+    #    color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
+    #    color_value = LazyWrapper(color_component) if color_component is not None else None
+    #    opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
+    #    is_transparent_value = is_transparent if is_transparent is not None else \
+    #        True if opacity_component is not None else None
+    #    if type_filter is None:
+    #        type_filter = Mobject
+    #    for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
+    #        if color_value is not None:
+    #            mobject._color_ = color_value
+    #        if opacity_value is not None:
+    #            mobject._opacity_ = opacity_value
+    #        if is_transparent_value is not None:
+    #            mobject._is_transparent_ = is_transparent_value
+    #    return self
+
+    # render
+
+    @MobjectMeta.register(
+        interpolate_method=NotImplemented
+    )
     @Lazy.variable_shared
     @classmethod
     def _is_transparent_(cls) -> bool:
         return False
-
-    @Lazy.property_external
-    @classmethod
-    def _color_vec4_(
-        cls,
-        color: Vec3T,
-        opacity: float
-    ) -> Vec4T:
-        return np.append(color, opacity)
-
-    @Lazy.property
-    @classmethod
-    def _color_uniform_block_buffer_(
-        cls,
-        color_vec4: Vec4T
-    ) -> UniformBlockBuffer:
-        return UniformBlockBuffer(
-            name="ub_color",
-            fields=[
-                "vec4 u_color"
-            ],
-            data={
-                "u_color": color_vec4
-            }
-        )
-
-    def set_color(
-        self,
-        color: ColorT | None = None,
-        *,
-        opacity: float | None = None,
-        is_transparent: bool | None = None,
-        broadcast: bool = True,
-        type_filter: "type[Mobject] | None" = None
-    ):
-        color_component, opacity_component = ColorUtils.normalize_color_input(color, opacity)
-        color_value = LazyWrapper(color_component) if color_component is not None else None
-        opacity_value = LazyWrapper(opacity_component) if opacity_component is not None else None
-        is_transparent_value = is_transparent if is_transparent is not None else \
-            True if opacity_component is not None else None
-        if type_filter is None:
-            type_filter = Mobject
-        for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
-            if color_value is not None:
-                mobject._color_ = color_value
-            if opacity_value is not None:
-                mobject._opacity_ = opacity_value
-            if is_transparent_value is not None:
-                mobject._is_transparent_ = is_transparent_value
-        return self
-
-    # render
 
     @Lazy.variable
     @classmethod
@@ -818,147 +999,119 @@ class Mobject(LazyObject):
         # Implemented in subclasses.
         pass
 
-    # class-level interface
+    # meta methods
 
-    _descriptor_partial_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any], Callable[[float, float], Any]]]] = {}
-    _descriptor_interpolate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Any, Any], Callable[[float], Any]]]] = {}
-    _descriptor_concatenate_method: ClassVar[dict[LazyVariableDescriptor, Callable[[Iterable[Any]], Any]]] = {}
-    _descriptor_related_styles: ClassVar[dict[LazyVariableDescriptor, tuple[tuple[LazyVariableDescriptor, Any], ...]]] = {}
+    def concatenate(self):
+        MobjectMeta._concatenate(*self.iter_children())(self)()
+        self.clear()
+        return self
 
-    @classmethod
-    def register(
-        cls,
-        partial_method: Callable[[_DescriptorRGetT], Callable[[float, float], _DescriptorSetT]] | None = None,
-        interpolate_method: Callable[[_DescriptorRGetT, _DescriptorRGetT], Callable[[float], _DescriptorSetT]] | None = None,
-        concatenate_method: Callable[[Iterable[_DescriptorRGetT]], _DescriptorSetT] | None = None,
-        related_styles: tuple[tuple[LazyVariableDescriptor, Any], ...] = ()
-    ) -> Callable[
-        [LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]],
-        LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]
-    ]:
+    def set_style(
+        self,
+        *,
+        color: ColorT | None = None,
+        opacity: float | None = None,
 
-        def callback(
-            descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]
-        ) -> LazyVariableDescriptor[_InstanceT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]:
-            if partial_method is not None:
-                cls._descriptor_partial_method[descriptor] = partial_method
-            if interpolate_method is not None:
-                cls._descriptor_interpolate_method[descriptor] = interpolate_method
-            if concatenate_method is not None:
-                cls._descriptor_concatenate_method[descriptor] = concatenate_method
-            if related_styles is not None:
-                cls._descriptor_related_styles[descriptor] = related_styles
-            return descriptor
+        # Mobject
+        model_matrix: Mat4T | None = None,
+        is_transparent: bool | None = None,
 
-        return callback
+        # MeshMobject
+        geometry: Geometry | None = None,
+        color_map: moderngl.Texture | None = None,
+        enable_phong_lighting: bool | None = None,
+        ambient_strength: float | None = None,
+        specular_strength: float | None = None,
+        shininess: float | None = None,
 
-    @classmethod
-    def _partial(
-        cls,
-        src: _MobjectT
-    ) -> Callable[[_MobjectT], Callable[[float, float], None]]:
+        # ShapeMobject
+        shape: Shape | None = None,
 
-        def get_descriptor_callback(
-            src: _MobjectT,
-            descriptor: LazyVariableDescriptor,
-            partial_method: Callable[[Any], Callable[[float, float], Any]]
-        ) -> Callable[[_MobjectT], Callable[[float, float], None]]:
-            partial_callback = partial_method(
-                descriptor.converter.convert_rget(descriptor.get_container(src))
-            )
+        # StrokeMobject
+        multi_line_string: MultiLineString | None = None,
+        width: float | None = None,
+        single_sided: bool | None = None,
+        has_linecap: bool | None = None,
+        dilate: float | None = None,
 
-            def descriptor_callback(
-                dst: _MobjectT
-            ) -> Callable[[float, float], None]:
+        broadcast: bool = True,
+        type_filter: "type[Mobject] | None" = None
+    ):
+        color_component, opacity_component = ColorUtils.standardize_color_input(color, opacity)
+        #values = {
+        #    "color": color_component,
+        #    "opacity": opacity_component,
+        #    "is_transparent": is_transparent,
+        #    "geometry": geometry,
+        #    "color_map": color_map,
+        #    "enable_phong_lighting": enable_phong_lighting,
+        #    "ambient_strength": ambient_strength,
+        #    "specular_strength": specular_strength,
+        #    "shininess": shininess,
+        #    "shape": shape,
+        #    "width": width,
+        #    "single_sided": single_sided,
+        #    "has_linecap": has_linecap,
+        #    "dilate": dilate
+        #}
+        #for key, value in values.copy().items():
+        #    if value is None:
+        #        values.pop(key)
+        #    if not isinstance(value, LazyObject):
+        #        values[key] = LazyWrapper(value)
 
-                def descriptor_dst_callback(
-                    start: float,
-                    stop: float
-                ) -> None:
-                    new_container = descriptor.converter.convert_set(partial_callback(start, stop))
-                    descriptor.set_container(dst, new_container)
+        if type_filter is None:
+            type_filter = Mobject
+        MobjectMeta._set_style(
+            self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast),
+            {
+                "color": color_component,
+                "opacity": opacity_component,
+                "model_matrix": model_matrix,
+                "is_transparent": is_transparent,
+                "geometry": geometry,
+                "color_map": color_map,
+                "enable_phong_lighting": enable_phong_lighting,
+                "ambient_strength": ambient_strength,
+                "specular_strength": specular_strength,
+                "shininess": shininess,
+                "shape": shape,
+                "multi_line_string": multi_line_string,
+                "width": width,
+                "single_sided": single_sided,
+                "has_linecap": has_linecap,
+                "dilate": dilate
+            }
+        )
 
-                return descriptor_dst_callback
+        #width_value = LazyWrapper(width) if width is not None else None
+        #single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
+        #has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
+        #dilate_value = LazyWrapper(dilate) if dilate is not None else None
+        #is_transparent_value = is_transparent if is_transparent is not None else \
+        #    True if dilate is not None else None
+        #if type_filter is None:
+        #    type_filter = StrokeMobject
+        #for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
+        #    if width_value is not None:
+        #        mobject._width_ = width_value
+        #    if single_sided_value is not None:
+        #        mobject._single_sided_ = single_sided_value
+        #    if has_linecap_value is not None:
+        #        mobject._has_linecap_ = has_linecap_value
+        #    if dilate_value is not None:
+        #        mobject._dilate_ = dilate_value
+        #    if is_transparent_value is not None:
+        #        mobject._is_transparent_ = is_transparent_value
+        #if geometry is not None:
+        #    breakpoint()
+        self._local_sample_points_
+        return self
 
-            return descriptor_callback
+    @property
+    def model_matrix(self) -> Mat4T:
+        return self._model_matrix_.value
 
-        descriptor_callbacks = [
-            get_descriptor_callback(src, descriptor, partial_method)
-            for descriptor, partial_method in cls._descriptor_partial_method.items()
-            if descriptor in type(src)._lazy_variable_descriptors
-        ]
-
-        def callback(
-            dst: _MobjectT
-        ) -> Callable[[float, float], None]:
-            descriptor_dst_callbacks = [
-                descriptor_callback(dst)
-                for descriptor_callback in descriptor_callbacks
-            ]
-
-            def dst_callback(
-                start: float,
-                stop: float
-            ) -> None:
-                for descriptor_dst_callback in descriptor_dst_callbacks:
-                    descriptor_dst_callback(start, stop)
-
-            return dst_callback
-
-        return callback
-
-    @classmethod
-    def _interpolate(
-        cls,
-        src_0: _MobjectT,
-        src_1: _MobjectT
-    ) -> Callable[[_MobjectT], Callable[[float], None]]:
-
-        def get_descriptor_callback(
-            src_0: _MobjectT,
-            src_1: _MobjectT,
-            descriptor: LazyVariableDescriptor,
-            interpolate_method: Callable[[Any, Any], Callable[[float], Any]]
-        ) -> Callable[[_MobjectT], Callable[[float], None]]:
-            interpolate_callback = interpolate_method(
-                descriptor.converter.convert_rget(descriptor.get_container(src_0)),
-                descriptor.converter.convert_rget(descriptor.get_container(src_1))
-            )
-
-            def descriptor_callback(
-                dst: _MobjectT
-            ) -> Callable[[float], None]:
-
-                def descriptor_dst_callback(
-                    alpha: float
-                ) -> None:
-                    new_container = descriptor.converter.convert_set(interpolate_callback(alpha))
-                    descriptor.set_container(dst, new_container)
-
-                return descriptor_dst_callback
-
-            return descriptor_callback
-
-        descriptor_callbacks = [
-            get_descriptor_callback(src_0, src_1, descriptor, interpolate_method)
-            for descriptor in type(src_0)._lazy_variable_descriptors
-            if (interpolate_method := cls._descriptor_interpolate_method.get(descriptor)) is not None
-        ]
-
-        def callback(
-            dst: _MobjectT
-        ) -> Callable[[float], None]:
-            descriptor_dst_callbacks = [
-                descriptor_callback(dst)
-                for descriptor_callback in descriptor_callbacks
-            ]
-
-            def dst_callback(
-                alpha: float
-            ) -> None:
-                for descriptor_dst_callback in descriptor_dst_callbacks:
-                    descriptor_dst_callback(alpha)
-
-            return dst_callback
-
-        return callback
+    @property
+    def is_transparent(self) -> bool:
+        return self._is_transparent_.value

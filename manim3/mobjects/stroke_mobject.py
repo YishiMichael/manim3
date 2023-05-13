@@ -7,14 +7,15 @@ from ..constants import PI
 from ..custom_typing import (
     FloatsT,
     Vec2sT,
+    Vec3T,
     Vec3sT,
     VertexIndexT
 )
-from ..lazy.lazy import (
-    Lazy,
-    LazyWrapper
+from ..lazy.lazy import Lazy
+from ..mobjects.mobject import (
+    Mobject,
+    MobjectMeta
 )
-from ..mobjects.mobject import Mobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
@@ -45,26 +46,61 @@ class StrokeMobject(Mobject):
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
 
+    @MobjectMeta.register(
+        partial_method=MultiLineString.partial,
+        interpolate_method=MultiLineString.interpolate,
+        concatenate_method=MultiLineString.concatenate
+    )
     @Lazy.variable
     @classmethod
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_vec3
+    )
+    @Lazy.variable_external
+    @classmethod
+    def _color_(cls) -> Vec3T:
+        return np.ones(3)
+
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_float,
+        related_styles=((Mobject._is_transparent_, True),)
+    )
+    @Lazy.variable_external
+    @classmethod
+    def _opacity_(cls) -> float:
+        return 1.0
+
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
+    )
     @Lazy.variable_external
     @classmethod
     def _width_(cls) -> float:
         return 0.04  # TODO: check if the auto-scaling remains
 
+    @MobjectMeta.register(
+        interpolate_method=NotImplemented
+    )
     @Lazy.variable_external
     @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
+    @MobjectMeta.register(
+        interpolate_method=NotImplemented
+    )
     @Lazy.variable_external
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_float,
+        related_styles=((Mobject._is_transparent_, True),)
+    )
     @Lazy.variable_external
     @classmethod
     def _dilate_(cls) -> float:
@@ -170,16 +206,20 @@ class StrokeMobject(Mobject):
     @classmethod
     def _stroke_uniform_block_buffer_(
         cls,
+        color: Vec3T,
+        opacity: float,
         width: float,
         dilate: float
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
             fields=[
+                "vec4 u_color",
                 "float u_width",
                 "float u_dilate"
             ],
             data={
+                "u_color": np.append(color, opacity),
                 "u_width": np.array(width),
                 "u_dilate": np.array(dilate)
             }
@@ -270,7 +310,6 @@ class StrokeMobject(Mobject):
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
         _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
-        _color_uniform_block_buffer_: UniformBlockBuffer,
         _stroke_uniform_block_buffer_: UniformBlockBuffer,
         _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
         is_transparent: bool,
@@ -331,7 +370,6 @@ class StrokeMobject(Mobject):
 
         uniform_block_buffers = [
             _camera__camera_uniform_block_buffer_,
-            _color_uniform_block_buffer_,
             _stroke_uniform_block_buffer_,
             _winding_sign_uniform_block_buffer_
         ]
@@ -384,42 +422,70 @@ class StrokeMobject(Mobject):
                 framebuffer=target_framebuffer
             )
 
-    def concatenate(self):
-        self._multi_line_string_ = MultiLineString.concatenate(
-            child._multi_line_string_
-            for child in self.iter_children_by_type(mobject_type=StrokeMobject)
-        )
-        self.clear()
-        return self
+    #def concatenate(self):
+    #    self._multi_line_string_ = MultiLineString.concatenate(
+    #        child._multi_line_string_
+    #        for child in self.iter_children_by_type(mobject_type=StrokeMobject)
+    #    )
+    #    self.clear()
+    #    return self
 
-    def set_stroke_style(
-        self,
-        *,
-        width: float | None = None,
-        single_sided: bool | None = None,
-        has_linecap: bool | None = None,
-        dilate: float | None = None,
-        is_transparent: bool | None = None,
-        broadcast: bool = True,
-        type_filter: "type[StrokeMobject] | None" = None
-    ):
-        width_value = LazyWrapper(width) if width is not None else None
-        single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
-        has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
-        dilate_value = LazyWrapper(dilate) if dilate is not None else None
-        is_transparent_value = is_transparent if is_transparent is not None else \
-            True if dilate is not None else None
-        if type_filter is None:
-            type_filter = StrokeMobject
-        for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
-            if width_value is not None:
-                mobject._width_ = width_value
-            if single_sided_value is not None:
-                mobject._single_sided_ = single_sided_value
-            if has_linecap_value is not None:
-                mobject._has_linecap_ = has_linecap_value
-            if dilate_value is not None:
-                mobject._dilate_ = dilate_value
-            if is_transparent_value is not None:
-                mobject._is_transparent_ = is_transparent_value
-        return self
+    #def set_stroke_style(
+    #    self,
+    #    *,
+    #    width: float | None = None,
+    #    single_sided: bool | None = None,
+    #    has_linecap: bool | None = None,
+    #    dilate: float | None = None,
+    #    is_transparent: bool | None = None,
+    #    broadcast: bool = True,
+    #    type_filter: "type[StrokeMobject] | None" = None
+    #):
+    #    width_value = LazyWrapper(width) if width is not None else None
+    #    single_sided_value = LazyWrapper(single_sided) if single_sided is not None else None
+    #    has_linecap_value = LazyWrapper(has_linecap) if has_linecap is not None else None
+    #    dilate_value = LazyWrapper(dilate) if dilate is not None else None
+    #    is_transparent_value = is_transparent if is_transparent is not None else \
+    #        True if dilate is not None else None
+    #    if type_filter is None:
+    #        type_filter = StrokeMobject
+    #    for mobject in self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast):
+    #        if width_value is not None:
+    #            mobject._width_ = width_value
+    #        if single_sided_value is not None:
+    #            mobject._single_sided_ = single_sided_value
+    #        if has_linecap_value is not None:
+    #            mobject._has_linecap_ = has_linecap_value
+    #        if dilate_value is not None:
+    #            mobject._dilate_ = dilate_value
+    #        if is_transparent_value is not None:
+    #            mobject._is_transparent_ = is_transparent_value
+    #    return self
+
+    @property
+    def multi_line_string(self) -> MultiLineString:
+        return self._multi_line_string_
+
+    @property
+    def color(self) -> Vec3T:
+        return self._color_.value
+
+    @property
+    def opacity(self) -> float:
+        return self._opacity_.value
+
+    @property
+    def width(self) -> float:
+        return self._width_.value
+
+    @property
+    def single_sided(self) -> bool:
+        return self._single_sided_.value
+
+    @property
+    def has_linecap(self) -> bool:
+        return self._has_linecap_.value
+
+    @property
+    def dilate(self) -> float:
+        return self._dilate_.value

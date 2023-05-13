@@ -1,6 +1,7 @@
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
+from ..mobjects.mobject import MobjectMeta
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..shape.shape import Shape
 
@@ -14,9 +15,14 @@ class ShapeMobject(MeshMobject):
     ) -> None:
         super().__init__()
         if shape is not None:
-            self.set_shape(shape)
-        self.set_material(enable_phong_lighting=False)
+            self._shape_ = shape
+        self._enable_phong_lighting_ = False
 
+    @MobjectMeta.register(
+        partial_method=Shape.partial,
+        interpolate_method=Shape.interpolate,
+        concatenate_method=Shape.concatenate
+    )
     @Lazy.variable
     @classmethod
     def _shape_(cls) -> Shape:
@@ -30,23 +36,23 @@ class ShapeMobject(MeshMobject):
     ) -> ShapeGeometry:
         return ShapeGeometry(_shape_)
 
-    def get_shape(self) -> Shape:
-        return self._shape_
+    #def get_shape(self) -> Shape:
+    #    return self._shape_
 
-    def set_shape(
-        self,
-        shape: Shape
-    ):
-        self._shape_ = shape
-        return self
+    #def set_shape(
+    #    self,
+    #    shape: Shape
+    #):
+    #    self._shape_ = shape
+    #    return self
 
-    def concatenate(self) -> "ShapeMobject":
-        self._shape_ = Shape.concatenate(
-            child._shape_
-            for child in self.iter_children_by_type(mobject_type=ShapeMobject)
-        )
-        self.clear()
-        return self
+    #def concatenate(self) -> "ShapeMobject":
+    #    self._shape_ = Shape.concatenate(
+    #        child._shape_
+    #        for child in self.iter_children_by_type(mobject_type=ShapeMobject)
+    #    )
+    #    self.clear()
+    #    return self
 
     def build_stroke(self) -> StrokeMobject:
         stroke = StrokeMobject()
@@ -60,3 +66,7 @@ class ShapeMobject(MeshMobject):
     #):
     #    self.add(self.build_stroke(**kwargs))
     #    return self
+
+    @property
+    def shape(self) -> Shape:
+        return self._shape_

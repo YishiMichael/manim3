@@ -186,7 +186,7 @@ class Scene(Animation):
         *,
         opacity: float | None = None
     ):
-        self._scene_frame.set_color(
+        self._scene_frame.set_style(
             color=color,
             opacity=opacity,
             broadcast=False

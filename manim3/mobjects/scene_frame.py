@@ -1,8 +1,12 @@
 import moderngl
 import numpy as np
 
+from ..custom_typing import Vec3T
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import Mobject
+from ..mobjects.mobject import (
+    Mobject,
+    MobjectMeta
+)
 from ..passes.render_pass import RenderPass
 from ..rendering.context import (
     Context,
@@ -18,10 +22,28 @@ from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
+from ..utils.space import SpaceUtils
 
 
 class SceneFrame(Mobject):
     __slots__ = ()
+
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_vec3
+    )
+    @Lazy.variable_external
+    @classmethod
+    def _color_(cls) -> Vec3T:
+        return np.ones(3)
+
+    @MobjectMeta.register(
+        interpolate_method=SpaceUtils.lerp_float,
+        related_styles=((Mobject._is_transparent_, True),)
+    )
+    @Lazy.variable_external
+    @classmethod
+    def _opacity_(cls) -> float:
+        return 1.0
 
     @Lazy.variable_collection
     @classmethod
@@ -161,3 +183,11 @@ class SceneFrame(Mobject):
             }
         )
         window.swap_buffers()
+
+    @property
+    def color(self) -> Vec3T:
+        return self._color_.value
+
+    @property
+    def opacity(self) -> float:
+        return self._opacity_.value

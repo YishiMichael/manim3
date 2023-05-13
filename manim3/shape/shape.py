@@ -226,12 +226,17 @@ class Shape(LazyObject):
     @classmethod
     def concatenate(
         cls,
-        shapes: "Iterable[Shape]"
-    ) -> "Shape":
-        return Shape.from_multi_line_string(MultiLineString.concatenate(
+        *shapes: "Shape"
+    ) -> "Callable[[], Shape]":
+        multi_line_string_concatenate_callback = MultiLineString.concatenate(*(
             shape._multi_line_string_
             for shape in shapes
         ))
+
+        def callback() -> Shape:
+            return Shape.from_multi_line_string(multi_line_string_concatenate_callback())
+
+        return callback
 
     # operations ported from shapely
 

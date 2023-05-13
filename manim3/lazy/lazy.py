@@ -165,7 +165,7 @@ _ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
 _DescriptorGetT = TypeVar("_DescriptorGetT")
 _DescriptorSetT = TypeVar("_DescriptorSetT")
-_DescriptorRGetT = TypeVar("_DescriptorRGetT")
+_DescriptorRawT = TypeVar("_DescriptorRawT")
 _DescriptorT = TypeVar("_DescriptorT", bound="LazyDescriptor")
 _Parameters = ParamSpec("_Parameters")
 _AnnotationT = Any
@@ -271,11 +271,11 @@ class LazyContainer(ABC, Generic[_ElementT]):
     def _copy_container(self) -> "LazyContainer[_ElementT]":
         pass
 
-    def _match_elements(
-        self,
-        container: "LazyContainer[_ElementT]"
-    ) -> bool:
-        return tuple(self._iter_elements()) == tuple(container._iter_elements())
+    #def _match_elements(
+    #    self,
+    #    container: "LazyContainer[_ElementT]"
+    #) -> bool:
+    #    return tuple(self._iter_elements()) == tuple(container._iter_elements())
 
 
 class LazyUnitaryContainer(LazyContainer[_ElementT]):
@@ -545,7 +545,7 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
         self._is_expired = False
 
 
-class LazyConverter(ABC, Generic[_ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]):
+class LazyConverter(ABC, Generic[_ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = ()
 
     @abstractmethod
@@ -558,7 +558,7 @@ class LazyConverter(ABC, Generic[_ContainerT, _DescriptorGetT, _DescriptorSetT, 
     @abstractmethod
     def convert_set(
         self,
-        new_value: _DescriptorSetT
+        value: _DescriptorSetT
     ) -> _ContainerT:
         pass
 
@@ -566,11 +566,18 @@ class LazyConverter(ABC, Generic[_ContainerT, _DescriptorGetT, _DescriptorSetT, 
     def convert_rget(
         self,
         container: _ContainerT
-    ) -> _DescriptorRGetT:
+    ) -> _DescriptorRawT:
+        pass
+
+    @abstractmethod
+    def convert_rset(
+        self,
+        value: _DescriptorRawT
+    ) -> _ContainerT:
         pass
 
 
-class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]):
+class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]):
     __slots__ = (
         "method",
         "element_type",
@@ -581,14 +588,14 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGe
 
     def __init__(
         self,
-        method: Callable[..., _DescriptorSetT],
-        converter_class: type[LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]]
+        method: Callable[..., _DescriptorRawT],
+        converter_class: type[LazyConverter[_ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]]
     ) -> None:
         super().__init__()
-        self.method: Callable[..., _DescriptorSetT] = method
+        self.method: Callable[..., _DescriptorRawT] = method
         self.element_type: type[LazyObject] = LazyObject
         self.return_annotation: _AnnotationT = NotImplemented
-        self.converter: LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT] = converter_class()
+        self.converter: LazyConverter[_ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT] = converter_class()
         self.instance_to_slot_dict: weakref.WeakKeyDictionary[_InstanceT, _SlotT] = weakref.WeakKeyDictionary()
 
     @overload
@@ -617,9 +624,9 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGe
     def __set__(
         self,
         instance: _InstanceT,
-        new_value: _DescriptorSetT
+        value: _DescriptorSetT
     ) -> None:
-        self.set_container(instance, self.converter.convert_set(new_value))
+        self.set_container(instance, self.converter.convert_set(value))
 
     def __delete__(
         self,
@@ -657,14 +664,14 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DescriptorGe
 
 
 class LazyVariableDescriptor(LazyDescriptor[
-    _InstanceT, LazyVariableSlot[_ContainerT], _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT
+    _InstanceT, LazyVariableSlot[_ContainerT], _ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT
 ]):
     __slots__ = ("default_container",)
 
     def __init__(
         self,
-        method: Callable[..., _DescriptorSetT],
-        converter_class: type[LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]]
+        method: Callable[..., _DescriptorRawT],
+        converter_class: type[LazyConverter[_ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]]
     ) -> None:
         super().__init__(
             method=method,
@@ -686,7 +693,7 @@ class LazyVariableDescriptor(LazyDescriptor[
         slot = self.get_slot(instance)
         assert slot._is_writable
         old_container = slot.get_variable_container()
-        if old_container._match_elements(new_container):
+        if tuple(old_container._iter_elements()) == tuple(new_container._iter_elements()):
             return
         slot.expire_property_slots()
         slot.set_variable_container(new_container)
@@ -696,7 +703,7 @@ class LazyVariableDescriptor(LazyDescriptor[
         instance: _InstanceT
     ) -> None:
         if (default_container := self.default_container) is None:
-            default_container = self.converter.convert_set(self.method(type(instance)))
+            default_container = self.converter.convert_rset(self.method(type(instance)))
             self.default_container = default_container
         self.set_slot(instance, LazyVariableSlot(
             container=default_container._copy_container()
@@ -704,7 +711,7 @@ class LazyVariableDescriptor(LazyDescriptor[
 
 
 class LazyPropertyDescriptor(LazyDescriptor[
-    _InstanceT, LazyPropertySlot[_ContainerT], _ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT
+    _InstanceT, LazyPropertySlot[_ContainerT], _ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT
 ]):
     __slots__ = (
         "finalize_method",
@@ -715,14 +722,14 @@ class LazyPropertyDescriptor(LazyDescriptor[
 
     def __init__(
         self,
-        method: Callable[..., _DescriptorSetT],
-        converter_class: type[LazyConverter[_ContainerT, _DescriptorGetT, _DescriptorSetT, _DescriptorRGetT]]
+        method: Callable[..., _DescriptorRawT],
+        converter_class: type[LazyConverter[_ContainerT, _DescriptorRawT, _DescriptorGetT, _DescriptorSetT]]
     ) -> None:
         super().__init__(
             method=method,
             converter_class=converter_class
         )
-        self.finalize_method: Callable[[type[_InstanceT], _DescriptorRGetT], None] | None = None
+        self.finalize_method: Callable[[type[_InstanceT], _DescriptorRawT], None] | None = None
         self.descriptor_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
         self.requires_unwrapping_tuple: tuple[bool, ...] = NotImplemented
         self.key_to_container_cache: Cache[tuple, _ContainerT] = Cache()
@@ -846,6 +853,11 @@ class LazyPropertyDescriptor(LazyDescriptor[
                 for parameter_tree in parameter_trees
             )
 
+            #if self.method.__name__ == "_local_sample_points_" and parameter_trees:
+            #    print(key)
+            #    print(construct_parameter(parameter_trees[0], requires_unwrapping=self.requires_unwrapping_tuple[0]))
+            #    print(self.key_to_container_cache)
+            #    print()
             if (container := self.key_to_container_cache.get(key)) is None:
                 parameters = tuple(
                     construct_parameter(parameter_tree, requires_unwrapping=requires_unwrapping)
@@ -853,7 +865,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
                         parameter_trees, self.requires_unwrapping_tuple, strict=True
                     )
                 )
-                container = self.converter.convert_set(self.method(type(instance), *parameters))
+                container = self.converter.convert_rset(self.method(type(instance), *parameters))
                 for element in container._iter_elements():
                     for variable_slot in element._iter_variable_slots():
                         variable_slot.make_readonly()
@@ -880,8 +892,8 @@ class LazyPropertyDescriptor(LazyDescriptor[
 
     def finalizer(
         self,
-        finalize_method: Callable[[type[_InstanceT], _DescriptorRGetT], None]
-    ) -> Callable[[type[_InstanceT], _DescriptorRGetT], None]:
+        finalize_method: Callable[[type[_InstanceT], _DescriptorRawT], None]
+    ) -> Callable[[type[_InstanceT], _DescriptorRawT], None]:
         self.finalize_method = finalize_method.__func__
         return finalize_method
 
@@ -1083,21 +1095,27 @@ class LazyIndividualConverter(LazyConverter[
 
     def convert_set(
         self,
-        new_value: _ElementT
+        value: _ElementT
     ) -> LazyUnitaryContainer[_ElementT]:
         return LazyUnitaryContainer(
-            element=new_value
+            element=value
         )
 
     def convert_rget(
         self,
         container: LazyUnitaryContainer[_ElementT]
     ) -> _ElementT:
-        return container._element
+        return self.convert_get(container)
+
+    def convert_rset(
+        self,
+        value: _ElementT
+    ) -> LazyUnitaryContainer[_ElementT]:
+        return self.convert_set(value)
 
 
 class LazyCollectionConverter(LazyConverter[
-    LazyDynamicContainer[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT], list[_ElementT]
+    LazyDynamicContainer[_ElementT], list[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT]
 ]):
     __slots__ = ()
 
@@ -1109,21 +1127,27 @@ class LazyCollectionConverter(LazyConverter[
 
     def convert_set(
         self,
-        new_value: Iterable[_ElementT]
+        value: Iterable[_ElementT]
     ) -> LazyDynamicContainer[_ElementT]:
         return LazyDynamicContainer(
-            elements=new_value
+            elements=value
         )
 
     def convert_rget(
         self,
         container: LazyDynamicContainer[_ElementT]
     ) -> list[_ElementT]:
-        return list(container._elements)
+        return list(self.convert_get(container)._elements)
+
+    def convert_rset(
+        self,
+        value: list[_ElementT]
+    ) -> LazyDynamicContainer[_ElementT]:
+        return self.convert_set(value)
 
 
 class LazyExternalConverter(LazyConverter[
-    LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], _T | LazyWrapper[_T], _T
+    LazyUnitaryContainer[LazyWrapper[_T]], _T, LazyWrapper[_T], _T | LazyWrapper[_T]
 ]):
     __slots__ = ()
 
@@ -1135,19 +1159,25 @@ class LazyExternalConverter(LazyConverter[
 
     def convert_set(
         self,
-        new_value: _T | LazyWrapper[_T]
+        value: _T | LazyWrapper[_T]
     ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
-        if not isinstance(new_value, LazyWrapper):
-            new_value = LazyWrapper(new_value)
+        if not isinstance(value, LazyWrapper):
+            value = LazyWrapper(value)
         return LazyUnitaryContainer(
-            element=new_value
+            element=value
         )
 
     def convert_rget(
         self,
         container: LazyUnitaryContainer[LazyWrapper[_T]]
     ) -> _T:
-        return container._element.value
+        return self.convert_get(container).value
+
+    def convert_rset(
+        self,
+        value: _T
+    ) -> LazyUnitaryContainer[LazyWrapper[_T]]:
+        return self.convert_set(value)
 
 
 class LazySharedConverter(LazyExternalConverter[_HT]):
@@ -1159,14 +1189,20 @@ class LazySharedConverter(LazyExternalConverter[_HT]):
 
     def convert_set(
         self,
-        new_value: _HT | LazyWrapper[_HT]
+        value: _HT | LazyWrapper[_HT]
     ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
-        if not isinstance(new_value, LazyWrapper):
-            if (cached_value := self.content_to_element_cache.get(new_value)) is None:
-                cached_value = LazyWrapper(new_value)
-                self.content_to_element_cache[new_value] = cached_value
-            new_value = cached_value
-        return super().convert_set(new_value)
+        if not isinstance(value, LazyWrapper):
+            if (cached_value := self.content_to_element_cache.get(value)) is None:
+                cached_value = LazyWrapper(value)
+                self.content_to_element_cache[value] = cached_value
+            value = cached_value
+        return super().convert_set(value)
+
+    def convert_rset(
+        self,
+        value: _HT
+    ) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
+        return self.convert_set(value)
 
 
 class Lazy:
@@ -1192,7 +1228,7 @@ class Lazy:
         cls,
         method: Callable[[type[_InstanceT]], list[_ElementT]]
     ) -> LazyVariableDescriptor[
-        _InstanceT, LazyDynamicContainer[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT], list[_ElementT]
+        _InstanceT, LazyDynamicContainer[_ElementT], list[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT]
     ]:
         return LazyVariableDescriptor(
             method.__func__,
@@ -1204,7 +1240,7 @@ class Lazy:
         cls,
         method: Callable[[type[_InstanceT]], _T]
     ) -> LazyVariableDescriptor[
-        _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], _T | LazyWrapper[_T], _T
+        _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], _T, LazyWrapper[_T], _T | LazyWrapper[_T]
     ]:
         return LazyVariableDescriptor(
             method.__func__,
@@ -1216,7 +1252,7 @@ class Lazy:
         cls,
         method: Callable[[type[_InstanceT]], _HT]
     ) -> LazyVariableDescriptor[
-        _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], _HT | LazyWrapper[_HT], _HT
+        _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], _HT, LazyWrapper[_HT], _HT | LazyWrapper[_HT]
     ]:
         return LazyVariableDescriptor(
             method.__func__,
@@ -1240,7 +1276,7 @@ class Lazy:
         cls,
         method: Callable[Concatenate[type[_InstanceT], _Parameters], list[_ElementT]]
     ) -> LazyPropertyDescriptor[
-        _InstanceT, LazyDynamicContainer[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT], list[_ElementT]
+        _InstanceT, LazyDynamicContainer[_ElementT], list[_ElementT], LazyDynamicContainer[_ElementT], Iterable[_ElementT]
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
@@ -1252,7 +1288,7 @@ class Lazy:
         cls,
         method: Callable[Concatenate[type[_InstanceT], _Parameters], _T]
     ) -> LazyPropertyDescriptor[
-        _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], LazyWrapper[_T], _T | LazyWrapper[_T], _T
+        _InstanceT, LazyUnitaryContainer[LazyWrapper[_T]], _T, LazyWrapper[_T], _T | LazyWrapper[_T]
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
@@ -1264,7 +1300,7 @@ class Lazy:
         cls,
         method: Callable[Concatenate[type[_InstanceT], _Parameters], _HT]
     ) -> LazyPropertyDescriptor[
-        _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], LazyWrapper[_HT], _HT | LazyWrapper[_HT], _HT
+        _InstanceT, LazyUnitaryContainer[LazyWrapper[_HT]], _HT, LazyWrapper[_HT], _HT | LazyWrapper[_HT]
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
