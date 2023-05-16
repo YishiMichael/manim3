@@ -102,15 +102,16 @@ class Shape(LazyObject):
         def get_shapely_polygons(
             shapely_obj: shapely.geometry.base.BaseGeometry
         ) -> Iterator[shapely.geometry.Polygon]:
-            if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
-                pass
-            elif isinstance(shapely_obj, shapely.geometry.Polygon):
-                yield shapely_obj
-            elif isinstance(shapely_obj, shapely.geometry.base.BaseMultipartGeometry):
-                for child in shapely_obj.geoms:
-                    yield from get_shapely_polygons(child)
-            else:
-                raise TypeError
+            match shapely_obj:
+                case shapely.geometry.Point() | shapely.geometry.LineString():
+                    pass
+                case shapely.geometry.Polygon():
+                    yield shapely_obj
+                case shapely.geometry.base.BaseMultipartGeometry():
+                    for child in shapely_obj.geoms:
+                        yield from get_shapely_polygons(child)
+                case _:
+                    raise TypeError
 
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
@@ -166,18 +167,18 @@ class Shape(LazyObject):
         def iter_args_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
         ) -> Iterator[tuple[Vec2sT, bool]]:
-            if isinstance(shapely_obj, shapely.geometry.Point | shapely.geometry.LineString):
-                yield np.array(shapely_obj.coords), False
-            elif isinstance(shapely_obj, shapely.geometry.Polygon):
-                shapely_obj = shapely.geometry.polygon.orient(shapely_obj)  # TODO: needed?
-                yield np.array(shapely_obj.exterior.coords[:-1]), True
-                for interior in shapely_obj.interiors:
-                    yield np.array(interior.coords[:-1]), True
-            elif isinstance(shapely_obj, shapely.geometry.base.BaseMultipartGeometry):
-                for shapely_obj_component in shapely_obj.geoms:
-                    yield from iter_args_from_shapely_obj(shapely_obj_component)
-            else:
-                raise TypeError
+            match shapely_obj:
+                case shapely.geometry.Point() | shapely.geometry.LineString():
+                    yield np.array(shapely_obj.coords), False
+                case shapely.geometry.Polygon():
+                    yield np.array(shapely_obj.exterior.coords[:-1]), True
+                    for interior in shapely_obj.interiors:
+                        yield np.array(interior.coords[:-1]), True
+                case shapely.geometry.base.BaseMultipartGeometry():
+                    for shapely_obj_component in shapely_obj.geoms:
+                        yield from iter_args_from_shapely_obj(shapely_obj_component)
+                case _:
+                    raise TypeError
 
         return Shape(iter_args_from_shapely_obj(shapely_obj))
 

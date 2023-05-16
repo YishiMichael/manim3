@@ -120,7 +120,6 @@ from .custom_typing import (
     Mat3sT,
     Mat4T,
     Mat4sT,
-    TimelineReturnT,
     Vec2T,
     Vec2sT,
     Vec3T,

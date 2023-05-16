@@ -1,11 +1,11 @@
 from abc import ABC
+import asyncio
 from dataclasses import dataclass
 from typing import (
     Callable,
     Iterator
 )
 
-from ..custom_typing import TimelineReturnT
 from ..utils.rate import RateUtils
 
 
@@ -15,7 +15,7 @@ from ..utils.rate import RateUtils
     slots=True
 )
 class TimelineItem:
-    timeline: "Timeline"
+    updater: Callable[[float], None] | None
     absolute_rate: Callable[[float], float]
 
 
@@ -58,54 +58,54 @@ class TimelineState:
 
 class TimelineManager:
     __slots__ = (
-        "timeline_start_alpha_dict",
+        "start_alpha_dict",
         "state_dict"
     )
 
     def __init__(self) -> None:
         super().__init__()
-        self.timeline_start_alpha_dict: dict[Iterator[TimelineState], float] = {}
+        self.start_alpha_dict: dict[Iterator[TimelineState], float] = {}
         self.state_dict: dict[Iterator[TimelineState], TimelineState] = {}
 
-    def add_timeline(
+    def add_state_timeline(
         self,
-        timeline: Iterator[TimelineState],
+        state_timeline: Iterator[TimelineState],
         start_alpha: float
     ) -> None:
         try:
-            state = next(timeline)
+            state = next(state_timeline)
         except StopIteration:
             return
-        self.timeline_start_alpha_dict[timeline] = start_alpha
-        self.state_dict[timeline] = state
+        self.start_alpha_dict[state_timeline] = start_alpha
+        self.state_dict[state_timeline] = state
 
     def advance_state(
         self,
-        timeline: Iterator[TimelineState]
+        state_timeline: Iterator[TimelineState]
     ) -> None:
         try:
-            state = next(timeline)
+            state = next(state_timeline)
         except StopIteration:
-            self.timeline_start_alpha_dict.pop(timeline)
-            self.state_dict.pop(timeline)
+            self.start_alpha_dict.pop(state_timeline)
+            self.state_dict.pop(state_timeline)
             return
-        self.state_dict[timeline] = state
+        self.state_dict[state_timeline] = state
 
     def is_not_empty(self) -> bool:
         return bool(self.state_dict)
 
-    def get_next_timeline_item(self) -> tuple[Iterator[TimelineState], float, TimelineState]:
-        timeline_start_alpha_dict = self.timeline_start_alpha_dict
+    def get_next_state_timeline_item(self) -> tuple[Iterator[TimelineState], float, TimelineState]:
+        start_alpha_dict = self.start_alpha_dict
         state_dict = self.state_dict
 
         def get_next_alpha(
-            timeline: Iterator[TimelineState]
+            state_timeline: Iterator[TimelineState]
         ) -> float:
-            next_alpha = timeline_start_alpha_dict[timeline] + state_dict[timeline].timestamp
+            next_alpha = start_alpha_dict[state_timeline] + state_dict[state_timeline].timestamp
             return round(next_alpha, 3)  # Avoid floating error.
 
-        timeline = min(state_dict, key=get_next_alpha)
-        return timeline, timeline_start_alpha_dict[timeline], state_dict[timeline]
+        state_timeline = min(state_dict, key=get_next_alpha)
+        return state_timeline, start_alpha_dict[state_timeline], state_dict[state_timeline]
 
 
 class Timeline(ABC):
@@ -113,6 +113,7 @@ class Timeline(ABC):
         "_updater",
         "_run_time",
         "_relative_rate",
+        "_delta_alpha",
         "_new_children"
     )
 
@@ -132,9 +133,19 @@ class Timeline(ABC):
         self._updater: Callable[[float], None] | None = updater
         self._run_time: float | None = run_time
         self._relative_rate: Callable[[float], float] = relative_rate
+        self._delta_alpha: float = 0.0
         self._new_children: list[Timeline] = []
 
-    def _absolute_timeline(self) -> Iterator[TimelineState]:
+    def _wait_timeline(self) -> Iterator[float]:
+        timeline_coroutine = self.timeline()
+        try:
+            while True:
+                timeline_coroutine.send(None)
+                yield self._delta_alpha
+        except StopIteration:
+            pass
+
+    def _state_timeline(self) -> Iterator[TimelineState]:
         relative_rate = self._relative_rate
         relative_rate_inv = RateUtils.inverse(relative_rate)
         run_alpha = relative_rate(self._run_time) if self._run_time is not None else None
@@ -145,7 +156,7 @@ class Timeline(ABC):
         timeline_item_convert_dict: dict[TimelineItem, TimelineItem] = {}
 
         self_timeline_item = TimelineItem(
-            timeline=self,
+            updater=self._updater,
             absolute_rate=relative_rate
         )
         yield TimelineState(
@@ -155,10 +166,10 @@ class Timeline(ABC):
             )
         )
 
-        for wait_delta_alpha in self.timeline():
+        for wait_delta_alpha in self._wait_timeline():
             for child in self._new_children:
-                manager.add_timeline(
-                    timeline=child._absolute_timeline(),
+                manager.add_state_timeline(
+                    state_timeline=child._state_timeline(),
                     start_alpha=current_alpha
                 )
             self._new_children.clear()
@@ -172,39 +183,37 @@ class Timeline(ABC):
                 early_break = False
 
             while manager.is_not_empty():
-                timeline, timeline_start_alpha, state = manager.get_next_timeline_item()
+                state_timeline, timeline_start_alpha, state = manager.get_next_state_timeline_item()
                 next_alpha = timeline_start_alpha + state.timestamp
                 if next_alpha > current_alpha:
                     break
 
-                signal = state.signal
-                if isinstance(signal, TimelineItemAppendSignal):
-                    timeline_item = TimelineItem(
-                        timeline=signal.timeline_item.timeline,
-                        absolute_rate=RateUtils.compose(
-                            RateUtils.adjust(signal.timeline_item.absolute_rate, lag_time=timeline_start_alpha),
-                            relative_rate
+                match state.signal:
+                    case TimelineItemAppendSignal(timeline_item=timeline_item):
+                        new_timeline_item = TimelineItem(
+                            updater=timeline_item.updater,
+                            absolute_rate=RateUtils.compose(
+                                RateUtils.adjust(timeline_item.absolute_rate, lag_time=timeline_start_alpha),
+                                relative_rate
+                            )
                         )
-                    )
-                    timeline_item_convert_dict[signal.timeline_item] = timeline_item
-                    new_signal = TimelineItemAppendSignal(
-                        timeline_item=timeline_item
-                    )
-                elif isinstance(signal, TimelineItemRemoveSignal):
-                    timeline_item = timeline_item_convert_dict.pop(signal.timeline_item)
-                    new_signal = TimelineItemRemoveSignal(
-                        timeline_item=timeline_item
-                    )
-                elif isinstance(signal, TimelineAwaitSignal):
-                    new_signal = TimelineAwaitSignal()
-                else:
-                    raise TypeError
+                        timeline_item_convert_dict[timeline_item] = new_timeline_item
+                        new_signal = TimelineItemAppendSignal(
+                            timeline_item=new_timeline_item
+                        )
+                    case TimelineItemRemoveSignal(timeline_item=timeline_item):
+                        new_timeline_item = timeline_item_convert_dict.pop(timeline_item)
+                        new_signal = TimelineItemRemoveSignal(
+                            timeline_item=new_timeline_item
+                        )
+                    case TimelineAwaitSignal():
+                        new_signal = TimelineAwaitSignal()
 
                 yield TimelineState(
                     timestamp=relative_rate_inv(next_alpha),
                     signal=new_signal
                 )
-                manager.advance_state(timeline)
+                manager.advance_state(state_timeline)
 
             yield TimelineState(
                 timestamp=relative_rate_inv(current_alpha),
@@ -221,10 +230,6 @@ class Timeline(ABC):
             )
         )
 
-    # Yield `delta_alpha` values.
-    def timeline(self) -> TimelineReturnT:
-        yield from self.wait(1024)  # Wait forever...
-
     def _is_prepared(
         self,
         timeline: "Timeline"
@@ -240,20 +245,24 @@ class Timeline(ABC):
             timeline._is_prepared(self)
         self._new_children.extend(timelines)
 
-    def wait(
+    async def wait(
         self,
         delta_alpha: float = 1.0
-    ) -> TimelineReturnT:
-        yield delta_alpha
+    ) -> None:
+        self._delta_alpha = delta_alpha
+        await asyncio.sleep(0.0)
 
-    def play(
+    async def play(
         self,
         *timelines: "Timeline"
-    ) -> TimelineReturnT:
+    ) -> None:
         self.prepare(*timelines)
         delta_alpha = max((
             run_time
             for timeline in timelines
             if (run_time := timeline._run_time) is not None
         ), default=0.0)
-        yield from self.wait(delta_alpha)
+        await self.wait(delta_alpha)
+
+    async def timeline(self) -> None:
+        await self.wait(1024)  # Wait forever...

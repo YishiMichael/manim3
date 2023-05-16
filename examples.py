@@ -5,7 +5,7 @@ from manim3 import *
 
 
 class ShapeTransformExample(Scene):
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         circle = (
             Circle()
             .set_style(color=Palette.PINK, opacity=0.9)
@@ -24,12 +24,13 @@ class ShapeTransformExample(Scene):
         )
 
         self.add(square)
-        yield from self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
-        yield from self.wait()
+        await self.wait()
+        await self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
+        await self.wait()
 
 
 class TexTransformExample(Scene):
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         text = (
             Text("Text")
             .scale(3)
@@ -52,16 +53,16 @@ class TexTransformExample(Scene):
             .set_style(color=Palette.PINK, width=0.06)
         )
         self.add(text)
-        yield from self.wait()
-        yield from self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
-        yield from self.wait()
+        await self.wait()
+        await self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
+        await self.wait()
         tex_copy = tex.copy().shift(RIGHT * 2)
-        yield from self.play(Transform(tex, tex_copy, run_time=2, rate_func=RateUtils.smooth))
-        yield from self.wait(3)
+        await self.play(Transform(tex, tex_copy, run_time=2, rate_func=RateUtils.smooth))
+        await self.wait(3)
 
 
 class CreateTexExample(Scene):
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         text = (
             Text("Text")
             .scale(3)
@@ -72,11 +73,11 @@ class CreateTexExample(Scene):
             text.build_stroke()
             .set_style(color=Palette.BLUE, width=0.04)
         )
-        yield from self.wait()
-        yield from self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
-        yield from self.wait()
-        yield from self.play(PartialUncreate(text, run_time=2, rate_func=RateUtils.smooth, backwards=True))
-        yield from self.wait()
+        await self.wait()
+        await self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
+        await self.wait()
+        await self.play(PartialUncreate(text, run_time=2, rate_func=RateUtils.smooth, backwards=True))
+        await self.wait()
 
 
 class Rotating(Animation):
@@ -101,7 +102,7 @@ class Rotating(Animation):
 
 
 class ThreeDTextExample(Scene):
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         text = Text("Text").concatenate()
         text_3d = (
             MeshMobject()
@@ -114,11 +115,11 @@ class ThreeDTextExample(Scene):
         self.add(PointLight().shift(RIGHT * 5))
         self.add(text_3d)
         self.prepare(Rotating(text_3d))
-        yield from self.wait(10)
+        await self.wait(10)
 
 
 class OITExample(Scene):
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         self.add(*(
             (Circle()
                 .set_style(color=color, opacity=opacity)
@@ -131,11 +132,11 @@ class OITExample(Scene):
                 np.linspace(0, TAU, 3, endpoint=False)
             )
         ))
-        yield from self.wait(5)
+        await self.wait(5)
 
 
 class ChildSceneExample(Scene):
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         child_scene_1 = ThreeDTextExample()
         child_scene_1.render_passes.append(PixelatedPass())
         self.prepare(child_scene_1)
@@ -153,7 +154,7 @@ class ChildSceneExample(Scene):
             .shift(RIGHT * 1)
             .set_style(is_transparent=True)
         )
-        yield from self.wait(6)
+        await self.wait(6)
 
 
 def main() -> None:
@@ -165,7 +166,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    CreateTexExample.render(config)
+    ShapeTransformExample.render(config)
 
 
 if __name__ == "__main__":

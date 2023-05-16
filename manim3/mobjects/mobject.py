@@ -850,19 +850,17 @@ class Mobject(LazyObject):
         specified_height: float | None,
         specified_frame_scale: float | None
     ) -> tuple[float, float]:
-        if specified_width is not None and specified_height is not None:
-            return specified_width / original_width, specified_height / original_height
-        if specified_width is not None and specified_height is None:
-            scale_factor = specified_width / original_width
-        elif specified_width is None and specified_height is not None:
-            scale_factor = specified_height / original_height
-        elif specified_width is None and specified_height is None:
-            if specified_frame_scale is None:
-                scale_factor = 1.0
-            else:
-                scale_factor = specified_frame_scale
-        else:
-            raise ValueError  # never
+        match specified_width, specified_height:
+            case float(), float():
+                return specified_width / original_width, specified_height / original_height
+            case float(), None:
+                scale_factor = specified_width / original_width
+            case None, float():
+                scale_factor = specified_height / original_height
+            case None, None:
+                scale_factor = specified_frame_scale if specified_frame_scale is not None else 1.0
+            case _:
+                raise ValueError  # never
         return scale_factor, scale_factor
 
     # rotate relatives

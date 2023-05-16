@@ -1,4 +1,4 @@
-import time
+import asyncio
 from typing import Iterator
 
 import moderngl
@@ -10,7 +10,6 @@ from ..config import (
     Config,
     ConfigSingleton
 )
-
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
 from ..lighting.ambient_light import AmbientLight
@@ -59,70 +58,87 @@ class Scene(Timeline):
         def frame_clock(
             fps: float,
             sleep: bool
-        ) -> Iterator[float]:
+        ) -> Iterator[tuple[float, float]]:
             spf = 1.0 / fps
+            sleep_time = spf if sleep else 0.0
             # Do integer increment to avoid accumulated error in float addition.
             frame_index: int = 0
-            prev_real_time: float = 0.0
             while True:
-                yield frame_index * spf
+                yield frame_index * spf, sleep_time
                 frame_index += 1
-                real_time = time.time()
-                if sleep and (sleep_time := spf - (real_time - prev_real_time)) > 0.0:
-                    time.sleep(sleep_time)
-                prev_real_time = time.time()
+
+        state_timeline = self._state_timeline()
+        timeline_items: list[TimelineItem] = []
 
         def animate(
-            timestamp: float,
-            timeline_items: list[TimelineItem]
+            timestamp: float
         ) -> None:
             for timeline_item in timeline_items:
-                if (updater := timeline_item.timeline._updater) is not None:
+                if (updater := timeline_item.updater) is not None:
                     updater(timeline_item.absolute_rate(timestamp))
 
-        #AnimationItems.activate()
-        absolute_timeline = self._absolute_timeline()
-        state_final_timestamp = 0.0
-        timeline_items: list[TimelineItem] = []
-        terminated: bool = False
-        with TextureFactory.texture() as color_texture:
-            for timestamp in frame_clock(
+        def digest_signal(
+            signal: TimelineItemAppendSignal | TimelineItemRemoveSignal | TimelineAwaitSignal
+        ) -> None:
+            match signal:
+                case TimelineItemAppendSignal(timeline_item=timeline_item):
+                    timeline_items.append(timeline_item)
+                case TimelineItemRemoveSignal(timeline_item=timeline_item):
+                    timeline_items.remove(timeline_item)
+                case TimelineAwaitSignal():
+                    pass
+
+        async def run_frame(
+            clock_timestamp: float,
+            state_timestamp: float,
+            color_texture: moderngl.Texture
+        ) -> float | None:
+            await asyncio.sleep(0.0)
+
+            next_state_timestamp = state_timestamp
+            while next_state_timestamp <= clock_timestamp:
+                animate(next_state_timestamp)
+                try:
+                    state = next(state_timeline)
+                except StopIteration:
+                    return None
+                next_state_timestamp = state.timestamp
+                digest_signal(state.signal)
+            animate(clock_timestamp)
+
+            self._render_to_texture(color_texture)
+            if ConfigSingleton().rendering.preview:
+                self._scene_frame._render_to_window(color_texture)
+            if ConfigSingleton().rendering.write_video:
+                self._write_to_writing_process(color_texture)
+
+            return next_state_timestamp
+
+        async def run_frames(
+            color_texture: moderngl.Texture
+        ) -> None:
+            state_timestamp = 0.0
+            for clock_timestamp, sleep_time in frame_clock(
                 fps=ConfigSingleton().rendering.fps,
                 sleep=ConfigSingleton().rendering.preview
             ):
-                while state_final_timestamp <= timestamp:
-                    #timeline_items.animate(state_final_timestamp)
-                    animate(state_final_timestamp, timeline_items)
-                    try:
-                        state = next(absolute_timeline)
-                    except StopIteration:
-                        terminated = True
-                        break
-                    state_final_timestamp = state.timestamp
-                    #timeline_items.digest_signal(state.signal)
-                    signal = state.signal
-                    if isinstance(signal, TimelineItemAppendSignal):
-                        timeline_items.append(signal.timeline_item)
-                    elif isinstance(signal, TimelineItemRemoveSignal):
-                        timeline_items.remove(signal.timeline_item)
-                    elif isinstance(signal, TimelineAwaitSignal):
-                        pass
-                    else:
-                        raise TypeError
-                if terminated:
+                state_timestamp, _ = await asyncio.gather(
+                    run_frame(
+                        clock_timestamp,
+                        state_timestamp,
+                        color_texture
+                    ),
+                    asyncio.sleep(sleep_time)
+                )
+                if state_timestamp is None:
                     break
-                #timeline_items.animate(timestamp)
-                animate(timestamp, timeline_items)
-
-                self._render_to_texture(color_texture)
-                if ConfigSingleton().rendering.preview:
-                    self._scene_frame._render_to_window(color_texture)
-                if ConfigSingleton().rendering.write_video:
-                    self._write_to_writing_process(color_texture)
 
             self._render_to_texture(color_texture)
             if ConfigSingleton().rendering.write_last_frame:
                 self._write_to_image(color_texture)
+
+        with TextureFactory.texture() as color_texture:
+            asyncio.run(run_frames(color_texture))
 
     def _render_to_texture(
         self,

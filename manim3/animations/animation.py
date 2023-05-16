@@ -30,6 +30,7 @@ class Animation(Timeline):
             self._scene_ref = weakref.ref(timeline)
 
     # Access the scene the animation is operated on.
+    # Always accessible in the body of `timeline()` method.
     @property
     def scene(self) -> Scene:
         assert (scene_ref := self._scene_ref) is not None

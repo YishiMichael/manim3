@@ -1,7 +1,6 @@
 from typing import Callable
 
 from ..animations.animation import Animation
-from ..custom_typing import TimelineReturnT
 from ..mobjects.mobject import (
     Mobject,
     MobjectMeta
@@ -51,13 +50,13 @@ class Transform(Animation):
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
 
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         start_mobject = self._start_mobject
         stop_mobject = self._stop_mobject
         intermediate_mobject = self._intermediate_mobject
         parents = list(start_mobject.iter_parents())
         start_mobject.discarded_by(*parents)
         intermediate_mobject.added_by(*parents)
-        yield from self.wait()
+        await self.wait()
         intermediate_mobject.discarded_by(*parents)
         stop_mobject.added_by(*parents)

@@ -20,30 +20,27 @@ class ColorUtils:
         cls,
         color: ColorT
     ) -> tuple[Vec3T, float | None]:
-        error_message = f"Invalid color: {color}"
-        if isinstance(color, Color):
-            return np.array(color.rgb), None
-        if isinstance(color, str):
-            if re.fullmatch(r"\w+", color):
+        match color:
+            case Color():
+                return np.array(color.rgb), None
+            case str() if re.fullmatch(r"\w+", color):
                 return np.array(Color(color).rgb), None
-            assert re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE), error_message
-            hex_len = len(color) - 1
-            assert hex_len in (3, 4, 6, 8), error_message
-            num_components = 4 if hex_len % 3 else 3
-            component_size = hex_len // num_components
-            result = np.array([
-                int(match_obj.group(), 16)
-                for match_obj in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
-            ]) * (1.0 / (16 ** component_size - 1))
-            if num_components == 3:
-                return result[:], None
-            return result[:3], result[3]
-        if isinstance(color, np.ndarray):
-            if color.shape == (3,):
-                return color[:], None
-            if color.shape == (4,):
+            case str() if re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE) and (hex_len := len(color) - 1) in (3, 4, 6, 8):
+                num_components = 4 if hex_len % 3 else 3
+                component_size = hex_len // num_components
+                result = np.array([
+                    int(match_obj.group(), 16)
+                    for match_obj in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
+                ]) * (1.0 / (16 ** component_size - 1))
+                if num_components == 3:
+                    return result[:], None
+                return result[:3], result[3]
+            case np.ndarray() if color.ndim == 1 and (size := color.size) in (3, 4):
+                if size == 3:
+                    return color[:], None
                 return color[:3], color[3]
-        raise TypeError(error_message)
+            case _:
+                raise ValueError(f"Invalid color: {color}")
 
     @classmethod
     def color_to_hex(

@@ -4,7 +4,6 @@ from typing import Callable
 import numpy as np
 
 from ..animations.animation import Animation
-from ..custom_typing import TimelineReturnT
 from ..mobjects.mobject import (
     Mobject,
     MobjectMeta
@@ -46,7 +45,7 @@ class PartialAnimation(Animation):
         self._mobject: Mobject = mobject
 
     @abstractmethod
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         pass
 
 
@@ -75,9 +74,9 @@ class PartialCreate(PartialAnimation):
             rate_func=rate_func
         )
 
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         self.scene.add(self._mobject)
-        yield from self.wait()
+        await self.wait()
 
 
 class PartialUncreate(PartialAnimation):
@@ -105,8 +104,8 @@ class PartialUncreate(PartialAnimation):
             rate_func=rate_func
         )
 
-    def timeline(self) -> TimelineReturnT:
-        yield from self.wait()
+    async def timeline(self) -> None:
+        await self.wait()
         self._mobject.discarded_by(*self._mobject.iter_parents())
 
 
@@ -145,7 +144,7 @@ class PartialFlash(PartialAnimation):
             rate_func=rate_func
         )
 
-    def timeline(self) -> TimelineReturnT:
+    async def timeline(self) -> None:
         self.scene.add(self._mobject)
-        yield from self.wait()
+        await self.wait()
         self._mobject.discarded_by(*self._mobject.iter_parents())

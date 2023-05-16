@@ -1,6 +1,7 @@
 import itertools as it
 import pathlib
 from typing import (
+    Callable,
     Iterator,
     overload
 )
@@ -20,36 +21,72 @@ from ..utils.space import SpaceUtils
 
 
 class BezierCurve(BSpline):
-    __slots__ = ()
+    __slots__ = ("_degree",)
 
     def __init__(
         self,
         control_points: Vec2sT
     ) -> None:
         degree = len(control_points) - 1
+        assert degree >= 0
         super().__init__(
             t=np.append(np.zeros(degree + 1), np.ones(degree + 1)),
             c=control_points,
             k=degree
         )
+        self._degree: int = degree
 
     @overload
-    def __call__(
+    def gamma(
         self,
         sample: float
     ) -> Vec2T: ...
 
     @overload
-    def __call__(
+    def gamma(
         self,
         sample: FloatsT
     ) -> Vec2sT: ...
 
-    def __call__(
+    def gamma(
         self,
         sample: float | FloatsT
     ) -> Vec2T | Vec2sT:
-        return super().__call__(sample)
+        return self.__call__(sample)
+
+    def get_sample_points(self) -> Vec2sT:
+        # Approximate the bezier curve with a polyline.
+
+        def smoothen_samples(
+            gamma: Callable[[FloatsT], Vec2sT],
+            samples: FloatsT,
+            bisect_depth: int
+        ) -> FloatsT:
+            # Bisect a segment if one of its endpoints has a turning angle above the threshold.
+            # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
+            if bisect_depth == 4:
+                return samples
+            points = gamma(samples)
+            directions = SpaceUtils.normalize(points[1:] - points[:-1])
+            angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
+            large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
+            if not len(large_angle_indices):
+                return samples
+            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain.from_iterable(
+                ((i, i + 1), (i + 1, i + 2))
+                for i in large_angle_indices
+            ))))
+            new_samples = np.average(samples[insertion_index_pairs], axis=1)
+            return smoothen_samples(gamma, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
+
+        if self._degree <= 1:
+            start_point = self.gamma(0.0)
+            stop_point = self.gamma(1.0)
+            if np.isclose(SpaceUtils.norm(stop_point - start_point), 0.0):
+                return np.array((start_point,))
+            return np.array((start_point, stop_point))
+        samples = smoothen_samples(self.gamma, np.linspace(0.0, 1.0, 3), 1)
+        return self.gamma(samples)
 
 
 class SVGMobject(ShapeMobject):
@@ -149,37 +186,6 @@ class SVGMobject(ShapeMobject):
         se_shape: se.Shape
     ) -> ShapeMobject:
 
-        def smoothen_samples(
-            curve: BezierCurve,
-            samples: FloatsT,
-            bisect_depth: int
-        ) -> FloatsT:
-            # Bisect a segment if one of its endpoints has a turning angle above the threshold.
-            # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
-            if bisect_depth == 4:
-                return samples
-            points = curve(samples)
-            directions = SpaceUtils.normalize(points[1:] - points[:-1])
-            angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
-            large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
-            if not len(large_angle_indices):
-                return samples
-            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain.from_iterable(
-                ((i, i + 1), (i + 1, i + 2))
-                for i in large_angle_indices
-            ))))
-            new_samples = np.average(samples[insertion_index_pairs], axis=1)
-            return smoothen_samples(curve, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
-
-        def get_bezier_sample_points(
-            control_points: Vec2sT
-        ) -> Vec2sT:
-            gamma = BezierCurve(control_points)
-            if np.isclose(SpaceUtils.norm(gamma(1.0) - gamma(0.0)), 0.0):
-                return np.array((gamma(0.0),))
-            samples = smoothen_samples(gamma, np.linspace(0.0, 1.0, 3), 1)
-            return gamma(samples)
-
         def iter_args_from_se_shape(
             se_shape: se.Shape
         ) -> Iterator[tuple[Vec2sT, bool]]:
@@ -188,22 +194,18 @@ class SVGMobject(ShapeMobject):
             points_list: list[Vec2T] = []
             is_ring: bool = False
             for segment in se_path.segments(transformed=True):
-                if isinstance(segment, se.Move):
-                    yield np.array(points_list), is_ring
-                    points_list = [np.array(segment.end)]
-                    is_ring = False
-                elif isinstance(segment, se.Close):
-                    is_ring = True
-                elif isinstance(segment, se.Line):
-                    points_list.append(np.array(segment.end))
-                else:
-                    if isinstance(segment, se.QuadraticBezier):
-                        control_points = [segment.start, segment.control, segment.end]
-                    elif isinstance(segment, se.CubicBezier):
-                        control_points = [segment.start, segment.control1, segment.control2, segment.end]
-                    else:
+                match segment:
+                    case se.Move(end=end):
+                        yield np.array(points_list), is_ring
+                        points_list = [np.array(end)]
+                        is_ring = False
+                    case se.Close():
+                        is_ring = True
+                    case se.Line() | se.QuadraticBezier() | se.CubicBezier():
+                        control_points = np.array(segment)
+                        points_list.extend(BezierCurve(control_points).get_sample_points()[1:])
+                    case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-                    points_list.extend(get_bezier_sample_points(np.array(control_points))[1:])
             yield np.array(points_list), is_ring
 
         return ShapeMobject(Shape(iter_args_from_se_shape(se_shape)))
