@@ -1,5 +1,6 @@
 import numpy as np
 
+from ..animations.animation import Scene
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
@@ -7,7 +8,6 @@ from ..rendering.framebuffer import (
     TransparentFramebuffer
 )
 from ..rendering.texture import TextureFactory
-from ..scene.scene import Scene
 
 
 class ChildSceneMobject(MeshMobject):

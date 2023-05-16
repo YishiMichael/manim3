@@ -32,4 +32,4 @@ VertexIndexT = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 ColorT = Color | str | Vec3T
 SelectorT = str | re.Pattern[str] | slice | Iterable[str | re.Pattern[str] | slice]
 
-TimelineT = Iterator[float]
+TimelineReturnT = Iterator[float]

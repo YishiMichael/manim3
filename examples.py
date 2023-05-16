@@ -2,11 +2,10 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from manim3 import *
-from manim3.custom_typing import TimelineT
 
 
 class ShapeTransformExample(Scene):
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         circle = (
             Circle()
             .set_style(color=Palette.PINK, opacity=0.9)
@@ -30,7 +29,7 @@ class ShapeTransformExample(Scene):
 
 
 class TexTransformExample(Scene):
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         text = (
             Text("Text")
             .scale(3)
@@ -62,7 +61,7 @@ class TexTransformExample(Scene):
 
 
 class CreateTexExample(Scene):
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         text = (
             Text("Text")
             .scale(3)
@@ -103,7 +102,7 @@ class Rotating(Animation):
 
 
 class ThreeDTextExample(Scene):
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         text = Text("Text").concatenate()
         text_3d = (
             MeshMobject()
@@ -120,7 +119,7 @@ class ThreeDTextExample(Scene):
 
 
 class OITExample(Scene):
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         self.add(*(
             (Circle()
                 .set_style(color=color, opacity=opacity)
@@ -137,9 +136,9 @@ class OITExample(Scene):
 
 
 class ChildSceneExample(Scene):
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         child_scene_1 = ThreeDTextExample()
-        child_scene_1.render_passes.append(PixelatedPass())
+        child_scene_1.render_passes.append(PixelatedPass())  # TODO
         self.prepare(child_scene_1)
         self.add(
             ChildSceneMobject(child_scene_1)
@@ -158,7 +157,7 @@ class ChildSceneExample(Scene):
         yield from self.wait(6)
 
 
-def main():
+def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
@@ -167,7 +166,7 @@ def main():
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    CreateTexExample.render(config)
+    ChildSceneExample.render(config)
 
 
 if __name__ == "__main__":

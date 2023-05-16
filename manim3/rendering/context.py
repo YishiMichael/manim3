@@ -37,17 +37,18 @@ class Context:
 
     _GL_VERSION: ClassVar[tuple[int, int]] = (4, 3)
     _GL_VERSION_CODE: ClassVar[int] = 430
-    _MGL_CONTEXT: ClassVar[moderngl.Context | None] = None
-    _WINDOW: ClassVar[Window | None] = None
-    _WINDOW_FRAMEBUFFER: ClassVar[moderngl.Framebuffer | None] = None
-    _WRITING_PROCESS: ClassVar[sp.Popen | None] = None
+
+    _mgl_context: ClassVar[moderngl.Context | None] = None
+    _window: ClassVar[Window | None] = None
+    _window_framebuffer: ClassVar[moderngl.Framebuffer | None] = None
+    _writing_process: ClassVar[sp.Popen | None] = None
 
     def __new__(cls):
         raise TypeError
 
     @classmethod
     def activate(cls) -> None:
-        if cls._MGL_CONTEXT is not None:
+        if cls._mgl_context is not None:
             return
 
         if ConfigSingleton().rendering.preview:
@@ -69,14 +70,14 @@ class Context:
             )
             window_framebuffer = None
         mgl_context.gc_mode = "auto"
-        cls._MGL_CONTEXT = mgl_context
-        cls._WINDOW = window
-        cls._WINDOW_FRAMEBUFFER = window_framebuffer
+        cls._mgl_context = mgl_context
+        cls._window = window
+        cls._window_framebuffer = window_framebuffer
 
     @classmethod
     def setup_writing_process(cls) -> None:
         scene_name = ConfigSingleton().rendering.scene_name
-        cls._WRITING_PROCESS = sp.Popen((
+        cls._writing_process = sp.Popen((
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
@@ -102,26 +103,26 @@ class Context:
 
     @classmethod
     @property
-    def _mgl_context(cls) -> moderngl.Context:
-        assert (mgl_context := cls._MGL_CONTEXT) is not None
+    def mgl_context(cls) -> moderngl.Context:
+        assert (mgl_context := cls._mgl_context) is not None
         return mgl_context
 
     @classmethod
     @property
     def window(cls) -> Window:
-        assert (window := cls._WINDOW) is not None
+        assert (window := cls._window) is not None
         return window
 
     @classmethod
     @property
     def window_framebuffer(cls) -> moderngl.Framebuffer:
-        assert (window_framebuffer := cls._WINDOW_FRAMEBUFFER) is not None
+        assert (window_framebuffer := cls._window_framebuffer) is not None
         return window_framebuffer
 
     @classmethod
     @property
     def writing_process(cls) -> sp.Popen:
-        assert (writing_process := cls._WRITING_PROCESS) is not None
+        assert (writing_process := cls._writing_process) is not None
         return writing_process
 
     @classmethod
@@ -129,7 +130,7 @@ class Context:
         cls,
         context_state: ContextState
     ) -> None:
-        context = Context._mgl_context
+        context = Context.mgl_context
         context.enable_only(reduce(op.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
         for index, ((src_blend_func, dst_blend_func), blend_equation) in enumerate(
             zip(context_state.blend_funcs, context_state.blend_equations, strict=True)
@@ -151,7 +152,7 @@ class Context:
     @classmethod
     @property
     def version_code(cls) -> int:
-        return cls._mgl_context.version_code
+        return cls.mgl_context.version_code
 
     @classmethod
     def texture(
@@ -161,7 +162,7 @@ class Context:
         components: int,
         dtype: str
     ) -> moderngl.Texture:
-        return cls._mgl_context.texture(
+        return cls.mgl_context.texture(
             size=size,
             components=components,
             dtype=dtype
@@ -173,7 +174,7 @@ class Context:
         *,
         size: tuple[int, int]
     ) -> moderngl.Texture:
-        return cls._mgl_context.depth_texture(
+        return cls.mgl_context.depth_texture(
             size=size
         )
 
@@ -184,7 +185,7 @@ class Context:
         color_attachments: tuple[moderngl.Texture, ...],
         depth_attachment: moderngl.Texture | None
     ) -> moderngl.Framebuffer:
-        return cls._mgl_context.framebuffer(
+        return cls.mgl_context.framebuffer(
             color_attachments=color_attachments,
             depth_attachment=depth_attachment
         )
@@ -192,7 +193,7 @@ class Context:
     @classmethod
     def buffer(cls) -> moderngl.Buffer:
         # TODO: what effect does `dynamic` flag take?
-        return cls._mgl_context.buffer(reserve=1, dynamic=True)
+        return cls.mgl_context.buffer(reserve=1, dynamic=True)
 
     @classmethod
     def program(
@@ -205,7 +206,7 @@ class Context:
         tess_evaluation_shader: str | None = None,
         varyings: tuple[str, ...] = ()
     ) -> moderngl.Program:
-        return cls._mgl_context.program(
+        return cls.mgl_context.program(
             vertex_shader=vertex_shader,
             fragment_shader=fragment_shader,
             geometry_shader=geometry_shader,
@@ -228,7 +229,7 @@ class Context:
         content = []
         if attribute_names:
             content.append((attributes_buffer, buffer_format_str, *attribute_names))
-        return cls._mgl_context.vertex_array(
+        return cls.mgl_context.vertex_array(
             program=program,
             content=content,
             index_buffer=index_buffer,
@@ -243,7 +244,7 @@ class Context:
         textures: tuple[tuple[moderngl.Texture, int], ...] = (),
         uniform_buffers: tuple[tuple[moderngl.Buffer, int], ...] = ()
     ) -> moderngl.Scope:
-        return cls._mgl_context.scope(
+        return cls.mgl_context.scope(
             framebuffer=framebuffer,
             textures=textures,
             uniform_buffers=uniform_buffers

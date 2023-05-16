@@ -4,19 +4,13 @@ from typing import Iterator
 import moderngl
 from PIL import Image
 
-from ..animations.animation import (
-    Animation,
-    AwaitSignal,
-    UpdaterItem,
-    UpdaterItemAppendSignal,
-    UpdaterItemRemoveSignal
-)
 from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
 from ..config import (
     Config,
     ConfigSingleton
 )
+
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
 from ..lighting.ambient_light import AmbientLight
@@ -29,10 +23,17 @@ from ..passes.render_pass import RenderPass
 from ..rendering.context import Context
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.texture import TextureFactory
+from ..scene.timeline import (
+    Timeline,
+    TimelineAwaitSignal,
+    TimelineItem,
+    TimelineItemAppendSignal,
+    TimelineItemRemoveSignal
+)
 from ..utils.rate import RateUtils
 
 
-class Scene(Animation):
+class Scene(Timeline):
     __slots__ = (
         "_scene_frame",
         "_camera",
@@ -49,7 +50,7 @@ class Scene(Animation):
         self._scene_frame: SceneFrame = SceneFrame()
         self._camera: Camera = PerspectiveCamera()
         self._lighting: Lighting = Lighting()
-        self.set_background(
+        self._scene_frame.set_style(
             color=ConfigSingleton().rendering.background_color
         )
 
@@ -71,16 +72,18 @@ class Scene(Animation):
                     time.sleep(sleep_time)
                 prev_real_time = time.time()
 
-        def update(
+        def animate(
             timestamp: float,
-            updater_items: list[UpdaterItem]
+            timeline_items: list[TimelineItem]
         ) -> None:
-            for updater_item in updater_items:
-                updater_item.updater(updater_item.absolute_rate(timestamp))
+            for timeline_item in timeline_items:
+                if (updater := timeline_item.timeline._updater) is not None:
+                    updater(timeline_item.absolute_rate(timestamp))
 
+        #AnimationItems.activate()
         absolute_timeline = self._absolute_timeline()
         state_final_timestamp = 0.0
-        updater_items: list[UpdaterItem] = []
+        timeline_items: list[TimelineItem] = []
         terminated: bool = False
         with TextureFactory.texture() as color_texture:
             for timestamp in frame_clock(
@@ -88,25 +91,28 @@ class Scene(Animation):
                 sleep=ConfigSingleton().rendering.preview
             ):
                 while state_final_timestamp <= timestamp:
-                    update(state_final_timestamp, updater_items)
+                    #timeline_items.animate(state_final_timestamp)
+                    animate(state_final_timestamp, timeline_items)
                     try:
                         state = next(absolute_timeline)
                     except StopIteration:
                         terminated = True
                         break
                     state_final_timestamp = state.timestamp
+                    #timeline_items.digest_signal(state.signal)
                     signal = state.signal
-                    if isinstance(signal, UpdaterItemAppendSignal):
-                        updater_items.append(signal.updater_item)
-                    elif isinstance(signal, UpdaterItemRemoveSignal):
-                        updater_items.remove(signal.updater_item)
-                    elif isinstance(signal, AwaitSignal):
+                    if isinstance(signal, TimelineItemAppendSignal):
+                        timeline_items.append(signal.timeline_item)
+                    elif isinstance(signal, TimelineItemRemoveSignal):
+                        timeline_items.remove(signal.timeline_item)
+                    elif isinstance(signal, TimelineAwaitSignal):
                         pass
                     else:
                         raise TypeError
                 if terminated:
                     break
-                update(timestamp, updater_items)
+                #timeline_items.animate(timestamp)
+                animate(timestamp, timeline_items)
 
                 self._render_to_texture(color_texture)
                 if ConfigSingleton().rendering.preview:

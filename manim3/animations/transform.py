@@ -1,7 +1,7 @@
 from typing import Callable
 
 from ..animations.animation import Animation
-from ..custom_typing import TimelineT
+from ..custom_typing import TimelineReturnT
 from ..mobjects.mobject import (
     Mobject,
     MobjectMeta
@@ -51,7 +51,7 @@ class Transform(Animation):
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
 
-    def timeline(self) -> TimelineT:
+    def timeline(self) -> TimelineReturnT:
         start_mobject = self._start_mobject
         stop_mobject = self._stop_mobject
         intermediate_mobject = self._intermediate_mobject

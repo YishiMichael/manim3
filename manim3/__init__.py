@@ -1,4 +1,7 @@
-from .animations.animation import Animation
+from .animations.animation import (
+    Animation,
+    Scene
+)
 from .animations.partial import (
     PartialCreate,
     PartialFlash,
@@ -84,8 +87,6 @@ from .rendering.mgl_enums import (
 from .rendering.texture import TextureFactory
 from .rendering.vertex_array import VertexArray
 
-from .scene.scene import Scene
-
 from .shape.line_string import MultiLineString
 from .shape.shape import Shape
 
@@ -120,7 +121,7 @@ from .custom_typing import (
     Mat3sT,
     Mat4T,
     Mat4sT,
-    TimelineT,
+    TimelineReturnT,
     Vec2T,
     Vec2sT,
     Vec3T,

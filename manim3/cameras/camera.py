@@ -21,28 +21,6 @@ from ..utils.space import SpaceUtils
 class Camera(LazyObject):
     __slots__ = ()
 
-    def __init__(
-        self,
-        *,
-        width: float | None = None,
-        height: float | None = None,
-        near: float | None = None,
-        far: float | None = None,
-        altitude: float | None = None
-    ) -> None:
-        super().__init__()
-        if width is not None:
-            self._width_ = width
-        if height is not None:
-            self._height_ = height
-        if near is not None:
-            self._near_ = near
-        if far is not None:
-            self._far_ = far
-        if altitude is not None:
-            self._altitude_ = altitude
-            self._eye_ = altitude * OUT
-
     @Lazy.variable_external
     @classmethod
     def _width_(cls) -> float:

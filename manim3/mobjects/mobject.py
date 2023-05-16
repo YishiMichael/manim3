@@ -941,7 +941,7 @@ class Mobject(LazyObject):
 
         # MeshMobject
         geometry: Geometry | None = None,
-        color_map: moderngl.Texture | None = None,
+        color_map: moderngl.Texture | None = None,  # TODO: clashes with `None` itself.
         enable_phong_lighting: bool | None = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
