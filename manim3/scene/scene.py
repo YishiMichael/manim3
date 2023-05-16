@@ -188,8 +188,8 @@ class Scene(Timeline):
 
     def set_background(
         self,
-        color: ColorT | None = None,
         *,
+        color: ColorT | None = None,
         opacity: float | None = None
     ):
         self._scene_frame.set_style(
@@ -206,6 +206,13 @@ class Scene(Timeline):
     @property
     def camera(self) -> Camera:
         return self._camera
+
+    def set_camera(
+        self,
+        camera: Camera
+    ):
+        self._camera = camera
+        return self
 
     @classmethod
     def render(

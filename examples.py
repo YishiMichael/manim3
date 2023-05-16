@@ -73,7 +73,6 @@ class CreateTexExample(Scene):
             .set_style(color=Palette.BLUE, width=0.04)
         )
         yield from self.wait()
-        self.add(text)
         yield from self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
         yield from self.wait()
         yield from self.play(PartialUncreate(text, run_time=2, rate_func=RateUtils.smooth, backwards=True))
@@ -138,7 +137,7 @@ class OITExample(Scene):
 class ChildSceneExample(Scene):
     def timeline(self) -> TimelineReturnT:
         child_scene_1 = ThreeDTextExample()
-        child_scene_1.render_passes.append(PixelatedPass())  # TODO
+        child_scene_1.render_passes.append(PixelatedPass())
         self.prepare(child_scene_1)
         self.add(
             ChildSceneMobject(child_scene_1)
@@ -166,7 +165,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample.render(config)
+    CreateTexExample.render(config)
 
 
 if __name__ == "__main__":

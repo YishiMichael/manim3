@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Callable
 
 import numpy as np
@@ -44,8 +45,9 @@ class PartialAnimation(Animation):
         )
         self._mobject: Mobject = mobject
 
+    @abstractmethod
     def timeline(self) -> TimelineReturnT:
-        yield from self.wait()
+        pass
 
 
 class PartialCreate(PartialAnimation):
@@ -72,6 +74,10 @@ class PartialCreate(PartialAnimation):
             run_time=run_time,
             rate_func=rate_func
         )
+
+    def timeline(self) -> TimelineReturnT:
+        self.scene.add(self._mobject)
+        yield from self.wait()
 
 
 class PartialUncreate(PartialAnimation):
@@ -100,7 +106,7 @@ class PartialUncreate(PartialAnimation):
         )
 
     def timeline(self) -> TimelineReturnT:
-        yield from super().timeline()
+        yield from self.wait()
         self._mobject.discarded_by(*self._mobject.iter_parents())
 
 
@@ -140,5 +146,6 @@ class PartialFlash(PartialAnimation):
         )
 
     def timeline(self) -> TimelineReturnT:
-        yield from super().timeline()
+        self.scene.add(self._mobject)
+        yield from self.wait()
         self._mobject.discarded_by(*self._mobject.iter_parents())

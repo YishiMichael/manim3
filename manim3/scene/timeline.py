@@ -1,3 +1,4 @@
+from abc import ABC
 from dataclasses import dataclass
 from typing import (
     Callable,
@@ -107,58 +108,7 @@ class TimelineManager:
         return timeline, timeline_start_alpha_dict[timeline], state_dict[timeline]
 
 
-#class TimelineItems:
-#    __slots__ = ("_items",)
-
-#    _instance: "ClassVar[TimelineItems | None]" = None
-
-#    def __init__(self) -> None:
-#        super().__init__()
-#        self._items: list[TimelineItem] = []
-
-#    def __enter__(self):
-#        cls = type(self)
-#        assert cls._instance is None
-#        cls._instance = self
-#        return self
-
-#    def __exit__(
-#        self,
-#        exc_type,
-#        exc_val,
-#        exc_tb
-#    ) -> None:
-#        cls = type(self)
-#        assert cls._instance is self
-#        cls._instance = None
-
-#    def digest_signal(
-#        self,
-#        signal: TimelineItemAppendSignal | TimelineItemRemoveSignal | TimelineAwaitSignal
-#    ) -> None:
-#        if isinstance(signal, TimelineItemAppendSignal):
-#            self._items.append(signal.timeline_item)
-#        elif isinstance(signal, TimelineItemRemoveSignal):
-#            self._items.remove(signal.timeline_item)
-
-#    def animate(
-#        self,
-#        timestamp: float
-#    ) -> None:
-#        for timeline_item in self._items:
-#            if (updater := timeline_item.timeline._updater) is not None:
-#                updater(timeline_item.absolute_rate(timestamp))
-
-#    @classmethod
-#    def current_scene(cls) -> "Scene":
-#        assert (self := cls._instance) is not None
-#        for timeline_item in reversed(self._items):
-#            if isinstance(timeline := timeline_item.timeline, Scene):
-#                return timeline
-#        raise ValueError
-
-
-class Timeline:
+class Timeline(ABC):
     __slots__ = (
         "_updater",
         "_run_time",
@@ -194,24 +144,10 @@ class Timeline:
         manager = TimelineManager()
         timeline_item_convert_dict: dict[TimelineItem, TimelineItem] = {}
 
-        #if self._updater is not None:
-        #    self_updater_item = UpdaterItem(
-        #        updater=self._updater,
-        #        absolute_rate=relative_rate
-        #    )
-        #else:
-        #    self_updater_item = None
         self_timeline_item = TimelineItem(
             timeline=self,
             absolute_rate=relative_rate
         )
-
-        #if self_updater_item is not None:
-        #    signal = UpdaterItemAppendSignal(
-        #        updater_item=self_updater_item
-        #    )
-        #else:
-        #    signal = TimelineAwaitSignal()
         yield TimelineState(
             timestamp=0.0,
             signal=TimelineItemAppendSignal(
@@ -278,12 +214,6 @@ class Timeline:
             if early_break:
                 break
 
-        #if self_updater_item is not None:
-        #    signal = UpdaterItemRemoveSignal(
-        #        updater_item=self_updater_item
-        #    )
-        #else:
-        #    signal = TimelineAwaitSignal()
         yield TimelineState(
             timestamp=relative_rate_inv(current_alpha),
             signal=TimelineItemRemoveSignal(
