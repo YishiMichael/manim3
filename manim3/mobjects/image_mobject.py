@@ -28,7 +28,7 @@ class ImageMobject(MeshMobject):
 
         self._geometry_ = PlaneGeometry()
         pixel_per_unit = ConfigSingleton().size.pixel_per_unit
-        x_scale, y_scale = self._get_frame_scale_vector(
+        scale_x, scale_y = self._get_frame_scale_vector(
             original_width=image.width / pixel_per_unit,
             original_height=image.height / pixel_per_unit,
             specified_width=width,
@@ -36,8 +36,8 @@ class ImageMobject(MeshMobject):
             specified_frame_scale=frame_scale
         )
         self.scale(np.array((
-            x_scale / 2.0,
-            -y_scale / 2.0,  # Flip y.
+            scale_x / 2.0,
+            -scale_y / 2.0,  # Flip y.
             1.0
         )))
 

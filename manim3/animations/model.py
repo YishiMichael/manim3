@@ -1,12 +1,11 @@
 from scipy.spatial.transform import Rotation
 
-from manim3.custom_typing import Vec3T
-
 from ..animations.animation import Animation
 from ..constants import (
     ORIGIN,
     OUT
 )
+from ..custom_typing import Vec3T
 from ..mobjects.mobject import Mobject
 from ..utils.space import SpaceUtils
 

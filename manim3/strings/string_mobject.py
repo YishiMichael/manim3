@@ -19,6 +19,7 @@ from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
 from ..custom_typing import SelectorT
+from ..mobjects.mobject import Align
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
@@ -271,7 +272,8 @@ class StringParser(ABC):
             string[start:stop]
             for start, stop in zip(
                 [interval_span.stop for interval_span in replaced_spans[:-1]],
-                [interval_span.start for interval_span in replaced_spans[1:]]
+                [interval_span.start for interval_span in replaced_spans[1:]],
+                strict=True
             )
         ]
 
@@ -574,8 +576,8 @@ class StringParser(ABC):
 
         plain_svg = SVGMobject().add(*plain_shapes)
         labelled_svg = SVGMobject().add(*labelled_shapes)
-        labelled_svg.move_to(plain_svg).stretch_to_fit_size(
-            2.0 * plain_svg.get_bounding_box().radius
+        labelled_svg.move_to(Align(mobject=plain_svg)).stretch_as(
+            plain_svg.get_bounding_box_size()
         )
 
         distance_matrix = cdist(
@@ -631,7 +633,7 @@ class StringParser(ABC):
         range_lens, group_labels = zip(*(
             (len(list(grouper)), val)
             for val, grouper in it.groupby(labelled_shape_item.label for labelled_shape_item in labelled_shape_items)
-        ))
+        ), strict=True)
         labelled_insertion_item_to_index_dict = {
             (replaced_item.labelled_item.label, replaced_item.edge_flag): index
             for index, replaced_item in enumerate(replaced_items)
@@ -667,7 +669,7 @@ class StringParser(ABC):
                 start_index=labelled_insertion_item_to_index_dict[start_item],
                 stop_index=labelled_insertion_item_to_index_dict[stop_item]
             ))
-            for start_item, stop_item in zip(start_items, stop_items)
+            for start_item, stop_item in zip(start_items, stop_items, strict=True)
         ]
         return list(zip(group_substrs, [
             [
@@ -675,7 +677,7 @@ class StringParser(ABC):
                 for labelled_shape_item in labelled_shape_items[slice(*part_range)]
             ]
             for part_range in it.pairwise((0, *it.accumulate(range_lens)))
-        ]))
+        ], strict=True))
 
     @classmethod
     def _iter_spans_by_selector(

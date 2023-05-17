@@ -17,7 +17,7 @@ from ..custom_typing import (
     ColorT,
     SelectorT
 )
-from ..mobjects.string_mobject import (
+from ..strings.string_mobject import (
     CommandFlag,
     EdgeFlag,
     StringFileWriter,

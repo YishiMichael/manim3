@@ -154,18 +154,18 @@ class SVGMobject(ShapeMobject):
                 origin_y
             )
 
-        x_min, y_min, x_max, y_max = bbox
-        origin_x = (x_min + x_max) / 2.0
-        origin_y = (y_min + y_max) / 2.0
-        radius_x = (x_max - x_min) / 2.0
-        radius_y = (y_max - y_min) / 2.0
+        min_x, min_y, max_x, max_y = bbox
+        origin_x = (min_x + max_x) / 2.0
+        origin_y = (min_y + max_y) / 2.0
+        radius_x = (max_x - min_x) / 2.0
+        radius_y = (max_y - min_y) / 2.0
         transform = ~perspective(
             origin_x=origin_x,
             origin_y=origin_y,
             radius_x=radius_x,
             radius_y=radius_y
         )
-        x_scale, y_scale = cls._get_frame_scale_vector(
+        scale_x, scale_y = cls._get_frame_scale_vector(
             original_width=radius_x * 2.0,
             original_height=radius_y * 2.0,
             specified_width=width,
@@ -175,8 +175,8 @@ class SVGMobject(ShapeMobject):
         transform *= perspective(
             origin_x=0.0,
             origin_y=0.0,
-            radius_x=x_scale * radius_x,
-            radius_y=-y_scale * radius_y  # Flip y.
+            radius_x=scale_x * radius_x,
+            radius_y=-scale_y * radius_y  # Flip y.
         )
         return transform
 

@@ -1,7 +1,10 @@
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..custom_typing import Mat4T
+from ..custom_typing import (
+    Mat4T,
+    Vec2T
+)
 from ..lazy.lazy import Lazy
 
 
@@ -12,13 +15,11 @@ class OrthographicCamera(Camera):
     @classmethod
     def _projection_matrix_(
         cls,
-        width: float,
-        height: float,
+        frame_radii: Vec2T,
         near: float,
         far: float
     ) -> Mat4T:
-        sx = 2.0 / width
-        sy = 2.0 / height
+        sx, sy = 1.0 / frame_radii
         sz = -2.0 / (far - near)
         tz = -(far + near) / (far - near)
         return np.array((

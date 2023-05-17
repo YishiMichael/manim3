@@ -78,11 +78,6 @@ from .mobjects.shapes import (
 )
 from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
-from .mobjects.tex_mobject import Tex
-from .mobjects.text_mobject import (
-    Code,
-    Text
-)
 
 from .passes.gaussian_blur_pass import GaussianBlurPass
 from .passes.pixelated_pass import PixelatedPass
@@ -109,6 +104,12 @@ from .rendering.vertex_array import VertexArray
 
 from .shape.line_string import MultiLineString
 from .shape.shape import Shape
+
+from .strings.tex_mobject import Tex
+from .strings.text_mobject import (
+    Code,
+    Text
+)
 
 from .utils.color import ColorUtils
 from .utils.rate import RateUtils

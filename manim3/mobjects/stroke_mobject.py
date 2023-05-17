@@ -281,7 +281,7 @@ class StrokeMobject(RenderableMobject):
             direction_angles_tuple, delta_angles_tuple = zip(*(
                 get_angles(position, is_ring)
                 for position, is_ring in zip(position_list, multi_line_string__line_strings__is_ring, strict=True)
-            ))
+            ), strict=True)
             all_position = np.concatenate(position_list)
             direction_angle = np.concatenate(direction_angles_tuple)
             threshold = PI / 2.0 - 1e-5
@@ -343,12 +343,12 @@ class StrokeMobject(RenderableMobject):
                 return list(it.chain.from_iterable(zip(*(
                     np.roll(range(points_len), -i)
                     for i in range(2)
-                ))))
+                ), strict=True)))
             # (0, 1, 1, 2, ..., n-2, n-1)
             return list(it.chain.from_iterable(zip(*(
                 range(i, points_len - 1 + i)
                 for i in range(2)
-            ))))
+            ), strict=True)))
 
         def join_index_getter(
             points_len: int,

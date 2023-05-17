@@ -83,6 +83,10 @@ class SizeConfig:
         return (self.frame_width, self.frame_height)
 
     @property
+    def frame_radii(self) -> tuple[float, float]:
+        return (self.frame_width / 2.0, self.frame_height / 2.0)
+
+    @property
     def pixel_width(self) -> float:
         return self.aspect_ratio * self.pixel_height
 

@@ -11,10 +11,9 @@ uniform sampler2D t_color_maps[NUM_T_COLOR_MAPS];
 #endif
 
 layout (std140) uniform ub_camera {
-    mat4 u_projection_matrix;
-    mat4 u_view_matrix;
+    mat4 u_projection_view_matrix;
     vec3 u_view_position;
-    vec2 u_frame_radius;
+    vec2 u_frame_radii;
 };
 #if NUM_U_AMBIENT_LIGHTS || NUM_U_POINT_LIGHTS
 layout (std140) uniform ub_lighting {
@@ -57,7 +56,7 @@ void main() {
     vs_out.uv = in_uv;
     vs_out.world_position = vec3(u_model_matrix * vec4(in_position, 1.0));
     vs_out.world_normal = mat3(transpose(inverse(u_model_matrix))) * in_normal;
-    gl_Position = u_projection_matrix * u_view_matrix * vec4(vs_out.world_position, 1.0);
+    gl_Position = u_projection_view_matrix * vec4(vs_out.world_position, 1.0);
 }
 
 

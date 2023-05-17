@@ -47,7 +47,12 @@ class PrismoidGeometry(ShapeGeometry):
             # Assemble side faces.
             ip_normal_pairs: list[tuple[int, Vec2T]] = []
             rotation_mat = np.array(((0.0, 1.0), (-1.0, 0.0)))
-            for ip, (p_prev, p, p_next) in enumerate(zip(np.roll(points_list, 1, axis=0), points_list, np.roll(points_list, -1, axis=0))):
+            for ip, (p_prev, p, p_next) in enumerate(zip(
+                np.roll(points_list, 1, axis=0),
+                points_list,
+                np.roll(points_list, -1, axis=0),
+                strict=True
+            )):
                 n0 = rotation_mat @ SpaceUtils.normalize(p - p_prev)
                 n1 = rotation_mat @ SpaceUtils.normalize(p_next - p)
 

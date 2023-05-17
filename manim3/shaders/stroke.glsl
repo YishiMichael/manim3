@@ -1,8 +1,7 @@
 layout (std140) uniform ub_camera {
-    mat4 u_projection_matrix;
-    mat4 u_view_matrix;
+    mat4 u_projection_view_matrix;
     vec3 u_view_position;
-    vec2 u_frame_radius;
+    vec2 u_frame_radii;
 };
 layout (std140) uniform ub_stroke {
     vec4 u_color;
@@ -67,7 +66,7 @@ const float winding_sign = sign(u_width) * u_winding_sign;  // Requires `u_width
 void emit_vertex_by_polar(vec3 center_position, float magnitude, float angle) {
     vec2 offset_vec = magnitude * vec2(cos(angle), sin(angle));
     gs_out.offset_vec = offset_vec;
-    gl_Position = vec4((center_position + vec3(width * offset_vec, 0.0)) / vec3(u_frame_radius, 1.0), 1.0);
+    gl_Position = vec4((center_position + vec3(width * offset_vec, 0.0)) / vec3(u_frame_radii, 1.0), 1.0);
     EmitVertex();
 }
 

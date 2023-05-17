@@ -21,11 +21,7 @@ class ChildSceneMobject(MeshMobject):
         self._scene: Scene = scene
         self._geometry_ = PlaneGeometry()
         self._enable_phong_lighting_ = False
-        self.scale(np.array((
-            scene.camera._width_.value / 2.0,
-            scene.camera._height_.value / 2.0,
-            1.0
-        )))
+        self.scale(np.append(scene.camera._frame_radii_.value, 1.0))
 
     def _render(
         self,

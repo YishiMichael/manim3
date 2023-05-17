@@ -1,7 +1,6 @@
 from colour import Color
 import re
 from typing import (
-    Coroutine,
     Iterable,
     Literal
 )

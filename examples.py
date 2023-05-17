@@ -107,7 +107,7 @@ class ThreeDTextExample(Scene):
             MeshMobject()
             .set_style(geometry=PrismoidGeometry(text.shape))
             .scale(5.0)
-            .stretch_to_fit_depth(0.5)
+            .stretch_as(0.5, coor_mask=Z_AXIS)
             .set_style(color="#00FFAA44")
         )
         self.add(AmbientLight().set_style(opacity=0.3))
@@ -177,7 +177,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    LaggedAnimationExample.render(config)
+    ChildSceneExample.render(config)
 
 
 if __name__ == "__main__":

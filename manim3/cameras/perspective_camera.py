@@ -1,7 +1,10 @@
 import numpy as np
 
 from ..cameras.camera import Camera
-from ..custom_typing import Mat4T
+from ..custom_typing import (
+    Mat4T,
+    Vec2T
+)
 from ..lazy.lazy import Lazy
 
 
@@ -12,14 +15,12 @@ class PerspectiveCamera(Camera):
     @classmethod
     def _projection_matrix_(
         cls,
-        width: float,
-        height: float,
+        frame_radii: Vec2T,
         near: float,
         far: float,
         altitude: float
     ) -> Mat4T:
-        sx = 2.0 * altitude / width
-        sy = 2.0 * altitude / height
+        sx, sy = altitude / frame_radii
         sz = -(far + near) / (far - near)
         tz = -2.0 * far * near / (far - near)
         return np.array((
