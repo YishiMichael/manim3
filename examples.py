@@ -25,7 +25,7 @@ class ShapeTransformExample(Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(ReplacementTransform(square, circle, run_time=2, rate_func=RateUtils.smooth))
         await self.wait()
 
 
@@ -54,10 +54,9 @@ class TexTransformExample(Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(ReplacementTransform(text, tex, run_time=2, rate_func=RateUtils.smooth))
         await self.wait()
-        tex_copy = tex.copy().shift(RIGHT * 2)
-        await self.play(Transform(tex, tex_copy, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(Transform(tex, tex.copy().shift(RIGHT * 2), run_time=2, rate_func=RateUtils.smooth))
         await self.wait(3)
 
 
@@ -157,6 +156,18 @@ class ChildSceneExample(Scene):
         await self.wait(6)
 
 
+class LaggedAnimationExample(Scene):
+    async def timeline(self) -> None:
+        text = Text("Text").scale(3).set_style(opacity=1.0)
+        await self.wait()
+        self.add(text)
+        await self.play(LaggedParallel(*(
+            TransformFrom(char.copy().shift(DOWN).set_style(opacity=0.0), char)
+            for char in text
+        ), lag_time=0.4, rate_func=RateUtils.smooth))
+        await self.wait()
+
+
 def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
@@ -166,7 +177,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ShapeTransformExample.render(config)
+    LaggedAnimationExample.render(config)
 
 
 if __name__ == "__main__":

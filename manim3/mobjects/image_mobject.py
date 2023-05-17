@@ -1,7 +1,6 @@
 import numpy as np
 from PIL import Image
 
-from ..constants import X_AXIS
 from ..config import ConfigSingleton
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
@@ -36,7 +35,11 @@ class ImageMobject(MeshMobject):
             specified_height=height,
             specified_frame_scale=frame_scale
         )
-        self.scale(np.array((x_scale, y_scale, 1.0))).flip(X_AXIS)
+        self.scale(np.array((
+            x_scale / 2.0,
+            -y_scale / 2.0,  # Flip y.
+            1.0
+        )))
 
     def _render(
         self,

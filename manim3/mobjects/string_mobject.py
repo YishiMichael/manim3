@@ -56,6 +56,12 @@ class Span:
         self.start: int = start
         self.stop: int = stop
 
+    def __contains__(
+        self,
+        span: "Span"
+    ) -> bool:
+        return self.start <= span.start and self.stop >= span.stop
+
     def as_slice(self) -> slice:
         return slice(self.start, self.stop)
 
@@ -635,9 +641,7 @@ class StringParser(ABC):
             (group_labels[0], EdgeFlag.START),
             *(
                 (curr_label, EdgeFlag.START)
-                if cls._span_contains(
-                    label_to_span_dict[prev_label], label_to_span_dict[curr_label]
-                )
+                if label_to_span_dict[curr_label] in label_to_span_dict[prev_label]
                 else (prev_label, EdgeFlag.STOP)
                 for prev_label, curr_label in it.pairwise(group_labels)
             )
@@ -645,9 +649,7 @@ class StringParser(ABC):
         stop_items = [
             *(
                 (curr_label, EdgeFlag.STOP)
-                if cls._span_contains(
-                    label_to_span_dict[next_label], label_to_span_dict[curr_label]
-                )
+                if label_to_span_dict[curr_label] in label_to_span_dict[next_label]
                 else (next_label, EdgeFlag.START)
                 for curr_label, next_label in it.pairwise(group_labels)
             ),
@@ -686,38 +688,29 @@ class StringParser(ABC):
             sel: str | re.Pattern[str] | slice,
             string: str
         ) -> Iterator[Span]:
-            if isinstance(sel, str):
-                for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
-                    yield Span(*match_obj.span())
-            elif isinstance(sel, re.Pattern):
-                for match_obj in sel.finditer(string):
-                    yield Span(*match_obj.span())
-            elif isinstance(sel, slice):
-                start = sel.start
-                stop = sel.stop
-                assert isinstance(start, int | None)
-                assert isinstance(stop, int | None)
-                if start is None or start < 0:
-                    start = 0
-                if stop is None or stop > len(string):
-                    stop = len(string)
-                yield Span(start, stop)
-            else:
-                raise TypeError(f"Invalid selector: '{sel}'")
+            match sel:
+                case str():
+                    for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
+                        yield Span(*match_obj.span())
+                case re.Pattern():
+                    for match_obj in sel.finditer(string):
+                        yield Span(*match_obj.span())
+                case slice(start=start, stop=stop):
+                    assert isinstance(start, int | None)
+                    assert isinstance(stop, int | None)
+                    if start is None or start < 0:
+                        start = 0
+                    if stop is None or stop > len(string):
+                        stop = len(string)
+                    yield Span(start, stop)
+                case _:
+                    raise TypeError(f"Invalid selector: '{sel}'")
 
         if isinstance(selector, str | re.Pattern | slice):
             yield from iter_spans_by_single_selector(selector, string)
         else:
             for sel in selector:
                 yield from iter_spans_by_single_selector(sel, string)
-
-    @classmethod
-    def _span_contains(
-        cls,
-        span_0: Span,
-        span_1: Span
-    ) -> bool:
-        return span_0.start <= span_1.start and span_0.stop >= span_1.stop
 
     @classmethod
     def _get_shape_mobject_list_by_span(
@@ -728,7 +721,7 @@ class StringParser(ABC):
         return [
             shape_item.shape_mobject
             for shape_item in shape_items
-            if cls._span_contains(arbitrary_span, shape_item.span)
+            if shape_item.span in arbitrary_span
         ]
 
     # Implemented in subclasses.

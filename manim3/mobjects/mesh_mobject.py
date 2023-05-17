@@ -8,10 +8,8 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..lazy.lazy import Lazy
 from ..lighting.lighting import Lighting
-from ..mobjects.mobject import (
-    Mobject,
-    MobjectMeta
-)
+from ..mobjects.mobject import MobjectMeta
+from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
@@ -27,7 +25,7 @@ from ..rendering.vertex_array import (
 from ..utils.space import SpaceUtils
 
 
-class MeshMobject(Mobject):
+class MeshMobject(RenderableMobject):
     __slots__ = ()
 
     @MobjectMeta.register(
@@ -48,7 +46,7 @@ class MeshMobject(Mobject):
 
     @MobjectMeta.register(
         interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((Mobject._is_transparent_, True),)
+        related_styles=((RenderableMobject._is_transparent_, True),)
     )
     @Lazy.variable_external
     @classmethod

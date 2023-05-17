@@ -20,12 +20,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 from shapely import Geometry
 
-from ..cameras.camera import Camera
 from ..constants import (
     ORIGIN,
-    PI,
-    RIGHT
+    PI
 )
+from ..config import ConfigSingleton
 from ..custom_typing import (
     ColorT,
     Mat4T,
@@ -38,10 +37,6 @@ from ..lazy.lazy import (
     LazyObject,
     LazyVariableDescriptor,
     LazyWrapper
-)
-from ..rendering.framebuffer import (
-    OpaqueFramebuffer,
-    TransparentFramebuffer
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
 from ..shape.line_string import MultiLineString
@@ -78,6 +73,76 @@ class BoundingBox:
         # For zero-width dimensions of radius, thicken a little bit to avoid zero division.
         radius[np.isclose(radius, 0.0)] = 1e-8
         return radius
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class About:
+    point: Vec3T | None = None
+    direction: Vec3T | None = None
+    #mobject: "Mobject | None" = None
+
+    def get_about_point(
+        self,
+        mobject: "Mobject"
+    ) -> Vec3T | None:
+        match self.point, self.direction:
+            case np.ndarray() as point, None:
+                return point
+            case None, np.ndarray() as direction:
+                return mobject.get_bounding_box_point(direction)
+            case None, None:
+                return None
+            case _:
+                raise ValueError("Can specify at most one of `point` and `direction` in `About` object")
+        #if self.point is not None:
+        #    return self.point
+        #if self.direction is not None:
+        #    #if self.mobject is not None:
+        #    #    mobject = self.mobject
+        #    return mobject.get_bounding_box_point(self.direction)
+        #return None
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class Align:
+    point: Vec3T | None = None
+    mobject: "Mobject | None" = None
+    border: Vec3T | None = None
+    direction: Vec3T = ORIGIN
+    buff: float = 0.0
+    coor_mask: Vec3T | None = None
+
+    def get_target_point(self) -> Vec3T:
+        match self.point, self.mobject, self.border:
+            case np.ndarray() as point, None, None:
+                return point
+            case None, Mobject() as mobject, None:
+                return mobject.get_bounding_box_point(self.direction)
+            case None, None, np.ndarray() as border:
+                return border * np.append(ConfigSingleton().size.frame_size, 0.0) / 2.0
+            case _:
+                raise ValueError("Can specify exactly one of `point`, `mobject` and `edge` in `Align` object")
+
+    def get_shift_vector(
+        self,
+        mobject: "Mobject",
+        direction_sign: float
+    ) -> Vec3T:
+        target_point = self.get_target_point()
+        direction = direction_sign * self.direction
+        point_to_align = mobject.get_bounding_box_point(direction)
+        vector = target_point - (point_to_align + self.buff * direction)
+        if (coor_mask := self.coor_mask) is not None:
+            vector *= coor_mask
+        return vector
 
 
 class MobjectMeta:
@@ -220,7 +285,8 @@ class MobjectMeta:
     def _set_style(
         cls,
         mobjects: "Iterable[Mobject]",
-        style: dict[str, Any]
+        style: dict[str, Any],
+        handle_related_styles: bool
     ) -> None:
         values = {
             f"_{key}_": value if isinstance(value, LazyObject) else LazyWrapper(value)
@@ -237,9 +303,10 @@ class MobjectMeta:
                 if related_styles is None:
                     continue
                 descriptor.__set__(mobject, style_value)
-                for related_style_descriptor, related_style_value in related_styles:
-                    if related_style_descriptor.method.__name__ not in values:
-                        related_style_descriptor.__set__(mobject, related_style_value)
+                if handle_related_styles:
+                    for related_style_descriptor, related_style_value in related_styles:
+                        if related_style_descriptor.method.__name__ not in values:
+                            related_style_descriptor.__set__(mobject, related_style_value)
 
 
 class Mobject(LazyObject):
@@ -467,15 +534,7 @@ class Mobject(LazyObject):
         self._refresh_families(*descendants_copy)
         return result
 
-    def copy_standalone(self):
-        # Copy without any real descendant. The result is not bound to any mobject.
-        result = self._copy()
-        result._children_.clear()
-        result._parents.clear()
-        self._refresh_families(result)
-        return result
-
-    # matrix & transform
+    # bounding box
 
     @MobjectMeta.register(
         interpolate_method=SpaceUtils.lerp_mat4
@@ -589,27 +648,41 @@ class Mobject(LazyObject):
     ) -> Vec3T:
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
+    # transform
+
     @classmethod
     def get_relative_transform_matrix(
         cls,
         matrix: Mat4T,
-        about_point: Vec3T
+        about_point: Vec3T | None
     ) -> Mat4T:
+        if about_point is None:
+            return matrix
         return reduce(np.ndarray.__matmul__, (
             SpaceUtils.matrix_from_translation(about_point),
             matrix,
             SpaceUtils.matrix_from_translation(-about_point)
         ))
 
+    #def get_about_point(
+    #    self,
+    #    about_point: Vec3T | None = None,
+    #    about_edge: Vec3T | None = None,
+    #    broadcast: bool = True
+    #) -> Vec3T | None:
+    #    if about_edge is not None:
+    #        if about_point is not None:
+    #            raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
+    #        about_point = self.get_bounding_box_point(about_edge, broadcast=broadcast)
+    #    return about_point
+
     def apply_transform(
         self,
         matrix: Mat4T,
-        *,
-        broadcast: bool = True
     ):
         # Avoid redundant caculations.
         transform_dict: dict[LazyWrapper[Mat4T], LazyWrapper[Mat4T]] = {}
-        for mobject in self.iter_descendants(broadcast=broadcast):
+        for mobject in self.iter_descendants():
             original_matrix = mobject._model_matrix_
             if (transformed_matrix := transform_dict.get(original_matrix)) is None:
                 transformed_matrix = LazyWrapper(matrix @ original_matrix.value)
@@ -620,29 +693,16 @@ class Mobject(LazyObject):
     def apply_relative_transform(
         self,
         matrix: Mat4T,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
+        about: About
     ):
-        # Defaults to `about_point=ORIGIN`.
-        if about_point is None:
-            if about_edge is None:
-                about_point = ORIGIN
-            else:
-                about_point = self.get_bounding_box_point(about_edge, broadcast=broadcast)
-        elif about_edge is not None:
-            raise AttributeError("Cannot specify both parameters `about_point` and `about_edge`")
-
         relative_matrix = self.get_relative_transform_matrix(
             matrix=matrix,
-            about_point=about_point
+            about_point=about.get_about_point(mobject=self)
         )
         if np.isclose(np.linalg.det(relative_matrix), 0.0):
             warnings.warn("Applying a singular matrix transform")
         self.apply_transform(
-            matrix=relative_matrix,
-            broadcast=broadcast
+            matrix=relative_matrix
         )
         return self
 
@@ -650,195 +710,154 @@ class Mobject(LazyObject):
 
     def shift(
         self,
-        vector: Vec3T,
-        *,
-        coor_mask: Vec3T | None = None,
-        broadcast: bool = True
+        vector: Vec3T
+        #*,
+        #coor_mask: Vec3T | None = None
     ):
-        if coor_mask is not None:
-            vector *= coor_mask
+        #if coor_mask is not None:
+        #    vector *= coor_mask
         matrix = SpaceUtils.matrix_from_translation(vector)
-        # `about_point` and `about_edge` are meaningless when shifting.
+        # `about` is meaningless for shifting.
         self.apply_relative_transform(
             matrix=matrix,
-            broadcast=broadcast
+            about=About()
         )
         return self
 
     def move_to(
         self,
-        mobject_or_point: "Mobject | Vec3T",
-        aligned_edge: Vec3T = ORIGIN,
-        *,
-        coor_mask: Vec3T | None = None,
-        broadcast: bool = True
+        #about: About,
+        #buff: float = 0.0,
+        #mobject_or_point: "Mobject | Vec3T",
+        #aligned_edge: Vec3T = ORIGIN,
+        align: Align
+        #*,
+        #coor_mask: Vec3T | None = None
     ):
-        if isinstance(mobject_or_point, Mobject):
-            target_point = mobject_or_point.get_bounding_box_point(aligned_edge, broadcast=broadcast)
-        else:
-            target_point = mobject_or_point
-        point_to_align = self.get_bounding_box_point(aligned_edge, broadcast=broadcast)
-        vector = target_point - point_to_align
+        #if isinstance(mobject_or_point, Mobject):
+        #    target_point = mobject_or_point.get_bounding_box_point(aligned_edge, broadcast=broadcast)
+        #else:
+        #    target_point = mobject_or_point
+        #target_point = about.get_about_point(self)
+        #assert target_point is not None
+        #aligned_edge = edge if (edge := about.edge) is not None else ORIGIN
+        #point_to_align = self.get_bounding_box_point(aligned_edge)
+        #vector = target_point - point_to_align
         self.shift(
-            vector=vector,
-            coor_mask=coor_mask,
-            broadcast=broadcast
-        )
-        return self
-
-    def center(
-        self,
-        *,
-        coor_mask: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        self.move_to(
-            mobject_or_point=ORIGIN,
-            coor_mask=coor_mask,
-            broadcast=broadcast
+            vector=align.get_shift_vector(mobject=self, direction_sign=1.0)
         )
         return self
 
     def next_to(
         self,
-        mobject_or_point: "Mobject | Vec3T",
-        direction: Vec3T = RIGHT,
-        buff: float = 0.25,
-        *,
-        coor_mask: Vec3T | None = None,
-        broadcast: bool = True
+        #mobject_or_point: "Mobject | Vec3T",
+        #direction: Vec3T = RIGHT,
+        #about: About,
+        #buff: float = 0.0,
+        align: Align
+        #*,
+        #coor_mask: Vec3T | None = None
+        #broadcast: bool = True
     ):
-        if isinstance(mobject_or_point, Mobject):
-            target_point = mobject_or_point.get_bounding_box_point(direction, broadcast=broadcast)
-        else:
-            target_point = mobject_or_point
-        point_to_align = self.get_bounding_box_point(-direction, broadcast=broadcast)
-        vector = target_point - point_to_align + buff * direction
+        #if isinstance(mobject_or_point, Mobject):
+        #    target_point = mobject_or_point.get_bounding_box_point(direction, broadcast=broadcast)
+        #else:
+        #    target_point = mobject_or_point
+        #target_point = about.get_about_point(self)
+        #assert target_point is not None
+        #direction = edge if (edge := about.edge) is not None else ORIGIN
+        #point_to_align = self.get_bounding_box_point(-direction)
+        #vector = target_point - point_to_align + buff * direction
         self.shift(
-            vector=vector,
-            coor_mask=coor_mask,
-            broadcast=broadcast
+            vector=align.get_shift_vector(mobject=self, direction_sign=-1.0)
         )
         return self
+
+    #def center(
+    #    self,
+    #    *,
+    #    coor_mask: Vec3T | None = None
+    #):
+    #    self.move_to(
+    #        align=Align(point=ORIGIN)
+    #    )
+    #    return self
 
     # scale relatives
 
     def scale(
         self,
         factor: float | Vec3T,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
+        about: About = About()
     ):
         matrix = SpaceUtils.matrix_from_scale(factor)
         self.apply_relative_transform(
             matrix=matrix,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
-        )
-        return self
-
-    def scale_about_origin(
-        self,
-        factor: float | Vec3T,
-        *,
-        broadcast: bool = True
-    ):
-        self.scale(
-            factor=factor,
-            about_point=ORIGIN,
-            broadcast=broadcast
+            about=about
         )
         return self
 
     def stretch_to_fit_size(
         self,
         target_size: Vec3T,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
+        about: About = About()
     ):
-        factor_vector = target_size / self.get_bounding_box_size(broadcast=broadcast)
+        factor_vector = target_size / self.get_bounding_box_size()
         self.scale(
             factor=factor_vector,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
+            about=about
         )
         return self
 
-    def stretch_to_fit_dim(
-        self,
-        target_length: float,
-        dim: int,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        factor_vector = np.ones(3)
-        factor_vector[dim] = target_length / self.get_bounding_box_size(broadcast=broadcast)[dim]
-        self.scale(
-            factor=factor_vector,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
-        )
-        return self
+    #def stretch_to_fit_dim(
+    #    self,
+    #    target_length: float,
+    #    dim: int,
+    #    about: About = About()
+    #):
+    #    factor_vector = np.ones(3)
+    #    factor_vector[dim] = target_length / self.get_bounding_box_size()[dim]
+    #    self.scale(
+    #        factor=factor_vector,
+    #        about=about
+    #    )
+    #    return self
 
-    def stretch_to_fit_width(
-        self,
-        target_length: float,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        self.stretch_to_fit_dim(
-            target_length=target_length,
-            dim=0,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
-        )
-        return self
+    #def stretch_to_fit_width(
+    #    self,
+    #    target_length: float,
+    #    about: About = About()
+    #):
+    #    self.stretch_to_fit_dim(
+    #        target_length=target_length,
+    #        dim=0,
+    #        about=about
+    #    )
+    #    return self
 
-    def stretch_to_fit_height(
-        self,
-        target_length: float,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        self.stretch_to_fit_dim(
-            target_length=target_length,
-            dim=1,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
-        )
-        return self
+    #def stretch_to_fit_height(
+    #    self,
+    #    target_length: float,
+    #    about: About = About()
+    #):
+    #    self.stretch_to_fit_dim(
+    #        target_length=target_length,
+    #        dim=1,
+    #        about=about
+    #    )
+    #    return self
 
-    def stretch_to_fit_depth(
-        self,
-        target_length: float,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
-    ):
-        self.stretch_to_fit_dim(
-            target_length=target_length,
-            dim=2,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
-        )
-        return self
+    #def stretch_to_fit_depth(
+    #    self,
+    #    target_length: float,
+    #    about: About = About()
+    #):
+    #    self.stretch_to_fit_dim(
+    #        target_length=target_length,
+    #        dim=2,
+    #        about=about
+    #    )
+    #    return self
 
     @classmethod
     def _get_frame_scale_vector(
@@ -868,57 +887,25 @@ class Mobject(LazyObject):
     def rotate(
         self,
         rotation: Rotation,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
+        about: About = About()
     ):
         matrix = SpaceUtils.matrix_from_rotation(rotation)
         self.apply_relative_transform(
             matrix=matrix,
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
+            about=about
         )
         return self
 
     def flip(
         self,
         axis: Vec3T,
-        *,
-        about_point: Vec3T | None = None,
-        about_edge: Vec3T | None = None,
-        broadcast: bool = True
+        about: About = About()
     ):
         self.rotate(
             rotation=Rotation.from_rotvec(SpaceUtils.normalize(axis) * PI),
-            about_point=about_point,
-            about_edge=about_edge,
-            broadcast=broadcast
+            about=about
         )
         return self
-
-    # render
-
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
-    @Lazy.variable_shared
-    @classmethod
-    def _is_transparent_(cls) -> bool:
-        return False
-
-    @Lazy.variable
-    @classmethod
-    def _camera_(cls) -> Camera:  # Keep updated with `Scene._camera`.
-        return Camera()
-
-    def _render(
-        self,
-        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
-    ) -> None:
-        # Implemented in subclasses.
-        pass
 
     # meta methods
 
@@ -935,6 +922,8 @@ class Mobject(LazyObject):
 
         # Mobject
         model_matrix: Mat4T | None = None,
+
+        # RenderableMobject
         is_transparent: bool | None = None,
 
         # MeshMobject
@@ -956,7 +945,8 @@ class Mobject(LazyObject):
         dilate: float | None = None,
 
         broadcast: bool = True,
-        type_filter: "type[Mobject] | None" = None
+        type_filter: "type[Mobject] | None" = None,
+        handle_related_styles: bool = True
     ):
         color_component, opacity_component = ColorUtils.standardize_color_input(color, opacity)
         if type_filter is None:
@@ -980,14 +970,11 @@ class Mobject(LazyObject):
                 "single_sided": single_sided,
                 "has_linecap": has_linecap,
                 "dilate": dilate
-            }
+            },
+            handle_related_styles=handle_related_styles
         )
         return self
 
     @property
     def model_matrix(self) -> Mat4T:
         return self._model_matrix_.value
-
-    @property
-    def is_transparent(self) -> bool:
-        return self._is_transparent_.value

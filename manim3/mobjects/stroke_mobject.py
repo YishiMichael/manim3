@@ -12,10 +12,8 @@ from ..custom_typing import (
     VertexIndexT
 )
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import (
-    Mobject,
-    MobjectMeta
-)
+from ..mobjects.mobject import MobjectMeta
+from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
@@ -35,7 +33,7 @@ from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
 
 
-class StrokeMobject(Mobject):
+class StrokeMobject(RenderableMobject):
     __slots__ = ()
 
     def __init__(
@@ -66,7 +64,7 @@ class StrokeMobject(Mobject):
 
     @MobjectMeta.register(
         interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((Mobject._is_transparent_, True),)
+        related_styles=((RenderableMobject._is_transparent_, True),)
     )
     @Lazy.variable_external
     @classmethod
@@ -99,7 +97,7 @@ class StrokeMobject(Mobject):
 
     @MobjectMeta.register(
         interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((Mobject._is_transparent_, True),)
+        related_styles=((RenderableMobject._is_transparent_, True),)
     )
     @Lazy.variable_external
     @classmethod

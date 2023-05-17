@@ -49,13 +49,14 @@ class RateUtils:
         func: Callable[[float], float],
         *,
         lag_time: float = 0.0,
-        run_time_scale: float = 1.0
+        run_time_scale: float = 1.0,
+        run_alpha_scale: float = 1.0
     ) -> Callable[[float], float]:
 
         def result(
             t: float
         ) -> float:
-            return func((t - lag_time) / run_time_scale)
+            return func((t - lag_time) / run_time_scale) * run_alpha_scale
 
         return result
 

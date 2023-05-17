@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Callable
 
 from ..animations.animation import Animation
@@ -8,7 +9,7 @@ from ..mobjects.mobject import (
 from ..utils.rate import RateUtils
 
 
-class Transform(Animation):
+class TransformABC(Animation):
     __slots__ = (
         "_start_mobject",
         "_stop_mobject",
@@ -19,21 +20,20 @@ class Transform(Animation):
         self,
         start_mobject: Mobject,
         stop_mobject: Mobject,
+        intermediate_mobject: Mobject,
         *,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        intermediate_mobject: Mobject = Mobject()
-        callbacks: list[Callable[[float], None]] = []
-        # Requires descendants of `start_mobject` and `stop_mobject` perfectly aligned.
-        for descendant_0, descendant_1 in zip(
-            start_mobject.iter_descendants(),
-            stop_mobject.iter_descendants(),
-            strict=True
-        ):
-            intermediate_descendant = descendant_0.copy_standalone()
-            intermediate_mobject.add(intermediate_descendant)
-            callbacks.append(MobjectMeta._interpolate(descendant_0, descendant_1)(intermediate_descendant))
+        callbacks = tuple(
+            MobjectMeta._interpolate(start_descendant, stop_descendant)(intermediate_descendant)
+            for start_descendant, stop_descendant, intermediate_descendant in zip(
+                start_mobject.iter_descendants(),
+                stop_mobject.iter_descendants(),
+                intermediate_mobject.iter_descendants(),
+                strict=True
+            )
+        )
 
         def updater(
             alpha: float
@@ -49,6 +49,76 @@ class Transform(Animation):
         self._start_mobject: Mobject = start_mobject
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
+
+    @abstractmethod
+    async def timeline(self) -> None:
+        pass
+
+
+class Transform(TransformABC):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        start_mobject: Mobject,
+        stop_mobject: Mobject,
+        *,
+        run_time: float = 1.0,
+        rate_func: Callable[[float], float] = RateUtils.linear
+    ) -> None:
+        super().__init__(
+            start_mobject=start_mobject,
+            stop_mobject=stop_mobject,
+            intermediate_mobject=start_mobject,
+            run_time=run_time,
+            rate_func=rate_func
+        )
+
+    async def timeline(self) -> None:
+        await self.wait()
+
+
+class TransformFrom(TransformABC):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        start_mobject: Mobject,
+        stop_mobject: Mobject,
+        *,
+        run_time: float = 1.0,
+        rate_func: Callable[[float], float] = RateUtils.linear
+    ) -> None:
+        super().__init__(
+            start_mobject=start_mobject,
+            stop_mobject=stop_mobject,
+            intermediate_mobject=stop_mobject,
+            run_time=run_time,
+            rate_func=rate_func
+        )
+
+    async def timeline(self) -> None:
+        await self.wait()
+
+
+class ReplacementTransform(TransformABC):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        start_mobject: Mobject,
+        stop_mobject: Mobject,
+        *,
+        run_time: float = 1.0,
+        rate_func: Callable[[float], float] = RateUtils.linear
+    ) -> None:
+        super().__init__(
+            start_mobject=start_mobject,
+            stop_mobject=stop_mobject,
+            intermediate_mobject=start_mobject.copy(),
+            run_time=run_time,
+            rate_func=rate_func
+        )
 
     async def timeline(self) -> None:
         start_mobject = self._start_mobject

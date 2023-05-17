@@ -1,10 +1,28 @@
-from .animations.animation import Animation
+from .animations.animation import (
+    Animation,
+    Scene
+)
+from .animations.composition import (
+    Lagged,
+    LaggedParallel,
+    Parallel,
+    Series,
+    Wait
+)
+from .animations.fade import (
+    FadeIn,
+    FadeOut
+)
 from .animations.partial import (
     PartialCreate,
     PartialFlash,
     PartialUncreate
 )
-from .animations.transform import Transform
+from .animations.transform import (
+    ReplacementTransform,
+    Transform,
+    TransformFrom
+)
 
 from .cameras.camera import Camera
 from .cameras.orthographic_camera import OrthographicCamera
@@ -31,7 +49,11 @@ from .lighting.point_light import PointLight
 from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mesh_mobject import MeshMobject
-from .mobjects.mobject import Mobject
+from .mobjects.mobject import (
+    About,
+    Align,
+    Mobject
+)
 from .mobjects.polyhedra import (
     Cube,
     Dodecahedron,
@@ -40,6 +62,7 @@ from .mobjects.polyhedra import (
     Polyhedron,
     Tetrahedron
 )
+from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.scene_frame import SceneFrame
 from .mobjects.shape_mobject import ShapeMobject
 from .mobjects.shapes import (
@@ -83,8 +106,6 @@ from .rendering.mgl_enums import (
 )
 from .rendering.texture import TextureFactory
 from .rendering.vertex_array import VertexArray
-
-from .scene.scene import Scene
 
 from .shape.line_string import MultiLineString
 from .shape.shape import Shape

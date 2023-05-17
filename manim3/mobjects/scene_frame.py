@@ -7,6 +7,7 @@ from ..mobjects.mobject import (
     Mobject,
     MobjectMeta
 )
+from ..mobjects.renderable_mobject import RenderableMobject
 from ..passes.render_pass import RenderPass
 from ..rendering.context import (
     Context,
@@ -37,8 +38,7 @@ class SceneFrame(Mobject):
         return np.ones(3)
 
     @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((Mobject._is_transparent_, True),)
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
@@ -83,9 +83,9 @@ class SceneFrame(Mobject):
     ) -> None:
         # Inspired from `https://github.com/ambrosiogabe/MathAnimation`
         # `./Animations/src/renderer/Renderer.cpp`.
-        opaque_mobjects: list[Mobject] = []
-        transparent_mobjects: list[Mobject] = []
-        for mobject in self.iter_descendants():
+        opaque_mobjects: list[RenderableMobject] = []
+        transparent_mobjects: list[RenderableMobject] = []
+        for mobject in self.iter_descendants_by_type(RenderableMobject):
             if not mobject._has_local_sample_points_.value:
                 continue
             if mobject._is_transparent_.value:

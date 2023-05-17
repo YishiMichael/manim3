@@ -22,8 +22,8 @@ class ChildSceneMobject(MeshMobject):
         self._geometry_ = PlaneGeometry()
         self._enable_phong_lighting_ = False
         self.scale(np.array((
-            scene.camera._width_.value,
-            scene.camera._height_.value,
+            scene.camera._width_.value / 2.0,
+            scene.camera._height_.value / 2.0,
             1.0
         )))
 

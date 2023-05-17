@@ -11,7 +11,7 @@ from ..mobjects.mobject import (
 from ..utils.rate import RateUtils
 
 
-class PartialAnimation(Animation):
+class PartialABC(Animation):
     __slots__ = ("_mobject",)
 
     def __init__(
@@ -23,10 +23,10 @@ class PartialAnimation(Animation):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        callbacks = [
+        callbacks = tuple(
             MobjectMeta._partial(descendant)(descendant)
             for descendant in mobject.iter_descendants()
-        ]
+        )
 
         def updater(
             alpha: float
@@ -49,7 +49,7 @@ class PartialAnimation(Animation):
         pass
 
 
-class PartialCreate(PartialAnimation):
+class PartialCreate(PartialABC):
     __slots__ = ()
 
     def __init__(
@@ -75,11 +75,11 @@ class PartialCreate(PartialAnimation):
         )
 
     async def timeline(self) -> None:
-        self.scene.add(self._mobject)
+        self.add_to_scene(self._mobject)
         await self.wait()
 
 
-class PartialUncreate(PartialAnimation):
+class PartialUncreate(PartialABC):
     __slots__ = ()
 
     def __init__(
@@ -106,10 +106,10 @@ class PartialUncreate(PartialAnimation):
 
     async def timeline(self) -> None:
         await self.wait()
-        self._mobject.discarded_by(*self._mobject.iter_parents())
+        self.discard_from_scene(self._mobject)
 
 
-class PartialFlash(PartialAnimation):
+class PartialFlash(PartialABC):
     __slots__ = ()
 
     def __init__(
@@ -145,6 +145,6 @@ class PartialFlash(PartialAnimation):
         )
 
     async def timeline(self) -> None:
-        self.scene.add(self._mobject)
+        self.add_to_scene(self._mobject)
         await self.wait()
-        self._mobject.discarded_by(*self._mobject.iter_parents())
+        self.discard_from_scene(self._mobject)

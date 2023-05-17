@@ -21,8 +21,7 @@ class AmbientLight(Mobject):
         return np.ones(3)
 
     @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((Mobject._is_transparent_, True),)
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
