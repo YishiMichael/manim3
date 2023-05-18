@@ -137,12 +137,11 @@ class ChildSceneExample(Scene):
 
 class LaggedAnimationExample(Scene):
     async def timeline(self) -> None:
-        text = Text("Text").scale(3).set_style(opacity=1.0).shift(DOWN)
-        await self.wait()
+        text = Text("Text").scale(3).set_style(opacity=1.0)
         await self.play(LaggedParallel(*(
             Parallel(
                 FadeIn(char),
-                Shift(char, UP)
+                Shift(char, UP, towards=True)
             )
             for char in text
         ), lag_time=0.4, rate_func=RateUtils.smooth))

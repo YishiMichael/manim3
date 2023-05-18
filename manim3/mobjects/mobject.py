@@ -133,30 +133,6 @@ class AboutEdge(AboutABC):
         return mobject.get_bounding_box_point(self._edge)
 
 
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class About:
-#    point: Vec3T | None = None
-#    direction: Vec3T | None = None
-
-#    def _get_about_point(
-#        self,
-#        mobject: "Mobject"
-#    ) -> Vec3T | None:
-#        match self.point, self.direction:
-#            case np.ndarray() as point, None:
-#                return point
-#            case None, np.ndarray() as direction:
-#                return mobject.get_bounding_box_point(direction)
-#            case None, None:
-#                return None
-#            case _:
-#                raise ValueError("Can specify at most one of `point` and `direction` in `About` object")
-
-
 class AlignABC(ABC):
     __slots__ = (
         "_direction",
@@ -230,41 +206,6 @@ class AlignBorder(AlignABC):
 
     def _get_target_point(self) -> Vec3T:
         return self._direction * np.append(ConfigSingleton().size.frame_radii, 0.0)
-
-
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class Align:
-#    point: Vec3T | None = None
-#    mobject: "Mobject | None" = None
-#    border: bool = False
-#    direction: Vec3T = ORIGIN
-#    buff: float | Vec3T = 0.0
-
-#    def _get_target_point(self) -> Vec3T:
-#        direction = self.direction
-#        match self.point, self.mobject, self.border:
-#            case np.ndarray() as point, None, False:
-#                return point
-#            case None, Mobject() as mobject, False:
-#                return mobject.get_bounding_box_point(direction)
-#            case None, None, True:
-#                return direction * np.append(ConfigSingleton().size.frame_radii, 0.0)
-#            case _:
-#                raise ValueError("Can specify exactly one of `point`, `mobject` and `border=True` in `Align` object")
-
-#    def _get_shift_vector(
-#        self,
-#        mobject: "Mobject",
-#        direction_sign: float
-#    ) -> Vec3T:
-#        target_point = self._get_target_point()
-#        direction = direction_sign * self.direction
-#        point_to_align = mobject.get_bounding_box_point(direction)
-#        return target_point - (point_to_align + self.buff * direction)
 
 
 class MobjectMeta:
