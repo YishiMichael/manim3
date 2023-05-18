@@ -150,10 +150,10 @@ class CameraConfig:
 )
 class TexConfig:
     use_mathjax: bool
-    preamble: str
+    preamble: str | None
     template: str
-    alignment: str
-    environment: str
+    alignment: str | None
+    environment: str | None
     base_color: ColorT
     font_size: float
 
@@ -166,7 +166,7 @@ class TextConfig:
     justify: bool
     indent: float
     alignment: str
-    line_width: float
+    line_width: float | None
     font_size: float
     font: str
     slant: str
@@ -230,7 +230,7 @@ class Config:
             justify=False,
             indent=0.0,
             alignment="LEFT",
-            line_width=-1,
+            line_width=None,
             font_size=48,
             font="Consolas",
             slant="NORMAL",

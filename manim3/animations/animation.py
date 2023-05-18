@@ -1,6 +1,7 @@
 from abc import ABC
 import asyncio
 from dataclasses import dataclass
+from enum import Enum
 from typing import (
     Callable,
     Iterator
@@ -32,14 +33,10 @@ from ..rendering.texture import TextureFactory
 from ..utils.rate import RateUtils
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class TimelineItem:
-    updater: Callable[[float], None] | None
-    absolute_rate: Callable[[float], float]
+class TimelineState(Enum):
+    START = 1
+    STOP = -1
+    AWAIT = 0
 
 
 @dataclass(
@@ -47,88 +44,63 @@ class TimelineItem:
     kw_only=True,
     slots=True
 )
-class TimelineAppendItemSignal:
-    timeline_item: TimelineItem
-
-
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class TimelineRemoveItemSignal:
-    timeline_item: TimelineItem
-
-
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class TimelineAwaitSignal:
-    pass
-
-
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class TimelineState:
+class TimelineSignal:
     timestamp: float
-    signal: TimelineAppendItemSignal | TimelineRemoveItemSignal | TimelineAwaitSignal
+    animation: "Animation"
+    absolute_rate: Callable[[float], float] | None
+    timeline_state: TimelineState
 
 
 class TimelineManager:
     __slots__ = (
         "start_alpha_dict",
-        "state_dict"
+        "signal_dict"
     )
 
     def __init__(self) -> None:
         super().__init__()
-        self.start_alpha_dict: dict[Iterator[TimelineState], float] = {}
-        self.state_dict: dict[Iterator[TimelineState], TimelineState] = {}
+        self.start_alpha_dict: dict[Iterator[TimelineSignal], float] = {}
+        self.signal_dict: dict[Iterator[TimelineSignal], TimelineSignal] = {}
 
-    def add_state_timeline(
+    def add_signal_timeline(
         self,
-        state_timeline: Iterator[TimelineState],
+        signal_timeline: Iterator[TimelineSignal],
         start_alpha: float
     ) -> None:
         try:
-            state = next(state_timeline)
+            signal = next(signal_timeline)
         except StopIteration:
             return
-        self.start_alpha_dict[state_timeline] = start_alpha
-        self.state_dict[state_timeline] = state
+        self.start_alpha_dict[signal_timeline] = start_alpha
+        self.signal_dict[signal_timeline] = signal
 
-    def advance_state(
+    def advance_to_next_signal(
         self,
-        state_timeline: Iterator[TimelineState]
+        signal_timeline: Iterator[TimelineSignal]
     ) -> None:
         try:
-            state = next(state_timeline)
+            signal = next(signal_timeline)
         except StopIteration:
-            self.start_alpha_dict.pop(state_timeline)
-            self.state_dict.pop(state_timeline)
+            self.start_alpha_dict.pop(signal_timeline)
+            self.signal_dict.pop(signal_timeline)
             return
-        self.state_dict[state_timeline] = state
+        self.signal_dict[signal_timeline] = signal
 
     def is_not_empty(self) -> bool:
-        return bool(self.state_dict)
+        return bool(self.signal_dict)
 
-    def get_next_state_timeline_item(self) -> tuple[Iterator[TimelineState], float, TimelineState]:
+    def get_next_signal_timeline_item(self) -> tuple[Iterator[TimelineSignal], float, TimelineSignal]:
         start_alpha_dict = self.start_alpha_dict
-        state_dict = self.state_dict
+        signal_dict = self.signal_dict
 
         def get_next_alpha(
-            state_timeline: Iterator[TimelineState]
+            signal_timeline: Iterator[TimelineSignal]
         ) -> float:
-            next_alpha = start_alpha_dict[state_timeline] + state_dict[state_timeline].timestamp
+            next_alpha = start_alpha_dict[signal_timeline] + signal_dict[signal_timeline].timestamp
             return round(next_alpha, 3)  # Avoid floating error.
 
-        state_timeline = min(state_dict, key=get_next_alpha)
-        return state_timeline, start_alpha_dict[state_timeline], state_dict[state_timeline]
+        signal_timeline = min(signal_dict, key=get_next_alpha)
+        return signal_timeline, start_alpha_dict[signal_timeline], signal_dict[signal_timeline]
 
 
 class Animation(ABC):
@@ -174,31 +146,25 @@ class Animation(ABC):
         except StopIteration:
             pass
 
-    def _state_timeline(self) -> Iterator[TimelineState]:
+    def _signal_timeline(self) -> Iterator[TimelineSignal]:
         relative_rate = self._relative_rate
         relative_rate_inv = RateUtils.inverse(relative_rate)
         run_alpha = relative_rate(self._run_time) if self._run_time is not None else None
         current_alpha = relative_rate(0.0)
         assert current_alpha >= 0.0
-
         manager = TimelineManager()
-        timeline_item_convert_dict: dict[TimelineItem, TimelineItem] = {}
 
-        self_timeline_item = TimelineItem(
-            updater=self._updater,
-            absolute_rate=relative_rate
-        )
-        yield TimelineState(
+        yield TimelineSignal(
             timestamp=0.0,
-            signal=TimelineAppendItemSignal(
-                timeline_item=self_timeline_item
-            )
+            animation=self,
+            absolute_rate=relative_rate,
+            timeline_state=TimelineState.START
         )
 
         for wait_delta_alpha in self._wait_timeline():
             for child in self._new_children:
-                manager.add_state_timeline(
-                    state_timeline=child._state_timeline(),
+                manager.add_signal_timeline(
+                    signal_timeline=child._signal_timeline(),
                     start_alpha=current_alpha
                 )
             self._new_children.clear()
@@ -212,51 +178,42 @@ class Animation(ABC):
                 early_break = False
 
             while manager.is_not_empty():
-                state_timeline, timeline_start_alpha, state = manager.get_next_state_timeline_item()
-                next_alpha = timeline_start_alpha + state.timestamp
+                signal_timeline, timeline_start_alpha, signal = manager.get_next_signal_timeline_item()
+                next_alpha = timeline_start_alpha + signal.timestamp
                 if next_alpha > current_alpha:
                     break
 
-                match state.signal:
-                    case TimelineAppendItemSignal(timeline_item=timeline_item):
-                        new_timeline_item = TimelineItem(
-                            updater=timeline_item.updater,
-                            absolute_rate=RateUtils.compose(
-                                RateUtils.adjust(timeline_item.absolute_rate, lag_time=timeline_start_alpha),
-                                relative_rate
-                            )
-                        )
-                        timeline_item_convert_dict[timeline_item] = new_timeline_item
-                        new_signal = TimelineAppendItemSignal(
-                            timeline_item=new_timeline_item
-                        )
-                    case TimelineRemoveItemSignal(timeline_item=timeline_item):
-                        new_timeline_item = timeline_item_convert_dict.pop(timeline_item)
-                        new_signal = TimelineRemoveItemSignal(
-                            timeline_item=new_timeline_item
-                        )
-                    case TimelineAwaitSignal():
-                        new_signal = TimelineAwaitSignal()
+                if (absolute_rate := signal.absolute_rate) is not None:
+                    new_absolute_rate = RateUtils.compose(
+                        RateUtils.adjust(absolute_rate, lag_time=timeline_start_alpha),
+                        relative_rate
+                    )
+                else:
+                    new_absolute_rate = None
 
-                yield TimelineState(
+                yield TimelineSignal(
                     timestamp=relative_rate_inv(next_alpha),
-                    signal=new_signal
+                    animation=signal.animation,
+                    absolute_rate=new_absolute_rate,
+                    timeline_state=signal.timeline_state
                 )
-                manager.advance_state(state_timeline)
+                manager.advance_to_next_signal(signal_timeline)
 
-            yield TimelineState(
+            yield TimelineSignal(
                 timestamp=relative_rate_inv(current_alpha),
-                signal=TimelineAwaitSignal()
+                animation=self,
+                absolute_rate=None,
+                timeline_state=TimelineState.AWAIT
             )
 
             if early_break:
                 break
 
-        yield TimelineState(
+        yield TimelineSignal(
             timestamp=relative_rate_inv(current_alpha),
-            signal=TimelineRemoveItemSignal(
-                timeline_item=self_timeline_item
-            )
+            animation=self,
+            absolute_rate=None,
+            timeline_state=TimelineState.STOP
         )
 
     @property
@@ -292,7 +249,7 @@ class Animation(ABC):
         for animation in animations:
             assert not animation._is_prepared_flag
             animation._is_prepared_flag = True
-            if not animation._scene_ref is None:
+            if animation._scene_ref is None:
                 animation._scene_ref = self._scene_ref
         self._new_children.extend(animations)
 
@@ -311,7 +268,8 @@ class Animation(ABC):
         await self.wait(animation._play_run_time)
 
     async def timeline(self) -> None:
-        await self.wait(1024)  # Wait forever...
+        # Wait forever. Default timeline for infinite animation.
+        await self.wait(600)
 
 
 class Scene(Animation):
@@ -350,43 +308,45 @@ class Scene(Animation):
                 yield frame_index * spf, sleep_time
                 frame_index += 1
 
-        state_timeline = self._state_timeline()
-        timeline_items: list[TimelineItem] = []
+        signal_timeline = self._signal_timeline()
+        animation_dict: dict[Animation, Callable[[float], float]] = {}
 
         def animate(
             timestamp: float
         ) -> None:
-            for timeline_item in timeline_items:
-                if (updater := timeline_item.updater) is not None:
-                    updater(timeline_item.absolute_rate(timestamp))
+            for animation, absolute_rate in animation_dict.items():
+                if (updater := animation._updater) is not None:
+                    updater(absolute_rate(timestamp))
 
         def digest_signal(
-            signal: TimelineAppendItemSignal | TimelineRemoveItemSignal | TimelineAwaitSignal
+            signal: TimelineSignal
         ) -> None:
-            match signal:
-                case TimelineAppendItemSignal(timeline_item=timeline_item):
-                    timeline_items.append(timeline_item)
-                case TimelineRemoveItemSignal(timeline_item=timeline_item):
-                    timeline_items.remove(timeline_item)
-                case TimelineAwaitSignal():
+            match signal.timeline_state:
+                case TimelineState.START:
+                    assert signal.animation not in animation_dict
+                    assert signal.absolute_rate is not None
+                    animation_dict[signal.animation] = signal.absolute_rate
+                case TimelineState.STOP:
+                    animation_dict.pop(signal.animation)
+                case TimelineState.AWAIT:
                     pass
 
         async def run_frame(
             clock_timestamp: float,
-            state_timestamp: float,
+            signal_timestamp: float,
             color_texture: moderngl.Texture
         ) -> float | None:
             await asyncio.sleep(0.0)
 
-            next_state_timestamp = state_timestamp
-            while next_state_timestamp <= clock_timestamp:
-                animate(next_state_timestamp)
+            next_signal_timestamp = signal_timestamp
+            while next_signal_timestamp <= clock_timestamp:
+                animate(next_signal_timestamp)
                 try:
-                    state = next(state_timeline)
+                    signal = next(signal_timeline)
                 except StopIteration:
                     return None
-                next_state_timestamp = state.timestamp
-                digest_signal(state.signal)
+                next_signal_timestamp = signal.timestamp
+                digest_signal(signal)
             animate(clock_timestamp)
 
             self._render_to_texture(color_texture)
@@ -395,25 +355,25 @@ class Scene(Animation):
             if ConfigSingleton().rendering.write_video:
                 self._write_to_writing_process(color_texture)
 
-            return next_state_timestamp
+            return next_signal_timestamp
 
         async def run_frames(
             color_texture: moderngl.Texture
         ) -> None:
-            state_timestamp = 0.0
+            signal_timestamp = 0.0
             for clock_timestamp, sleep_time in frame_clock(
                 fps=ConfigSingleton().rendering.fps,
                 sleep=ConfigSingleton().rendering.preview
             ):
-                state_timestamp, _ = await asyncio.gather(
+                signal_timestamp, _ = await asyncio.gather(
                     run_frame(
                         clock_timestamp,
-                        state_timestamp,
+                        signal_timestamp,
                         color_texture
                     ),
                     asyncio.sleep(sleep_time)
                 )
-                if state_timestamp is None:
+                if signal_timestamp is None:
                     break
 
             self._render_to_texture(color_texture)
@@ -431,13 +391,13 @@ class Scene(Animation):
 
         camera = self._camera
         for mobject in scene_frame.iter_descendants_by_type(mobject_type=RenderableMobject):
-            mobject._camera_ = camera
+            mobject._camera_uniform_block_buffer_ = camera._camera_uniform_block_buffer_
 
         lighting = self._lighting
         lighting._ambient_lights_ = scene_frame.iter_descendants_by_type(mobject_type=AmbientLight)
         lighting._point_lights_ = scene_frame.iter_descendants_by_type(mobject_type=PointLight)
         for mobject in scene_frame.iter_descendants_by_type(mobject_type=MeshMobject):
-            mobject._lighting_ = lighting
+            mobject._lighting_uniform_block_buffer_ = lighting._lighting_uniform_block_buffer_
 
         framebuffer = ColorFramebuffer(
             color_texture=color_texture

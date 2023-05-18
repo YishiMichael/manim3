@@ -165,7 +165,7 @@ class SVGMobject(ShapeMobject):
             radius_x=radius_x,
             radius_y=radius_y
         )
-        scale_x, scale_y = cls._get_frame_scale_vector(
+        scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
             original_width=radius_x * 2.0,
             original_height=radius_y * 2.0,
             specified_width=width,

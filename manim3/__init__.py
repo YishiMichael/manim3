@@ -13,6 +13,14 @@ from .animations.fade import (
     FadeIn,
     FadeOut
 )
+from .animations.model import (
+    Rotate,
+    Rotating,
+    Scale,
+    Scaling,
+    Shift,
+    Shifting
+)
 from .animations.partial import (
     PartialCreate,
     PartialFlash,
@@ -50,8 +58,12 @@ from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mesh_mobject import MeshMobject
 from .mobjects.mobject import (
-    About,
-    Align,
+    AboutEdge,
+    AboutOrigin,
+    AboutPoint,
+    AlignBorder,
+    AlignMobject,
+    AlignPoint,
     Mobject
 )
 from .mobjects.polyhedra import (

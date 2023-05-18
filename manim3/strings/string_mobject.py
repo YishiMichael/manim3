@@ -19,7 +19,7 @@ from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
 from ..custom_typing import SelectorT
-from ..mobjects.mobject import Align
+from ..mobjects.mobject import AlignMobject
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
@@ -576,7 +576,7 @@ class StringParser(ABC):
 
         plain_svg = SVGMobject().add(*plain_shapes)
         labelled_svg = SVGMobject().add(*labelled_shapes)
-        labelled_svg.move_to(Align(mobject=plain_svg)).stretch_as(
+        labelled_svg.move_to(AlignMobject(plain_svg)).scale_to(
             plain_svg.get_bounding_box_size()
         )
 

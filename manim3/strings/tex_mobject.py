@@ -59,17 +59,17 @@ class TexFileWriter(StringFileWriter):
     def __init__(
         self,
         use_mathjax: bool,
-        preamble: str,
+        preamble: str | None,
         template: str,
-        alignment: str,
-        environment: str
+        alignment: str | None,
+        environment: str | None
     ) -> None:
         super().__init__()
         self._use_mathjax: bool = use_mathjax
-        self._preamble: str = preamble
+        self._preamble: str | None = preamble
         self._template: str = template
-        self._alignment: str = alignment
-        self._environment: str = environment
+        self._alignment: str | None = alignment
+        self._environment: str | None = environment
 
     def get_svg_path(
         self,
@@ -116,18 +116,23 @@ class TexFileWriter(StringFileWriter):
         # Write tex file.
         tex_path = svg_path.with_suffix(".tex")
         with tex_path.open(mode="w", encoding="utf-8") as tex_file:
-            alignment = self._alignment
-            environment = self._environment
-            full_content = "\n".join(filter(lambda s: s, (
+            if (environment := self._environment) is not None:
+                begin_environment = f"\\begin{{{environment}}}"
+                end_environment = f"\\end{{{environment}}}"
+            else:
+                begin_environment = None
+                end_environment = None
+            content_pieces = (
                 self._preamble,
                 tex_template.preamble,
                 "\\begin{document}",
-                alignment,
-                f"\\begin{{{environment}}}" if environment else "",
+                self._alignment,
+                begin_environment,
                 content,
-                f"\\end{{{environment}}}" if environment else "",
+                end_environment,
                 "\\end{document}"
-            ))) + "\n"
+            )
+            full_content = "\n".join(s for s in content_pieces if s is not None) + "\n"
             tex_file.write(full_content)
 
         try:
@@ -361,35 +366,35 @@ class Tex(StringMobject):
         *,
         isolate: SelectorT = (),
         protect: SelectorT = (),
-        tex_to_color_map: dict[str, ColorT] | None = None,
-        use_mathjax: bool | None = None,
-        preamble: str | None = None,
-        template: str | None = None,
-        alignment: str | None = None,
-        environment: str | None = None,
-        base_color: ColorT | None = None,
-        font_size: float | None = None
+        tex_to_color_map: dict[str, ColorT] = ...,
+        use_mathjax: bool = ...,
+        preamble: str | None = ...,
+        template: str = ...,
+        alignment: str | None = ...,
+        environment: str | None = ...,
+        base_color: ColorT = ...,
+        font_size: float = ...
     ) -> None:
         # Prevent from passing an empty string.
         if not string.strip():
             string = "\\\\"
-        if tex_to_color_map is None:
+        if tex_to_color_map is ...:
             tex_to_color_map = {}
 
         config = ConfigSingleton().tex
-        if use_mathjax is None:
+        if use_mathjax is ...:
             use_mathjax = config.use_mathjax
-        if preamble is None:
+        if preamble is ...:
             preamble = config.preamble
-        if template is None:
+        if template is ...:
             template = config.template
-        if alignment is None:
+        if alignment is ...:
             alignment = config.alignment
-        if environment is None:
+        if environment is ...:
             environment = config.environment
-        if base_color is None:
+        if base_color is ...:
             base_color = config.base_color
-        if font_size is None:
+        if font_size is ...:
             font_size = config.font_size
 
         frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT

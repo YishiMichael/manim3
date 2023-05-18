@@ -127,7 +127,7 @@ class StrokeMobject(RenderableMobject):
     def _stroke_preprocess_vertex_array_(
         cls,
         all_points: Vec3sT,
-        _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _camera_uniform_block_buffer_: UniformBlockBuffer,
         _model_uniform_block_buffer_: UniformBlockBuffer
     ) -> VertexArray:
         indexed_attributes_buffer = IndexedAttributesBuffer(
@@ -151,7 +151,7 @@ class StrokeMobject(RenderableMobject):
         return VertexArray(
             shader_filename="stroke_preprocess",
             uniform_block_buffers=[
-                _camera__camera_uniform_block_buffer_,
+                _camera_uniform_block_buffer_,
                 _model_uniform_block_buffer_
             ],
             indexed_attributes_buffer=indexed_attributes_buffer,
@@ -307,7 +307,7 @@ class StrokeMobject(RenderableMobject):
         width: float,
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
-        _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
+        _camera_uniform_block_buffer_: UniformBlockBuffer,
         _stroke_uniform_block_buffer_: UniformBlockBuffer,
         _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
         is_transparent: bool,
@@ -367,7 +367,7 @@ class StrokeMobject(RenderableMobject):
             return [0, points_len - 1]
 
         uniform_block_buffers = [
-            _camera__camera_uniform_block_buffer_,
+            _camera_uniform_block_buffer_,
             _stroke_uniform_block_buffer_,
             _winding_sign_uniform_block_buffer_
         ]

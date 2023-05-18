@@ -106,13 +106,13 @@ class MarkupTextFileWriter(StringFileWriter):
         justify: bool,
         indent: float,
         alignment: PangoAlignment,
-        line_width: float
+        line_width: float | None
     ) -> None:
         super().__init__()
         self._justify: bool = justify
         self._indent: float = indent
         self._alignment: PangoAlignment = alignment
-        self._line_width: float = line_width
+        self._line_width: float | None = line_width
 
     def get_svg_path(
         self,
@@ -140,7 +140,7 @@ class MarkupTextFileWriter(StringFileWriter):
             indent=self._indent,
             alignment=self._alignment,
             pango_width=(
-                -1 if (line_width := self._line_width) < 0.0
+                -1 if (line_width := self._line_width) is None
                 else line_width * ConfigSingleton().size.pixel_per_unit
             )
         )
@@ -381,47 +381,47 @@ class Text(StringMobject):
         *,
         isolate: SelectorT = (),
         protect: SelectorT = (),
-        local_configs: dict[SelectorT, dict[str, str]] | None = None,
-        justify: bool | None = None,
-        indent: float | None = None,
-        alignment: str | None = None,
-        line_width: float | None = None,
-        font_size: float | None = None,
-        font: str | None = None,
-        slant: str | None = None,
-        weight: str | None = None,
-        base_color: ColorT | None = None,
-        line_spacing_height: float | None = None,
-        global_config: dict[str, str] | None = None,
+        local_configs: dict[SelectorT, dict[str, str]] = ...,
+        justify: bool = ...,
+        indent: float = ...,
+        alignment: str = ...,
+        line_width: float | None = ...,
+        font_size: float = ...,
+        font: str = ...,
+        slant: str = ...,
+        weight: str = ...,
+        base_color: ColorT = ...,
+        line_spacing_height: float = ...,
+        global_config: dict[str, str] = ...,
         markup: bool = False
     ) -> None:
         if markup:
             PangoUtils.validate_markup_string(string)
-        if local_configs is None:
+        if local_configs is ...:
             local_configs = {}
 
         config = ConfigSingleton().text
-        if justify is None:
+        if justify is ...:
             justify = config.justify
-        if indent is None:
+        if indent is ...:
             indent = config.indent
-        if alignment is None:
+        if alignment is ...:
             alignment = config.alignment
-        if line_width is None:
+        if line_width is ...:
             line_width = config.line_width
-        if font_size is None:
+        if font_size is ...:
             font_size = config.font_size
-        if font is None:
+        if font is ...:
             font = config.font
-        if slant is None:
+        if slant is ...:
             slant = config.slant
-        if weight is None:
+        if weight is ...:
             weight = config.weight
-        if base_color is None:
+        if base_color is ...:
             base_color = config.base_color
-        if line_spacing_height is None:
+        if line_spacing_height is ...:
             line_spacing_height = config.line_spacing_height
-        if global_config is None:
+        if global_config is ...:
             global_config = config.global_config
 
         global_attrs = self._get_global_attrs(
@@ -493,14 +493,14 @@ class Code(Text):
         self,
         code: str,
         *,
-        language: str | None = None,
-        code_style: str | None = None,
+        language: str = ...,
+        code_style: str = ...,
         **kwargs
     ) -> None:
         config = ConfigSingleton().text
-        if language is None:
+        if language is ...:
             language = config.language
-        if code_style is None:
+        if code_style is ...:
             code_style = config.code_style
 
         lexer = pygments.lexers.get_lexer_by_name(language)

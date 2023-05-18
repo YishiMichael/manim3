@@ -98,8 +98,9 @@ class MeshMobject(RenderableMobject):
 
     @Lazy.variable
     @classmethod
-    def _lighting_(cls) -> Lighting:  # Keep updated with `Scene._lighting`.
-        return Lighting()
+    def _lighting_uniform_block_buffer_(cls) -> UniformBlockBuffer:
+        # Keep updated with `Scene._lighting._lighting_uniform_block_buffer_`.
+        return NotImplemented
 
     @Lazy.property_external
     @classmethod
@@ -142,8 +143,8 @@ class MeshMobject(RenderableMobject):
         is_transparent: bool,
         enable_phong_lighting: bool,
         color_map: moderngl.Texture | None,
-        _camera__camera_uniform_block_buffer_: UniformBlockBuffer,
-        _lighting__lighting_uniform_block_buffer_: UniformBlockBuffer,
+        _camera_uniform_block_buffer_: UniformBlockBuffer,
+        _lighting_uniform_block_buffer_: UniformBlockBuffer,
         _model_uniform_block_buffer_: UniformBlockBuffer,
         _material_uniform_block_buffer_: UniformBlockBuffer,
         _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
@@ -165,8 +166,8 @@ class MeshMobject(RenderableMobject):
                 )
             ],
             uniform_block_buffers=[
-                _camera__camera_uniform_block_buffer_,
-                _lighting__lighting_uniform_block_buffer_,
+                _camera_uniform_block_buffer_,
+                _lighting_uniform_block_buffer_,
                 _model_uniform_block_buffer_,
                 _material_uniform_block_buffer_
             ],

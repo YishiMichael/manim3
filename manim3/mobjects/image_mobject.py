@@ -9,6 +9,7 @@ from ..rendering.framebuffer import (
     TransparentFramebuffer
 )
 from ..rendering.texture import TextureFactory
+from ..utils.space import SpaceUtils
 
 
 class ImageMobject(MeshMobject):
@@ -28,7 +29,7 @@ class ImageMobject(MeshMobject):
 
         self._geometry_ = PlaneGeometry()
         pixel_per_unit = ConfigSingleton().size.pixel_per_unit
-        scale_x, scale_y = self._get_frame_scale_vector(
+        scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
             original_width=image.width / pixel_per_unit,
             original_height=image.height / pixel_per_unit,
             specified_width=width,

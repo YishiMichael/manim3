@@ -79,27 +79,6 @@ class CreateTexExample(Scene):
         await self.wait()
 
 
-class Rotating(Animation):
-    def __init__(
-        self,
-        mobject: Mobject
-    ) -> None:
-        initial_model_matrix = mobject._model_matrix_.value
-        about_point = mobject.get_bounding_box_point(ORIGIN)
-
-        def updater(
-            alpha: float
-        ) -> None:
-            mobject._model_matrix_ = mobject.get_relative_transform_matrix(
-                matrix=SpaceUtils.matrix_from_rotation(Rotation.from_rotvec(DOWN * alpha * 0.5)),
-                about_point=about_point
-            ) @ initial_model_matrix
-
-        super().__init__(
-            updater=updater
-        )
-
-
 class ThreeDTextExample(Scene):
     async def timeline(self) -> None:
         text = Text("Text").concatenate()
@@ -107,13 +86,13 @@ class ThreeDTextExample(Scene):
             MeshMobject()
             .set_style(geometry=PrismoidGeometry(text.shape))
             .scale(5.0)
-            .stretch_as(0.5, coor_mask=Z_AXIS)
+            .scale_to(0.5, alpha=Z_AXIS)
             .set_style(color="#00FFAA44")
         )
         self.add(AmbientLight().set_style(opacity=0.3))
         self.add(PointLight().shift(RIGHT * 5))
         self.add(text_3d)
-        self.prepare(Rotating(text_3d))
+        self.prepare(Rotating(text_3d, Rotation.from_rotvec(0.5 * DOWN)))
         await self.wait(10)
 
 
@@ -158,11 +137,13 @@ class ChildSceneExample(Scene):
 
 class LaggedAnimationExample(Scene):
     async def timeline(self) -> None:
-        text = Text("Text").scale(3).set_style(opacity=1.0)
+        text = Text("Text").scale(3).set_style(opacity=1.0).shift(DOWN)
         await self.wait()
-        self.add(text)
         await self.play(LaggedParallel(*(
-            TransformFrom(char.copy().shift(DOWN).set_style(opacity=0.0), char)
+            Parallel(
+                FadeIn(char),
+                Shift(char, UP)
+            )
             for char in text
         ), lag_time=0.4, rate_func=RateUtils.smooth))
         await self.wait()
@@ -177,7 +158,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample.render(config)
+    LaggedAnimationExample.render(config)
 
 
 if __name__ == "__main__":

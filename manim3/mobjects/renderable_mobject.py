@@ -11,6 +11,7 @@ from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
 )
+from ..rendering.gl_buffer import UniformBlockBuffer
 
 
 class RenderableMobject(Mobject):
@@ -26,8 +27,9 @@ class RenderableMobject(Mobject):
 
     @Lazy.variable
     @classmethod
-    def _camera_(cls) -> Camera:  # Keep updated with `Scene._camera`.
-        return PerspectiveCamera()
+    def _camera_uniform_block_buffer_(cls) -> UniformBlockBuffer:
+        # Keep updated with `Scene._camera._camera_uniform_block_buffer_`.
+        return NotImplemented
 
     @abstractmethod
     def _render(
