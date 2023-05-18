@@ -289,7 +289,6 @@ class LazyUnitaryContainer(LazyContainer[_ElementT]):
         self,
         src: "LazyUnitaryContainer[_ElementT]"
     ) -> None:
-        # TODO: shall we copy expired property slots to maintain references?
         self._element = src._element
 
     def _copy_container(self) -> "LazyUnitaryContainer[_ElementT]":
@@ -518,10 +517,7 @@ class LazyPropertySlot(LazySlot[_ContainerT]):
         self,
         container: _ContainerT
     ) -> None:
-        #if self._container is not None:
-        #    self._container._write(container)
-        #else:
-        self._container = container  # TODO
+        self._container = container
 
     def expire(self) -> None:
         if self._is_expired:
@@ -828,10 +824,10 @@ class LazyPropertyDescriptor(LazyDescriptor[
         if not slot._is_expired:
             container = slot.get_property_container()
         else:
-            parameter_items = tuple(
+            parameter_items = [
                 construct_parameter_item(descriptor_name_chain, instance)
                 for descriptor_name_chain in self.descriptor_name_chains
-            )
+            ]
             slot.link_variable_slots(dict.fromkeys(
                 linked_variable_slot
                 for _, linked_variable_slots in parameter_items
@@ -972,11 +968,11 @@ class LazyObject(ABC):
             for base_class in base_classes
             for name, descriptor in base_class._lazy_descriptor_dict.items()
         }
-        new_descriptor_items = tuple(
+        new_descriptor_items = [
             (name, descriptor, inspect.signature(descriptor.method, locals={cls.__name__: cls}, eval_str=True))
             for name, descriptor in cls.__dict__.items()
             if isinstance(descriptor, LazyDescriptor)
-        )
+        ]
 
         for name, descriptor, method_signature in new_descriptor_items:
             assert re.fullmatch(r"_\w+_", name)

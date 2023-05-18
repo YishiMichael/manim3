@@ -21,7 +21,6 @@ import weakref
 import moderngl
 import numpy as np
 from scipy.spatial.transform import Rotation
-from shapely import Geometry
 
 from ..constants import (
     ORIGIN,
@@ -34,6 +33,7 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
+from ..geometries.geometry import Geometry
 from ..lazy.lazy import (
     Lazy,
     LazyContainer,
@@ -715,18 +715,6 @@ class Mobject(LazyObject):
         return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
     # transform
-
-    #@classmethod
-    #def get_relative_transform_matrix(
-    #    cls,
-    #    matrix: Mat4T,
-    #    about_point: Vec3T
-    #) -> Mat4T:
-    #    return reduce(np.ndarray.__matmul__, (
-    #        SpaceUtils.matrix_from_translation(about_point),
-    #        matrix,
-    #        SpaceUtils.matrix_from_translation(-about_point)
-    #    ))
 
     def _make_callback_relative(
         self,

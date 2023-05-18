@@ -141,7 +141,7 @@ class LaggedAnimationExample(Scene):
         await self.play(LaggedParallel(*(
             Parallel(
                 FadeIn(char),
-                Shift(char, UP, towards=True)
+                Shift(char, UP, arrive=True)
             )
             for char in text
         ), lag_time=0.4, rate_func=RateUtils.smooth))
@@ -157,7 +157,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    LaggedAnimationExample.render(config)
+    ChildSceneExample.render(config)
 
 
 if __name__ == "__main__":

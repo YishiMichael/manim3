@@ -22,7 +22,7 @@ class ModelFiniteAnimationABC(Animation):
         mobject: Mobject,
         alpha_to_matrix: Callable[[float], Mat4T],
         *,
-        towards: bool = False,
+        arrive: bool = False,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
@@ -31,7 +31,7 @@ class ModelFiniteAnimationABC(Animation):
         def updater(
             alpha: float
         ) -> None:
-            if towards:
+            if arrive:
                 alpha -= 1.0
             mobject._model_matrix_ = alpha_to_matrix(alpha) @ initial_model_matrix
 
@@ -53,14 +53,14 @@ class Shift(ModelFiniteAnimationABC):
         mobject: Mobject,
         vector: Vec3T,
         *,
-        towards: bool = False,
+        arrive: bool = False,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
             mobject=mobject,
             alpha_to_matrix=mobject._shift_callback(vector),
-            towards=towards,
+            arrive=arrive,
             run_time=run_time,
             rate_func=rate_func
         )
@@ -75,14 +75,14 @@ class Scale(ModelFiniteAnimationABC):
         scale: float | Vec3T,
         about: AboutABC | None = None,
         *,
-        towards: bool = False,
+        arrive: bool = False,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
             mobject=mobject,
             alpha_to_matrix=mobject._scale_callback(scale, about),
-            towards=towards,
+            arrive=arrive,
             run_time=run_time,
             rate_func=rate_func
         )
@@ -97,14 +97,14 @@ class Rotate(ModelFiniteAnimationABC):
         rotation: Rotation,
         about: AboutABC | None = None,
         *,
-        towards: bool = False,
+        arrive: bool = False,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
             mobject=mobject,
             alpha_to_matrix=mobject._rotate_callback(rotation, about),
-            towards=towards,
+            arrive=arrive,
             run_time=run_time,
             rate_func=rate_func
         )

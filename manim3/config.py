@@ -22,16 +22,16 @@ class PathConfig:
         return folder_path
 
     @property
-    def manim3_dir(self) -> pathlib.Path:
+    def src_dir(self) -> pathlib.Path:
         return pathlib.Path(__file__).absolute().parent
 
     @property
     def shaders_dir(self) -> pathlib.Path:
-        return self.manim3_dir.joinpath("shaders")
+        return self.src_dir.joinpath("shaders")
 
     @property
     def tex_templates_path(self) -> pathlib.Path:
-        return self.manim3_dir.joinpath("tex_templates.toml")
+        return self.src_dir.joinpath("tex_templates.toml")
 
     @property
     def user_script_path(self) -> pathlib.Path:
@@ -39,7 +39,7 @@ class PathConfig:
 
     @property
     def output_dir(self) -> pathlib.Path:
-        return self._ensure_directory_exists(self.user_script_path.parent.joinpath("manim3_files"))
+        return self._ensure_directory_exists(self.user_script_path.parent.joinpath("manim3_output"))
 
     @property
     def tex_dir(self) -> pathlib.Path:
