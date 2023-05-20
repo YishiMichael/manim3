@@ -3,6 +3,7 @@ import pathlib
 import re
 from typing import (
     ClassVar,
+    Iterable,
     Iterator
 )
 
@@ -129,72 +130,31 @@ class MarkupTextParser(StringParser):
         "tt": {"font_family": "monospace"},
         "u": {"underline": "single"}
     }
-    _MARKUP_ENTITY_DICT: ClassVar[dict[str, str]] = {
+    _MARKUP_ESCAPE_DICT: ClassVar[dict[str, str]] = {
         "<": "&lt;",
         ">": "&gt;",
         "&": "&amp;",
         "\"": "&quot;",
         "'": "&apos;"
     }
-    _MARKUP_ENTITY_REVERSED_DICT: ClassVar[dict[str, str]] = {
+    _MARKUP_UNESCAPE_DICT: ClassVar[dict[str, str]] = {
         v: k
-        for k, v in _MARKUP_ENTITY_DICT.items()
+        for k, v in _MARKUP_ESCAPE_DICT.items()
     }
 
-    #def __init__(
-    #    self,
-    #    string: str,
-    #    isolate: SelectorT,
-    #    protect: SelectorT,
-    #    file_writer: StringFileWriter,
-    #    frame_scale: float,
-    #    local_configs: dict[SelectorT, dict[str, str]],
-    #    global_attrs: dict[str, str]
-    #) -> None:
-
-    #    #def get_content_by_body(
-    #    #    body: str,
-    #    #    is_labelled: bool
-    #    #) -> str:
-    #    #    prefix, suffix = tuple(
-    #    #        self.get_command_string(
-    #    #            global_attrs,
-    #    #            edge_flag=edge_flag,
-    #    #            label=0 if is_labelled else None
-    #    #        )
-    #    #        for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
-    #    #    )
-    #    #    return "".join((prefix, body, suffix))
-
-    #    super().__init__(
-    #        string=string,
-    #        isolate=isolate,
-    #        protect=protect,
-    #        global_attrs=global_attrs,
-    #        local_attrs=local_configs,
-    #        #configured_items_iterator=(
-    #        #    (span, local_config)
-    #        #    for selector, local_config in local_configs.items()
-    #        #    for span in self.iter_spans_by_selector(selector, string)
-    #        #),
-    #        #get_content_by_body=get_content_by_body,
-    #        file_writer=file_writer,
-    #        frame_scale=frame_scale
-    #    )
-
     @classmethod
-    def escape_markup_char(
+    def markup_escape(
         cls,
         substr: str
     ) -> str:
-        return cls._MARKUP_ENTITY_DICT.get(substr, substr)
+        return cls._MARKUP_ESCAPE_DICT.get(substr, substr)
 
     @classmethod
-    def unescape_markup_char(
+    def markup_unescape(
         cls,
         substr: str
     ) -> str:
-        return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
+        return cls._MARKUP_UNESCAPE_DICT.get(substr, substr)
 
     @classmethod
     def iter_command_matches(
@@ -238,7 +198,7 @@ class MarkupTextParser(StringParser):
         if match_obj.group("tag"):
             return ""
         if match_obj.group("char"):
-            return cls.escape_markup_char(match_obj.group("char"))
+            return cls.markup_escape(match_obj.group("char"))
         return match_obj.group()
 
     @classmethod
@@ -254,7 +214,7 @@ class MarkupTextParser(StringParser):
                 if match_obj.group("hex"):
                     base = 16
                 return chr(int(match_obj.group("content"), base))
-            return cls.unescape_markup_char(match_obj.group("entity"))
+            return cls.markup_unescape(match_obj.group("entity"))
         return match_obj.group()
 
     @classmethod
@@ -288,22 +248,24 @@ class MarkupTextParser(StringParser):
         if edge_flag == EdgeFlag.STOP:
             return "</span>"
 
+        converted_attrs = attrs.copy()
         if label is not None:
-            converted_attrs = {"foreground": f"#{label:06x}"}
-            for key, val in attrs.items():
-                if key in (
-                    "background", "bgcolor",
-                    "underline_color", "overline_color", "strikethrough_color"
-                ):
+            for key in (
+                "background", "bgcolor",
+                "underline_color", "overline_color", "strikethrough_color"
+            ):
+                if key in converted_attrs:
                     converted_attrs[key] = "black"
-                elif key not in ("foreground", "fgcolor", "color"):
-                    converted_attrs[key] = val
-        else:
-            converted_attrs = attrs.copy()
-        attrs_str = " ".join([
+            for key in (
+                "foreground", "fgcolor", "color"
+            ):
+                if key in converted_attrs:
+                    converted_attrs.pop(key)
+            converted_attrs["foreground"] = f"#{label:06x}"
+        attrs_str = " ".join(
             f"{key}='{val}'"
             for key, val in converted_attrs.items()
-        ])
+        )
         return f"<span {attrs_str}>"
 
 
@@ -330,7 +292,7 @@ class TextParser(MarkupTextParser):
         cls,
         match_obj: re.Match[str]
     ) -> str:
-        return cls.escape_markup_char(match_obj.group())
+        return cls.markup_escape(match_obj.group())
 
     @classmethod
     def replace_for_matching(
@@ -349,8 +311,8 @@ class Text(StringMobject):
         self,
         string: str,
         *,
-        isolate: SelectorT = (),
-        protect: SelectorT = (),
+        isolate: Iterable[SelectorT] = (),
+        protect: Iterable[SelectorT] = (),
         local_configs: dict[SelectorT, dict[str, str]] = ...,
         justify: bool = ...,
         indent: float = ...,
@@ -415,8 +377,8 @@ class Text(StringMobject):
             string=string,
             isolate=isolate,
             protect=protect,
-            global_attrs=global_attrs,
             local_attrs=local_configs,
+            global_attrs=global_attrs,
             file_writer=file_writer,
             frame_scale=self._TEXT_SCALE_FACTOR
         )
@@ -424,28 +386,6 @@ class Text(StringMobject):
             string=string,
             parser=parser
         )
-
-    #@classmethod
-    #def _get_global_attrs(
-    #    cls,
-    #    font_size: float,
-    #    font: str,
-    #    slant: str,
-    #    weight: str,
-    #    base_color: ColorT,
-    #    line_spacing_height: float,
-    #    global_config: dict[str, str]
-    #) -> dict[str, str]:
-    #    global_attrs = {
-    #        "font_size": str(round(font_size * 1024.0)),
-    #        "font_family": font,
-    #        "font_style": slant,
-    #        "font_weight": weight,
-    #        "foreground": ColorUtils.color_to_hex(base_color),
-    #        "line_height": str(1.0 + line_spacing_height)
-    #    }
-    #    global_attrs.update(global_config)
-    #    return global_attrs
 
 
 class Code(Text):

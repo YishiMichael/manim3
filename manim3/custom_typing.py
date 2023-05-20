@@ -1,9 +1,6 @@
 from colour import Color
 import re
-from typing import (
-    Iterable,
-    Literal
-)
+from typing import Literal
 
 import numpy as np
 
@@ -29,4 +26,4 @@ Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
 VertexIndexT = np.ndarray[tuple[_ND], np.dtype[np.uint]]
 
 ColorT = Color | str | Vec3T
-SelectorT = str | re.Pattern[str] | slice | Iterable[str | re.Pattern[str] | slice]
+SelectorT = str | re.Pattern[str]

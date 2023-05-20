@@ -5,6 +5,7 @@ import pathlib
 import re
 from typing import (
     ClassVar,
+    Iterable,
     Iterator
 )
 
@@ -25,17 +26,6 @@ from ..strings.string_mobject import (
 from ..utils.color import ColorUtils
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class TexTemplate:
-    description: str
-    compiler: str
-    preamble: str
-
-
 class LaTeXError(ValueError):
     def __init__(
         self,
@@ -45,6 +35,17 @@ class LaTeXError(ValueError):
         if error_message is not None:
             message += f" The error could be: `{error_message}`"
         super().__init__(message)
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class TexTemplate:
+    description: str
+    compiler: str
+    preamble: str
 
 
 class TexFileWriter(StringFileWriter):
@@ -179,68 +180,6 @@ class MathjaxFileWriter(StringFileWriter):
 class TexParser(StringParser):
     __slots__ = ()
 
-    #def __init__(
-    #    self,
-    #    string: str,
-    #    isolate: SelectorT,
-    #    protect: SelectorT,
-    #    file_writer: StringFileWriter,
-    #    frame_scale: float,
-    #    tex_to_color_map: dict[str, ColorT],
-    #    base_color: ColorT
-    #) -> None:
-
-    #    #def get_content_by_body(
-    #    #    body: str,
-    #    #    is_labelled: bool
-    #    #) -> str:
-    #    #    prefix, suffix = tuple(
-    #    #        self.get_command_string(
-    #    #            {"color": ColorUtils.color_to_hex(base_color)},
-    #    #            edge_flag=edge_flag,
-    #    #            label=0 if is_labelled else None
-    #    #        )
-    #    #        for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
-    #    #    )
-    #    #    return "".join((prefix, body, suffix))
-    #    #    #if is_labelled:
-    #    #    #    return body
-    #    #    #color_hex = ColorUtils.color_to_hex(base_color)
-    #    #    #return "\n".join((
-    #    #    #    self.get_color_command(int(color_hex[1:], 16)),
-    #    #    #    body
-    #    #    #))
-
-    #    super().__init__(
-    #        string=string,
-    #        isolate=isolate,
-    #        protect=protect,
-    #        global_attrs={
-    #            "color": ColorUtils.color_to_hex(base_color)
-    #        },
-    #        local_attrs={
-    #            selector: {}
-    #            for selector in tex_to_color_map
-    #        },
-    #        #configured_items_iterator=(
-    #        #    (span, {})
-    #        #    for selector in tex_to_color_map
-    #        #    for span in self.iter_spans_by_selector(selector, string)
-    #        #),
-    #        #get_content_by_body=get_content_by_body,
-    #        file_writer=file_writer,
-    #        frame_scale=frame_scale
-    #    )
-
-    @classmethod
-    def get_color_command(
-        cls,
-        rgb: int
-    ) -> str:
-        rg, b = divmod(rgb, 256)
-        r, g = divmod(rg, 256)
-        return f"\\color[RGB]{{{r}, {g}, {b}}}"
-
     @classmethod
     def iter_command_matches(
         cls,
@@ -330,14 +269,19 @@ class TexParser(StringParser):
         edge_flag: EdgeFlag,
         label: int | None
     ) -> str:
-        if label is None:
+        if label is not None:
+            rgb = label
+        else:
             if (color_hex := attrs.get("color")) is not None:
-                label = int(color_hex[1:], 16)
+                rgb = int(color_hex[1:], 16)
             else:
                 return ""
         if edge_flag == EdgeFlag.STOP:
             return "}}"
-        return "{{" + cls.get_color_command(label)
+        rg, b = divmod(rgb, 256)
+        r, g = divmod(rg, 256)
+        color_command = f"\\color[RGB]{{{r}, {g}, {b}}}"
+        return "{{" + color_command
 
 
 class Tex(StringMobject):
@@ -350,8 +294,8 @@ class Tex(StringMobject):
         self,
         string: str,
         *,
-        isolate: SelectorT = (),
-        protect: SelectorT = (),
+        isolate: Iterable[SelectorT] = (),
+        protect: Iterable[SelectorT] = (),
         tex_to_color_map: dict[str, ColorT] = ...,
         use_mathjax: bool = ...,
         preamble: str | None = ...,
@@ -402,12 +346,12 @@ class Tex(StringMobject):
             string=string,
             isolate=isolate,
             protect=protect,
-            global_attrs={
-                "color": ColorUtils.color_to_hex(base_color)
-            },
             local_attrs={
                 selector: {}
                 for selector in tex_to_color_map
+            },
+            global_attrs={
+                "color": ColorUtils.color_to_hex(base_color)
             },
             file_writer=file_writer,
             frame_scale=frame_scale

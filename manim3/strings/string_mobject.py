@@ -13,6 +13,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    Iterable,
     Iterator
 )
 import warnings
@@ -194,7 +195,7 @@ class StringFileWriter(ABC):
     ) -> pathlib.Path:
         parameters = self._parameters
         cls = type(self)
-        hash_content = str((content, parameters))
+        hash_content = str((content, *parameters.values()))
         svg_path = cls.get_svg_path(hash_content)
         if not svg_path.exists():
             with cls.display_during_execution(content):
@@ -245,12 +246,10 @@ class StringParser(ABC):
     def __init__(
         self,
         string: str,
-        isolate: SelectorT,
-        protect: SelectorT,
-        global_attrs: dict[str, str],
+        isolate: Iterable[SelectorT],
+        protect: Iterable[SelectorT],
         local_attrs: dict[SelectorT, dict[str, str]],
-        #configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
-        #get_content_by_body: Callable[[str, bool], str],
+        global_attrs: dict[str, str],
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> None:
@@ -259,10 +258,8 @@ class StringParser(ABC):
             string=string,
             isolate=isolate,
             protect=protect,
-            global_attrs=global_attrs,
             local_attrs=local_attrs,
-            #configured_items_iterator=configured_items_iterator,
-            #get_content_by_body=get_content_by_body,
+            global_attrs=global_attrs,
             file_writer=file_writer,
             frame_scale=frame_scale
         )
@@ -271,12 +268,10 @@ class StringParser(ABC):
     def parse(
         cls,
         string: str,
-        isolate: SelectorT,
-        protect: SelectorT,
-        global_attrs: dict[str, str],
+        isolate: Iterable[SelectorT],
+        protect: Iterable[SelectorT],
         local_attrs: dict[SelectorT, dict[str, str]],
-        #configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
-        #get_content_by_body: Callable[[str, bool], str],
+        global_attrs: dict[str, str],
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> ParsingResult:
@@ -334,8 +329,8 @@ class StringParser(ABC):
     def get_labelled_items_and_replaced_items(
         cls,
         string: str,
-        isolate: SelectorT,
-        protect: SelectorT,
+        isolate: Iterable[SelectorT],
+        protect: Iterable[SelectorT],
         local_attrs: dict[SelectorT, dict[str, str]]
     ) -> tuple[list[LabelledItem], list[CommandItem | LabelledInsertionItem]]:
 
@@ -362,9 +357,20 @@ class StringParser(ABC):
                     for selector, attrs in local_attrs.items()
                     for span in cls.iter_spans_by_selector(selector, string)
                 ),
-                (IsolatedItem(span=span) for span in cls.iter_spans_by_selector(isolate, string)),
-                (ProtectedItem(span=span) for span in cls.iter_spans_by_selector(protect, string)),
-                (CommandItem(match_obj=match_obj) for match_obj in cls.iter_command_matches(string))
+                (
+                    IsolatedItem(span=span)
+                    for selector in isolate
+                    for span in cls.iter_spans_by_selector(selector, string)
+                ),
+                (
+                    ProtectedItem(span=span)
+                    for selector in protect
+                    for span in cls.iter_spans_by_selector(selector, string)
+                ),
+                (
+                    CommandItem(match_obj=match_obj)
+                    for match_obj in cls.iter_command_matches(string)
+                )
             ), start=1)
             for i, span_item in enumerate(span_item_iter)
             for edge_flag in EdgeFlag
@@ -716,34 +722,13 @@ class StringParser(ABC):
         selector: SelectorT,
         string: str
     ) -> Iterator[Span]:
-
-        def iter_spans_by_single_selector(
-            sel: str | re.Pattern[str] | slice,
-            string: str
-        ) -> Iterator[Span]:
-            match sel:
-                case str():
-                    for match_obj in re.finditer(re.escape(sel), string, flags=re.MULTILINE):
-                        yield Span(*match_obj.span())
-                case re.Pattern():
-                    for match_obj in sel.finditer(string):
-                        yield Span(*match_obj.span())
-                case slice(start=start, stop=stop):
-                    assert isinstance(start, int | None)
-                    assert isinstance(stop, int | None)
-                    if start is None or start < 0:
-                        start = 0
-                    if stop is None or stop > len(string):
-                        stop = len(string)
-                    yield Span(start, stop)
-                case _:
-                    raise TypeError(f"Invalid selector: '{sel}'")
-
-        if isinstance(selector, str | re.Pattern | slice):
-            yield from iter_spans_by_single_selector(selector, string)
-        else:
-            for sel in selector:
-                yield from iter_spans_by_single_selector(sel, string)
+        match selector:
+            case str():
+                pattern = re.compile(re.escape(selector))
+            case re.Pattern():
+                pattern = selector
+        for match_obj in pattern.finditer(string):
+            yield Span(*match_obj.span())
 
     @classmethod
     def get_shape_mobject_list_by_span(
