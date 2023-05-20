@@ -147,6 +147,40 @@ class LaggedAnimationExample(Scene):
         await self.wait()
 
 
+class FormulaExample(Scene):
+    async def timeline(self) -> None:
+        #explicit_formula = MTex(
+        #    "\\int_{0}^{\\infty} \\mathrm{e}^{- t}"
+        #    " \\left( c_{0} + c_{1} t + c_{2} t^{2} + \\cdots + c_{n} t^{n} \\right) \\mathrm{d} t",
+        #    **kw
+        #)
+        expanded_formula = Tex(
+            "\\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{0} \\mathrm{d} t"
+                + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{1} t \\mathrm{d} t"
+                + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{2} t^{2} \\mathrm{d} t"
+                + " + \\cdots"
+                + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{n} t^{n} \\mathrm{d} t",
+            base_color=Palette.TEAL,
+            isolate=[
+                "\\int_{0}^{\\infty} \\mathrm{e}^{- t}",
+                "\\mathrm{d} t",
+                "c_{0}",
+                "c_{1} t",
+                "c_{2} t^{2}",
+                "c_{n} t^{n}"
+            ],
+            tex_to_color_map={
+                "\\mathrm{e}": Palette.MAROON_A,
+                "c_{0}": Palette.BLUE,
+                "c_{1}": Palette.BLUE,
+                "c_{2}": Palette.BLUE,
+                "c_{n}": Palette.BLUE
+            }
+        ).scale(0.5)
+        self.add(expanded_formula)
+        await self.wait(5)
+
+
 def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
@@ -156,7 +190,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample().render(config)
+    FormulaExample().render(config)
 
 
 if __name__ == "__main__":

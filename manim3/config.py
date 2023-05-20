@@ -41,13 +41,19 @@ class PathConfig:
     def output_dir(self) -> pathlib.Path:
         return self._ensure_directory_exists(self.user_script_path.parent.joinpath("manim3_output"))
 
-    @property
-    def tex_dir(self) -> pathlib.Path:
-        return self._ensure_directory_exists(self.output_dir.joinpath("_tex"))
+    def get_output_subdir(
+        self,
+        dir_name: str
+    ) -> pathlib.Path:
+        return self._ensure_directory_exists(self.output_dir.joinpath(dir_name))
 
-    @property
-    def text_dir(self) -> pathlib.Path:
-        return self._ensure_directory_exists(self.output_dir.joinpath("_text"))
+    #@property
+    #def tex_dir(self) -> pathlib.Path:
+    #    return self._ensure_directory_exists(self.output_dir.joinpath("_tex"))
+
+    #@property
+    #def text_dir(self) -> pathlib.Path:
+    #    return self._ensure_directory_exists(self.output_dir.joinpath("_text"))
 
 @dataclass(
     kw_only=True,

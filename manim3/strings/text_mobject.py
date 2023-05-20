@@ -5,7 +5,6 @@ from typing import (
     ClassVar,
     Iterator
 )
-import warnings
 
 import manimpango
 import pygments
@@ -35,17 +34,10 @@ class PangoAlignment(Enum):
 
 
 class PangoUtils:
-    # Ensure the canvas is large enough to hold all glyphs.
-    _DEFAULT_CANVAS_WIDTH: ClassVar[int] = 16384
-    _DEFAULT_CANVAS_HEIGHT: ClassVar[int] = 16384
+    __slots__ = ()
 
     def __new__(cls):
         raise TypeError
-
-    @classmethod
-    @property
-    def pango_version_str(cls) -> str:
-        return manimpango.pango_version()
 
     @classmethod
     def validate_markup_string(
@@ -74,73 +66,49 @@ class PangoUtils:
         # so the following code is intended to suit its interface.
         manimpango.MarkupUtils.text2svg(
             text=markup_str,
-            font="",                     # Already handled
-            slant="NORMAL",              # Already handled
-            weight="NORMAL",             # Already handled
-            size=1,                      # Already handled
-            _=0,                         # Empty parameter
+            font="",                   # Already handled.
+            slant="NORMAL",            # Already handled.
+            weight="NORMAL",           # Already handled.
+            size=1,                    # Already handled.
+            _=0,                       # Empty parameter.
             disable_liga=False,
             file_name=str(svg_path),
             START_X=0,
             START_Y=0,
-            width=cls._DEFAULT_CANVAS_WIDTH,
-            height=cls._DEFAULT_CANVAS_HEIGHT,
+            width=16384,               # Ensure the canvas is large enough
+            height=16384,              # to hold all glyphs.
             justify=justify,
             indent=indent,
-            line_spacing=None,           # Already handled
+            line_spacing=None,         # Already handled.
             alignment=alignment,
             pango_width=pango_width
         )
 
 
 class MarkupTextFileWriter(StringFileWriter):
-    __slots__ = (
-        "_justify",
-        "_indent",
-        "_alignment",
-        "_line_width"
-    )
+    __slots__ = ()
 
-    def __init__(
-        self,
+    _dir_name: ClassVar[str] = "_markup"
+
+    @classmethod
+    def create_svg_file(
+        cls,
+        content: str,
+        svg_path: pathlib.Path,
         justify: bool,
         indent: float,
         alignment: PangoAlignment,
         line_width: float | None
     ) -> None:
-        super().__init__()
-        self._justify: bool = justify
-        self._indent: float = indent
-        self._alignment: PangoAlignment = alignment
-        self._line_width: float | None = line_width
-
-    def get_svg_path(
-        self,
-        content: str
-    ) -> pathlib.Path:
-        hash_content = str((
-            content,
-            self._justify,
-            self._indent,
-            self._alignment,
-            self._line_width
-        ))
-        return ConfigSingleton().path.text_dir.joinpath(f"{self.hash_string(hash_content)}.svg")
-
-    def create_svg_file(
-        self,
-        content: str,
-        svg_path: pathlib.Path
-    ) -> None:
         PangoUtils.validate_markup_string(content)
         PangoUtils.create_markup_svg(
             markup_str=content,
             svg_path=svg_path,
-            justify=self._justify,
-            indent=self._indent,
-            alignment=self._alignment,
+            justify=justify,
+            indent=indent,
+            alignment=alignment,
             pango_width=(
-                -1 if (line_width := self._line_width) is None
+                -1 if line_width is None
                 else line_width * ConfigSingleton().size.pixel_per_unit
             )
         )
@@ -173,61 +141,63 @@ class MarkupTextParser(StringParser):
         for k, v in _MARKUP_ENTITY_DICT.items()
     }
 
-    def __init__(
-        self,
-        string: str,
-        isolate: SelectorT,
-        protect: SelectorT,
-        file_writer: StringFileWriter,
-        frame_scale: float,
-        local_configs: dict[SelectorT, dict[str, str]],
-        global_attrs: dict[str, str]
-    ) -> None:
+    #def __init__(
+    #    self,
+    #    string: str,
+    #    isolate: SelectorT,
+    #    protect: SelectorT,
+    #    file_writer: StringFileWriter,
+    #    frame_scale: float,
+    #    local_configs: dict[SelectorT, dict[str, str]],
+    #    global_attrs: dict[str, str]
+    #) -> None:
 
-        def get_content_by_body(
-            body: str,
-            is_labelled: bool
-        ) -> str:
-            prefix, suffix = tuple(
-                self._get_command_string(
-                    global_attrs,
-                    edge_flag=edge_flag,
-                    label=0 if is_labelled else None
-                )
-                for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
-            )
-            return "".join((prefix, body, suffix))
+    #    #def get_content_by_body(
+    #    #    body: str,
+    #    #    is_labelled: bool
+    #    #) -> str:
+    #    #    prefix, suffix = tuple(
+    #    #        self.get_command_string(
+    #    #            global_attrs,
+    #    #            edge_flag=edge_flag,
+    #    #            label=0 if is_labelled else None
+    #    #        )
+    #    #        for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
+    #    #    )
+    #    #    return "".join((prefix, body, suffix))
 
-        super().__init__(
-            string=string,
-            isolate=isolate,
-            protect=protect,
-            configured_items_iterator=(
-                (span, local_config)
-                for selector, local_config in local_configs.items()
-                for span in self._iter_spans_by_selector(selector, string)
-            ),
-            get_content_by_body=get_content_by_body,
-            file_writer=file_writer,
-            frame_scale=frame_scale
-        )
+    #    super().__init__(
+    #        string=string,
+    #        isolate=isolate,
+    #        protect=protect,
+    #        global_attrs=global_attrs,
+    #        local_attrs=local_configs,
+    #        #configured_items_iterator=(
+    #        #    (span, local_config)
+    #        #    for selector, local_config in local_configs.items()
+    #        #    for span in self.iter_spans_by_selector(selector, string)
+    #        #),
+    #        #get_content_by_body=get_content_by_body,
+    #        file_writer=file_writer,
+    #        frame_scale=frame_scale
+    #    )
 
     @classmethod
-    def _escape_markup_char(
+    def escape_markup_char(
         cls,
         substr: str
     ) -> str:
         return cls._MARKUP_ENTITY_DICT.get(substr, substr)
 
     @classmethod
-    def _unescape_markup_char(
+    def unescape_markup_char(
         cls,
         substr: str
     ) -> str:
         return cls._MARKUP_ENTITY_REVERSED_DICT.get(substr, substr)
 
     @classmethod
-    def _iter_command_matches(
+    def iter_command_matches(
         cls,
         string: str
     ) -> Iterator[re.Match[str]]:
@@ -249,7 +219,7 @@ class MarkupTextParser(StringParser):
         yield from pattern.finditer(string)
 
     @classmethod
-    def _get_command_flag(
+    def get_command_flag(
         cls,
         match_obj: re.Match[str]
     ) -> CommandFlag:
@@ -261,18 +231,18 @@ class MarkupTextParser(StringParser):
         return CommandFlag.OTHER
 
     @classmethod
-    def _replace_for_content(
+    def replace_for_content(
         cls,
         match_obj: re.Match[str]
     ) -> str:
         if match_obj.group("tag"):
             return ""
         if match_obj.group("char"):
-            return cls._escape_markup_char(match_obj.group("char"))
+            return cls.escape_markup_char(match_obj.group("char"))
         return match_obj.group()
 
     @classmethod
-    def _replace_for_matching(
+    def replace_for_matching(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -284,11 +254,11 @@ class MarkupTextParser(StringParser):
                 if match_obj.group("hex"):
                     base = 16
                 return chr(int(match_obj.group("content"), base))
-            return cls._unescape_markup_char(match_obj.group("entity"))
+            return cls.unescape_markup_char(match_obj.group("entity"))
         return match_obj.group()
 
     @classmethod
-    def _get_attrs_from_command_pair(
+    def get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
         close_command: re.Match[str]
@@ -309,7 +279,7 @@ class MarkupTextParser(StringParser):
         return cls._MARKUP_TAGS.get(tag_name, {})
 
     @classmethod
-    def _get_command_string(
+    def get_command_string(
         cls,
         attrs: dict[str, str],
         edge_flag: EdgeFlag,
@@ -341,7 +311,7 @@ class TextParser(MarkupTextParser):
     __slots__ = ()
 
     @classmethod
-    def _iter_command_matches(
+    def iter_command_matches(
         cls,
         string: str
     ) -> Iterator[re.Match[str]]:
@@ -349,21 +319,21 @@ class TextParser(MarkupTextParser):
         yield from pattern.finditer(string)
 
     @classmethod
-    def _get_command_flag(
+    def get_command_flag(
         cls,
         match_obj: re.Match[str]
     ) -> CommandFlag:
         return CommandFlag.OTHER
 
     @classmethod
-    def _replace_for_content(
+    def replace_for_content(
         cls,
         match_obj: re.Match[str]
     ) -> str:
-        return cls._escape_markup_char(match_obj.group())
+        return cls.escape_markup_char(match_obj.group())
 
     @classmethod
-    def _replace_for_matching(
+    def replace_for_matching(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -424,66 +394,58 @@ class Text(StringMobject):
         if global_config is ...:
             global_config = config.global_config
 
-        global_attrs = self._get_global_attrs(
-            font_size=font_size,
-            font=font,
-            slant=slant,
-            weight=weight,
-            base_color=base_color,
-            line_spacing_height=line_spacing_height,
-            global_config=global_config
+        global_attrs = {
+            "font_size": str(round(font_size * 1024.0)),
+            "font_family": font,
+            "font_style": slant,
+            "font_weight": weight,
+            "foreground": ColorUtils.color_to_hex(base_color),
+            "line_height": str(1.0 + line_spacing_height)
+        }
+        global_attrs.update(global_config)
+
+        file_writer = MarkupTextFileWriter(
+            justify=justify,
+            indent=indent,
+            alignment=PangoAlignment[alignment],
+            line_width=line_width
         )
         parser_class = MarkupTextParser if markup else TextParser
         parser = parser_class(
             string=string,
             isolate=isolate,
             protect=protect,
-            file_writer=MarkupTextFileWriter(
-                justify=justify,
-                indent=indent,
-                alignment=PangoAlignment[alignment],
-                line_width=line_width
-            ),
-            frame_scale=self._TEXT_SCALE_FACTOR,
-            local_configs=local_configs,
-            global_attrs=global_attrs
+            global_attrs=global_attrs,
+            local_attrs=local_configs,
+            file_writer=file_writer,
+            frame_scale=self._TEXT_SCALE_FACTOR
         )
-
         super().__init__(
             string=string,
             parser=parser
         )
 
-    @classmethod
-    def _get_global_attrs(
-        cls,
-        font_size: float,
-        font: str,
-        slant: str,
-        weight: str,
-        base_color: ColorT,
-        line_spacing_height: float,
-        global_config: dict[str, str]
-    ) -> dict[str, str]:
-        global_attrs = {
-            "font_size": str(round(font_size * 1024.0)),
-            "font_family": font,
-            "font_style": slant,
-            "font_weight": weight,
-            "foreground": ColorUtils.color_to_hex(base_color)
-        }
-        # `line_height` attribute is supported since Pango 1.50.
-        pango_version_str = PangoUtils.pango_version_str
-        if tuple(map(int, pango_version_str.split("."))) < (1, 50):
-            warnings.warn(
-                f"Pango version {pango_version_str} found (< 1.50), " +
-                "unable to set `line_height` attribute"
-            )
-        else:
-            global_attrs["line_height"] = str(1.0 + line_spacing_height)
-
-        global_attrs.update(global_config)
-        return global_attrs
+    #@classmethod
+    #def _get_global_attrs(
+    #    cls,
+    #    font_size: float,
+    #    font: str,
+    #    slant: str,
+    #    weight: str,
+    #    base_color: ColorT,
+    #    line_spacing_height: float,
+    #    global_config: dict[str, str]
+    #) -> dict[str, str]:
+    #    global_attrs = {
+    #        "font_size": str(round(font_size * 1024.0)),
+    #        "font_family": font,
+    #        "font_style": slant,
+    #        "font_weight": weight,
+    #        "foreground": ColorUtils.color_to_hex(base_color),
+    #        "line_height": str(1.0 + line_spacing_height)
+    #    }
+    #    global_attrs.update(global_config)
+    #    return global_attrs
 
 
 class Code(Text):

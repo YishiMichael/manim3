@@ -10,7 +10,9 @@ import itertools as it
 import pathlib
 import re
 from typing import (
+    Any,
     Callable,
+    ClassVar,
     Iterator
 )
 import warnings
@@ -18,6 +20,7 @@ import warnings
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
+from ..config import ConfigSingleton
 from ..custom_typing import SelectorT
 from ..mobjects.mobject import AlignMobject
 from ..mobjects.shape_mobject import ShapeMobject
@@ -172,41 +175,51 @@ class ParsingResult:
 
 
 class StringFileWriter(ABC):
-    __slots__ = ()
+    __slots__ = (
+        "_parameters",
+    )
 
-    def get_svg_path_by_content(
+    _dir_name: ClassVar[str]
+
+    def __init__(
+        self,
+        **parameters: Any
+    ) -> None:
+        super().__init__()
+        self._parameters: dict[str, Any] = parameters
+
+    def get_svg_file(
         self,
         content: str
     ) -> pathlib.Path:
-        svg_path = self.get_svg_path(content)
+        parameters = self._parameters
+        cls = type(self)
+        hash_content = str((content, parameters))
+        svg_path = cls.get_svg_path(hash_content)
         if not svg_path.exists():
-            with self.display_during_execution(content):
-                self.create_svg_file(content, svg_path)
+            with cls.display_during_execution(content):
+                cls.create_svg_file(content, svg_path, **parameters)
         return svg_path
 
-    @abstractmethod
-    def get_svg_path(
-        self,
-        content: str
-    ) -> pathlib.Path:
-        pass
-
+    @classmethod
     @abstractmethod
     def create_svg_file(
-        self,
+        cls,
         content: str,
-        svg_path: pathlib.Path
+        svg_path: pathlib.Path,
+        **parameters: Any
     ) -> None:
         pass
 
     @classmethod
-    def hash_string(
+    def get_svg_path(
         cls,
-        string: str
-    ) -> str:
+        hash_content: str
+    ) -> pathlib.Path:
         # Truncating at 16 bytes for cleanliness.
-        hasher = hashlib.sha256(string.encode())
-        return hasher.hexdigest()[:16]
+        hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
+        svg_dir = ConfigSingleton().path.get_output_subdir(cls._dir_name)
+        return svg_dir.joinpath(f"{hex_string}.svg")
 
     @classmethod
     @contextmanager
@@ -234,38 +247,44 @@ class StringParser(ABC):
         string: str,
         isolate: SelectorT,
         protect: SelectorT,
-        configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
-        get_content_by_body: Callable[[str, bool], str],
+        global_attrs: dict[str, str],
+        local_attrs: dict[SelectorT, dict[str, str]],
+        #configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
+        #get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> None:
         super().__init__()
-        self._parsing_result: ParsingResult = self._parse(
+        self._parsing_result: ParsingResult = self.parse(
             string=string,
             isolate=isolate,
             protect=protect,
-            configured_items_iterator=configured_items_iterator,
-            get_content_by_body=get_content_by_body,
+            global_attrs=global_attrs,
+            local_attrs=local_attrs,
+            #configured_items_iterator=configured_items_iterator,
+            #get_content_by_body=get_content_by_body,
             file_writer=file_writer,
             frame_scale=frame_scale
         )
 
     @classmethod
-    def _parse(
+    def parse(
         cls,
         string: str,
         isolate: SelectorT,
         protect: SelectorT,
-        configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
-        get_content_by_body: Callable[[str, bool], str],
+        global_attrs: dict[str, str],
+        local_attrs: dict[SelectorT, dict[str, str]],
+        #configured_items_iterator: Iterator[tuple[Span, dict[str, str]]],
+        #get_content_by_body: Callable[[str, bool], str],
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> ParsingResult:
-        labelled_items, replaced_items = cls._get_labelled_items_and_replaced_items(
+        labelled_items, replaced_items = cls.get_labelled_items_and_replaced_items(
             string=string,
             isolate=isolate,
             protect=protect,
-            configured_items_iterator=configured_items_iterator
+            local_attrs=local_attrs
         )
         replaced_spans = [replaced_item.span for replaced_item in replaced_items]
         original_pieces = [
@@ -277,11 +296,11 @@ class StringParser(ABC):
             )
         ]
 
-        labelled_shape_items = cls._get_labelled_shape_items(
+        labelled_shape_items = cls.get_labelled_shape_items(
             original_pieces=original_pieces,
             replaced_items=replaced_items,
             labels_count=len(labelled_items),
-            get_content_by_body=get_content_by_body,
+            global_attrs=global_attrs,
             file_writer=file_writer,
             frame_scale=frame_scale
         )
@@ -290,16 +309,16 @@ class StringParser(ABC):
             labelled_item.label: labelled_item.span
             for labelled_item in labelled_items
         }
-        shape_items = cls._get_shape_items(
+        shape_items = cls.get_shape_items(
             labelled_shape_items=labelled_shape_items,
             label_to_span_dict=label_to_span_dict
         )
-        specified_part_items = cls._get_specified_part_items(
+        specified_part_items = cls.get_specified_part_items(
             shape_items=shape_items,
             string=string,
             labelled_items=labelled_items
         )
-        group_part_items = cls._get_group_part_items(
+        group_part_items = cls.get_group_part_items(
             original_pieces=original_pieces,
             replaced_items=replaced_items,
             labelled_shape_items=labelled_shape_items,
@@ -312,12 +331,12 @@ class StringParser(ABC):
         )
 
     @classmethod
-    def _get_labelled_items_and_replaced_items(
+    def get_labelled_items_and_replaced_items(
         cls,
         string: str,
         isolate: SelectorT,
         protect: SelectorT,
-        configured_items_iterator: Iterator[tuple[Span, dict[str, str]]]
+        local_attrs: dict[SelectorT, dict[str, str]]
     ) -> tuple[list[LabelledItem], list[CommandItem | LabelledInsertionItem]]:
 
         def get_key(
@@ -338,10 +357,14 @@ class StringParser(ABC):
         index_items: list[tuple[ConfiguredItem | IsolatedItem | ProtectedItem | CommandItem, EdgeFlag, int, int]] = sorted((
             (span_item, edge_flag, priority, i)
             for priority, span_item_iter in enumerate((
-                (ConfiguredItem(span=span, attrs=attrs) for span, attrs in configured_items_iterator),
-                (IsolatedItem(span=span) for span in cls._iter_spans_by_selector(isolate, string)),
-                (ProtectedItem(span=span) for span in cls._iter_spans_by_selector(protect, string)),
-                (CommandItem(match_obj=match_obj) for match_obj in cls._iter_command_matches(string))
+                (
+                    ConfiguredItem(span=span, attrs=attrs)
+                    for selector, attrs in local_attrs.items()
+                    for span in cls.iter_spans_by_selector(selector, string)
+                ),
+                (IsolatedItem(span=span) for span in cls.iter_spans_by_selector(isolate, string)),
+                (ProtectedItem(span=span) for span in cls.iter_spans_by_selector(protect, string)),
+                (CommandItem(match_obj=match_obj) for match_obj in cls.iter_command_matches(string))
             ), start=1)
             for i, span_item in enumerate(span_item_iter)
             for edge_flag in EdgeFlag
@@ -380,7 +403,7 @@ class StringParser(ABC):
                 if edge_flag == EdgeFlag.START:
                     continue
                 command_item = span_item
-                command_flag = cls._get_command_flag(command_item.match_obj)
+                command_flag = cls.get_command_flag(command_item.match_obj)
                 if command_flag == CommandFlag.OPEN:
                     bracket_count += 1
                     bracket_stack.append(bracket_count)
@@ -391,7 +414,7 @@ class StringParser(ABC):
                 else:
                     pos, open_command_item = open_command_stack.pop()
                     bracket_stack.pop()
-                    attrs = cls._get_attrs_from_command_pair(
+                    attrs = cls.get_attrs_from_command_pair(
                         open_command_item.match_obj, command_item.match_obj
                     )
                     if attrs is not None:
@@ -449,7 +472,7 @@ class StringParser(ABC):
         return labelled_items, replaced_items
 
     @classmethod
-    def _get_replaced_pieces(
+    def get_replaced_pieces(
         cls,
         replaced_items: list[CommandItem | LabelledInsertionItem],
         command_replace_func: Callable[[re.Match[str]], str],
@@ -467,7 +490,7 @@ class StringParser(ABC):
         ]
 
     @classmethod
-    def _replace_string(
+    def replace_string(
         cls,
         original_pieces: list[str],
         replaced_pieces: list[str],
@@ -481,12 +504,12 @@ class StringParser(ABC):
         )))
 
     @classmethod
-    def _get_labelled_shape_items(
+    def get_labelled_shape_items(
         cls,
         original_pieces: list[str],
         replaced_items: list[CommandItem | LabelledInsertionItem],
         labels_count: int,
-        get_content_by_body: Callable[[str, bool], str],
+        global_attrs: dict[str, str],
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> list[LabelledShapeItem]:
@@ -494,23 +517,31 @@ class StringParser(ABC):
         def get_shape_mobjects(
             is_labelled: bool
         ) -> list[ShapeMobject]:
-            content_replaced_pieces = cls._get_replaced_pieces(
+            content_replaced_pieces = cls.get_replaced_pieces(
                 replaced_items=replaced_items,
-                command_replace_func=cls._replace_for_content,
-                command_insert_func=lambda label, edge_flag, attrs: cls._get_command_string(
+                command_replace_func=cls.replace_for_content,
+                command_insert_func=lambda label, edge_flag, attrs: cls.get_command_string(
                     attrs,
                     edge_flag=edge_flag,
                     label=label if is_labelled else None
                 )
             )
-            body = cls._replace_string(
+            body = cls.replace_string(
                 original_pieces=original_pieces,
                 replaced_pieces=content_replaced_pieces,
                 start_index=0,
                 stop_index=len(original_pieces)
             )
-            content = get_content_by_body(body, is_labelled)
-            svg_path = file_writer.get_svg_path_by_content(content)
+            prefix, suffix = tuple(
+                cls.get_command_string(
+                    global_attrs,
+                    edge_flag=edge_flag,
+                    label=0 if is_labelled else None
+                )
+                for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
+            )
+            content = "".join((prefix, body, suffix))
+            svg_path = file_writer.get_svg_file(content)
             return list(SVGMobject(
                 file_path=svg_path,
                 frame_scale=frame_scale
@@ -539,7 +570,7 @@ class StringParser(ABC):
                 for plain_shape in plain_shapes
             ]
 
-        rearranged_labelled_shapes = cls._rearrange_labelled_shapes_by_positions(plain_shapes, labelled_shapes)
+        rearranged_labelled_shapes = cls.rearrange_labelled_shapes_by_positions(plain_shapes, labelled_shapes)
         unrecognizable_colors: list[str] = []
         labelled_shape_items: list[LabelledShapeItem] = []
         for plain_shape, labelled_shape in zip(plain_shapes, rearranged_labelled_shapes, strict=True):
@@ -562,7 +593,7 @@ class StringParser(ABC):
         return labelled_shape_items
 
     @classmethod
-    def _rearrange_labelled_shapes_by_positions(
+    def rearrange_labelled_shapes_by_positions(
         cls,
         plain_shapes: list[ShapeMobject],
         labelled_shapes: list[ShapeMobject]
@@ -591,7 +622,7 @@ class StringParser(ABC):
         ]
 
     @classmethod
-    def _get_shape_items(
+    def get_shape_items(
         cls,
         labelled_shape_items: list[LabelledShapeItem],
         label_to_span_dict: dict[int, Span]
@@ -605,7 +636,7 @@ class StringParser(ABC):
         ]
 
     @classmethod
-    def _get_specified_part_items(
+    def get_specified_part_items(
         cls,
         shape_items: list[ShapeItem],
         string: str,
@@ -614,13 +645,13 @@ class StringParser(ABC):
         return [
             (
                 string[labelled_item.span.as_slice()],
-                cls._get_shape_mobject_list_by_span(labelled_item.span, shape_items)
+                cls.get_shape_mobject_list_by_span(labelled_item.span, shape_items)
             )
             for labelled_item in labelled_items
         ]
 
     @classmethod
-    def _get_group_part_items(
+    def get_group_part_items(
         cls,
         original_pieces: list[str],
         replaced_items: list[CommandItem | LabelledInsertionItem],
@@ -657,13 +688,13 @@ class StringParser(ABC):
             ),
             (group_labels[-1], EdgeFlag.STOP)
         ]
-        matching_replaced_pieces = cls._get_replaced_pieces(
+        matching_replaced_pieces = cls.get_replaced_pieces(
             replaced_items=replaced_items,
-            command_replace_func=cls._replace_for_matching,
+            command_replace_func=cls.replace_for_matching,
             command_insert_func=lambda label, flag, attrs: ""
         )
         group_substrs = [
-            re.sub(r"\s+", "", cls._replace_string(
+            re.sub(r"\s+", "", cls.replace_string(
                 original_pieces=original_pieces,
                 replaced_pieces=matching_replaced_pieces,
                 start_index=labelled_insertion_item_to_index_dict[start_item],
@@ -680,7 +711,7 @@ class StringParser(ABC):
         ], strict=True))
 
     @classmethod
-    def _iter_spans_by_selector(
+    def iter_spans_by_selector(
         cls,
         selector: SelectorT,
         string: str
@@ -715,7 +746,7 @@ class StringParser(ABC):
                 yield from iter_spans_by_single_selector(sel, string)
 
     @classmethod
-    def _get_shape_mobject_list_by_span(
+    def get_shape_mobject_list_by_span(
         cls,
         arbitrary_span: Span,
         shape_items: list[ShapeItem]
@@ -730,7 +761,7 @@ class StringParser(ABC):
 
     @classmethod
     @abstractmethod
-    def _iter_command_matches(
+    def iter_command_matches(
         cls,
         string: str
     ) -> Iterator[re.Match[str]]:
@@ -738,7 +769,7 @@ class StringParser(ABC):
 
     @classmethod
     @abstractmethod
-    def _get_command_flag(
+    def get_command_flag(
         cls,
         match_obj: re.Match[str]
     ) -> CommandFlag:
@@ -746,7 +777,7 @@ class StringParser(ABC):
 
     @classmethod
     @abstractmethod
-    def _replace_for_content(
+    def replace_for_content(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -754,7 +785,7 @@ class StringParser(ABC):
 
     @classmethod
     @abstractmethod
-    def _replace_for_matching(
+    def replace_for_matching(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -762,7 +793,7 @@ class StringParser(ABC):
 
     @classmethod
     @abstractmethod
-    def _get_attrs_from_command_pair(
+    def get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
         close_command: re.Match[str]
@@ -771,7 +802,7 @@ class StringParser(ABC):
 
     @classmethod
     @abstractmethod
-    def _get_command_string(
+    def get_command_string(
         cls,
         attrs: dict[str, str],
         edge_flag: EdgeFlag,
@@ -823,8 +854,8 @@ class StringMobject(SVGMobject):
         selector: SelectorT
     ) -> Iterator[list[ShapeMobject]]:
         parser = self._parser
-        for span in parser._iter_spans_by_selector(selector, self._string):
-            if (shape_mobject_list := parser._get_shape_mobject_list_by_span(span, parser._parsing_result.shape_items)):
+        for span in parser.iter_spans_by_selector(selector, self._string):
+            if (shape_mobject_list := parser.get_shape_mobject_list_by_span(span, parser._parsing_result.shape_items)):
                 yield shape_mobject_list
 
     def select_parts(

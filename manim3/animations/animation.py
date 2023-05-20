@@ -369,7 +369,7 @@ class Scene(Animation):
                         video_stdin
                     ),
                     asyncio.sleep(sleep_time),
-                    return_exceptions=True
+                    return_exceptions=False  #True
                 )
                 if signal_timestamp is None:
                     break
