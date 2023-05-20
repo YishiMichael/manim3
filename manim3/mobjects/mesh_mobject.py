@@ -7,7 +7,6 @@ from ..custom_typing import (
 )
 from ..geometries.geometry import Geometry
 from ..lazy.lazy import Lazy
-from ..lighting.lighting import Lighting
 from ..mobjects.mobject import MobjectMeta
 from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (

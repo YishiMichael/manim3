@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Callable
 
 import numpy as np
@@ -43,10 +42,6 @@ class PartialABC(Animation):
             updater=updater
         )
         self._mobject: Mobject = mobject
-
-    @abstractmethod
-    async def timeline(self) -> None:
-        pass
 
 
 class PartialCreate(PartialABC):

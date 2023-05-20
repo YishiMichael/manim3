@@ -1,8 +1,15 @@
-from abc import ABC
+from abc import (
+    ABC,
+    abstractmethod
+)
 import asyncio
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
+import itertools as it
+import subprocess as sp
 from typing import (
+    IO,
     Callable,
     Iterator
 )
@@ -12,19 +19,13 @@ import moderngl
 from PIL import Image
 
 from ..cameras.camera import Camera
-from ..cameras.perspective_camera import PerspectiveCamera
 from ..config import (
     Config,
     ConfigSingleton
 )
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
-from ..lighting.ambient_light import AmbientLight
-from ..lighting.lighting import Lighting
-from ..lighting.point_light import PointLight
-from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import Mobject
-from ..mobjects.renderable_mobject import RenderableMobject
 from ..mobjects.scene_frame import SceneFrame
 from ..passes.render_pass import RenderPass
 from ..rendering.context import Context
@@ -267,46 +268,40 @@ class Animation(ABC):
         self.prepare(animation)
         await self.wait(animation._play_run_time)
 
-    async def timeline(self) -> None:
-        # Wait forever. Default timeline for infinite animation.
+    async def wait_forever(self) -> None:
+        # Used for infinite animation.
         await self.wait(600)
+
+    @abstractmethod
+    async def timeline(self) -> None:
+        pass
 
 
 class Scene(Animation):
-    __slots__ = (
-        "_scene_frame",
-        "_camera",
-        "_lighting"
-    )
+    __slots__ = ("_scene_frame",)
 
-    def __init__(self) -> None:
-        start_time = ConfigSingleton().rendering.start_time
-        stop_time = ConfigSingleton().rendering.stop_time
+    def __init__(
+        self,
+        start_time: float = 0.0,
+        stop_time: float | None = None
+    ) -> None:
         super().__init__(
             run_time=stop_time - start_time if stop_time is not None else None,
             relative_rate=RateUtils.adjust(RateUtils.linear, lag_time=-start_time)
         )
-        self._scene_frame: SceneFrame = SceneFrame()
-        self._camera: Camera = PerspectiveCamera()
-        self._lighting: Lighting = Lighting()
-        self._scene_frame.set_style(
-            color=ConfigSingleton().rendering.background_color
-        )
         self._scene_ref = weakref.ref(self)
+        self._scene_frame: SceneFrame = SceneFrame()
+        self.set_background(
+            color=ConfigSingleton().camera.background_color
+        )
 
-    def _run_timeline(self) -> None:
-
-        def frame_clock(
-            fps: float,
-            sleep: bool
-        ) -> Iterator[tuple[float, float]]:
-            spf = 1.0 / fps
-            sleep_time = spf if sleep else 0.0
-            # Do integer increment to avoid accumulated error in float addition.
-            frame_index: int = 0
-            while True:
-                yield frame_index * spf, sleep_time
-                frame_index += 1
+    async def _render(self) -> None:
+        config = ConfigSingleton().rendering
+        fps = config.fps
+        write_video = config.write_video
+        write_last_frame = config.write_last_frame
+        preview = config.preview
+        scene_name = type(self).__name__
 
         signal_timeline = self._signal_timeline()
         animation_dict: dict[Animation, Callable[[float], float]] = {}
@@ -334,7 +329,8 @@ class Scene(Animation):
         async def run_frame(
             clock_timestamp: float,
             signal_timestamp: float,
-            color_texture: moderngl.Texture
+            framebuffer: ColorFramebuffer,
+            video_stdin: IO[bytes] | None
         ) -> float | None:
             await asyncio.sleep(0.0)
 
@@ -349,76 +345,93 @@ class Scene(Animation):
                 digest_signal(signal)
             animate(clock_timestamp)
 
-            self._render_to_texture(color_texture)
-            if ConfigSingleton().rendering.preview:
-                self._scene_frame._render_to_window(color_texture)
-            if ConfigSingleton().rendering.write_video:
-                self._write_to_writing_process(color_texture)
+            self._scene_frame._render_scene(framebuffer)
+            if preview:
+                self._scene_frame._render_to_window(framebuffer.color_texture)
+            if video_stdin is not None:
+                self._write_frame_to_video(framebuffer.color_texture, video_stdin)
 
             return next_signal_timestamp
 
         async def run_frames(
-            color_texture: moderngl.Texture
+            framebuffer: ColorFramebuffer,
+            video_stdin: IO[bytes] | None
         ) -> None:
+            spf = 1.0 / fps
+            sleep_time = spf if preview else 0.0
             signal_timestamp = 0.0
-            for clock_timestamp, sleep_time in frame_clock(
-                fps=ConfigSingleton().rendering.fps,
-                sleep=ConfigSingleton().rendering.preview
-            ):
+            for frame_index in it.count():
                 signal_timestamp, _ = await asyncio.gather(
                     run_frame(
-                        clock_timestamp,
+                        frame_index * spf,
                         signal_timestamp,
-                        color_texture
+                        framebuffer,
+                        video_stdin
                     ),
-                    asyncio.sleep(sleep_time)
+                    asyncio.sleep(sleep_time),
+                    return_exceptions=True
                 )
                 if signal_timestamp is None:
                     break
 
-            self._render_to_texture(color_texture)
-            if ConfigSingleton().rendering.write_last_frame:
-                self._write_to_image(color_texture)
+            self._scene_frame._render_scene(framebuffer)
+            if write_last_frame:
+                self._write_frame_to_image(framebuffer.color_texture, scene_name)
 
-        with TextureFactory.texture() as color_texture:
-            asyncio.run(run_frames(color_texture))
-
-    def _render_to_texture(
-        self,
-        color_texture: moderngl.Texture
-    ) -> None:
-        scene_frame = self._scene_frame
-
-        camera = self._camera
-        for mobject in scene_frame.iter_descendants_by_type(mobject_type=RenderableMobject):
-            mobject._camera_uniform_block_buffer_ = camera._camera_uniform_block_buffer_
-
-        lighting = self._lighting
-        lighting._ambient_lights_ = scene_frame.iter_descendants_by_type(mobject_type=AmbientLight)
-        lighting._point_lights_ = scene_frame.iter_descendants_by_type(mobject_type=PointLight)
-        for mobject in scene_frame.iter_descendants_by_type(mobject_type=MeshMobject):
-            mobject._lighting_uniform_block_buffer_ = lighting._lighting_uniform_block_buffer_
-
-        framebuffer = ColorFramebuffer(
-            color_texture=color_texture
-        )
-        scene_frame._render_scene_with_passes(framebuffer)
+        Context.activate(title=scene_name, standalone=not preview)
+        with TextureFactory.texture() as color_texture, \
+                self._video_writer(write_video, fps, scene_name) as video_stdin:
+            framebuffer = ColorFramebuffer(
+                color_texture=color_texture
+            )
+            await run_frames(framebuffer, video_stdin)
 
     @classmethod
-    def _write_to_writing_process(
+    @contextmanager
+    def _video_writer(
         cls,
-        color_texture: moderngl.Texture
-    ) -> None:
-        writing_process = Context.writing_process
-        assert writing_process.stdin is not None
-        writing_process.stdin.write(color_texture.read())
+        write_video: bool,
+        fps: float,
+        scene_name: str
+    ) -> Iterator[IO[bytes] | None]:
+        if not write_video:
+            yield None
+            return
+        writing_process = sp.Popen((
+            "ffmpeg",
+            "-y",  # Overwrite output file if it exists.
+            "-f", "rawvideo",
+            "-s", "{}x{}".format(*ConfigSingleton().size.pixel_size),  # size of one frame
+            "-pix_fmt", "rgba",
+            "-r", str(fps),  # frames per second
+            "-i", "-",  # The input comes from a pipe.
+            "-vf", "vflip",
+            "-an",
+            "-vcodec", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-loglevel", "error",
+            ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.mp4")
+        ), stdin=sp.PIPE)
+        assert (video_stdin := writing_process.stdin) is not None
+        yield video_stdin
+        video_stdin.close()
+        writing_process.wait()
+        writing_process.terminate()
 
     @classmethod
-    def _write_to_image(
+    def _write_frame_to_video(
         cls,
-        color_texture: moderngl.Texture
+        color_texture: moderngl.Texture,
+        video_stdin: IO[bytes]
     ) -> None:
-        scene_name = ConfigSingleton().rendering.scene_name
+        video_stdin.write(color_texture.read())
+
+    @classmethod
+    def _write_frame_to_image(
+        cls,
+        color_texture: moderngl.Texture,
+        scene_name: str
+    ) -> None:
         image = Image.frombytes(
             "RGBA",
             ConfigSingleton().size.pixel_size,
@@ -464,37 +477,22 @@ class Scene(Animation):
 
     @property
     def camera(self) -> Camera:
-        return self._camera
+        return self._scene_frame._camera_
 
     def set_camera(
         self,
         camera: Camera
     ):
-        self._camera = camera
+        self._scene_frame._camera_ = camera
         return self
 
-    @classmethod
     def render(
-        cls,
+        self,
         config: Config | None = None
     ) -> None:
-        if config is None:
-            config = Config()
-
-        ConfigSingleton.set(config)
-        if ConfigSingleton().rendering.scene_name is NotImplemented:
-            ConfigSingleton().rendering.scene_name = cls.__name__
-
-        Context.activate()
-        if ConfigSingleton().rendering.write_video:
-            Context.setup_writing_process()
-
-        self = cls()
-
+        if config is not None:
+            ConfigSingleton.set(config)
         try:
-            self._run_timeline()
+            asyncio.run(self._render())
         except KeyboardInterrupt:
             pass
-        finally:
-            if ConfigSingleton().rendering.write_video:
-                Context.terminate_writing_process()

@@ -1,8 +1,14 @@
 import moderngl
 import numpy as np
 
+from ..cameras.camera import Camera
+from ..cameras.perspective_camera import PerspectiveCamera
 from ..custom_typing import Vec3T
 from ..lazy.lazy import Lazy
+from ..lighting.ambient_light import AmbientLight
+from ..lighting.lighting import Lighting
+from ..lighting.point_light import PointLight
+from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import (
     Mobject,
     MobjectMeta
@@ -29,13 +35,19 @@ from ..utils.space import SpaceUtils
 class SceneFrame(Mobject):
     __slots__ = ()
 
+    def __init__(self) -> None:
+        super().__init__()
+        # Should be standalone for each `SceneFrame` object.
+        self._camera_ = PerspectiveCamera()
+        self._lighting_ = Lighting()
+
     @MobjectMeta.register(
         interpolate_method=SpaceUtils.lerp_vec3
     )
     @Lazy.variable_external
     @classmethod
     def _color_(cls) -> Vec3T:
-        return np.ones(3)
+        return np.zeros(3)
 
     @MobjectMeta.register(
         interpolate_method=SpaceUtils.lerp_float
@@ -43,7 +55,17 @@ class SceneFrame(Mobject):
     @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
-        return 1.0
+        return 0.0
+
+    @Lazy.variable
+    @classmethod
+    def _camera_(cls) -> Camera:
+        return NotImplemented
+
+    @Lazy.variable
+    @classmethod
+    def _lighting_(cls) -> Lighting:
+        return NotImplemented
 
     @Lazy.variable_collection
     @classmethod
@@ -52,7 +74,7 @@ class SceneFrame(Mobject):
 
     @Lazy.property
     @classmethod
-    def _pixelated_vertex_array_(cls) -> VertexArray:
+    def _copy_vertex_array_(cls) -> VertexArray:
         return VertexArray(
             shader_filename="copy",
             texture_id_buffers=[
@@ -77,10 +99,20 @@ class SceneFrame(Mobject):
             ]
         )
 
-    def _render_scene(
+    def _render_scene_content(
         self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
+        camera = self._camera_
+        for mobject in self.iter_descendants_by_type(mobject_type=RenderableMobject):
+            mobject._camera_uniform_block_buffer_ = camera._camera_uniform_block_buffer_
+
+        lighting = self._lighting_
+        lighting._ambient_lights_ = self.iter_descendants_by_type(mobject_type=AmbientLight)
+        lighting._point_lights_ = self.iter_descendants_by_type(mobject_type=PointLight)
+        for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject):
+            mobject._lighting_uniform_block_buffer_ = lighting._lighting_uniform_block_buffer_
+
         # Inspired from `https://github.com/ambrosiogabe/MathAnimation`
         # `./Animations/src/renderer/Renderer.cpp`.
         opaque_mobjects: list[RenderableMobject] = []
@@ -98,10 +130,9 @@ class SceneFrame(Mobject):
                 color_texture=target_framebuffer.color_texture,
                 depth_texture=depth_texture
             )
-
-            red, green, blue = self._color_.value
-            alpha = self._opacity_.value
-            opaque_framebuffer.framebuffer.clear(red=red, green=green, blue=blue, alpha=alpha)
+            opaque_framebuffer.framebuffer.clear(
+                color=(*self._color_.value, self._opacity_.value)
+            )
             for mobject in opaque_mobjects:
                 mobject._render(opaque_framebuffer)
 
@@ -132,13 +163,13 @@ class SceneFrame(Mobject):
                 )
             )
 
-    def _render_scene_with_passes(
+    def _render_scene(
         self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
         render_passes = self._render_passes_
         if not render_passes:
-            self._render_scene(target_framebuffer)
+            self._render_scene_content(target_framebuffer)
             return
 
         with TextureFactory.texture() as texture_0, TextureFactory.texture() as texture_1:
@@ -151,7 +182,7 @@ class SceneFrame(Mobject):
                 )
             )
             target_id = 0
-            self._render_scene(framebuffers[0])
+            self._render_scene_content(framebuffers[0])
             for render_pass in render_passes[:-1]:
                 target_id = 1 - target_id
                 render_pass._render(
@@ -171,7 +202,7 @@ class SceneFrame(Mobject):
         if window.is_closing:
             raise KeyboardInterrupt
         window.clear()
-        self._pixelated_vertex_array_.render(
+        self._copy_vertex_array_.render(
             framebuffer=Framebuffer(
                 framebuffer=Context.window_framebuffer,
                 default_context_state=ContextState(

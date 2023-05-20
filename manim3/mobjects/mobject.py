@@ -20,7 +20,6 @@ import weakref
 
 import moderngl
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 from ..constants import (
     ORIGIN,
@@ -68,7 +67,7 @@ class BoundingBox:
     minimum: Vec3T
 
     @property
-    def origin(self) -> Vec3T:
+    def center(self) -> Vec3T:
         return (self.maximum + self.minimum) / 2.0
 
     @property
@@ -107,15 +106,6 @@ class AboutPoint(AboutABC):
         return self._point
 
 
-class AboutOrigin(AboutPoint):
-    __slots__ = ()
-
-    def __init__(self) -> None:
-        super().__init__(
-            point=ORIGIN
-        )
-
-
 class AboutEdge(AboutABC):
     __slots__ = ("_edge",)
 
@@ -131,6 +121,15 @@ class AboutEdge(AboutABC):
         mobject: "Mobject"
     ) -> Vec3T:
         return mobject.get_bounding_box_point(self._edge)
+
+
+class AboutCenter(AboutEdge):
+    __slots__ = ()
+
+    def __init__(self) -> None:
+        super().__init__(
+            edge=ORIGIN
+        )
 
 
 class AlignABC(ABC):
@@ -159,8 +158,8 @@ class AlignABC(ABC):
     ) -> Vec3T:
         target_point = self._get_target_point()
         direction = direction_sign * self._direction
-        point_to_align = mobject.get_bounding_box_point(direction)
-        return target_point - (point_to_align + self._buff * direction)
+        point_to_align = mobject.get_bounding_box_point(direction) + self._buff * direction
+        return target_point - point_to_align
 
 
 class AlignPoint(AlignABC):
@@ -705,7 +704,7 @@ class Mobject(LazyObject):
         broadcast: bool = True
     ) -> Vec3T:
         bounding_box = self.get_bounding_box(broadcast=broadcast)
-        return bounding_box.origin + direction * bounding_box.radii
+        return bounding_box.center + direction * bounding_box.radii
 
     def get_center(
         self,
@@ -834,22 +833,22 @@ class Mobject(LazyObject):
 
     def _rotate_callback(
         self,
-        rotation: Rotation,
+        rotvec: Vec3T,
         about: AboutABC | None = None
     ) -> Callable[[float | Vec3T], Mat4T]:
         return self._make_callback_relative(
-            matrix_callback=SpaceUtils.matrix_callback_from_rotation(rotation),
+            matrix_callback=SpaceUtils.matrix_callback_from_rotation(rotvec),
             about=about
         )
 
     def rotate(
         self,
-        rotation: Rotation,
+        rotvec: Vec3T,
         about: AboutABC | None = None,
         *,
         alpha: float | Vec3T = 1.0
     ):
-        matrix = self._rotate_callback(rotation, about)(alpha)
+        matrix = self._rotate_callback(rotvec, about)(alpha)
         self.apply_transform(matrix)
         return self
 
@@ -859,7 +858,7 @@ class Mobject(LazyObject):
         about: AboutABC | None = None
     ):
         self.rotate(
-            rotation=Rotation.from_rotvec(SpaceUtils.normalize(axis) * PI),
+            rotvec=SpaceUtils.normalize(axis) * PI,
             about=about
         )
         return self

@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 from manim3 import *
 
@@ -92,7 +91,7 @@ class ThreeDTextExample(Scene):
         self.add(AmbientLight().set_style(opacity=0.3))
         self.add(PointLight().shift(RIGHT * 5))
         self.add(text_3d)
-        self.prepare(Rotating(text_3d, Rotation.from_rotvec(0.5 * DOWN)))
+        self.prepare(Rotating(text_3d, 0.5 * DOWN))
         await self.wait(10)
 
 
@@ -102,7 +101,7 @@ class OITExample(Scene):
             (Circle()
                 .set_style(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
-                .rotate(Rotation.from_rotvec(OUT * angle))
+                .rotate(OUT * angle)
             )
             for color, opacity, angle in zip(
                 (Palette.RED, Palette.GREEN, Palette.BLUE),
@@ -122,7 +121,6 @@ class ChildSceneExample(Scene):
             ChildSceneMobject(child_scene_1)
             .scale(0.5)
             .shift(LEFT * 1)
-            .set_style(is_transparent=True)
         )
         child_scene_2 = TexTransformExample()
         self.prepare(child_scene_2)
@@ -130,7 +128,8 @@ class ChildSceneExample(Scene):
             ChildSceneMobject(child_scene_2)
             .scale(0.5)
             .shift(RIGHT * 1)
-            .set_style(is_transparent=True)
+            .shift(OUT * 0.01)
+            .set_style(opacity=1.0)
         )
         await self.wait(6)
 
@@ -157,7 +156,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample.render(config)
+    ChildSceneExample().render(config)
 
 
 if __name__ == "__main__":

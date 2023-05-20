@@ -54,11 +54,7 @@ class PathConfig:
     slots=True
 )
 class RenderingConfig:
-    scene_name: str
-    background_color: ColorT
     fps: int
-    start_time: float
-    stop_time: float | None
     write_video: bool
     write_last_frame: bool
     preview: bool
@@ -139,6 +135,7 @@ class SizeConfig:
     slots=True
 )
 class CameraConfig:
+    background_color: ColorT
     altitude: float
     near: float
     far: float
@@ -192,11 +189,7 @@ class Config:
         super().__init__()
         self._path: PathConfig = PathConfig()
         self._rendering: RenderingConfig = RenderingConfig(
-            scene_name=NotImplemented,  # Represents the class name.,
-            background_color=Color("black"),
             fps=30,
-            start_time=0.0,
-            stop_time=None,
             write_video=False,
             write_last_frame=False,
             preview=True
@@ -208,6 +201,7 @@ class Config:
             window_pixel_height=540
         )
         self._camera: CameraConfig = CameraConfig(
+            background_color=Color("black"),
             altitude=5.0,
             near=0.1,
             far=100.0
@@ -271,10 +265,9 @@ class Config:
 class ConfigSingleton:
     __slots__ = ()
 
-    _INSTANCE: ClassVar[Config | None] = None
+    _INSTANCE: ClassVar[Config] = Config()
 
     def __new__(cls) -> Config:
-        assert cls._INSTANCE is not None, "Config instance is not provided"
         return cls._INSTANCE
 
     @classmethod

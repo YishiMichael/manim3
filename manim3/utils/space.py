@@ -408,7 +408,7 @@ class SpaceUtils:
         factor: float | Vec3T
     ) -> Callable[[float | Vec3T], Mat4T]:
         if not isinstance(factor, np.ndarray):
-            factor = np.ones(3) * factor
+            factor *= np.ones(3)
         lerp_callback = cls.lerp(1.0, factor)
 
         def callback(
@@ -423,9 +423,8 @@ class SpaceUtils:
     @classmethod
     def matrix_callback_from_rotation(
         cls,
-        rotation: Rotation
+        rotvec: Vec3T
     ) -> Callable[[float | Vec3T], Mat4T]:
-        rotvec: Vec3T = rotation.as_rotvec()
         lerp_callback = cls.lerp(0.0, rotvec)
 
         def callback(

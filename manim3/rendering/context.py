@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from functools import reduce
 import operator as op
-import subprocess as sp
 from typing import ClassVar
 
 import moderngl
@@ -41,18 +40,27 @@ class Context:
     _mgl_context: ClassVar[moderngl.Context | None] = None
     _window: ClassVar[Window | None] = None
     _window_framebuffer: ClassVar[moderngl.Framebuffer | None] = None
-    _writing_process: ClassVar[sp.Popen | None] = None
 
     def __new__(cls):
         raise TypeError
 
     @classmethod
-    def activate(cls) -> None:
-        if cls._mgl_context is not None:
-            return
-
-        if ConfigSingleton().rendering.preview:
+    def activate(
+        cls,
+        title: str,
+        standalone: bool
+    ) -> None:
+        assert cls._mgl_context is None
+        if standalone:
+            window = None
+            mgl_context = moderngl.create_context(
+                require=cls._GL_VERSION_CODE,
+                standalone=True
+            )
+            window_framebuffer = None
+        else:
             window = Window(
+                title=title,
                 size=ConfigSingleton().size.window_pixel_size,
                 fullscreen=False,
                 resizable=True,
@@ -62,44 +70,10 @@ class Context:
             )
             mgl_context = window.ctx
             window_framebuffer = mgl_context.detect_framebuffer()
-        else:
-            window = None
-            mgl_context = moderngl.create_context(
-                require=cls._GL_VERSION_CODE,
-                standalone=True
-            )
-            window_framebuffer = None
         mgl_context.gc_mode = "auto"
         cls._mgl_context = mgl_context
         cls._window = window
         cls._window_framebuffer = window_framebuffer
-
-    @classmethod
-    def setup_writing_process(cls) -> None:
-        scene_name = ConfigSingleton().rendering.scene_name
-        cls._writing_process = sp.Popen((
-            "ffmpeg",
-            "-y",  # Overwrite output file if it exists.
-            "-f", "rawvideo",
-            "-s", "{}x{}".format(*ConfigSingleton().size.pixel_size),  # size of one frame
-            "-pix_fmt", "rgba",
-            "-r", str(ConfigSingleton().rendering.fps),  # frames per second
-            "-i", "-",  # The input comes from a pipe.
-            "-vf", "vflip",
-            "-an",
-            "-vcodec", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-loglevel", "error",
-            ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.mp4")
-        ), stdin=sp.PIPE)
-
-    @classmethod
-    def terminate_writing_process(cls) -> None:
-        writing_process = cls.writing_process
-        assert writing_process.stdin is not None
-        writing_process.stdin.close()
-        writing_process.wait()
-        writing_process.terminate()
 
     @classmethod
     @property
@@ -118,12 +92,6 @@ class Context:
     def window_framebuffer(cls) -> moderngl.Framebuffer:
         assert (window_framebuffer := cls._window_framebuffer) is not None
         return window_framebuffer
-
-    @classmethod
-    @property
-    def writing_process(cls) -> sp.Popen:
-        assert (writing_process := cls._writing_process) is not None
-        return writing_process
 
     @classmethod
     def set_state(

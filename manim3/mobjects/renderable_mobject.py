@@ -1,7 +1,5 @@
 from abc import abstractmethod
 
-from ..cameras.camera import Camera
-from ..cameras.perspective_camera import PerspectiveCamera
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import (
     Mobject,

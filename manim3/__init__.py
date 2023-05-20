@@ -58,8 +58,8 @@ from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mesh_mobject import MeshMobject
 from .mobjects.mobject import (
+    AboutCenter,
     AboutEdge,
-    AboutOrigin,
     AboutPoint,
     AlignBorder,
     AlignMobject,

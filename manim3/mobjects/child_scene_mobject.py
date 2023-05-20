@@ -4,6 +4,7 @@ from ..animations.animation import Scene
 from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
+    ColorFramebuffer,
     OpaqueFramebuffer,
     TransparentFramebuffer
 )
@@ -27,8 +28,10 @@ class ChildSceneMobject(MeshMobject):
         self,
         target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
     ) -> None:
-        scene = self._scene
         with TextureFactory.texture() as color_texture:
-            scene._render_to_texture(color_texture)
+            framebuffer = ColorFramebuffer(
+                color_texture=color_texture
+            )
+            self._scene._scene_frame._render_scene(framebuffer)
             self._color_map_ = color_texture
             super()._render(target_framebuffer)

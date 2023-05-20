@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Callable
 
 from ..animations.animation import Animation
@@ -49,10 +48,6 @@ class TransformABC(Animation):
         self._start_mobject: Mobject = start_mobject
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
-
-    @abstractmethod
-    async def timeline(self) -> None:
-        pass
 
 
 class Transform(TransformABC):
