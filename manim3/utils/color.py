@@ -28,10 +28,10 @@ class ColorUtils:
             case str() if re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE) and (hex_len := len(color) - 1) in (3, 4, 6, 8):
                 num_components = 4 if hex_len % 3 else 3
                 component_size = hex_len // num_components
-                result = np.array([
+                result = (1.0 / (16 ** component_size - 1)) * np.array([
                     int(match_obj.group(), 16)
                     for match_obj in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
-                ]) * (1.0 / (16 ** component_size - 1))
+                ])
                 if num_components == 3:
                     return result[:], None
                 return result[:3], result[3]
@@ -45,10 +45,19 @@ class ColorUtils:
     @classmethod
     def color_to_hex(
         cls,
-        color: ColorT
+        color: ColorT,
+        *,
+        include_alpha: bool = False
     ) -> str:
-        rgb, _ = cls.decompose_color(color)
-        return "#{:02x}{:02x}{:02x}".format(*(rgb * 255.0).astype(int))
+        rgb, alpha = cls.decompose_color(color)
+        if alpha is None:
+            alpha = 1.0
+        if include_alpha:
+            components = np.append(rgb, alpha)
+        else:
+            components = rgb
+        components = (components * 255.0).astype(int)
+        return "#" + "".join("{:02x}".format(component) for component in components)
 
     @classmethod
     def standardize_color_input(

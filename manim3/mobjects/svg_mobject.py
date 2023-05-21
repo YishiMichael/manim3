@@ -118,10 +118,7 @@ class SVGMobject(ShapeMobject):
             frame_scale=frame_scale
         )
         self.add(*(
-            shape_mobject.set_style(
-                # TODO: handle other attributes including opacity, strokes, etc.
-                color=None if shape.fill is None else shape.fill.hexrgb
-            )
+            shape_mobject
             for shape in svg.elements()
             if isinstance(shape, se.Shape) and (
                 shape_mobject := self._get_mobject_from_se_shape(shape * transform)
@@ -208,4 +205,8 @@ class SVGMobject(ShapeMobject):
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
             yield np.array(points_list), is_ring
 
-        return ShapeMobject(Shape(iter_args_from_se_shape(se_shape)))
+        result = ShapeMobject(Shape(iter_args_from_se_shape(se_shape)))
+        # TODO: handle strokes, etc.
+        if (fill := se_shape.fill) is not None and (hexa := fill.hexa) is not None:
+            result.set_style(color=hexa, handle_related_styles=False)
+        return result

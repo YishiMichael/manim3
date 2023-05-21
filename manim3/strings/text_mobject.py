@@ -143,21 +143,21 @@ class MarkupTextParser(StringParser):
     }
 
     @classmethod
-    def markup_escape(
+    def _markup_escape(
         cls,
         substr: str
     ) -> str:
         return cls._MARKUP_ESCAPE_DICT.get(substr, substr)
 
     @classmethod
-    def markup_unescape(
+    def _markup_unescape(
         cls,
         substr: str
     ) -> str:
         return cls._MARKUP_UNESCAPE_DICT.get(substr, substr)
 
     @classmethod
-    def iter_command_matches(
+    def _iter_command_matches(
         cls,
         string: str
     ) -> Iterator[re.Match[str]]:
@@ -179,7 +179,7 @@ class MarkupTextParser(StringParser):
         yield from pattern.finditer(string)
 
     @classmethod
-    def get_command_flag(
+    def _get_command_flag(
         cls,
         match_obj: re.Match[str]
     ) -> CommandFlag:
@@ -191,18 +191,18 @@ class MarkupTextParser(StringParser):
         return CommandFlag.OTHER
 
     @classmethod
-    def replace_for_content(
+    def _replace_for_content(
         cls,
         match_obj: re.Match[str]
     ) -> str:
         if match_obj.group("tag"):
             return ""
         if match_obj.group("char"):
-            return cls.markup_escape(match_obj.group("char"))
+            return cls._markup_escape(match_obj.group("char"))
         return match_obj.group()
 
     @classmethod
-    def replace_for_matching(
+    def _replace_for_matching(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -214,11 +214,11 @@ class MarkupTextParser(StringParser):
                 if match_obj.group("hex"):
                     base = 16
                 return chr(int(match_obj.group("content"), base))
-            return cls.markup_unescape(match_obj.group("entity"))
+            return cls._markup_unescape(match_obj.group("entity"))
         return match_obj.group()
 
     @classmethod
-    def get_attrs_from_command_pair(
+    def _get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
         close_command: re.Match[str]
@@ -239,11 +239,11 @@ class MarkupTextParser(StringParser):
         return cls._MARKUP_TAGS.get(tag_name, {})
 
     @classmethod
-    def get_command_string(
+    def _get_command_string(
         cls,
-        attrs: dict[str, str],
+        label: int | None,
         edge_flag: EdgeFlag,
-        label: int | None
+        attrs: dict[str, str]
     ) -> str:
         if edge_flag == EdgeFlag.STOP:
             return "</span>"
@@ -273,7 +273,7 @@ class TextParser(MarkupTextParser):
     __slots__ = ()
 
     @classmethod
-    def iter_command_matches(
+    def _iter_command_matches(
         cls,
         string: str
     ) -> Iterator[re.Match[str]]:
@@ -281,21 +281,21 @@ class TextParser(MarkupTextParser):
         yield from pattern.finditer(string)
 
     @classmethod
-    def get_command_flag(
+    def _get_command_flag(
         cls,
         match_obj: re.Match[str]
     ) -> CommandFlag:
         return CommandFlag.OTHER
 
     @classmethod
-    def replace_for_content(
+    def _replace_for_content(
         cls,
         match_obj: re.Match[str]
     ) -> str:
-        return cls.markup_escape(match_obj.group())
+        return cls._markup_escape(match_obj.group())
 
     @classmethod
-    def replace_for_matching(
+    def _replace_for_matching(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -361,7 +361,7 @@ class Text(StringMobject):
             "font_family": font,
             "font_style": slant,
             "font_weight": weight,
-            "foreground": ColorUtils.color_to_hex(base_color),
+            "foreground": ColorUtils.color_to_hex(base_color, include_alpha=True),
             "line_height": str(1.0 + line_spacing_height)
         }
         global_attrs.update(global_config)
@@ -383,7 +383,6 @@ class Text(StringMobject):
             frame_scale=self._TEXT_SCALE_FACTOR
         )
         super().__init__(
-            string=string,
             parser=parser
         )
 

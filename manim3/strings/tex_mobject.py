@@ -23,7 +23,6 @@ from ..strings.string_mobject import (
     StringMobject,
     StringParser
 )
-from ..utils.color import ColorUtils
 
 
 class LaTeXError(ValueError):
@@ -181,7 +180,7 @@ class TexParser(StringParser):
     __slots__ = ()
 
     @classmethod
-    def iter_command_matches(
+    def _iter_command_matches(
         cls,
         string: str
     ) -> Iterator[re.Match[str]]:
@@ -226,7 +225,7 @@ class TexParser(StringParser):
             raise ValueError("Missing '}' inserted")
 
     @classmethod
-    def get_command_flag(
+    def _get_command_flag(
         cls,
         match_obj: re.Match[str]
     ) -> CommandFlag:
@@ -237,14 +236,14 @@ class TexParser(StringParser):
         return CommandFlag.OTHER
 
     @classmethod
-    def replace_for_content(
+    def _replace_for_content(
         cls,
         match_obj: re.Match[str]
     ) -> str:
         return match_obj.group()
 
     @classmethod
-    def replace_for_matching(
+    def _replace_for_matching(
         cls,
         match_obj: re.Match[str]
     ) -> str:
@@ -253,7 +252,7 @@ class TexParser(StringParser):
         return ""
 
     @classmethod
-    def get_attrs_from_command_pair(
+    def _get_attrs_from_command_pair(
         cls,
         open_command: re.Match[str],
         close_command: re.Match[str]
@@ -263,22 +262,17 @@ class TexParser(StringParser):
         return None
 
     @classmethod
-    def get_command_string(
+    def _get_command_string(
         cls,
-        attrs: dict[str, str],
+        label: int | None,
         edge_flag: EdgeFlag,
-        label: int | None
+        attrs: dict[str, str]
     ) -> str:
-        if label is not None:
-            rgb = label
-        else:
-            if (color_hex := attrs.get("color")) is not None:
-                rgb = int(color_hex[1:], 16)
-            else:
-                return ""
+        if label is None:
+            return ""
         if edge_flag == EdgeFlag.STOP:
             return "}}"
-        rg, b = divmod(rgb, 256)
+        rg, b = divmod(label, 256)
         r, g = divmod(rg, 256)
         color_command = f"\\color[RGB]{{{r}, {g}, {b}}}"
         return "{{" + color_command
@@ -350,16 +344,14 @@ class Tex(StringMobject):
                 selector: {}
                 for selector in tex_to_color_map
             },
-            global_attrs={
-                "color": ColorUtils.color_to_hex(base_color)
-            },
+            global_attrs={},
             file_writer=file_writer,
             frame_scale=frame_scale
         )
         super().__init__(
-            string=string,
             parser=parser
         )
 
+        self.set_style(color=base_color)
         for selector, color in tex_to_color_map.items():
             self.select_parts(selector).set_style(color=color)

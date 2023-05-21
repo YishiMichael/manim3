@@ -176,7 +176,7 @@ class FormulaExample(Scene):
                 "c_{2}": Palette.BLUE,
                 "c_{n}": Palette.BLUE
             }
-        ).scale(0.5)
+        )#.scale(0.5)
         self.add(expanded_formula)
         await self.wait(5)
 
@@ -190,7 +190,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample().render(config)
+    FormulaExample().render(config)
 
 
 if __name__ == "__main__":
