@@ -27,9 +27,9 @@ from .animations.partial import (
     PartialUncreate
 )
 from .animations.transform import (
-    ReplacementTransform,
     Transform,
-    TransformFrom
+    TransformFrom,
+    TransformTo
 )
 
 from .cameras.camera import Camera

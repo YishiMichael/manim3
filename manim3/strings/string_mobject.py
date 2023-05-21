@@ -608,8 +608,8 @@ class StringParser(ABC):
         plain_shapes: list[ShapeMobject],
         labelled_shapes: list[ShapeMobject]
     ) -> Iterator[tuple[ShapeMobject, ShapeMobject]]:
-        # Rearrange children of `labelled_svg` so that
-        # each child is labelled by the nearest one of `labelled_svg`.
+        # Rearrange `labelled_shapes` so that
+        # each mobject is labelled by the nearest one of `labelled_shapes`.
         # The correctness cannot be ensured, since the svg may
         # change significantly after inserting color commands.
 
@@ -624,10 +624,8 @@ class StringParser(ABC):
         if not labelled_shapes:
             return
 
-        plain_svg = SVGMobject().add(*plain_shapes)
-        labelled_svg = SVGMobject().add(*labelled_shapes)
-        labelled_svg.move_to(AlignMobject(plain_svg)).scale_to(
-            plain_svg.get_bounding_box_size()
+        SVGMobject().add(*labelled_shapes).match_bounding_box(
+            SVGMobject().add(*plain_shapes)
         )
 
         for plain_index, labelled_index in zip(*get_matched_position_indices(
@@ -761,6 +759,10 @@ class StringParser(ABC):
     #        yield string[span.as_slice()], cls._iter_shape_mobjects_by_span(
     #            span, labelled_shape_mobjects, label_to_span_dict
     #        )
+
+    def iter_shape_mobjects(self) -> Iterator[ShapeMobject]:
+        for labelled_shape_mobject in self._labelled_shape_mobjects:
+            yield labelled_shape_mobject.shape_mobject
 
     def iter_shape_mobjects_by_span(
         self,
@@ -985,10 +987,7 @@ class StringMobject(SVGMobject):
         super().__init__()
         #self._string: str = string
         self._parser: StringParser = parser
-        self.add(*(
-            labelled_shape_mobject.shape_mobject
-            for labelled_shape_mobject in parser._labelled_shape_mobjects
-        ))
+        self.add(*parser.iter_shape_mobjects())
 
     #def _iter_shape_mobject_lists_by_selector(
     #    self,

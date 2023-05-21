@@ -829,6 +829,13 @@ class Mobject(LazyObject):
         )
         return self
 
+    def match_bounding_box(
+        self,
+        mobject: "Mobject"
+    ):
+        self.move_to(AlignMobject(mobject)).scale_to(mobject.get_bounding_box_size())
+        return self
+
     # rotate relatives
 
     def _rotate_callback(

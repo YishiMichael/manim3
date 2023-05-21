@@ -50,7 +50,7 @@ class TransformABC(Animation):
         self._intermediate_mobject: Mobject = intermediate_mobject
 
 
-class Transform(TransformABC):
+class TransformTo(TransformABC):
     __slots__ = ()
 
     def __init__(
@@ -96,7 +96,7 @@ class TransformFrom(TransformABC):
         await self.wait()
 
 
-class ReplacementTransform(TransformABC):
+class Transform(TransformABC):
     __slots__ = ()
 
     def __init__(
@@ -116,12 +116,16 @@ class ReplacementTransform(TransformABC):
         )
 
     async def timeline(self) -> None:
-        start_mobject = self._start_mobject
-        stop_mobject = self._stop_mobject
-        intermediate_mobject = self._intermediate_mobject
-        parents = list(start_mobject.iter_parents())
-        start_mobject.discarded_by(*parents)
-        intermediate_mobject.added_by(*parents)
+        #start_mobject = self._start_mobject
+        #stop_mobject = self._stop_mobject
+        #intermediate_mobject = self._intermediate_mobject
+        #parents = list(start_mobject.iter_parents())
+        #start_mobject.discarded_by(*parents)
+        #intermediate_mobject.added_by(*parents)
+        self.discard_from_scene(self._start_mobject)
+        self.add_to_scene(self._intermediate_mobject)
         await self.wait()
-        intermediate_mobject.discarded_by(*parents)
-        stop_mobject.added_by(*parents)
+        self.discard_from_scene(self._intermediate_mobject)
+        self.add_to_scene(self._stop_mobject)
+        #intermediate_mobject.discarded_by(*parents)
+        #stop_mobject.added_by(*parents)

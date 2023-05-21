@@ -24,7 +24,7 @@ class ShapeTransformExample(Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(ReplacementTransform(square, circle, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
         await self.wait()
 
 
@@ -53,9 +53,9 @@ class TexTransformExample(Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(ReplacementTransform(text, tex, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
         await self.wait()
-        await self.play(Transform(tex, tex.copy().shift(RIGHT * 2), run_time=2, rate_func=RateUtils.smooth))
+        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2), run_time=2, rate_func=RateUtils.smooth))
         await self.wait(3)
 
 
@@ -190,7 +190,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    FormulaExample().render(config)
+    TexTransformExample().render(config)
 
 
 if __name__ == "__main__":
