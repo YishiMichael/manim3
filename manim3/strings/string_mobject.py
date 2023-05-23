@@ -15,7 +15,6 @@ from typing import (
     Iterable,
     Iterator
 )
-#import warnings
 
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
@@ -25,10 +24,10 @@ from ..custom_typing import (
     SelectorT,
     Vec3T
 )
-from ..mobjects.mobject import AlignMobject
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
 from ..utils.color import ColorUtils
+from ..utils.iterables import IterUtils
 
 
 class CommandFlag(Enum):
@@ -806,13 +805,10 @@ class StringParser(ABC):
         if not self._labelled_shape_mobjects:
             return
 
-        group_iterator_0, group_iterator_1 = it.tee(it.groupby(
+        label_iterator, grouper_iterator = IterUtils.unzip_pairs(it.groupby(
             self._labelled_shape_mobjects,
             key=lambda labelled_shape_item: labelled_shape_item.label
         ))
-        label_iterator = (label for label, _ in group_iterator_0)
-        grouper_iterator = (grouper for _, grouper in group_iterator_1)
-
         labelled_insertion_item_to_index_dict = {
             (replaced_item.label, replaced_item.edge_flag): index
             for index, replaced_item in enumerate(self._replaced_items)

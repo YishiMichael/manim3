@@ -10,6 +10,7 @@ from ..geometries.geometry import GeometryData
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
 from ..shape.shape import Shape
+from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
@@ -45,7 +46,7 @@ class PrismoidGeometry(ShapeGeometry):
                 continue
 
             # Assemble side faces.
-            ip_normal_pairs: list[tuple[int, Vec2T]] = []
+            triplets: list[tuple[int, Vec2T, Vec2T]] = []
             rotation_mat = np.array(((0.0, 1.0), (-1.0, 0.0)))
             for ip, (p_prev, p, p_next) in enumerate(zip(
                 np.roll(points_list, 1, axis=0),
@@ -59,14 +60,15 @@ class PrismoidGeometry(ShapeGeometry):
                 angle = abs(np.arccos(np.clip(np.dot(n0, n1), -1.0, 1.0)))
                 if angle <= np.pi / 16.0:
                     n_avg = SpaceUtils.normalize(n0 + n1)
-                    ip_normal_pairs.append((ip, n_avg))
+                    triplets.append((ip, p, n_avg))
                 else:
                     # Vertices shall be duplicated if its connected faces have significantly different normal vectors.
-                    ip_normal_pairs.append((ip, n0))
-                    ip_normal_pairs.append((ip, n1))
+                    triplets.append((ip, p, n0))
+                    triplets.append((ip, p, n1))
 
-            duplicated_points = np.array([points_list[ip] for ip, _ in ip_normal_pairs])
-            normals = np.array([normal for _, normal in ip_normal_pairs])
+            ip_iterator, p_iterator, normal_iterator = IterUtils.unzip_triplets(triplets)
+            duplicated_points = np.array(list(p_iterator))
+            normals = np.array(list(normal_iterator))
             position_list.extend(SpaceUtils.increase_dimension(duplicated_points, z_value=1.0))
             position_list.extend(SpaceUtils.increase_dimension(duplicated_points, z_value=-1.0))
             normal_list.extend(SpaceUtils.increase_dimension(normals))
@@ -74,8 +76,9 @@ class PrismoidGeometry(ShapeGeometry):
             uv_list.extend(duplicated_points)
             uv_list.extend(duplicated_points)
 
-            l = len(ip_normal_pairs)
-            for (i0, (ip0, _)), (i1, (ip1, _)) in it.islice(it.pairwise(it.cycle(enumerate(ip_normal_pairs))), l):
+            ips = list(ip_iterator)
+            l = len(ips)
+            for (i0, ip0), (i1, ip1) in it.islice(it.pairwise(it.cycle(enumerate(ips))), l):
                 if ip0 == ip1:
                     continue
                 index_list.extend(

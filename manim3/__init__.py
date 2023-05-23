@@ -13,6 +13,7 @@ from .animations.fade import (
     FadeIn,
     FadeOut
 )
+from .animations.misc import TransformMatchingStrings
 from .animations.model import (
     Rotate,
     Rotating,

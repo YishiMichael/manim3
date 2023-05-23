@@ -153,6 +153,8 @@ from typing import (
 )
 import weakref
 
+from ..utils.iterables import IterUtils
+
 
 _T = TypeVar("_T")
 _KT = TypeVar("_KT")
@@ -824,20 +826,16 @@ class LazyPropertyDescriptor(LazyDescriptor[
         if not slot._is_expired:
             container = slot.get_property_container()
         else:
-            parameter_items = [
+            parameter_tree_iterator, linked_variable_slots_iterator = IterUtils.unzip_pairs(
                 construct_parameter_item(descriptor_name_chain, instance)
                 for descriptor_name_chain in self.descriptor_name_chains
-            ]
+            )
             slot.link_variable_slots(dict.fromkeys(
                 linked_variable_slot
-                for _, linked_variable_slots in parameter_items
-                for linked_variable_slot in linked_variable_slots
+                for linked_variable_slot in it.chain.from_iterable(linked_variable_slots_iterator)
                 if linked_variable_slot._is_writable
             ))
-            parameter_trees = tuple(
-                parameter_tree
-                for parameter_tree, _ in parameter_items
-            )
+            parameter_trees = tuple(parameter_tree_iterator)
             key = tuple(
                 construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
                 for parameter_tree in parameter_trees

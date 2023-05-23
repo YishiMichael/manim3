@@ -23,6 +23,7 @@ from ..shape.line_string import (
     LineString,
     MultiLineString
 )
+from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
@@ -128,26 +129,25 @@ class Shape(LazyObject):
             return triangulate_float32(points, ring_ends), points
 
         def concatenate_triangulations(
-            triangulations: list[tuple[VertexIndexT, Vec2sT]]
+            triangulations: Iterable[tuple[VertexIndexT, Vec2sT]]
         ) -> tuple[VertexIndexT, Vec2sT]:
-            if not triangulations:
+            index_iterator, points_iterator = IterUtils.unzip_pairs(triangulations)
+            points_list = list(points_iterator)
+            if not points_list:
                 return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
 
-            offsets = np.cumsum((0, *(len(points) for _, points in triangulations[:-1])))
+            offsets = np.cumsum((0, *(len(points) for points in points_list[:-1])))
             all_index = np.concatenate([
                 index + offset
-                for (index, _), offset in zip(triangulations, offsets, strict=True)
+                for index, offset in zip(index_iterator, offsets, strict=True)
             ], dtype=np.uint32)
-            all_points = np.concatenate([
-                points
-                for _, points in triangulations
-            ])
+            all_points = np.concatenate(points_list)
             return all_index, all_points
 
-        return concatenate_triangulations([
+        return concatenate_triangulations(
             get_polygon_triangulation(polygon)
             for polygon in get_shapely_polygons(shapely_obj)
-        ])
+        )
 
     @classmethod
     def from_multi_line_string(
