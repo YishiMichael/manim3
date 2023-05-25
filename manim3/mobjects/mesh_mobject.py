@@ -5,9 +5,13 @@ from ..custom_typing import (
     Vec3T,
     Vec3sT
 )
-from ..geometries.geometry import Geometry
+from ..geometries.geometry import (
+    Geometry,
+    GeometryData
+)
+from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import MobjectMeta
+from ..mobjects.mobject import MobjectStyleMeta
 from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
@@ -27,15 +31,14 @@ from ..utils.space import SpaceUtils
 class MeshMobject(RenderableMobject):
     __slots__ = ()
 
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
-        return Geometry()
+        # Default for `ImageMobject`, `ChildSceneMobject`.
+        return PlaneGeometry()
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_vec3
     )
     @Lazy.variable_external
@@ -43,52 +46,44 @@ class MeshMobject(RenderableMobject):
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((RenderableMobject._is_transparent_, True),)
+    @MobjectStyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
 
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_external
     @classmethod
     def _color_map_(cls) -> moderngl.Texture | None:
         return None
 
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_shared
     @classmethod
     def _enable_phong_lighting_(cls) -> bool:
         return True
 
-    @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((_enable_phong_lighting_, True),)
+    @MobjectStyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
     def _ambient_strength_(cls) -> float:
         return 1.0
 
-    @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((_enable_phong_lighting_, True),)
+    @MobjectStyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
     def _specular_strength_(cls) -> float:
         return 0.5
 
-    @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((_enable_phong_lighting_, True),)
+    @MobjectStyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
@@ -105,9 +100,9 @@ class MeshMobject(RenderableMobject):
     @classmethod
     def _local_sample_points_(
         cls,
-        _geometry_: Geometry
+        geometry__geometry_data: GeometryData
     ) -> Vec3sT:
-        return _geometry_._geometry_data_.value.position
+        return geometry__geometry_data.position
 
     @Lazy.property
     @classmethod
@@ -142,11 +137,11 @@ class MeshMobject(RenderableMobject):
         is_transparent: bool,
         enable_phong_lighting: bool,
         color_map: moderngl.Texture | None,
-        _camera_uniform_block_buffer_: UniformBlockBuffer,
-        _lighting_uniform_block_buffer_: UniformBlockBuffer,
-        _model_uniform_block_buffer_: UniformBlockBuffer,
-        _material_uniform_block_buffer_: UniformBlockBuffer,
-        _geometry__indexed_attributes_buffer_: IndexedAttributesBuffer
+        camera_uniform_block_buffer: UniformBlockBuffer,
+        lighting_uniform_block_buffer: UniformBlockBuffer,
+        model_uniform_block_buffer: UniformBlockBuffer,
+        material_uniform_block_buffer: UniformBlockBuffer,
+        geometry__indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
         custom_macros: list[str] = []
         if is_transparent:
@@ -165,12 +160,12 @@ class MeshMobject(RenderableMobject):
                 )
             ],
             uniform_block_buffers=[
-                _camera_uniform_block_buffer_,
-                _lighting_uniform_block_buffer_,
-                _model_uniform_block_buffer_,
-                _material_uniform_block_buffer_
+                camera_uniform_block_buffer,
+                lighting_uniform_block_buffer,
+                model_uniform_block_buffer,
+                material_uniform_block_buffer
             ],
-            indexed_attributes_buffer=_geometry__indexed_attributes_buffer_
+            indexed_attributes_buffer=geometry__indexed_attributes_buffer
         )
 
     def _render(
@@ -178,7 +173,7 @@ class MeshMobject(RenderableMobject):
         target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
     ) -> None:
         textures: list[moderngl.Texture] = []
-        if (color_map := self._color_map_.value) is not None:
+        if (color_map := self._color_map_) is not None:
             textures.append(color_map)
         self._mesh_vertex_array_.render(
             framebuffer=target_framebuffer,
@@ -187,34 +182,34 @@ class MeshMobject(RenderableMobject):
             }
         )
 
-    @property
-    def geometry(self) -> Geometry:
-        return self._geometry_
+    #@property
+    #def geometry(self) -> Geometry:
+    #    return self._geometry_
 
-    @property
-    def color(self) -> Vec3T:
-        return self._color_.value
+    #@property
+    #def color(self) -> Vec3T:
+    #    return self._color_
 
-    @property
-    def opacity(self) -> float:
-        return self._opacity_.value
+    #@property
+    #def opacity(self) -> float:
+    #    return self._opacity_
 
-    @property
-    def color_map(self) -> moderngl.Texture | None:
-        return self._color_map_.value
+    #@property
+    #def color_map(self) -> moderngl.Texture | None:
+    #    return self._color_map_
 
-    @property
-    def enable_phong_lighting(self) -> bool:
-        return self._enable_phong_lighting_.value
+    #@property
+    #def enable_phong_lighting(self) -> bool:
+    #    return self._enable_phong_lighting_
 
-    @property
-    def ambient_strength(self) -> float:
-        return self._ambient_strength_.value
+    #@property
+    #def ambient_strength(self) -> float:
+    #    return self._ambient_strength_
 
-    @property
-    def specular_strength(self) -> float:
-        return self._specular_strength_.value
+    #@property
+    #def specular_strength(self) -> float:
+    #    return self._specular_strength_
 
-    @property
-    def shininess(self) -> float:
-        return self._shininess_.value
+    #@property
+    #def shininess(self) -> float:
+    #    return self._shininess_

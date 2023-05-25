@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 
 from ..config import ConfigSingleton
-from ..geometries.plane_geometry import PlaneGeometry
+#from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
@@ -27,7 +27,7 @@ class ImageMobject(MeshMobject):
         image = Image.open(image_path)
         self._image: Image.Image = image
 
-        self._geometry_ = PlaneGeometry()
+        #self._geometry_ = PlaneGeometry()
         pixel_per_unit = ConfigSingleton().size.pixel_per_unit
         scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
             original_width=image.width / pixel_per_unit,

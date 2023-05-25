@@ -3,7 +3,7 @@ from typing import Callable
 from ..animations.animation import Animation
 from ..mobjects.mobject import (
     Mobject,
-    MobjectMeta
+    MobjectStyleMeta
 )
 from ..utils.rate import RateUtils
 
@@ -25,7 +25,7 @@ class TransformABC(Animation):
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         callbacks = tuple(
-            MobjectMeta._interpolate(start_descendant, stop_descendant)(intermediate_descendant)
+            MobjectStyleMeta._interpolate(start_descendant, stop_descendant)(intermediate_descendant)
             for start_descendant, stop_descendant, intermediate_descendant in zip(
                 start_mobject.iter_descendants(),
                 stop_mobject.iter_descendants(),

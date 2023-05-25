@@ -11,7 +11,7 @@ from ..lighting.point_light import PointLight
 from ..mobjects.mesh_mobject import MeshMobject
 from ..mobjects.mobject import (
     Mobject,
-    MobjectMeta
+    MobjectStyleMeta
 )
 from ..mobjects.renderable_mobject import RenderableMobject
 from ..passes.render_pass import RenderPass
@@ -41,7 +41,7 @@ class SceneFrame(Mobject):
         self._camera_ = PerspectiveCamera()
         self._lighting_ = Lighting()
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_vec3
     )
     @Lazy.variable_external
@@ -49,7 +49,7 @@ class SceneFrame(Mobject):
     def _color_(cls) -> Vec3T:
         return np.zeros(3)
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
@@ -108,8 +108,8 @@ class SceneFrame(Mobject):
             mobject._camera_uniform_block_buffer_ = camera._camera_uniform_block_buffer_
 
         lighting = self._lighting_
-        lighting._ambient_lights_ = self.iter_descendants_by_type(mobject_type=AmbientLight)
-        lighting._point_lights_ = self.iter_descendants_by_type(mobject_type=PointLight)
+        lighting._ambient_lights_.reset(self.iter_descendants_by_type(mobject_type=AmbientLight))
+        lighting._point_lights_.reset(self.iter_descendants_by_type(mobject_type=PointLight))
         for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject):
             mobject._lighting_uniform_block_buffer_ = lighting._lighting_uniform_block_buffer_
 
@@ -118,9 +118,9 @@ class SceneFrame(Mobject):
         opaque_mobjects: list[RenderableMobject] = []
         transparent_mobjects: list[RenderableMobject] = []
         for mobject in self.iter_descendants_by_type(RenderableMobject):
-            if not mobject._has_local_sample_points_.value:
+            if not mobject._has_local_sample_points_:
                 continue
-            if mobject._is_transparent_.value:
+            if mobject._is_transparent_:
                 transparent_mobjects.append(mobject)
             else:
                 opaque_mobjects.append(mobject)
@@ -131,7 +131,7 @@ class SceneFrame(Mobject):
                 depth_texture=depth_texture
             )
             opaque_framebuffer.framebuffer.clear(
-                color=(*self._color_.value, self._opacity_.value)
+                color=(*self._color_, self._opacity_)
             )
             for mobject in opaque_mobjects:
                 mobject._render(opaque_framebuffer)
@@ -215,10 +215,10 @@ class SceneFrame(Mobject):
         )
         window.swap_buffers()
 
-    @property
-    def color(self) -> Vec3T:
-        return self._color_.value
+    #@property
+    #def color(self) -> Vec3T:
+    #    return self._color_
 
-    @property
-    def opacity(self) -> float:
-        return self._opacity_.value
+    #@property
+    #def opacity(self) -> float:
+    #    return self._opacity_

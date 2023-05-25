@@ -66,7 +66,7 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _gaussian_blur_vertex_arrays_(
         cls,
-        _gaussian_blur_uniform_block_buffer_: UniformBlockBuffer
+        gaussian_blur_uniform_block_buffer: UniformBlockBuffer
     ) -> list[VertexArray]:
         return [
             VertexArray(
@@ -80,7 +80,7 @@ class GaussianBlurPass(RenderPass):
                     )
                 ],
                 uniform_block_buffers=[
-                    _gaussian_blur_uniform_block_buffer_
+                    gaussian_blur_uniform_block_buffer
                 ]
             )
             for blur_subroutine in ("horizontal_dilate", "vertical_dilate")

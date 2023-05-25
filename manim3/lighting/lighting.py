@@ -26,8 +26,8 @@ class Lighting(LazyObject):
     @classmethod
     def _lighting_uniform_block_buffer_(
         cls,
-        _ambient_lights_: list[AmbientLight],
-        _point_lights_: list[PointLight]
+        ambient_lights: list[AmbientLight],
+        point_lights: list[PointLight]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_lighting",
@@ -45,21 +45,21 @@ class Lighting(LazyObject):
                 ]
             },
             array_lens={
-                "NUM_U_AMBIENT_LIGHTS": len(_ambient_lights_),
-                "NUM_U_POINT_LIGHTS": len(_point_lights_)
+                "NUM_U_AMBIENT_LIGHTS": len(ambient_lights),
+                "NUM_U_POINT_LIGHTS": len(point_lights)
             },
             data={
                 "u_ambient_lights.color": np.array([
-                    np.append(ambient_light._color_.value, ambient_light._opacity_.value)
-                    for ambient_light in _ambient_lights_
+                    np.append(ambient_light._color_, ambient_light._opacity_)
+                    for ambient_light in ambient_lights
                 ]),
                 "u_point_lights.position": np.array([
-                    point_light._position_.value
-                    for point_light in _point_lights_
+                    point_light._position_
+                    for point_light in point_lights
                 ]),
                 "u_point_lights.color": np.array([
-                    np.append(point_light._color_.value, point_light._opacity_.value)
-                    for point_light in _point_lights_
+                    np.append(point_light._color_, point_light._opacity_)
+                    for point_light in point_lights
                 ])
             }
         )

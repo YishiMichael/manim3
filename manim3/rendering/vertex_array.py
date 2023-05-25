@@ -127,7 +127,7 @@ class Program(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        _texture_id_buffer_formats_: list[BufferFormat],
+        texture_id_buffer_formats: list[BufferFormat],
         varyings: tuple[str, ...]
     ) -> ProgramInfo:
 
@@ -191,12 +191,12 @@ class Program(LazyObject):
                 texture_id_buffer_format = texture_id_buffer_format_dict[name]
                 if name not in texture_binding_offset_dict:
                     texture_binding_offset_dict[name] = binding_offset
-                    binding_offset += texture_id_buffer_format._size_.value
+                    binding_offset += texture_id_buffer_format._size_
                 multi_index = tuple(
                     int(index_match.group(1))
                     for index_match in re.finditer(r"\[(\d+?)\]", match_obj.group("multi_index"))
                 )
-                if not (shape := texture_id_buffer_format._shape_.value):
+                if not (shape := texture_id_buffer_format._shape_):
                     assert not multi_index
                     uniform_size = 1
                     local_offset = 0
@@ -228,8 +228,8 @@ class Program(LazyObject):
             shader_str = shader_file.read()
         program = construct_moderngl_program(shader_str, custom_macros, array_len_items)
         texture_binding_offset_dict = set_texture_bindings(program, {
-            buffer_format._name_.value: buffer_format
-            for buffer_format in _texture_id_buffer_formats_
+            buffer_format._name_: buffer_format
+            for buffer_format in texture_id_buffer_formats
         })
         uniform_block_binding_dict = set_uniform_block_bindings(program)
 
@@ -254,41 +254,41 @@ class Program(LazyObject):
         attributes_buffer = indexed_attributes_buffer._attributes_buffer_
         assert isinstance(attributes_buffer_format := attributes_buffer._buffer_format_, StructuredBufferFormat)
         index_buffer = indexed_attributes_buffer._index_buffer_
-        mode = indexed_attributes_buffer._mode_.value
+        mode = indexed_attributes_buffer._mode_
 
-        if attributes_buffer_format._is_empty_.value or \
-                (not index_buffer._omitted_.value and index_buffer._buffer_format_._is_empty_.value):
+        if attributes_buffer_format._is_empty_ or \
+                (not index_buffer._omitted_ and index_buffer._buffer_format_._is_empty_):
             return None
 
         def get_item_components(
             child: AtomicBufferFormat
         ) -> list[str]:
-            components = [f"{child._n_col_.value}{child._base_char_.value}{child._base_itemsize_.value}"]
-            if padding_factor := child._row_itemsize_factor_.value - child._n_col_.value:
-                components.append(f"{padding_factor}x{child._base_itemsize_.value}")
-            return components * child._n_row_.value
+            components = [f"{child._n_col_}{child._base_char_}{child._base_itemsize_}"]
+            if padding_factor := child._row_itemsize_factor_ - child._n_col_:
+                components.append(f"{padding_factor}x{child._base_itemsize_}")
+            return components * child._n_row_
 
-        program = self._info_.value.program
+        program = self._info_.program
         attribute_names: list[str] = []
         components: list[str] = []
         current_stop: int = 0
-        for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_.value, strict=True):
+        for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_, strict=True):
             assert isinstance(child, AtomicBufferFormat)
-            name = child._name_.value
+            name = child._name_
             if (attribute := program.get(name, None)) is None:
                 continue
             assert isinstance(attribute, moderngl.Attribute)
-            assert not child._is_empty_.value
-            assert attribute.array_length == child._size_.value
-            assert attribute.dimension == child._n_col_.value * child._n_row_.value
-            assert attribute.shape == child._base_char_.value.replace("u", "I")
+            assert not child._is_empty_
+            assert attribute.array_length == child._size_
+            assert attribute.dimension == child._n_col_ * child._n_row_
+            assert attribute.shape == child._base_char_.replace("u", "I")
             attribute_names.append(name)
             if current_stop != offset:
                 components.append(f"{offset - current_stop}x")
-            components.extend(get_item_components(child) * child._size_.value)
-            current_stop = offset + child._nbytes_.value
-        if current_stop != attributes_buffer_format._itemsize_.value:
-            components.append(f"{attributes_buffer_format._itemsize_.value - current_stop}x")
+            components.extend(get_item_components(child) * child._size_)
+            current_stop = offset + child._nbytes_
+        if current_stop != attributes_buffer_format._itemsize_:
+            components.append(f"{attributes_buffer_format._itemsize_ - current_stop}x")
         components.append("/v")
 
         return Context.vertex_array(
@@ -296,7 +296,7 @@ class Program(LazyObject):
             attributes_buffer=attributes_buffer.get_buffer(),
             buffer_format_str=" ".join(components),
             attribute_names=attribute_names,
-            index_buffer=None if index_buffer._omitted_.value else index_buffer.get_buffer(),
+            index_buffer=None if index_buffer._omitted_ else index_buffer.get_buffer(),
             mode=mode
         )
 
@@ -304,17 +304,17 @@ class Program(LazyObject):
         self,
         uniform_block_buffers: list[UniformBlockBuffer]
     ) -> tuple[tuple[moderngl.Buffer, int], ...]:
-        program = self._info_.value.program
-        uniform_block_binding_dict = self._info_.value.uniform_block_binding_dict
+        program = self._info_.program
+        uniform_block_binding_dict = self._info_.uniform_block_binding_dict
         uniform_block_bindings: list[tuple[moderngl.Buffer, int]] = []
         for uniform_block_buffer in uniform_block_buffers:
             uniform_block_buffer_format = uniform_block_buffer._buffer_format_
-            name = uniform_block_buffer_format._name_.value
+            name = uniform_block_buffer_format._name_
             if (uniform_block := program.get(name, None)) is None:
                 continue
             assert isinstance(uniform_block, moderngl.UniformBlock)
-            assert not uniform_block_buffer_format._is_empty_.value
-            assert uniform_block.size == uniform_block_buffer_format._nbytes_.value
+            assert not uniform_block_buffer_format._is_empty_
+            assert uniform_block.size == uniform_block_buffer_format._nbytes_
             uniform_block_bindings.append(
                 (uniform_block_buffer.get_buffer(), uniform_block_binding_dict[name])
             )
@@ -324,16 +324,16 @@ class Program(LazyObject):
         self,
         texture_array_dict: dict[str, np.ndarray]
     ) -> tuple[tuple[moderngl.Texture, int], ...]:
-        texture_binding_offset_dict = self._info_.value.texture_binding_offset_dict
+        texture_binding_offset_dict = self._info_.texture_binding_offset_dict
         texture_bindings: list[tuple[moderngl.Texture, int]] = []
         for texture_id_buffer_format in self._texture_id_buffer_formats_:
-            if texture_id_buffer_format._is_empty_.value:
+            if texture_id_buffer_format._is_empty_:
                 continue
-            name = texture_id_buffer_format._name_.value
+            name = texture_id_buffer_format._name_
             if (binding_offset := texture_binding_offset_dict.get(name)) is None:
                 continue
             texture_array = texture_array_dict[name]
-            assert texture_id_buffer_format._shape_.value == texture_array.shape
+            assert texture_id_buffer_format._shape_ == texture_array.shape
             texture_bindings.extend(
                 (texture, binding)
                 for binding, texture in enumerate(texture_array.flat, start=binding_offset)
@@ -359,9 +359,9 @@ class VertexArray(LazyObject):
         if custom_macros is not None:
             self._custom_macros_ = tuple(custom_macros)
         if texture_id_buffers is not None:
-            self._texture_id_buffers_.extend(texture_id_buffers)
+            self._texture_id_buffers_.reset(texture_id_buffers)
         if uniform_block_buffers is not None:
-            self._uniform_block_buffers_.extend(uniform_block_buffers)
+            self._uniform_block_buffers_.reset(uniform_block_buffers)
         if indexed_attributes_buffer is not None:
             self._indexed_attributes_buffer_ = indexed_attributes_buffer
         if transform_feedback_buffer is not None:
@@ -451,14 +451,14 @@ class VertexArray(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        _texture_id_buffers__buffer_format_: list[BufferFormat],
+        texture_id_buffers__buffer_format: list[BufferFormat],
         transform_feedback_buffer__np_buffer_pointer_keys: tuple[str, ...]
     ) -> Program:
         return Program(
             shader_filename=shader_filename,
             custom_macros=custom_macros,
             array_len_items=array_len_items,
-            texture_id_buffer_formats=_texture_id_buffers__buffer_format_,
+            texture_id_buffer_formats=texture_id_buffers__buffer_format,
             varyings=transform_feedback_buffer__np_buffer_pointer_keys
         )
 
@@ -466,10 +466,10 @@ class VertexArray(LazyObject):
     @classmethod
     def _vertex_array_(
         cls,
-        _program_: Program,
-        _indexed_attributes_buffer_: IndexedAttributesBuffer
+        program: Program,
+        indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> moderngl.VertexArray | None:
-        return _program_._get_vertex_array(_indexed_attributes_buffer_)
+        return program._get_vertex_array(indexed_attributes_buffer)
 
     @_vertex_array_.finalizer
     @classmethod
@@ -484,10 +484,10 @@ class VertexArray(LazyObject):
     @classmethod
     def _uniform_block_bindings_(
         cls,
-        _program_: Program,
-        _uniform_block_buffers_: list[UniformBlockBuffer]
+        program: Program,
+        uniform_block_buffers: list[UniformBlockBuffer]
     ) -> tuple[tuple[moderngl.Buffer, int], ...]:
-        return _program_._get_uniform_block_bindings(_uniform_block_buffers_)
+        return program._get_uniform_block_bindings(uniform_block_buffers)
 
     def render(
         self,
@@ -497,7 +497,7 @@ class VertexArray(LazyObject):
         texture_array_dict: dict[str, np.ndarray] | None = None,
         context_state: ContextState | None = None
     ) -> None:
-        if (vertex_array := self._vertex_array_.value) is None:
+        if (vertex_array := self._vertex_array_) is None:
             return
 
         if texture_array_dict is None:
@@ -507,7 +507,7 @@ class VertexArray(LazyObject):
         with Context.scope(
             framebuffer=framebuffer.framebuffer,
             textures=self._program_._get_texture_bindings(texture_array_dict),
-            uniform_buffers=self._uniform_block_bindings_.value
+            uniform_buffers=self._uniform_block_bindings_
         ):
             Context.set_state(context_state)
             vertex_array.render()
@@ -515,9 +515,9 @@ class VertexArray(LazyObject):
     def transform(self) -> dict[str, np.ndarray]:
         transform_feedback_buffer = self._transform_feedback_buffer_
         with transform_feedback_buffer.temporary_buffer() as buffer:
-            if (vertex_array := self._vertex_array_.value) is not None:
+            if (vertex_array := self._vertex_array_) is not None:
                 with Context.scope(
-                    uniform_buffers=self._uniform_block_bindings_.value
+                    uniform_buffers=self._uniform_block_bindings_
                 ):
                     vertex_array.transform(buffer=buffer)
             data_dict = transform_feedback_buffer.read(buffer)

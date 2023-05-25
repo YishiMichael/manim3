@@ -1,7 +1,7 @@
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
 from ..mobjects.mesh_mobject import MeshMobject
-from ..mobjects.mobject import MobjectMeta
+from ..mobjects.mobject import MobjectStyleMeta
 from ..mobjects.stroke_mobject import StrokeMobject
 from ..shape.shape import Shape
 
@@ -18,7 +18,7 @@ class ShapeMobject(MeshMobject):
             self._shape_ = shape
         self._enable_phong_lighting_ = False
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         partial_method=Shape.partial,
         interpolate_method=Shape.interpolate,
         concatenate_method=Shape.concatenate
@@ -32,13 +32,18 @@ class ShapeMobject(MeshMobject):
     @classmethod
     def _geometry_(
         cls,
-        _shape_: Shape
+        shape: Shape
     ) -> ShapeGeometry:
-        return ShapeGeometry(_shape_)
+        return ShapeGeometry(shape)
 
     def build_stroke(self) -> StrokeMobject:
         stroke = StrokeMobject()
-        stroke._model_matrix_ = self._model_matrix_
+        stroke.match_style(
+            self,
+            model_matrix=True,
+            default=False
+        )  # Copy `model_matrix` only.
+        #stroke._model_matrix_ = self._model_matrix_  # TODO
         stroke._multi_line_string_ = self._shape_._multi_line_string_
         return stroke
 
@@ -49,6 +54,6 @@ class ShapeMobject(MeshMobject):
     #    self.add(self.build_stroke(**kwargs))
     #    return self
 
-    @property
-    def shape(self) -> Shape:
-        return self._shape_
+    #@property
+    #def shape(self) -> Shape:
+    #    return self._shape_

@@ -3,7 +3,7 @@ from abc import abstractmethod
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import (
     Mobject,
-    MobjectMeta
+    MobjectStyleMeta
 )
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
@@ -15,9 +15,7 @@ from ..rendering.gl_buffer import UniformBlockBuffer
 class RenderableMobject(Mobject):
     __slots__ = ()
 
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_shared
     @classmethod
     def _is_transparent_(cls) -> bool:
@@ -36,6 +34,6 @@ class RenderableMobject(Mobject):
     ) -> None:
         pass
 
-    @property
-    def is_transparent(self) -> bool:
-        return self._is_transparent_.value
+    #@property
+    #def is_transparent(self) -> bool:
+    #    return self._is_transparent_

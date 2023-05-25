@@ -4,12 +4,15 @@ import numpy as np
 
 from ..custom_typing import (
     Vec2T,
-    Vec3T
+    Vec2sT,
+    Vec3T,
+    Vec3sT,
+    VertexIndexT
 )
 from ..geometries.geometry import GeometryData
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
-from ..shape.shape import Shape
+#from ..shape.shape import Shape
 from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
@@ -21,15 +24,17 @@ class PrismoidGeometry(ShapeGeometry):
     @classmethod
     def _geometry_data_(
         cls,
-        _shape_: Shape
+        shape__multi_line_string__line_strings__points: list[Vec3sT],
+        shape__triangulation: tuple[VertexIndexT, Vec2sT]
+        #shape: Shape
     ) -> GeometryData:
         position_list: list[Vec3T] = []
         normal_list: list[Vec3T] = []
         uv_list: list[Vec2T] = []
         index_list: list[int] = []
         index_offset = 0
-        for line_string in _shape_._multi_line_string_._line_strings_:
-            points = SpaceUtils.decrease_dimension(line_string._points_.value)
+        for line_string_points in shape__multi_line_string__line_strings__points:
+            points = SpaceUtils.decrease_dimension(line_string_points)
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths.
             # TODO: Shall we normalize winding?
@@ -88,7 +93,7 @@ class PrismoidGeometry(ShapeGeometry):
             index_offset += 2 * l
 
         # Assemble top and bottom faces.
-        shape_index, shape_points = _shape_._triangulation_.value
+        shape_index, shape_points = shape__triangulation
         for sign in (1.0, -1.0):
             position_list.extend(SpaceUtils.increase_dimension(shape_points, z_value=sign))
             normal_list.extend(SpaceUtils.increase_dimension(np.zeros_like(shape_points), z_value=sign))

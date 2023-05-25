@@ -24,14 +24,16 @@ class ModelFiniteAnimation(Animation):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        initial_model_matrix = mobject._model_matrix_.value
+        #initial_model_matrix = mobject._model_matrix_
+        callback = mobject._apply_transform_callback(alpha_to_matrix)
 
         def updater(
             alpha: float
         ) -> None:
             if arrive:
                 alpha -= 1.0
-            mobject._model_matrix_ = alpha_to_matrix(alpha) @ initial_model_matrix
+            callback(alpha)
+            #mobject._model_matrix_ = alpha_to_matrix(alpha) @ initial_model_matrix
 
         super().__init__(
             updater=updater,
@@ -119,15 +121,16 @@ class ModelRunningAnimation(Animation):
         run_time: float | None = None,
         speed: float = 1.0
     ) -> None:
-        initial_model_matrix = mobject._model_matrix_.value
+        #initial_model_matrix = mobject._model_matrix_
+        callback = mobject._apply_transform_callback(alpha_to_matrix)
 
-        def updater(
-            alpha: float
-        ) -> None:
-            mobject._model_matrix_ = alpha_to_matrix(alpha) @ initial_model_matrix
+        #def updater(
+        #    alpha: float
+        #) -> None:
+        #    mobject._model_matrix_ = alpha_to_matrix(alpha) @ initial_model_matrix
 
         super().__init__(
-            updater=updater,
+            updater=callback,
             run_time=run_time,
             relative_rate=RateUtils.adjust(RateUtils.linear, run_alpha_scale=speed)
         )

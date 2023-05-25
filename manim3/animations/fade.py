@@ -16,11 +16,11 @@ class FadeIn(TransformFrom):
         self,
         mobject: Mobject,
         *,
-        bounding_box_mobject: Mobject | None = None,
+        bounding_box_mobject: Mobject | None = None,  # TODO
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        start_mobject = mobject.copy().set_style(opacity=0.0, handle_related_styles=False)
+        start_mobject = mobject.copy().set_style(opacity=0.0)
         if bounding_box_mobject is not None:
             start_mobject.match_bounding_box(bounding_box_mobject)
         super().__init__(
@@ -46,7 +46,7 @@ class FadeOut(TransformTo):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        stop_mobject = mobject.copy().set_style(opacity=0.0, handle_related_styles=False)
+        stop_mobject = mobject.copy().set_style(opacity=0.0)
         if bounding_box_mobject is not None:
             stop_mobject.match_bounding_box(bounding_box_mobject)
         super().__init__(

@@ -75,13 +75,13 @@ class Shape(LazyObject):
     @classmethod
     def _shapely_obj_(
         cls,
-        _multi_line_string__line_strings_: list[LineString]
+        multi_line_string__line_strings: list[LineString]
     ) -> shapely.geometry.base.BaseGeometry:
 
         def get_shapely_component(
             line_string: LineString
         ) -> shapely.geometry.base.BaseGeometry:
-            points: Vec2sT = line_string._points_.value[:, :2]
+            points: Vec2sT = line_string._points_[:, :2]
             if len(points) == 1:
                 return shapely.geometry.Point(points[0])
             if len(points) == 2:
@@ -90,7 +90,7 @@ class Shape(LazyObject):
 
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
             get_shapely_component(line_string)
-            for line_string in _multi_line_string__line_strings_
+            for line_string in multi_line_string__line_strings
         ), shapely.geometry.GeometryCollection())
 
     @Lazy.property_external
@@ -243,7 +243,7 @@ class Shape(LazyObject):
 
     @property
     def shapely_obj(self) -> shapely.geometry.base.BaseGeometry:
-        return self._shapely_obj_.value
+        return self._shapely_obj_
 
     @property
     def area(self) -> float:

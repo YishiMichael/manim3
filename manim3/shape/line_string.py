@@ -179,8 +179,8 @@ class LineString(ShapeInterpolant):
         cls,
         line_string: "LineString"
     ) -> Callable[[float], Vec3T]:
-        path_points = line_string._path_points_.value
-        length_knots = line_string._length_knots_.value
+        path_points = line_string._path_points_
+        length_knots = line_string._length_knots_
 
         def callback(
             alpha: float
@@ -197,8 +197,8 @@ class LineString(ShapeInterpolant):
         cls,
         line_string: "LineString"
     ) -> "Callable[[float, float], LineString]":
-        path_points = line_string._path_points_.value
-        length_knots = line_string._length_knots_.value
+        path_points = line_string._path_points_
+        length_knots = line_string._length_knots_
 
         def callback(
             start: float,
@@ -230,9 +230,9 @@ class LineString(ShapeInterpolant):
         line_string_0: "LineString",
         line_string_1: "LineString"
     ) -> "Callable[[float], LineString]":
-        all_knots = np.unique(np.concatenate((line_string_0._length_knots_.value, line_string_1._length_knots_.value)))
+        all_knots = np.unique(np.concatenate((line_string_0._length_knots_, line_string_1._length_knots_)))
         is_ring = False
-        if line_string_0._is_ring_.value and line_string_1._is_ring_.value:
+        if line_string_0._is_ring_ and line_string_1._is_ring_:
             all_knots = all_knots[:-1]
             is_ring = True
 
@@ -284,7 +284,7 @@ class MultiLineString(ShapeInterpolant):
         multi_line_string: "MultiLineString"
     ) -> Callable[[float], Vec3T]:
         line_strings = multi_line_string._line_strings_
-        length_knots = multi_line_string._length_knots_.value
+        length_knots = multi_line_string._length_knots_
 
         def callback(
             alpha: float
@@ -302,7 +302,7 @@ class MultiLineString(ShapeInterpolant):
         multi_line_string: "MultiLineString"
     ) -> "Callable[[float, float], MultiLineString]":
         line_strings = multi_line_string._line_strings_
-        length_knots = multi_line_string._length_knots_.value
+        length_knots = multi_line_string._length_knots_
 
         def callback(
             start: float,
@@ -343,7 +343,7 @@ class MultiLineString(ShapeInterpolant):
             raise ValueError("Attempting to interpolate an empty MultiLineString")
 
         (residue_list_list_0, residue_list_list_1), triplet_tuple_list = cls._zip_knots(
-            multi_line_string_0._length_knots_.value, multi_line_string_1._length_knots_.value
+            multi_line_string_0._length_knots_, multi_line_string_1._length_knots_
         )
         line_string_interpolate_callbacks: list[Callable[[float], LineString]] = [
             LineString.interpolate(

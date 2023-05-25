@@ -5,7 +5,7 @@ import numpy as np
 from ..animations.animation import Animation
 from ..mobjects.mobject import (
     Mobject,
-    MobjectMeta
+    MobjectStyleMeta
 )
 from ..utils.rate import RateUtils
 
@@ -23,7 +23,7 @@ class PartialABC(Animation):
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         callbacks = tuple(
-            MobjectMeta._partial(descendant)(descendant)
+            MobjectStyleMeta._partial(descendant)(descendant)
             for descendant in mobject.iter_descendants()
         )
 

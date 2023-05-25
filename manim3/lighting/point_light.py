@@ -8,7 +8,7 @@ from ..custom_typing import (
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import (
     Mobject,
-    MobjectMeta
+    MobjectStyleMeta
 )
 from ..utils.space import SpaceUtils
 
@@ -16,7 +16,7 @@ from ..utils.space import SpaceUtils
 class PointLight(Mobject):
     __slots__ = ()
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_vec3
     )
     @Lazy.variable_external
@@ -24,7 +24,7 @@ class PointLight(Mobject):
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
@@ -43,10 +43,10 @@ class PointLight(Mobject):
         # Light-moving animations are automatically applicable.
         return SpaceUtils.apply_affine(model_matrix, ORIGIN)
 
-    @property
-    def color(self) -> Vec3T:
-        return self._color_.value
+    #@property
+    #def color(self) -> Vec3T:
+    #    return self._color_
 
-    @property
-    def opacity(self) -> float:
-        return self._opacity_.value
+    #@property
+    #def opacity(self) -> float:
+    #    return self._opacity_

@@ -699,7 +699,7 @@ class StringParser(ABC):
         for plain_shape, labelled_shape in cls._iter_matched_shape_mobjects(
             list(plain_shapes_iterator), list(labelled_shapes_iterator)
         ):
-            label = int(ColorUtils.color_to_hex(labelled_shape._color_.value)[1:], 16)
+            label = int(ColorUtils.color_to_hex(labelled_shape._color_)[1:], 16)
             yield LabelledShapeMobject(
                 label=label,
                 #span=label_to_span_dict[label],
@@ -796,6 +796,7 @@ class StringParser(ABC):
                 next_span = label_to_span_dict[next_label]
                 prev_stop_insertion = (prev_label, EdgeFlag.STOP)
                 next_start_insertion = (next_label, EdgeFlag.START)
+                # TODO: check if the order is wrong
                 yield next_start_insertion if next_span in prev_span else prev_stop_insertion
                 yield prev_stop_insertion if prev_span in next_span else next_start_insertion
                 prev_label = next_label

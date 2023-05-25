@@ -17,6 +17,7 @@ from ..custom_typing import (
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..shape.shape import Shape
+from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
@@ -117,12 +118,34 @@ class SVGMobject(ShapeMobject):
             height=height,
             frame_scale=frame_scale
         )
-        self.add(*(
-            shape_mobject
+
+        #mobjects: list[ShapeMobject] = []
+        #hexa_to_mobjects: dict[str, list[ShapeMobject]] = {}
+        #for shape in svg.elements():
+        #    if not isinstance(shape, se.Shape):
+
+        # TODO: handle strokes, etc.
+        mobject_hexa_pairs = [
+            (
+                fill.hexa if (fill := shape.fill) is not None else None,
+                shape_mobject
+            )
             for shape in svg.elements()
             if isinstance(shape, se.Shape) and (
-                shape_mobject := self._get_mobject_from_se_shape(shape * transform)
-            )._has_local_sample_points_.value
+                shape_mobject := ShapeMobject(self._get_shape_from_se_shape(shape * transform))
+            )._has_local_sample_points_
+        ]
+        for hexa, mobjects in IterUtils.categorize(mobject_hexa_pairs):
+            ShapeMobject().add(*mobjects).set_style(color=hexa)
+
+        self.add(*(
+            shape_mobject
+            for _, shape_mobject in mobject_hexa_pairs
+            #for shape in svg.elements()
+            #if isinstance(shape, se.Shape) and (
+            #    # TODO: handle strokes, etc.
+            #    shape_mobject := self._get_mobject_from_se_shape(shape * transform)
+            #)._has_local_sample_points_
         ))
 
     @classmethod
@@ -178,10 +201,10 @@ class SVGMobject(ShapeMobject):
         return transform
 
     @classmethod
-    def _get_mobject_from_se_shape(
+    def _get_shape_from_se_shape(
         cls,
         se_shape: se.Shape
-    ) -> ShapeMobject:
+    ) -> Shape:
 
         def iter_args_from_se_shape(
             se_shape: se.Shape
@@ -205,8 +228,7 @@ class SVGMobject(ShapeMobject):
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
             yield np.array(points_list), is_ring
 
-        result = ShapeMobject(Shape(iter_args_from_se_shape(se_shape)))
-        # TODO: handle strokes, etc.
-        if (fill := se_shape.fill) is not None and (hexa := fill.hexa) is not None:
-            result.set_style(color=hexa, handle_related_styles=False)
-        return result
+        return Shape(iter_args_from_se_shape(se_shape))
+        #if (fill := se_shape.fill) is not None and (hexa := fill.hexa) is not None:
+        #    result.set_style(color=hexa)
+        #return result

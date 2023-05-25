@@ -150,7 +150,7 @@ class AtomicBufferFormat(BufferFormat):
     ) -> int:
         return row_itemsize_factor * base_itemsize
 
-    @Lazy.property_external
+    @Lazy.property_shared
     @classmethod
     def _itemsize_(
         cls,
@@ -192,7 +192,7 @@ class StructuredBufferFormat(BufferFormat):
             name=name,
             shape=shape
         )
-        self._children_.extend(children)
+        self._children_.reset(children)
         self._offsets_ = offsets
         self._itemsize_ = itemsize
 
@@ -367,14 +367,14 @@ class GLBuffer(LazyObject):
             for child in children:
                 if layout == GLBufferLayout.STD140:
                     if isinstance(child, AtomicBufferFormat):
-                        base_alignment = child._row_itemsize_.value
+                        base_alignment = child._row_itemsize_
                     elif isinstance(child, StructuredBufferFormat):
                         base_alignment = structured_base_alignment
                     else:
                         raise TypeError
                     offset += (-offset) % base_alignment
                 offsets.append(offset)
-                offset += child._nbytes_.value
+                offset += child._nbytes_
             if layout == GLBufferLayout.STD140:
                 offset += (-offset) % structured_base_alignment
             return StructuredBufferFormat(
@@ -423,7 +423,7 @@ class GLBuffer(LazyObject):
     def _np_buffer_pointers_(
         cls,
         np_buffer: np.ndarray,
-        _buffer_format_: BufferFormat
+        buffer_format: BufferFormat
     ) -> dict[str, tuple[np.ndarray, int]]:
 
         def get_pointers(
@@ -432,10 +432,10 @@ class GLBuffer(LazyObject):
             name_chain: tuple[str, ...]
         ) -> Iterator[tuple[str, np.ndarray, int]]:
             if isinstance(buffer_format, AtomicBufferFormat):
-                yield ".".join(name_chain), np_buffer_pointer["_"], buffer_format._base_ndim_.value
+                yield ".".join(name_chain), np_buffer_pointer["_"], buffer_format._base_ndim_
             elif isinstance(buffer_format, StructuredBufferFormat):
                 for child in buffer_format._children_:
-                    name = child._name_.value
+                    name = child._name_
                     yield from get_pointers(
                         np_buffer_pointer[name],
                         child,
@@ -444,7 +444,7 @@ class GLBuffer(LazyObject):
 
         return {
             key: (np_buffer_pointer, base_ndim)
-            for key, np_buffer_pointer, base_ndim in get_pointers(np_buffer, _buffer_format_, ())
+            for key, np_buffer_pointer, base_ndim in get_pointers(np_buffer, buffer_format, ())
         }
 
     @Lazy.property_shared
@@ -544,7 +544,7 @@ class GLWriteOnlyBuffer(GLBuffer):
         self._data_dict_ = data_dict
 
     def get_buffer(self) -> moderngl.Buffer:
-        return self._buffer_.value
+        return self._buffer_
 
 
 class GLReadOnlyBuffer(GLBuffer):
@@ -553,7 +553,7 @@ class GLReadOnlyBuffer(GLBuffer):
     @contextmanager
     def temporary_buffer(self) -> Iterator[moderngl.Buffer]:
         buffer = self._fetch_buffer()
-        buffer.orphan(self._buffer_format_._nbytes_.value)
+        buffer.orphan(self._buffer_format_._nbytes_)
         yield buffer
         self._finalize_buffer(buffer)
 
@@ -563,8 +563,8 @@ class GLReadOnlyBuffer(GLBuffer):
     ) -> dict[str, np.ndarray]:
         return self._read_from_buffer(
             buffer=buffer,
-            np_buffer=self._np_buffer_.value,
-            np_buffer_pointers=self._np_buffer_pointers_.value
+            np_buffer=self._np_buffer_,
+            np_buffer_pointers=self._np_buffer_pointers_
         )
 
 

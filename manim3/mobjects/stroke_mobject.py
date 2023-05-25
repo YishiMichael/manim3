@@ -12,7 +12,7 @@ from ..custom_typing import (
     VertexIndexT
 )
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import MobjectMeta
+from ..mobjects.mobject import MobjectStyleMeta
 from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
@@ -44,7 +44,7 @@ class StrokeMobject(RenderableMobject):
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         partial_method=MultiLineString.partial,
         interpolate_method=MultiLineString.interpolate,
         concatenate_method=MultiLineString.concatenate
@@ -54,7 +54,7 @@ class StrokeMobject(RenderableMobject):
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_vec3
     )
     @Lazy.variable_external
@@ -62,16 +62,15 @@ class StrokeMobject(RenderableMobject):
     def _color_(cls) -> Vec3T:
         return np.ones(3)
 
-    @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((RenderableMobject._is_transparent_, True),)
+    @MobjectStyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
 
-    @MobjectMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
@@ -79,25 +78,20 @@ class StrokeMobject(RenderableMobject):
     def _width_(cls) -> float:
         return 0.04  # TODO: check if the auto-scaling remains
 
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_external
     @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
-    @MobjectMeta.register(
-        interpolate_method=NotImplemented
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_external
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
-    @MobjectMeta.register(
-        interpolate_method=SpaceUtils.lerp_float,
-        related_styles=((RenderableMobject._is_transparent_, True),)
+    @MobjectStyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_float
     )
     @Lazy.variable_external
     @classmethod
@@ -127,8 +121,8 @@ class StrokeMobject(RenderableMobject):
     def _stroke_preprocess_vertex_array_(
         cls,
         all_points: Vec3sT,
-        _camera_uniform_block_buffer_: UniformBlockBuffer,
-        _model_uniform_block_buffer_: UniformBlockBuffer
+        camera_uniform_block_buffer: UniformBlockBuffer,
+        model_uniform_block_buffer: UniformBlockBuffer
     ) -> VertexArray:
         indexed_attributes_buffer = IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
@@ -151,8 +145,8 @@ class StrokeMobject(RenderableMobject):
         return VertexArray(
             shader_filename="stroke_preprocess",
             uniform_block_buffers=[
-                _camera_uniform_block_buffer_,
-                _model_uniform_block_buffer_
+                camera_uniform_block_buffer,
+                model_uniform_block_buffer
             ],
             indexed_attributes_buffer=indexed_attributes_buffer,
             transform_feedback_buffer=transform_feedback_buffer
@@ -162,9 +156,9 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _all_position_(
         cls,
-        _stroke_preprocess_vertex_array_: VertexArray
+        stroke_preprocess_vertex_array: VertexArray
     ) -> Vec3sT:
-        data_dict = _stroke_preprocess_vertex_array_.transform()
+        data_dict = stroke_preprocess_vertex_array.transform()
         return data_dict["out_position"]
 
     @Lazy.property_external
@@ -307,11 +301,11 @@ class StrokeMobject(RenderableMobject):
         width: float,
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
-        _camera_uniform_block_buffer_: UniformBlockBuffer,
-        _stroke_uniform_block_buffer_: UniformBlockBuffer,
-        _winding_sign_uniform_block_buffer_: UniformBlockBuffer,
+        camera_uniform_block_buffer: UniformBlockBuffer,
+        stroke_uniform_block_buffer: UniformBlockBuffer,
+        winding_sign_uniform_block_buffer: UniformBlockBuffer,
         is_transparent: bool,
-        _position_attributes_buffer_: AttributesBuffer,
+        position_attributes_buffer: AttributesBuffer,
         single_sided: bool,
         has_linecap: bool
     ) -> list[VertexArray]:
@@ -367,9 +361,9 @@ class StrokeMobject(RenderableMobject):
             return [0, points_len - 1]
 
         uniform_block_buffers = [
-            _camera_uniform_block_buffer_,
-            _stroke_uniform_block_buffer_,
-            _winding_sign_uniform_block_buffer_
+            camera_uniform_block_buffer,
+            stroke_uniform_block_buffer,
+            winding_sign_uniform_block_buffer
         ]
 
         def get_vertex_array(
@@ -384,7 +378,7 @@ class StrokeMobject(RenderableMobject):
                 custom_macros=custom_macros,
                 uniform_block_buffers=uniform_block_buffers,
                 indexed_attributes_buffer=IndexedAttributesBuffer(
-                    attributes_buffer=_position_attributes_buffer_,
+                    attributes_buffer=position_attributes_buffer,
                     index_buffer=IndexBuffer(
                         data=lump_index_from_getter(index_getter)
                     ),
@@ -420,30 +414,30 @@ class StrokeMobject(RenderableMobject):
                 framebuffer=target_framebuffer
             )
 
-    @property
-    def multi_line_string(self) -> MultiLineString:
-        return self._multi_line_string_
+    #@property
+    #def multi_line_string(self) -> MultiLineString:
+    #    return self._multi_line_string_
 
-    @property
-    def color(self) -> Vec3T:
-        return self._color_.value
+    #@property
+    #def color(self) -> Vec3T:
+    #    return self._color_
 
-    @property
-    def opacity(self) -> float:
-        return self._opacity_.value
+    #@property
+    #def opacity(self) -> float:
+    #    return self._opacity_
 
-    @property
-    def width(self) -> float:
-        return self._width_.value
+    #@property
+    #def width(self) -> float:
+    #    return self._width_
 
-    @property
-    def single_sided(self) -> bool:
-        return self._single_sided_.value
+    #@property
+    #def single_sided(self) -> bool:
+    #    return self._single_sided_
 
-    @property
-    def has_linecap(self) -> bool:
-        return self._has_linecap_.value
+    #@property
+    #def has_linecap(self) -> bool:
+    #    return self._has_linecap_
 
-    @property
-    def dilate(self) -> float:
-        return self._dilate_.value
+    #@property
+    #def dilate(self) -> float:
+    #    return self._dilate_

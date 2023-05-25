@@ -168,7 +168,7 @@ class FormulaExample(Scene):
                 "c_{2}": Palette.BLUE,
                 "c_{n}": Palette.BLUE
             }
-        ).scale(0.5)
+        )#.scale(0.5)
         expanded_formula = Tex(
             "\\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{0} \\mathrm{d} t"
                 + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{1} t \\mathrm{d} t"
@@ -191,7 +191,7 @@ class FormulaExample(Scene):
                 "c_{2}": Palette.BLUE,
                 "c_{n}": Palette.BLUE
             }
-        ).scale(0.5)
+        )#.scale(0.5)
         self.add(explicit_formula)
         #await self.wait()
         await self.play(TransformMatchingStrings(explicit_formula, expanded_formula, run_time=5))
