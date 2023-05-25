@@ -413,31 +413,3 @@ class StrokeMobject(RenderableMobject):
             vertex_array.render(
                 framebuffer=target_framebuffer
             )
-
-    #@property
-    #def multi_line_string(self) -> MultiLineString:
-    #    return self._multi_line_string_
-
-    #@property
-    #def color(self) -> Vec3T:
-    #    return self._color_
-
-    #@property
-    #def opacity(self) -> float:
-    #    return self._opacity_
-
-    #@property
-    #def width(self) -> float:
-    #    return self._width_
-
-    #@property
-    #def single_sided(self) -> bool:
-    #    return self._single_sided_
-
-    #@property
-    #def has_linecap(self) -> bool:
-    #    return self._has_linecap_
-
-    #@property
-    #def dilate(self) -> float:
-    #    return self._dilate_

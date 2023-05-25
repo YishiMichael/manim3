@@ -27,11 +27,3 @@ class AmbientLight(Mobject):
     @classmethod
     def _opacity_(cls) -> float:
         return 1.0
-
-    #@property
-    #def color(self) -> Vec3T:
-    #    return self._color_
-
-    #@property
-    #def opacity(self) -> float:
-    #    return self._opacity_

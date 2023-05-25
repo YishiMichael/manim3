@@ -119,13 +119,8 @@ class SVGMobject(ShapeMobject):
             frame_scale=frame_scale
         )
 
-        #mobjects: list[ShapeMobject] = []
-        #hexa_to_mobjects: dict[str, list[ShapeMobject]] = {}
-        #for shape in svg.elements():
-        #    if not isinstance(shape, se.Shape):
-
         # TODO: handle strokes, etc.
-        mobject_hexa_pairs = [
+        hexa_mobject_pairs = [
             (
                 fill.hexa if (fill := shape.fill) is not None else None,
                 shape_mobject
@@ -135,12 +130,14 @@ class SVGMobject(ShapeMobject):
                 shape_mobject := ShapeMobject(self._get_shape_from_se_shape(shape * transform))
             )._has_local_sample_points_
         ]
-        for hexa, mobjects in IterUtils.categorize(mobject_hexa_pairs):
-            ShapeMobject().add(*mobjects).set_style(color=hexa)
+        for hexa, shape_mobjects in IterUtils.categorize(hexa_mobject_pairs):
+            if hexa is None:
+                continue
+            ShapeMobject().add(*shape_mobjects).set_style(color=hexa)
 
         self.add(*(
             shape_mobject
-            for _, shape_mobject in mobject_hexa_pairs
+            for _, shape_mobject in hexa_mobject_pairs
             #for shape in svg.elements()
             #if isinstance(shape, se.Shape) and (
             #    # TODO: handle strokes, etc.
@@ -229,6 +226,3 @@ class SVGMobject(ShapeMobject):
             yield np.array(points_list), is_ring
 
         return Shape(iter_args_from_se_shape(se_shape))
-        #if (fill := se_shape.fill) is not None and (hexa := fill.hexa) is not None:
-        #    result.set_style(color=hexa)
-        #return result

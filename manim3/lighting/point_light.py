@@ -42,11 +42,3 @@ class PointLight(Mobject):
         # We can then control the light position via methods like `shift()`.
         # Light-moving animations are automatically applicable.
         return SpaceUtils.apply_affine(model_matrix, ORIGIN)
-
-    #@property
-    #def color(self) -> Vec3T:
-    #    return self._color_
-
-    #@property
-    #def opacity(self) -> float:
-    #    return self._opacity_

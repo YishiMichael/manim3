@@ -181,35 +181,3 @@ class MeshMobject(RenderableMobject):
                 "t_color_maps": np.array(textures, dtype=moderngl.Texture)
             }
         )
-
-    #@property
-    #def geometry(self) -> Geometry:
-    #    return self._geometry_
-
-    #@property
-    #def color(self) -> Vec3T:
-    #    return self._color_
-
-    #@property
-    #def opacity(self) -> float:
-    #    return self._opacity_
-
-    #@property
-    #def color_map(self) -> moderngl.Texture | None:
-    #    return self._color_map_
-
-    #@property
-    #def enable_phong_lighting(self) -> bool:
-    #    return self._enable_phong_lighting_
-
-    #@property
-    #def ambient_strength(self) -> float:
-    #    return self._ambient_strength_
-
-    #@property
-    #def specular_strength(self) -> float:
-    #    return self._specular_strength_
-
-    #@property
-    #def shininess(self) -> float:
-    #    return self._shininess_

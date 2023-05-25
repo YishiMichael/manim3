@@ -1,7 +1,6 @@
 import numpy as np
 
 from ..animations.animation import Scene
-#from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
     ColorFramebuffer,
@@ -20,7 +19,6 @@ class ChildSceneMobject(MeshMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene
-        #self._geometry_ = PlaneGeometry()
         self._enable_phong_lighting_ = False
         self.scale(np.append(scene.camera._frame_radii_, 1.0))
 

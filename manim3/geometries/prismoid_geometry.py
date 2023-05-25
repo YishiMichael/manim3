@@ -12,7 +12,6 @@ from ..custom_typing import (
 from ..geometries.geometry import GeometryData
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
-#from ..shape.shape import Shape
 from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
@@ -26,7 +25,6 @@ class PrismoidGeometry(ShapeGeometry):
         cls,
         shape__multi_line_string__line_strings__points: list[Vec3sT],
         shape__triangulation: tuple[VertexIndexT, Vec2sT]
-        #shape: Shape
     ) -> GeometryData:
         position_list: list[Vec3T] = []
         normal_list: list[Vec3T] = []

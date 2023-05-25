@@ -125,16 +125,27 @@ class SceneFrame(Mobject):
             else:
                 opaque_mobjects.append(mobject)
 
+        target_framebuffer.framebuffer.clear(
+            color=(*self._color_, self._opacity_)
+        )
         with TextureFactory.depth_texture() as depth_texture:
-            opaque_framebuffer = OpaqueFramebuffer(
-                color_texture=target_framebuffer.color_texture,
-                depth_texture=depth_texture
-            )
-            opaque_framebuffer.framebuffer.clear(
-                color=(*self._color_, self._opacity_)
-            )
-            for mobject in opaque_mobjects:
-                mobject._render(opaque_framebuffer)
+            with TextureFactory.texture() as color_texture:
+                opaque_framebuffer = OpaqueFramebuffer(
+                    color_texture=color_texture,
+                    depth_texture=depth_texture
+                )
+                opaque_framebuffer.framebuffer.clear()
+                for mobject in opaque_mobjects:
+                    mobject._render(opaque_framebuffer)
+                self._copy_vertex_array_.render(
+                    framebuffer=target_framebuffer,
+                    texture_array_dict={
+                        "t_color_map": np.array(color_texture)
+                    },
+                    context_state=ContextState(
+                        flags=(ContextFlag.BLEND,)
+                    )
+                )
 
             with TextureFactory.texture(dtype="f2") as accum_texture, \
                     TextureFactory.texture(components=1) as revealage_texture:
@@ -152,16 +163,20 @@ class SceneFrame(Mobject):
                 for mobject in transparent_mobjects:
                     mobject._render(transparent_framebuffer)
 
-            self._oit_compose_vertex_array_.render(
-                framebuffer=target_framebuffer,
-                texture_array_dict={
-                    "t_accum_map": np.array(accum_texture),
-                    "t_revealage_map": np.array(revealage_texture)
-                },
-                context_state=ContextState(
-                    flags=(ContextFlag.BLEND,)
+                #classical_framebuffer = ClassicalFramebuffer(
+                #    color_texture=target_framebuffer.color_texture,
+                #    depth_texture=depth_texture
+                #)
+                self._oit_compose_vertex_array_.render(
+                    framebuffer=target_framebuffer,
+                    texture_array_dict={
+                        "t_accum_map": np.array(accum_texture),
+                        "t_revealage_map": np.array(revealage_texture)
+                    },
+                    context_state=ContextState(
+                        flags=(ContextFlag.BLEND,)
+                    )
                 )
-            )
 
     def _render_scene(
         self,
@@ -214,11 +229,3 @@ class SceneFrame(Mobject):
             }
         )
         window.swap_buffers()
-
-    #@property
-    #def color(self) -> Vec3T:
-    #    return self._color_
-
-    #@property
-    #def opacity(self) -> float:
-    #    return self._opacity_

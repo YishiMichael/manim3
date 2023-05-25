@@ -11,7 +11,6 @@ from ..animations.animation import Animation
 from ..animations.composition import Parallel
 from ..animations.fade import FadeTransform
 from ..animations.transform import Transform
-#from ..custom_typing import SelectorT
 from ..mobjects.shape_mobject import ShapeMobject
 from ..strings.string_mobject import StringMobject
 from ..utils.iterables import IterUtils
@@ -44,13 +43,6 @@ class TransformMatchingStrings(Parallel):
         def zip_matched_part_items(
             *part_item_iters: Iterable[tuple[str, Iterable[ShapeMobject]]]
         ) -> Iterator[tuple[Iterable[Iterable[ShapeMobject]], ...]]:
-                #for key, grouper in it.groupby(
-                #    sorted(iterable, key=lambda t: t[0]),
-                #    key=lambda t: t[0]
-                #):
-                #    _, item_iterator = IterUtils.unzip_pairs(grouper)
-                #    yield key, list(item_iterator)
-                #    # `list()` is needed due to the behavior of `groupby`.
 
             def recategorize(
                 iterable: Iterable[tuple[_K0, Iterable[tuple[_K1, _T]]]]
@@ -174,10 +166,7 @@ class TransformMatchingStrings(Parallel):
                     for mobject_list in stop_mobject_list_list
                 ]
             ):
-                #print(len(start_mobject_list), len(stop_mobject_list))
                 for start_mobject, stop_mobject in it.product(start_mobject_list, stop_mobject_list):
-                    #print(start_mobject, stop_mobject)
-                    #print(len(start_mobject._children_), len(stop_mobject._children_))
                     start_mobject_copy = start_mobject.copy()
                     stop_mobject_copy = stop_mobject.copy()
                     if shape_match:

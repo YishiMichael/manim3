@@ -329,6 +329,7 @@ class MobjectStyleMeta:
             method_callback = method(*src_containers)  # TODO: unpacking
             if method_callback is None:
                 return None
+            #print(method)
 
 
             #method_callback = method(*(
@@ -512,10 +513,6 @@ class MobjectStyleMeta:
                 # copying all information from children.
                 return return_common_container(src_container_0)
             elif method is None:
-                #print([
-                #    src_container._element
-                #    for src_container in src_containers
-                #])
                 raise ValueError(f"Uncatenatable variables of `{descriptor.method.__name__}` don't match")
 
             ##
@@ -550,30 +547,12 @@ class MobjectStyleMeta:
             srcs=srcs
         )
 
-    #@classmethod
-    #def _set_style_by_descriptor(
-    #    cls,
-    #    mobjects: Iterable[_MobjectT],
-    #    descriptor: LazyVariableDescriptor[_MobjectT, _ContainerT, _DataT, Any],
-    #    style_value: _DataT
-    #) -> None:
-    #    for mobject in mobjects:
-    #        descriptor.__set__(mobject, style_value)
-
     @classmethod
     def _set_style(
         cls,
         mobjects: "Iterable[Mobject]",
         style: dict[str, Any]
-        #handle_related_styles: bool
     ) -> None:
-        #values = {
-        #    f"_{key}_": value if isinstance(value, LazyObject) else LazyWrapper(value)
-        #    for key, value in style.items()
-        #}
-        #type_to_mobjects: dict[type[Mobject], list[Mobject]] = {}
-        #for mobject in mobjects:
-        #    type_to_mobjects.setdefault(type(mobject), []).append(mobject)
         type_to_mobjects = dict(IterUtils.categorize(
             (type(mobject), mobject)
             for mobject in mobjects
@@ -598,37 +577,6 @@ class MobjectStyleMeta:
                         continue
                     for mobject in typed_mobjects:
                         descriptor.set_container(mobject, style_container)
-                        #cls._set_style_by_descriptor(
-                        #    mobjects=mobjects,
-                        #    descriptor=descriptor,
-                        #    style_value=style_value
-                        #)
-            #    for mobject in mobjects:
-            #        if descriptor in type(mobject)._lazy_variable_descriptors:
-            #            descriptor.__set__(mobject, style_value)
-            #for info in cls._style_descriptor_infos:
-            #    if (descriptor := info.descriptor).method.__name__ != style_name:
-            #        continue
-
-        #for mobject in mobjects:
-        #    for style_name, style_value in values.items():
-        #        descriptor = type(mobject)._lazy_descriptor_dict.get(style_name)
-        #        if descriptor is None:
-        #            continue
-        #        if not isinstance(descriptor, LazyVariableDescriptor):
-        #            continue
-        #        #related_styles = cls._descriptor_related_styles.get(descriptor)
-        #        #if related_styles is None:
-        #        #    continue
-        #        #if isinstance(descriptor.converter, LazySharedConverter):
-        #        #    assert isinstance(style_value, LazyWrapper)
-        #        #    style_value = style_value.value
-        #        #assert not isinstance(descriptor.converter, LazyCollectionConverter)
-        #        descriptor.__set__(mobject, style_value)
-        #        #if handle_related_styles:
-        #        #    for related_style_descriptor, related_style_value in related_styles:
-        #        #        if related_style_descriptor.method.__name__ not in values:
-        #        #            related_style_descriptor.__set__(mobject, related_style_value)
 
     @classmethod
     def _match_style(
@@ -641,8 +589,7 @@ class MobjectStyleMeta:
             mobjects=mobjects,
             style={
                 name: target
-                for name in cls._name_to_descriptors_dict
-                if name in style_names
+                for name in style_names
             }
         )
 
@@ -1015,11 +962,6 @@ class Mobject(LazyObject):
             (Mobject._model_matrix_.get_container(mobject)._element, mobject)
             for mobject in self.iter_descendants()
         ))
-        #model_matrix_to_mobjects: dict[LazyWrapper[Mat4T], list[Mobject]] = {}
-        #for mobject in self.iter_descendants():
-        #    model_matrix_to_mobjects.setdefault(
-        #        Mobject._model_matrix_.get_container(mobject)._element, []
-        #    ).append(mobject)
 
         def callback(
             alpha: float
@@ -1031,13 +973,6 @@ class Mobject(LazyObject):
                         element=transformed_matrix
                     ))
 
-        #transform_dict: dict[LazyWrapper[Mat4T], LazyWrapper[Mat4T]] = {}
-        #for mobject in self.iter_descendants():
-        #    original_matrix = mobject._model_matrix_
-        #    if (transformed_matrix := transform_dict.get(original_matrix)) is None:
-        #        transformed_matrix = LazyWrapper(matrix @ original_matrix.value)
-        #        transform_dict[original_matrix] = transformed_matrix
-        #    mobject._model_matrix_ = transformed_matrix
         return callback
 
     def apply_transform(
@@ -1047,25 +982,6 @@ class Mobject(LazyObject):
         if np.isclose(np.linalg.det(matrix), 0.0):
             warnings.warn("Applying a singular matrix transform")
         self._apply_transform_callback(lambda alpha: matrix)(1.0)
-        # Avoid redundant caculations.
-        #model_matrix_to_mobjects: dict[LazyWrapper[Mat4T], list[Mobject]] = {}
-        #for mobject in self.iter_descendants():
-        #    model_matrix_to_mobjects.setdefault(
-        #        Mobject._model_matrix_.get_container(mobject)._element, []
-        #    ).append(mobject)
-        #for model_matrix, mobjects in model_matrix_to_mobjects.items():
-        #    transformed_matrix = LazyWrapper(matrix @ model_matrix._value)
-        #    for mobject in mobjects:
-        #        Mobject._model_matrix_.set_container(mobject, LazyUnitaryContainer(
-        #            element=transformed_matrix
-        #        ))
-        #transform_dict: dict[LazyWrapper[Mat4T], LazyWrapper[Mat4T]] = {}
-        #for mobject in self.iter_descendants():
-        #    original_matrix = mobject._model_matrix_
-        #    if (transformed_matrix := transform_dict.get(original_matrix)) is None:
-        #        transformed_matrix = LazyWrapper(matrix @ original_matrix.value)
-        #        transform_dict[original_matrix] = transformed_matrix
-        #    mobject._model_matrix_ = transformed_matrix
         return self
 
     # shift relatives
@@ -1230,7 +1146,6 @@ class Mobject(LazyObject):
         # setting configs
         broadcast: bool = True,
         type_filter: "type[Mobject] | None" = None
-        #handle_related_styles: bool = True
     ):
         color_component, opacity_component = ColorUtils.standardize_color_input(color, opacity)
         style = {
@@ -1261,11 +1176,10 @@ class Mobject(LazyObject):
         })
 
         if type_filter is None:
-            type_filter = type(self)
+            type_filter = Mobject
         MobjectStyleMeta._set_style(
             mobjects=self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast),
             style=style
-            #handle_related_styles=handle_related_styles
         )
         return self
 
@@ -1315,17 +1229,13 @@ class Mobject(LazyObject):
                 "has_linecap": has_linecap,
                 "dilate": dilate
             }.items()
-            if checked is None and default or checked
+            if checked is ... and default or checked is not ... and checked
         ]
 
         if type_filter is None:
-            type_filter = type(self)
+            type_filter = Mobject
         MobjectStyleMeta._match_style(
             mobjects=self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast),
             target=target,
             style_names=style_names
         )
-
-    #@property
-    #def model_matrix(self) -> Mat4T:
-    #    return self._model_matrix_

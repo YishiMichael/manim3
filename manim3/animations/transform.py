@@ -116,16 +116,8 @@ class Transform(TransformABC):
         )
 
     async def timeline(self) -> None:
-        #start_mobject = self._start_mobject
-        #stop_mobject = self._stop_mobject
-        #intermediate_mobject = self._intermediate_mobject
-        #parents = list(start_mobject.iter_parents())
-        #start_mobject.discarded_by(*parents)
-        #intermediate_mobject.added_by(*parents)
         self.discard_from_scene(self._start_mobject)
         self.add_to_scene(self._intermediate_mobject)
         await self.wait()
         self.discard_from_scene(self._intermediate_mobject)
         self.add_to_scene(self._stop_mobject)
-        #intermediate_mobject.discarded_by(*parents)
-        #stop_mobject.added_by(*parents)

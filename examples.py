@@ -83,10 +83,10 @@ class ThreeDTextExample(Scene):
         text = Text("Text").concatenate()
         text_3d = (
             MeshMobject()
-            .set_style(geometry=PrismoidGeometry(text.shape))
+            .set_style(geometry=PrismoidGeometry(text._shape_))
             .scale(5.0)
             .scale_to(0.5, alpha=Z_AXIS)
-            .set_style(color="#00FFAA44")
+            .set_style(color="#00FFAA44", is_transparent=True)
         )
         self.add(AmbientLight().set_style(opacity=0.3))
         self.add(PointLight().shift(RIGHT * 5))
@@ -99,7 +99,7 @@ class OITExample(Scene):
     async def timeline(self) -> None:
         self.add(*(
             (Circle()
-                .set_style(color=color, opacity=opacity)
+                .set_style(color=color, opacity=opacity, is_transparent=True)
                 .shift(RIGHT * 0.5)
                 .rotate(OUT * angle)
             )
@@ -129,7 +129,7 @@ class ChildSceneExample(Scene):
             .scale(0.5)
             .shift(RIGHT * 1)
             .shift(OUT * 0.01)
-            .set_style(opacity=1.0)
+            .set_style(is_transparent=True)
         )
         await self.wait(6)
 
@@ -152,7 +152,6 @@ class FormulaExample(Scene):
         explicit_formula = Tex(
             "\\int_{0}^{\\infty} \\mathrm{e}^{- t}"
                 + " \\left( c_{0} + c_{1} t + c_{2} t^{2} + \\cdots + c_{n} t^{n} \\right) \\mathrm{d} t",
-            base_color=Palette.TEAL,
             isolate=[
                 "\\int_{0}^{\\infty} \\mathrm{e}^{- t}",
                 "\\mathrm{d} t",
@@ -168,14 +167,13 @@ class FormulaExample(Scene):
                 "c_{2}": Palette.BLUE,
                 "c_{n}": Palette.BLUE
             }
-        )#.scale(0.5)
+        ).scale(0.7)
         expanded_formula = Tex(
             "\\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{0} \\mathrm{d} t"
                 + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{1} t \\mathrm{d} t"
                 + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{2} t^{2} \\mathrm{d} t"
                 + " + \\cdots"
                 + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{n} t^{n} \\mathrm{d} t",
-            base_color=Palette.TEAL,
             isolate=[
                 "\\int_{0}^{\\infty} \\mathrm{e}^{- t}",
                 "\\mathrm{d} t",
@@ -191,10 +189,10 @@ class FormulaExample(Scene):
                 "c_{2}": Palette.BLUE,
                 "c_{n}": Palette.BLUE
             }
-        )#.scale(0.5)
+        ).scale(0.7)
         self.add(explicit_formula)
-        #await self.wait()
-        await self.play(TransformMatchingStrings(explicit_formula, expanded_formula, run_time=5))
+        await self.wait()
+        await self.play(TransformMatchingStrings(explicit_formula, expanded_formula, run_time=5, rate_func=RateUtils.smooth))
         await self.wait()
 
 
@@ -202,12 +200,12 @@ def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 3
+    #config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    FormulaExample().render(config)
+    LaggedAnimationExample().render(config)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-# TODO: The document is outdated.
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.
@@ -23,6 +22,18 @@ LazyObject --> LazySlot         --> LazyContainer        --> LazyObject
             |> LazyVariableSlot  |> LazyUnitaryContainer
             |> LazyPropertySlot  |> LazyDynamicContainer
 
+Lazy variables and properties can have different modes, summerized in the
+following table.
++------------+-------------------+-------------------------------------+----------------------------------------------+
+| LazyMode   | method return     | __get__ / __set__                   | internal storage                             |
++------------+-------------------+-------------------------------------+----------------------------------------------+
+| OBJECT     | LazyObjectT       | LazyObjectT                         | LazyUnitaryContainer[LazyObjectT]            |
+| COLLECTION | list[LazyObjectT] | LazyDynamicContainer[LazyObjectT] * | LazyDynamicContainer[LazyObjectT]            |
+| EXTERNAL   | T                 | T                                   | LazyUnitaryContainer[LazyWrapper[T]]         |
+| SHARED     | HashableT         | HashableT                           | LazyUnitaryContainer[LazyWrapper[HashableT]] |
++------------+-------------------+-------------------------------------+----------------------------------------------+
+*: `__set__` not allowed.
+
 # Lazy Variable
 
 Lazy variables are what users can modify freely from the outer scope. They are
@@ -36,33 +47,21 @@ contained, on the other hand, can be shared freely.
 Methods decorated by `Lazy.variable` should not take any argument except for
 `cls` and return the *initial* value for this data.
 
-+------------+-----------------+-----------------+-----------------------+
-| LazyMode   | method return   | __get__ return  | __set__ type          |
-+------------+-----------------+-----------------+-----------------------+
-| OBJECT     | LazyObjectT     | LazyObjectT     | LazyObjectT           |
-| UNWRAPPED  | T               | LazyWrapper[T]  | T | LazyWrapper[T]    |
-| SHARED     | HT              | LazyWrapper[HT] | HT | LazyWrapper[HT]  |
-| COLLECTION | LazyCollectionT | LazyCollectionT | Iterable[LazyObjectT] |
-+------------+-----------------+-----------------+-----------------------+
-`HT`: `HashableT`
-`LazyCollectionT`: `LazyDynamicContainer[LazyObjectT]`
-
-The `__get__` method always returns an instance of either `LazyObject` or
-`LazyDynamicContainer`, the latter of which is just a dynamic collection of
-`LazyObject`s, and provides `add`, `discard` as its public interface.
-`LazyWrapper` is derived from `LazyObject`, which is just responsible for
-bringing a value into the lazy scope, and the value is obtained via the
-readonly `value` property. One may picture a lazy object as a tree (it's a
-DAG actually), where `LazyWrapper`s sit on all leaves.
-
-Lazy variables are of course mutable. All can be modified via `__set__`.
-Among all cases above, a common value will be shared among instances, except
-for providing `T` type in `UNWRAPPED` mode, in which case a new `LazyWrapper`
-object will be instanced and assigned specially to the instance. Additionally,
-`LazyDynamicContainer`s can be modified via `add` and `discard`.
+Lazy variables are of course mutable. All can be modified via `__set__`
+except for `COLLECTION` mode (where `LazyDynamicContainer.reset` comes into
+play; a list-like public interface is provided to perform modification).
+Among all cases above, a common value will be shared among instances except
+in `EXTERNAL` mode, in which case a new `LazyWrapper` object will be instanced
+and assigned specially to the instance. `LazyWrapper` is derived from
+`LazyObject`, which is just responsible for bringing a value into the lazy
+scope. One may picture a lazy object as a tree (it's a DAG actually), where
+`LazyWrapper`s sit on all leaves. This class is just for internal usage,
+except for cases where one wants to share values in `EXTERNAL` mode and has
+to hack into deeper implementation.
 
 Notice that what `__get__` method returns is always a valid input of
 `__set__`. This ensures the statement `a._data_ = b._data_` is always valid.
+Again, values won't be shared in `EXTERNAL` mode.
 
 The `LazyObject._copy` method will only copy containers under variable slots.
 This means all children `LazyObject`s will be shared, and new
@@ -80,17 +79,6 @@ Containers under `LazyPropertySlot` objects can be shared due to read-only.
 Methods decorated by `Lazy.property` defines how lazy properties are related
 to their dependent variables.
 
-+------------+-----------------+-----------------+
-| LazyMode   | method return   | __get__ return  |
-+------------+-----------------+-----------------+
-| OBJECT     | LazyObject      | LazyObject      |
-| UNWRAPPED  | T               | LazyWrapper[T]  |
-| SHARED     | HT              | LazyWrapper[HT] |
-| COLLECTION | LazyCollectionT | LazyCollectionT |
-+------------+-----------------+-----------------+
-`HT`: `HashableT`
-`LazyCollectionT`: `LazyDynamicContainer[LazyObjectT]`
-
 The return type of `__get__` is basically the same as that of lazy variables.
 Containers will be entirely shared if the leaf nodes of objects of parameters
 (which forms a complicated structure of `LazyWrapper`s) match completely.
@@ -100,31 +88,26 @@ cyclic dependency doesn't exist), or a mixed collection of those, as long as
 the types are consistent. The name of a parameter needs to indicate how it is
 constructed through some specific patterns. Below are some examples.
 
-Suppose `_o_` is a descriptor returning `LazyObject` when calling `__get__`,
-and `_w_`, `_c_` for `LazyWrapper`, `LazyDynamicContainer`, respectively.
-+--------------+--------------------------------------------------------+
-| param name   | what is fed into the param                             |
-+--------------+--------------------------------------------------------+
-| _o_          | inst._o_                                               |
-| w            | inst._w_.value                                         |
-| _o__o_       | inst._o_._o_                                           |
-| o__w         | inst._o_._w_.value                                     |
-| _c_          | [e for e in inst._c_]                                  |
-| _c__o_       | [e._o_ for e in inst._c_]                              |
-| c__w         | [e._w_.value for e in inst._c_]                        |
-| _c__c__o_    | [[ee._o_ for ee in e._c_] for e in inst._c_]           |
-| _c__o__c__o_ | [[ee._o_ for ee in e._o_._c_] for e in inst._c_]       |
-| c__o__c__w   | [[ee._w_.value for ee in e._o_._c_] for e in inst._c_] |
-+--------------+--------------------------------------------------------+
+Suppose `_c_` is a descriptor of `COLLECTION` mode, and `_o_` is not of
+`COLLECTION` mode.
++------------+--------------------------------------------------+
+| param name | what is fed into the param                       |
++------------+--------------------------------------------------+
+| o          | inst._o_                                         |
+| o__o       | inst._o_._o_                                     |
+| c          | [e for e in inst._c_]                            |
+| c__o       | [e._o_ for e in inst._c_]                        |
+| c__c__o    | [[ee._o_ for ee in e._c_] for e in inst._c_]     |
+| c__o__c__o | [[ee._o_ for ee in e._o_._c_] for e in inst._c_] |
++------------+--------------------------------------------------+
 
 As a conclusion, if there are `n` dynamic descriptor in the name chain, the
-parameter will be fed with an `n`-fold list. If the underscores on ends are
-missing, it's assumed the last descriptor will return `LazyWrapper` and values
-are pulled out from the wrappers.
+parameter will be fed with an `n`-fold list. Note that all descriptors in the
+chain should be within the lazy scope.
 
 Lazy properties are immutable. This also applies to children of a `LazyObject`
-and elements of `LazyCollection`. That is, one cannot set the value of
-`inst._w_` even when it's a lazy variable, given that `inst` itself is the
+and all elements of `LazyCollection`. That is, one cannot set the value of
+`inst._o_` even when it's a lazy variable, given that `inst` itself is the
 calculation result of some property.
 """
 
@@ -166,9 +149,6 @@ _ElementT = TypeVar("_ElementT", bound="LazyObject")
 _SlotT = TypeVar("_SlotT", bound="LazySlot")
 _ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
-#_DescriptorGetT = TypeVar("_DescriptorGetT")
-#_DescriptorSetT = TypeVar("_DescriptorSetT")
-#_DescriptorRawT = TypeVar("_DescriptorRawT")
 _DescriptorT = TypeVar("_DescriptorT", bound="LazyDescriptor")
 _DataT = TypeVar("_DataT")
 _DataRawT = TypeVar("_DataRawT")
@@ -577,58 +557,6 @@ class LazyConverter(ABC, Generic[_ContainerT, _DataT, _DataRawT]):
     ) -> _ContainerT:
         pass
 
-    #def r2c(
-    #    self,
-    #    value: _DataRawT
-    #) -> _ContainerT:
-    #    return self.d2c(self.r2d(value))
-
-    #def c2r(
-    #    self,
-    #    value: _ContainerT
-    #) -> _DataRawT:
-    #    return self.d2r(self.c2d(value))
-
-    #@abstractmethod
-    #def c2g(
-    #    self,
-    #    value: _ContainerT
-    #) -> _DescriptorGetT:
-    #    pass
-
-    #@abstractmethod
-    #def s2c(
-    #    self,
-    #    value: _DescriptorSetT
-    #) -> _ContainerT:
-    #    pass
-
-    #@abstractmethod
-    #def g2r(
-    #    self,
-    #    value: _DescriptorGetT
-    #) -> _DescriptorRawT:
-    #    pass
-
-    #@abstractmethod
-    #def r2s(
-    #    self,
-    #    value: _DescriptorRawT
-    #) -> _DescriptorSetT:
-    #    pass
-
-    #def c2r(
-    #    self,
-    #    value: _ContainerT
-    #) -> _DescriptorRawT:
-    #    return self.g2r(self.c2g(value))
-
-    #def r2c(
-    #    self,
-    #    value: _DescriptorRawT
-    #) -> _ContainerT:
-    #    return self.s2c(self.r2s(value))
-
 
 class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DataT, _DataRawT]):
     __slots__ = (
@@ -993,11 +921,7 @@ class LazyObject(ABC):
             for name, parameter in method_signature.parameters.items():
                 if name == "cls":
                     continue
-                #if (requires_unwrapping := re.fullmatch(r"_\w+_", name) is None):
-                #    name = f"_{name}_"
-                #descriptor_name_chain = tuple(re.findall(r"_\w+?_(?=_|$)", name))
                 descriptor_name_chain = tuple(f"_{name_segment}_" for name_segment in name.split("__"))
-                #assert "".join(descriptor_name_chain) == name
                 descriptor_name_chain_list.append(descriptor_name_chain)
 
                 element_type: type[LazyObject] = root_class
@@ -1013,7 +937,6 @@ class LazyObject(ABC):
                 requires_unwrapping_list.append(requires_unwrapping)
 
                 if requires_unwrapping:
-                    #if isinstance(descriptor.converter, LazyExternalConverter):
                     assert descriptor.element_type is LazyWrapper
                 expected_annotation = descriptor.return_annotation
                 for _ in range(collection_level):
@@ -1127,10 +1050,6 @@ class LazyWrapper(LazyObject, Generic[_T]):
         self._hash_value: int = cls._hash_counter  # Unique for each instance.
         cls._hash_counter += 1
 
-    #@property
-    #def value(self) -> _T:
-    #    return self._value
-
 
 class LazyIndividualConverter(LazyConverter[LazyUnitaryContainer[_ElementT], _ElementT, _ElementT]):
     __slots__ = ()
@@ -1191,46 +1110,6 @@ class LazyCollectionConverter(LazyConverter[LazyDynamicContainer[_ElementT], Laz
             elements=value
         )
 
-    #def r2d(
-    #    self,
-    #    value: list[_ElementT]
-    #) -> LazyDynamicContainer[_ElementT]:
-    #    return LazyDynamicContainer(
-    #        elements=value
-    #    )
-
-    #def d2r(
-    #    self,
-    #    value: LazyDynamicContainer[_ElementT]
-    #) -> list[_ElementT]:
-    #    return list(value)
-
-    #def c2g(
-    #    self,
-    #    value: LazyDynamicContainer[_ElementT]
-    #) -> LazyDynamicContainer[_ElementT]:
-    #    return value
-
-    #def s2c(
-    #    self,
-    #    value: Iterable[_ElementT]
-    #) -> LazyDynamicContainer[_ElementT]:
-    #    return LazyDynamicContainer(
-    #        elements=value
-    #    )
-
-    #def g2r(
-    #    self,
-    #    value: LazyDynamicContainer[_ElementT]
-    #) -> list[_ElementT]:
-    #    return list(value)
-
-    #def r2s(
-    #    self,
-    #    value: list[_ElementT]
-    #) -> Iterable[_ElementT]:
-    #    return value
-
 
 class LazyExternalConverter(LazyConverter[LazyUnitaryContainer[LazyWrapper[_T]], _T, _T]):
     __slots__ = ()
@@ -1261,46 +1140,6 @@ class LazyExternalConverter(LazyConverter[LazyUnitaryContainer[LazyWrapper[_T]],
             element=LazyWrapper(value)
         )
 
-    #def r2d(
-    #    self,
-    #    value: _T
-    #) -> _T:
-    #    return value
-
-    #def d2r(
-    #    self,
-    #    value: _T
-    #) -> _T:
-    #    return value
-
-    #def c2g(
-    #    self,
-    #    value: LazyUnitaryContainer[LazyWrapper[_T]]
-    #) -> LazyWrapper[_T]:
-    #    return value._element
-
-    #def s2c(
-    #    self,
-    #    value: _T | LazyWrapper[_T]
-    #) -> LazyUnitaryContainer[LazyWrapper[_T]]:
-    #    if not isinstance(value, LazyWrapper):
-    #        value = LazyWrapper(value)
-    #    return LazyUnitaryContainer(
-    #        element=value
-    #    )
-
-    #def g2r(
-    #    self,
-    #    value: LazyWrapper[_T]
-    #) -> _T:
-    #    return value.value
-
-    #def r2s(
-    #    self,
-    #    value: _T
-    #) -> _T | LazyWrapper[_T]:
-    #    return value
-
 
 class LazySharedConverter(LazyExternalConverter[_HT]):
     __slots__ = ("content_to_element_cache",)
@@ -1319,23 +1158,6 @@ class LazySharedConverter(LazyExternalConverter[_HT]):
         return LazyUnitaryContainer(
             element=cached_value
         )
-
-    #def s2c(
-    #    self,
-    #    value: _HT | LazyWrapper[_HT]
-    #) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
-    #    if not isinstance(value, LazyWrapper):
-    #        if (cached_value := self.content_to_element_cache.get(value)) is None:
-    #            cached_value = LazyWrapper(value)
-    #            self.content_to_element_cache[value] = cached_value
-    #        value = cached_value
-    #    return super().s2c(value)
-
-    #def r2s(
-    #    self,
-    #    value: _HT
-    #) -> LazyUnitaryContainer[LazyWrapper[_HT]]:
-    #    return self.s2c(value)
 
 
 class Lazy:
