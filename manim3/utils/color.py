@@ -43,17 +43,3 @@ class ColorUtils:
     ) -> str:
         components = (cls.standardize_color(color) * 255.0).astype(int)
         return "#" + "".join("{:02x}".format(component) for component in components)
-
-    #@classmethod
-    #def standardize_color_input(
-    #    cls,
-    #    color: ColorT | None,
-    #    opacity: float | None
-    #) -> tuple[NP_3f8 | None, float | None]:
-    #    color_component = None
-    #    opacity_component = None
-    #    if color is not None:
-    #        color_component, opacity_component = cls.decompose_color(color)
-    #    if opacity is not None:
-    #        opacity_component = opacity
-    #    return color_component, opacity_component

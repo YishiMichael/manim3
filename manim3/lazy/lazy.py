@@ -1,4 +1,3 @@
-# TODO: The document is expired.
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.

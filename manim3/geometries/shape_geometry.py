@@ -21,9 +21,3 @@ class ShapeGeometry(Geometry):
         self._position_ = position
         self._normal_ = normal
         self._uv_ = points
-        #return GeometryData(
-        #    index=index,
-        #    position=position,
-        #    normal=normal,
-        #    uv=points
-        #)

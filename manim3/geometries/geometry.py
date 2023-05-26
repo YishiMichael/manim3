@@ -17,18 +17,6 @@ from ..rendering.gl_buffer import (
 from ..rendering.vertex_array import IndexedAttributesBuffer
 
 
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class GeometryData:
-#    index: VertexIndexT
-#    position: NP_x3f8
-#    normal: NP_x3f8
-#    uv: NP_x2f8
-
-
 class Geometry(LazyObject):
     __slots__ = ()
 
@@ -51,16 +39,6 @@ class Geometry(LazyObject):
     @classmethod
     def _uv_(cls) -> NP_x2f8:
         return np.zeros((0, 2))
-
-    #@Lazy.variable_external
-    #@classmethod
-    #def _geometry_data_(cls) -> GeometryData:
-    #    return GeometryData(
-    #        index=np.zeros((0,), dtype=np.uint32),
-    #        position=np.zeros((0, 3)),
-    #        normal=np.zeros((0, 3)),
-    #        uv=np.zeros((0, 2))
-    #    )
 
     @Lazy.property
     @classmethod

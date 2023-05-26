@@ -17,7 +17,6 @@ from ..custom_typing import (
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..shape.shape import Shape
-#from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
@@ -124,24 +123,11 @@ class SVGMobject(ShapeMobject):
             shape_mobject.set_style(
                 color=fill.hex if (fill := shape.fill) is not None and fill.hex is not None else ...
             )
-            #(
-            #    fill.hex if (fill := shape.fill) is not None else None,
-            #    shape_mobject
-            #)
             for shape in svg.elements()
             if isinstance(shape, se.Shape) and (
                 shape_mobject := ShapeMobject(self._get_shape_from_se_shape(shape * transform))
             )._has_local_sample_points_
         ))
-        #for hexa, shape_mobjects in IterUtils.categorize(hexa_mobject_pairs):
-        #    if hexa is None:
-        #        continue
-        #    ShapeMobject().add(*shape_mobjects).set_style(color=hexa)
-
-        #self.add(*(
-        #    shape_mobject
-        #    for _, shape_mobject in hexa_mobject_pairs
-        #))
 
     @classmethod
     def _get_transform(

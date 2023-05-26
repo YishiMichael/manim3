@@ -120,14 +120,14 @@ class ChildSceneExample(Scene):
         self.add(
             ChildSceneMobject(child_scene_1)
             .scale(0.5)
-            .shift(LEFT * 1)
+            .shift(LEFT * 3)
         )
         child_scene_2 = TexTransformExample()
         self.prepare(child_scene_2)
         self.add(
             ChildSceneMobject(child_scene_2)
             .scale(0.5)
-            .shift(RIGHT * 1)
+            .shift(RIGHT * 3)
             .shift(OUT * 0.01)
             .set_style(is_transparent=True)
         )
@@ -136,7 +136,7 @@ class ChildSceneExample(Scene):
 
 class LaggedAnimationExample(Scene):
     async def timeline(self) -> None:
-        text = Text("Text").scale(3).set_style(opacity=1.0)
+        text = Text("Text").scale(3)
         await self.play(LaggedParallel(*(
             Parallel(
                 FadeIn(char),
@@ -200,7 +200,7 @@ def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 10
+    #config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True

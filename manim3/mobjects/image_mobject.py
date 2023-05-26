@@ -2,7 +2,6 @@ import numpy as np
 from PIL import Image
 
 from ..config import ConfigSingleton
-#from ..geometries.plane_geometry import PlaneGeometry
 from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,

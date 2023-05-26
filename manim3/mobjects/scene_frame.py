@@ -129,7 +129,7 @@ class SceneFrame(Mobject):
                 opaque_mobjects.append(mobject)
 
         target_framebuffer.framebuffer.clear(
-            color=tuple(map(float, (*self._color_, self._opacity_)))
+            color=tuple(np.append(self._color_, self._opacity_))
         )
         with TextureFactory.depth_texture() as depth_texture:
             with TextureFactory.texture() as color_texture:

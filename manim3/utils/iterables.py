@@ -1,6 +1,5 @@
 import itertools as it
 from typing import (
-    Hashable,
     Iterable,
     Iterator,
     TypeVar

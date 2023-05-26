@@ -36,30 +36,21 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..lazy.lazy import (
     Lazy,
-    #LazyArrayConverter,
     LazyCollectionConverter,
     LazyContainer,
-    #LazyExternalConverter,
-    #LazyIndividualConverter,
     LazyObject,
-    #LazyUnitaryContainer,
     LazyVariableDescriptor
-    #LazyWrapper
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
 from ..shape.line_string import MultiLineString
 from ..shape.shape import Shape
 from ..utils.color import ColorUtils
-#from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
 _MobjectT = TypeVar("_MobjectT", bound="Mobject")
 _ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
 _InstanceT = TypeVar("_InstanceT", bound="LazyObject")
-#_DescriptorGetT = TypeVar("_DescriptorGetT")
-#_DescriptorSetT = TypeVar("_DescriptorSetT")
-#_DescriptorRawT = TypeVar("_DescriptorRawT")
 _DataT = TypeVar("_DataT")
 _DataRawT = TypeVar("_DataRawT")
 _MethodParams = ParamSpec("_MethodParams")
@@ -370,15 +361,6 @@ class MobjectStyleMeta:
                 return None
 
             return cls._get_dst_callback(descriptor, method, src_container)
-            #method_callback = method(descriptor.converter.c2r(src_container))
-
-            #def dst_callback(
-            #    *args: _MethodParams.args,
-            #    **kwargs: _MethodParams.kwargs
-            #) -> _ContainerT:
-            #    return descriptor.converter.r2c(method_callback(*args, **kwargs))
-
-            #return dst_callback
 
         return new_method
 
@@ -393,8 +375,6 @@ class MobjectStyleMeta:
             src_container_0: _ContainerT,
             src_container_1: _ContainerT
         ) -> Callable[_MethodParams, _ContainerT] | None:
-            #src_value_0 = descriptor.converter.c2r(src_container_0)
-            #src_value_1 = descriptor.converter.c2r(src_container_1)
             if src_container_0._match_elements(src_container_1):
                 # Do not make into callback if interpolated variables match.
                 # This is a feature used by compositing animations played on the same mobject
@@ -404,15 +384,6 @@ class MobjectStyleMeta:
                 raise ValueError(f"Uninterpolable variables of `{descriptor.method.__name__}` don't match")
 
             return cls._get_dst_callback(descriptor, method, src_container_0, src_container_1)
-            #method_callback = method(src_value_0, src_value_1)
-
-            #def dst_callback(
-            #    *args: _MethodParams.args,
-            #    **kwargs: _MethodParams.kwargs
-            #) -> _ContainerT:
-            #    return descriptor.converter.r2c(method_callback(*args, **kwargs))
-
-            #return dst_callback
 
         return new_method
 
@@ -454,15 +425,6 @@ class MobjectStyleMeta:
                 raise ValueError(f"Uncatenatable variables of `{descriptor.method.__name__}` don't match")
 
             return cls._get_dst_callback(descriptor, method, *src_containers)
-            #method_callback = method(*src_values)
-
-            #def dst_callback(
-            #    *args: _MethodParams.args,
-            #    **kwargs: _MethodParams.kwargs
-            #) -> _ContainerT:
-            #    return descriptor.converter.r2c(method_callback(*args, **kwargs))
-
-            #return dst_callback
 
         return new_method
 
@@ -489,64 +451,6 @@ class MobjectStyleMeta:
             info.descriptor: info.concatenate_method
             for info in cls._style_descriptor_infos
         })
-
-    #@classmethod
-    #def _set_style(
-    #    cls,
-    #    mobjects: "Iterable[Mobject]",
-    #    style: dict[str, Any]
-    #) -> None:
-    #    for mobject in mobjects:
-    #        for key, value in style.items():
-    #            if (descriptor := type(mobject)._lazy_descriptor_dict.get(key)) is None:
-    #                continue
-    #            if not isinstance(descriptor, LazyVariableDescriptor):
-    #                continue
-    #            descriptor.__set__(mobject, value)
-    #    type_to_mobjects = dict(IterUtils.categorize(
-    #        (type(mobject), mobject)
-    #        for mobject in mobjects
-    #    ))
-    #    for key, value in style.items():
-    #        for descriptor in cls._name_to_descriptors_dict[f"_{key}_"]:
-    #            #if isinstance(value, Mobject):
-    #            #    if descriptor not in type(value)._lazy_variable_descriptors:
-    #            #        continue
-    #            #    style_container = descriptor.get_container(value)
-    #            #else:
-    #            if isinstance(descriptor.converter, LazyIndividualConverter):
-    #                assert isinstance(value, LazyObject)
-    #                style_container = LazyUnitaryContainer(element=value)
-    #            elif isinstance(descriptor.converter, LazyExternalConverter):
-    #                assert not isinstance(value, LazyObject)
-    #                style_container = LazyUnitaryContainer(element=LazyWrapper(value))
-    #            elif isinstance(descriptor.converter, LazyArrayConverter):
-    #                if isinstance(value, int | float):
-    #                    value *= np.ones(())
-    #                assert isinstance(value, np.ndarray)
-    #                style_container = LazyUnitaryContainer(element=LazyWrapper(value.astype(np.float64)))
-    #            else:
-    #                raise TypeError
-    #            for mobject_type, typed_mobjects in type_to_mobjects.items():
-    #                if descriptor not in mobject_type._lazy_variable_descriptors:
-    #                    continue
-    #                for mobject in typed_mobjects:
-    #                    descriptor.set_container(mobject, style_container)
-
-    #@classmethod
-    #def _match_style(
-    #    cls,
-    #    mobjects: "Iterable[Mobject]",
-    #    target: "Mobject",
-    #    style_names: list[str]
-    #) -> None:
-    #    cls._set_style(
-    #        mobjects=mobjects,
-    #        style={
-    #            name: target
-    #            for name in style_names
-    #        }
-    #    )
 
 
 class Mobject(LazyObject):
@@ -1118,13 +1022,6 @@ class Mobject(LazyObject):
 
         if color is not ...:
             color = ColorUtils.standardize_color(color)
-        #style = {
-        #    key: value
-        #    for key, value in {
-        #        "color": color_component,
-        #        "opacity": opacity_component
-        #    }.items() if value is not None
-        #}
         style = {
             f"_{key}_": standardize_input(value)
             for key, value in {
@@ -1158,61 +1055,3 @@ class Mobject(LazyObject):
                     continue
                 descriptor.__set__(mobject, value)
         return self
-
-    # TODO: remove
-    #def match_style(
-    #    self,
-    #    target: "Mobject",
-    #    *,
-
-    #    color: bool = ...,
-    #    opacity: bool = ...,
-    #    model_matrix: bool = ...,
-    #    is_transparent: bool = ...,
-    #    geometry: bool = ...,
-    #    color_map: bool = ...,
-    #    enable_phong_lighting: bool = ...,
-    #    ambient_strength: bool = ...,
-    #    specular_strength: bool = ...,
-    #    shininess: bool = ...,
-    #    shape: bool = ...,
-    #    multi_line_string: bool = ...,
-    #    width: bool = ...,
-    #    single_sided: bool = ...,
-    #    has_linecap: bool = ...,
-    #    dilate: bool = ...,
-
-    #    default: bool = True,
-    #    broadcast: bool = True,
-    #    type_filter: "type[Mobject] | None" = None
-    #):
-    #    style_names = [
-    #        name
-    #        for name, checked in {
-    #            "color": color,
-    #            "opacity": opacity,
-    #            "model_matrix": model_matrix,
-    #            "is_transparent": is_transparent,
-    #            "geometry": geometry,
-    #            "color_map": color_map,
-    #            "enable_phong_lighting": enable_phong_lighting,
-    #            "ambient_strength": ambient_strength,
-    #            "specular_strength": specular_strength,
-    #            "shininess": shininess,
-    #            "shape": shape,
-    #            "multi_line_string": multi_line_string,
-    #            "width": width,
-    #            "single_sided": single_sided,
-    #            "has_linecap": has_linecap,
-    #            "dilate": dilate
-    #        }.items()
-    #        if checked is ... and default or checked is not ... and checked
-    #    ]
-
-    #    if type_filter is None:
-    #        type_filter = Mobject
-    #    MobjectStyleMeta._match_style(
-    #        mobjects=self.iter_descendants_by_type(mobject_type=type_filter, broadcast=broadcast),
-    #        target=target,
-    #        style_names=style_names
-    #    )
