@@ -290,7 +290,7 @@ class Tex(StringMobject):
         *,
         isolate: Iterable[SelectorT] = (),
         protect: Iterable[SelectorT] = (),
-        tex_to_color_map: dict[str, ColorT] = ...,
+        tex_to_color_map: dict[SelectorT, ColorT] = ...,
         use_mathjax: bool = ...,
         preamble: str | None = ...,
         template: str = ...,

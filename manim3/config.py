@@ -47,14 +47,6 @@ class PathConfig:
     ) -> pathlib.Path:
         return self._ensure_directory_exists(self.output_dir.joinpath(dir_name))
 
-    #@property
-    #def tex_dir(self) -> pathlib.Path:
-    #    return self._ensure_directory_exists(self.output_dir.joinpath("_tex"))
-
-    #@property
-    #def text_dir(self) -> pathlib.Path:
-    #    return self._ensure_directory_exists(self.output_dir.joinpath("_text"))
-
 @dataclass(
     kw_only=True,
     slots=True

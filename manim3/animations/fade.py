@@ -16,15 +16,11 @@ class FadeIn(TransformFrom):
         self,
         mobject: Mobject,
         *,
-        bounding_box_mobject: Mobject | None = None,  # TODO
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        start_mobject = mobject.copy().set_style(opacity=0.0)
-        if bounding_box_mobject is not None:
-            start_mobject.match_bounding_box(bounding_box_mobject)
         super().__init__(
-            start_mobject=start_mobject,
+            start_mobject=mobject.copy().set_style(opacity=0.0),
             stop_mobject=mobject,
             run_time=run_time,
             rate_func=rate_func
@@ -42,16 +38,12 @@ class FadeOut(TransformTo):
         self,
         mobject: Mobject,
         *,
-        bounding_box_mobject: Mobject | None = None,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        stop_mobject = mobject.copy().set_style(opacity=0.0)
-        if bounding_box_mobject is not None:
-            stop_mobject.match_bounding_box(bounding_box_mobject)
         super().__init__(
             start_mobject=mobject,
-            stop_mobject=stop_mobject,
+            stop_mobject=mobject.copy().set_style(opacity=0.0),
             run_time=run_time,
             rate_func=rate_func
         )
@@ -62,7 +54,11 @@ class FadeOut(TransformTo):
 
 
 class FadeTransform(Parallel):
-    __slots__ = ()
+    __slots__ = (
+        "_start_mobject",
+        "_stop_mobject",
+        "_intermediate_mobject"
+    )
 
     def __init__(
         self,
@@ -72,9 +68,38 @@ class FadeTransform(Parallel):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
+        intermediate_start_mobject = start_mobject.copy().set_style(
+            is_transparent=True
+        )
+        intermediate_stop_mobject = stop_mobject.copy().set_style(
+            is_transparent=True
+        )
         super().__init__(
-            FadeOut(start_mobject, bounding_box_mobject=stop_mobject),
-            FadeIn(stop_mobject, bounding_box_mobject=start_mobject),
+            TransformTo(
+                start_mobject=intermediate_start_mobject,
+                stop_mobject=intermediate_start_mobject.copy().set_style(
+                    opacity=0.0
+                ).match_bounding_box(stop_mobject)
+            ),
+            TransformFrom(
+                start_mobject=intermediate_stop_mobject.copy().set_style(
+                    opacity=0.0
+                ).match_bounding_box(start_mobject),
+                stop_mobject=intermediate_stop_mobject
+            ),
             run_time=run_time,
             rate_func=rate_func
         )
+        self._start_mobject: Mobject = start_mobject
+        self._stop_mobject: Mobject = stop_mobject
+        self._intermediate_mobject: Mobject = Mobject().add(
+            intermediate_start_mobject,
+            intermediate_stop_mobject
+        )
+
+    async def timeline(self) -> None:
+        self.discard_from_scene(self._start_mobject)
+        self.add_to_scene(self._intermediate_mobject)
+        await super().timeline()
+        self.discard_from_scene(self._intermediate_mobject)
+        self.add_to_scene(self._stop_mobject)

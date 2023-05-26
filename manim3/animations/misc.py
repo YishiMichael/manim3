@@ -28,8 +28,7 @@ _T1 = TypeVar("_T1")
 class TransformMatchingStrings(Parallel):
     __slots__ = (
         "_start_mobject",
-        "_stop_mobject",
-        "_intermediate_mobject"
+        "_stop_mobject"
     )
 
     def __init__(
@@ -137,7 +136,7 @@ class TransformMatchingStrings(Parallel):
         def get_animations(
             shape_match: bool,
             mobject_list_list_tuple: tuple[list[list[ShapeMobject]], ...]
-        ) -> Iterator[tuple[ShapeMobject, Animation]]:
+        ) -> Iterator[Animation]:
 
             def match_elements_evenly(
                 elements_0: list[_T0],
@@ -180,12 +179,12 @@ class TransformMatchingStrings(Parallel):
                     start_mobject_copy = start_mobject.copy()
                     stop_mobject_copy = stop_mobject.copy()
                     if shape_match:
-                        yield start_mobject_copy, FadeTransform(
+                        yield FadeTransform(
                             start_mobject_copy,
                             stop_mobject_copy
                         )
                     else:
-                        yield start_mobject_copy, Transform(
+                        yield Transform(
                             start_mobject_copy.concatenate(),
                             stop_mobject_copy.concatenate()
                         )
@@ -212,7 +211,7 @@ class TransformMatchingStrings(Parallel):
                 parser_1.iter_group_part_items()
             ))
         )
-        start_mobject_iterator, animation_iterator = IterUtils.unzip_pairs(it.chain.from_iterable(
+        animations = it.chain.from_iterable(
             get_animations(shape_match, mobject_list_list_tuple)
             for shape_match, mobject_list_list_tuple in get_animation_items(
                 animation_items=(
@@ -225,20 +224,17 @@ class TransformMatchingStrings(Parallel):
                     parser_1.iter_shape_mobjects()
                 )
             )
-        ))
+        )
 
         super().__init__(
-            *animation_iterator,
+            *animations,
             run_time=run_time,
             rate_func=rate_func
         )
         self._start_mobject: StringMobject = start_mobject
         self._stop_mobject: StringMobject = stop_mobject
-        self._intermediate_mobject: ShapeMobject = ShapeMobject().add(*start_mobject_iterator)
 
     async def timeline(self) -> None:
         self.discard_from_scene(self._start_mobject)
-        self.add_to_scene(self._intermediate_mobject)
         await super().timeline()
-        self.discard_from_scene(self._intermediate_mobject)
         self.add_to_scene(self._stop_mobject)

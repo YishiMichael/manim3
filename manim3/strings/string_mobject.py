@@ -119,24 +119,12 @@ class CommandItem:
         return Span(*self.match_obj.span())
 
 
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class LabelledItem:
-#    label: int
-#    span: Span
-#    attrs: dict[str, str]
-
-
 @dataclass(
     frozen=True,
     kw_only=True,
     slots=True
 )
 class LabelledInsertionItem:
-    #labelled_item: LabelledItem
     label: int
     edge_flag: EdgeFlag
     attrs: dict[str, str]
@@ -145,7 +133,6 @@ class LabelledInsertionItem:
     @property
     def span(self) -> Span:
         index = self.index
-        #index = self.labelled_item.span.get_edge_index(self.edge_flag)
         return Span(index, index)
 
 
@@ -156,30 +143,7 @@ class LabelledInsertionItem:
 )
 class LabelledShapeMobject:
     label: int
-    #span: Span
     shape_mobject: ShapeMobject
-
-
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class ShapeItem:
-#    span: Span
-#    shape_mobject: ShapeMobject
-
-
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class ParsingResult:
-#    labelled_shape_mobjects: list[LabelledShapeMobject]
-#    label_to_span_dict: dict[int, Span]
-#    specified_part_items: list[tuple[str, list[ShapeMobject]]]  # TODO
-#    group_part_items: list[tuple[str, list[ShapeMobject]]]  # TODO
 
 
 class StringFileWriter(ABC):
@@ -279,8 +243,6 @@ class StringParser(ABC):
         )
         labelled_shape_mobjects = list(cls._iter_labelled_shape_mobjects(
             original_pieces=original_pieces,
-            #label_to_span_dict=label_to_span_dict,
-            #string=string,
             replaced_items=replaced_items,
             labels_count=len(label_to_span_dict),
             file_writer=file_writer,
@@ -292,83 +254,6 @@ class StringParser(ABC):
         self._replaced_items: list[CommandItem | LabelledInsertionItem] = replaced_items
         self._original_pieces: list[str] = original_pieces
         self._labelled_shape_mobjects: list[LabelledShapeMobject] = labelled_shape_mobjects
-        #self._parsing_result: ParsingResult = self.parse(
-        #    string=string,
-        #    isolate=isolate,
-        #    protect=protect,
-        #    local_attrs=local_attrs,
-        #    global_attrs=global_attrs,
-        #    file_writer=file_writer,
-        #    frame_scale=frame_scale
-        #)
-
-    #@classmethod
-    #def parse(
-    #    cls,
-    #    string: str,
-    #    isolate: Iterable[SelectorT],
-    #    protect: Iterable[SelectorT],
-    #    local_attrs: dict[SelectorT, dict[str, str]],
-    #    global_attrs: dict[str, str],
-    #    file_writer: StringFileWriter,
-    #    frame_scale: float
-    #) -> ParsingResult:
-    #    label_to_span_dict, replaced_items = cls._get_label_to_span_dict_and_replaced_items(
-    #        string=string,
-    #        isolate=isolate,
-    #        protect=protect,
-    #        local_attrs=local_attrs,
-    #        global_attrs=global_attrs
-    #    )
-    #    replaced_spans = [replaced_item.span for replaced_item in replaced_items]
-    #    original_pieces = [
-    #        string[start:stop]
-    #        for start, stop in zip(
-    #            [interval_span.stop for interval_span in replaced_spans[:-1]],
-    #            [interval_span.start for interval_span in replaced_spans[1:]],
-    #            strict=True
-    #        )
-    #    ]
-
-    #    labelled_shape_mobjects = list(cls.iter_labelled_shape_mobjects(
-    #        original_pieces=original_pieces,
-    #        #label_to_span_dict=label_to_span_dict,
-    #        replaced_items=replaced_items,
-    #        labels_count=len(label_to_span_dict),
-    #        file_writer=file_writer,
-    #        frame_scale=frame_scale
-    #    ))
-
-    #    #label_to_span_dict = {
-    #    #    labelled_item.label: labelled_item.span
-    #    #    for labelled_item in labelled_items
-    #    #}
-    #    #shape_items = cls.get_shape_items(
-    #    #    labelled_shape_items=labelled_shape_items,
-    #    #    label_to_span_dict=label_to_span_dict
-    #    #)
-    #    specified_part_items = list(cls.iter_specified_part_items(
-    #        labelled_shape_mobjects=labelled_shape_mobjects,
-    #        label_to_span_dict=label_to_span_dict,
-    #        string=string
-    #        #shape_items=shape_items,
-    #        #string=string,
-    #        #labelled_items=labelled_items
-    #    ))
-    #    group_part_items = list(cls.iter_group_part_items(
-    #        labelled_shape_mobjects=labelled_shape_mobjects,
-    #        label_to_span_dict=label_to_span_dict,
-    #        original_pieces=original_pieces,
-    #        replaced_items=replaced_items
-    #        #labelled_shape_items=labelled_shape_items,
-    #        #label_to_span_dict=label_to_span_dict
-    #    ))
-    #    return ParsingResult(
-    #        labelled_shape_mobjects=labelled_shape_mobjects,
-    #        label_to_span_dict=label_to_span_dict,
-    #        specified_part_items=specified_part_items,
-    #        group_part_items=group_part_items
-    #    )
 
     @classmethod
     def _iter_spans_by_selector(
@@ -436,11 +321,8 @@ class StringParser(ABC):
             for edge_flag in EdgeFlag
         ), key=get_key)
 
-        #labelled_items: list[LabelledItem] = []
         label_to_span_dict: dict[int, Span] = {}
         replaced_items: list[CommandItem | LabelledInsertionItem] = []
-        #overlapping_spans: list[Span] = []
-        #level_mismatched_spans: list[Span] = []
         label_counter: it.count[int] = it.count(start=1)
         bracket_counter: it.count[int] = it.count()
         protect_level: int = 0
@@ -449,7 +331,6 @@ class StringParser(ABC):
         open_stack: list[tuple[int, ConfiguredItem | IsolatedItem, int, list[int]]] = []
 
         def add_labelled_item(
-            #labelled_item: LabelledItem,
             label: int,
             span: Span,
             attrs: dict[str, str],
@@ -468,15 +349,6 @@ class StringParser(ABC):
                 attrs=attrs,
                 index=span.stop
             ))
-            #labelled_items.append(labelled_item)
-            #replaced_items.insert(pos, LabelledInsertionItem(
-            #    labelled_item=labelled_item,
-            #    edge_flag=EdgeFlag.START
-            #))
-            #replaced_items.append(LabelledInsertionItem(
-            #    labelled_item=labelled_item,
-            #    edge_flag=EdgeFlag.STOP
-            #))
 
         for span_item, edge_flag, _, _ in index_items:
             if isinstance(span_item, ProtectedItem | CommandItem):
@@ -516,16 +388,10 @@ class StringParser(ABC):
             assert open_span_item is span_item, \
                 "Partly overlapping substrings detected: " + \
                 f"'{string[open_span_item.span.as_slice()]}', '{string[span.as_slice()]}'"
-            #if open_span_item is not span_item:
-            #    overlapping_spans.append(span)
-            #    continue
             if open_protect_level or protect_level:
                 continue
             assert open_bracket_stack == bracket_stack, \
                 f"Cannot handle substring: '{string[span.as_slice()]}'"
-            #if open_bracket_stack != bracket_stack:
-            #    level_mismatched_spans.append(span)
-            #    continue
             add_labelled_item(
                 label=next(label_counter),
                 span=span,
@@ -542,34 +408,7 @@ class StringParser(ABC):
         assert not bracket_stack
         assert not open_command_stack
         assert not open_stack
-        #return labelled_items, replaced_items
         return label_to_span_dict, replaced_items
-
-    #@classmethod
-    #def get_replaced_pieces(
-    #    cls,
-    #    replaced_items: list[CommandItem | LabelledInsertionItem],
-    #    is_labelled: bool | None
-    #    #command_replace_func: Callable[[re.Match[str]], str],
-    #    #command_insert_func: Callable[[dict[str, str], EdgeFlag, int], str] | None
-    #) -> list[str]:
-    #    if is_labelled is None:
-    #        return [
-    #            cls._replace_for_matching(replaced_item.match_obj)
-    #            if isinstance(replaced_item, CommandItem)
-    #            else ""
-    #            for replaced_item in replaced_items
-    #        ]
-    #    return [
-    #        cls._replace_for_content(replaced_item.match_obj)
-    #        if isinstance(replaced_item, CommandItem)
-    #        else cls._get_command_string(
-    #            replaced_item.labelled_item.attrs,
-    #            replaced_item.edge_flag,
-    #            replaced_item.labelled_item.label if is_labelled else None
-    #        )
-    #        for replaced_item in replaced_items
-    #    ]
 
     @classmethod
     def _get_original_pieces(
@@ -637,16 +476,11 @@ class StringParser(ABC):
     def _iter_labelled_shape_mobjects(
         cls,
         original_pieces: list[str],
-        #label_to_span_dict: dict[int, Span],
         replaced_items: list[CommandItem | LabelledInsertionItem],
         labels_count: int,
         file_writer: StringFileWriter,
         frame_scale: float
     ) -> Iterator[LabelledShapeMobject]:
-        #original_pieces = cls._get_original_pieces(
-        #    replaced_items=replaced_items,
-        #    string=string
-        #)
 
         def iter_shape_mobjects(
             is_labelled: bool
@@ -667,97 +501,30 @@ class StringParser(ABC):
                 start_index=0,
                 stop_index=len(content_replaced_pieces)
             )
-            #prefix, suffix = tuple(
-            #    cls._get_command_string(
-            #        global_attrs,
-            #        edge_flag=edge_flag,
-            #        label=0 if is_labelled else None
-            #    )
-            #    for edge_flag in (EdgeFlag.START, EdgeFlag.STOP)
-            #)
-            #content = "".join((prefix, body, suffix))
             svg_path = file_writer.get_svg_file(content)
             return SVGMobject(
                 file_path=svg_path,
                 frame_scale=frame_scale
             ).iter_children_by_type(mobject_type=ShapeMobject)
 
-        #labels_count = len(label_to_span_dict)
         plain_shapes_iterator = iter_shape_mobjects(is_labelled=False)
         if labels_count == 1:
             for plain_shape in plain_shapes_iterator:
                 yield LabelledShapeMobject(
                     label=0,
-                    #span=label_to_span_dict[0],
                     shape_mobject=plain_shape
                 )
             return
 
         labelled_shapes_iterator = iter_shape_mobjects(is_labelled=True)
-        #rearranged_labelled_shapes = cls.rearrange_labelled_shapes_by_positions(plain_shapes, labelled_shapes)
-        #unrecognizable_colors: list[str] = []
         for plain_shape, labelled_shape in cls._iter_matched_shape_mobjects(
             list(plain_shapes_iterator), list(labelled_shapes_iterator)
         ):
             label = int(ColorUtils.color_to_hex(labelled_shape._color_)[1:], 16)
             yield LabelledShapeMobject(
                 label=label,
-                #span=label_to_span_dict[label],
                 shape_mobject=plain_shape
             )
-        #assert all(
-        #    labelled_shape_item.label < labels_count
-        #    for labelled_shape_item in labelled_shape_items
-        #)
-        #return labelled_shape_items
-        #for plain_shape, labelled_shape in zip(plain_shapes, rearranged_labelled_shapes, strict=True):
-        #    color_hex = ColorUtils.color_to_hex(labelled_shape._color_.value)
-        #    label = int(color_hex[1:], 16)
-        #    assert label < labels_count
-        #    #if label >= labels_count:
-        #    #    unrecognizable_colors.append(color_hex)
-        #    #    label = 0
-        #    labelled_shape_items.append(LabelledShapeItem(
-        #        label=label,
-        #        shape_mobject=plain_shape
-        #    ))
-
-        #if unrecognizable_colors:
-        #    warnings.warn(
-        #        "Unrecognizable color labels detected ({0}). The result could be unexpected.".format(
-        #            ", ".join(dict.fromkeys(unrecognizable_colors))
-        #        )
-        #    )
-        #return labelled_shape_items
-
-    #@classmethod
-    #def get_shape_items(
-    #    cls,
-    #    labelled_shape_items: list[LabelledShapeItem],
-    #    label_to_span_dict: dict[int, Span]
-    #) -> list[ShapeItem]:
-    #    return [
-    #        ShapeItem(
-    #            span=label_to_span_dict[labelled_shape_item.label],
-    #            shape_mobject=labelled_shape_item.shape_mobject
-    #        )
-    #        for labelled_shape_item in labelled_shape_items
-    #    ]
-
-    #@classmethod
-    #def _iter_specified_part_items(
-    #    cls,
-    #    #shape_items: list[ShapeItem],
-    #    labelled_shape_mobjects: list[LabelledShapeMobject],
-    #    label_to_span_dict: dict[int, Span],
-    #    string: str
-    #    #labelled_items: list[LabelledItem]
-    #) -> Iterator[tuple[str, Iterator[ShapeMobject]]]:
-    #    for labelled_shape_mobject in labelled_shape_mobjects:
-    #        span = label_to_span_dict[labelled_shape_mobject.label]
-    #        yield string[span.as_slice()], cls._iter_shape_mobjects_by_span(
-    #            span, labelled_shape_mobjects, label_to_span_dict
-    #        )
 
     def iter_shape_mobjects(self) -> Iterator[ShapeMobject]:
         for labelled_shape_mobject in self._labelled_shape_mobjects:
@@ -785,7 +552,7 @@ class StringParser(ABC):
 
     def iter_group_part_items(self) -> Iterator[tuple[str, Iterator[ShapeMobject]]]:
 
-        def iter_boundary_insertion_items(
+        def iter_boundary_items(
             label_iterator: Iterator[int],
             label_to_span_dict: dict[int, Span]
         ) -> Iterator[tuple[int, EdgeFlag]]:
@@ -794,11 +561,10 @@ class StringParser(ABC):
             yield (prev_label, EdgeFlag.START)
             for next_label in label_iterator:
                 next_span = label_to_span_dict[next_label]
-                prev_stop_insertion = (prev_label, EdgeFlag.STOP)
-                next_start_insertion = (next_label, EdgeFlag.START)
-                # TODO: check if the order is wrong
-                yield next_start_insertion if next_span in prev_span else prev_stop_insertion
-                yield prev_stop_insertion if prev_span in next_span else next_start_insertion
+                prev_stop = (prev_label, EdgeFlag.STOP)
+                next_start = (next_label, EdgeFlag.START)
+                yield next_start if next_span in prev_span else prev_stop
+                yield prev_stop if prev_span in next_span else next_start
                 prev_label = next_label
                 prev_span = next_span
             yield (prev_label, EdgeFlag.STOP)
@@ -810,14 +576,14 @@ class StringParser(ABC):
             self._labelled_shape_mobjects,
             key=lambda labelled_shape_item: labelled_shape_item.label
         ))
-        labelled_insertion_item_to_index_dict = {
+        boundary_item_to_index_dict = {
             (replaced_item.label, replaced_item.edge_flag): index
             for index, replaced_item in enumerate(self._replaced_items)
             if isinstance(replaced_item, LabelledInsertionItem)
         }
         index_iterator = (
-            labelled_insertion_item_to_index_dict[boundary_insertion_item]
-            for boundary_insertion_item in iter_boundary_insertion_items(
+            boundary_item_to_index_dict[boundary_item]
+            for boundary_item in iter_boundary_items(
                 label_iterator=label_iterator,
                 label_to_span_dict=self._label_to_span_dict
             )
@@ -831,74 +597,16 @@ class StringParser(ABC):
             for replaced_item in self._replaced_items
         ]
         for grouper in grouper_iterator:
+            start_index = next(index_iterator)
+            stop_index = next(index_iterator)
+            if start_index >= stop_index:
+                continue
             yield re.sub(r"\s+", "", cls._replace_string(
                 original_pieces=self._original_pieces,
                 replaced_pieces=matching_replaced_pieces,
-                start_index=next(index_iterator),
-                stop_index=next(index_iterator)
+                start_index=start_index,
+                stop_index=stop_index
             )), (labelled_shape_mobject.shape_mobject for labelled_shape_mobject in grouper)
-
-
-
-
-
-
-        #range_lens, group_labels = zip(*(
-        #    (len(list(grouper)), val)
-        #    for val, grouper in it.groupby(labelled_shape_item.label for labelled_shape_item in labelled_shape_items)
-        #), strict=True)
-        #group_items = [
-        #    (val, len(list(grouper))) for val, grouper in it.groupby(
-        #        labelled_shape_item.label for labelled_shape_item in labelled_shape_items
-        #    )
-        #]
-        #range_lens = [range_len for range_len, _ in group_items]
-        #group_labels = [group_label for _, group_label in group_items]
-        #labelled_insertion_item_to_index_dict = {
-        #    (replaced_item.label, replaced_item.edge_flag): index
-        #    for index, replaced_item in enumerate(replaced_items)
-        #    if isinstance(replaced_item, LabelledInsertionItem)
-        #}
-        #start_items = [
-        #    (group_labels[0], EdgeFlag.START),
-        #    *(
-        #        (curr_label, EdgeFlag.START)
-        #        if label_to_span_dict[curr_label] in label_to_span_dict[prev_label]
-        #        else (prev_label, EdgeFlag.STOP)
-        #        for prev_label, curr_label in it.pairwise(group_labels)
-        #    )
-        #]
-        #stop_items = [
-        #    *(
-        #        (curr_label, EdgeFlag.STOP)
-        #        if label_to_span_dict[curr_label] in label_to_span_dict[next_label]
-        #        else (next_label, EdgeFlag.START)
-        #        for curr_label, next_label in it.pairwise(group_labels)
-        #    ),
-        #    (group_labels[-1], EdgeFlag.STOP)
-        #]
-        #matching_replaced_pieces = [
-        #    cls.replace_for_matching(match_obj=replaced_item.match_obj)
-        #    if isinstance(replaced_item, CommandItem)
-        #    else ""
-        #    for replaced_item in replaced_items
-        #]
-        #group_substrs = [
-        #    re.sub(r"\s+", "", cls._replace_string(
-        #        original_pieces=original_pieces,
-        #        replaced_pieces=matching_replaced_pieces,
-        #        start_index=labelled_insertion_item_to_index_dict[start_item],
-        #        stop_index=labelled_insertion_item_to_index_dict[stop_item]
-        #    ))
-        #    for start_item, stop_item in zip(start_items, stop_items, strict=True)
-        #]
-        #return list(zip(group_substrs, [
-        #    [
-        #        labelled_shape_item.shape_mobject
-        #        for labelled_shape_item in labelled_shape_items[slice(*part_range)]
-        #    ]
-        #    for part_range in it.pairwise((0, *it.accumulate(range_lens)))
-        #], strict=True))
 
     # Implemented in subclasses.
 

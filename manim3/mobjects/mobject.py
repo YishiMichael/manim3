@@ -4,7 +4,6 @@ from abc import (
 )
 from dataclasses import dataclass
 import itertools as it
-#import operator as op
 from typing import (
     Any,
     Callable,
@@ -816,11 +815,6 @@ class Mobject(LazyObject):
         self,
         matrix_callback: Callable[[float], NP_44f8]
     ) -> Callable[[float], None]:
-        # Keep shared model matrices shared during transform.
-        #model_matrix_to_mobjects = dict(IterUtils.categorize(
-        #    (Mobject._model_matrix_.get_container(mobject)._element, mobject)
-        #    for mobject in self.iter_descendants()
-        #))
         mobject_to_model_matrix = {
             mobject: mobject._model_matrix_
             for mobject in self.iter_descendants()
@@ -831,12 +825,6 @@ class Mobject(LazyObject):
         ) -> None:
             for mobject, model_matrix in mobject_to_model_matrix.items():
                 mobject._model_matrix_ = matrix_callback(alpha) @ model_matrix
-            #for model_matrix, mobjects in model_matrix_to_mobjects.items():
-            #    transformed_matrix = LazyWrapper(matrix_callback(alpha) @ model_matrix._value)
-            #    for mobject in mobjects:
-            #        Mobject._model_matrix_.set_container(mobject, LazyUnitaryContainer(
-            #            element=transformed_matrix
-            #        ))
 
         return callback
 

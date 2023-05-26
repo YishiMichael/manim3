@@ -77,7 +77,7 @@ class StrokeMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _width_(cls) -> NP_f8:
-        return 0.04 * np.ones(())  # TODO: check if the auto-scaling remains; config
+        return 0.04 * np.ones(())  # TODO: config
 
     @MobjectStyleMeta.register()
     @Lazy.variable_hashable

@@ -1,18 +1,11 @@
 import numpy as np
+import re
 
 from manim3 import *
 
 
 class ShapeTransformExample(Scene):
     async def timeline(self) -> None:
-        circle = (
-            Circle()
-            .set_style(color=Palette.PINK, opacity=0.9)
-        )
-        circle.add(
-            circle.build_stroke()
-            .set_style(color=Palette.YELLOW, width=0.4)
-        )
         square = (
             Square()
             .set_style(opacity=1.0)
@@ -20,6 +13,14 @@ class ShapeTransformExample(Scene):
         square.add(
             square.build_stroke()
             .set_style(color=Palette.YELLOW, width=0.0)
+        )
+        circle = (
+            Circle()
+            .set_style(color=Palette.PINK, opacity=0.9)
+        )
+        circle.add(
+            circle.build_stroke()
+            .set_style(color=Palette.YELLOW)
         )
 
         self.add(square)
@@ -149,50 +150,24 @@ class LaggedAnimationExample(Scene):
 
 class FormulaExample(Scene):
     async def timeline(self) -> None:
-        explicit_formula = Tex(
-            "\\int_{0}^{\\infty} \\mathrm{e}^{- t}"
-                + " \\left( c_{0} + c_{1} t + c_{2} t^{2} + \\cdots + c_{n} t^{n} \\right) \\mathrm{d} t",
-            isolate=[
-                "\\int_{0}^{\\infty} \\mathrm{e}^{- t}",
-                "\\mathrm{d} t",
-                "c_{0}",
-                "c_{1} t",
-                "c_{2} t^{2}",
-                "c_{n} t^{n}"
-            ],
+        factored_formula = Tex(
+            "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             tex_to_color_map={
-                "\\mathrm{e}": Palette.MAROON_A,
-                "c_{0}": Palette.BLUE,
-                "c_{1}": Palette.BLUE,
-                "c_{2}": Palette.BLUE,
-                "c_{n}": Palette.BLUE
+                re.compile(r"a_{\d}"): Palette.TEAL,
+                re.compile(r"b_{\d}"): Palette.ORANGE
             }
         ).scale(0.7)
         expanded_formula = Tex(
-            "\\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{0} \\mathrm{d} t"
-                + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{1} t \\mathrm{d} t"
-                + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{2} t^{2} \\mathrm{d} t"
-                + " + \\cdots"
-                + " + \\int_{0}^{\\infty} \\mathrm{e}^{- t} c_{n} t^{n} \\mathrm{d} t",
-            isolate=[
-                "\\int_{0}^{\\infty} \\mathrm{e}^{- t}",
-                "\\mathrm{d} t",
-                "c_{0}",
-                "c_{1} t",
-                "c_{2} t^{2}",
-                "c_{n} t^{n}"
-            ],
+            "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
+                + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
             tex_to_color_map={
-                "\\mathrm{e}": Palette.MAROON_A,
-                "c_{0}": Palette.BLUE,
-                "c_{1}": Palette.BLUE,
-                "c_{2}": Palette.BLUE,
-                "c_{n}": Palette.BLUE
+                re.compile(r"a_{\d}"): Palette.TEAL,
+                re.compile(r"b_{\d}"): Palette.ORANGE
             }
         ).scale(0.7)
-        self.add(explicit_formula)
+        self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(explicit_formula, expanded_formula, run_time=5, rate_func=RateUtils.linear))
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula, run_time=5, rate_func=RateUtils.linear))
         await self.wait()
 
 
@@ -200,12 +175,12 @@ def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    #config.rendering.fps = 10
+    config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ChildSceneExample().render(config)
+    FormulaExample().render(config)
 
 
 if __name__ == "__main__":
