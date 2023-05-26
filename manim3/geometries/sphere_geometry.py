@@ -4,7 +4,10 @@ from ..constants import (
     PI,
     TAU
 )
-from ..custom_typing import Vec3T
+from ..custom_typing import (
+    NP_3f8,
+    NP_f8
+)
 from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 
 
@@ -22,9 +25,9 @@ class SphereGeometry(ParametricSurfaceGeometry):
     ) -> None:
 
         def func(
-            theta: float,
-            phi: float
-        ) -> Vec3T:
+            theta: NP_f8,
+            phi: NP_f8
+        ) -> NP_3f8:
             return np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
 
         super().__init__(

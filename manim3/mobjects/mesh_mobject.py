@@ -2,13 +2,11 @@ import moderngl
 import numpy as np
 
 from ..custom_typing import (
-    Vec3T,
-    Vec3sT
+    NP_3f8,
+    NP_f8,
+    NP_x3f8
 )
-from ..geometries.geometry import (
-    Geometry,
-    GeometryData
-)
+from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import MobjectStyleMeta
@@ -39,20 +37,20 @@ class MeshMobject(RenderableMobject):
         return PlaneGeometry()
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_vec3
+        interpolate_method=SpaceUtils.lerp_3f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _color_(cls) -> Vec3T:
-        return np.ones(3)
+    def _color_(cls) -> NP_3f8:
+        return np.ones((3,))
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _opacity_(cls) -> float:
-        return 1.0
+    def _opacity_(cls) -> NP_f8:
+        return np.ones(())
 
     @MobjectStyleMeta.register()
     @Lazy.variable_external
@@ -61,34 +59,34 @@ class MeshMobject(RenderableMobject):
         return None
 
     @MobjectStyleMeta.register()
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _enable_phong_lighting_(cls) -> bool:
         return True
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _ambient_strength_(cls) -> float:
-        return 1.0
+    def _ambient_strength_(cls) -> NP_f8:
+        return np.ones(())
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _specular_strength_(cls) -> float:
-        return 0.5
+    def _specular_strength_(cls) -> NP_f8:
+        return 0.5 * np.ones(())  # TODO: config
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _shininess_(cls) -> float:
-        return 32.0
+    def _shininess_(cls) -> NP_f8:
+        return 32.0 * np.ones(())  # TODO: config
 
     @Lazy.variable
     @classmethod
@@ -96,23 +94,23 @@ class MeshMobject(RenderableMobject):
         # Keep updated with `Scene._lighting._lighting_uniform_block_buffer_`.
         return NotImplemented
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _local_sample_points_(
         cls,
-        geometry__geometry_data: GeometryData
-    ) -> Vec3sT:
-        return geometry__geometry_data.position
+        geometry__position: NP_x3f8
+    ) -> NP_x3f8:
+        return geometry__position
 
     @Lazy.property
     @classmethod
     def _material_uniform_block_buffer_(
         cls,
-        color: Vec3T,
-        opacity: float,
-        ambient_strength: float,
-        specular_strength: float,
-        shininess: float
+        color: NP_3f8,
+        opacity: NP_f8,
+        ambient_strength: NP_f8,
+        specular_strength: NP_f8,
+        shininess: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_material",
@@ -124,9 +122,9 @@ class MeshMobject(RenderableMobject):
             ],
             data={
                 "u_color": np.append(color, opacity),
-                "u_ambient_strength": np.array(ambient_strength),
-                "u_specular_strength": np.array(specular_strength),
-                "u_shininess": np.array(shininess)
+                "u_ambient_strength": ambient_strength,
+                "u_specular_strength": specular_strength,
+                "u_shininess": shininess
             }
         )
 

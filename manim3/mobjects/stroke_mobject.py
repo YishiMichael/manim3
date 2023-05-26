@@ -5,11 +5,12 @@ import numpy as np
 
 from ..constants import PI
 from ..custom_typing import (
-    FloatsT,
-    Vec2sT,
-    Vec3T,
-    Vec3sT,
-    VertexIndexT
+    NP_f8,
+    NP_xf8,
+    NP_x2f8,
+    NP_3f8,
+    NP_x3f8,
+    NP_xu4
 )
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import MobjectStyleMeta
@@ -55,72 +56,72 @@ class StrokeMobject(RenderableMobject):
         return MultiLineString()
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_vec3
+        interpolate_method=SpaceUtils.lerp_3f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _color_(cls) -> Vec3T:
-        return np.ones(3)
+    def _color_(cls) -> NP_3f8:
+        return np.ones((3,))
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _opacity_(cls) -> float:
-        return 1.0
+    def _opacity_(cls) -> NP_f8:
+        return np.ones(())
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _width_(cls) -> float:
-        return 0.04  # TODO: check if the auto-scaling remains
+    def _width_(cls) -> NP_f8:
+        return 0.04 * np.ones(())  # TODO: check if the auto-scaling remains; config
 
     @MobjectStyleMeta.register()
-    @Lazy.variable_external
+    @Lazy.variable_hashable
     @classmethod
     def _single_sided_(cls) -> bool:
         return False
 
     @MobjectStyleMeta.register()
-    @Lazy.variable_external
+    @Lazy.variable_hashable
     @classmethod
     def _has_linecap_(cls) -> bool:
         return True
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _dilate_(cls) -> float:
-        return 0.0
+    def _dilate_(cls) -> NP_f8:
+        return np.zeros(())
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _all_points_(
         cls,
-        multi_line_string__line_strings__points: list[Vec3sT]
-    ) -> Vec3sT:
+        multi_line_string__line_strings__points: list[NP_x3f8]
+    ) -> NP_x3f8:
         if not multi_line_string__line_strings__points:
             return np.zeros((0, 3))
         return np.concatenate(multi_line_string__line_strings__points)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _local_sample_points_(
         cls,
-        all_points: Vec3sT
-    ) -> Vec3sT:
+        all_points: NP_x3f8
+    ) -> NP_x3f8:
         return all_points
 
     @Lazy.property
     @classmethod
     def _stroke_preprocess_vertex_array_(
         cls,
-        all_points: Vec3sT,
+        all_points: NP_x3f8,
         camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer
     ) -> VertexArray:
@@ -152,12 +153,12 @@ class StrokeMobject(RenderableMobject):
             transform_feedback_buffer=transform_feedback_buffer
         )
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _all_position_(
         cls,
         stroke_preprocess_vertex_array: VertexArray
-    ) -> Vec3sT:
+    ) -> NP_x3f8:
         data_dict = stroke_preprocess_vertex_array.transform()
         return data_dict["out_position"]
 
@@ -165,9 +166,9 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _position_list_(
         cls,
-        all_position: Vec3sT,
+        all_position: NP_x3f8,
         multi_line_string__line_strings__points_len: list[int]
-    ) -> list[Vec3sT]:
+    ) -> list[NP_x3f8]:
         stops = np.array(multi_line_string__line_strings__points_len).cumsum()
         starts = np.roll(stops, 1)
         starts[0] = 0
@@ -176,17 +177,17 @@ class StrokeMobject(RenderableMobject):
             for start, stop in zip(starts, stops, strict=True)
         ]
 
-    @Lazy.property_shared
+    @Lazy.property_hashable
     @classmethod
     def _winding_sign_(
         cls,
-        position_list: list[Vec3sT]
+        position_list: list[NP_x3f8]
     ) -> bool:
 
         def get_signed_area(
-            points: Vec2sT
+            points: NP_x2f8
         ) -> float:
-            return np.cross(points, np.roll(points, 1, axis=0)).sum() / 2.0
+            return float(np.cross(points, np.roll(points, 1, axis=0)).sum()) / 2.0
 
         area = sum(
             get_signed_area(SpaceUtils.decrease_dimension(position))
@@ -198,10 +199,10 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _stroke_uniform_block_buffer_(
         cls,
-        color: Vec3T,
-        opacity: float,
-        width: float,
-        dilate: float
+        color: NP_3f8,
+        opacity: NP_f8,
+        width: NP_f8,
+        dilate: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
@@ -212,8 +213,8 @@ class StrokeMobject(RenderableMobject):
             ],
             data={
                 "u_color": np.append(color, opacity),
-                "u_width": np.array(width),
-                "u_dilate": np.array(dilate)
+                "u_width": width,
+                "u_dilate": dilate
             }
         )
 
@@ -237,21 +238,21 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _position_attributes_buffer_(
         cls,
-        position_list: list[Vec3sT],
+        position_list: list[NP_x3f8],
         multi_line_string__line_strings__is_ring: list[bool]
     ) -> AttributesBuffer:
 
         def get_angles(
-            position: Vec3sT,
+            position: NP_x3f8,
             is_ring: bool
-        ) -> tuple[FloatsT, FloatsT]:
+        ) -> tuple[NP_xf8, NP_xf8]:
             assert len(position)
             points = SpaceUtils.decrease_dimension(position)
             if is_ring:
                 tail_vector = points[0] - points[-1]
             else:
-                tail_vector = np.zeros(2)
-            vectors: Vec2sT = np.array((tail_vector, *(points[1:] - points[:-1]), tail_vector))
+                tail_vector = np.zeros((2,))
+            vectors: NP_x2f8 = np.array((tail_vector, *(points[1:] - points[:-1]), tail_vector))
             # Replace zero-length vectors with former or latter ones.
             nonzero_length_indices = SpaceUtils.norm(vectors).nonzero()[0]
             if not len(nonzero_length_indices):
@@ -298,7 +299,6 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _stroke_vertex_arrays_(
         cls,
-        width: float,
         multi_line_string__line_strings__points_len: list[int],
         multi_line_string__line_strings__is_ring: list[bool],
         camera_uniform_block_buffer: UniformBlockBuffer,
@@ -309,12 +309,10 @@ class StrokeMobject(RenderableMobject):
         single_sided: bool,
         has_linecap: bool
     ) -> list[VertexArray]:
-        if np.isclose(width, 0.0):
-            return []
 
         def lump_index_from_getter(
             index_getter: Callable[[int, bool], list[int]]
-        ) -> VertexIndexT:
+        ) -> NP_xu4:
             if not multi_line_string__line_strings__points_len:
                 return np.zeros(0, dtype=np.uint32)
             offsets = np.cumsum((0, *multi_line_string__line_strings__points_len[:-1]))

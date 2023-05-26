@@ -1,9 +1,9 @@
 import numpy as np
 
 from ..custom_typing import (
-    Mat4T,
-    Vec2sT,
-    Vec3sT
+    NP_44f8,
+    NP_x2f8,
+    NP_x3f8
 )
 from ..mobjects.shapes import Polygon
 from ..mobjects.shape_mobject import ShapeMobject
@@ -15,7 +15,7 @@ class Polyhedron(ShapeMobject):
 
     def __init__(
         self,
-        vertices: Vec3sT,
+        vertices: NP_x3f8,
         faces: np.ndarray[tuple[int, int], np.dtype[np.int_]]
     ) -> None:
         super().__init__()
@@ -29,8 +29,8 @@ class Polyhedron(ShapeMobject):
     @classmethod
     def _convert_coplanar_vertices(
         cls,
-        vertices: Vec3sT
-    ) -> tuple[Vec2sT, Mat4T]:
+        vertices: NP_x3f8
+    ) -> tuple[NP_x2f8, NP_44f8]:
         assert len(vertices) >= 3
         # We first choose three points that define the plane.
         # Instead of choosing `vertices[:3]`, we choose `vertices[:2]` and the geometric centroid,

@@ -38,22 +38,11 @@ class ShapeMobject(MeshMobject):
 
     def build_stroke(self) -> StrokeMobject:
         stroke = StrokeMobject()
-        stroke.match_style(
-            self,
-            model_matrix=True,
-            default=False
-        )  # Copy `model_matrix` only.
-        #stroke._model_matrix_ = self._model_matrix_  # TODO
+        #stroke.match_style(
+        #    self,
+        #    model_matrix=True,
+        #    default=False
+        #)  # Copy `model_matrix` only.
+        stroke._model_matrix_ = self._model_matrix_
         stroke._multi_line_string_ = self._shape_._multi_line_string_
         return stroke
-
-    #def add_stroke(
-    #    self,
-    #    **kwargs
-    #):
-    #    self.add(self.build_stroke(**kwargs))
-    #    return self
-
-    #@property
-    #def shape(self) -> Shape:
-    #    return self._shape_

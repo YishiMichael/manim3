@@ -22,7 +22,7 @@ from scipy.spatial.distance import cdist
 from ..config import ConfigSingleton
 from ..custom_typing import (
     SelectorT,
-    Vec3T
+    NP_3f8
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.svg_mobject import SVGMobject
@@ -613,8 +613,8 @@ class StringParser(ABC):
         # change significantly after inserting color commands.
 
         def get_matched_position_indices(
-            positions_0: list[Vec3T],
-            positions_1: list[Vec3T]
+            positions_0: list[NP_3f8],
+            positions_1: list[NP_3f8]
         ) -> tuple[list[int], list[int]]:
             distance_matrix = cdist(positions_0, positions_1)
             return linear_sum_assignment(distance_matrix)
@@ -978,22 +978,11 @@ class StringMobject(SVGMobject):
     def __init__(
         self,
         *,
-        #string: str,
         parser: StringParser
     ) -> None:
         super().__init__()
-        #self._string: str = string
         self._parser: StringParser = parser
         self.add(*parser.iter_shape_mobjects())
-
-    #def _iter_shape_mobject_lists_by_selector(
-    #    self,
-    #    selector: SelectorT
-    #) -> Iterator[list[ShapeMobject]]:
-    #    parser = self._parser
-    #    for span in parser._iter_spans_by_selector(selector, self._string):
-    #        if (shape_mobject_list := parser.get_shape_mobject_list_by_span(span, parser._parsing_result.shape_items)):
-    #            yield shape_mobject_list
 
     def select_parts(
         self,

@@ -3,7 +3,10 @@ import numpy as np
 
 from ..cameras.camera import Camera
 from ..cameras.perspective_camera import PerspectiveCamera
-from ..custom_typing import Vec3T
+from ..custom_typing import (
+    NP_3f8,
+    NP_f8
+)
 from ..lazy.lazy import Lazy
 from ..lighting.ambient_light import AmbientLight
 from ..lighting.lighting import Lighting
@@ -42,20 +45,20 @@ class SceneFrame(Mobject):
         self._lighting_ = Lighting()
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_vec3
+        interpolate_method=SpaceUtils.lerp_3f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _color_(cls) -> Vec3T:
-        return np.zeros(3)
+    def _color_(cls) -> NP_3f8:
+        return np.zeros((3,))
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _opacity_(cls) -> float:
-        return 0.0
+    def _opacity_(cls) -> NP_f8:
+        return np.zeros(())
 
     @Lazy.variable
     @classmethod
@@ -126,7 +129,7 @@ class SceneFrame(Mobject):
                 opaque_mobjects.append(mobject)
 
         target_framebuffer.framebuffer.clear(
-            color=(*self._color_, self._opacity_)
+            color=tuple(map(float, (*self._color_, self._opacity_)))
         )
         with TextureFactory.depth_texture() as depth_texture:
             with TextureFactory.texture() as color_texture:
@@ -163,10 +166,6 @@ class SceneFrame(Mobject):
                 for mobject in transparent_mobjects:
                     mobject._render(transparent_framebuffer)
 
-                #classical_framebuffer = ClassicalFramebuffer(
-                #    color_texture=target_framebuffer.color_texture,
-                #    depth_texture=depth_texture
-                #)
                 self._oit_compose_vertex_array_.render(
                     framebuffer=target_framebuffer,
                     texture_array_dict={

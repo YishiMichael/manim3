@@ -6,8 +6,8 @@ from ..constants import (
     TAU
 )
 from ..custom_typing import (
-    Vec2T,
-    Vec2sT
+    NP_2f8,
+    NP_x2f8
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..shape.shape import Shape
@@ -18,7 +18,7 @@ class Polyline(ShapeMobject):
 
     def __init__(
         self,
-        points: Vec2sT
+        points: NP_x2f8
     ) -> None:
         super().__init__(Shape([(points, False)]))
 
@@ -28,7 +28,7 @@ class Point(Polyline):
 
     def __init__(
         self,
-        point: Vec2T
+        point: NP_2f8
     ) -> None:
         super().__init__(np.array((point,)))
 
@@ -38,8 +38,8 @@ class Line(Polyline):
 
     def __init__(
         self,
-        start_point: Vec2T,
-        stop_point: Vec2T
+        start_point: NP_2f8,
+        stop_point: NP_2f8
     ) -> None:
         super().__init__(np.array((start_point, stop_point)))
 
@@ -69,7 +69,7 @@ class Polygon(ShapeMobject):
 
     def __init__(
         self,
-        points: Vec2sT
+        points: NP_x2f8
     ) -> None:
         super().__init__(Shape([(points, True)]))
 

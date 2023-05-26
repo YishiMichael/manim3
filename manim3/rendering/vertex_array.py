@@ -60,7 +60,7 @@ class IndexedAttributesBuffer(LazyObject):
             data=None
         )
 
-    @Lazy.variable_external
+    @Lazy.variable_hashable
     @classmethod
     def _mode_(cls) -> PrimitiveMode:
         return PrimitiveMode.TRIANGLES
@@ -95,17 +95,17 @@ class Program(LazyObject):
         self._texture_id_buffer_formats_.extend(texture_id_buffer_formats)
         self._varyings_ = varyings
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _shader_filename_(cls) -> str:
         return ""
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
         return ()
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _array_len_items_(cls) -> tuple[tuple[str, int], ...]:
         return ()
@@ -115,7 +115,7 @@ class Program(LazyObject):
     def _texture_id_buffer_formats_(cls) -> list[BufferFormat]:
         return []
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _varyings_(cls) -> tuple[str, ...]:
         return ()
@@ -367,12 +367,12 @@ class VertexArray(LazyObject):
         if transform_feedback_buffer is not None:
             self._transform_feedback_buffer_ = transform_feedback_buffer
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _shader_filename_(cls) -> str:
         return ""
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _custom_macros_(cls) -> tuple[str, ...]:
         return ()
@@ -424,7 +424,7 @@ class VertexArray(LazyObject):
             num_vertex=0
         )
 
-    @Lazy.property_shared
+    @Lazy.property_hashable
     @classmethod
     def _array_len_items_(
         cls,

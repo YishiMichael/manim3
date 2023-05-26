@@ -2,11 +2,11 @@ from typing import Callable
 
 import numpy as np
 
-from ..custom_typing import Vec3T
-from ..geometries.geometry import (
-    Geometry,
-    GeometryData
+from ..custom_typing import (
+    NP_3f8,
+    NP_f8
 )
+from ..geometries.geometry import Geometry
 
 
 # TODO: Refactor with isosurfaces
@@ -16,8 +16,8 @@ class ParametricSurfaceGeometry(Geometry):
     def __init__(
         self,
         *,
-        func: Callable[[float, float], Vec3T],
-        normal_func: Callable[[float, float], Vec3T],
+        func: Callable[[NP_f8, NP_f8], NP_3f8],
+        normal_func: Callable[[NP_f8, NP_f8], NP_3f8],
         u_range: tuple[float, float],
         v_range: tuple[float, float],
         resolution: tuple[int, int] = (128, 128)
@@ -50,9 +50,7 @@ class ParametricSurfaceGeometry(Geometry):
         normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
 
         super().__init__()
-        self._geometry_data_ = GeometryData(
-            index=index,
-            position=position,
-            normal=normal,
-            uv=uv
-        )
+        self._index_ = index
+        self._position_ = position
+        self._normal_ = normal
+        self._uv_ = uv

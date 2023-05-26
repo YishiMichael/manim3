@@ -16,7 +16,7 @@ class RenderableMobject(Mobject):
     __slots__ = ()
 
     @MobjectStyleMeta.register()
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _is_transparent_(cls) -> bool:
         return False
@@ -33,7 +33,3 @@ class RenderableMobject(Mobject):
         target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
     ) -> None:
         pass
-
-    #@property
-    #def is_transparent(self) -> bool:
-    #    return self._is_transparent_

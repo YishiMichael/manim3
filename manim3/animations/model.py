@@ -2,8 +2,8 @@ from typing import Callable
 
 from ..animations.animation import Animation
 from ..custom_typing import (
-    Mat4T,
-    Vec3T
+    NP_44f8,
+    NP_3f8
 )
 from ..mobjects.mobject import (
     AboutABC,
@@ -18,7 +18,7 @@ class ModelFiniteAnimation(Animation):
     def __init__(
         self,
         mobject: Mobject,
-        alpha_to_matrix: Callable[[float], Mat4T],
+        alpha_to_matrix: Callable[[float], NP_44f8],
         *,
         arrive: bool = False,
         run_time: float = 1.0,
@@ -49,7 +49,7 @@ class Shift(ModelFiniteAnimation):
     def __init__(
         self,
         mobject: Mobject,
-        vector: Vec3T,
+        vector: NP_3f8,
         *,
         arrive: bool = False,
         run_time: float = 1.0,
@@ -70,7 +70,7 @@ class Scale(ModelFiniteAnimation):
     def __init__(
         self,
         mobject: Mobject,
-        scale: float | Vec3T,
+        scale: float | NP_3f8,
         about: AboutABC | None = None,
         *,
         arrive: bool = False,
@@ -92,7 +92,7 @@ class Rotate(ModelFiniteAnimation):
     def __init__(
         self,
         mobject: Mobject,
-        rotvec: Vec3T,
+        rotvec: NP_3f8,
         about: AboutABC | None = None,
         *,
         arrive: bool = False,
@@ -114,7 +114,7 @@ class ModelRunningAnimation(Animation):
     def __init__(
         self,
         mobject: Mobject,
-        alpha_to_matrix: Callable[[float], Mat4T],
+        alpha_to_matrix: Callable[[float], NP_44f8],
         *,
         run_time: float | None = None,
         speed: float = 1.0
@@ -136,7 +136,7 @@ class Shifting(ModelRunningAnimation):
     def __init__(
         self,
         mobject: Mobject,
-        vector: Vec3T,
+        vector: NP_3f8,
         *,
         run_time: float | None = None,
         speed: float = 1.0
@@ -155,7 +155,7 @@ class Scaling(ModelRunningAnimation):
     def __init__(
         self,
         mobject: Mobject,
-        factor: float | Vec3T,
+        factor: float | NP_3f8,
         about: AboutABC | None = None,
         *,
         run_time: float | None = None,
@@ -175,7 +175,7 @@ class Rotating(ModelRunningAnimation):
     def __init__(
         self,
         mobject: Mobject,
-        rotvec: Vec3T,
+        rotvec: NP_3f8,
         about: AboutABC | None = None,
         *,
         run_time: float | None = None,

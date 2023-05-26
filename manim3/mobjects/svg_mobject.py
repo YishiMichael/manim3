@@ -11,13 +11,13 @@ from scipy.interpolate import BSpline
 import svgelements as se
 
 from ..custom_typing import (
-    FloatsT,
-    Vec2T,
-    Vec2sT
+    NP_xf8,
+    NP_2f8,
+    NP_x2f8
 )
 from ..mobjects.shape_mobject import ShapeMobject
 from ..shape.shape import Shape
-from ..utils.iterables import IterUtils
+#from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
@@ -26,7 +26,7 @@ class BezierCurve(BSpline):
 
     def __init__(
         self,
-        control_points: Vec2sT
+        control_points: NP_x2f8
     ) -> None:
         degree = len(control_points) - 1
         assert degree >= 0
@@ -41,28 +41,28 @@ class BezierCurve(BSpline):
     def gamma(
         self,
         sample: float
-    ) -> Vec2T: ...
+    ) -> NP_2f8: ...
 
     @overload
     def gamma(
         self,
-        sample: FloatsT
-    ) -> Vec2sT: ...
+        sample: NP_xf8
+    ) -> NP_x2f8: ...
 
     def gamma(
         self,
-        sample: float | FloatsT
-    ) -> Vec2T | Vec2sT:
+        sample: float | NP_xf8
+    ) -> NP_2f8 | NP_x2f8:
         return self.__call__(sample)
 
-    def get_sample_points(self) -> Vec2sT:
+    def get_sample_points(self) -> NP_x2f8:
         # Approximate the bezier curve with a polyline.
 
         def smoothen_samples(
-            gamma: Callable[[FloatsT], Vec2sT],
-            samples: FloatsT,
+            gamma: Callable[[NP_xf8], NP_x2f8],
+            samples: NP_xf8,
             bisect_depth: int
-        ) -> FloatsT:
+        ) -> NP_xf8:
             # Bisect a segment if one of its endpoints has a turning angle above the threshold.
             # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
             if bisect_depth == 4:
@@ -120,30 +120,28 @@ class SVGMobject(ShapeMobject):
         )
 
         # TODO: handle strokes, etc.
-        hexa_mobject_pairs = [
-            (
-                fill.hexa if (fill := shape.fill) is not None else None,
-                shape_mobject
+        self.add(*(
+            shape_mobject.set_style(
+                color=fill.hex if (fill := shape.fill) is not None and fill.hex is not None else ...
             )
+            #(
+            #    fill.hex if (fill := shape.fill) is not None else None,
+            #    shape_mobject
+            #)
             for shape in svg.elements()
             if isinstance(shape, se.Shape) and (
                 shape_mobject := ShapeMobject(self._get_shape_from_se_shape(shape * transform))
             )._has_local_sample_points_
-        ]
-        for hexa, shape_mobjects in IterUtils.categorize(hexa_mobject_pairs):
-            if hexa is None:
-                continue
-            ShapeMobject().add(*shape_mobjects).set_style(color=hexa)
-
-        self.add(*(
-            shape_mobject
-            for _, shape_mobject in hexa_mobject_pairs
-            #for shape in svg.elements()
-            #if isinstance(shape, se.Shape) and (
-            #    # TODO: handle strokes, etc.
-            #    shape_mobject := self._get_mobject_from_se_shape(shape * transform)
-            #)._has_local_sample_points_
         ))
+        #for hexa, shape_mobjects in IterUtils.categorize(hexa_mobject_pairs):
+        #    if hexa is None:
+        #        continue
+        #    ShapeMobject().add(*shape_mobjects).set_style(color=hexa)
+
+        #self.add(*(
+        #    shape_mobject
+        #    for _, shape_mobject in hexa_mobject_pairs
+        #))
 
     @classmethod
     def _get_transform(
@@ -205,10 +203,10 @@ class SVGMobject(ShapeMobject):
 
         def iter_args_from_se_shape(
             se_shape: se.Shape
-        ) -> Iterator[tuple[Vec2sT, bool]]:
+        ) -> Iterator[tuple[NP_x2f8, bool]]:
             se_path = se.Path(se_shape.segments(transformed=True))
             se_path.approximate_arcs_with_cubics()
-            points_list: list[Vec2T] = []
+            points_list: list[NP_2f8] = []
             is_ring: bool = False
             for segment in se_path.segments(transformed=True):
                 match segment:

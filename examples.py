@@ -86,7 +86,7 @@ class ThreeDTextExample(Scene):
             .set_style(geometry=PrismoidGeometry(text._shape_))
             .scale(5.0)
             .scale_to(0.5, alpha=Z_AXIS)
-            .set_style(color="#00FFAA44", is_transparent=True)
+            .set_style(color="#00FFAA", opacity=0.25, is_transparent=True)
         )
         self.add(AmbientLight().set_style(opacity=0.3))
         self.add(PointLight().shift(RIGHT * 5))
@@ -192,7 +192,7 @@ class FormulaExample(Scene):
         ).scale(0.7)
         self.add(explicit_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(explicit_formula, expanded_formula, run_time=5, rate_func=RateUtils.smooth))
+        await self.play(TransformMatchingStrings(explicit_formula, expanded_formula, run_time=5, rate_func=RateUtils.linear))
         await self.wait()
 
 
@@ -200,12 +200,12 @@ def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    #config.rendering.fps = 10
+    config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    LaggedAnimationExample().render(config)
+    ChildSceneExample().render(config)
 
 
 if __name__ == "__main__":

@@ -5,15 +5,15 @@ from typing import (
     Iterator
 )
 
-from mapbox_earcut import triangulate_float32
+from mapbox_earcut import triangulate_float64
 import numpy as np
 import shapely.geometry
 import shapely.validation
 
 from ..custom_typing import (
-    Vec2T,
-    Vec2sT,
-    VertexIndexT
+    NP_2f8,
+    NP_x2f8,
+    NP_xu4
 )
 from ..lazy.lazy import (
     Lazy,
@@ -32,7 +32,7 @@ class Shape(LazyObject):
 
     def __init__(
         self,
-        args_iterable: Iterable[tuple[Vec2sT, bool]] | None = None
+        args_iterable: Iterable[tuple[NP_x2f8, bool]] | None = None
     ) -> None:
         super().__init__()
         if args_iterable is not None:
@@ -81,7 +81,7 @@ class Shape(LazyObject):
         def get_shapely_component(
             line_string: LineString
         ) -> shapely.geometry.base.BaseGeometry:
-            points: Vec2sT = line_string._points_[:, :2]
+            points: NP_x2f8 = line_string._points_[:, :2]
             if len(points) == 1:
                 return shapely.geometry.Point(points[0])
             if len(points) == 2:
@@ -98,7 +98,7 @@ class Shape(LazyObject):
     def _triangulation_(
         cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
-    ) -> tuple[VertexIndexT, Vec2sT]:
+    ) -> tuple[NP_xu4, NP_x2f8]:
 
         def get_shapely_polygons(
             shapely_obj: shapely.geometry.base.BaseGeometry
@@ -116,9 +116,9 @@ class Shape(LazyObject):
 
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
-        ) -> tuple[VertexIndexT, Vec2sT]:
+        ) -> tuple[NP_xu4, NP_x2f8]:
             ring_points_list = [
-                np.array(boundary.coords, dtype=np.float32)
+                np.array(boundary.coords)
                 for boundary in [polygon.exterior, *polygon.interiors]
             ]
             points = np.concatenate(ring_points_list)
@@ -126,11 +126,11 @@ class Shape(LazyObject):
                 return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
 
             ring_ends = np.cumsum([len(ring_points) for ring_points in ring_points_list], dtype=np.uint32)
-            return triangulate_float32(points, ring_ends), points
+            return triangulate_float64(points, ring_ends), points
 
         def concatenate_triangulations(
-            triangulations: Iterable[tuple[VertexIndexT, Vec2sT]]
-        ) -> tuple[VertexIndexT, Vec2sT]:
+            triangulations: Iterable[tuple[NP_xu4, NP_x2f8]]
+        ) -> tuple[NP_xu4, NP_x2f8]:
             index_iterator, points_iterator = IterUtils.unzip_pairs(triangulations)
             points_list = list(points_iterator)
             if not points_list:
@@ -166,7 +166,7 @@ class Shape(LazyObject):
 
         def iter_args_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Iterator[tuple[Vec2sT, bool]]:
+        ) -> Iterator[tuple[NP_x2f8, bool]]:
             match shapely_obj:
                 case shapely.geometry.Point() | shapely.geometry.LineString():
                     yield np.array(shapely_obj.coords), False
@@ -185,7 +185,7 @@ class Shape(LazyObject):
     #def interpolate_point(
     #    self,
     #    alpha: float
-    #) -> Vec2T:
+    #) -> NP_2f8:
     #    return self._multi_line_string_.interpolate_point(alpha)[:2]
 
     @classmethod
@@ -266,7 +266,7 @@ class Shape(LazyObject):
         return self.shapely_obj.length
 
     @property
-    def centroid(self) -> Vec2T:
+    def centroid(self) -> NP_2f8:
         return np.array(self.shapely_obj.centroid)
 
     @property

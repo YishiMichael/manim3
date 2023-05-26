@@ -3,40 +3,33 @@ import itertools as it
 import numpy as np
 
 from ..custom_typing import (
-    Vec2T,
-    Vec2sT,
-    Vec3T,
-    Vec3sT,
-    VertexIndexT
+    NP_2f8,
+    NP_3f8
 )
-from ..geometries.geometry import GeometryData
-from ..geometries.shape_geometry import ShapeGeometry
-from ..lazy.lazy import Lazy
+from ..geometries.geometry import Geometry
+from ..shape.shape import Shape
 from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
 
 
-class PrismoidGeometry(ShapeGeometry):
+class PrismoidGeometry(Geometry):
     __slots__ = ()
 
-    @Lazy.property_external
-    @classmethod
-    def _geometry_data_(
-        cls,
-        shape__multi_line_string__line_strings__points: list[Vec3sT],
-        shape__triangulation: tuple[VertexIndexT, Vec2sT]
-    ) -> GeometryData:
-        position_list: list[Vec3T] = []
-        normal_list: list[Vec3T] = []
-        uv_list: list[Vec2T] = []
+    def __init__(
+        self,
+        shape: Shape
+    ) -> None:
+        position_list: list[NP_3f8] = []
+        normal_list: list[NP_3f8] = []
+        uv_list: list[NP_2f8] = []
         index_list: list[int] = []
         index_offset = 0
-        for line_string_points in shape__multi_line_string__line_strings__points:
-            points = SpaceUtils.decrease_dimension(line_string_points)
+        for line_string in shape._multi_line_string_._line_strings_:
+            points = SpaceUtils.decrease_dimension(line_string._points_)
             # Remove redundant adjacent points to ensure
             # all segments have non-zero lengths.
             # TODO: Shall we normalize winding?
-            points_list: list[Vec2T] = [points[0]]
+            points_list: list[NP_2f8] = [points[0]]
             current_point = points[0]
             for point in points:
                 if np.isclose(SpaceUtils.norm(point - current_point), 0.0):
@@ -49,7 +42,7 @@ class PrismoidGeometry(ShapeGeometry):
                 continue
 
             # Assemble side faces.
-            triplets: list[tuple[int, Vec2T, Vec2T]] = []
+            triplets: list[tuple[int, NP_2f8, NP_2f8]] = []
             rotation_mat = np.array(((0.0, 1.0), (-1.0, 0.0)))
             for ip, (p_prev, p, p_next) in enumerate(zip(
                 np.roll(points_list, 1, axis=0),
@@ -91,7 +84,7 @@ class PrismoidGeometry(ShapeGeometry):
             index_offset += 2 * l
 
         # Assemble top and bottom faces.
-        shape_index, shape_points = shape__triangulation
+        shape_index, shape_points = shape._triangulation_
         for sign in (1.0, -1.0):
             position_list.extend(SpaceUtils.increase_dimension(shape_points, z_value=sign))
             normal_list.extend(SpaceUtils.increase_dimension(np.zeros_like(shape_points), z_value=sign))
@@ -99,9 +92,8 @@ class PrismoidGeometry(ShapeGeometry):
             index_list.extend(index_offset + shape_index)
             index_offset += len(shape_points)
 
-        return GeometryData(
-            index=np.array(index_list),
-            position=np.array(position_list),
-            normal=np.array(normal_list),
-            uv=np.array(uv_list)
-        )
+        super().__init__()
+        self._index_ = np.array(index_list)
+        self._position_ = np.array(position_list)
+        self._normal_ = np.array(normal_list)
+        self._uv_ = np.array(uv_list)

@@ -37,10 +37,7 @@ from .cameras.camera import Camera
 from .cameras.orthographic_camera import OrthographicCamera
 from .cameras.perspective_camera import PerspectiveCamera
 
-from .geometries.geometry import (
-    Geometry,
-    GeometryData
-)
+from .geometries.geometry import Geometry
 from .geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from .geometries.plane_geometry import PlaneGeometry
 from .geometries.prismoid_geometry import PrismoidGeometry
@@ -150,16 +147,17 @@ from .constants import (
 )
 from .custom_typing import (
     ColorT,
-    FloatsT,
-    Mat3T,
-    Mat3sT,
-    Mat4T,
-    Mat4sT,
-    Vec2T,
-    Vec2sT,
-    Vec3T,
-    Vec3sT,
-    Vec4T,
-    Vec4sT
+    NP_2f8,
+    NP_33f8,
+    NP_3f8,
+    NP_44f8,
+    NP_4f8,
+    NP_f8,
+    NP_xf8,
+    NP_x2f8,
+    NP_x33f8,
+    NP_x3f8,
+    NP_x44f8,
+    NP_x4f8
 )
 from .palette import Palette

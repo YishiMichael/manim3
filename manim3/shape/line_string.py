@@ -8,9 +8,10 @@ from typing import (
 import numpy as np
 
 from ..custom_typing import (
-    FloatsT,
-    Vec3T,
-    Vec3sT
+    NP_f8,
+    NP_xf8,
+    NP_3f8,
+    NP_x3f8
 )
 from ..lazy.lazy import (
     Lazy,
@@ -22,28 +23,28 @@ from ..utils.space import SpaceUtils
 class ShapeInterpolant(LazyObject):
     __slots__ = ()
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
-    def _lengths_(cls) -> FloatsT:
+    def _lengths_(cls) -> NP_xf8:
         # Make sure all entries are non-zero to avoid zero divisions
         return np.zeros((0, 1))
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _length_(
         cls,
-        lengths: FloatsT
-    ) -> float:
-        return lengths.sum()
+        lengths: NP_xf8
+    ) -> NP_f8:
+        return np.array(lengths.sum())
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _length_knots_(
         cls,
-        lengths: FloatsT
-    ) -> FloatsT:
+        lengths: NP_xf8
+    ) -> NP_xf8:
         if not len(lengths):
-            return np.ones(1)
+            return np.ones((1,))
         unnormalized_knots = np.insert(lengths.cumsum(), 0, 0.0)
         # Ensure the last entry is always precisely 1.0
         return unnormalized_knots / unnormalized_knots[-1]
@@ -52,7 +53,7 @@ class ShapeInterpolant(LazyObject):
     def _get_residue(
         cls,
         target: float,
-        array: FloatsT,
+        array: NP_xf8,
         index: int
     ) -> float:
         return (target - array[index]) / (array[index + 1] - array[index])
@@ -61,7 +62,7 @@ class ShapeInterpolant(LazyObject):
     def _integer_interpolate(
         cls,
         target: float,
-        array: FloatsT,
+        array: NP_xf8,
         *,
         side: Literal["left", "right"] = "right"
     ) -> tuple[int, float]:
@@ -82,7 +83,7 @@ class ShapeInterpolant(LazyObject):
     @classmethod
     def _zip_knots(
         cls,
-        *knots_lists: FloatsT
+        *knots_lists: NP_xf8
     ) -> tuple[tuple[list[list[float]], ...], list[tuple[tuple[int, float, float], ...]]]:
         all_knots = np.concatenate(knots_lists)
         all_list_indices = np.repeat(np.arange(len(knots_lists)), [
@@ -128,7 +129,7 @@ class LineString(ShapeInterpolant):
 
     def __init__(
         self,
-        points: Vec3sT,
+        points: NP_x3f8,
         *,
         is_ring: bool
     ) -> None:
@@ -137,58 +138,58 @@ class LineString(ShapeInterpolant):
         self._points_ = points
         self._is_ring_ = is_ring
 
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _points_(cls) -> Vec3sT:
+    def _points_(cls) -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable_shared
+    @Lazy.variable_hashable
     @classmethod
     def _is_ring_(cls) -> bool:
         return False
 
-    @Lazy.property_external
+    @Lazy.property_hashable
     @classmethod
     def _points_len_(
         cls,
-        points: Vec3sT
+        points: NP_x3f8
     ) -> int:
         return len(points)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _path_points_(
         cls,
-        points: Vec3sT,
+        points: NP_x3f8,
         is_ring: bool
-    ) -> Vec3sT:
+    ) -> NP_x3f8:
         if not is_ring:
             return points.copy()
         return np.append(points, (points[0],), axis=0)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _lengths_(
         cls,
-        path_points: Vec3sT
-    ) -> FloatsT:
+        path_points: NP_x3f8
+    ) -> NP_xf8:
         return np.maximum(SpaceUtils.norm(path_points[1:] - path_points[:-1]), 1e-6)
 
     @classmethod
     def interpolate_point(
         cls,
         line_string: "LineString"
-    ) -> Callable[[float], Vec3T]:
+    ) -> Callable[[float], NP_3f8]:
         path_points = line_string._path_points_
         length_knots = line_string._length_knots_
 
         def callback(
             alpha: float
-        ) -> Vec3T:
+        ) -> NP_3f8:
             if len(path_points) == 1:
                 return path_points[0]
             index, residue = cls._integer_interpolate(alpha, length_knots)
-            return SpaceUtils.lerp(path_points[index - 1], path_points[index])(residue)
+            return SpaceUtils.lerp_3f8(path_points[index - 1], path_points[index])(residue)
 
         return callback
 
@@ -212,13 +213,13 @@ class LineString(ShapeInterpolant):
                 stop_index, stop_residue = cls._integer_interpolate(stop, length_knots, side="left")
                 if start_index == stop_index and start_residue == stop_residue:
                     new_points = [
-                        SpaceUtils.lerp(path_points[start_index - 1], path_points[start_index])(start_residue)
+                        SpaceUtils.lerp_3f8(path_points[start_index - 1], path_points[start_index])(start_residue)
                     ]
                 else:
                     new_points = [
-                        SpaceUtils.lerp(path_points[start_index - 1], path_points[start_index])(start_residue),
+                        SpaceUtils.lerp_3f8(path_points[start_index - 1], path_points[start_index])(start_residue),
                         *path_points[start_index:stop_index],
-                        SpaceUtils.lerp(path_points[stop_index - 1], path_points[stop_index])(stop_residue)
+                        SpaceUtils.lerp_3f8(path_points[stop_index - 1], path_points[stop_index])(stop_residue)
                     ]
             return LineString(np.array(new_points), is_ring=False)
 
@@ -239,7 +240,7 @@ class LineString(ShapeInterpolant):
         point_interpolate_callback_0 = cls.interpolate_point(line_string_0)
         point_interpolate_callback_1 = cls.interpolate_point(line_string_1)
         point_interpolate_callbacks = [
-            SpaceUtils.lerp(point_interpolate_callback_0(knot), point_interpolate_callback_1(knot))
+            SpaceUtils.lerp_3f8(point_interpolate_callback_0(knot), point_interpolate_callback_1(knot))
             for knot in all_knots
         ]
 
@@ -270,25 +271,25 @@ class MultiLineString(ShapeInterpolant):
     def _line_strings_(cls) -> list[LineString]:
         return []
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _lengths_(
         cls,
-        line_strings__length: list[float]
-    ) -> FloatsT:
+        line_strings__length: list[NP_f8]
+    ) -> NP_xf8:
         return np.maximum(np.array(line_strings__length), 1e-6)
 
     @classmethod
     def interpolate_point(
         cls,
         multi_line_string: "MultiLineString"
-    ) -> Callable[[float], Vec3T]:
+    ) -> Callable[[float], NP_3f8]:
         line_strings = multi_line_string._line_strings_
         length_knots = multi_line_string._length_knots_
 
         def callback(
             alpha: float
-        ) -> Vec3T:
+        ) -> NP_3f8:
             if not line_strings:
                 raise ValueError("Attempting to interpolate an empty MultiLineString")
             index, residue = cls._integer_interpolate(alpha, length_knots)
@@ -353,28 +354,28 @@ class MultiLineString(ShapeInterpolant):
             for (index_0, start_residue_0, stop_residue_0), (index_1, start_residue_1, stop_residue_1) in triplet_tuple_list
         ]
 
-        inlay_interpolate_callbacks: list[Callable[[float], Vec3sT]] = []
+        inlay_interpolate_callbacks: list[Callable[[float], NP_x3f8]] = []
         for index_0, residues in enumerate(residue_list_list_0):
             point_interpolate_callback = LineString.interpolate_point(line_strings_0[index_0])
-            points: Vec3sT = np.array([
+            points: NP_x3f8 = np.array([
                 point_interpolate_callback(residue)
                 for residue in residues
             ])
             if len(points) == 2:
                 continue
-            points_center: Vec3T = np.average(points, axis=0)
-            inlay_interpolate_callbacks.append(SpaceUtils.lerp(points, points_center))
+            points_center: NP_x3f8 = np.average(points, axis=0, keepdims=True)
+            inlay_interpolate_callbacks.append(SpaceUtils.lerp_x3f8(points, points_center))
 
         for index_1, residues in enumerate(residue_list_list_1):
             point_interpolate_callback = LineString.interpolate_point(line_strings_1[index_1])
-            points: Vec3sT = np.array([
+            points: NP_x3f8 = np.array([
                 point_interpolate_callback(residue)
                 for residue in residues
             ])
             if len(points) == 2:
                 continue
-            points_center: Vec3T = np.average(points, axis=0)
-            inlay_interpolate_callbacks.append(SpaceUtils.lerp(points_center, points))
+            points_center: NP_x3f8 = np.average(points, axis=0, keepdims=True)
+            inlay_interpolate_callbacks.append(SpaceUtils.lerp_x3f8(points_center, points))
 
         def callback(
             alpha: float

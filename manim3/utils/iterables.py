@@ -7,7 +7,6 @@ from typing import (
 )
 
 
-_K = TypeVar("_K", bound=Hashable)
 _T = TypeVar("_T")
 _T0 = TypeVar("_T0")
 _T1 = TypeVar("_T1")
@@ -42,13 +41,3 @@ class IterUtils:
             (item_1 for _, item_1, _ in iterator_1),
             (item_2 for _, _, item_2 in iterator_2)
         )
-
-    @classmethod
-    def categorize(
-        cls,
-        iterable: Iterable[tuple[_K, _T]]
-    ) -> Iterator[tuple[_K, list[_T]]]:
-        categories: dict[_K, list[_T]] = {}
-        for key, value in iterable:
-            categories.setdefault(key, []).append(value)
-        yield from categories.items()

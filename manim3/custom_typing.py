@@ -5,25 +5,26 @@ from typing import Literal
 import numpy as np
 
 
-_ND = int
+_XD = int
 _2D = Literal[2]
 _3D = Literal[3]
 _4D = Literal[4]
 
-Vec2T = np.ndarray[tuple[_2D], np.dtype[np.float_]]
-Vec3T = np.ndarray[tuple[_3D], np.dtype[np.float_]]
-Vec4T = np.ndarray[tuple[_4D], np.dtype[np.float_]]
-Mat3T = np.ndarray[tuple[_3D, _3D], np.dtype[np.float_]]
-Mat4T = np.ndarray[tuple[_4D, _4D], np.dtype[np.float_]]
+NP_f8 = np.ndarray[tuple[()], np.dtype[np.float64]]
+NP_2f8 = np.ndarray[tuple[_2D], np.dtype[np.float64]]
+NP_3f8 = np.ndarray[tuple[_3D], np.dtype[np.float64]]
+NP_4f8 = np.ndarray[tuple[_4D], np.dtype[np.float64]]
+NP_33f8 = np.ndarray[tuple[_3D, _3D], np.dtype[np.float64]]
+NP_44f8 = np.ndarray[tuple[_4D, _4D], np.dtype[np.float64]]
 
-FloatsT = np.ndarray[tuple[_ND], np.dtype[np.float_]]
-Vec2sT = np.ndarray[tuple[_ND, _2D], np.dtype[np.float_]]
-Vec3sT = np.ndarray[tuple[_ND, _3D], np.dtype[np.float_]]
-Vec4sT = np.ndarray[tuple[_ND, _4D], np.dtype[np.float_]]
-Mat3sT = np.ndarray[tuple[_ND, _3D, _3D], np.dtype[np.float_]]
-Mat4sT = np.ndarray[tuple[_ND, _4D, _4D], np.dtype[np.float_]]
+NP_xf8 = np.ndarray[tuple[_XD], np.dtype[np.float64]]
+NP_x2f8 = np.ndarray[tuple[_XD, _2D], np.dtype[np.float64]]
+NP_x3f8 = np.ndarray[tuple[_XD, _3D], np.dtype[np.float64]]
+NP_x4f8 = np.ndarray[tuple[_XD, _4D], np.dtype[np.float64]]
+NP_x33f8 = np.ndarray[tuple[_XD, _3D, _3D], np.dtype[np.float64]]
+NP_x44f8 = np.ndarray[tuple[_XD, _4D, _4D], np.dtype[np.float64]]
 
-VertexIndexT = np.ndarray[tuple[_ND], np.dtype[np.uint]]
+NP_xu4 = np.ndarray[tuple[_XD], np.dtype[np.uint32]]
 
-ColorT = Color | str | Vec3T
+ColorT = Color | str | NP_3f8
 SelectorT = str | re.Pattern[str]

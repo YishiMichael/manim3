@@ -1,3 +1,4 @@
+# TODO: The document is expired.
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.
@@ -30,7 +31,8 @@ following table.
 | OBJECT     | LazyObjectT       | LazyObjectT                         | LazyUnitaryContainer[LazyObjectT]            |
 | COLLECTION | list[LazyObjectT] | LazyDynamicContainer[LazyObjectT] * | LazyDynamicContainer[LazyObjectT]            |
 | EXTERNAL   | T                 | T                                   | LazyUnitaryContainer[LazyWrapper[T]]         |
-| SHARED     | HashableT         | HashableT                           | LazyUnitaryContainer[LazyWrapper[HashableT]] |
+| HASHABLE   | HashableT         | HashableT                           | LazyUnitaryContainer[LazyWrapper[HashableT]] |
+| ARRAY      | NDArrayT          | NDArrayT                            | LazyUnitaryContainer[LazyWrapper[NDArrayT]]  |
 +------------+-------------------+-------------------------------------+----------------------------------------------+
 *: `__set__` not allowed.
 
@@ -55,9 +57,7 @@ in `EXTERNAL` mode, in which case a new `LazyWrapper` object will be instanced
 and assigned specially to the instance. `LazyWrapper` is derived from
 `LazyObject`, which is just responsible for bringing a value into the lazy
 scope. One may picture a lazy object as a tree (it's a DAG actually), where
-`LazyWrapper`s sit on all leaves. This class is just for internal usage,
-except for cases where one wants to share values in `EXTERNAL` mode and has
-to hack into deeper implementation.
+`LazyWrapper`s sit on all leaves. This class is just for internal usage.
 
 Notice that what `__get__` method returns is always a valid input of
 `__set__`. This ensures the statement `a._data_ = b._data_` is always valid.
@@ -137,6 +137,8 @@ from typing import (
 )
 import weakref
 
+import numpy as np
+
 from ..utils.iterables import IterUtils
 
 
@@ -144,6 +146,7 @@ _T = TypeVar("_T")
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 _HT = TypeVar("_HT", bound=Hashable)
+_NPT = TypeVar("_NPT", bound=np.ndarray)
 _TreeNodeContentT = TypeVar("_TreeNodeContentT", bound=Hashable)
 _ElementT = TypeVar("_ElementT", bound="LazyObject")
 _SlotT = TypeVar("_SlotT", bound="LazySlot")
@@ -906,7 +909,7 @@ class LazyObject(ABC):
             if overridden_descriptor is not None:
                 # Only `LazyPropertyDescriptor` can override other `LazyDescriptor`s.
                 assert isinstance(descriptor, LazyPropertyDescriptor)
-                assert type(converter) == type(overridden_descriptor.converter), descriptor.method.__name__
+                assert type(converter) == type(overridden_descriptor.converter)
                 assert issubclass(element_type, overridden_descriptor.element_type)
                 assert return_annotation == overridden_descriptor.return_annotation or \
                     issubclass(return_annotation, overridden_descriptor.return_annotation)
@@ -1141,7 +1144,7 @@ class LazyExternalConverter(LazyConverter[LazyUnitaryContainer[LazyWrapper[_T]],
         )
 
 
-class LazySharedConverter(LazyExternalConverter[_HT]):
+class LazyHashableConverter(LazyExternalConverter[_HT]):
     __slots__ = ("content_to_element_cache",)
 
     def __init__(self) -> None:
@@ -1155,6 +1158,26 @@ class LazySharedConverter(LazyExternalConverter[_HT]):
         if (cached_value := self.content_to_element_cache.get(value)) is None:
             cached_value = LazyWrapper(value)
             self.content_to_element_cache[value] = cached_value
+        return LazyUnitaryContainer(
+            element=cached_value
+        )
+
+
+class LazyArrayConverter(LazyExternalConverter[_NPT]):
+    __slots__ = ("bytes_to_element_cache",)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.bytes_to_element_cache: Cache[bytes, LazyWrapper[_NPT]] = Cache()
+
+    def r2c(
+        self,
+        value: _NPT
+    ) -> LazyUnitaryContainer[LazyWrapper[_NPT]]:
+        key = value.tobytes()
+        if (cached_value := self.bytes_to_element_cache.get(key)) is None:
+            cached_value = LazyWrapper(value)
+            self.bytes_to_element_cache[key] = cached_value
         return LazyUnitaryContainer(
             element=cached_value
         )
@@ -1203,7 +1226,7 @@ class Lazy:
         )
 
     @classmethod
-    def variable_shared(
+    def variable_hashable(
         cls,
         method: Callable[[type[_InstanceT]], _HT]
     ) -> LazyVariableDescriptor[
@@ -1211,7 +1234,19 @@ class Lazy:
     ]:
         return LazyVariableDescriptor(
             method.__func__,
-            LazySharedConverter
+            LazyHashableConverter
+        )
+
+    @classmethod
+    def variable_array(
+        cls,
+        method: Callable[[type[_InstanceT]], _NPT]
+    ) -> LazyVariableDescriptor[
+        _InstanceT, LazyUnitaryContainer[LazyWrapper[_NPT]], _NPT, _NPT
+    ]:
+        return LazyVariableDescriptor(
+            method.__func__,
+            LazyArrayConverter
         )
 
     @classmethod
@@ -1251,7 +1286,7 @@ class Lazy:
         )
 
     @classmethod
-    def property_shared(
+    def property_hashable(
         cls,
         method: Callable[Concatenate[type[_InstanceT], _Parameters], _HT]
     ) -> LazyPropertyDescriptor[
@@ -1259,5 +1294,17 @@ class Lazy:
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
-            LazySharedConverter
+            LazyHashableConverter
+        )
+
+    @classmethod
+    def property_array(
+        cls,
+        method: Callable[Concatenate[type[_InstanceT], _Parameters], _NPT]
+    ) -> LazyPropertyDescriptor[
+        _InstanceT, LazyUnitaryContainer[LazyWrapper[_NPT]], _NPT, _NPT
+    ]:
+        return LazyPropertyDescriptor(
+            method.__func__,
+            LazyArrayConverter
         )

@@ -8,10 +8,11 @@ from ..constants import (
     UP
 )
 from ..custom_typing import (
-    Mat4T,
-    Vec2T,
-    Vec3T,
-    Vec3sT
+    NP_44f8,
+    NP_2f8,
+    NP_3f8,
+    NP_f8,
+    NP_x3f8
 )
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import Mobject
@@ -35,88 +36,88 @@ class Camera(Mobject):
             ConfigSingleton().camera.altitude
         ))
 
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _near_(cls) -> float:
-        return ConfigSingleton().camera.near
+    def _near_(cls) -> NP_f8:
+        return ConfigSingleton().camera.near * np.ones(())
 
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _far_(cls) -> float:
-        return ConfigSingleton().camera.far
+    def _far_(cls) -> NP_f8:
+        return ConfigSingleton().camera.far * np.ones(())
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
-    def _projection_matrix_(cls) -> Mat4T:
+    def _projection_matrix_(cls) -> NP_44f8:
         # Implemented in subclasses.
         return np.identity(4)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
-    def _local_sample_points_(cls) -> Vec3sT:
+    def _local_sample_points_(cls) -> NP_x3f8:
         return np.array((OUT,))
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _target_(
         cls,
-        model_matrix: Mat4T
-    ) -> Vec3T:
+        model_matrix: NP_44f8
+    ) -> NP_3f8:
         return SpaceUtils.apply_affine(model_matrix, ORIGIN)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _eye_(
         cls,
-        model_matrix: Mat4T
-    ) -> Vec3T:
+        model_matrix: NP_44f8
+    ) -> NP_3f8:
         return SpaceUtils.apply_affine(model_matrix, OUT)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _frame_radii_(
         cls,
-        model_matrix: Mat4T,
-        target: Vec3T
-    ) -> Vec2T:
+        model_matrix: NP_44f8,
+        target: NP_3f8
+    ) -> NP_2f8:
         return np.array((
             SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, RIGHT) - target),
             SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, UP) - target)
         ))
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _altitude_(
         cls,
-        eye: Vec3T,
-        target: Vec3T
-    ) -> float:
+        eye: NP_3f8,
+        target: NP_3f8
+    ) -> NP_f8:
         return SpaceUtils.norm(eye - target)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _view_matrix_(
         cls,
-        eye: Vec3T
-    ) -> Mat4T:
+        eye: NP_3f8
+    ) -> NP_44f8:
         return SpaceUtils.matrix_from_translation(-eye)
 
-    @Lazy.property_external
+    @Lazy.property_array
     @classmethod
     def _projection_view_matrix_(
         cls,
-        projection_matrix: Mat4T,
-        view_matrix: Mat4T
-    ) -> Mat4T:
+        projection_matrix: NP_44f8,
+        view_matrix: NP_44f8
+    ) -> NP_44f8:
         return projection_matrix @ view_matrix
 
     @Lazy.property
     @classmethod
     def _camera_uniform_block_buffer_(
         cls,
-        projection_view_matrix: Mat4T,
-        eye: Vec3T,
-        frame_radii: Vec2T
+        projection_view_matrix: NP_44f8,
+        eye: NP_3f8,
+        frame_radii: NP_2f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_camera",

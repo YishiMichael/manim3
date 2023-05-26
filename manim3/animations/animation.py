@@ -270,7 +270,8 @@ class Animation(ABC):
 
     async def wait_forever(self) -> None:
         # Used for infinite animation.
-        await self.wait(600)
+        while True:
+            await self.wait()
 
     @abstractmethod
     async def timeline(self) -> None:
@@ -461,8 +462,8 @@ class Scene(Animation):
     def set_background(
         self,
         *,
-        color: ColorT | None = None,
-        opacity: float | None = None
+        color: ColorT = ...,
+        opacity: float = ...
     ):
         self._scene_frame.set_style(
             color=color,

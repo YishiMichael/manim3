@@ -1,6 +1,9 @@
 import numpy as np
 
-from ..custom_typing import Vec3T
+from ..custom_typing import (
+    NP_3f8,
+    NP_f8
+)
 from ..lazy.lazy import Lazy
 from ..mobjects.mobject import (
     Mobject,
@@ -13,17 +16,17 @@ class AmbientLight(Mobject):
     __slots__ = ()
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_vec3
+        interpolate_method=SpaceUtils.lerp_3f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _color_(cls) -> Vec3T:
-        return np.ones(3)
+    def _color_(cls) -> NP_3f8:
+        return np.ones((3,))
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_float
+        interpolate_method=SpaceUtils.lerp_f8
     )
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _opacity_(cls) -> float:
-        return 1.0
+    def _opacity_(cls) -> NP_f8:
+        return np.ones(())

@@ -361,7 +361,7 @@ class Text(StringMobject):
             "font_family": font,
             "font_style": slant,
             "font_weight": weight,
-            "foreground": ColorUtils.color_to_hex(base_color, include_alpha=True),
+            "foreground": ColorUtils.color_to_hex(base_color),
             "line_height": str(1.0 + line_spacing_height)
         }
         global_attrs.update(global_config)

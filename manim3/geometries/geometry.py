@@ -1,11 +1,9 @@
-from dataclasses import dataclass
-
 import numpy as np
 
 from ..custom_typing import (
-    Vec2sT,
-    Vec3sT,
-    VertexIndexT
+    NP_x2f8,
+    NP_x3f8,
+    NP_xu4
 )
 from ..lazy.lazy import (
     Lazy,
@@ -19,36 +17,59 @@ from ..rendering.gl_buffer import (
 from ..rendering.vertex_array import IndexedAttributesBuffer
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class GeometryData:
-    index: VertexIndexT
-    position: Vec3sT
-    normal: Vec3sT
-    uv: Vec2sT
+#@dataclass(
+#    frozen=True,
+#    kw_only=True,
+#    slots=True
+#)
+#class GeometryData:
+#    index: VertexIndexT
+#    position: NP_x3f8
+#    normal: NP_x3f8
+#    uv: NP_x2f8
 
 
 class Geometry(LazyObject):
     __slots__ = ()
 
-    @Lazy.variable_external
+    @Lazy.variable_array
     @classmethod
-    def _geometry_data_(cls) -> GeometryData:
-        return GeometryData(
-            index=np.zeros((0,), dtype=np.uint32),
-            position=np.zeros((0, 3)),
-            normal=np.zeros((0, 3)),
-            uv=np.zeros((0, 2))
-        )
+    def _index_(cls) -> NP_xu4:
+        return np.zeros((0,), dtype=np.uint32)
+
+    @Lazy.variable_array
+    @classmethod
+    def _position_(cls) -> NP_x3f8:
+        return np.zeros((0, 3))
+
+    @Lazy.variable_array
+    @classmethod
+    def _normal_(cls) -> NP_x3f8:
+        return np.zeros((0, 3))
+
+    @Lazy.variable_array
+    @classmethod
+    def _uv_(cls) -> NP_x2f8:
+        return np.zeros((0, 2))
+
+    #@Lazy.variable_external
+    #@classmethod
+    #def _geometry_data_(cls) -> GeometryData:
+    #    return GeometryData(
+    #        index=np.zeros((0,), dtype=np.uint32),
+    #        position=np.zeros((0, 3)),
+    #        normal=np.zeros((0, 3)),
+    #        uv=np.zeros((0, 2))
+    #    )
 
     @Lazy.property
     @classmethod
     def _indexed_attributes_buffer_(
         cls,
-        geometry_data: GeometryData
+        position: NP_x3f8,
+        normal: NP_x3f8,
+        uv: NP_x2f8,
+        index: NP_xu4
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
@@ -57,15 +78,15 @@ class Geometry(LazyObject):
                     "vec3 in_normal",
                     "vec2 in_uv"
                 ],
-                num_vertex=len(geometry_data.position),
+                num_vertex=len(position),
                 data={
-                    "in_position": geometry_data.position,
-                    "in_normal": geometry_data.normal,
-                    "in_uv": geometry_data.uv
+                    "in_position": position,
+                    "in_normal": normal,
+                    "in_uv": uv
                 }
             ),
             index_buffer=IndexBuffer(
-                data=geometry_data.index
+                data=index
             ),
             mode=PrimitiveMode.TRIANGLES
         )

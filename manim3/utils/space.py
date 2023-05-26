@@ -9,15 +9,16 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from ..custom_typing import (
-    FloatsT,
-    Mat3T,
-    Mat4T,
-    Vec2T,
-    Vec2sT,
-    Vec3T,
-    Vec3sT,
-    Vec4T,
-    Vec4sT
+    NP_f8,
+    NP_xf8,
+    NP_33f8,
+    NP_44f8,
+    NP_2f8,
+    NP_x2f8,
+    NP_3f8,
+    NP_x3f8,
+    NP_4f8,
+    NP_x4f8
 )
 
 
@@ -31,346 +32,376 @@ class SpaceUtils:
     @classmethod
     def norm(
         cls,
-        vector: Vec2T | Vec3T | Vec4T
-    ) -> float: ...
+        vector: NP_2f8 | NP_3f8 | NP_4f8
+    ) -> NP_f8: ...
 
     @overload
     @classmethod
     def norm(
         cls,
-        vector: Vec2sT | Vec3sT | Vec4sT
-    ) -> FloatsT: ...
+        vector: NP_x2f8 | NP_x3f8 | NP_x4f8
+    ) -> NP_xf8: ...
 
     @classmethod
     def norm(
         cls,
-        vector: Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT
-    ) -> float | FloatsT:
-        if vector.ndim == 1:
-            return float(np.linalg.norm(vector))
-        return np.linalg.norm(vector, axis=1)
+        vector: NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8
+    ) -> NP_f8 | NP_xf8:
+        #if vector.ndim == 1:
+        return np.array(np.linalg.norm(vector, axis=-1))
+        #return np.linalg.norm(vector, axis=1)
 
     @overload
     @classmethod
     def normalize(
         cls,
-        vector: Vec2T
-    ) -> Vec2T: ...
+        vector: NP_2f8
+    ) -> NP_2f8: ...
 
     @overload
     @classmethod
     def normalize(
         cls,
-        vector: Vec3T
-    ) -> Vec3T: ...
+        vector: NP_3f8
+    ) -> NP_3f8: ...
 
     @overload
     @classmethod
     def normalize(
         cls,
-        vector: Vec4T
-    ) -> Vec4T: ...
+        vector: NP_4f8
+    ) -> NP_4f8: ...
 
     @overload
     @classmethod
     def normalize(
         cls,
-        vector: Vec2sT
-    ) -> Vec2sT: ...
+        vector: NP_x2f8
+    ) -> NP_x2f8: ...
 
     @overload
     @classmethod
     def normalize(
         cls,
-        vector: Vec3sT
-    ) -> Vec3sT: ...
+        vector: NP_x3f8
+    ) -> NP_x3f8: ...
 
     @overload
     @classmethod
     def normalize(
         cls,
-        vector: Vec4sT
-    ) -> Vec4sT: ...
+        vector: NP_x4f8
+    ) -> NP_x4f8: ...
 
     @classmethod
     def normalize(
         cls,
-        vector: Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT
-    ) -> Vec2T | Vec3T | Vec4T | Vec2sT | Vec3sT | Vec4sT:
+        vector: NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8
+    ) -> NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8:
         if vector.ndim == 1:
             return vector / np.linalg.norm(vector)
         return vector / np.linalg.norm(vector, axis=1)[:, None]
 
-    @overload
     @classmethod
-    def lerp(
+    def _lerp(
         cls,
-        tensor_0: float,
-        tensor_1: float
-    ) -> Callable[[float], float]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: Vec2T
-    ) -> Callable[[float | Vec2T], Vec2T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec2T,
-        tensor_1: float
-    ) -> Callable[[float | Vec2T], Vec2T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec2T,
-        tensor_1: Vec2T
-    ) -> Callable[[float | Vec2T], Vec2T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: Vec3T
-    ) -> Callable[[float | Vec3T], Vec3T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec3T,
-        tensor_1: float
-    ) -> Callable[[float | Vec3T], Vec3T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec3T,
-        tensor_1: Vec3T
-    ) -> Callable[[float | Vec3T], Vec3T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: Vec4T
-    ) -> Callable[[float | Vec4T], Vec4T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec4T,
-        tensor_1: float
-    ) -> Callable[[float | Vec4T], Vec4T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec4T,
-        tensor_1: Vec4T
-    ) -> Callable[[float | Vec4T], Vec4T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: Mat3T
-    ) -> Callable[[float | Mat3T], Mat3T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Mat3T,
-        tensor_1: float
-    ) -> Callable[[float | Mat3T], Mat3T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Mat3T,
-        tensor_1: Mat3T
-    ) -> Callable[[float | Mat3T], Mat3T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: Mat4T
-    ) -> Callable[[float | Mat4T], Mat4T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Mat4T,
-        tensor_1: float
-    ) -> Callable[[float | Mat4T], Mat4T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Mat4T,
-        tensor_1: Mat4T
-    ) -> Callable[[float | Mat4T], Mat4T]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float,
-        tensor_1: FloatsT
-    ) -> Callable[[float], FloatsT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: FloatsT,
-        tensor_1: float
-    ) -> Callable[[float], FloatsT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float | Vec2T,
-        tensor_1: Vec2sT
-    ) -> Callable[[float | Vec2T], Vec2sT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec2sT,
-        tensor_1: float | Vec2T
-    ) -> Callable[[float | Vec2T], Vec2sT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float | Vec3T,
-        tensor_1: Vec3sT
-    ) -> Callable[[float | Vec3T], Vec3sT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec3sT,
-        tensor_1: float | Vec3T
-    ) -> Callable[[float | Vec3T], Vec3sT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: float | Vec4T,
-        tensor_1: Vec4sT
-    ) -> Callable[[float | Vec4T], Vec4sT]: ...
-
-    @overload
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Vec4sT,
-        tensor_1: float | Vec4T
-    ) -> Callable[[float | Vec4T], Vec4sT]: ...
-
-    @classmethod
-    def lerp(
-        cls,
-        tensor_0: Any,
-        tensor_1: Any
-    ) -> Callable[[Any], Any]:
+        tensor_0: np.ndarray,
+        tensor_1: np.ndarray
+    ) -> Callable[[float | np.ndarray], np.ndarray]:
 
         def callback(
-            alpha: Any
-        ) -> Any:
+            alpha: float | np.ndarray
+        ) -> np.ndarray:
             return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
         return callback
 
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: float
+    #) -> Callable[[float], float]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_2f8
+    #) -> Callable[[float | NP_2f8], NP_2f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_2f8,
+    #    tensor_1: float
+    #) -> Callable[[float | NP_2f8], NP_2f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_2f8,
+    #    tensor_1: NP_2f8
+    #) -> Callable[[float | NP_2f8], NP_2f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_3f8
+    #) -> Callable[[float | NP_3f8], NP_3f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_3f8,
+    #    tensor_1: float
+    #) -> Callable[[float | NP_3f8], NP_3f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_3f8,
+    #    tensor_1: NP_3f8
+    #) -> Callable[[float | NP_3f8], NP_3f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_4f8
+    #) -> Callable[[float | NP_4f8], NP_4f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_4f8,
+    #    tensor_1: float
+    #) -> Callable[[float | NP_4f8], NP_4f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_4f8,
+    #    tensor_1: NP_4f8
+    #) -> Callable[[float | NP_4f8], NP_4f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_33f8
+    #) -> Callable[[float | NP_33f8], NP_33f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_33f8,
+    #    tensor_1: float
+    #) -> Callable[[float | NP_33f8], NP_33f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_33f8,
+    #    tensor_1: NP_33f8
+    #) -> Callable[[float | NP_33f8], NP_33f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_44f8
+    #) -> Callable[[float | NP_44f8], NP_44f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_44f8,
+    #    tensor_1: float
+    #) -> Callable[[float | NP_44f8], NP_44f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_44f8,
+    #    tensor_1: NP_44f8
+    #) -> Callable[[float | NP_44f8], NP_44f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_xf8
+    #) -> Callable[[float], NP_xf8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_xf8,
+    #    tensor_1: float
+    #) -> Callable[[float], NP_xf8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float | NP_2f8,
+    #    tensor_1: NP_x2f8
+    #) -> Callable[[float | NP_2f8], NP_x2f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_x2f8,
+    #    tensor_1: float | NP_2f8
+    #) -> Callable[[float | NP_2f8], NP_x2f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float | NP_3f8,
+    #    tensor_1: NP_x3f8
+    #) -> Callable[[float | NP_3f8], NP_x3f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_x3f8,
+    #    tensor_1: float | NP_3f8
+    #) -> Callable[[float | NP_3f8], NP_x3f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: float | NP_4f8,
+    #    tensor_1: NP_x4f8
+    #) -> Callable[[float | NP_4f8], NP_x4f8]: ...
+
+    #@overload
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: NP_x4f8,
+    #    tensor_1: float | NP_4f8
+    #) -> Callable[[float | NP_4f8], NP_x4f8]: ...
+
+    #@classmethod
+    #def lerp(
+    #    cls,
+    #    tensor_0: np.ndarray,
+    #    tensor_1: np.ndarray
+    #) -> Callable[[float | np.ndarray], np.ndarray]:
+
+    #    def callback(
+    #        alpha: float | np.ndarray
+    #    ) -> np.ndarray:
+    #        return (1.0 - alpha) * tensor_0 + alpha * tensor_1
+
+    #    return callback
+
     # Type specifications of `lerp`.
 
     @classmethod
-    def lerp_float(
+    def lerp_f8(
+        cls,
+        tensor_0: NP_f8,
+        tensor_1: NP_f8
+    ) -> Callable[[float], NP_f8]:
+        return cls._lerp(tensor_0, tensor_1)
+
+    @classmethod
+    def lerp_3f8(
+        cls,
+        tensor_0: NP_3f8,
+        tensor_1: NP_3f8
+    ) -> Callable[[float], NP_3f8]:
+        return cls._lerp(tensor_0, tensor_1)
+
+    @classmethod
+    def lerp_x3f8(
+        cls,
+        tensor_0: NP_x3f8,
+        tensor_1: NP_x3f8
+    ) -> Callable[[float], NP_x3f8]:
+        return cls._lerp(tensor_0, tensor_1)
+
+    @classmethod
+    def lerp_44f8(
+        cls,
+        tensor_0: NP_44f8,
+        tensor_1: NP_44f8
+    ) -> Callable[[float], NP_44f8]:
+        return cls._lerp(tensor_0, tensor_1)
+
+    @classmethod
+    def lerp_float_3f8(
         cls,
         tensor_0: float,
-        tensor_1: float
-    ) -> Callable[[float], float]:
-        return cls.lerp(tensor_0, tensor_1)
-
-    @classmethod
-    def lerp_vec3(
-        cls,
-        tensor_0: Vec3T,
-        tensor_1: Vec3T
-    ) -> Callable[[float], Vec3T]:
-        return cls.lerp(tensor_0, tensor_1)
-
-    @classmethod
-    def lerp_mat4(
-        cls,
-        tensor_0: Mat4T,
-        tensor_1: Mat4T
-    ) -> Callable[[float], Mat4T]:
-        return cls.lerp(tensor_0, tensor_1)
+        tensor_1: NP_3f8
+    ) -> Callable[[float | NP_3f8], NP_3f8]:
+        return cls._lerp(tensor_0 * np.ones(()), tensor_1)
 
     @overload
     @classmethod
     def apply_affine(
         cls,
-        matrix: Mat3T,
-        vector: Vec2T
-    ) -> Vec2T: ...
+        matrix: NP_33f8,
+        vector: NP_2f8
+    ) -> NP_2f8: ...
 
     @overload
     @classmethod
     def apply_affine(
         cls,
-        matrix: Mat4T,
-        vector: Vec3T
-    ) -> Vec3T: ...
+        matrix: NP_44f8,
+        vector: NP_3f8
+    ) -> NP_3f8: ...
 
     @overload
     @classmethod
     def apply_affine(
         cls,
-        matrix: Mat3T,
-        vector: Vec2sT
-    ) -> Vec2sT: ...
+        matrix: NP_33f8,
+        vector: NP_x2f8
+    ) -> NP_x2f8: ...
 
     @overload
     @classmethod
     def apply_affine(
         cls,
-        matrix: Mat4T,
-        vector: Vec3sT
-    ) -> Vec3sT: ...
+        matrix: NP_44f8,
+        vector: NP_x3f8
+    ) -> NP_x3f8: ...
 
     @classmethod
     def apply_affine(
         cls,
-        matrix: Mat3T | Mat4T,
-        vector: Vec2T | Vec3T | Vec2sT | Vec3sT
-    ) -> Vec2T | Vec3T | Vec2sT | Vec3sT:
+        matrix: NP_33f8 | NP_44f8,
+        vector: NP_2f8 | NP_3f8 | NP_x2f8 | NP_x3f8
+    ) -> NP_2f8 | NP_3f8 | NP_x2f8 | NP_x3f8:
         if vector.ndim == 1:
             v = vector[:, None]
         else:
@@ -389,13 +420,13 @@ class SpaceUtils:
     @classmethod
     def matrix_callback_from_translation(
         cls,
-        vector: Vec3T
-    ) -> Callable[[float | Vec3T], Mat4T]:
-        lerp_callback = cls.lerp(0.0, vector)
+        vector: NP_3f8
+    ) -> Callable[[float | NP_3f8], NP_44f8]:
+        lerp_callback = cls.lerp_float_3f8(0.0, vector)
 
         def callback(
-            alpha: float | Vec3T
-        ) -> Mat4T:
+            alpha: float | NP_3f8
+        ) -> NP_44f8:
             m = np.identity(4)
             m[:3, 3] = lerp_callback(alpha)
             return m
@@ -405,15 +436,15 @@ class SpaceUtils:
     @classmethod
     def matrix_callback_from_scale(
         cls,
-        factor: float | Vec3T
-    ) -> Callable[[float | Vec3T], Mat4T]:
+        factor: float | NP_3f8
+    ) -> Callable[[float | NP_3f8], NP_44f8]:
         if not isinstance(factor, np.ndarray):
-            factor *= np.ones(3)
-        lerp_callback = cls.lerp(1.0, factor)
+            factor *= np.ones((3,))
+        lerp_callback = cls.lerp_float_3f8(1.0, factor)
 
         def callback(
-            alpha: float | Vec3T
-        ) -> Mat4T:
+            alpha: float | NP_3f8
+        ) -> NP_44f8:
             m = np.identity(4)
             m[:3, :3] = np.diag(lerp_callback(alpha))
             return m
@@ -423,13 +454,13 @@ class SpaceUtils:
     @classmethod
     def matrix_callback_from_rotation(
         cls,
-        rotvec: Vec3T
-    ) -> Callable[[float | Vec3T], Mat4T]:
-        lerp_callback = cls.lerp(0.0, rotvec)
+        rotvec: NP_3f8
+    ) -> Callable[[float | NP_3f8], NP_44f8]:
+        lerp_callback = cls.lerp_float_3f8(0.0, rotvec)
 
         def callback(
-            alpha: float | Vec3T
-        ) -> Mat4T:
+            alpha: float | NP_3f8
+        ) -> NP_44f8:
             m = np.identity(4)
             m[:3, :3] = Rotation.from_rotvec(lerp_callback(alpha)).as_matrix()
             return m
@@ -439,17 +470,17 @@ class SpaceUtils:
     @classmethod
     def matrix_from_translation(
         cls,
-        vector: Vec3T
-    ) -> Mat4T:
+        vector: NP_3f8
+    ) -> NP_44f8:
         return cls.matrix_callback_from_translation(vector)(1.0)
 
     @classmethod
     def increase_dimension(
         cls,
-        vectors: Vec2sT,
+        vectors: NP_x2f8,
         *,
         z_value: float = 0.0
-    ) -> Vec3sT:
+    ) -> NP_x3f8:
         result = np.zeros((len(vectors), 3))
         result[:, :2] = vectors
         result[:, 2] = z_value
@@ -459,27 +490,27 @@ class SpaceUtils:
     @classmethod
     def decrease_dimension(
         cls,
-        vectors: Vec3sT,
+        vectors: NP_x3f8,
         *,
         extract_z: Literal[True]
-    ) -> tuple[Vec2sT, FloatsT]: ...
+    ) -> tuple[NP_x2f8, NP_xf8]: ...
 
     @overload
     @classmethod
     def decrease_dimension(
         cls,
-        vectors: Vec3sT,
+        vectors: NP_x3f8,
         *,
         extract_z: Literal[False] = False
-    ) -> Vec2sT: ...
+    ) -> NP_x2f8: ...
 
     @classmethod
     def decrease_dimension(
         cls,
-        vectors: Vec3sT,
+        vectors: NP_x3f8,
         *,
         extract_z: bool = False
-    ) -> tuple[Vec2sT, FloatsT] | Vec2sT:
+    ) -> tuple[NP_x2f8, NP_xf8] | NP_x2f8:
         result = vectors[:, :2]
         if not extract_z:
             return result

@@ -2,7 +2,7 @@ import moderngl
 import numpy as np
 
 from ..config import ConfigSingleton
-from ..custom_typing import FloatsT
+from ..custom_typing import NP_xf8
 from ..lazy.lazy import Lazy
 from ..passes.render_pass import RenderPass
 from ..rendering.framebuffer import ColorFramebuffer
@@ -35,7 +35,7 @@ class GaussianBlurPass(RenderPass):
     def _convolution_core_(
         cls,
         sigma_width: float
-    ) -> FloatsT:
+    ) -> NP_xf8:
         sigma = sigma_width * ConfigSingleton().size.pixel_per_unit
         n = int(np.ceil(3.0 * sigma))
         convolution_core = np.exp(-np.arange(n + 1) ** 2 / (2.0 * sigma ** 2))
@@ -45,7 +45,7 @@ class GaussianBlurPass(RenderPass):
     @classmethod
     def _gaussian_blur_uniform_block_buffer_(
         cls,
-        convolution_core: FloatsT
+        convolution_core: NP_xf8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_gaussian_blur",

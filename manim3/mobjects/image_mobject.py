@@ -27,7 +27,6 @@ class ImageMobject(MeshMobject):
         image = Image.open(image_path)
         self._image: Image.Image = image
 
-        #self._geometry_ = PlaneGeometry()
         pixel_per_unit = ConfigSingleton().size.pixel_per_unit
         scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
             original_width=image.width / pixel_per_unit,
