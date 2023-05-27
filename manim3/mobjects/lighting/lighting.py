@@ -1,12 +1,12 @@
 import numpy as np
 
-from ..lazy.lazy import (
+from ...lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ..lighting.ambient_light import AmbientLight
-from ..lighting.point_light import PointLight
-from ..rendering.gl_buffer import UniformBlockBuffer
+from ...rendering.gl_buffer import UniformBlockBuffer
+from .ambient_light import AmbientLight
+from .point_light import PointLight
 
 
 class Lighting(LazyObject):

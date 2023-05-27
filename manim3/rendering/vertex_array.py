@@ -10,12 +10,12 @@ from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ..rendering.context import (
+from .context import (
     Context,
     ContextState
 )
-from ..rendering.framebuffer import Framebuffer
-from ..rendering.gl_buffer import (
+from .framebuffer import Framebuffer
+from .gl_buffer import (
     AtomicBufferFormat,
     AttributesBuffer,
     BufferFormat,
@@ -25,7 +25,7 @@ from ..rendering.gl_buffer import (
     TransformFeedbackBuffer,
     UniformBlockBuffer
 )
-from ..rendering.mgl_enums import PrimitiveMode
+from .mgl_enums import PrimitiveMode
 
 
 class IndexedAttributesBuffer(LazyObject):

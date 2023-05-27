@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 
 from .custom_typing import NP_3f8
@@ -22,3 +24,10 @@ DR: NP_3f8 = DOWN + RIGHT
 PI: float = np.pi
 TAU: float = PI * 2.0
 DEGREES: float = PI / 180.0
+
+
+# Ported from `manimpango/enums.pyx`.
+class Alignment(Enum):
+    LEFT = 0
+    CENTER = 1
+    RIGHT = 2

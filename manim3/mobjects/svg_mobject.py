@@ -15,9 +15,9 @@ from ..custom_typing import (
     NP_2f8,
     NP_x2f8
 )
-from ..mobjects.shape_mobject import ShapeMobject
 from ..shape.shape import Shape
 from ..utils.space import SpaceUtils
+from .shape_mobject import ShapeMobject
 
 
 class BezierCurve(BSpline):
@@ -121,7 +121,7 @@ class SVGMobject(ShapeMobject):
         # TODO: handle strokes, etc.
         self.add(*(
             shape_mobject.set_style(
-                color=fill.hex if (fill := shape.fill) is not None and fill.hex is not None else ...
+                color=fill.hex if (fill := shape.fill) is not None else None
             )
             for shape in svg.elements()
             if isinstance(shape, se.Shape) and (

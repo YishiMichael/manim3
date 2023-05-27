@@ -18,15 +18,18 @@ import weakref
 import moderngl
 from PIL import Image
 
-from ..cameras.camera import Camera
 from ..config import (
     Config,
     ConfigSingleton
 )
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
+from ..mobjects.cameras.camera import Camera
+from ..mobjects.cameras.orthographic_camera import OrthographicCamera
+from ..mobjects.cameras.perspective_camera import PerspectiveCamera
+from ..mobjects.lighting.lighting import Lighting
 from ..mobjects.mobject import Mobject
-from ..mobjects.scene_frame import SceneFrame
+from ..mobjects.frame_mobject import FrameMobject
 from ..passes.render_pass import RenderPass
 from ..rendering.context import Context
 from ..rendering.framebuffer import ColorFramebuffer
@@ -291,9 +294,18 @@ class Scene(Animation):
             relative_rate=RateUtils.adjust(RateUtils.linear, lag_time=-start_time)
         )
         self._scene_ref = weakref.ref(self)
-        self._scene_frame: SceneFrame = SceneFrame()
+
+        match ConfigSingleton().camera.camera_type:
+            case "PerspectiveCamera":
+                camera = PerspectiveCamera()
+            case "OrthographicCamera":
+                camera = OrthographicCamera()
+        self._scene_frame: FrameMobject = FrameMobject(
+            camera=camera,
+            lighting=Lighting()
+        )
         self.set_background(
-            color=ConfigSingleton().camera.background_color
+            color=ConfigSingleton().style.background_color
         )
 
     async def _render(self) -> None:
@@ -462,8 +474,8 @@ class Scene(Animation):
     def set_background(
         self,
         *,
-        color: ColorT = ...,
-        opacity: float = ...
+        color: ColorT | None = None,
+        opacity: float | None = None
     ):
         self._scene_frame.set_style(
             color=color,

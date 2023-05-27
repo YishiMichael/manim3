@@ -6,7 +6,7 @@ from ..custom_typing import (
     NP_3f8,
     NP_f8
 )
-from ..geometries.geometry import Geometry
+from .geometry import Geometry
 
 
 # TODO: Refactor with isosurfaces

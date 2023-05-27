@@ -1,15 +1,15 @@
 from abc import abstractmethod
 
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import (
-    Mobject,
-    MobjectStyleMeta
-)
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
+from .mobject import (
+    Mobject,
+    MobjectStyleMeta
+)
 
 
 class RenderableMobject(Mobject):

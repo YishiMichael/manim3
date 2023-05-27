@@ -3,6 +3,7 @@ from typing import Callable
 
 import numpy as np
 
+from ..config import ConfigSingleton
 from ..constants import PI
 from ..custom_typing import (
     NP_f8,
@@ -13,8 +14,6 @@ from ..custom_typing import (
     NP_xu4
 )
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import MobjectStyleMeta
-from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
@@ -32,6 +31,8 @@ from ..rendering.vertex_array import (
 )
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
+from .mobject import MobjectStyleMeta
+from .renderable_mobject import RenderableMobject
 
 
 class StrokeMobject(RenderableMobject):
@@ -77,7 +78,7 @@ class StrokeMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _width_(cls) -> NP_f8:
-        return 0.04 * np.ones(())  # TODO: config
+        return ConfigSingleton().style.stroke_width * np.ones(())
 
     @MobjectStyleMeta.register()
     @Lazy.variable_hashable

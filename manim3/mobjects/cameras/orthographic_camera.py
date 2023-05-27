@@ -1,12 +1,12 @@
 import numpy as np
 
-from ..cameras.camera import Camera
-from ..custom_typing import (
+from ...custom_typing import (
     NP_44f8,
     NP_2f8,
     NP_f8
 )
-from ..lazy.lazy import Lazy
+from ...lazy.lazy import Lazy
+from .camera import Camera
 
 
 class OrthographicCamera(Camera):

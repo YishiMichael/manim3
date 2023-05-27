@@ -1,12 +1,12 @@
 from typing import Callable
 
-from ..animations.composition import Parallel
-from ..animations.transform import (
+from ..mobjects.mobject import Mobject
+from ..utils.rate import RateUtils
+from .composition import Parallel
+from .transform import (
     TransformFrom,
     TransformTo
 )
-from ..mobjects.mobject import Mobject
-from ..utils.rate import RateUtils
 
 
 class FadeIn(TransformFrom):

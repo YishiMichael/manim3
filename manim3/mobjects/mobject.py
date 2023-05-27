@@ -969,32 +969,32 @@ class Mobject(LazyObject):
         self,
         *,
         # polymorphism variables
-        color: ColorT = ...,
-        opacity: float = ...,
+        color: ColorT | None = None,
+        opacity: float | None = None,
 
         # Mobject
-        model_matrix: NP_44f8 = ...,
+        model_matrix: NP_44f8 | None = None,
 
         # RenderableMobject
-        is_transparent: bool = ...,
+        is_transparent: bool | None = None,
 
         # MeshMobject
-        geometry: Geometry = ...,
-        color_map: moderngl.Texture | None = ...,
-        enable_phong_lighting: bool = ...,
-        ambient_strength: float = ...,
-        specular_strength: float = ...,
-        shininess: float = ...,
+        geometry: Geometry | None = None,
+        color_maps: list[moderngl.Texture] | None = None,
+        enable_phong_lighting: bool | None = None,
+        ambient_strength: float | None = None,
+        specular_strength: float | None = None,
+        shininess: float | None = None,
 
         # ShapeMobject
-        shape: Shape = ...,
+        shape: Shape | None = None,
 
         # StrokeMobject
-        multi_line_string: MultiLineString = ...,
-        width: float = ...,
-        single_sided: bool = ...,
-        has_linecap: bool = ...,
-        dilate: float = ...,
+        multi_line_string: MultiLineString | None = None,
+        width: float | None = None,
+        single_sided: bool | None = None,
+        has_linecap: bool | None = None,
+        dilate: float | None = None,
 
         # setting configs
         broadcast: bool = True,
@@ -1008,7 +1008,7 @@ class Mobject(LazyObject):
                 return value
             return (value * np.ones(())).astype(np.float64)
 
-        if color is not ...:
+        if color is not None:
             color = ColorUtils.standardize_color(color)
         style = {
             f"_{key}_": standardize_input(value)
@@ -1018,7 +1018,7 @@ class Mobject(LazyObject):
                 "model_matrix": model_matrix,
                 "is_transparent": is_transparent,
                 "geometry": geometry,
-                "color_map": color_map,
+                "color_maps": color_maps,
                 "enable_phong_lighting": enable_phong_lighting,
                 "ambient_strength": ambient_strength,
                 "specular_strength": specular_strength,
@@ -1029,7 +1029,7 @@ class Mobject(LazyObject):
                 "single_sided": single_sided,
                 "has_linecap": has_linecap,
                 "dilate": dilate
-            }.items() if value is not ...
+            }.items() if value is not None
         }
 
         if type_filter is None:

@@ -2,12 +2,12 @@ from typing import Callable
 
 import numpy as np
 
-from ..animations.animation import Animation
 from ..mobjects.mobject import (
     Mobject,
     MobjectStyleMeta
 )
 from ..utils.rate import RateUtils
+from .animation import Animation
 
 
 class PartialABC(Animation):

@@ -19,15 +19,15 @@ from typing import (
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from ..config import ConfigSingleton
-from ..custom_typing import (
+from ...config import ConfigSingleton
+from ...custom_typing import (
     SelectorT,
     NP_3f8
 )
-from ..mobjects.shape_mobject import ShapeMobject
-from ..mobjects.svg_mobject import SVGMobject
-from ..utils.color import ColorUtils
-from ..utils.iterables import IterUtils
+from ...utils.color import ColorUtils
+from ...utils.iterables import IterUtils
+from ..shape_mobject import ShapeMobject
+from ..svg_mobject import SVGMobject
 
 
 class CommandFlag(Enum):

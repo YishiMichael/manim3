@@ -6,10 +6,10 @@ from ..custom_typing import (
     NP_2f8,
     NP_3f8
 )
-from ..geometries.geometry import Geometry
 from ..shape.shape import Shape
 from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
+from .geometry import Geometry
 
 
 class PrismoidGeometry(Geometry):

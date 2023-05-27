@@ -2,13 +2,13 @@ import numpy as np
 from PIL import Image
 
 from ..config import ConfigSingleton
-from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
 )
 from ..rendering.texture import TextureFactory
 from ..utils.space import SpaceUtils
+from .mesh_mobject import MeshMobject
 
 
 class ImageMobject(MeshMobject):
@@ -47,5 +47,5 @@ class ImageMobject(MeshMobject):
         image = self._image
         with TextureFactory.texture(size=image.size) as color_texture:
             color_texture.write(image.tobytes())
-            self._color_map_ = color_texture
+            self._color_maps_ = [color_texture]
             super()._render(target_framebuffer)

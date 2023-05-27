@@ -1,15 +1,15 @@
 import numpy as np
 
-from ..custom_typing import (
+from ...custom_typing import (
     NP_3f8,
     NP_f8
 )
-from ..lazy.lazy import Lazy
-from ..mobjects.mobject import (
+from ...lazy.lazy import Lazy
+from ...utils.space import SpaceUtils
+from ..mobject import (
     Mobject,
     MobjectStyleMeta
 )
-from ..utils.space import SpaceUtils
 
 
 class AmbientLight(Mobject):

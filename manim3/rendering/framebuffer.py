@@ -1,10 +1,10 @@
 import moderngl
 
-from ..rendering.context import (
+from .context import (
     Context,
     ContextState
 )
-from ..rendering.mgl_enums import (
+from .mgl_enums import (
     BlendEquation,
     BlendFunc,
     ContextFlag

@@ -1,13 +1,13 @@
 import numpy as np
 
-from ..custom_typing import (
+from ...custom_typing import (
     NP_44f8,
     NP_x2f8,
     NP_x3f8
 )
-from ..mobjects.shapes import Polygon
-from ..mobjects.shape_mobject import ShapeMobject
-from ..utils.space import SpaceUtils
+from ...utils.space import SpaceUtils
+from ..shape_mobject import ShapeMobject
+from .shapes import Polygon
 
 
 class Polyhedron(ShapeMobject):

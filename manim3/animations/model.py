@@ -1,15 +1,15 @@
 from typing import Callable
 
-from ..animations.animation import Animation
-from ..custom_typing import (
-    NP_44f8,
-    NP_3f8
-)
 from ..mobjects.mobject import (
     AboutABC,
     Mobject
 )
 from ..utils.rate import RateUtils
+from .animation import Animation
+from ..custom_typing import (
+    NP_44f8,
+    NP_3f8
+)
 
 
 class ModelFiniteAnimation(Animation):

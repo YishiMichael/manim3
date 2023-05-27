@@ -16,7 +16,7 @@ from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ..rendering.context import Context
+from .context import Context
 
 
 class GLBufferLayout(Enum):

@@ -1,7 +1,7 @@
 from typing import Callable
 
-from ..animations.animation import Animation
 from ..utils.rate import RateUtils
+from .animation import Animation
 
 
 class Series(Animation):

@@ -3,12 +3,12 @@ import numpy as np
 
 from ..config import ConfigSingleton
 from ..lazy.lazy import Lazy
-from ..passes.render_pass import RenderPass
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import TextureFilter
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
+from .render_pass import RenderPass
 
 
 class PixelatedPass(RenderPass):

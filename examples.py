@@ -180,7 +180,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    FormulaExample().render(config)
+    ShapeTransformExample().render(config)
 
 
 if __name__ == "__main__":

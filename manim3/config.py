@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 import pathlib
 import sys
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from colour import Color
 
+from .constants import Alignment
 from .custom_typing import ColorT
 
 
@@ -133,7 +134,7 @@ class SizeConfig:
     slots=True
 )
 class CameraConfig:
-    background_color: ColorT
+    camera_type: Literal["PerspectiveCamera", "OrthographicCamera"]
     altitude: float
     near: float
     far: float
@@ -143,12 +144,23 @@ class CameraConfig:
     kw_only=True,
     slots=True
 )
+class StyleConfig:
+    background_color: ColorT
+    mesh_specular_strength: float
+    mesh_shininess: float
+    stroke_width: float
+
+
+@dataclass(
+    kw_only=True,
+    slots=True
+)
 class TexConfig:
     use_mathjax: bool
-    preamble: str | None
+    preamble: str
     template: str
-    alignment: str | None
-    environment: str | None
+    alignment: Alignment
+    environment: str
     base_color: ColorT
     font_size: float
 
@@ -160,14 +172,11 @@ class TexConfig:
 class TextConfig:
     justify: bool
     indent: float
-    alignment: str
-    line_width: float | None
+    alignment: Alignment
+    line_width: float
     font_size: float
     font: str
-    slant: str
-    weight: str
     base_color: ColorT
-    line_spacing_height: float
     global_config: dict[str, str]
     language: str
     code_style: str
@@ -179,6 +188,7 @@ class Config:
         "_rendering",
         "_size",
         "_camera",
+        "_style",
         "_tex",
         "_text"
     )
@@ -199,10 +209,16 @@ class Config:
             window_pixel_height=540
         )
         self._camera: CameraConfig = CameraConfig(
-            background_color=Color("black"),
+            camera_type="PerspectiveCamera",
             altitude=5.0,
             near=0.1,
             far=100.0
+        )
+        self._style: StyleConfig = StyleConfig(
+            background_color=Color("black"),
+            mesh_specular_strength=0.5,
+            mesh_shininess=32.0,
+            stroke_width=0.04
         )
         self._tex: TexConfig = TexConfig(
             use_mathjax=False,
@@ -213,7 +229,7 @@ class Config:
                 "\\usepackage{xcolor}"  # Required for labelling.
             )),
             template="ctex",
-            alignment="\\centering",
+            alignment=Alignment.CENTER,
             environment="align*",
             base_color=Color("white"),
             font_size=48
@@ -221,14 +237,11 @@ class Config:
         self._text: TextConfig = TextConfig(
             justify=False,
             indent=0.0,
-            alignment="LEFT",
-            line_width=None,
+            alignment=Alignment.LEFT,
+            line_width=-1.0,
             font_size=48,
             font="Consolas",
-            slant="NORMAL",
-            weight="NORMAL",
             base_color=Color("white"),
-            line_spacing_height=0.0,
             global_config={},
             language="python",
             # Visit `https://pygments.org/demo/` to have a preview of more styles.
@@ -250,6 +263,10 @@ class Config:
     @property
     def camera(self) -> CameraConfig:
         return self._camera
+
+    @property
+    def style(self) -> StyleConfig:
+        return self._style
 
     @property
     def tex(self) -> TexConfig:

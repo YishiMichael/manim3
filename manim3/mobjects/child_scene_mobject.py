@@ -1,13 +1,13 @@
 import numpy as np
 
 from ..animations.animation import Scene
-from ..mobjects.mesh_mobject import MeshMobject
 from ..rendering.framebuffer import (
     ColorFramebuffer,
     OpaqueFramebuffer,
     TransparentFramebuffer
 )
 from ..rendering.texture import TextureFactory
+from .mesh_mobject import MeshMobject
 
 
 class ChildSceneMobject(MeshMobject):
@@ -38,5 +38,5 @@ class ChildSceneMobject(MeshMobject):
             framebuffer.framebuffer.clear(alpha=1.0)
             framebuffer.framebuffer.color_mask = (True, True, True, True)
 
-            self._color_map_ = color_texture
+            self._color_maps_ = [color_texture]
             super()._render(target_framebuffer)

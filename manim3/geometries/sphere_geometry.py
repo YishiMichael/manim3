@@ -8,7 +8,7 @@ from ..custom_typing import (
     NP_3f8,
     NP_f8
 )
-from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
+from .parametric_surface_geometry import ParametricSurfaceGeometry
 
 
 class SphereGeometry(ParametricSurfaceGeometry):

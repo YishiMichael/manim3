@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..geometries.parametric_surface_geometry import ParametricSurfaceGeometry
+from .parametric_surface_geometry import ParametricSurfaceGeometry
 
 
 class PlaneGeometry(ParametricSurfaceGeometry):

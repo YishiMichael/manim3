@@ -58,6 +58,12 @@ and assigned specially to the instance. `LazyWrapper` is derived from
 scope. One may picture a lazy object as a tree (it's a DAG actually), where
 `LazyWrapper`s sit on all leaves. This class is just for internal usage.
 
+In `ARRAY` mode, data should be of type `np.ndarray` with specifications on
+the shape and the dtype. `ndim` and `dtype` should be unified, and `shape`
+should be unified or only the first dimension is left dynamic. Such
+specification ensures the relation from arrays to bytes formed by `tobytes`
+method is a mapping, and therefore we can share data up to their bytes.
+
 Notice that what `__get__` method returns is always a valid input of
 `__set__`. This ensures the statement `a._data_ = b._data_` is always valid.
 Again, values won't be shared in `EXTERNAL` mode.

@@ -19,12 +19,12 @@ from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ..shape.line_string import (
+from ..utils.iterables import IterUtils
+from ..utils.space import SpaceUtils
+from .line_string import (
     LineString,
     MultiLineString
 )
-from ..utils.iterables import IterUtils
-from ..utils.space import SpaceUtils
 
 
 class Shape(LazyObject):

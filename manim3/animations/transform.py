@@ -1,11 +1,11 @@
 from typing import Callable
 
-from ..animations.animation import Animation
 from ..mobjects.mobject import (
     Mobject,
     MobjectStyleMeta
 )
 from ..utils.rate import RateUtils
+from .animation import Animation
 
 
 class TransformABC(Animation):

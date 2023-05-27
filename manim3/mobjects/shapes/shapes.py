@@ -1,16 +1,16 @@
 import numpy as np
 
-from ..constants import (
+from ...constants import (
     OUT,
     PI,
     TAU
 )
-from ..custom_typing import (
+from ...custom_typing import (
     NP_2f8,
     NP_x2f8
 )
-from ..mobjects.shape_mobject import ShapeMobject
-from ..shape.shape import Shape
+from ...shape.shape import Shape
+from ..shape_mobject import ShapeMobject
 
 
 class Polyline(ShapeMobject):

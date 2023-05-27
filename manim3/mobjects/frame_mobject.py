@@ -1,22 +1,11 @@
 import moderngl
 import numpy as np
 
-from ..cameras.camera import Camera
-from ..cameras.perspective_camera import PerspectiveCamera
 from ..custom_typing import (
     NP_3f8,
     NP_f8
 )
 from ..lazy.lazy import Lazy
-from ..lighting.ambient_light import AmbientLight
-from ..lighting.lighting import Lighting
-from ..lighting.point_light import PointLight
-from ..mobjects.mesh_mobject import MeshMobject
-from ..mobjects.mobject import (
-    Mobject,
-    MobjectStyleMeta
-)
-from ..mobjects.renderable_mobject import RenderableMobject
 from ..passes.render_pass import RenderPass
 from ..rendering.context import (
     Context,
@@ -33,16 +22,29 @@ from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
 from ..utils.space import SpaceUtils
+from .cameras.camera import Camera
+from .lighting.ambient_light import AmbientLight
+from .lighting.lighting import Lighting
+from .lighting.point_light import PointLight
+from .mesh_mobject import MeshMobject
+from .mobject import (
+    Mobject,
+    MobjectStyleMeta
+)
+from .renderable_mobject import RenderableMobject
 
 
-class SceneFrame(Mobject):
+class FrameMobject(Mobject):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        camera: Camera,
+        lighting: Lighting
+    ) -> None:
         super().__init__()
-        # Should be standalone for each `SceneFrame` object.
-        self._camera_ = PerspectiveCamera()
-        self._lighting_ = Lighting()
+        self._camera_ = camera
+        self._lighting_ = lighting
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_3f8

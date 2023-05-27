@@ -1,8 +1,8 @@
 import numpy as np
 
-from ..geometries.geometry import Geometry
 from ..shape.shape import Shape
 from ..utils.space import SpaceUtils
+from .geometry import Geometry
 
 
 class ShapeGeometry(Geometry):

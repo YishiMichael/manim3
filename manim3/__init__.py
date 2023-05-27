@@ -33,10 +33,6 @@ from .animations.transform import (
     TransformTo
 )
 
-from .cameras.camera import Camera
-from .cameras.orthographic_camera import OrthographicCamera
-from .cameras.perspective_camera import PerspectiveCamera
-
 from .geometries.geometry import Geometry
 from .geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from .geometries.plane_geometry import PlaneGeometry
@@ -49,11 +45,13 @@ from .lazy.lazy import (
     LazyObject
 )
 
-from .lighting.ambient_light import AmbientLight
-from .lighting.point_light import PointLight
-
+from .mobjects.cameras.camera import Camera
+from .mobjects.cameras.orthographic_camera import OrthographicCamera
+from .mobjects.cameras.perspective_camera import PerspectiveCamera
 from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
+from .mobjects.lighting.ambient_light import AmbientLight
+from .mobjects.lighting.point_light import PointLight
 from .mobjects.mesh_mobject import MeshMobject
 from .mobjects.mobject import (
     AboutCenter,
@@ -64,7 +62,9 @@ from .mobjects.mobject import (
     AlignPoint,
     Mobject
 )
-from .mobjects.polyhedra import (
+from .mobjects.renderable_mobject import RenderableMobject
+from .mobjects.shape_mobject import ShapeMobject
+from .mobjects.shapes.polyhedra import (
     Cube,
     Dodecahedron,
     Icosahedron,
@@ -72,10 +72,7 @@ from .mobjects.polyhedra import (
     Polyhedron,
     Tetrahedron
 )
-from .mobjects.renderable_mobject import RenderableMobject
-from .mobjects.scene_frame import SceneFrame
-from .mobjects.shape_mobject import ShapeMobject
-from .mobjects.shapes import (
+from .mobjects.shapes.shapes import (
     Arc,
     Circle,
     Line,
@@ -85,6 +82,11 @@ from .mobjects.shapes import (
     RegularPolygon,
     Square,
     Triangle
+)
+from .mobjects.strings.tex_mobject import Tex
+from .mobjects.strings.text_mobject import (
+    Code,
+    Text
 )
 from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
@@ -115,18 +117,13 @@ from .rendering.vertex_array import VertexArray
 from .shape.line_string import MultiLineString
 from .shape.shape import Shape
 
-from .strings.tex_mobject import Tex
-from .strings.text_mobject import (
-    Code,
-    Text
-)
-
 from .utils.color import ColorUtils
 from .utils.rate import RateUtils
 from .utils.space import SpaceUtils
 
 from .config import Config
 from .constants import (
+    Alignment,
     DEGREES,
     DL,
     DOWN,

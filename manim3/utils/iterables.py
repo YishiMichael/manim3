@@ -6,7 +6,6 @@ from typing import (
 )
 
 
-_T = TypeVar("_T")
 _T0 = TypeVar("_T0")
 _T1 = TypeVar("_T1")
 _T2 = TypeVar("_T2")

@@ -7,14 +7,14 @@ from typing import (
     TypeVar
 )
 
-from ..animations.animation import Animation
-from ..animations.composition import Parallel
-from ..animations.fade import FadeTransform
-from ..animations.transform import Transform
 from ..mobjects.shape_mobject import ShapeMobject
-from ..strings.string_mobject import StringMobject
+from ..mobjects.strings.string_mobject import StringMobject
 from ..utils.iterables import IterUtils
 from ..utils.rate import RateUtils
+from .animation import Animation
+from .composition import Parallel
+from .fade import FadeTransform
+from .transform import Transform
 
 
 _K = TypeVar("_K", bound=Hashable)

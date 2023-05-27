@@ -1,9 +1,9 @@
 from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
-from ..mobjects.mesh_mobject import MeshMobject
-from ..mobjects.mobject import MobjectStyleMeta
-from ..mobjects.stroke_mobject import StrokeMobject
 from ..shape.shape import Shape
+from .mesh_mobject import MeshMobject
+from .mobject import MobjectStyleMeta
+from .stroke_mobject import StrokeMobject
 
 
 class ShapeMobject(MeshMobject):
@@ -38,11 +38,6 @@ class ShapeMobject(MeshMobject):
 
     def build_stroke(self) -> StrokeMobject:
         stroke = StrokeMobject()
-        #stroke.match_style(
-        #    self,
-        #    model_matrix=True,
-        #    default=False
-        #)  # Copy `model_matrix` only.
         stroke._model_matrix_ = self._model_matrix_
         stroke._multi_line_string_ = self._shape_._multi_line_string_
         return stroke

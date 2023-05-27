@@ -1,4 +1,3 @@
-from enum import Enum
 import pathlib
 import re
 from typing import (
@@ -12,26 +11,20 @@ import pygments
 import pygments.formatters
 import pygments.lexers
 
-from ..config import ConfigSingleton
-from ..custom_typing import (
+from ...config import ConfigSingleton
+from ...constants import Alignment
+from ...custom_typing import (
     ColorT,
     SelectorT
 )
-from ..strings.string_mobject import (
+from ...utils.color import ColorUtils
+from .string_mobject import (
     CommandFlag,
     EdgeFlag,
     StringFileWriter,
     StringMobject,
     StringParser
 )
-from ..utils.color import ColorUtils
-
-
-# Ported from `manimpango/enums.pyx`.
-class PangoAlignment(Enum):
-    LEFT = 0
-    CENTER = 1
-    RIGHT = 2
 
 
 class PangoUtils:
@@ -60,7 +53,7 @@ class PangoUtils:
         svg_path: pathlib.Path,
         justify: bool,
         indent: float,
-        alignment: PangoAlignment,
+        alignment: Alignment,
         pango_width: float
     ) -> None:
         # `manimpango` is under construction,
@@ -98,8 +91,8 @@ class MarkupTextFileWriter(StringFileWriter):
         svg_path: pathlib.Path,
         justify: bool,
         indent: float,
-        alignment: PangoAlignment,
-        line_width: float | None
+        alignment: Alignment,
+        line_width: float
     ) -> None:
         PangoUtils.validate_markup_string(content)
         PangoUtils.create_markup_svg(
@@ -109,7 +102,7 @@ class MarkupTextFileWriter(StringFileWriter):
             indent=indent,
             alignment=alignment,
             pango_width=(
-                -1 if line_width is None
+                -1 if line_width < 0.0
                 else line_width * ConfigSingleton().size.pixel_per_unit
             )
         )
@@ -313,63 +306,51 @@ class Text(StringMobject):
         *,
         isolate: Iterable[SelectorT] = (),
         protect: Iterable[SelectorT] = (),
-        local_configs: dict[SelectorT, dict[str, str]] = ...,
-        justify: bool = ...,
-        indent: float = ...,
-        alignment: str = ...,
-        line_width: float | None = ...,
-        font_size: float = ...,
-        font: str = ...,
-        slant: str = ...,
-        weight: str = ...,
-        base_color: ColorT = ...,
-        line_spacing_height: float = ...,
-        global_config: dict[str, str] = ...,
+        local_configs: dict[SelectorT, dict[str, str]] | None = None,
+        justify: bool | None = None,
+        indent: float | None = None,
+        alignment: Alignment | None = None,
+        line_width: float | None = None,
+        font_size: float | None = None,
+        font: str | None = None,
+        base_color: ColorT | None = None,
+        global_config: dict[str, str] | None = None,
         markup: bool = False
     ) -> None:
         if markup:
             PangoUtils.validate_markup_string(string)
-        if local_configs is ...:
+        if local_configs is None:
             local_configs = {}
 
         config = ConfigSingleton().text
-        if justify is ...:
+        if justify is None:
             justify = config.justify
-        if indent is ...:
+        if indent is None:
             indent = config.indent
-        if alignment is ...:
+        if alignment is None:
             alignment = config.alignment
-        if line_width is ...:
+        if line_width is None:
             line_width = config.line_width
-        if font_size is ...:
+        if font_size is None:
             font_size = config.font_size
-        if font is ...:
+        if font is None:
             font = config.font
-        if slant is ...:
-            slant = config.slant
-        if weight is ...:
-            weight = config.weight
-        if base_color is ...:
+        if base_color is None:
             base_color = config.base_color
-        if line_spacing_height is ...:
-            line_spacing_height = config.line_spacing_height
-        if global_config is ...:
+        if global_config is None:
             global_config = config.global_config
 
         global_attrs = {
             "font_size": str(round(font_size * 1024.0)),
             "font_family": font,
-            "font_style": slant,
-            "font_weight": weight,
-            "foreground": ColorUtils.color_to_hex(base_color),
-            "line_height": str(1.0 + line_spacing_height)
+            "foreground": ColorUtils.color_to_hex(base_color)
         }
         global_attrs.update(global_config)
 
         file_writer = MarkupTextFileWriter(
             justify=justify,
             indent=indent,
-            alignment=PangoAlignment[alignment],
+            alignment=alignment,
             line_width=line_width
         )
         parser_class = MarkupTextParser if markup else TextParser
@@ -394,14 +375,14 @@ class Code(Text):
         self,
         code: str,
         *,
-        language: str = ...,
-        code_style: str = ...,
+        language: str | None = None,
+        code_style: str | None = None,
         **kwargs
     ) -> None:
         config = ConfigSingleton().text
-        if language is ...:
+        if language is None:
             language = config.language
-        if code_style is ...:
+        if code_style is None:
             code_style = config.code_style
 
         lexer = pygments.lexers.get_lexer_by_name(language)

@@ -1,6 +1,7 @@
 import moderngl
 import numpy as np
 
+from ..config import ConfigSingleton
 from ..custom_typing import (
     NP_3f8,
     NP_f8,
@@ -9,8 +10,6 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.lazy import Lazy
-from ..mobjects.mobject import MobjectStyleMeta
-from ..mobjects.renderable_mobject import RenderableMobject
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
@@ -24,6 +23,8 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.space import SpaceUtils
+from .mobject import MobjectStyleMeta
+from .renderable_mobject import RenderableMobject
 
 
 class MeshMobject(RenderableMobject):
@@ -55,8 +56,8 @@ class MeshMobject(RenderableMobject):
     @MobjectStyleMeta.register()
     @Lazy.variable_external
     @classmethod
-    def _color_map_(cls) -> moderngl.Texture | None:
-        return None
+    def _color_maps_(cls) -> list[moderngl.Texture]:
+        return []
 
     @MobjectStyleMeta.register()
     @Lazy.variable_hashable
@@ -78,7 +79,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _specular_strength_(cls) -> NP_f8:
-        return 0.5 * np.ones(())  # TODO: config
+        return ConfigSingleton().style.mesh_specular_strength * np.ones(())
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
@@ -86,7 +87,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _shininess_(cls) -> NP_f8:
-        return 32.0 * np.ones(())  # TODO: config
+        return ConfigSingleton().style.mesh_shininess * np.ones(())
 
     @Lazy.variable
     @classmethod
@@ -134,7 +135,7 @@ class MeshMobject(RenderableMobject):
         cls,
         is_transparent: bool,
         enable_phong_lighting: bool,
-        color_map: moderngl.Texture | None,
+        color_maps: list[moderngl.Texture],
         camera_uniform_block_buffer: UniformBlockBuffer,
         lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
@@ -153,7 +154,7 @@ class MeshMobject(RenderableMobject):
                 TextureIdBuffer(
                     field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",
                     array_lens={
-                        "NUM_T_COLOR_MAPS": int(color_map is not None)
+                        "NUM_T_COLOR_MAPS": len(color_maps)
                     }
                 )
             ],
@@ -170,12 +171,9 @@ class MeshMobject(RenderableMobject):
         self,
         target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
     ) -> None:
-        textures: list[moderngl.Texture] = []
-        if (color_map := self._color_map_) is not None:
-            textures.append(color_map)
         self._mesh_vertex_array_.render(
             framebuffer=target_framebuffer,
             texture_array_dict={
-                "t_color_maps": np.array(textures, dtype=moderngl.Texture)
+                "t_color_maps": np.array(self._color_maps_, dtype=moderngl.Texture)
             }
         )

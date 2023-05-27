@@ -8,7 +8,7 @@ from moderngl_window.context.pyglet.window import Window
 import OpenGL.GL as gl
 
 from ..config import ConfigSingleton
-from ..rendering.mgl_enums import (
+from .mgl_enums import (
     BlendEquation,
     BlendFunc,
     ContextFlag,

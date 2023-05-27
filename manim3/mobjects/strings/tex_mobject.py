@@ -11,12 +11,13 @@ from typing import (
 
 import toml
 
-from ..config import ConfigSingleton
-from ..custom_typing import (
+from ...config import ConfigSingleton
+from ...constants import Alignment
+from ...custom_typing import (
     ColorT,
     SelectorT
 )
-from ..strings.string_mobject import (
+from .string_mobject import (
     CommandFlag,
     EdgeFlag,
     StringFileWriter,
@@ -57,10 +58,10 @@ class TexFileWriter(StringFileWriter):
         cls,
         content: str,
         svg_path: pathlib.Path,
-        preamble: str | None,
+        preamble: str,
         template: str,
-        alignment: str | None,
-        environment: str | None
+        alignment: Alignment,
+        environment: str
     ) -> None:
         tex_template = cls._get_tex_templates_dict()[template]
         compiler = tex_template.compiler
@@ -78,23 +79,29 @@ class TexFileWriter(StringFileWriter):
         # Write tex file.
         tex_path = svg_path.with_suffix(".tex")
         with tex_path.open(mode="w", encoding="utf-8") as tex_file:
-            if environment is not None:
+            match alignment:
+                case Alignment.LEFT:
+                    alignment_command = "\\flushleft"
+                case Alignment.CENTER:
+                    alignment_command = "\\centering"
+                case Alignment.RIGHT:
+                    alignment_command = "\\flushright"
+            if environment:
                 begin_environment = f"\\begin{{{environment}}}"
                 end_environment = f"\\end{{{environment}}}"
             else:
-                begin_environment = None
-                end_environment = None
-            content_pieces = (
+                begin_environment = ""
+                end_environment = ""
+            full_content = "\n".join((
                 preamble,
                 tex_template.preamble,
                 "\\begin{document}",
-                alignment,
+                alignment_command,
                 begin_environment,
                 content,
                 end_environment,
                 "\\end{document}"
-            )
-            full_content = "\n".join(s for s in content_pieces if s is not None) + "\n"
+            )) + "\n"
             tex_file.write(full_content)
 
         try:
@@ -290,35 +297,35 @@ class Tex(StringMobject):
         *,
         isolate: Iterable[SelectorT] = (),
         protect: Iterable[SelectorT] = (),
-        tex_to_color_map: dict[SelectorT, ColorT] = ...,
-        use_mathjax: bool = ...,
-        preamble: str | None = ...,
-        template: str = ...,
-        alignment: str | None = ...,
-        environment: str | None = ...,
-        base_color: ColorT = ...,
-        font_size: float = ...
+        tex_to_color_map: dict[SelectorT, ColorT] | None = None,
+        use_mathjax: bool | None = None,
+        preamble: str | None = None,
+        template: str | None = None,
+        alignment: Alignment | None = None,
+        environment: str | None = None,
+        base_color: ColorT | None = None,
+        font_size: float | None = None
     ) -> None:
         # Prevent from passing an empty string.
         if not string.strip():
             string = "\\\\"
-        if tex_to_color_map is ...:
+        if tex_to_color_map is None:
             tex_to_color_map = {}
 
         config = ConfigSingleton().tex
-        if use_mathjax is ...:
+        if use_mathjax is None:
             use_mathjax = config.use_mathjax
-        if preamble is ...:
+        if preamble is None:
             preamble = config.preamble
-        if template is ...:
+        if template is None:
             template = config.template
-        if alignment is ...:
+        if alignment is None:
             alignment = config.alignment
-        if environment is ...:
+        if environment is None:
             environment = config.environment
-        if base_color is ...:
+        if base_color is None:
             base_color = config.base_color
-        if font_size is ...:
+        if font_size is None:
             font_size = config.font_size
 
         frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT

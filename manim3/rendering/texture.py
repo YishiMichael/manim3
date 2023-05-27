@@ -7,7 +7,7 @@ from typing import (
 import moderngl
 
 from ..config import ConfigSingleton
-from ..rendering.context import Context
+from .context import Context
 
 
 class TextureFactory:

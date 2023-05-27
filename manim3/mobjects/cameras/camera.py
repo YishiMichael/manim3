@@ -1,23 +1,23 @@
 import numpy as np
 
-from ..config import ConfigSingleton
-from ..constants import (
+from ...config import ConfigSingleton
+from ...constants import (
     ORIGIN,
     OUT,
     RIGHT,
     UP
 )
-from ..custom_typing import (
+from ...custom_typing import (
     NP_44f8,
     NP_2f8,
     NP_3f8,
     NP_f8,
     NP_x3f8
 )
-from ..lazy.lazy import Lazy
-from ..mobjects.mobject import Mobject
-from ..rendering.gl_buffer import UniformBlockBuffer
-from ..utils.space import SpaceUtils
+from ...lazy.lazy import Lazy
+from ...rendering.gl_buffer import UniformBlockBuffer
+from ...utils.space import SpaceUtils
+from ..mobject import Mobject
 
 
 class Camera(Mobject):
