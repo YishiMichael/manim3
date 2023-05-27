@@ -64,6 +64,14 @@ from .mobjects.mobject import (
 )
 from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.shape_mobject import ShapeMobject
+from .mobjects.shapes.polygons import (
+    Arc,
+    Circle,
+    Polygon,
+    RegularPolygon,
+    Square,
+    Triangle
+)
 from .mobjects.shapes.polyhedra import (
     Cube,
     Dodecahedron,
@@ -72,16 +80,10 @@ from .mobjects.shapes.polyhedra import (
     Polyhedron,
     Tetrahedron
 )
-from .mobjects.shapes.shapes import (
-    Arc,
-    Circle,
+from .mobjects.shapes.polylines import (
     Line,
     Point,
-    Polygon,
     Polyline,
-    RegularPolygon,
-    Square,
-    Triangle
 )
 from .mobjects.strings.tex_mobject import Tex
 from .mobjects.strings.text_mobject import (

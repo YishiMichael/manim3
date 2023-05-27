@@ -167,7 +167,7 @@ class FormulaExample(Scene):
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula, run_time=5, rate_func=RateUtils.linear))
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula, run_time=2, rate_func=RateUtils.smooth))
         await self.wait()
 
 
@@ -175,12 +175,12 @@ def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 10
+    #config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (960, 540)
-    ShapeTransformExample().render(config)
+    FormulaExample().render(config)
 
 
 if __name__ == "__main__":

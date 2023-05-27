@@ -21,7 +21,6 @@ from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-from ..utils.space import SpaceUtils
 from .cameras.camera import Camera
 from .lighting.ambient_light import AmbientLight
 from .lighting.lighting import Lighting
@@ -46,17 +45,13 @@ class FrameMobject(Mobject):
         self._camera_ = camera
         self._lighting_ = lighting
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_3f8
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.zeros((3,))
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_f8
-    )
+    @MobjectStyleMeta.register()
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
