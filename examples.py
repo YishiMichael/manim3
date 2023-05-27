@@ -12,15 +12,15 @@ class ShapeTransformExample(Scene):
         )
         square.add(
             square.build_stroke()
-            .set_style(color=Palette.YELLOW, width=0.0)
+            .set_style(color=YELLOW, width=0.0)
         )
         circle = (
             Circle()
-            .set_style(color=Palette.PINK, opacity=0.9)
+            .set_style(color=PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=Palette.YELLOW)
+            .set_style(color=YELLOW)
         )
 
         self.add(square)
@@ -34,23 +34,23 @@ class TexTransformExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_style(color=Palette.ORANGE, opacity=0.5)
+            .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=Palette.BLUE, width=0.04)
+            .set_style(color=BLUE, width=0.04)
         )
         tex = (
             Tex("Tex")
             .scale(3)
-            .set_style(color=Palette.BLUE, opacity=0.5)
+            .set_style(color=BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)
         )
         tex.add(
             tex.build_stroke()
-            .set_style(color=Palette.PINK, width=0.06)
+            .set_style(color=PINK, width=0.06)
         )
         self.add(text)
         await self.wait()
@@ -65,12 +65,12 @@ class CreateTexExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_style(color=Palette.ORANGE, opacity=0.5)
+            .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=Palette.BLUE, width=0.04)
+            .set_style(color=BLUE, width=0.04)
         )
         await self.wait()
         await self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
@@ -105,7 +105,7 @@ class OITExample(Scene):
                 .rotate(OUT * angle)
             )
             for color, opacity, angle in zip(
-                (Palette.RED, Palette.GREEN, Palette.BLUE),
+                (RED, GREEN, BLUE),
                 (0.3, 0.5, 0.6),
                 np.linspace(0, TAU, 3, endpoint=False)
             )
@@ -153,16 +153,16 @@ class FormulaExample(Scene):
         factored_formula = Tex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             tex_to_color_map={
-                re.compile(r"a_{\d}"): Palette.TEAL,
-                re.compile(r"b_{\d}"): Palette.ORANGE
+                re.compile(r"a_{\d}"): TEAL,
+                re.compile(r"b_{\d}"): ORANGE
             }
         ).scale(0.7)
         expanded_formula = Tex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
             tex_to_color_map={
-                re.compile(r"a_{\d}"): Palette.TEAL,
-                re.compile(r"b_{\d}"): Palette.ORANGE
+                re.compile(r"a_{\d}"): TEAL,
+                re.compile(r"b_{\d}"): ORANGE
             }
         ).scale(0.7)
         self.add(factored_formula)

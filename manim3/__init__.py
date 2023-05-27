@@ -159,4 +159,4 @@ from .custom_typing import (
     NP_x44f8,
     NP_x4f8
 )
-from .palette import Palette
+from .palette import *
