@@ -40,4 +40,7 @@ class ShapeMobject(MeshMobject):
         stroke = StrokeMobject()
         stroke._model_matrix_ = self._model_matrix_
         stroke._multi_line_string_ = self._shape_._multi_line_string_
+        stroke._is_transparent_ = self._is_transparent_
+        stroke._color_ = self._color_
+        stroke._opacity_ = self._opacity_
         return stroke

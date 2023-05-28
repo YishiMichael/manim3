@@ -1,15 +1,19 @@
+from functools import lru_cache
 import pathlib
 import re
 from typing import (
     ClassVar,
     Iterable,
-    Iterator
+    Iterator,
+    TypedDict
 )
 
 import manimpango
 import pygments
-import pygments.formatters
+import pygments.lexer
 import pygments.lexers
+import pygments.styles
+import pygments.token
 
 from ...config import ConfigSingleton
 from ...constants import Alignment
@@ -298,7 +302,7 @@ class TextParser(MarkupTextParser):
 class Text(StringMobject):
     __slots__ = ()
 
-    _TEXT_SCALE_FACTOR: ClassVar[float] = 0.0076  # TODO
+    _TEXT_SCALE_FACTOR: ClassVar[float] = 0.01147
 
     def __init__(
         self,
@@ -368,6 +372,21 @@ class Text(StringMobject):
         )
 
 
+# Copied from typeshed
+class _PygmentStyleDict(TypedDict):
+    color: str | None
+    bold: bool
+    italic: bool
+    underline: bool
+    bgcolor: str | None
+    border: str | None
+    roman: bool | None
+    sans: bool | None
+    mono: bool | None
+    ansicolor: str | None
+    bgansicolor: str | None
+
+
 class Code(Text):
     __slots__ = ()
 
@@ -377,6 +396,8 @@ class Code(Text):
         *,
         language: str | None = None,
         code_style: str | None = None,
+        local_configs: dict[SelectorT, dict[str, str]] | None = None,
+        font: str | None = None,
         **kwargs
     ) -> None:
         config = ConfigSingleton().text
@@ -384,15 +405,63 @@ class Code(Text):
             language = config.language
         if code_style is None:
             code_style = config.code_style
+        if font is None:
+            font = config.code_font
 
-        lexer = pygments.lexers.get_lexer_by_name(language)
-        formatter = pygments.formatters.PangoMarkupFormatter(
-            style=code_style
-        )
-        markup_string = pygments.highlight(code, lexer, formatter)
-        markup_string = re.sub(r"</?tt>", "", markup_string)
+        lexer = self._get_lexer(language)
+        token_type_to_pango_config = self._get_token_type_to_pango_config(code_style)
+        token_configs: dict[SelectorT, dict[str, str]] = {
+            (index, index + len(substr)): token_type_to_pango_config[token_type]
+            for index, token_type, substr in lexer.get_tokens_unprocessed(code)
+        }
+
+        if local_configs is None:
+            local_configs = {}
+        for selector, local_config in local_configs.items():
+            token_configs.setdefault(selector, {}).update(local_config)
         return super().__init__(
-            string=markup_string,
-            markup=True,
+            string=code,
+            local_configs=token_configs,
+            font=font,
+            markup=False,
             **kwargs
         )
+
+    @staticmethod
+    @lru_cache(maxsize=8)
+    def _get_lexer(
+        language: str
+    ) -> pygments.lexer.Lexer:
+        return pygments.lexers.get_lexer_by_name(language)
+
+    @staticmethod
+    @lru_cache(maxsize=8)
+    def _get_token_type_to_pango_config(
+        code_style: str
+    ) -> dict[pygments.token._TokenType, dict[str, str]]:
+
+        def convert_pygment_style_to_pango_config(
+            # Generated from `pygments.style.StyleMeta.style_for_token`.
+            pygment_style: _PygmentStyleDict
+        ) -> dict[str, str]:
+            result: dict[str, str] = {}
+            if (color := pygment_style.get("color")) is not None:
+                result["fgcolor"] = f"#{color}"
+            if (bold := pygment_style.get("bold")) is not None:
+                if bold:
+                    result["font_weight"] = "bold"
+            if (italic := pygment_style.get("italic")) is not None:
+                if italic:
+                    result["font_style"] = "italic"
+            if (underline := pygment_style.get("underline")) is not None:
+                if underline:
+                    result["underline"] = "single"
+            if (bgcolor := pygment_style.get("bgcolor")) is not None:
+                result["bgcolor"] = f"#{bgcolor}"
+            return result
+
+        style = pygments.styles.get_style_by_name(code_style)
+        return {
+            token_type: convert_pygment_style_to_pango_config(style_dict)
+            for token_type, style_dict in style
+        }

@@ -139,7 +139,7 @@ class AlignABC(ABC):
     def __init__(
         self,
         direction: NP_3f8,
-        buff: float | NP_3f8
+        buff: float | NP_3f8 = 0.0
     ) -> None:
         super().__init__()
         self._direction: NP_3f8 = direction

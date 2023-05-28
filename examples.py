@@ -33,7 +33,7 @@ class TexTransformExample(Scene):
     async def timeline(self) -> None:
         text = (
             Text("Text")
-            .scale(3)
+            .scale(2)
             .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
@@ -43,7 +43,7 @@ class TexTransformExample(Scene):
         )
         tex = (
             Tex("Tex")
-            .scale(3)
+            .scale(2)
             .set_style(color=BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)

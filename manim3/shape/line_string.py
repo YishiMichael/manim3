@@ -309,9 +309,8 @@ class MultiLineString(ShapeInterpolant):
             start: float,
             stop: float
         ) -> MultiLineString:
-            assert start <= stop
             result = MultiLineString()
-            if not line_strings:
+            if start > stop or not line_strings:
                 return result
 
             start_index, start_residue = cls._integer_interpolate(start, length_knots, side="right")

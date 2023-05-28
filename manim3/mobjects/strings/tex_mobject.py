@@ -288,8 +288,9 @@ class TexParser(StringParser):
 class Tex(StringMobject):
     __slots__ = ()
 
-    _TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001  # TODO
-    _MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.5  # TODO
+    # In this convension, `font_size=30` would make the height of "x" become roughly 0.30.
+    _TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001577
+    _MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.188
 
     def __init__(
         self,

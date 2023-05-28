@@ -27,4 +27,4 @@ NP_x44f8 = np.ndarray[tuple[_XD, _4D, _4D], np.dtype[np.float64]]
 NP_xu4 = np.ndarray[tuple[_XD], np.dtype[np.uint32]]
 
 ColorT = Color | str | NP_3f8
-SelectorT = str | re.Pattern[str]
+SelectorT = str | re.Pattern[str] | tuple[int, int]  # Slice is hashable in future versions.

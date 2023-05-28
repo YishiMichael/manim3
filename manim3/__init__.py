@@ -30,7 +30,9 @@ from .animations.partial import (
 from .animations.transform import (
     Transform,
     TransformFrom,
-    TransformTo
+    TransformFromCopy,
+    TransformTo,
+    TransformToCopy
 )
 
 from .geometries.geometry import Geometry
@@ -81,8 +83,8 @@ from .mobjects.shapes.polyhedra import (
     Tetrahedron
 )
 from .mobjects.shapes.polylines import (
+    Dot,
     Line,
-    Point,
     Polyline,
 )
 from .mobjects.strings.tex_mobject import Tex

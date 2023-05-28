@@ -7,11 +7,11 @@ from typing import (
     TypeVar
 )
 
+from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.strings.string_mobject import StringMobject
 from ..utils.iterables import IterUtils
 from ..utils.rate import RateUtils
-from .animation import Animation
 from .composition import Parallel
 from .fade import FadeTransform
 from .transform import Transform
@@ -25,10 +25,12 @@ _T0 = TypeVar("_T0")
 _T1 = TypeVar("_T1")
 
 
+# TODO: under construction
 class TransformMatchingStrings(Parallel):
     __slots__ = (
         "_start_mobject",
-        "_stop_mobject"
+        "_stop_mobject",
+        "_to_discard"
     )
 
     def __init__(
@@ -136,7 +138,7 @@ class TransformMatchingStrings(Parallel):
         def get_animations(
             shape_match: bool,
             mobject_list_list_tuple: tuple[list[list[ShapeMobject]], ...]
-        ) -> Iterator[Animation]:
+        ) -> Iterator[FadeTransform | Transform]:
 
             def match_elements_evenly(
                 elements_0: list[_T0],
@@ -211,7 +213,7 @@ class TransformMatchingStrings(Parallel):
                 parser_1.iter_group_part_items()
             ))
         )
-        animations = it.chain.from_iterable(
+        animations = list(it.chain.from_iterable(
             get_animations(shape_match, mobject_list_list_tuple)
             for shape_match, mobject_list_list_tuple in get_animation_items(
                 animation_items=(
@@ -224,7 +226,7 @@ class TransformMatchingStrings(Parallel):
                     parser_1.iter_shape_mobjects()
                 )
             )
-        )
+        ))
 
         super().__init__(
             *animations,
@@ -233,8 +235,14 @@ class TransformMatchingStrings(Parallel):
         )
         self._start_mobject: StringMobject = start_mobject
         self._stop_mobject: StringMobject = stop_mobject
+        self._to_discard: list[Mobject] = [
+            animation._stop_mobject
+            for animation in animations
+        ]
 
     async def timeline(self) -> None:
-        self.discard_from_scene(self._start_mobject)
+        self.scene.discard(self._start_mobject)
         await super().timeline()
-        self.add_to_scene(self._stop_mobject)
+        self.scene.add(self._stop_mobject)
+        for mobject in self._to_discard:
+            self.scene.discard(mobject)

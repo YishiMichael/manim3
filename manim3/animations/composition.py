@@ -15,7 +15,7 @@ class Series(Animation):
     ) -> None:
         run_alpha = sum((animation._play_run_time for animation in animations), start=0.0)
         if run_time is None:
-            run_time = run_alpha
+            run_time = RateUtils.inverse(rate_func)(run_alpha)
         super().__init__(
             run_time=run_time,
             relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time, run_alpha_scale=run_alpha)
@@ -39,7 +39,7 @@ class Parallel(Animation):
     ) -> None:
         run_alpha = max((animation._play_run_time for animation in animations), default=0.0)
         if run_time is None:
-            run_time = run_alpha
+            run_time = RateUtils.inverse(rate_func)(run_alpha)
         super().__init__(
             run_time=run_time,
             relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time, run_alpha_scale=run_alpha)
@@ -48,7 +48,7 @@ class Parallel(Animation):
 
     async def timeline(self) -> None:
         self.prepare(*self._animations)
-        await self.wait(self._play_run_time)
+        await self.wait(self._relative_rate(self._play_run_time))
 
 
 class Wait(Animation):

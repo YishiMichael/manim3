@@ -1,56 +1,64 @@
-from typing import Callable
+from typing import (
+    Callable,
+    TypeVar
+)
 
 from ..mobjects.mobject import Mobject
 from ..utils.rate import RateUtils
 from .composition import Parallel
 from .transform import (
-    TransformFrom,
-    TransformTo
+    TransformFromCopy,
+    TransformToCopy
 )
 
 
-class FadeIn(TransformFrom):
+_MobjectT = TypeVar("_MobjectT", bound=Mobject)
+
+
+class FadeIn(TransformFromCopy):
     __slots__ = ()
 
     def __init__(
         self,
-        mobject: Mobject,
+        mobject: _MobjectT,
+        func: Callable[[_MobjectT], _MobjectT] = lambda mob: mob,
         *,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
-            start_mobject=mobject.copy().set_style(opacity=0.0),
-            stop_mobject=mobject,
+            mobject=mobject,
+            func=lambda mob: func(mob.set_style(opacity=0.0)),
             run_time=run_time,
             rate_func=rate_func
         )
 
     async def timeline(self) -> None:
-        self.add_to_scene(self._stop_mobject)
+        self.scene.add(self._stop_mobject)
         await super().timeline()
 
 
-class FadeOut(TransformTo):
+class FadeOut(TransformToCopy):
     __slots__ = ()
 
     def __init__(
         self,
-        mobject: Mobject,
+        mobject: _MobjectT,
+        func: Callable[[_MobjectT], _MobjectT] = lambda mob: mob,
         *,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
-            start_mobject=mobject,
-            stop_mobject=mobject.copy().set_style(opacity=0.0),
+            mobject=mobject,
+            func=lambda mob: func(mob.set_style(opacity=0.0)),
             run_time=run_time,
             rate_func=rate_func
         )
 
     async def timeline(self) -> None:
         await super().timeline()
-        self.discard_from_scene(self._start_mobject)
+        self.scene.discard(self._start_mobject)
 
 
 class FadeTransform(Parallel):
@@ -75,17 +83,13 @@ class FadeTransform(Parallel):
             is_transparent=True
         )
         super().__init__(
-            TransformTo(
-                start_mobject=intermediate_start_mobject,
-                stop_mobject=intermediate_start_mobject.copy().set_style(
-                    opacity=0.0
-                ).match_bounding_box(stop_mobject)
+            FadeOut(
+                mobject=intermediate_start_mobject,
+                func=lambda mob: mob.match_bounding_box(stop_mobject)
             ),
-            TransformFrom(
-                start_mobject=intermediate_stop_mobject.copy().set_style(
-                    opacity=0.0
-                ).match_bounding_box(start_mobject),
-                stop_mobject=intermediate_stop_mobject
+            FadeIn(
+                mobject=intermediate_stop_mobject,
+                func=lambda mob: mob.match_bounding_box(start_mobject)
             ),
             run_time=run_time,
             rate_func=rate_func
@@ -98,8 +102,8 @@ class FadeTransform(Parallel):
         )
 
     async def timeline(self) -> None:
-        self.discard_from_scene(self._start_mobject)
-        self.add_to_scene(self._intermediate_mobject)
+        self.scene.discard(self._start_mobject)
+        self.scene.add(self._intermediate_mobject)
         await super().timeline()
-        self.discard_from_scene(self._intermediate_mobject)
-        self.add_to_scene(self._stop_mobject)
+        self.scene.discard(self._intermediate_mobject)
+        self.scene.add(self._stop_mobject)

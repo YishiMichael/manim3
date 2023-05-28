@@ -263,11 +263,21 @@ class StringParser(ABC):
     ) -> Iterator[Span]:
         match selector:
             case str():
-                pattern = re.compile(re.escape(selector))
+                substr_len = len(selector)
+                if not substr_len:
+                    return
+                index = 0
+                while True:
+                    index = string.find(selector, index)
+                    if index == -1:
+                        break
+                    yield Span(index, index + substr_len)
+                    index += substr_len
             case re.Pattern():
-                pattern = selector
-        for match_obj in pattern.finditer(string):
-            yield Span(*match_obj.span())
+                for match_obj in selector.finditer(string):
+                    yield Span(*match_obj.span())
+            case (int() as start, int() as stop):
+                yield Span(start, stop)
 
     @classmethod
     def _get_label_to_span_dict_and_replaced_items(

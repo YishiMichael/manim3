@@ -22,7 +22,7 @@ class Polyline(StrokeMobject):
         super().__init__(MultiLineString([LineString(points, is_ring=False)]))
 
 
-class Point(Polyline):
+class Dot(Polyline):
     __slots__ = ()
 
     def __init__(

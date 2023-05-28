@@ -70,7 +70,7 @@ class PartialCreate(PartialABC):
         )
 
     async def timeline(self) -> None:
-        self.add_to_scene(self._mobject)
+        self.scene.add(self._mobject)
         await self.wait()
 
 
@@ -101,7 +101,7 @@ class PartialUncreate(PartialABC):
 
     async def timeline(self) -> None:
         await self.wait()
-        self.discard_from_scene(self._mobject)
+        self.scene.discard(self._mobject)
 
 
 class PartialFlash(PartialABC):
@@ -140,6 +140,6 @@ class PartialFlash(PartialABC):
         )
 
     async def timeline(self) -> None:
-        self.add_to_scene(self._mobject)
+        self.scene.add(self._mobject)
         await self.wait()
-        self.discard_from_scene(self._mobject)
+        self.scene.discard(self._mobject)

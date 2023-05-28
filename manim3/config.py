@@ -178,6 +178,7 @@ class TextConfig:
     font: str
     base_color: ColorT
     global_config: dict[str, str]
+    code_font: str
     language: str
     code_style: str
 
@@ -218,7 +219,7 @@ class Config:
             background_color=Color("black"),
             mesh_specular_strength=0.5,
             mesh_shininess=32.0,
-            stroke_width=0.04
+            stroke_width=0.02
         )
         self._tex: TexConfig = TexConfig(
             use_mathjax=False,
@@ -232,17 +233,19 @@ class Config:
             alignment=Alignment.CENTER,
             environment="align*",
             base_color=Color("white"),
-            font_size=48
+            font_size=30
         )
         self._text: TextConfig = TextConfig(
             justify=False,
             indent=0.0,
             alignment=Alignment.LEFT,
             line_width=-1.0,
-            font_size=48,
+            font_size=30,
             font="Consolas",
             base_color=Color("white"),
             global_config={},
+
+            code_font="Consolas",
             language="python",
             # Visit `https://pygments.org/demo/` to have a preview of more styles.
             code_style="monokai"

@@ -36,7 +36,7 @@ class RateUtils:
             y: float
         ) -> float:
             for x0 in np.linspace(0.0, 1.0, 5):
-                optimize_result = scipy.optimize.root(lambda x: func(x) - y, x0)
+                optimize_result = scipy.optimize.root(lambda x: func(float(x)) - y, x0)
                 if optimize_result.success:
                     return float(optimize_result.x)
             raise ValueError

@@ -1,4 +1,7 @@
-from typing import Callable
+from typing import (
+    Callable,
+    TypeVar
+)
 
 from ..mobjects.mobject import (
     Mobject,
@@ -6,6 +9,9 @@ from ..mobjects.mobject import (
 )
 from ..utils.rate import RateUtils
 from .animation import Animation
+
+
+_MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
 class TransformABC(Animation):
@@ -96,6 +102,44 @@ class TransformFrom(TransformABC):
         await self.wait()
 
 
+class TransformToCopy(TransformTo):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        mobject: _MobjectT,
+        func: Callable[[_MobjectT], _MobjectT],
+        *,
+        run_time: float = 1.0,
+        rate_func: Callable[[float], float] = RateUtils.linear
+    ) -> None:
+        super().__init__(
+            start_mobject=mobject,
+            stop_mobject=func(mobject.copy()),
+            run_time=run_time,
+            rate_func=rate_func
+        )
+
+
+class TransformFromCopy(TransformFrom):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        mobject: _MobjectT,
+        func: Callable[[_MobjectT], _MobjectT],
+        *,
+        run_time: float = 1.0,
+        rate_func: Callable[[float], float] = RateUtils.linear
+    ) -> None:
+        super().__init__(
+            start_mobject=func(mobject.copy()),
+            stop_mobject=mobject,
+            run_time=run_time,
+            rate_func=rate_func
+        )
+
+
 class Transform(TransformABC):
     __slots__ = ()
 
@@ -116,8 +160,8 @@ class Transform(TransformABC):
         )
 
     async def timeline(self) -> None:
-        self.discard_from_scene(self._start_mobject)
-        self.add_to_scene(self._intermediate_mobject)
+        self.scene.discard(self._start_mobject)
+        self.scene.add(self._intermediate_mobject)
         await self.wait()
-        self.discard_from_scene(self._intermediate_mobject)
-        self.add_to_scene(self._stop_mobject)
+        self.scene.discard(self._intermediate_mobject)
+        self.scene.add(self._stop_mobject)

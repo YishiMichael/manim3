@@ -232,20 +232,6 @@ class Animation(ABC):
         assert (scene := scene_ref()) is not None
         return scene
 
-    def add_to_scene(
-        self,
-        mobject: Mobject
-    ):
-        self.scene.add(mobject)
-        return self
-
-    def discard_from_scene(
-        self,
-        mobject: Mobject
-    ):
-        mobject.discarded_by(*mobject.iter_parents())
-        return self
-
     def prepare(
         self,
         *animations: "Animation"
