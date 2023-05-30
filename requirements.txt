@@ -5,7 +5,6 @@ moderngl
 moderngl_window
 numpy
 pillow
-pygments
 pyopengl
 scipy
 shapely

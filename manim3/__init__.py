@@ -88,10 +88,7 @@ from .mobjects.shapes.polylines import (
     Polyline,
 )
 from .mobjects.strings.tex_mobject import Tex
-from .mobjects.strings.text_mobject import (
-    Code,
-    Text
-)
+from .mobjects.strings.text_mobject import Text
 from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
 
@@ -125,7 +122,10 @@ from .utils.color import ColorUtils
 from .utils.rate import RateUtils
 from .utils.space import SpaceUtils
 
-from .config import Config
+from .config import (
+    Config,
+    ConfigSingleton
+)
 from .constants import (
     Alignment,
     DEGREES,
@@ -159,6 +159,7 @@ from .custom_typing import (
     NP_x33f8,
     NP_x3f8,
     NP_x44f8,
-    NP_x4f8
+    NP_x4f8,
+    SelectorT
 )
 from .palette import *

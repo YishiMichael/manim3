@@ -1,7 +1,10 @@
 from dataclasses import dataclass
 import pathlib
 import sys
-from typing import ClassVar, Literal
+from typing import (
+    ClassVar,
+    Literal
+)
 
 from colour import Color
 
@@ -178,9 +181,6 @@ class TextConfig:
     font: str
     base_color: ColorT
     global_config: dict[str, str]
-    code_font: str
-    language: str
-    code_style: str
 
 
 class Config:
@@ -243,12 +243,7 @@ class Config:
             font_size=30,
             font="Consolas",
             base_color=Color("white"),
-            global_config={},
-
-            code_font="Consolas",
-            language="python",
-            # Visit `https://pygments.org/demo/` to have a preview of more styles.
-            code_style="monokai"
+            global_config={}
         )
 
     @property
