@@ -7,7 +7,7 @@ import moderngl
 from moderngl_window.context.pyglet.window import Window
 import OpenGL.GL as gl
 
-from ..config import ConfigSingleton
+from ..config import Config
 from .mgl_enums import (
     BlendEquation,
     BlendFunc,
@@ -61,7 +61,7 @@ class Context:
         else:
             window = Window(
                 title=title,
-                size=ConfigSingleton().size.window_pixel_size,
+                size=Config().size.window_pixel_size,
                 fullscreen=False,
                 resizable=True,
                 gl_version=cls._GL_VERSION,

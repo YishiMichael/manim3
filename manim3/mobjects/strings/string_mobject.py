@@ -19,7 +19,7 @@ from typing import (
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from ...config import ConfigSingleton
+from ...config import Config
 from ...custom_typing import (
     SelectorT,
     NP_3f8
@@ -188,7 +188,7 @@ class StringFileWriter(ABC):
     ) -> pathlib.Path:
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-        svg_dir = ConfigSingleton().path.get_output_subdir(cls._dir_name)
+        svg_dir = Config().path.get_output_subdir(cls._dir_name)
         return svg_dir.joinpath(f"{hex_string}.svg")
 
     @classmethod

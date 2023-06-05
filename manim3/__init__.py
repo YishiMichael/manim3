@@ -122,10 +122,7 @@ from .utils.color import ColorUtils
 from .utils.rate import RateUtils
 from .utils.space import SpaceUtils
 
-from .config import (
-    Config,
-    ConfigSingleton
-)
+from .config import Config
 from .constants import (
     Alignment,
     DEGREES,

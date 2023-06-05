@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 
-from ..config import ConfigSingleton
+from ..config import Config
 from ..rendering.framebuffer import (
     OpaqueFramebuffer,
     TransparentFramebuffer
@@ -26,7 +26,7 @@ class ImageMobject(MeshMobject):
         image = Image.open(image_path)
         self._image: Image.Image = image
 
-        pixel_per_unit = ConfigSingleton().size.pixel_per_unit
+        pixel_per_unit = Config().size.pixel_per_unit
         scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
             original_width=image.width / pixel_per_unit,
             original_height=image.height / pixel_per_unit,

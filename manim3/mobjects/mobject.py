@@ -25,7 +25,7 @@ from ..constants import (
     ORIGIN,
     PI
 )
-from ..config import ConfigSingleton
+from ..config import Config
 from ..custom_typing import (
     ColorT,
     NP_3f8,
@@ -202,7 +202,7 @@ class AlignBorder(AlignABC):
     __slots__ = ()
 
     def _get_target_point(self) -> NP_3f8:
-        return self._direction * np.append(ConfigSingleton().size.frame_radii, 0.0)
+        return self._direction * np.append(Config().size.frame_radii, 0.0)
 
 
 @dataclass(

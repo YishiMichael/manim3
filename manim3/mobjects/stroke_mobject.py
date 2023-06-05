@@ -3,7 +3,7 @@ from typing import Callable
 
 import numpy as np
 
-from ..config import ConfigSingleton
+from ..config import Config
 from ..constants import PI
 from ..custom_typing import (
     NP_f8,
@@ -78,7 +78,7 @@ class StrokeMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _width_(cls) -> NP_f8:
-        return ConfigSingleton().style.stroke_width * np.ones(())
+        return Config().style.stroke_width * np.ones(())
 
     @MobjectStyleMeta.register()
     @Lazy.variable_hashable

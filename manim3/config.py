@@ -194,8 +194,15 @@ class Config:
         "_text"
     )
 
-    def __init__(self) -> None:
-        super().__init__()
+    _INSTANCE: "ClassVar[Config | None]" = None
+
+    def __new__(cls):
+        if cls._INSTANCE is None:
+            cls._INSTANCE = super().__new__(cls)
+            cls._INSTANCE._init()
+        return cls._INSTANCE
+
+    def _init(self) -> None:
         self._path: PathConfig = PathConfig()
         self._rendering: RenderingConfig = RenderingConfig(
             fps=30,
@@ -273,19 +280,3 @@ class Config:
     @property
     def text(self) -> TextConfig:
         return self._text
-
-
-class ConfigSingleton:
-    __slots__ = ()
-
-    _INSTANCE: ClassVar[Config] = Config()
-
-    def __new__(cls) -> Config:
-        return cls._INSTANCE
-
-    @classmethod
-    def set(
-        cls,
-        config: Config
-    ) -> None:
-        cls._INSTANCE = config

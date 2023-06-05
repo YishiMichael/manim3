@@ -1,6 +1,6 @@
 import numpy as np
 
-from ...config import ConfigSingleton
+from ...config import Config
 from ...constants import (
     ORIGIN,
     OUT,
@@ -32,19 +32,19 @@ class Camera(Mobject):
         # `frame_radii`: (|RIGHT - ORIGIN|, |UP - ORIGIN|)
         # `altitude`: |OUT - ORIGIN|
         self.scale(np.append(
-            ConfigSingleton().size.frame_radii,
-            ConfigSingleton().camera.altitude
+            Config().size.frame_radii,
+            Config().camera.altitude
         ))
 
     @Lazy.variable_array
     @classmethod
     def _near_(cls) -> NP_f8:
-        return ConfigSingleton().camera.near * np.ones(())
+        return Config().camera.near * np.ones(())
 
     @Lazy.variable_array
     @classmethod
     def _far_(cls) -> NP_f8:
-        return ConfigSingleton().camera.far * np.ones(())
+        return Config().camera.far * np.ones(())
 
     @Lazy.property_array
     @classmethod

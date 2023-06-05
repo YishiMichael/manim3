@@ -1,7 +1,7 @@
 import moderngl
 import numpy as np
 
-from ..config import ConfigSingleton
+from ..config import Config
 from ..custom_typing import (
     NP_3f8,
     NP_f8,
@@ -79,7 +79,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _specular_strength_(cls) -> NP_f8:
-        return ConfigSingleton().style.mesh_specular_strength * np.ones(())
+        return Config().style.mesh_specular_strength * np.ones(())
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
@@ -87,7 +87,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _shininess_(cls) -> NP_f8:
-        return ConfigSingleton().style.mesh_shininess * np.ones(())
+        return Config().style.mesh_shininess * np.ones(())
 
     @Lazy.variable
     @classmethod

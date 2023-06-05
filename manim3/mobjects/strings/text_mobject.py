@@ -8,7 +8,7 @@ from typing import (
 
 import manimpango
 
-from ...config import ConfigSingleton
+from ...config import Config
 from ...constants import Alignment
 from ...custom_typing import (
     ColorT,
@@ -100,7 +100,7 @@ class MarkupTextFileWriter(StringFileWriter):
             alignment=alignment,
             pango_width=(
                 -1 if line_width < 0.0
-                else line_width * ConfigSingleton().size.pixel_per_unit
+                else line_width * Config().size.pixel_per_unit
             )
         )
 
@@ -319,7 +319,7 @@ class Text(StringMobject):
         if local_configs is None:
             local_configs = {}
 
-        config = ConfigSingleton().text
+        config = Config().text
         if justify is None:
             justify = config.justify
         if indent is None:

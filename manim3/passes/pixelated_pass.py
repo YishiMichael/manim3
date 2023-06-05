@@ -1,7 +1,7 @@
 import moderngl
 import numpy as np
 
-from ..config import ConfigSingleton
+from ..config import Config
 from ..lazy.lazy import Lazy
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.gl_buffer import TextureIdBuffer
@@ -44,7 +44,7 @@ class PixelatedPass(RenderPass):
         texture: moderngl.Texture,
         target_framebuffer: ColorFramebuffer
     ) -> None:
-        pixel_width = self._pixelated_width_ * ConfigSingleton().size.pixel_per_unit
+        pixel_width = self._pixelated_width_ * Config().size.pixel_per_unit
         texture_size = (
             int(np.ceil(texture.width / pixel_width)),
             int(np.ceil(texture.height / pixel_width))

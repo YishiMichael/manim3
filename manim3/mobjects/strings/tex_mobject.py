@@ -11,7 +11,7 @@ from typing import (
 
 import toml
 
-from ...config import ConfigSingleton
+from ...config import Config
 from ...constants import Alignment
 from ...custom_typing import (
     ColorT,
@@ -142,7 +142,7 @@ class TexFileWriter(StringFileWriter):
     @staticmethod
     @lru_cache(maxsize=1)
     def _get_tex_templates_dict() -> dict[str, TexTemplate]:
-        with ConfigSingleton().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
+        with Config().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
             template_content_dict = toml.load(tex_templates_file)
         return {
             name: TexTemplate(**template_content)
@@ -313,7 +313,7 @@ class Tex(StringMobject):
         if tex_to_color_map is None:
             tex_to_color_map = {}
 
-        config = ConfigSingleton().tex
+        config = Config().tex
         if use_mathjax is None:
             use_mathjax = config.use_mathjax
         if preamble is None:

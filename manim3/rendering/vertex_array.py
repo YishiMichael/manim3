@@ -5,7 +5,7 @@ import re
 import moderngl
 import numpy as np
 
-from ..config import ConfigSingleton
+from ..config import Config
 from ..lazy.lazy import (
     Lazy,
     LazyObject
@@ -224,7 +224,7 @@ class Program(LazyObject):
                 binding += 1
             return uniform_block_binding_dict
 
-        with ConfigSingleton().path.shaders_dir.joinpath(f"{shader_filename}.glsl").open() as shader_file:
+        with Config().path.shaders_dir.joinpath(f"{shader_filename}.glsl").open() as shader_file:
             shader_str = shader_file.read()
         program = construct_moderngl_program(shader_str, custom_macros, array_len_items)
         texture_binding_offset_dict = set_texture_bindings(program, {

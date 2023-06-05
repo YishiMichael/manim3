@@ -6,7 +6,7 @@ from typing import (
 
 import moderngl
 
-from ..config import ConfigSingleton
+from ..config import Config
 from .context import Context
 
 
@@ -28,7 +28,7 @@ class TextureFactory:
         dtype: str = "f1"
     ) -> Iterator[moderngl.Texture]:
         if size is None:
-            size = ConfigSingleton().size.pixel_size
+            size = Config().size.pixel_size
         parameters = (size, components, dtype)
         vacant_list = cls._VACANT_TEXTURES.setdefault(parameters, [])
         if vacant_list:
@@ -49,7 +49,7 @@ class TextureFactory:
         size: tuple[int, int] | None = None
     ) -> Iterator[moderngl.Texture]:
         if size is None:
-            size = ConfigSingleton().size.pixel_size
+            size = Config().size.pixel_size
         parameters = (size,)
         vacant_list = cls._VACANT_DEPTH_TEXTURES.setdefault(parameters, [])
         if vacant_list:

@@ -18,10 +18,7 @@ import weakref
 import moderngl
 from PIL import Image
 
-from ..config import (
-    Config,
-    ConfigSingleton
-)
+from ..config import Config
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
 from ..mobjects.cameras.camera import Camera
@@ -281,7 +278,7 @@ class Scene(Animation):
         )
         self._scene_ref = weakref.ref(self)
 
-        match ConfigSingleton().camera.camera_type:
+        match Config().camera.camera_type:
             case "PerspectiveCamera":
                 camera = PerspectiveCamera()
             case "OrthographicCamera":
@@ -291,11 +288,11 @@ class Scene(Animation):
             lighting=Lighting()
         )
         self.set_background(
-            color=ConfigSingleton().style.background_color
+            color=Config().style.background_color
         )
 
     async def _render(self) -> None:
-        config = ConfigSingleton().rendering
+        config = Config().rendering
         fps = config.fps
         write_video = config.write_video
         write_last_frame = config.write_last_frame
@@ -375,6 +372,8 @@ class Scene(Animation):
 
             self._scene_frame._render_scene(framebuffer)
             if write_last_frame:
+                framebuffer.framebuffer.color_mask = (False, False, False, True)
+                framebuffer.framebuffer.clear(alpha=1.0)
                 self._write_frame_to_image(framebuffer.color_texture, scene_name)
 
         Context.activate(title=scene_name, standalone=not preview)
@@ -400,7 +399,7 @@ class Scene(Animation):
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
-            "-s", "{}x{}".format(*ConfigSingleton().size.pixel_size),  # size of one frame
+            "-s", "{}x{}".format(*Config().size.pixel_size),  # size of one frame
             "-pix_fmt", "rgba",
             "-r", str(fps),  # frames per second
             "-i", "-",  # The input comes from a pipe.
@@ -409,7 +408,7 @@ class Scene(Animation):
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.mp4")
+            Config().path.output_dir.joinpath(f"{scene_name}.mp4")
         ), stdin=sp.PIPE)
         assert (video_stdin := writing_process.stdin) is not None
         yield video_stdin
@@ -433,11 +432,11 @@ class Scene(Animation):
     ) -> None:
         image = Image.frombytes(
             "RGBA",
-            ConfigSingleton().size.pixel_size,
+            Config().size.pixel_size,
             color_texture.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image.save(ConfigSingleton().path.output_dir.joinpath(f"{scene_name}.png"))
+        image.save(Config().path.output_dir.joinpath(f"{scene_name}.png"))
 
     def add(
         self,
@@ -485,12 +484,7 @@ class Scene(Animation):
         self._scene_frame._camera_ = camera
         return self
 
-    def render(
-        self,
-        config: Config | None = None
-    ) -> None:
-        if config is not None:
-            ConfigSingleton.set(config)
+    def render(self) -> None:
         try:
             asyncio.run(self._render())
         except KeyboardInterrupt:
