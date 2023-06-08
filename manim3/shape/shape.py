@@ -81,7 +81,7 @@ class Shape(LazyObject):
         def get_shapely_component(
             line_string: LineString
         ) -> shapely.geometry.base.BaseGeometry:
-            points: NP_x2f8 = line_string._points_[:, :2]
+            points = SpaceUtils.decrease_dimension(line_string._points_)
             if len(points) == 1:
                 return shapely.geometry.Point(points[0])
             if len(points) == 2:

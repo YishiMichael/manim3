@@ -25,29 +25,28 @@ class PrismoidGeometry(Geometry):
         index_list: list[int] = []
         index_offset = 0
         for line_string in shape._multi_line_string_._line_strings_:
-            points = SpaceUtils.decrease_dimension(line_string._points_)
-            # Remove redundant adjacent points to ensure
-            # all segments have non-zero lengths.
+            simplified_line_string = line_string._copy().remove_duplicate_points()
+            points = SpaceUtils.decrease_dimension(simplified_line_string._points_)
             # TODO: Shall we normalize winding?
-            points_list: list[NP_2f8] = [points[0]]
-            current_point = points[0]
-            for point in points:
-                if np.isclose(SpaceUtils.norm(point - current_point), 0.0):
-                    continue
-                current_point = point
-                points_list.append(point)
-            if np.isclose(SpaceUtils.norm(current_point - points[0]), 0.0):
-                points_list.pop()
-            if len(points_list) <= 1:
-                continue
+            #points_list: list[NP_2f8] = [points[0]]
+            #current_point = points[0]
+            #for point in points:
+            #    if np.isclose(SpaceUtils.norm(point - current_point), 0.0):
+            #        continue
+            #    current_point = point
+            #    points_list.append(point)
+            #if np.isclose(SpaceUtils.norm(current_point - points[0]), 0.0):
+            #    points_list.pop()
+            #if len(points_list) <= 1:
+            #    continue
 
             # Assemble side faces.
             triplets: list[tuple[int, NP_2f8, NP_2f8]] = []
             rotation_mat = np.array(((0.0, 1.0), (-1.0, 0.0)))
             for ip, (p_prev, p, p_next) in enumerate(zip(
-                np.roll(points_list, 1, axis=0),
-                points_list,
-                np.roll(points_list, -1, axis=0),
+                np.roll(points, 1, axis=0),
+                points,
+                np.roll(points, -1, axis=0),
                 strict=True
             )):
                 n0 = rotation_mat @ SpaceUtils.normalize(p - p_prev)

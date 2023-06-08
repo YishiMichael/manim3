@@ -148,14 +148,6 @@ class LineString(ShapeInterpolant):
     def _is_ring_(cls) -> bool:
         return False
 
-    @Lazy.property_hashable
-    @classmethod
-    def _points_len_(
-        cls,
-        points: NP_x3f8
-    ) -> int:
-        return len(points)
-
     @Lazy.property_array
     @classmethod
     def _path_points_(
@@ -174,6 +166,17 @@ class LineString(ShapeInterpolant):
         path_points: NP_x3f8
     ) -> NP_xf8:
         return np.maximum(SpaceUtils.norm(path_points[1:] - path_points[:-1]), 1e-6)
+
+    def remove_duplicate_points(self):
+        # Ensure all segments have non-zero lengths.
+        path_points = self._path_points_
+        vectors: NP_x3f8 = path_points[1:] - path_points[:-1]
+        nonzero_length_indices = SpaceUtils.norm(vectors).nonzero()[0]
+        new_points = np.insert(path_points[nonzero_length_indices + 1], 0, path_points[0], axis=0)
+        if self._is_ring_ and len(path_points) > 1:  # Keep one point at least.
+            new_points = new_points[:-1]
+        self._points_ = new_points
+        return self
 
     @classmethod
     def interpolate_point(

@@ -993,7 +993,6 @@ class Mobject(LazyObject):
         multi_line_string: MultiLineString | None = None,
         width: float | None = None,
         single_sided: bool | None = None,
-        has_linecap: bool | None = None,
         dilate: float | None = None,
 
         # setting configs
@@ -1027,7 +1026,6 @@ class Mobject(LazyObject):
                 "multi_line_string": multi_line_string,
                 "width": width,
                 "single_sided": single_sided,
-                "has_linecap": has_linecap,
                 "dilate": dilate
             }.items() if value is not None
         }
