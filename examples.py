@@ -8,19 +8,19 @@ class ShapeTransformExample(Scene):
     async def timeline(self) -> None:
         square = (
             Square()
-            .set_style(color=BLACK, opacity=1.0)
+            .set_style(color=WHITE, opacity=1.0)
         )
         square.add(
             square.build_stroke()
-            .set_style(color=YELLOW, width=0.1)
+            .set_style(color=YELLOW, width=0.0)
         )
         circle = (
-            RegularPolygon(5)
-            .set_style(color=BLACK, opacity=0.9)
+            Circle()
+            .set_style(color=PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=ORANGE, width=0.2)
+            .set_style(color=YELLOW)
         )
 
         self.add(square)
@@ -175,7 +175,7 @@ def main() -> None:
     config = Config()
     #config.tex.use_mathjax = True
     #config.rendering.time_span = (2.0, 3.0)
-    config.rendering.fps = 5
+    #config.rendering.fps = 10
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True

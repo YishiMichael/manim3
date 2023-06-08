@@ -67,7 +67,7 @@ class BezierCurve(BSpline):
             if bisect_depth == 4:
                 return samples
             points = gamma(samples)
-            directions = SpaceUtils.normalize(points[1:] - points[:-1])
+            directions = SpaceUtils.normalize(np.diff(points, axis=0))
             angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
             large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
             if not len(large_angle_indices):

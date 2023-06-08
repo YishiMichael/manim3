@@ -165,12 +165,12 @@ class LineString(ShapeInterpolant):
         cls,
         path_points: NP_x3f8
     ) -> NP_xf8:
-        return np.maximum(SpaceUtils.norm(path_points[1:] - path_points[:-1]), 1e-6)
+        return np.maximum(SpaceUtils.norm(np.diff(path_points, axis=0)), 1e-6)
 
     def remove_duplicate_points(self):
         # Ensure all segments have non-zero lengths.
         path_points = self._path_points_
-        vectors: NP_x3f8 = path_points[1:] - path_points[:-1]
+        vectors: NP_x3f8 = np.diff(path_points, axis=0)#path_points[1:] - path_points[:-1]
         nonzero_length_indices = SpaceUtils.norm(vectors).nonzero()[0]
         new_points = np.insert(path_points[nonzero_length_indices + 1], 0, path_points[0], axis=0)
         if self._is_ring_ and len(path_points) > 1:  # Keep one point at least.
