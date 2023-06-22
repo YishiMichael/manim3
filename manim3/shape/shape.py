@@ -207,20 +207,44 @@ class Shape(LazyObject):
     def interpolate(
         cls,
         shape_0: "Shape",
-        shape_1: "Shape",
-        *,
-        has_inlay: bool = True
+        shape_1: "Shape"
     ) -> "Callable[[float], Shape]":
-        multi_line_string_interpolate_callback = MultiLineString.interpolate(
-            shape_0._multi_line_string_,
-            shape_1._multi_line_string_,
-            has_inlay=has_inlay
+        line_string_interpolate_callbacks = MultiLineString.interpolate_pieces(
+            shape_0._multi_line_string_, shape_1._multi_line_string_, has_inlay=True
         )
 
         def callback(
             alpha: float
         ) -> Shape:
-            return Shape.from_multi_line_string(multi_line_string_interpolate_callback(alpha))
+            #multi_line_string = MultiLineString()
+            #multi_line_string._line_strings_.extend(
+            #    line_string_interpolate_callback(alpha)
+            #    for line_string_interpolate_callback in line_string_interpolate_callbacks
+            #)
+            #if has_inlay:
+            #    result._line_strings_.extend(
+            #        LineString(inlay_interpolate_callback(alpha), is_ring=True)
+            #        for inlay_interpolate_callback in inlay_interpolate_callbacks
+            #    )
+            return Shape.from_multi_line_string(MultiLineString(
+                line_string_interpolate_callback(alpha)
+                for line_string_interpolate_callback in line_string_interpolate_callbacks
+            ))
+
+        #line_string_interpolate_callbacks = MultiLineString.interpolate_pieces(
+        #    shape_0._multi_line_string_,
+        #    shape_1._multi_line_string_
+        #)
+        #multi_line_string_interpolate_callback = MultiLineString.interpolate(
+        #    shape_0._multi_line_string_,
+        #    shape_1._multi_line_string_,
+        #    has_inlay=has_inlay
+        #)
+
+        #def callback(
+        #    alpha: float
+        #) -> Shape:
+        #    return Shape.from_multi_line_string(multi_line_string_interpolate_callback(alpha))
 
         return callback
 

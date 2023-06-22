@@ -25,8 +25,8 @@ class PrismoidGeometry(Geometry):
         index_list: list[int] = []
         index_offset = 0
         for line_string in shape._multi_line_string_._line_strings_:
-            simplified_line_string = line_string._copy().remove_duplicate_points()
-            points = SpaceUtils.decrease_dimension(simplified_line_string._points_)
+            #simplified_line_string = line_string._copy().remove_duplicate_points()
+            points = SpaceUtils.decrease_dimension(line_string._points_)
             # TODO: Shall we normalize winding?
             #points_list: list[NP_2f8] = [points[0]]
             #current_point = points[0]

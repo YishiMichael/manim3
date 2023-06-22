@@ -102,7 +102,7 @@ class SpaceUtils:
         return vector / np.linalg.norm(vector, axis=1)[:, None]
 
     @classmethod
-    def _lerp(
+    def lerp(
         cls,
         tensor_0: np.ndarray,
         tensor_1: np.ndarray
@@ -123,7 +123,7 @@ class SpaceUtils:
         tensor_0: NP_f8,
         tensor_1: NP_f8
     ) -> Callable[[float], NP_f8]:
-        return cls._lerp(tensor_0, tensor_1)
+        return cls.lerp(tensor_0, tensor_1)
 
     @classmethod
     def lerp_3f8(
@@ -131,15 +131,15 @@ class SpaceUtils:
         tensor_0: NP_3f8,
         tensor_1: NP_3f8
     ) -> Callable[[float], NP_3f8]:
-        return cls._lerp(tensor_0, tensor_1)
+        return cls.lerp(tensor_0, tensor_1)
 
-    @classmethod
-    def lerp_x3f8(
-        cls,
-        tensor_0: NP_x3f8,
-        tensor_1: NP_x3f8
-    ) -> Callable[[float], NP_x3f8]:
-        return cls._lerp(tensor_0, tensor_1)
+    #@classmethod
+    #def lerp_x3f8(
+    #    cls,
+    #    tensor_0: NP_x3f8,
+    #    tensor_1: NP_x3f8
+    #) -> Callable[[NP_xf8], NP_x3f8]:
+    #    return cls.lerp(tensor_0, tensor_1)
 
     @classmethod
     def lerp_44f8(
@@ -147,15 +147,15 @@ class SpaceUtils:
         tensor_0: NP_44f8,
         tensor_1: NP_44f8
     ) -> Callable[[float], NP_44f8]:
-        return cls._lerp(tensor_0, tensor_1)
+        return cls.lerp(tensor_0, tensor_1)
 
-    @classmethod
-    def lerp_float_3f8(
-        cls,
-        tensor_0: float,
-        tensor_1: NP_3f8
-    ) -> Callable[[float | NP_3f8], NP_3f8]:
-        return cls._lerp(tensor_0 * np.ones(()), tensor_1)
+    #@classmethod
+    #def lerp_float_3f8(
+    #    cls,
+    #    tensor_0: float,
+    #    tensor_1: NP_3f8
+    #) -> Callable[[float | NP_3f8], NP_3f8]:
+    #    return cls.lerp(tensor_0 * np.ones(()), tensor_1)
 
     @overload
     @classmethod
@@ -215,7 +215,7 @@ class SpaceUtils:
         cls,
         vector: NP_3f8
     ) -> Callable[[float | NP_3f8], NP_44f8]:
-        lerp_callback = cls.lerp_float_3f8(0.0, vector)
+        lerp_callback = cls.lerp(np.zeros(()), vector)
 
         def callback(
             alpha: float | NP_3f8
@@ -233,7 +233,7 @@ class SpaceUtils:
     ) -> Callable[[float | NP_3f8], NP_44f8]:
         if not isinstance(factor, np.ndarray):
             factor *= np.ones((3,))
-        lerp_callback = cls.lerp_float_3f8(1.0, factor)
+        lerp_callback = cls.lerp(np.ones(()), factor)
 
         def callback(
             alpha: float | NP_3f8
@@ -249,7 +249,7 @@ class SpaceUtils:
         cls,
         rotvec: NP_3f8
     ) -> Callable[[float | NP_3f8], NP_44f8]:
-        lerp_callback = cls.lerp_float_3f8(0.0, rotvec)
+        lerp_callback = cls.lerp(np.zeros(()), rotvec)
 
         def callback(
             alpha: float | NP_3f8

@@ -12,7 +12,7 @@ class ShapeTransformExample(Scene):
         )
         square.add(
             square.build_stroke()
-            .set_style(color=YELLOW, width=0.0)
+            .set_style(color=YELLOW, width=0.0, single_sided=True, is_transparent=True)
         )
         circle = (
             Circle()
@@ -20,7 +20,7 @@ class ShapeTransformExample(Scene):
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=YELLOW)
+            .set_style(color=YELLOW, single_sided=True, width=1.0, dilate=2.0, is_transparent=True)
         )
 
         self.add(square)
