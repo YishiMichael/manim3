@@ -15,7 +15,7 @@ class ShapeTransformExample(Scene):
             .set_style(color=YELLOW, width=0.0, single_sided=True, is_transparent=True)
         )
         circle = (
-            Circle()
+            RegularPolygon(64)
             .set_style(color=PINK, opacity=0.9)
         )
         circle.add(
@@ -39,8 +39,8 @@ class TexTransformExample(Scene):
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, width=0.04)
-        )
+            .set_style(color=BLUE, width=0.004)
+        ).scale(3)
         tex = (
             Tex("Tex")
             .scale(2)
@@ -50,8 +50,8 @@ class TexTransformExample(Scene):
         )
         tex.add(
             tex.build_stroke()
-            .set_style(color=PINK, width=0.06)
-        )
+            .set_style(color=PINK, width=0.006)
+        ).scale(3)
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
@@ -177,9 +177,9 @@ def main() -> None:
     #config.rendering.time_span = (2.0, 3.0)
     #config.rendering.fps = 10
     #config.rendering.preview = False
-    #config.rendering.write_video = True
+    config.rendering.write_video = True
     #config.rendering.write_last_frame = True
-    #config.size.pixel_size = (960, 540)
+    config.size.pixel_size = (960, 540)
     ShapeTransformExample().render()
 
 

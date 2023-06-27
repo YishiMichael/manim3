@@ -133,14 +133,6 @@ class SpaceUtils:
     ) -> Callable[[float], NP_3f8]:
         return cls.lerp(tensor_0, tensor_1)
 
-    #@classmethod
-    #def lerp_x3f8(
-    #    cls,
-    #    tensor_0: NP_x3f8,
-    #    tensor_1: NP_x3f8
-    #) -> Callable[[NP_xf8], NP_x3f8]:
-    #    return cls.lerp(tensor_0, tensor_1)
-
     @classmethod
     def lerp_44f8(
         cls,
@@ -148,14 +140,6 @@ class SpaceUtils:
         tensor_1: NP_44f8
     ) -> Callable[[float], NP_44f8]:
         return cls.lerp(tensor_0, tensor_1)
-
-    #@classmethod
-    #def lerp_float_3f8(
-    #    cls,
-    #    tensor_0: float,
-    #    tensor_1: NP_3f8
-    #) -> Callable[[float | NP_3f8], NP_3f8]:
-    #    return cls.lerp(tensor_0 * np.ones(()), tensor_1)
 
     @overload
     @classmethod

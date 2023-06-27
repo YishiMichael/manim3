@@ -25,20 +25,8 @@ class PrismoidGeometry(Geometry):
         index_list: list[int] = []
         index_offset = 0
         for line_string in shape._multi_line_string_._line_strings_:
-            #simplified_line_string = line_string._copy().remove_duplicate_points()
             points = SpaceUtils.decrease_dimension(line_string._points_)
             # TODO: Shall we normalize winding?
-            #points_list: list[NP_2f8] = [points[0]]
-            #current_point = points[0]
-            #for point in points:
-            #    if np.isclose(SpaceUtils.norm(point - current_point), 0.0):
-            #        continue
-            #    current_point = point
-            #    points_list.append(point)
-            #if np.isclose(SpaceUtils.norm(current_point - points[0]), 0.0):
-            #    points_list.pop()
-            #if len(points_list) <= 1:
-            #    continue
 
             # Assemble side faces.
             triplets: list[tuple[int, NP_2f8, NP_2f8]] = []

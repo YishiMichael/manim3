@@ -32,7 +32,7 @@ class RegularPolygon(Polygon):
         super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)
 
 
-class Triangle(RegularPolygon):
+class Triangle(RegularPolygon):  # TODO: remove
     __slots__ = ()
 
     def __init__(self) -> None:
@@ -40,7 +40,7 @@ class Triangle(RegularPolygon):
         self.rotate(PI / 2.0 * OUT)
 
 
-class Square(RegularPolygon):
+class Square(RegularPolygon):  # TODO
     __slots__ = ()
 
     def __init__(self) -> None:
