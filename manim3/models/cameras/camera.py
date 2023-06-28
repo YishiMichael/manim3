@@ -1,5 +1,6 @@
 import numpy as np
 
+
 from ...config import Config
 from ...constants import (
     ORIGIN,
@@ -17,10 +18,10 @@ from ...custom_typing import (
 from ...lazy.lazy import Lazy
 from ...rendering.gl_buffer import UniformBlockBuffer
 from ...utils.space import SpaceUtils
-from ..mobject import Mobject
+from ..model import Model
 
 
-class Camera(Mobject):
+class Camera(Model):
     __slots__ = ()
 
     def __init__(self) -> None:

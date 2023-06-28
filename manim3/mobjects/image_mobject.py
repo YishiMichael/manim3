@@ -2,10 +2,7 @@ import numpy as np
 from PIL import Image
 
 from ..config import Config
-from ..rendering.framebuffer import (
-    OpaqueFramebuffer,
-    TransparentFramebuffer
-)
+from ..rendering.framebuffer import OITFramebuffer
 from ..rendering.texture import TextureFactory
 from ..utils.space import SpaceUtils
 from .mesh_mobject import MeshMobject
@@ -42,7 +39,7 @@ class ImageMobject(MeshMobject):
 
     def _render(
         self,
-        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
+        target_framebuffer: OITFramebuffer
     ) -> None:
         image = self._image
         with TextureFactory.texture(size=image.size) as color_texture:

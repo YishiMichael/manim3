@@ -10,10 +10,9 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffer import (
-    OpaqueFramebuffer,
-    TransparentFramebuffer
-)
+from ..models.lights.ambient_light import AmbientLight
+from ..models.lights.lighting import Lighting
+from ..rendering.framebuffer import OITFramebuffer
 from ..rendering.gl_buffer import (
     TextureIdBuffer,
     UniformBlockBuffer
@@ -23,21 +22,24 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.space import SpaceUtils
-from .mobject import MobjectStyleMeta
-from .renderable_mobject import RenderableMobject
+from .mobject import (
+    Mobject,
+    StyleMeta
+)
+#from .renderable_mobject import RenderableMobject
 
 
-class MeshMobject(RenderableMobject):
+class MeshMobject(Mobject):
     __slots__ = ()
 
-    @MobjectStyleMeta.register()
+    @StyleMeta.register()
     @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
         # Default for `ImageMobject`, `ChildSceneMobject`.
         return PlaneGeometry()
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_3f8
     )
     @Lazy.variable_array
@@ -45,27 +47,40 @@ class MeshMobject(RenderableMobject):
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
+        return (1.0 - 2 ** (-32)) * np.ones(())
+
+    @StyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_f8
+    )
+    @Lazy.variable_array
+    @classmethod
+    def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectStyleMeta.register()
+    @StyleMeta.register()
     @Lazy.variable_external
     @classmethod
     def _color_maps_(cls) -> list[moderngl.Texture]:
         return []
 
-    @MobjectStyleMeta.register()
-    @Lazy.variable_hashable
-    @classmethod
-    def _enable_phong_lighting_(cls) -> bool:
-        return True
+    #@StyleMeta.register()
+    #@Lazy.variable_hashable
+    #@classmethod
+    #def _enable_phong_lighting_(cls) -> bool:
+    #    return True
 
-    @MobjectStyleMeta.register(
+    @Lazy.variable
+    @classmethod
+    def _lighting_(cls) -> Lighting:
+        return Lighting(AmbientLight())
+
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -73,7 +88,7 @@ class MeshMobject(RenderableMobject):
     def _ambient_strength_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -81,7 +96,7 @@ class MeshMobject(RenderableMobject):
     def _specular_strength_(cls) -> NP_f8:
         return Config().style.mesh_specular_strength * np.ones(())
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -89,11 +104,11 @@ class MeshMobject(RenderableMobject):
     def _shininess_(cls) -> NP_f8:
         return Config().style.mesh_shininess * np.ones(())
 
-    @Lazy.variable
-    @classmethod
-    def _lighting_uniform_block_buffer_(cls) -> UniformBlockBuffer:
-        # Keep updated with `Scene._lighting._lighting_uniform_block_buffer_`.
-        return NotImplemented
+    #@Lazy.variable
+    #@classmethod
+    #def _lighting_uniform_block_buffer_(cls) -> UniformBlockBuffer:
+    #    # Keep updated with `Scene._lighting._lighting_uniform_block_buffer_`.
+    #    return NotImplemented
 
     @Lazy.property_array
     @classmethod
@@ -109,6 +124,7 @@ class MeshMobject(RenderableMobject):
         cls,
         color: NP_3f8,
         opacity: NP_f8,
+        weight: NP_f8,
         ambient_strength: NP_f8,
         specular_strength: NP_f8,
         shininess: NP_f8
@@ -116,13 +132,17 @@ class MeshMobject(RenderableMobject):
         return UniformBlockBuffer(
             name="ub_material",
             fields=[
-                "vec4 u_color",
+                "vec3 u_color",
+                "float u_opacity",
+                "float u_weight",
                 "float u_ambient_strength",
                 "float u_specular_strength",
                 "float u_shininess"
             ],
             data={
-                "u_color": np.append(color, opacity),
+                "u_color": color,
+                "u_opacity": opacity,
+                "u_weight": weight,
                 "u_ambient_strength": ambient_strength,
                 "u_specular_strength": specular_strength,
                 "u_shininess": shininess
@@ -133,23 +153,23 @@ class MeshMobject(RenderableMobject):
     @classmethod
     def _mesh_vertex_array_(
         cls,
-        is_transparent: bool,
-        enable_phong_lighting: bool,
+        #is_transparent: bool,
+        #enable_phong_lighting: bool,
         color_maps: list[moderngl.Texture],
-        camera_uniform_block_buffer: UniformBlockBuffer,
-        lighting_uniform_block_buffer: UniformBlockBuffer,
+        camera__camera_uniform_block_buffer: UniformBlockBuffer,
+        lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
         geometry__indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
-        custom_macros: list[str] = []
-        if is_transparent:
-            custom_macros.append("#define IS_TRANSPARENT")
-        phong_lighting_subroutine = "enable_phong_lighting" if enable_phong_lighting else "disable_phong_lighting"
-        custom_macros.append(f"#define phong_lighting_subroutine {phong_lighting_subroutine}")
+        #custom_macros: list[str] = []
+        #if is_transparent:
+        #    custom_macros.append("#define IS_TRANSPARENT")
+        #phong_lighting_subroutine = "enable_phong_lighting" if enable_phong_lighting else "disable_phong_lighting"
+        #custom_macros.append(f"#define phong_lighting_subroutine {phong_lighting_subroutine}")
         return VertexArray(
             shader_filename="mesh",
-            custom_macros=custom_macros,
+            #custom_macros=custom_macros,
             texture_id_buffers=[
                 TextureIdBuffer(
                     field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",
@@ -159,8 +179,8 @@ class MeshMobject(RenderableMobject):
                 )
             ],
             uniform_block_buffers=[
-                camera_uniform_block_buffer,
-                lighting_uniform_block_buffer,
+                camera__camera_uniform_block_buffer,
+                lighting__lighting_uniform_block_buffer,
                 model_uniform_block_buffer,
                 material_uniform_block_buffer
             ],
@@ -169,7 +189,7 @@ class MeshMobject(RenderableMobject):
 
     def _render(
         self,
-        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
+        target_framebuffer: OITFramebuffer
     ) -> None:
         self._mesh_vertex_array_.render(
             framebuffer=target_framebuffer,

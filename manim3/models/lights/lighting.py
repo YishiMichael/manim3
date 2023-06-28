@@ -12,6 +12,17 @@ from .point_light import PointLight
 class Lighting(LazyObject):
     __slots__ = ()
 
+    def __init__(
+        self,
+        *lights: AmbientLight | PointLight
+    ) -> None:
+        super().__init__()
+        for light in lights:
+            if isinstance(light, AmbientLight):
+                self._ambient_lights_.append(light)
+            else:
+                self._point_lights_.append(light)
+
     @Lazy.variable_collection
     @classmethod
     def _ambient_lights_(cls) -> list[AmbientLight]:
@@ -37,11 +48,11 @@ class Lighting(LazyObject):
             ],
             child_structs={
                 "AmbientLight": [
-                    "vec4 color"
+                    "vec3 color"
                 ],
                 "PointLight": [
                     "vec3 position",
-                    "vec4 color"
+                    "vec3 color"
                 ]
             },
             array_lens={
@@ -50,7 +61,7 @@ class Lighting(LazyObject):
             },
             data={
                 "u_ambient_lights.color": np.array([
-                    np.append(ambient_light._color_, ambient_light._opacity_)
+                    ambient_light._color_
                     for ambient_light in ambient_lights
                 ]),
                 "u_point_lights.position": np.array([
@@ -58,7 +69,7 @@ class Lighting(LazyObject):
                     for point_light in point_lights
                 ]),
                 "u_point_lights.color": np.array([
-                    np.append(point_light._color_, point_light._opacity_)
+                    point_light._color_
                     for point_light in point_lights
                 ])
             }

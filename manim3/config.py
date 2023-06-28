@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 import pathlib
 import sys
-from typing import (
-    ClassVar,
-    Literal
-)
+from typing import ClassVar
 
 from colour import Color
 
@@ -137,7 +134,6 @@ class SizeConfig:
     slots=True
 )
 class CameraConfig:
-    camera_type: Literal["PerspectiveCamera", "OrthographicCamera"]
     altitude: float
     near: float
     far: float
@@ -217,7 +213,6 @@ class Config:
             window_pixel_height=540
         )
         self._camera: CameraConfig = CameraConfig(
-            camera_type="PerspectiveCamera",
             altitude=5.0,
             near=0.1,
             far=100.0

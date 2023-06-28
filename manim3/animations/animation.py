@@ -21,10 +21,10 @@ from PIL import Image
 from ..config import Config
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
-from ..mobjects.cameras.camera import Camera
-from ..mobjects.cameras.orthographic_camera import OrthographicCamera
-from ..mobjects.cameras.perspective_camera import PerspectiveCamera
-from ..mobjects.lighting.lighting import Lighting
+#from ..mobjects.cameras.camera import Camera
+#from ..mobjects.cameras.orthographic_camera import OrthographicCamera
+#from ..mobjects.cameras.perspective_camera import PerspectiveCamera
+#from ..mobjects.lights.lighting import Lighting
 from ..mobjects.mobject import Mobject
 from ..mobjects.frame_mobject import FrameMobject
 from ..passes.render_pass import RenderPass
@@ -278,14 +278,16 @@ class Scene(Animation):
         )
         self._scene_ref = weakref.ref(self)
 
-        match Config().camera.camera_type:
-            case "PerspectiveCamera":
-                camera = PerspectiveCamera()
-            case "OrthographicCamera":
-                camera = OrthographicCamera()
+        #if Mobject._camera_.default_container is None:
+        #    match Config().camera.camera_type:
+        #        case "PerspectiveCamera":
+        #            camera = PerspectiveCamera()
+        #        case "OrthographicCamera":
+        #            camera = OrthographicCamera()
+        #    Mobject._camera_.set_default(camera)
         self._scene_frame: FrameMobject = FrameMobject(
-            camera=camera,
-            lighting=Lighting()
+            #camera=camera,
+            #lighting=Lighting()
         )
         self.set_background(
             color=Config().style.background_color
@@ -473,16 +475,16 @@ class Scene(Animation):
     def render_passes(self) -> LazyDynamicContainer[RenderPass]:
         return self._scene_frame._render_passes_
 
-    @property
-    def camera(self) -> Camera:
-        return self._scene_frame._camera_
+    #@property
+    #def camera(self) -> Camera:
+    #    return self._scene_frame._camera_
 
-    def set_camera(
-        self,
-        camera: Camera
-    ):
-        self._scene_frame._camera_ = camera
-        return self
+    #def set_camera(
+    #    self,
+    #    camera: Camera
+    #):
+    #    self._scene_frame._camera_ = camera
+    #    return self
 
     def render(self) -> None:
         try:

@@ -2,7 +2,7 @@ from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
 from ..shape.shape import Shape
 from .mesh_mobject import MeshMobject
-from .mobject import MobjectStyleMeta
+from .mobject import StyleMeta
 from .stroke_mobject import StrokeMobject
 
 
@@ -16,9 +16,9 @@ class ShapeMobject(MeshMobject):
         super().__init__()
         if shape is not None:
             self._shape_ = shape
-        self._enable_phong_lighting_ = False
+        #self._enable_phong_lighting_ = False
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         partial_method=Shape.partial,
         interpolate_method=Shape.interpolate,
         concatenate_method=Shape.concatenate
@@ -40,7 +40,8 @@ class ShapeMobject(MeshMobject):
         stroke = StrokeMobject()
         stroke._model_matrix_ = self._model_matrix_
         stroke._multi_line_string_ = self._shape_._multi_line_string_
-        stroke._is_transparent_ = self._is_transparent_
+        #stroke._is_transparent_ = self._is_transparent_
         stroke._color_ = self._color_
         stroke._opacity_ = self._opacity_
+        stroke._weight_ = self._weight_
         return stroke

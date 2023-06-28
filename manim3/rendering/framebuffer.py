@@ -34,35 +34,35 @@ class Framebuffer:
         self.default_context_state: ContextState = default_context_state
 
 
-class OpaqueFramebuffer(Framebuffer):
-    __slots__ = (
-        "color_texture",
-        "depth_texture"
-    )
+#class OpaqueFramebuffer(Framebuffer):
+#    __slots__ = (
+#        "color_texture",
+#        "depth_texture"
+#    )
 
-    def __init__(
-        self,
-        *,
-        color_texture: moderngl.Texture,
-        depth_texture: moderngl.Texture
-    ) -> None:
-        super().__init__(
-            color_attachments=(color_texture,),
-            depth_attachment=depth_texture,
-            default_context_state=ContextState(
-                flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-                blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
-            )
-        )
-        self.color_texture: moderngl.Texture = color_texture
-        self.depth_texture: moderngl.Texture = depth_texture
+#    def __init__(
+#        self,
+#        *,
+#        color_texture: moderngl.Texture,
+#        depth_texture: moderngl.Texture
+#    ) -> None:
+#        super().__init__(
+#            color_attachments=(color_texture,),
+#            depth_attachment=depth_texture,
+#            default_context_state=ContextState(
+#                flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
+#                blend_funcs=((BlendFunc.ONE, BlendFunc.ZERO),)
+#            )
+#        )
+#        self.color_texture: moderngl.Texture = color_texture
+#        self.depth_texture: moderngl.Texture = depth_texture
 
 
-class TransparentFramebuffer(Framebuffer):
+class OITFramebuffer(Framebuffer):
     __slots__ = (
         "accum_texture",
-        "revealage_texture",
-        "depth_texture"
+        "revealage_texture"
+        #"depth_texture"
     )
 
     def __init__(
@@ -70,20 +70,20 @@ class TransparentFramebuffer(Framebuffer):
         *,
         accum_texture: moderngl.Texture,
         revealage_texture: moderngl.Texture,
-        depth_texture: moderngl.Texture
+        #depth_texture: moderngl.Texture
     ) -> None:
         super().__init__(
             color_attachments=(accum_texture, revealage_texture),
-            depth_attachment=depth_texture,
+            #depth_attachment=depth_texture,
             default_context_state=ContextState(
-                flags=(ContextFlag.BLEND, ContextFlag.DEPTH_TEST),
-                blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ZERO, BlendFunc.ONE_MINUS_SRC_COLOR)),
+                flags=(ContextFlag.BLEND,),
+                blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ONE, BlendFunc.ONE)),
                 blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
             )
         )
         self.accum_texture: moderngl.Texture = accum_texture
         self.revealage_texture: moderngl.Texture = revealage_texture
-        self.depth_texture: moderngl.Texture = depth_texture
+        #self.depth_texture: moderngl.Texture = depth_texture
 
 
 class ColorFramebuffer(Framebuffer):
@@ -96,7 +96,7 @@ class ColorFramebuffer(Framebuffer):
     ) -> None:
         super().__init__(
             color_attachments=(color_texture,),
-            depth_attachment=None,
+            #depth_attachment=None,
             default_context_state=ContextState(
                 flags=()
             )

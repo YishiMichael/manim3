@@ -8,10 +8,7 @@ from ..custom_typing import (
     NP_xu4
 )
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffer import (
-    OpaqueFramebuffer,
-    TransparentFramebuffer
-)
+from ..rendering.framebuffer import OITFramebuffer
 from ..rendering.gl_buffer import (
     AttributesBuffer,
     IndexBuffer,
@@ -24,11 +21,14 @@ from ..rendering.vertex_array import (
 )
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
-from .mobject import MobjectStyleMeta
-from .renderable_mobject import RenderableMobject
+from .mobject import (
+    Mobject,
+    StyleMeta
+)
+#from .renderable_mobject import RenderableMobject
 
 
-class StrokeMobject(RenderableMobject):
+class StrokeMobject(Mobject):
     __slots__ = ()
 
     def __init__(
@@ -39,7 +39,7 @@ class StrokeMobject(RenderableMobject):
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         partial_method=MultiLineString.partial,
         interpolate_method=MultiLineString.interpolate,
         concatenate_method=MultiLineString.concatenate
@@ -49,7 +49,7 @@ class StrokeMobject(RenderableMobject):
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_3f8
     )
     @Lazy.variable_array
@@ -57,15 +57,23 @@ class StrokeMobject(RenderableMobject):
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
+        return (1.0 - 2 ** (-32)) * np.ones(())
+
+    @StyleMeta.register(
+        interpolate_method=SpaceUtils.lerp_f8
+    )
+    @Lazy.variable_array
+    @classmethod
+    def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectStyleMeta.register(
+    @StyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -73,19 +81,19 @@ class StrokeMobject(RenderableMobject):
     def _width_(cls) -> NP_f8:
         return Config().style.stroke_width * np.ones(())
 
-    @MobjectStyleMeta.register()
-    @Lazy.variable_hashable
-    @classmethod
-    def _single_sided_(cls) -> bool:
-        return False
+    #@StyleMeta.register()
+    #@Lazy.variable_hashable
+    #@classmethod
+    #def _single_sided_(cls) -> bool:
+    #    return False
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_f8
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _dilate_(cls) -> NP_f8:
-        return np.zeros(())
+    #@StyleMeta.register(
+    #    interpolate_method=SpaceUtils.lerp_f8
+    #)
+    #@Lazy.variable_array
+    #@classmethod
+    #def _dilate_(cls) -> NP_f8:
+    #    return np.zeros(())
 
     @Lazy.property_array
     @classmethod
@@ -103,20 +111,25 @@ class StrokeMobject(RenderableMobject):
         cls,
         color: NP_3f8,
         opacity: NP_f8,
-        width: NP_f8,
-        dilate: NP_f8
+        weight: NP_f8,
+        width: NP_f8
+        #dilate: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
             fields=[
-                "vec4 u_color",
-                "float u_width",
-                "float u_dilate"
+                "vec3 u_color",
+                "float u_opacity",
+                "float u_weight",
+                "float u_width"
+                #"float u_dilate"
             ],
             data={
-                "u_color": np.append(color, opacity),
-                "u_width": width,
-                "u_dilate": dilate
+                "u_color": color,
+                "u_opacity": opacity,
+                "u_weight": weight,
+                "u_width": width
+                #"u_dilate": dilate
             }
         )
 
@@ -132,32 +145,28 @@ class StrokeMobject(RenderableMobject):
             points_len: int,
             is_ring: bool
         ) -> NP_xu4:
-            if points_len == 1:
-                #  0  0  0  0
-                return np.zeros((4,), dtype=np.uint32)
+            arange = np.arange(points_len).astype(np.uint32)
             if not is_ring:
-                #  0  0  1  2
-                #  0  1  2  3
-                # ...........
-                # -4 -3 -2 -1
-                # -3 -2 -1 -1
-                index = (np.arange(-1, 3) + np.arange(points_len - 1)[:, None]).flatten()
-                index[0] = 0
-                index[-1] = points_len - 1
-                return index.astype(np.uint32)
-            # -1  0  1  2
-            #  0  1  2  3
-            #  1  2  3  4
-            # ...........
-            # -4 -3 -2 -1
-            # -3 -2 -1  0
-            # -2 -1  0  1
-            index = (np.arange(-1, 3) + np.arange(points_len)[:, None]).flatten()
-            index[0] = points_len - 1
-            index[-5] = 0
-            index[-2] = 0
-            index[-1] = 1
-            return index.astype(np.uint32)
+                arange = arange[:-1]
+            return np.vstack((arange, np.roll(arange, -1))).T.flatten()
+            #if not is_ring:
+            #    #  0  1
+            #    #  1  2
+            #    # .....
+            #    # -3 -2
+            #    # -2 -1
+            #    index = (np.arange(2) + np.arange(points_len - 1)[:, None]).flatten()
+            #    return index.astype(np.uint32)
+            ##  0  1
+            ##  1  2
+            ##  2  3
+            ## .....
+            ## -3 -2
+            ## -2 -1
+            ## -1  0
+            #index = (np.arange(2) + np.arange(points_len)[:, None]).flatten()
+            #index[-1] = 0
+            #return index.astype(np.uint32)
 
         if not multi_line_string__line_strings__points:
             index = np.zeros(0, dtype=np.uint32)
@@ -189,30 +198,30 @@ class StrokeMobject(RenderableMobject):
             index_buffer=IndexBuffer(
                 data=index
             ),
-            mode=PrimitiveMode.LINES_ADJACENCY
+            mode=PrimitiveMode.LINES
         )
 
     @Lazy.property
     @classmethod
     def _stroke_vertex_array_(
         cls,
-        camera_uniform_block_buffer: UniformBlockBuffer,
+        camera__camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         stroke_uniform_block_buffer: UniformBlockBuffer,
-        is_transparent: bool,
-        single_sided: bool,
+        #is_transparent: bool,
+        #single_sided: bool,
         stroke_indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
 
-        subroutine_name = "single_sided" if single_sided else "both_sided"
-        custom_macros = [f"#define stroke_subroutine {subroutine_name}"]
-        if is_transparent:
-            custom_macros.append("#define IS_TRANSPARENT")
+        #subroutine_name = "single_sided" if single_sided else "both_sided"
+        #custom_macros = [f"#define stroke_subroutine {subroutine_name}"]
+        #if is_transparent:
+        #    custom_macros.append("#define IS_TRANSPARENT")
         return VertexArray(
             shader_filename="stroke",
-            custom_macros=custom_macros,
+            #custom_macros=custom_macros,
             uniform_block_buffers=[
-                camera_uniform_block_buffer,
+                camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,
                 stroke_uniform_block_buffer
             ],
@@ -221,7 +230,7 @@ class StrokeMobject(RenderableMobject):
 
     def _render(
         self,
-        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
+        target_framebuffer: OITFramebuffer
     ) -> None:
         self._stroke_vertex_array_.render(
             framebuffer=target_framebuffer

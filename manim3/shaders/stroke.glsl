@@ -7,13 +7,15 @@ layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
 layout (std140) uniform ub_stroke {
-    vec4 u_color;
+    vec3 u_color;
+    float u_opacity;
+    float u_weight;
     float u_width;
-    float u_dilate;
+    //float u_dilate;
 };
 
-const float PI_HALF = acos(0.0);
-const float PI = PI_HALF * 2.0;
+//const float PI_HALF = acos(0.0);
+//const float PI = PI_HALF * 2.0;
 
 
 /***********************/
@@ -42,17 +44,23 @@ in VS_GS {
     vec4 view_position;
 } gs_in[];
 
+//out GS_FS {
+//    vec2 offset_vector;
+//} gs_out;
 out GS_FS {
-    vec2 offset_vector;
+    float x0;  // [-1, l + 1]
+    float x1;  // [-1, l + 1]
+    float y;   // [-1, 1]
 } gs_out;
 
 
-layout (lines_adjacency) in;
-layout (triangle_strip, max_vertices = 24) out;
+layout (lines) in;
+layout (triangle_strip, max_vertices = 4) out;
 
 
-const float width = abs(u_width);
-const float width_sign = sign(u_width);
+/*
+//const float width = abs(u_width);
+//const float width_sign = sign(u_width);
 
 
 // Polar representation of a 2d vector.
@@ -76,8 +84,8 @@ Polar to_polar(vec2 vector) {
 }
 
 
-vec3 get_position(vec4 view_position) {
-    return view_position.xyz / view_position.w * vec3(u_frame_radii, 1.0);
+vec2 get_position_2d(vec4 view_position) {
+    return view_position.xy / view_position.w * vec3(u_frame_radii, 1.0);
 }
 
 
@@ -181,6 +189,43 @@ void main() {
     float diff_angle_1 = polar_next.magnitude != 0.0 ? polar_next.angle - polar.angle : PI;
     stroke_subroutine(polar, position_0, position_1, diff_angle_0, diff_angle_1);
 }
+*/
+
+
+vec2 get_position_2d(vec4 view_position) {
+    return view_position.xy / view_position.w * u_frame_radii;
+}
+
+
+void emit_position_2d(vec2 position, vec2 offset, float x0, float x1, float y) {
+    gs_out.x0 = x0;
+    gs_out.x1 = x1;
+    gs_out.y = y;
+    gl_Position = vec4((position + u_width * offset) / u_frame_radii, 0.0, 1.0);
+    EmitVertex();
+}
+
+
+void main() {
+    vec2 position_0 = get_position_2d(gs_in[0].view_position);
+    vec2 position_1 = get_position_2d(gs_in[1].view_position);
+    vec2 vector = position_1 - position_0;
+    float magnitude = length(vector);
+    if (magnitude == 0.0) {
+        return;
+    }
+
+    vec2 unit_vector = vector / magnitude;
+    mat2 direction_transform = mat2(
+        unit_vector.x, unit_vector.y,
+        -unit_vector.y, unit_vector.x
+    );
+    emit_position_2d(position_0, vec2(-1.0, +1.0) * direction_transform, -1.0, magnitude + 1.0, +1.0);
+    emit_position_2d(position_0, vec2(-1.0, -1.0) * direction_transform, -1.0, magnitude + 1.0, -1.0);
+    emit_position_2d(position_1, vec2(+1.0, +1.0) * direction_transform, magnitude + 1.0, -1.0, +1.0);
+    emit_position_2d(position_1, vec2(+1.0, -1.0) * direction_transform, magnitude + 1.0, -1.0, -1.0);
+    EndPrimitive();
+}
 
 
 /***************************/
@@ -188,33 +233,60 @@ void main() {
 /***************************/
 
 
+//in GS_FS {
+//    vec2 offset_vector;
+//} fs_in;
 in GS_FS {
-    vec2 offset_vector;
+    float x0;
+    float x1;
+    float y;
 } fs_in;
 
-#if defined IS_TRANSPARENT
+//#if defined IS_TRANSPARENT
 out vec4 frag_accum;
 out float frag_revealage;
-#else
-out vec4 frag_color;
-#endif
+//#else
+//out vec4 frag_color;
+//#endif
+
+
+//void main() {
+//    float dilate_base = 1.0 - length(fs_in.offset_vector);
+//    if (dilate_base <= 0.0) {
+//        discard;
+//    }
+//    vec4 color = u_color;
+//    color.a *= pow(dilate_base, u_dilate);
+
+//    #if defined IS_TRANSPARENT
+//    frag_accum = color;
+//    frag_accum.rgb *= color.a;
+//    frag_revealage = color.a;
+//    #else
+//    frag_color = color;
+//    #endif
+//}
+
+
+float get_opacity_factor(float x0, float x1, float y) {
+    float s = sqrt(1.0 - y * y);
+    if (x0 + s <= 0.0 || x1 + s <= 0.0) {
+        return 0.0;
+    }
+    float r0 = min(x0, s);
+    float r1 = min(x1, s);
+    return (3.0 * s * s * (r0 + r1) - (r0 * r0 * r0 + r1 * r1 * r1)) / 4.0;
+}
 
 
 void main() {
-    float dilate_base = 1.0 - length(fs_in.offset_vector);
-    if (dilate_base <= 0.0) {
+    float opacity = get_opacity_factor(fs_in.x0, fs_in.x1, fs_in.y);
+    if (opacity == 0.0) {
         discard;
     }
-    vec4 color = u_color;
-    color.a *= pow(dilate_base, u_dilate);
-
-    #if defined IS_TRANSPARENT
-    frag_accum = color;
-    frag_accum.rgb *= color.a;
-    frag_revealage = color.a;
-    #else
-    frag_color = color;
-    #endif
+    opacity *= u_opacity;
+    frag_accum = vec4(u_weight * opacity * u_color, u_weight * opacity);
+    frag_revealage = u_weight * log2(1.0 - opacity);
 }
 
 

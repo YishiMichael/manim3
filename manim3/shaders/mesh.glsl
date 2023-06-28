@@ -1,9 +1,9 @@
 struct AmbientLight {
-    vec4 color;
+    vec3 color;
 };
 struct PointLight {
     vec3 position;
-    vec4 color;
+    vec3 color;
 };
 
 #if NUM_T_COLOR_MAPS
@@ -29,7 +29,9 @@ layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
 layout (std140) uniform ub_material {
-    vec4 u_color;
+    vec3 u_color;
+    float u_opacity;
+    float u_weight;
     float u_ambient_strength;
     float u_specular_strength;
     float u_shininess;
@@ -71,35 +73,32 @@ in VS_FS {
     vec2 uv;
 } fs_in;
 
-#if defined IS_TRANSPARENT
+//#if defined IS_TRANSPARENT
 out vec4 frag_accum;
 out float frag_revealage;
-#else
-out vec4 frag_color;
-#endif
+//#else
+//out vec4 frag_color;
+//#endif
 
 
-vec4 enable_phong_lighting() {
+vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
     // From `https://learnopengl.com/Lighting/Basic-Lighting`
-    vec3 world_position = fs_in.world_position;
-    vec3 normal = normalize(fs_in.world_normal);
-
-    vec4 ambient = vec4(0.0);
+    vec3 ambient = vec3(0.0);
     #if NUM_U_AMBIENT_LIGHTS
     for (int i = 0; i < NUM_U_AMBIENT_LIGHTS; ++i) {
         ambient += u_ambient_lights[i].color;
     }
     #endif
 
-    vec4 diffuse = vec4(0.0);
-    vec4 specular = vec4(0.0);
+    vec3 diffuse = vec3(0.0);
+    vec3 specular = vec3(0.0);
     #if NUM_U_POINT_LIGHTS
     for (int i = 0; i < NUM_U_POINT_LIGHTS; ++i) {
         PointLight point_light = u_point_lights[i];
         vec3 light_direction = normalize(point_light.position - world_position);
-        diffuse += max(dot(normal, light_direction), 0.0) * point_light.color;
+        diffuse += max(dot(world_normal, light_direction), 0.0) * point_light.color;
         vec3 view_direction = normalize(u_view_position - world_position);
-        vec3 reflect_direction = reflect(-light_direction, normal);
+        vec3 reflect_direction = reflect(-light_direction, world_normal);
         specular += pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
     }
     #endif
@@ -107,13 +106,13 @@ vec4 enable_phong_lighting() {
 }
 
 
-vec4 disable_phong_lighting() {
-    return vec4(1.0);
-}
+//vec4 disable_phong_lighting() {
+//    return vec4(1.0);
+//}
 
 
 void main() {
-    vec4 color = phong_lighting_subroutine();
+    vec3 color = get_color_factor(fs_in.world_position, normalize(fs_in.world_normal));
     color *= u_color;
     #if NUM_T_COLOR_MAPS
     for (int i = 0; i < NUM_T_COLOR_MAPS; ++i) {
@@ -121,13 +120,15 @@ void main() {
     }
     #endif
 
-    #if defined IS_TRANSPARENT
-    frag_accum = color;
-    frag_accum.rgb *= color.a;
-    frag_revealage = color.a;
-    #else
-    frag_color = color;
-    #endif
+    //#if defined IS_TRANSPARENT
+    //frag_accum = color;
+    //frag_accum.rgb *= color.a;
+    //frag_revealage = color.a;
+    //#else
+    //frag_color = color;
+    //#endif
+    frag_accum = vec4(u_weight * u_opacity * color, u_weight * u_opacity);
+    frag_revealage = u_weight * log2(1.0 - u_opacity);
 }
 
 

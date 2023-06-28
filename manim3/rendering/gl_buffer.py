@@ -98,7 +98,8 @@ class AtomicBufferFormat(BufferFormat):
         base_ndim: int,
         n_col: int,
         n_row: int,
-        row_itemsize_factor: int
+        base_alignment_factor: int,
+        row_factor: int
     ) -> None:
         super().__init__(
             name=name,
@@ -109,7 +110,8 @@ class AtomicBufferFormat(BufferFormat):
         self._base_ndim_ = base_ndim
         self._n_col_ = n_col
         self._n_row_ = n_row
-        self._row_itemsize_factor_ = row_itemsize_factor
+        self._base_alignment_factor_ = base_alignment_factor
+        self._row_factor_ = row_factor
 
     @Lazy.variable_hashable
     @classmethod
@@ -138,17 +140,31 @@ class AtomicBufferFormat(BufferFormat):
 
     @Lazy.variable_hashable
     @classmethod
-    def _row_itemsize_factor_(cls) -> int:
+    def _base_alignment_factor_(cls) -> int:
         return 0
+
+    @Lazy.variable_hashable
+    @classmethod
+    def _row_factor_(cls) -> int:
+        return 0
+
+    @Lazy.property_hashable
+    @classmethod
+    def _base_alignment_(
+        cls,
+        base_alignment_factor: int,
+        base_itemsize: int
+    ) -> int:
+        return base_alignment_factor * base_itemsize
 
     @Lazy.property_hashable
     @classmethod
     def _row_itemsize_(
         cls,
-        row_itemsize_factor: int,
+        row_factor: int,
         base_itemsize: int
     ) -> int:
-        return row_itemsize_factor * base_itemsize
+        return row_factor * base_itemsize
 
     @Lazy.property_hashable
     @classmethod
@@ -342,9 +358,11 @@ class GLBuffer(LazyObject):
             n_col = shape_dict.get(0, 1)
             n_row = shape_dict.get(1, 1)
             if layout == GLBufferLayout.STD140:
-                row_itemsize_factor = n_col if not shape and n_col <= 2 and n_row == 1 else 4
+                base_alignment_factor = n_col if not shape and n_col <= 2 and n_row == 1 else 4
+                row_factor = n_col if not shape and n_row == 1 else 4
             else:
-                row_itemsize_factor = n_col
+                base_alignment_factor = n_col
+                row_factor = n_col
             return AtomicBufferFormat(
                 name=name,
                 shape=shape,
@@ -353,7 +371,8 @@ class GLBuffer(LazyObject):
                 base_ndim=len(base_shape),
                 n_col=n_col,
                 n_row=n_row,
-                row_itemsize_factor=row_itemsize_factor
+                base_alignment_factor=base_alignment_factor,
+                row_factor=row_factor
             )
 
         def get_structured_format(
@@ -367,7 +386,7 @@ class GLBuffer(LazyObject):
             for child in children:
                 if layout == GLBufferLayout.STD140:
                     if isinstance(child, AtomicBufferFormat):
-                        base_alignment = child._row_itemsize_
+                        base_alignment = child._base_alignment_
                     elif isinstance(child, StructuredBufferFormat):
                         base_alignment = structured_base_alignment
                     else:

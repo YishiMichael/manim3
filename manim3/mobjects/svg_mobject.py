@@ -120,13 +120,13 @@ class SVGMobject(ShapeMobject):
 
         # TODO: handle strokes, etc.
         self.add(*(
-            shape_mobject.set_style(
+            ShapeMobject(
+                self._get_shape_from_se_shape(shape * transform)
+            ).set_style(
                 color=fill.hex if (fill := shape.fill) is not None else None
             )
             for shape in svg.elements()
-            if isinstance(shape, se.Shape) and (
-                shape_mobject := ShapeMobject(self._get_shape_from_se_shape(shape * transform))
-            )._has_local_sample_points_
+            if isinstance(shape, se.Shape)
         ))
 
     @classmethod

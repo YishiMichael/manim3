@@ -512,10 +512,14 @@ class StringParser(ABC):
                 stop_index=len(content_replaced_pieces)
             )
             svg_path = file_writer.get_svg_file(content)
-            return SVGMobject(
+            svg_mobject = SVGMobject(
                 file_path=svg_path,
                 frame_scale=frame_scale
-            ).iter_children_by_type(mobject_type=ShapeMobject)
+            )
+            for mobject in svg_mobject:
+                if isinstance(mobject, ShapeMobject):
+                    yield mobject
+            #return .iter_children_by_type(mobject_type=ShapeMobject)
 
         plain_shapes_iterator = iter_shape_mobjects(is_labelled=False)
         if labels_count == 1:

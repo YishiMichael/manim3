@@ -14,58 +14,59 @@ from ..rendering.context import (
 from ..rendering.framebuffer import (
     ColorFramebuffer,
     Framebuffer,
-    OpaqueFramebuffer,
-    TransparentFramebuffer
+    OITFramebuffer
+    #OpaqueFramebuffer,
+    #TransparentFramebuffer
 )
 from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-from .cameras.camera import Camera
-from .lighting.ambient_light import AmbientLight
-from .lighting.lighting import Lighting
-from .lighting.point_light import PointLight
-from .mesh_mobject import MeshMobject
+#from .cameras.camera import Camera
+#from .lighting.ambient_light import AmbientLight
+#from .lighting.lighting import Lighting
+#from .lighting.point_light import PointLight
+#from .mesh_mobject import MeshMobject
 from .mobject import (
     Mobject,
-    MobjectStyleMeta
+    StyleMeta
 )
-from .renderable_mobject import RenderableMobject
+#from .renderable_mobject import RenderableMobject
 
 
 class FrameMobject(Mobject):
     __slots__ = ()
 
-    def __init__(
-        self,
-        camera: Camera,
-        lighting: Lighting
-    ) -> None:
-        super().__init__()
-        self._camera_ = camera
-        self._lighting_ = lighting
+    #def __init__(
+    #    self,
+    #    camera: Camera,
+    #    lighting: Lighting
+    #) -> None:
+    #    super().__init__()
+    #    self._camera_ = camera
+    #    self._lighting_ = lighting
 
-    @MobjectStyleMeta.register()
+    @StyleMeta.register()
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.zeros((3,))
 
-    @MobjectStyleMeta.register()
+    @StyleMeta.register()
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
         return np.zeros(())
 
-    @Lazy.variable
-    @classmethod
-    def _camera_(cls) -> Camera:
-        return NotImplemented
+    #@Lazy.variable
+    #@classmethod
+    #def _camera_(cls) -> Camera:
+    #    return NotImplemented
 
-    @Lazy.variable
-    @classmethod
-    def _lighting_(cls) -> Lighting:
-        return NotImplemented
+    #@Lazy.variable
+    #@classmethod
+    #def _lighting_(cls) -> Lighting:
+    #    return NotImplemented
 
     @Lazy.variable_collection
     @classmethod
@@ -103,76 +104,77 @@ class FrameMobject(Mobject):
         self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
-        camera = self._camera_
-        for mobject in self.iter_descendants_by_type(mobject_type=RenderableMobject):
-            mobject._camera_uniform_block_buffer_ = camera._camera_uniform_block_buffer_
+        #camera = self._camera_
+        #for mobject in self.iter_descendants_by_type(mobject_type=RenderableMobject):
+        #    mobject._camera_uniform_block_buffer_ = camera._camera_uniform_block_buffer_
 
-        lighting = self._lighting_
-        lighting._ambient_lights_.reset(self.iter_descendants_by_type(mobject_type=AmbientLight))
-        lighting._point_lights_.reset(self.iter_descendants_by_type(mobject_type=PointLight))
-        for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject):
-            mobject._lighting_uniform_block_buffer_ = lighting._lighting_uniform_block_buffer_
+        #lighting = self._lighting_
+        #lighting._ambient_lights_.reset(self.iter_descendants_by_type(mobject_type=AmbientLight))
+        #lighting._point_lights_.reset(self.iter_descendants_by_type(mobject_type=PointLight))
+        #for mobject in self.iter_descendants_by_type(mobject_type=MeshMobject):
+        #    mobject._lighting_uniform_block_buffer_ = lighting._lighting_uniform_block_buffer_
 
-        # Inspired from `https://github.com/ambrosiogabe/MathAnimation`
-        # `./Animations/src/renderer/Renderer.cpp`.
-        opaque_mobjects: list[RenderableMobject] = []
-        transparent_mobjects: list[RenderableMobject] = []
-        for mobject in self.iter_descendants_by_type(RenderableMobject):
-            if not mobject._has_local_sample_points_:
-                continue
-            if mobject._is_transparent_:
-                transparent_mobjects.append(mobject)
-            else:
-                opaque_mobjects.append(mobject)
+        ## Inspired from `https://github.com/ambrosiogabe/MathAnimation`
+        ## `./Animations/src/renderer/Renderer.cpp`.
+        #opaque_mobjects: list[RenderableMobject] = []
+        #transparent_mobjects: list[RenderableMobject] = []
+        #for mobject in self.iter_descendants_by_type(RenderableMobject):
+        #    if not mobject._has_local_sample_points_:
+        #        continue
+        #    if mobject._is_transparent_:
+        #        transparent_mobjects.append(mobject)
+        #    else:
+        #        opaque_mobjects.append(mobject)
 
         target_framebuffer.framebuffer.clear(
             color=tuple(np.append(self._color_, self._opacity_))
         )
-        with TextureFactory.depth_texture() as depth_texture:
-            with TextureFactory.texture() as color_texture:
-                opaque_framebuffer = OpaqueFramebuffer(
-                    color_texture=color_texture,
-                    depth_texture=depth_texture
-                )
-                opaque_framebuffer.framebuffer.clear()
-                for mobject in opaque_mobjects:
-                    mobject._render(opaque_framebuffer)
-                self._copy_vertex_array_.render(
-                    framebuffer=target_framebuffer,
-                    texture_array_dict={
-                        "t_color_map": np.array(color_texture)
-                    },
-                    context_state=ContextState(
-                        flags=(ContextFlag.BLEND,)
-                    )
-                )
+        #with TextureFactory.depth_texture() as depth_texture:
+        #    with TextureFactory.texture() as color_texture:
+        #        opaque_framebuffer = OpaqueFramebuffer(
+        #            color_texture=color_texture,
+        #            depth_texture=depth_texture
+        #        )
+        #        opaque_framebuffer.framebuffer.clear()
+        #        for mobject in opaque_mobjects:
+        #            mobject._render(opaque_framebuffer)
+        #        self._copy_vertex_array_.render(
+        #            framebuffer=target_framebuffer,
+        #            texture_array_dict={
+        #                "t_color_map": np.array(color_texture)
+        #            },
+        #            context_state=ContextState(
+        #                flags=(ContextFlag.BLEND,)
+        #            )
+        #        )
 
-            with TextureFactory.texture(dtype="f2") as accum_texture, \
-                    TextureFactory.texture(components=1) as revealage_texture:
-                transparent_framebuffer = TransparentFramebuffer(
-                    accum_texture=accum_texture,
-                    revealage_texture=revealage_texture,
-                    depth_texture=depth_texture
-                )
-                # Test against each fragment by the depth buffer, but never write to it.
-                transparent_framebuffer.framebuffer.depth_mask = False
-                transparent_framebuffer.framebuffer.clear()
-                # Initialize `revealage` with 1.0.
-                # TODO: There should be a more elegant way using `clear`.
-                revealage_texture.write(b"\xff" * (revealage_texture.width * revealage_texture.height))
-                for mobject in transparent_mobjects:
-                    mobject._render(transparent_framebuffer)
+        with TextureFactory.texture(dtype="f2") as accum_texture, \
+                TextureFactory.texture(components=1, dtype="f2") as revealage_texture:
+            oit_framebuffer = OITFramebuffer(
+                accum_texture=accum_texture,
+                revealage_texture=revealage_texture
+                #depth_texture=depth_texture
+            )
+            ## Test against each fragment by the depth buffer, but never write to it.
+            #oit_framebuffer.framebuffer.depth_mask = False
+            oit_framebuffer.framebuffer.clear()
+            ## Initialize `revealage` with 1.0.
+            ## TODO: There should be a more elegant way using `clear`.
+            #revealage_texture.write(b"\xff" * (revealage_texture.width * revealage_texture.height))
+            #for mobject in self.iter_descendants_by_type(RenderableMobject):
+            for mobject in self.iter_descendants():
+                mobject._render(oit_framebuffer)
 
-                self._oit_compose_vertex_array_.render(
-                    framebuffer=target_framebuffer,
-                    texture_array_dict={
-                        "t_accum_map": np.array(accum_texture),
-                        "t_revealage_map": np.array(revealage_texture)
-                    },
-                    context_state=ContextState(
-                        flags=(ContextFlag.BLEND,)
-                    )
+            self._oit_compose_vertex_array_.render(
+                framebuffer=target_framebuffer,
+                texture_array_dict={
+                    "t_accum_map": np.array(accum_texture),
+                    "t_revealage_map": np.array(revealage_texture)
+                },
+                context_state=ContextState(
+                    flags=(ContextFlag.BLEND,)
                 )
+            )
 
     def _render_scene(
         self,

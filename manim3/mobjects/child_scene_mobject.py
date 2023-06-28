@@ -3,8 +3,9 @@ import numpy as np
 from ..animations.animation import Scene
 from ..rendering.framebuffer import (
     ColorFramebuffer,
-    OpaqueFramebuffer,
-    TransparentFramebuffer
+    OITFramebuffer
+    #OpaqueFramebuffer,
+    #TransparentFramebuffer
 )
 from ..rendering.texture import TextureFactory
 from .mesh_mobject import MeshMobject
@@ -19,12 +20,12 @@ class ChildSceneMobject(MeshMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene
-        self._enable_phong_lighting_ = False
-        self.scale(np.append(scene.camera._frame_radii_, 1.0))
+        #self._enable_phong_lighting_ = False
+        self.scale(np.append(scene._scene_frame._camera_._frame_radii_, 1.0))
 
     def _render(
         self,
-        target_framebuffer: OpaqueFramebuffer | TransparentFramebuffer
+        target_framebuffer: OITFramebuffer
     ) -> None:
         with TextureFactory.texture() as color_texture:
             framebuffer = ColorFramebuffer(

@@ -12,7 +12,7 @@ class ShapeTransformExample(Scene):
         )
         square.add(
             square.build_stroke()
-            .set_style(color=YELLOW, width=0.0, single_sided=True, is_transparent=True)
+            .set_style(color=YELLOW, width=0.0)
         )
         circle = (
             RegularPolygon(64)
@@ -20,7 +20,7 @@ class ShapeTransformExample(Scene):
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=YELLOW, single_sided=True, width=1.0, dilate=2.0, is_transparent=True)
+            .set_style(color=YELLOW, opacity=0.9, width=0.3)
         )
 
         self.add(square)
@@ -87,10 +87,15 @@ class ThreeDTextExample(Scene):
             .set_style(geometry=PrismoidGeometry(text._shape_))
             .scale(5.0)
             .scale_to(0.5, alpha=Z_AXIS)
-            .set_style(color="#00FFAA", opacity=0.25, is_transparent=True)
+            .set_style(
+                color="#00FFAA",
+                opacity=0.25,
+                lighting=Lighting(
+                    AmbientLight().set_style(opacity=0.3),
+                    PointLight().shift(RIGHT * 5)
+                )
+            )
         )
-        self.add(AmbientLight().set_style(opacity=0.3))
-        self.add(PointLight().shift(RIGHT * 5))
         self.add(text_3d)
         self.prepare(Rotating(text_3d, 0.5 * DOWN))
         await self.wait(10)
@@ -100,7 +105,7 @@ class OITExample(Scene):
     async def timeline(self) -> None:
         self.add(*(
             (Circle()
-                .set_style(color=color, opacity=opacity, is_transparent=True)
+                .set_style(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
                 .rotate(OUT * angle)
             )
@@ -130,7 +135,7 @@ class ChildSceneExample(Scene):
             .scale(0.5)
             .shift(RIGHT * 3)
             .shift(OUT * 0.01)
-            .set_style(is_transparent=True)
+            #.set_style(is_transparent=True)
         )
         await self.wait(6)
 
@@ -180,7 +185,7 @@ def main() -> None:
     config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     config.size.pixel_size = (960, 540)
-    ShapeTransformExample().render()
+    ThreeDTextExample().render()
 
 
 if __name__ == "__main__":

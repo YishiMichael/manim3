@@ -25,7 +25,7 @@ class ContextState:
     flags: tuple[ContextFlag, ...]
     blend_funcs: tuple[tuple[BlendFunc, BlendFunc], ...] = ((BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA),)
     blend_equations: tuple[BlendEquation, ...] = (BlendEquation.FUNC_ADD,)
-    depth_func: str = "<="
+    depth_func: str = "<"
     front_face: str = "ccw"
     cull_face: str = "back"
     wireframe: bool = False

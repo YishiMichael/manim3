@@ -264,7 +264,7 @@ class Program(LazyObject):
             child: AtomicBufferFormat
         ) -> list[str]:
             components = [f"{child._n_col_}{child._base_char_}{child._base_itemsize_}"]
-            if padding_factor := child._row_itemsize_factor_ - child._n_col_:
+            if padding_factor := child._row_factor_ - child._n_col_:
                 components.append(f"{padding_factor}x{child._base_itemsize_}")
             return components * child._n_row_
 
