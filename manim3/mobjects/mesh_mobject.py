@@ -26,7 +26,6 @@ from .mobject import (
     Mobject,
     StyleMeta
 )
-#from .renderable_mobject import RenderableMobject
 
 
 class MeshMobject(Mobject):
@@ -69,12 +68,6 @@ class MeshMobject(Mobject):
     def _color_maps_(cls) -> list[moderngl.Texture]:
         return []
 
-    #@StyleMeta.register()
-    #@Lazy.variable_hashable
-    #@classmethod
-    #def _enable_phong_lighting_(cls) -> bool:
-    #    return True
-
     @Lazy.variable
     @classmethod
     def _lighting_(cls) -> Lighting:
@@ -103,12 +96,6 @@ class MeshMobject(Mobject):
     @classmethod
     def _shininess_(cls) -> NP_f8:
         return Config().style.mesh_shininess * np.ones(())
-
-    #@Lazy.variable
-    #@classmethod
-    #def _lighting_uniform_block_buffer_(cls) -> UniformBlockBuffer:
-    #    # Keep updated with `Scene._lighting._lighting_uniform_block_buffer_`.
-    #    return NotImplemented
 
     @Lazy.property_array
     @classmethod
@@ -153,8 +140,6 @@ class MeshMobject(Mobject):
     @classmethod
     def _mesh_vertex_array_(
         cls,
-        #is_transparent: bool,
-        #enable_phong_lighting: bool,
         color_maps: list[moderngl.Texture],
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
@@ -162,14 +147,8 @@ class MeshMobject(Mobject):
         material_uniform_block_buffer: UniformBlockBuffer,
         geometry__indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
-        #custom_macros: list[str] = []
-        #if is_transparent:
-        #    custom_macros.append("#define IS_TRANSPARENT")
-        #phong_lighting_subroutine = "enable_phong_lighting" if enable_phong_lighting else "disable_phong_lighting"
-        #custom_macros.append(f"#define phong_lighting_subroutine {phong_lighting_subroutine}")
         return VertexArray(
             shader_filename="mesh",
-            #custom_macros=custom_macros,
             texture_id_buffers=[
                 TextureIdBuffer(
                     field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",

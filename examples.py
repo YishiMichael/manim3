@@ -15,12 +15,12 @@ class ShapeTransformExample(Scene):
             .set_style(color=YELLOW, width=0.0)
         )
         circle = (
-            RegularPolygon(64)
+            RegularPolygon(5)
             .set_style(color=PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=YELLOW, opacity=0.9, width=0.3)
+            .set_style(color=YELLOW, opacity=0.7, width=0.3)
         )
 
         self.add(square)
@@ -182,10 +182,10 @@ def main() -> None:
     #config.rendering.time_span = (2.0, 3.0)
     #config.rendering.fps = 10
     #config.rendering.preview = False
-    config.rendering.write_video = True
+    #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     config.size.pixel_size = (960, 540)
-    ThreeDTextExample().render()
+    ShapeTransformExample().render()
 
 
 if __name__ == "__main__":

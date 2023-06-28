@@ -105,10 +105,6 @@ class AlignABC(ABC):
         self._direction: NP_3f8 = direction
         self._buff: float | NP_3f8 = buff
 
-    #@abstractmethod
-    #def _get_target_point(self) -> NP_3f8:
-    #    pass
-
     def _get_shift_vector(
         self,
         model: "Model",
@@ -367,27 +363,6 @@ class StyleMeta:
         })
 
 
-#class AlignBorder(AlignABC):
-#    __slots__ = ()
-
-#    def _get_target_point(self) -> NP_3f8:
-#        return self._direction * np.append(Config().size.frame_radii, 0.0)
-
-
-#class CameraABC(LazyObject):
-#    __slots__ = ()
-
-#    @Lazy.variable_array
-#    @classmethod
-#    def _model_matrix_(cls) -> NP_44f8:
-#        return NotImplemented
-
-#    @Lazy.property
-#    @classmethod
-#    def _camera_uniform_block_buffer_(cls) -> UniformBlockBuffer:
-#        return NotImplemented
-
-
 class Model(LazyObject):
     __slots__ = ()
 
@@ -435,14 +410,6 @@ class Model(LazyObject):
         # Implemented in subclasses.
         return np.zeros((0, 3))
 
-    #@Lazy.property_hashable
-    #@classmethod
-    #def _has_local_sample_points_(
-    #    cls,
-    #    local_sample_points: NP_x3f8
-    #) -> bool:
-    #    return bool(len(local_sample_points))
-
     @Lazy.property_external
     @classmethod
     def _local_bounding_box_(
@@ -481,10 +448,7 @@ class Model(LazyObject):
         )
 
     def get_bounding_box(self) -> BoundingBox:
-        #if broadcast:
         result = self._bounding_box_
-        #else:
-        #    result = self._bounding_box_without_descendants_
         assert result is not None, "Trying to calculate the bounding box of some model with no points"
         return result
 
@@ -684,13 +648,9 @@ class Model(LazyObject):
         model_matrix: NP_44f8 | None = None,
         camera: "Camera | None" = None,
 
-        ## RenderableMobject
-        #is_transparent: bool | None = None,
-
         # MeshMobject
         geometry: Geometry | None = None,
         color_maps: list[moderngl.Texture] | None = None,
-        #enable_phong_lighting: bool | None = None,
         lighting: "Lighting | None" = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
@@ -702,8 +662,6 @@ class Model(LazyObject):
         # StrokeMobject
         multi_line_string: MultiLineString | None = None,
         width: float | None = None,
-        #single_sided: bool | None = None,
-        #dilate: float | None = None,
 
         # setting configs
         broadcast: bool = True,
@@ -727,24 +685,17 @@ class Model(LazyObject):
                 "weight": weight,
                 "model_matrix": model_matrix,
                 "camera": camera,
-                #"is_transparent": is_transparent,
                 "geometry": geometry,
                 "color_maps": color_maps,
                 "lighting": lighting,
-                #"enable_phong_lighting": enable_phong_lighting,
                 "ambient_strength": ambient_strength,
                 "specular_strength": specular_strength,
                 "shininess": shininess,
                 "shape": shape,
                 "multi_line_string": multi_line_string,
                 "width": width
-                #"single_sided": single_sided,
-                #"dilate": dilate
             }.items() if value is not None
         }
-
-        #if type_filter is None:
-        #    type_filter = Model
 
         for model in self._yield_members(broadcast=broadcast):
             if type_filter is not None and not isinstance(model, type_filter):

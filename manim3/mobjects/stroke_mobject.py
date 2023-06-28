@@ -25,7 +25,6 @@ from .mobject import (
     Mobject,
     StyleMeta
 )
-#from .renderable_mobject import RenderableMobject
 
 
 class StrokeMobject(Mobject):
@@ -81,20 +80,6 @@ class StrokeMobject(Mobject):
     def _width_(cls) -> NP_f8:
         return Config().style.stroke_width * np.ones(())
 
-    #@StyleMeta.register()
-    #@Lazy.variable_hashable
-    #@classmethod
-    #def _single_sided_(cls) -> bool:
-    #    return False
-
-    #@StyleMeta.register(
-    #    interpolate_method=SpaceUtils.lerp_f8
-    #)
-    #@Lazy.variable_array
-    #@classmethod
-    #def _dilate_(cls) -> NP_f8:
-    #    return np.zeros(())
-
     @Lazy.property_array
     @classmethod
     def _local_sample_points_(
@@ -149,24 +134,6 @@ class StrokeMobject(Mobject):
             if not is_ring:
                 arange = arange[:-1]
             return np.vstack((arange, np.roll(arange, -1))).T.flatten()
-            #if not is_ring:
-            #    #  0  1
-            #    #  1  2
-            #    # .....
-            #    # -3 -2
-            #    # -2 -1
-            #    index = (np.arange(2) + np.arange(points_len - 1)[:, None]).flatten()
-            #    return index.astype(np.uint32)
-            ##  0  1
-            ##  1  2
-            ##  2  3
-            ## .....
-            ## -3 -2
-            ## -2 -1
-            ## -1  0
-            #index = (np.arange(2) + np.arange(points_len)[:, None]).flatten()
-            #index[-1] = 0
-            #return index.astype(np.uint32)
 
         if not multi_line_string__line_strings__points:
             index = np.zeros(0, dtype=np.uint32)
@@ -208,18 +175,10 @@ class StrokeMobject(Mobject):
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         stroke_uniform_block_buffer: UniformBlockBuffer,
-        #is_transparent: bool,
-        #single_sided: bool,
         stroke_indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
-
-        #subroutine_name = "single_sided" if single_sided else "both_sided"
-        #custom_macros = [f"#define stroke_subroutine {subroutine_name}"]
-        #if is_transparent:
-        #    custom_macros.append("#define IS_TRANSPARENT")
         return VertexArray(
             shader_filename="stroke",
-            #custom_macros=custom_macros,
             uniform_block_buffers=[
                 camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,

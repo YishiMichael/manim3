@@ -21,10 +21,6 @@ from PIL import Image
 from ..config import Config
 from ..custom_typing import ColorT
 from ..lazy.lazy import LazyDynamicContainer
-#from ..mobjects.cameras.camera import Camera
-#from ..mobjects.cameras.orthographic_camera import OrthographicCamera
-#from ..mobjects.cameras.perspective_camera import PerspectiveCamera
-#from ..mobjects.lights.lighting import Lighting
 from ..mobjects.mobject import Mobject
 from ..mobjects.frame_mobject import FrameMobject
 from ..passes.render_pass import RenderPass
@@ -278,17 +274,7 @@ class Scene(Animation):
         )
         self._scene_ref = weakref.ref(self)
 
-        #if Mobject._camera_.default_container is None:
-        #    match Config().camera.camera_type:
-        #        case "PerspectiveCamera":
-        #            camera = PerspectiveCamera()
-        #        case "OrthographicCamera":
-        #            camera = OrthographicCamera()
-        #    Mobject._camera_.set_default(camera)
-        self._scene_frame: FrameMobject = FrameMobject(
-            #camera=camera,
-            #lighting=Lighting()
-        )
+        self._scene_frame: FrameMobject = FrameMobject()
         self.set_background(
             color=Config().style.background_color
         )

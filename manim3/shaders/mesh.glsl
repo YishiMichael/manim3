@@ -73,16 +73,12 @@ in VS_FS {
     vec2 uv;
 } fs_in;
 
-//#if defined IS_TRANSPARENT
 out vec4 frag_accum;
 out float frag_revealage;
-//#else
-//out vec4 frag_color;
-//#endif
 
 
 vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
-    // From `https://learnopengl.com/Lighting/Basic-Lighting`
+    // From `https://learnopengl.com/Lighting/Basic-Lighting`.
     vec3 ambient = vec3(0.0);
     #if NUM_U_AMBIENT_LIGHTS
     for (int i = 0; i < NUM_U_AMBIENT_LIGHTS; ++i) {
@@ -106,11 +102,6 @@ vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
 }
 
 
-//vec4 disable_phong_lighting() {
-//    return vec4(1.0);
-//}
-
-
 void main() {
     vec3 color = get_color_factor(fs_in.world_position, normalize(fs_in.world_normal));
     color *= u_color;
@@ -120,13 +111,6 @@ void main() {
     }
     #endif
 
-    //#if defined IS_TRANSPARENT
-    //frag_accum = color;
-    //frag_accum.rgb *= color.a;
-    //frag_revealage = color.a;
-    //#else
-    //frag_color = color;
-    //#endif
     frag_accum = vec4(u_weight * u_opacity * color, u_weight * u_opacity);
     frag_revealage = u_weight * log2(1.0 - u_opacity);
 }
