@@ -10,8 +10,6 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.lazy import Lazy
-from ..models.lights.ambient_light import AmbientLight
-from ..models.lights.lighting import Lighting
 from ..rendering.framebuffer import OITFramebuffer
 from ..rendering.gl_buffer import (
     TextureIdBuffer,
@@ -22,13 +20,13 @@ from ..rendering.vertex_array import (
     VertexArray
 )
 from ..utils.space import SpaceUtils
-from .mobject import (
-    Mobject,
-    StyleMeta
-)
+from .lights.ambient_light import AmbientLight
+from .lights.lighting import Lighting
+from .mobject import StyleMeta
+from .renderable_mobject import RenderableMobject
 
 
-class MeshMobject(Mobject):
+class MeshMobject(RenderableMobject):
     __slots__ = ()
 
     @StyleMeta.register()

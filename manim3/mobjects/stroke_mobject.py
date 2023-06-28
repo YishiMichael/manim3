@@ -21,13 +21,11 @@ from ..rendering.vertex_array import (
 )
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
-from .mobject import (
-    Mobject,
-    StyleMeta
-)
+from .mobject import StyleMeta
+from .renderable_mobject import RenderableMobject
 
 
-class StrokeMobject(Mobject):
+class StrokeMobject(RenderableMobject):
     __slots__ = ()
 
     def __init__(

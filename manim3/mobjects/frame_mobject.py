@@ -24,6 +24,7 @@ from .mobject import (
     Mobject,
     StyleMeta
 )
+from .renderable_mobject import RenderableMobject
 
 
 class FrameMobject(Mobject):
@@ -88,7 +89,8 @@ class FrameMobject(Mobject):
             )
             oit_framebuffer.framebuffer.clear()
             for mobject in self.iter_descendants():
-                mobject._render(oit_framebuffer)
+                if isinstance(mobject, RenderableMobject):
+                    mobject._render(oit_framebuffer)
 
             self._oit_compose_vertex_array_.render(
                 framebuffer=target_framebuffer,

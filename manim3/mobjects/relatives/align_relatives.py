@@ -1,13 +1,13 @@
-from ..constants import ORIGIN
-from ..custom_typing import NP_3f8
+from ...constants import ORIGIN
+from ...custom_typing import NP_3f8
+from ..mobject import (
+    AlignABC,
+    Mobject
+)
 from .about_relatives import (
     AboutBorder,
     AboutEdge,
     AboutPoint
-)
-from .model import (
-    AlignABC,
-    Model
 )
 
 
@@ -27,21 +27,18 @@ class AlignPoint(AlignABC):
         )
         self._point: NP_3f8 = point
 
-    #def _get_target_point(self) -> NP_3f8:
-    #    return self._point
 
-
-class AlignModel(AlignPoint):
+class AlignMobject(AlignPoint):
     __slots__ = ()
 
     def __init__(
         self,
-        model: Model,
+        mobject: Mobject,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0
     ) -> None:
         super().__init__(
-            point=model.get_bounding_box_point(direction),
+            point=mobject.get_bounding_box_point(direction),
             direction=direction,
             buff=buff
         )

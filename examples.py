@@ -15,7 +15,7 @@ class ShapeTransformExample(Scene):
             .set_style(color=YELLOW, width=0.0)
         )
         circle = (
-            RegularPolygon(5)
+            Circle()
             .set_style(color=PINK, opacity=0.9)
         )
         circle.add(

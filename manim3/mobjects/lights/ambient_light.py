@@ -3,13 +3,13 @@ import numpy as np
 from ...custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
-from ..model import (
-    Model,
+from ..mobject import (
+    Mobject,
     StyleMeta
 )
 
 
-class AmbientLight(Model):
+class AmbientLight(Mobject):
     __slots__ = ()
 
     @StyleMeta.register(

@@ -8,13 +8,13 @@ from ...custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
-from ..model import (
-    Model,
+from ..mobject import (
+    Mobject,
     StyleMeta
 )
 
 
-class PointLight(Model):
+class PointLight(Mobject):
     __slots__ = ()
 
     @StyleMeta.register(

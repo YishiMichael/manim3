@@ -1,11 +1,11 @@
-from ..constants import ORIGIN
-from ..custom_typing import NP_3f8
-from ..mobjects.mobject import Mobject
-from ..utils.space import SpaceUtils
-from .model import (
+from ...constants import ORIGIN
+from ...custom_typing import NP_3f8
+from ...utils.space import SpaceUtils
+from ..mobject import (
     AboutABC,
-    Model
+    Mobject
 )
+from ..renderable_mobject import RenderableMobject
 
 
 class AboutPoint(AboutABC):
@@ -20,7 +20,7 @@ class AboutPoint(AboutABC):
 
     def _get_about_point(
         self,
-        model: Model
+        mobject: Mobject
     ) -> NP_3f8:
         return self._point
 
@@ -37,9 +37,9 @@ class AboutEdge(AboutABC):
 
     def _get_about_point(
         self,
-        model: Model
+        mobject: Mobject
     ) -> NP_3f8:
-        return model.get_bounding_box_point(self._edge)
+        return mobject.get_bounding_box_point(self._edge)
 
 
 class AboutCenter(AboutEdge):
@@ -63,7 +63,7 @@ class AboutBorder(AboutABC):
 
     def _get_about_point(
         self,
-        model: Model
+        mobject: Mobject
     ) -> NP_3f8:
-        assert isinstance(model, Mobject)
-        return SpaceUtils.apply_affine(model._camera_._model_matrix_, self._border)
+        assert isinstance(mobject, RenderableMobject)
+        return SpaceUtils.apply_affine(mobject._camera_._model_matrix_, self._border)

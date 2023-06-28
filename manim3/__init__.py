@@ -14,7 +14,7 @@ from .animations.fade import (
     FadeOut
 )
 from .animations.misc import TransformMatchingStrings
-from .animations.model_animations import (
+from .animations.model import (
     Rotate,
     Rotating,
     Scale,
@@ -22,7 +22,7 @@ from .animations.model_animations import (
     Shift,
     Shifting
 )
-from .animations.partial_animations import (
+from .animations.partial import (
     PartialCreate,
     PartialFlash,
     PartialUncreate
@@ -47,25 +47,29 @@ from .lazy.lazy import (
     LazyObject
 )
 
-#from .mobjects.cameras.camera import Camera
-#from .mobjects.cameras.orthographic_camera import OrthographicCamera
-#from .mobjects.cameras.perspective_camera import PerspectiveCamera
+from .mobjects.cameras.camera import Camera
+from .mobjects.cameras.orthographic_camera import OrthographicCamera
+from .mobjects.cameras.perspective_camera import PerspectiveCamera
 from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
-#from .mobjects.lights.ambient_light import AmbientLight
-#from .mobjects.lights.point_light import PointLight
+from .mobjects.lights.ambient_light import AmbientLight
+from .mobjects.lights.lighting import Lighting
+from .mobjects.lights.point_light import PointLight
 from .mobjects.mesh_mobject import MeshMobject
-#from .mobjects.mobject import (
-#    AboutCenter,
-#    AboutEdge,
-#    AboutPoint,
-#    AlignBorder,
-#    AlignMobject,
-#    AlignPoint,
-#    Mobject
-#)
 from .mobjects.mobject import Mobject
-#from .mobjects.renderable_mobject import RenderableMobject
+from .mobjects.relatives.about_relatives import (
+    AboutBorder,
+    AboutCenter,
+    AboutEdge,
+    AboutPoint
+)
+from .mobjects.relatives.align_relatives import (
+    AlignBorder,
+    AlignEdge,
+    AlignMobject,
+    AlignPoint
+)
+from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.shape_mobject import ShapeMobject
 from .mobjects.shapes.polygons import (
     Arc,
@@ -92,26 +96,6 @@ from .mobjects.strings.tex_mobject import Tex
 from .mobjects.strings.text_mobject import Text
 from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
-
-from .models.about_relatives import (
-    AboutBorder,
-    AboutCenter,
-    AboutEdge,
-    AboutPoint
-)
-from .models.align_relatives import (
-    AlignBorder,
-    AlignEdge,
-    AlignModel,
-    AlignPoint
-)
-from .models.cameras.camera import Camera
-from .models.cameras.orthographic_camera import OrthographicCamera
-from .models.cameras.perspective_camera import PerspectiveCamera
-from .models.lights.ambient_light import AmbientLight
-from .models.lights.lighting import Lighting
-from .models.lights.point_light import PointLight
-from .models.model import Model
 
 from .passes.gaussian_blur_pass import GaussianBlurPass
 from .passes.pixelated_pass import PixelatedPass

@@ -40,10 +40,20 @@ in VS_GS {
     vec4 view_position;
 } gs_in[];
 
+/*
+ *   1  +---------------+
+ *      |               |
+ *   y  |   +-------+   |
+ *      |               |
+ *  -1  +---------------+
+ *      |   |       |   |
+ *  x0 -1   0       l  l+1
+ *  x1 l+1  l       0  -1
+ */
 out GS_FS {
-    float x0;  // [-1, l + 1]
-    float x1;  // [-1, l + 1]
-    float y;   // [-1, 1]
+    float x0;
+    float x1;
+    float y;
 } gs_out;
 
 

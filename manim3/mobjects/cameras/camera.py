@@ -18,10 +18,10 @@ from ...custom_typing import (
 from ...lazy.lazy import Lazy
 from ...rendering.gl_buffer import UniformBlockBuffer
 from ...utils.space import SpaceUtils
-from ..model import Model
+from ..mobject import Mobject
 
 
-class Camera(Model):
+class Camera(Mobject):
     __slots__ = ()
 
     def __init__(self) -> None:
