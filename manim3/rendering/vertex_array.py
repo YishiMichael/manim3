@@ -504,22 +504,19 @@ class VertexArray(LazyObject):
         *,
         framebuffer: Framebuffer,
         # Note, redundant textures are currently not supported.
-        texture_array_dict: dict[str, np.ndarray] | None = None,
-        context_state: ContextState | None = None
+        texture_array_dict: dict[str, np.ndarray] | None = None
     ) -> None:
         if (vertex_array := self._vertex_array_) is None:
             return
 
         if texture_array_dict is None:
             texture_array_dict = {}
-        if context_state is None:
-            context_state = framebuffer.default_context_state
         with Context.scope(
             framebuffer=framebuffer.framebuffer,
             textures=self._program_._get_texture_bindings(texture_array_dict),
             uniform_buffers=self._uniform_block_bindings_
         ):
-            Context.set_state(context_state)
+            Context.set_state(framebuffer.context_state)
             vertex_array.render()
 
     def transform(self) -> dict[str, np.ndarray]:

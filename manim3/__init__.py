@@ -97,10 +97,6 @@ from .mobjects.strings.text_mobject import Text
 from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
 
-from .passes.gaussian_blur_pass import GaussianBlurPass
-from .passes.pixelated_pass import PixelatedPass
-from .passes.render_pass import RenderPass
-
 from .rendering.context import ContextState
 from .rendering.framebuffer import Framebuffer
 from .rendering.gl_buffer import (

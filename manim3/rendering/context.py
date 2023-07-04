@@ -70,6 +70,7 @@ class Context:
             )
             mgl_context = window.ctx
             window_framebuffer = mgl_context.detect_framebuffer()
+
         mgl_context.gc_mode = "auto"
         cls._mgl_context = mgl_context
         cls._window = window
@@ -116,6 +117,19 @@ class Context:
         context.front_face = context_state.front_face
         context.cull_face = context_state.cull_face
         context.wireframe = context_state.wireframe
+
+    @classmethod
+    def blit(
+        cls,
+        src: moderngl.Framebuffer,
+        dst: moderngl.Framebuffer
+    ) -> None:
+        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
+        gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
+        gl.glBlitFramebuffer(
+            *src.viewport, *dst.viewport,
+            gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
+        )
 
     @classmethod
     @property

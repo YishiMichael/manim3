@@ -8,15 +8,15 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from ..custom_typing import (
+    NP_2f8,
+    NP_33f8,
+    NP_3f8,
+    NP_44f8,
+    NP_4f8,
     NP_f8,
     NP_xf8,
-    NP_33f8,
-    NP_44f8,
-    NP_2f8,
     NP_x2f8,
-    NP_3f8,
     NP_x3f8,
-    NP_4f8,
     NP_x4f8
 )
 

@@ -109,7 +109,7 @@ void main() {
     color *= u_color;
     #if NUM_T_COLOR_MAPS
     for (int i = 0; i < NUM_T_COLOR_MAPS; ++i) {
-        color *= texture(t_color_maps[i], fs_in.uv);
+        color *= texture(t_color_maps[i], fs_in.uv).rgb;
     }
     #endif
     write_to_oit_frag(frag_accum, frag_revealage, color, u_opacity, u_weight);

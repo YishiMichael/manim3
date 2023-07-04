@@ -20,10 +20,9 @@ from PIL import Image
 
 from ..config import Config
 from ..custom_typing import ColorT
-from ..lazy.lazy import LazyDynamicContainer
 from ..mobjects.mobject import Mobject
-from ..mobjects.frame_mobject import FrameMobject
-from ..passes.render_pass import RenderPass
+from ..mobjects.cameras.camera import Camera
+from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..rendering.context import Context
 from ..rendering.framebuffer import ColorFramebuffer
 from ..rendering.texture import TextureFactory
@@ -261,7 +260,7 @@ class Animation(ABC):
 
 
 class Scene(Animation):
-    __slots__ = ("_scene_frame",)
+    __slots__ = ("_root_mobject",)
 
     def __init__(
         self,
@@ -274,9 +273,9 @@ class Scene(Animation):
         )
         self._scene_ref = weakref.ref(self)
 
-        self._scene_frame: FrameMobject = FrameMobject()
-        self.set_background(
-            color=Config().style.background_color
+        self._root_mobject: SceneRootMobject = SceneRootMobject()
+        self.set_background_color(
+            Config().style.background_color
         )
 
     async def _render(self) -> None:
@@ -310,6 +309,16 @@ class Scene(Animation):
                 case TimelineState.AWAIT:
                     pass
 
+        def render_to_window(
+            framebuffer: moderngl.Framebuffer
+        ) -> None:
+            window = Context.window
+            if window.is_closing:
+                raise KeyboardInterrupt
+            window.clear()
+            Context.blit(framebuffer, Context.window_framebuffer)
+            window.swap_buffers()
+
         async def run_frame(
             clock_timestamp: float,
             signal_timestamp: float,
@@ -329,9 +338,9 @@ class Scene(Animation):
                 digest_signal(signal)
             animate(clock_timestamp)
 
-            self._scene_frame._render_scene(framebuffer)
+            self._root_mobject._render_scene(framebuffer)
             if preview:
-                self._scene_frame._render_to_window(framebuffer.color_texture)
+                render_to_window(framebuffer.framebuffer)
             if video_stdin is not None:
                 self._write_frame_to_video(framebuffer.color_texture, video_stdin)
 
@@ -358,14 +367,12 @@ class Scene(Animation):
                 if signal_timestamp is None:
                     break
 
-            self._scene_frame._render_scene(framebuffer)
+            self._root_mobject._render_scene(framebuffer)
             if write_last_frame:
-                framebuffer.framebuffer.color_mask = (False, False, False, True)
-                framebuffer.framebuffer.clear(alpha=1.0)
                 self._write_frame_to_image(framebuffer.color_texture, scene_name)
 
         Context.activate(title=scene_name, standalone=not preview)
-        with TextureFactory.texture() as color_texture, \
+        with TextureFactory.texture(components=3) as color_texture, \
                 self._video_writer(write_video, fps, scene_name) as video_stdin:
             framebuffer = ColorFramebuffer(
                 color_texture=color_texture
@@ -388,7 +395,7 @@ class Scene(Animation):
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
             "-s", "{}x{}".format(*Config().size.pixel_size),  # size of one frame
-            "-pix_fmt", "rgba",
+            "-pix_fmt", "rgb",
             "-r", str(fps),  # frames per second
             "-i", "-",  # The input comes from a pipe.
             "-vf", "vflip",
@@ -419,58 +426,59 @@ class Scene(Animation):
         scene_name: str
     ) -> None:
         image = Image.frombytes(
-            "RGBA",
+            "RGB",
             Config().size.pixel_size,
             color_texture.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         image.save(Config().path.output_dir.joinpath(f"{scene_name}.png"))
 
+    # Shortcut access to root mobject.
+
+    @property
+    def root_mobject(self) -> SceneRootMobject:
+        return self._root_mobject
+
     def add(
         self,
         *mobjects: "Mobject"
     ):
-        self._scene_frame.add(*mobjects)
+        self.root_mobject.add(*mobjects)
         return self
 
     def discard(
         self,
         *mobjects: "Mobject"
     ):
-        self._scene_frame.discard(*mobjects)
+        self.root_mobject.discard(*mobjects)
         return self
 
     def clear(self):
-        self._scene_frame.clear()
+        self.root_mobject.clear()
         return self
 
-    def set_background(
+    def set_background_color(
         self,
-        *,
-        color: ColorT | None = None,
-        opacity: float | None = None
+        color: ColorT | None = None
     ):
-        self._scene_frame.set_style(
+        self.root_mobject.set_style(
             color=color,
-            opacity=opacity,
             broadcast=False
         )
         return self
 
     @property
-    def render_passes(self) -> LazyDynamicContainer[RenderPass]:
-        return self._scene_frame._render_passes_
+    def camera(self) -> Camera:
+        return self.root_mobject._camera_
 
-    #@property
-    #def camera(self) -> Camera:
-    #    return self._scene_frame._camera_
-
-    #def set_camera(
-    #    self,
-    #    camera: Camera
-    #):
-    #    self._scene_frame._camera_ = camera
-    #    return self
+    def set_camera(
+        self,
+        camera: Camera
+    ):
+        self.root_mobject.set_style(
+            camera=camera
+        )
+        return self
 
     def render(self) -> None:
         try:

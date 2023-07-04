@@ -5,11 +5,10 @@ from ..rendering.framebuffer import (
     ColorFramebuffer,
     OITFramebuffer
 )
-from ..rendering.texture import TextureFactory
-from .mesh_mobject import MeshMobject
+from .textured_mobject import TexturedMobject
 
 
-class ChildSceneMobject(MeshMobject):
+class ChildSceneMobject(TexturedMobject):
     __slots__ = ("_scene",)
 
     def __init__(
@@ -18,23 +17,15 @@ class ChildSceneMobject(MeshMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene
-        self.scale(np.append(scene._scene_frame._camera_._frame_radii_, 1.0))
+        self.scale(np.append(scene.camera._frame_radii_, 1.0))
 
     def _render(
         self,
         target_framebuffer: OITFramebuffer
     ) -> None:
-        with TextureFactory.texture() as color_texture:
-            framebuffer = ColorFramebuffer(
-                color_texture=color_texture
-            )
-            self._scene._scene_frame._render_scene(framebuffer)
-
-            # Clear alpha with 1.0.
-            # The frame is always opaque, regardless of the background color of `self._scene`.
-            framebuffer.framebuffer.color_mask = (False, False, False, True)
-            framebuffer.framebuffer.clear(alpha=1.0)
-            framebuffer.framebuffer.color_mask = (True, True, True, True)
-
-            self._color_maps_ = [color_texture]
-            super()._render(target_framebuffer)
+        assert (color_map := self._color_map_) is not None
+        framebuffer = ColorFramebuffer(
+            color_texture=color_map
+        )
+        self._scene._root_mobject._render_scene(framebuffer)
+        super()._render(target_framebuffer)

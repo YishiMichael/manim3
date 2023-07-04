@@ -14,7 +14,7 @@ from .mgl_enums import (
 class Framebuffer:
     __slots__ = (
         "framebuffer",
-        "default_context_state"
+        "context_state"
     )
 
     def __init__(
@@ -23,7 +23,7 @@ class Framebuffer:
         color_attachments: tuple[moderngl.Texture, ...] = (),
         depth_attachment: moderngl.Texture | None = None,
         framebuffer: moderngl.Framebuffer | None = None,
-        default_context_state: ContextState
+        context_state: ContextState
     ) -> None:
         if framebuffer is None:
             framebuffer = Context.framebuffer(
@@ -31,7 +31,7 @@ class Framebuffer:
                 depth_attachment=depth_attachment
             )
         self.framebuffer: moderngl.Framebuffer = framebuffer
-        self.default_context_state: ContextState = default_context_state
+        self.context_state: ContextState = context_state
 
 
 class OITFramebuffer(Framebuffer):
@@ -48,7 +48,7 @@ class OITFramebuffer(Framebuffer):
     ) -> None:
         super().__init__(
             color_attachments=(accum_texture, revealage_texture),
-            default_context_state=ContextState(
+            context_state=ContextState(
                 flags=(ContextFlag.BLEND,),
                 blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ONE, BlendFunc.ONE)),
                 blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
@@ -68,8 +68,8 @@ class ColorFramebuffer(Framebuffer):
     ) -> None:
         super().__init__(
             color_attachments=(color_texture,),
-            default_context_state=ContextState(
-                flags=()
+            context_state=ContextState(
+                flags=(ContextFlag.BLEND,)
             )
         )
         self.color_texture: moderngl.Texture = color_texture

@@ -867,11 +867,12 @@ class Mobject(LazyObject):
 
         # Mobject
         model_matrix: NP_44f8 | None = None,
+
+        # RenderableMobject
         camera: "Camera | None" = None,
 
         # MeshMobject
         geometry: Geometry | None = None,
-        color_maps: list[moderngl.Texture] | None = None,
         lighting: "Lighting | None" = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
@@ -907,7 +908,6 @@ class Mobject(LazyObject):
                 "model_matrix": model_matrix,
                 "camera": camera,
                 "geometry": geometry,
-                "color_maps": color_maps,
                 "lighting": lighting,
                 "ambient_strength": ambient_strength,
                 "specular_strength": specular_strength,

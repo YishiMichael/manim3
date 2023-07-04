@@ -121,7 +121,6 @@ class OITExample(Scene):
 class ChildSceneExample(Scene):
     async def timeline(self) -> None:
         child_scene_1 = ThreeDTextExample()
-        child_scene_1.render_passes.append(PixelatedPass())
         self.prepare(child_scene_1)
         self.add(
             ChildSceneMobject(child_scene_1)
@@ -183,8 +182,8 @@ def main() -> None:
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
-    config.size.pixel_size = (960, 540)
-    ShapeTransformExample().render()
+    #config.size.pixel_size = (960, 540)
+    ChildSceneExample().render()
 
 
 if __name__ == "__main__":

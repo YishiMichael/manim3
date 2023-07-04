@@ -23,8 +23,9 @@ class TextureFactory:
     @contextmanager
     def texture(
         cls,
+        *,
         size: tuple[int, int] | None = None,
-        components: int = 4,
+        components: int,
         dtype: str = "f1"
     ) -> Iterator[moderngl.Texture]:
         if size is None:
@@ -46,6 +47,7 @@ class TextureFactory:
     @contextmanager
     def depth_texture(
         cls,
+        *,
         size: tuple[int, int] | None = None
     ) -> Iterator[moderngl.Texture]:
         if size is None:
