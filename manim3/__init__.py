@@ -110,8 +110,7 @@ from .rendering.mgl_enums import (
     BlendEquation,
     BlendFunc,
     ContextFlag,
-    PrimitiveMode,
-    TextureFilter
+    PrimitiveMode
 )
 from .rendering.texture import TextureFactory
 from .rendering.vertex_array import VertexArray

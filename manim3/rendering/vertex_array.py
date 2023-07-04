@@ -267,7 +267,7 @@ class Program(LazyObject):
         mode = indexed_attributes_buffer._mode_
 
         if attributes_buffer_format._is_empty_ or \
-                (not index_buffer._omitted_ and index_buffer._buffer_format_._is_empty_):
+                not index_buffer._omitted_ and index_buffer._buffer_format_._is_empty_:
             return None
 
         def get_item_components(

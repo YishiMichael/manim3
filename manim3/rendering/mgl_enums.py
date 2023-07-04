@@ -27,15 +27,6 @@ class PrimitiveMode(Enum):
     PATCHES = moderngl.PATCHES
 
 
-class TextureFilter(Enum):
-    NEAREST = moderngl.NEAREST
-    LINEAR = moderngl.LINEAR
-    NEAREST_MIPMAP_NEAREST = moderngl.NEAREST_MIPMAP_NEAREST
-    LINEAR_MIPMAP_NEAREST = moderngl.LINEAR_MIPMAP_NEAREST
-    NEAREST_MIPMAP_LINEAR = moderngl.NEAREST_MIPMAP_LINEAR
-    LINEAR_MIPMAP_LINEAR = moderngl.LINEAR_MIPMAP_LINEAR
-
-
 class BlendFunc(Enum):
     ZERO = moderngl.ZERO
     ONE = moderngl.ONE
