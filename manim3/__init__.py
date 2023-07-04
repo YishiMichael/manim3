@@ -1,7 +1,4 @@
-from .animations.animation import (
-    Animation,
-    Scene
-)
+from .animations.animation import Animation
 from .animations.composition import (
     Lagged,
     LaggedParallel,
@@ -114,6 +111,8 @@ from .rendering.mgl_enums import (
 )
 from .rendering.texture import TextureFactory
 from .rendering.vertex_array import VertexArray
+
+from .scene.scene import Scene
 
 from .shape.multi_line_string import MultiLineString
 from .shape.shape import Shape

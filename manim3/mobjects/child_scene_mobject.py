@@ -1,10 +1,10 @@
 import numpy as np
 
-from ..animations.animation import Scene
 from ..rendering.framebuffer import (
     ColorFramebuffer,
     OITFramebuffer
 )
+from ..scene.scene import Scene
 from .textured_mobject import TexturedMobject
 
 
