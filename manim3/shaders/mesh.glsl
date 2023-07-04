@@ -76,6 +76,8 @@ in VS_FS {
 out vec4 frag_accum;
 out float frag_revealage;
 
+#include "includes/write_to_oit_frag.glsl"
+
 
 vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
     // From `https://learnopengl.com/Lighting/Basic-Lighting`.
@@ -98,7 +100,7 @@ vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
         specular += pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
     }
     #endif
-    return ambient * u_ambient_strength + diffuse + specular * u_specular_strength;
+    return min(ambient * u_ambient_strength + diffuse + specular * u_specular_strength, 1.0);
 }
 
 
@@ -110,9 +112,7 @@ void main() {
         color *= texture(t_color_maps[i], fs_in.uv);
     }
     #endif
-
-    frag_accum = vec4(u_weight * u_opacity * color, u_weight * u_opacity);
-    frag_revealage = u_weight * log2(1.0 - u_opacity);
+    write_to_oit_frag(frag_accum, frag_revealage, color, u_opacity, u_weight);
 }
 
 

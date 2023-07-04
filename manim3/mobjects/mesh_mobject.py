@@ -22,21 +22,21 @@ from ..rendering.vertex_array import (
 from ..utils.space import SpaceUtils
 from .lights.ambient_light import AmbientLight
 from .lights.lighting import Lighting
-from .mobject import StyleMeta
+from .mobject import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
 
 
 class MeshMobject(RenderableMobject):
     __slots__ = ()
 
-    @StyleMeta.register()
+    @MobjectStyleMeta.register()
     @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
         # Default for `ImageMobject`, `ChildSceneMobject`.
         return PlaneGeometry()
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_3f8
     )
     @Lazy.variable_array
@@ -44,7 +44,7 @@ class MeshMobject(RenderableMobject):
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -52,7 +52,7 @@ class MeshMobject(RenderableMobject):
     def _opacity_(cls) -> NP_f8:
         return (1.0 - 2 ** (-32)) * np.ones(())
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -60,7 +60,7 @@ class MeshMobject(RenderableMobject):
     def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @StyleMeta.register()
+    @MobjectStyleMeta.register()
     @Lazy.variable_external
     @classmethod
     def _color_maps_(cls) -> list[moderngl.Texture]:
@@ -71,7 +71,7 @@ class MeshMobject(RenderableMobject):
     def _lighting_(cls) -> Lighting:
         return Lighting(AmbientLight())
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -79,7 +79,7 @@ class MeshMobject(RenderableMobject):
     def _ambient_strength_(cls) -> NP_f8:
         return np.ones(())
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -87,7 +87,7 @@ class MeshMobject(RenderableMobject):
     def _specular_strength_(cls) -> NP_f8:
         return Config().style.mesh_specular_strength * np.ones(())
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array

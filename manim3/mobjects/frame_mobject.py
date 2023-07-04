@@ -20,23 +20,20 @@ from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.mgl_enums import ContextFlag
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-from .mobject import (
-    Mobject,
-    StyleMeta
-)
+from .mobject import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
 
 
-class FrameMobject(Mobject):
+class FrameMobject(RenderableMobject):
     __slots__ = ()
 
-    @StyleMeta.register()
+    @MobjectStyleMeta.register()
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.zeros((3,))
 
-    @StyleMeta.register()
+    @MobjectStyleMeta.register()
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
@@ -74,6 +71,14 @@ class FrameMobject(Mobject):
             ]
         )
 
+    def _render(
+        self,
+        target_framebuffer: OITFramebuffer
+    ) -> None:
+        for mobject in self.iter_real_descendants():
+            if isinstance(mobject, RenderableMobject):
+                mobject._render(target_framebuffer)
+
     def _render_scene_content(
         self,
         target_framebuffer: ColorFramebuffer
@@ -88,9 +93,10 @@ class FrameMobject(Mobject):
                 revealage_texture=revealage_texture
             )
             oit_framebuffer.framebuffer.clear()
-            for mobject in self.iter_descendants():
-                if isinstance(mobject, RenderableMobject):
-                    mobject._render(oit_framebuffer)
+            self._render(oit_framebuffer)
+            #for mobject in self.iter_descendants():
+            #    if isinstance(mobject, RenderableMobject):
+            #        mobject._render(oit_framebuffer)
 
             self._oit_compose_vertex_array_.render(
                 framebuffer=target_framebuffer,

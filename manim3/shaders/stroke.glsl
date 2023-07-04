@@ -80,7 +80,7 @@ void main() {
     vec2 position_1 = get_position_2d(gs_in[1].view_position);
     vec2 vector = position_1 - position_0;
     float magnitude = length(vector);
-    if (magnitude == 0.0) {
+    if (magnitude < 1e-6) {
         return;
     }
     vec2 unit_vector = vector / magnitude;
@@ -114,6 +114,8 @@ in GS_FS {
 out vec4 frag_accum;
 out float frag_revealage;
 
+#include "includes/write_to_oit_frag.glsl"
+
 
 float get_weight_factor(float x0, float x1, float y) {
     float s = sqrt(1.0 - y * y);
@@ -132,8 +134,7 @@ void main() {
         discard;
     }
     weight *= u_weight;
-    frag_accum = vec4(weight * u_opacity * u_color, weight * u_opacity);
-    frag_revealage = weight * log2(1.0 - u_opacity);
+    write_to_oit_frag(frag_accum, frag_revealage, u_color, u_opacity, weight);
 }
 
 

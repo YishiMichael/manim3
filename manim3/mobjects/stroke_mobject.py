@@ -21,7 +21,7 @@ from ..rendering.vertex_array import (
 )
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
-from .mobject import StyleMeta
+from .mobject import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
 
 
@@ -36,7 +36,7 @@ class StrokeMobject(RenderableMobject):
         if multi_line_string is not None:
             self._multi_line_string_ = multi_line_string
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         partial_method=MultiLineString.partial,
         interpolate_method=MultiLineString.interpolate,
         concatenate_method=MultiLineString.concatenate
@@ -46,7 +46,7 @@ class StrokeMobject(RenderableMobject):
     def _multi_line_string_(cls) -> MultiLineString:
         return MultiLineString()
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_3f8
     )
     @Lazy.variable_array
@@ -54,7 +54,7 @@ class StrokeMobject(RenderableMobject):
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -62,7 +62,7 @@ class StrokeMobject(RenderableMobject):
     def _opacity_(cls) -> NP_f8:
         return (1.0 - 2 ** (-32)) * np.ones(())
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -70,7 +70,7 @@ class StrokeMobject(RenderableMobject):
     def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
     )
     @Lazy.variable_array
@@ -96,7 +96,6 @@ class StrokeMobject(RenderableMobject):
         opacity: NP_f8,
         weight: NP_f8,
         width: NP_f8
-        #dilate: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_stroke",
@@ -105,14 +104,12 @@ class StrokeMobject(RenderableMobject):
                 "float u_opacity",
                 "float u_weight",
                 "float u_width"
-                #"float u_dilate"
             ],
             data={
                 "u_color": color,
                 "u_opacity": opacity,
                 "u_weight": weight,
                 "u_width": width
-                #"u_dilate": dilate
             }
         )
 
@@ -128,13 +125,14 @@ class StrokeMobject(RenderableMobject):
             points_len: int,
             is_ring: bool
         ) -> NP_xu4:
-            arange = np.arange(points_len).astype(np.uint32)
+            arange = np.arange(points_len, dtype=np.uint32)
+            index_pairs = np.vstack((arange, np.roll(arange, -1))).T
             if not is_ring:
-                arange = arange[:-1]
-            return np.vstack((arange, np.roll(arange, -1))).T.flatten()
+                index_pairs = index_pairs[:-1]
+            return index_pairs.flatten()
 
         if not multi_line_string__line_strings__points:
-            index = np.zeros(0, dtype=np.uint32)
+            index = np.zeros((0,), dtype=np.uint32)
             position = np.zeros((0, 3))
         else:
             points_lens = [len(points) for points in multi_line_string__line_strings__points]

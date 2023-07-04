@@ -5,14 +5,14 @@ from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
 from ..mobject import (
     Mobject,
-    StyleMeta
+    MobjectStyleMeta
 )
 
 
 class AmbientLight(Mobject):
     __slots__ = ()
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_3f8
     )
     @Lazy.variable_array

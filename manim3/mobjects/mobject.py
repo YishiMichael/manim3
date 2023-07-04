@@ -131,7 +131,7 @@ class StyleDescriptorInfo(Generic[_InstanceT, _ContainerT, _DataT, _DataRawT]):
     concatenate_method: Callable[..., Callable[[], _ContainerT] | None]
 
 
-class StyleMeta:
+class MobjectStyleMeta:
     __slots__ = ()
 
     _style_descriptor_infos: ClassVar[list[StyleDescriptorInfo]] = []
@@ -454,6 +454,12 @@ class Mobject(LazyObject):
     def iter_parents(self) -> "Iterator[Mobject]":
         yield from self._parents
 
+    def iter_real_descendants(self) -> "Iterator[Mobject]":
+        yield from self._real_descendants_
+
+    def iter_real_ancestors(self) -> "Iterator[Mobject]":
+        yield from self._real_ancestors
+
     def iter_descendants(
         self,
         *,
@@ -461,7 +467,7 @@ class Mobject(LazyObject):
     ) -> "Iterator[Mobject]":
         yield self
         if broadcast:
-            yield from self._real_descendants_
+            yield from self.iter_real_descendants()
 
     def iter_ancestors(
         self,
@@ -470,7 +476,7 @@ class Mobject(LazyObject):
     ) -> "Iterator[Mobject]":
         yield self
         if broadcast:
-            yield from self._real_ancestors
+            yield from self.iter_real_ancestors()
 
     def add(
         self,
@@ -573,7 +579,7 @@ class Mobject(LazyObject):
 
     # model matrix
 
-    @StyleMeta.register(
+    @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_44f8
     )
     @Lazy.variable_array
@@ -605,7 +611,7 @@ class Mobject(LazyObject):
 
     @Lazy.property_external
     @classmethod
-    def _local_bounding_box_(
+    def _bounding_box_without_descendants_(
         cls,
         model_matrix: NP_44f8,
         local_sample_points: NP_x3f8
@@ -620,16 +626,16 @@ class Mobject(LazyObject):
 
     @Lazy.property_external
     @classmethod
-    def _bounding_box_(
+    def _bounding_box_with_descendants_(
         cls,
-        local_bounding_box: BoundingBox | None,
-        real_descendants__local_bounding_box: list[BoundingBox | None]
+        bounding_box_without_descendants: BoundingBox | None,
+        real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
     ) -> BoundingBox | None:
         points_array = np.array(list(it.chain.from_iterable(
             (bounding_box.maximum, bounding_box.minimum)
             for bounding_box in (
-                local_bounding_box,
-                *real_descendants__local_bounding_box
+                bounding_box_without_descendants,
+                *real_descendants__bounding_box_without_descendants
             )
             if bounding_box is not None
         )))
@@ -640,24 +646,41 @@ class Mobject(LazyObject):
             minimum=points_array.min(axis=0)
         )
 
-    def get_bounding_box(self) -> BoundingBox:
-        result = self._bounding_box_
+    def get_bounding_box(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> BoundingBox:
+        if broadcast:
+            result = self._bounding_box_with_descendants_
+        else:
+            result = self._bounding_box_without_descendants_
         assert result is not None, "Trying to calculate the bounding box of some mobject with no points"
         return result
 
-    def get_bounding_box_size(self) -> NP_3f8:
-        bounding_box = self.get_bounding_box()
+    def get_bounding_box_size(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> NP_3f8:
+        bounding_box = self.get_bounding_box(broadcast=broadcast)
         return bounding_box.radii * 2.0
 
     def get_bounding_box_point(
         self,
-        direction: NP_3f8
+        direction: NP_3f8,
+        *,
+        broadcast: bool = True
     ) -> NP_3f8:
-        bounding_box = self.get_bounding_box()
+        bounding_box = self.get_bounding_box(broadcast=broadcast)
         return bounding_box.center + direction * bounding_box.radii
 
-    def get_center(self) -> NP_3f8:
-        return self.get_bounding_box_point(ORIGIN)
+    def get_center(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> NP_3f8:
+        return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
 
     # transform
 
@@ -830,7 +853,7 @@ class Mobject(LazyObject):
     # meta methods
 
     def concatenate(self):
-        StyleMeta._concatenate(*self.iter_children())(self)()
+        MobjectStyleMeta._concatenate(*self.iter_children())(self)()
         self.clear()
         return self
 
@@ -871,7 +894,7 @@ class Mobject(LazyObject):
         ) -> np.ndarray:
             if not isinstance(value, float | int | np.ndarray):
                 return value
-            return (value * np.ones(())).astype(np.float64)
+            return value * np.ones((), dtype=np.float64)
 
         if color is not None:
             color = ColorUtils.standardize_color(color)

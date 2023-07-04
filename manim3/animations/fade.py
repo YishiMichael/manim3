@@ -28,7 +28,7 @@ class FadeIn(TransformFromCopy):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            func=lambda mob: func(mob.set_style(opacity=0.0)),
+            func=lambda mob: func(mob.set_style(weight=0.0)),
             run_time=run_time,
             rate_func=rate_func
         )
@@ -51,7 +51,7 @@ class FadeOut(TransformToCopy):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            func=lambda mob: func(mob.set_style(opacity=0.0)),
+            func=lambda mob: func(mob.set_style(weight=0.0)),
             run_time=run_time,
             rate_func=rate_func
         )
@@ -76,12 +76,8 @@ class FadeTransform(Parallel):
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        intermediate_start_mobject = start_mobject.copy().set_style(
-            is_transparent=True
-        )
-        intermediate_stop_mobject = stop_mobject.copy().set_style(
-            is_transparent=True
-        )
+        intermediate_start_mobject = start_mobject.copy()
+        intermediate_stop_mobject = stop_mobject.copy()
         super().__init__(
             FadeOut(
                 mobject=intermediate_start_mobject,

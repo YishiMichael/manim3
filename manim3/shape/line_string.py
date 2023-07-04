@@ -85,7 +85,7 @@ class LineString(ShapeInterpolant):
     ) -> None:
         assert len(points)
         super().__init__()
-        self._points_ = points  #self._remove_duplicate_points(points, is_ring)
+        self._points_ = points
         self._is_ring_ = is_ring
 
     @Lazy.variable_array
@@ -117,20 +117,6 @@ class LineString(ShapeInterpolant):
     ) -> NP_xf8:
         vectors: NP_x3f8 = np.diff(path_points, axis=0)
         return SpaceUtils.norm(vectors)
-
-    #@classmethod
-    #def _remove_duplicate_points(
-    #    cls,
-    #    points: NP_x3f8,
-    #    is_ring: bool
-    #) -> NP_x3f8:
-    #    nonzero_vector_indices = (np.diff(points, axis=0) != 0.0).any(axis=1).nonzero()[0]
-    #    if not len(nonzero_vector_indices):
-    #        return points[:1]
-    #    new_points = points[nonzero_vector_indices]
-    #    if not is_ring or (points[0] != points[-1]).any():
-    #        new_points = np.append(new_points, points[-1:], axis=0)
-    #    return new_points
 
     @classmethod
     def partial(

@@ -20,7 +20,7 @@ class ShapeTransformExample(Scene):
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=YELLOW, opacity=0.7, width=0.3)
+            .set_style(color=YELLOW, weight=10)
         )
 
         self.add(square)
@@ -33,25 +33,25 @@ class TexTransformExample(Scene):
     async def timeline(self) -> None:
         text = (
             Text("Text")
-            .scale(2)
+            .scale(3)
             .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, width=0.004)
-        ).scale(3)
+            .set_style(color=BLUE, weight=10)
+        )
         tex = (
             Tex("Tex")
-            .scale(2)
+            .scale(3)
             .set_style(color=BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)
         )
         tex.add(
             tex.build_stroke()
-            .set_style(color=PINK, width=0.006)
-        ).scale(3)
+            .set_style(color=PINK, weight=10)
+        )
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
@@ -70,7 +70,7 @@ class CreateTexExample(Scene):
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, width=0.04)
+            .set_style(color=BLUE, weight=10)
         )
         await self.wait()
         await self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
@@ -91,7 +91,7 @@ class ThreeDTextExample(Scene):
                 color="#00FFAA",
                 opacity=0.25,
                 lighting=Lighting(
-                    AmbientLight().set_style(opacity=0.3),
+                    AmbientLight().set_style(color=WHITE * 0.3),
                     PointLight().shift(RIGHT * 5)
                 )
             )
@@ -135,7 +135,6 @@ class ChildSceneExample(Scene):
             .scale(0.5)
             .shift(RIGHT * 3)
             .shift(OUT * 0.01)
-            #.set_style(is_transparent=True)
         )
         await self.wait(6)
 

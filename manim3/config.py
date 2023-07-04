@@ -221,7 +221,7 @@ class Config:
             background_color=Color("black"),
             mesh_specular_strength=0.5,
             mesh_shininess=32.0,
-            stroke_width=0.1
+            stroke_width=0.05
         )
         self._tex: TexConfig = TexConfig(
             use_mathjax=False,

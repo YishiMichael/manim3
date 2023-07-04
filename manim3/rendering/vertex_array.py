@@ -131,6 +131,17 @@ class Program(LazyObject):
         varyings: tuple[str, ...]
     ) -> ProgramInfo:
 
+        def read_shader_with_includes_replaced(
+            filename: str
+        ) -> str:
+            with Config().path.shaders_dir.joinpath(filename).open() as shader_file:
+                shader_str = shader_file.read()
+            return re.sub(
+                r"#include \"(.+?)\"",
+                lambda match_obj: read_shader_with_includes_replaced(match_obj.group(1)),
+                shader_str
+            )
+
         def construct_moderngl_program(
             shader_str: str,
             custom_macros: tuple[str, ...],
@@ -224,8 +235,7 @@ class Program(LazyObject):
                 binding += 1
             return uniform_block_binding_dict
 
-        with Config().path.shaders_dir.joinpath(f"{shader_filename}.glsl").open() as shader_file:
-            shader_str = shader_file.read()
+        shader_str = read_shader_with_includes_replaced(f"{shader_filename}.glsl")
         program = construct_moderngl_program(shader_str, custom_macros, array_len_items)
         texture_binding_offset_dict = set_texture_bindings(program, {
             buffer_format._name_: buffer_format

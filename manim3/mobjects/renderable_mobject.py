@@ -6,14 +6,14 @@ from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
 from .mobject import (
     Mobject,
-    StyleMeta
+    MobjectStyleMeta
 )
 
 
 class RenderableMobject(Mobject):
     __slots__ = ()
 
-    @StyleMeta.register()
+    @MobjectStyleMeta.register()
     @Lazy.variable
     @classmethod
     def _camera_(cls) -> Camera:
