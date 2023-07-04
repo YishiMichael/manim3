@@ -20,9 +20,8 @@ class ChildSceneMobject(TexturedMobject):
     ) -> None:
         super().__init__()
         self._scene: Scene = scene
-        assert (color_map := self._color_map_) is not None
         self._framebuffer: ColorFramebuffer = ColorFramebuffer(
-            color_texture=color_map
+            color_texture=self._color_map_
         )
         self.scale(np.append(scene.camera._frame_radii_, 1.0))
 

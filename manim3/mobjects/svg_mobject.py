@@ -11,9 +11,9 @@ from scipy.interpolate import BSpline
 import svgelements as se
 
 from ..custom_typing import (
-    NP_xf8,
     NP_2f8,
-    NP_x2f8
+    NP_x2f8,
+    NP_xf8
 )
 from ..shape.shape import Shape
 from ..utils.space import SpaceUtils

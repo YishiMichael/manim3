@@ -2,8 +2,8 @@ import numpy as np
 
 from ..config import Config
 from ..custom_typing import (
-    NP_f8,
     NP_3f8,
+    NP_f8,
     NP_x3f8,
     NP_xu4
 )

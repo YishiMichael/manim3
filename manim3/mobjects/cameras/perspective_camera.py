@@ -1,8 +1,8 @@
 import numpy as np
 
 from ...custom_typing import (
-    NP_44f8,
     NP_2f8,
+    NP_44f8,
     NP_f8
 )
 from ...lazy.lazy import Lazy
@@ -19,9 +19,9 @@ class PerspectiveCamera(Camera):
         frame_radii: NP_2f8,
         near: NP_f8,
         far: NP_f8,
-        altitude: NP_f8
+        distance: NP_f8
     ) -> NP_44f8:
-        sx, sy = altitude / frame_radii
+        sx, sy = distance / frame_radii
         sz = -(far + near) / (far - near)
         tz = -2.0 * far * near / (far - near)
         return np.array((

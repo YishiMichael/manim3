@@ -16,10 +16,8 @@ from typing import (
     ParamSpec,
     overload
 )
-import warnings
 import weakref
 
-import moderngl
 import numpy as np
 
 from ..constants import (
@@ -41,9 +39,10 @@ from ..lazy.lazy import (
     LazyVariableDescriptor
 )
 from ..rendering.gl_buffer import UniformBlockBuffer
-from ..shape.line_string import MultiLineString
+from ..shape.multi_line_string import MultiLineString
 from ..shape.shape import Shape
 from ..utils.color import ColorUtils
+from ..utils.model_interpolant import ModelInterpolant
 from ..utils.space import SpaceUtils
 
 if TYPE_CHECKING:
@@ -684,28 +683,18 @@ class Mobject(LazyObject):
 
     # transform
 
-    def _make_callback_relative(
-        self,
-        matrix_callback: Callable[[float | NP_3f8], NP_44f8],
-        about: AboutABC | None
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        if about is None:
-            return matrix_callback
-        about_point = about._get_about_point(mobject=self)
-        pre_transform = SpaceUtils.matrix_from_translation(-about_point)
-        post_transform = SpaceUtils.matrix_from_translation(about_point)
-
-        def callback(
-            alpha: float | NP_3f8
-        ) -> NP_44f8:
-            return post_transform @ matrix_callback(alpha) @ pre_transform
-
-        return callback
-
     def _apply_transform_callback(
         self,
-        matrix_callback: Callable[[float], NP_44f8]
-    ) -> Callable[[float], None]:
+        model_interpolant: ModelInterpolant,
+        about: AboutABC | None = None
+    ) -> Callable[[float | NP_3f8], None]:
+        if about is None:
+            pre_transform = np.identity(4)
+            post_transform = np.identity(4)
+        else:
+            about_point = about._get_about_point(mobject=self)
+            pre_transform = ModelInterpolant.from_shift(-about_point)()
+            post_transform = ModelInterpolant.from_shift(about_point)()
 
         mobject_to_model_matrix = {
             mobject: mobject._model_matrix_
@@ -713,39 +702,22 @@ class Mobject(LazyObject):
         }
 
         def callback(
-            alpha: float
+            alpha: float | NP_3f8
         ) -> None:
+            matrix = post_transform @ model_interpolant(alpha) @ pre_transform
             for mobject, model_matrix in mobject_to_model_matrix.items():
-                mobject._model_matrix_ = matrix_callback(alpha) @ model_matrix
+                mobject._model_matrix_ = matrix @ model_matrix
 
         return callback
-
-    def apply_transform(
-        self,
-        matrix: NP_44f8,
-    ):
-        if np.isclose(np.linalg.det(matrix), 0.0):
-            warnings.warn("Applying a singular matrix transform")
-        self._apply_transform_callback(lambda alpha: matrix)(1.0)
-        return self
-
-    # shift relatives
-
-    def _shift_callback(
-        self,
-        vector: NP_3f8
-        # `about` is meaningless for shifting.
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        return SpaceUtils.matrix_callback_from_translation(vector)
 
     def shift(
         self,
         vector: NP_3f8,
+        # `about` is meaningless for shifting.
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        matrix = self._shift_callback(vector)(alpha)
-        self.apply_transform(matrix)
+        self._apply_transform_callback(ModelInterpolant.from_shift(vector))(alpha)
         return self
 
     def move_to(
@@ -772,18 +744,6 @@ class Mobject(LazyObject):
         )
         return self
 
-    # scale relatives
-
-    def _scale_callback(
-        self,
-        factor: float | NP_3f8,
-        about: AboutABC | None = None
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        return self._make_callback_relative(
-            matrix_callback=SpaceUtils.matrix_callback_from_scale(factor),
-            about=about
-        )
-
     def scale(
         self,
         factor: float | NP_3f8,
@@ -791,8 +751,7 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        matrix = self._scale_callback(factor, about)(alpha)
-        self.apply_transform(matrix)
+        self._apply_transform_callback(ModelInterpolant.from_scale(factor), about=about)(alpha)
         return self
 
     def scale_to(
@@ -813,20 +772,8 @@ class Mobject(LazyObject):
         self,
         mobject: "Mobject"
     ):
-        self.shift(mobject.get_center() - self.get_center()).scale_to(mobject.get_bounding_box_size())
+        self.shift(-self.get_center()).scale_to(mobject.get_bounding_box_size()).shift(mobject.get_center())
         return self
-
-    # rotate relatives
-
-    def _rotate_callback(
-        self,
-        rotvec: NP_3f8,
-        about: AboutABC | None = None
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        return self._make_callback_relative(
-            matrix_callback=SpaceUtils.matrix_callback_from_rotation(rotvec),
-            about=about
-        )
 
     def rotate(
         self,
@@ -835,8 +782,7 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        matrix = self._rotate_callback(rotvec, about)(alpha)
-        self.apply_transform(matrix)
+        self._apply_transform_callback(ModelInterpolant.from_rotate(rotvec), about=about)(alpha)
         return self
 
     def flip(

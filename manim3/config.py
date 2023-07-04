@@ -134,7 +134,7 @@ class SizeConfig:
     slots=True
 )
 class CameraConfig:
-    altitude: float
+    distance: float
     near: float
     far: float
 
@@ -213,7 +213,7 @@ class Config:
             window_pixel_height=540
         )
         self._camera: CameraConfig = CameraConfig(
-            altitude=5.0,
+            distance=5.0,
             near=0.1,
             far=100.0
         )

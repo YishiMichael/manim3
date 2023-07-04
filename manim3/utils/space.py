@@ -5,7 +5,6 @@ from typing import (
 )
 
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 from ..custom_typing import (
     NP_2f8,
@@ -46,9 +45,7 @@ class SpaceUtils:
         cls,
         vector: NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8
     ) -> NP_f8 | NP_xf8:
-        #if vector.ndim == 1:
-        return np.array(np.linalg.norm(vector, axis=-1))
-        #return np.linalg.norm(vector, axis=1)
+        return np.linalg.norm(vector, axis=-1)
 
     @overload
     @classmethod
@@ -193,63 +190,6 @@ class SpaceUtils:
         else:
             result = v.T
         return result
-
-    @classmethod
-    def matrix_callback_from_translation(
-        cls,
-        vector: NP_3f8
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        lerp_callback = cls.lerp(np.zeros(()), vector)
-
-        def callback(
-            alpha: float | NP_3f8
-        ) -> NP_44f8:
-            m = np.identity(4)
-            m[:3, 3] = lerp_callback(alpha)
-            return m
-
-        return callback
-
-    @classmethod
-    def matrix_callback_from_scale(
-        cls,
-        factor: float | NP_3f8
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        if not isinstance(factor, np.ndarray):
-            factor *= np.ones((3,))
-        lerp_callback = cls.lerp(np.ones(()), factor)
-
-        def callback(
-            alpha: float | NP_3f8
-        ) -> NP_44f8:
-            m = np.identity(4)
-            m[:3, :3] = np.diag(lerp_callback(alpha))
-            return m
-
-        return callback
-
-    @classmethod
-    def matrix_callback_from_rotation(
-        cls,
-        rotvec: NP_3f8
-    ) -> Callable[[float | NP_3f8], NP_44f8]:
-        lerp_callback = cls.lerp(np.zeros(()), rotvec)
-
-        def callback(
-            alpha: float | NP_3f8
-        ) -> NP_44f8:
-            m = np.identity(4)
-            m[:3, :3] = Rotation.from_rotvec(lerp_callback(alpha)).as_matrix()
-            return m
-
-        return callback
-
-    @classmethod
-    def matrix_from_translation(
-        cls,
-        vector: NP_3f8
-    ) -> NP_44f8:
-        return cls.matrix_callback_from_translation(vector)(1.0)
 
     @classmethod
     def increase_dimension(

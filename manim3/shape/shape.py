@@ -21,10 +21,8 @@ from ..lazy.lazy import (
 )
 from ..utils.iterables import IterUtils
 from ..utils.space import SpaceUtils
-from .line_string import (
-    LineString,
-    MultiLineString
-)
+from .line_string import LineString
+from .multi_line_string import MultiLineString
 
 
 class Shape(LazyObject):

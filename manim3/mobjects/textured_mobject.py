@@ -1,5 +1,8 @@
 import weakref
 
+import moderngl
+
+from ..lazy.lazy import Lazy
 from ..rendering.texture import TextureFactory
 from .mesh_mobject import MeshMobject
 
@@ -19,3 +22,16 @@ class TexturedMobject(MeshMobject):
             lambda color_map_context_manager: color_map_context_manager.__exit__(None, None, None),
             color_map_context_manager
         )
+
+    @Lazy.variable_external
+    @classmethod
+    def _color_map_(cls) -> moderngl.Texture:
+        return NotImplemented
+
+    @Lazy.property_external
+    @classmethod
+    def _color_maps_(
+        cls,
+        color_map: moderngl.Texture
+    ) -> list[moderngl.Texture]:
+        return [color_map]

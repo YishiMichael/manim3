@@ -1,13 +1,11 @@
 from typing import Callable
 
-from ..custom_typing import (
-    NP_44f8,
-    NP_3f8
-)
+from ..custom_typing import NP_3f8
 from ..mobjects.mobject import (
     AboutABC,
     Mobject
 )
+from ..utils.model_interpolant import ModelInterpolant
 from ..utils.rate import RateUtils
 from .animation import Animation
 
@@ -18,13 +16,14 @@ class ModelFiniteAnimation(Animation):
     def __init__(
         self,
         mobject: Mobject,
-        alpha_to_matrix: Callable[[float], NP_44f8],
+        model_interpolant: ModelInterpolant,
+        about: AboutABC | None = None,
         *,
         arrive: bool = False,
         run_time: float = 1.0,
         rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
-        callback = mobject._apply_transform_callback(alpha_to_matrix)
+        callback = mobject._apply_transform_callback(model_interpolant, about)
 
         def updater(
             alpha: float
@@ -57,7 +56,7 @@ class Shift(ModelFiniteAnimation):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            alpha_to_matrix=mobject._shift_callback(vector),
+            model_interpolant=ModelInterpolant.from_shift(vector),
             arrive=arrive,
             run_time=run_time,
             rate_func=rate_func
@@ -79,7 +78,8 @@ class Scale(ModelFiniteAnimation):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            alpha_to_matrix=mobject._scale_callback(scale, about),
+            model_interpolant=ModelInterpolant.from_scale(scale),
+            about=about,
             arrive=arrive,
             run_time=run_time,
             rate_func=rate_func
@@ -101,7 +101,8 @@ class Rotate(ModelFiniteAnimation):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            alpha_to_matrix=mobject._rotate_callback(rotvec, about),
+            model_interpolant=ModelInterpolant.from_rotate(rotvec),
+            about=about,
             arrive=arrive,
             run_time=run_time,
             rate_func=rate_func
@@ -114,12 +115,13 @@ class ModelRunningAnimation(Animation):
     def __init__(
         self,
         mobject: Mobject,
-        alpha_to_matrix: Callable[[float], NP_44f8],
+        model_interpolant: ModelInterpolant,
+        about: AboutABC | None = None,
         *,
         run_time: float | None = None,
         speed: float = 1.0
     ) -> None:
-        callback = mobject._apply_transform_callback(alpha_to_matrix)
+        callback = mobject._apply_transform_callback(model_interpolant, about)
         super().__init__(
             updater=callback,
             run_time=run_time,
@@ -143,7 +145,7 @@ class Shifting(ModelRunningAnimation):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            alpha_to_matrix=mobject._shift_callback(vector),
+            model_interpolant=ModelInterpolant.from_shift(vector),
             run_time=run_time,
             speed=speed
         )
@@ -163,7 +165,8 @@ class Scaling(ModelRunningAnimation):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            alpha_to_matrix=mobject._scale_callback(factor, about),
+            model_interpolant=ModelInterpolant.from_scale(factor),
+            about=about,
             run_time=run_time,
             speed=speed
         )
@@ -183,7 +186,8 @@ class Rotating(ModelRunningAnimation):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            alpha_to_matrix=mobject._rotate_callback(rotvec, about),
+            model_interpolant=ModelInterpolant.from_rotate(rotvec),
+            about=about,
             run_time=run_time,
             speed=speed
         )

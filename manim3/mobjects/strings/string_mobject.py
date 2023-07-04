@@ -21,8 +21,8 @@ from scipy.spatial.distance import cdist
 
 from ...config import Config
 from ...custom_typing import (
-    SelectorT,
-    NP_3f8
+    NP_3f8,
+    SelectorT
 )
 from ...utils.color import ColorUtils
 from ...utils.iterables import IterUtils

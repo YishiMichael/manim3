@@ -115,7 +115,7 @@ from .rendering.mgl_enums import (
 from .rendering.texture import TextureFactory
 from .rendering.vertex_array import VertexArray
 
-from .shape.line_string import MultiLineString
+from .shape.multi_line_string import MultiLineString
 from .shape.shape import Shape
 
 from .utils.color import ColorUtils

@@ -19,8 +19,7 @@ class ImageMobject(TexturedMobject):
     ) -> None:
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         super().__init__(size=image.size)
-        assert (color_map := self._color_map_) is not None
-        color_map.write(image.tobytes("raw", "RGB"))
+        self._color_map_.write(image.tobytes("raw", "RGB"))
 
         pixel_per_unit = Config().size.pixel_per_unit
         original_width = image.width / pixel_per_unit

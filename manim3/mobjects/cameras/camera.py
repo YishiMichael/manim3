@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.spatial.transform import Rotation
 
 from ...config import Config
 from ...constants import (
@@ -9,14 +9,15 @@ from ...constants import (
     UP
 )
 from ...custom_typing import (
-    NP_44f8,
     NP_2f8,
     NP_3f8,
+    NP_44f8,
     NP_f8,
     NP_x3f8
 )
 from ...lazy.lazy import Lazy
 from ...rendering.gl_buffer import UniformBlockBuffer
+from ...utils.model_interpolant import ModelInterpolant
 from ...utils.space import SpaceUtils
 from ..mobject import Mobject
 
@@ -31,10 +32,10 @@ class Camera(Mobject):
         # `eye`: OUT
         # Distances bound to `model_matrix`:
         # `frame_radii`: (|RIGHT - ORIGIN|, |UP - ORIGIN|)
-        # `altitude`: |OUT - ORIGIN|
+        # `distance`: |OUT - ORIGIN|
         self.scale(np.append(
             Config().size.frame_radii,
-            Config().camera.altitude
+            Config().camera.distance
         ))
 
     @Lazy.variable_array
@@ -88,7 +89,7 @@ class Camera(Mobject):
 
     @Lazy.property_array
     @classmethod
-    def _altitude_(
+    def _distance_(
         cls,
         eye: NP_3f8,
         target: NP_3f8
@@ -99,9 +100,13 @@ class Camera(Mobject):
     @classmethod
     def _view_matrix_(
         cls,
+        model_matrix: NP_44f8,
         eye: NP_3f8
     ) -> NP_44f8:
-        return SpaceUtils.matrix_from_translation(-eye)
+        model_basis = model_matrix[:3, :3]
+        model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
+        return ModelInterpolant.from_rotate(-Rotation.from_matrix(model_basis_normalized).as_rotvec())() \
+            @ ModelInterpolant.from_shift(-eye)()
 
     @Lazy.property_array
     @classmethod

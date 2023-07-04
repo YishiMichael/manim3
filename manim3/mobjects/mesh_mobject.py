@@ -90,20 +90,10 @@ class MeshMobject(RenderableMobject):
     def _shininess_(cls) -> NP_f8:
         return Config().style.mesh_shininess * np.ones(())
 
-    @Lazy.variable_external
-    @classmethod
-    def _color_map_(cls) -> moderngl.Texture | None:
-        return None
-
     @Lazy.property_external
     @classmethod
-    def _color_maps_(
-        cls,
-        color_map: moderngl.Texture | None
-    ) -> list[moderngl.Texture]:
-        if color_map is None:
-            return []
-        return [color_map]
+    def _color_maps_(cls) -> list[moderngl.Texture]:
+        return []
 
     @Lazy.property_array
     @classmethod

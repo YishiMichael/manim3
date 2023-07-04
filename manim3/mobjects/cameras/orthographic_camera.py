@@ -1,8 +1,8 @@
 import numpy as np
 
 from ...custom_typing import (
-    NP_44f8,
     NP_2f8,
+    NP_44f8,
     NP_f8
 )
 from ...lazy.lazy import Lazy

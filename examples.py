@@ -97,7 +97,7 @@ class ThreeDTextExample(Scene):
             )
         )
         self.add(text_3d)
-        self.prepare(Rotating(text_3d, 0.5 * DOWN))
+        self.prepare(Rotating(self.camera, 0.5 * DOWN))
         await self.wait(10)
 
 
@@ -133,7 +133,6 @@ class ChildSceneExample(Scene):
             ChildSceneMobject(child_scene_2)
             .scale(0.5)
             .shift(RIGHT * 3)
-            .shift(OUT * 0.01)
         )
         await self.wait(6)
 
@@ -182,8 +181,8 @@ def main() -> None:
     #config.rendering.preview = False
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
-    #config.size.pixel_size = (960, 540)
-    ChildSceneExample().render()
+    #config.size.pixel_size = (480, 270)
+    ThreeDTextExample().render()
 
 
 if __name__ == "__main__":
