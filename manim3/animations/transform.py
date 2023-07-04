@@ -3,10 +3,8 @@ from typing import (
     TypeVar
 )
 
-from ..mobjects.mobject import (
-    Mobject,
-    MobjectStyleMeta
-)
+from ..mobjects.mobject import Mobject
+from ..mobjects.mobject_style_meta import MobjectStyleMeta
 from ..utils.rate import RateUtils
 from .animation import Animation
 

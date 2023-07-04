@@ -4,10 +4,8 @@ from ..lazy.lazy import Lazy
 from ..rendering.framebuffer import OITFramebuffer
 from .cameras.camera import Camera
 from .cameras.perspective_camera import PerspectiveCamera
-from .mobject import (
-    Mobject,
-    MobjectStyleMeta
-)
+from .mobject import Mobject
+from .mobject_style_meta import MobjectStyleMeta
 
 
 class RenderableMobject(Mobject):

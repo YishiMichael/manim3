@@ -9,7 +9,7 @@ from ..rendering.framebuffer import (
 from ..rendering.gl_buffer import TextureIdBuffer
 from ..rendering.texture import TextureFactory
 from ..rendering.vertex_array import VertexArray
-from .mobject import MobjectStyleMeta
+from .mobject_style_meta import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
 
 

@@ -21,7 +21,7 @@ from ..rendering.vertex_array import (
 )
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
-from .mobject import MobjectStyleMeta
+from .mobject_style_meta import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
 
 

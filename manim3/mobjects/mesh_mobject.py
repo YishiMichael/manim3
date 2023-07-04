@@ -22,7 +22,7 @@ from ..rendering.vertex_array import (
 from ..utils.space import SpaceUtils
 from .lights.ambient_light import AmbientLight
 from .lights.lighting import Lighting
-from .mobject import MobjectStyleMeta
+from .mobject_style_meta import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
 
 

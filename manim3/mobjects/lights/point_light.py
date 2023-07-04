@@ -8,10 +8,8 @@ from ...custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
-from ..mobject import (
-    Mobject,
-    MobjectStyleMeta
-)
+from ..mobject import Mobject
+from ..mobject_style_meta import MobjectStyleMeta
 
 
 class PointLight(Mobject):

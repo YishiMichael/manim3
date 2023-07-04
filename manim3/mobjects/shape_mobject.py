@@ -2,8 +2,8 @@ from ..geometries.shape_geometry import ShapeGeometry
 from ..lazy.lazy import Lazy
 from ..shape.shape import Shape
 from .mesh_mobject import MeshMobject
-from .mobject import MobjectStyleMeta
 from .stroke_mobject import StrokeMobject
+from .mobject_style_meta import MobjectStyleMeta
 
 
 class ShapeMobject(MeshMobject):
