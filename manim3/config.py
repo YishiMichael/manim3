@@ -190,13 +190,13 @@ class Config:
         "_text"
     )
 
-    _INSTANCE: "ClassVar[Config | None]" = None
+    _instance: "ClassVar[Config | None]" = None
 
     def __new__(cls):
-        if cls._INSTANCE is None:
-            cls._INSTANCE = super().__new__(cls)
-            cls._INSTANCE._init()
-        return cls._INSTANCE
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._init()
+        return cls._instance
 
     def _init(self) -> None:
         self._path: PathConfig = PathConfig()

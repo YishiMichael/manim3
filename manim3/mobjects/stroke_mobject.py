@@ -8,17 +8,13 @@ from ..custom_typing import (
     NP_xu4
 )
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffer import OITFramebuffer
-from ..rendering.gl_buffer import (
-    AttributesBuffer,
-    IndexBuffer,
-    UniformBlockBuffer
-)
+from ..rendering.buffers.attributes_buffer import AttributesBuffer
+from ..rendering.buffers.index_buffer import IndexBuffer
+from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
-from ..rendering.vertex_array import (
-    IndexedAttributesBuffer,
-    VertexArray
-)
+from ..rendering.vertex_array import VertexArray
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
 from .mobject_style_meta import MobjectStyleMeta

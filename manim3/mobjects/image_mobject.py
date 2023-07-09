@@ -2,11 +2,12 @@ import numpy as np
 from PIL import Image
 
 from ..config import Config
+from ..rendering.context import Context
 from ..utils.space import SpaceUtils
-from .textured_mobject import TexturedMobject
+from .mesh_mobject import MeshMobject
 
 
-class ImageMobject(TexturedMobject):
+class ImageMobject(MeshMobject):
     __slots__ = ()
 
     def __init__(
@@ -17,9 +18,13 @@ class ImageMobject(TexturedMobject):
         height: float | None = 4.0,
         frame_scale: float | None = None
     ) -> None:
+        super().__init__()
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        super().__init__(size=image.size)
-        self._color_map_.write(image.tobytes("raw", "RGB"))
+        image_texture = Context.texture(size=image.size, components=3)
+        image_texture.write(image.tobytes("raw", "RGB"))
+        self._color_maps_ = [image_texture]
+        #super().__init__(size=image.size)
+        #self._color_map_.write(image.tobytes("raw", "RGB"))
 
         pixel_per_unit = Config().size.pixel_per_unit
         original_width = image.width / pixel_per_unit

@@ -32,7 +32,7 @@ from ..lazy.lazy import (
     LazyObject,
     LazyVariableDescriptor
 )
-from ..rendering.gl_buffer import UniformBlockBuffer
+from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..shape.multi_line_string import MultiLineString
 from ..shape.shape import Shape
 from ..utils.color import ColorUtils
@@ -197,12 +197,6 @@ class Mobject(LazyObject):
     def iter_parents(self) -> "Iterator[Mobject]":
         yield from self._parents
 
-    def iter_real_descendants(self) -> "Iterator[Mobject]":
-        yield from self._real_descendants_
-
-    def iter_real_ancestors(self) -> "Iterator[Mobject]":
-        yield from self._real_ancestors
-
     def iter_descendants(
         self,
         *,
@@ -210,7 +204,7 @@ class Mobject(LazyObject):
     ) -> "Iterator[Mobject]":
         yield self
         if broadcast:
-            yield from self.iter_real_descendants()
+            yield from self._real_descendants_
 
     def iter_ancestors(
         self,
@@ -219,7 +213,7 @@ class Mobject(LazyObject):
     ) -> "Iterator[Mobject]":
         yield self
         if broadcast:
-            yield from self.iter_real_ancestors()
+            yield from self._real_ancestors
 
     def add(
         self,
@@ -453,6 +447,14 @@ class Mobject(LazyObject):
                 mobject._model_matrix_ = matrix @ model_matrix
 
         return callback
+
+    def apply_transform(
+        self,
+        matrix: NP_44f8,
+        about: AboutABC | None = None
+    ):
+        self._apply_transform_callback(ModelInterpolant(lambda alpha: matrix), about=about)(1.0)
+        return self
 
     def shift(
         self,

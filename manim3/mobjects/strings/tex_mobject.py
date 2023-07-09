@@ -51,7 +51,7 @@ class TexTemplate:
 class TexFileWriter(StringFileWriter):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "_tex"
+    _DIR_NAME: ClassVar[str] = "_tex"
 
     @classmethod
     def create_svg_file(
@@ -153,7 +153,7 @@ class TexFileWriter(StringFileWriter):
 class MathjaxFileWriter(StringFileWriter):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "_mathjax"
+    _DIR_NAME: ClassVar[str] = "_mathjax"
 
     @classmethod
     def create_svg_file(

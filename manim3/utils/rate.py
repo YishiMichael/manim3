@@ -10,21 +10,21 @@ class RateUtils:
     def __new__(cls):
         raise TypeError
 
-    @classmethod
-    def compose(
-        cls,
-        *funcs: Callable[[float], float]
-    ) -> Callable[[float], float]:
+    #@classmethod
+    #def compose(
+    #    cls,
+    #    *funcs: Callable[[float], float]
+    #) -> Callable[[float], float]:
 
-        def result(
-            x: float
-        ) -> float:
-            y = x
-            for func in reversed(funcs):
-                y = func(y)
-            return y
+    #    def result(
+    #        x: float
+    #    ) -> float:
+    #        y = x
+    #        for func in reversed(funcs):
+    #            y = func(y)
+    #        return y
 
-        return result
+    #    return result
 
     @classmethod
     def inverse(
@@ -48,15 +48,15 @@ class RateUtils:
         cls,
         func: Callable[[float], float],
         *,
-        lag_time: float = 0.0,
         run_time_scale: float = 1.0,
-        run_alpha_scale: float = 1.0
+        run_alpha_scale: float = 1.0,
+        lag_alpha: float = 0.0
     ) -> Callable[[float], float]:
 
         def result(
             t: float
         ) -> float:
-            return func((t - lag_time) / run_time_scale) * run_alpha_scale
+            return func(t / run_time_scale) * run_alpha_scale - lag_alpha
 
         return result
 

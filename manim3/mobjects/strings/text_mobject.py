@@ -79,7 +79,7 @@ class PangoUtils:
 class MarkupTextFileWriter(StringFileWriter):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "_markup"
+    _DIR_NAME: ClassVar[str] = "_markup"
 
     @classmethod
     def create_svg_file(

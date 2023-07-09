@@ -25,10 +25,6 @@ class ContextState:
     flags: tuple[ContextFlag, ...]
     blend_funcs: tuple[tuple[BlendFunc, BlendFunc], ...] = ((BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA),)
     blend_equations: tuple[BlendEquation, ...] = (BlendEquation.FUNC_ADD,)
-    depth_func: str = "<"
-    front_face: str = "ccw"
-    cull_face: str = "back"
-    wireframe: bool = False
 
 
 class Context:
@@ -113,10 +109,6 @@ class Context:
                 index,
                 blend_equation.value
             )
-        context.depth_func = context_state.depth_func
-        context.front_face = context_state.front_face
-        context.cull_face = context_state.cull_face
-        context.wireframe = context_state.wireframe
 
     @classmethod
     def blit(
@@ -140,10 +132,12 @@ class Context:
     def texture(
         cls,
         *,
-        size: tuple[int, int],
+        size: tuple[int, int],# | None = None,
         components: int,
         dtype: str
     ) -> moderngl.Texture:
+        #if size is None:
+        #    size = Config().size.pixel_size  # rendering.texture_size = (2048, 2048)
         return cls.mgl_context.texture(
             size=size,
             components=components,
@@ -154,8 +148,10 @@ class Context:
     def depth_texture(
         cls,
         *,
-        size: tuple[int, int]
+        size: tuple[int, int]# | None = None
     ) -> moderngl.Texture:
+        #if size is None:
+        #    size = Config().size.pixel_size  # rendering.texture_size = (2048, 2048)
         return cls.mgl_context.depth_texture(
             size=size
         )

@@ -4,7 +4,7 @@ from ...lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ...rendering.gl_buffer import UniformBlockBuffer
+from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from .ambient_light import AmbientLight
 from .point_light import PointLight
 

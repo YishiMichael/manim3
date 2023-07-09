@@ -63,8 +63,7 @@ class Wait(Animation):
         )
 
     async def timeline(self) -> None:
-        assert self._run_time is not None
-        await self.wait(self._run_time)
+        await self.wait(self._play_run_time)
 
 
 class Lagged(Series):

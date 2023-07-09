@@ -795,7 +795,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
         ) -> Hashable:
             if tree_node._children is None:
                 assert (isinstance(content := tree_node._content, LazyWrapper))
-                return content._hash_value
+                return content._id
             # The additional `type` is crucial for constructing the key,
             # as different classes overridding the same lazy property may
             # process the same set of parameters in different ways.
@@ -1042,21 +1042,20 @@ class LazyObject(ABC):
 
 class LazyWrapper(LazyObject, Generic[_T]):
     __slots__ = (
-        "_value",
-        "_hash_value"
+        "_id",
+        "_value"
     )
 
-    _hash_counter: ClassVar[int] = 1
+    _id_counter: ClassVar[it.count] = it.count()
 
     def __init__(
         self,
         value: _T
     ) -> None:
         super().__init__()
-        cls = type(self)
+        self._id: int = next(type(self)._id_counter)  # Unique for each instance.
         self._value: _T = value
-        self._hash_value: int = cls._hash_counter  # Unique for each instance.
-        cls._hash_counter += 1
+        #cls._hash_counter += 1
 
 
 class LazyIndividualConverter(LazyConverter[LazyUnitaryContainer[_ElementT], _ElementT, _ElementT]):

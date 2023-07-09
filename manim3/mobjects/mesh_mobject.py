@@ -1,6 +1,7 @@
 import moderngl
 import numpy as np
 
+from ..animations.animation import Toplevel
 from ..config import Config
 from ..custom_typing import (
     NP_3f8,
@@ -10,17 +11,12 @@ from ..custom_typing import (
 from ..geometries.geometry import Geometry
 from ..geometries.plane_geometry import PlaneGeometry
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffer import OITFramebuffer
-from ..rendering.gl_buffer import (
-    TextureIdBuffer,
-    UniformBlockBuffer
-)
-from ..rendering.vertex_array import (
-    IndexedAttributesBuffer,
-    VertexArray
-)
+from ..rendering.buffers.texture_id_buffer import TextureIdBuffer
+from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
+from ..rendering.vertex_array import VertexArray
 from ..utils.space import SpaceUtils
-from .lights.ambient_light import AmbientLight
 from .lights.lighting import Lighting
 from .mobject_style_meta import MobjectStyleMeta
 from .renderable_mobject import RenderableMobject
@@ -29,11 +25,15 @@ from .renderable_mobject import RenderableMobject
 class MeshMobject(RenderableMobject):
     __slots__ = ()
 
+    def __init__(self) -> None:
+        super().__init__()
+        self._lighting_ = Toplevel.get_scene()._lighting
+
     @MobjectStyleMeta.register()
     @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
-        # Default for `TexturedMobject`.
+        # Default for `ImageMobject`, `ChildSceneMobject`.
         return PlaneGeometry()
 
     @MobjectStyleMeta.register(
@@ -64,7 +64,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable
     @classmethod
     def _lighting_(cls) -> Lighting:
-        return Lighting(AmbientLight())
+        return Lighting()
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
@@ -90,7 +90,7 @@ class MeshMobject(RenderableMobject):
     def _shininess_(cls) -> NP_f8:
         return Config().style.mesh_shininess * np.ones(())
 
-    @Lazy.property_external
+    @Lazy.variable_external
     @classmethod
     def _color_maps_(cls) -> list[moderngl.Texture]:
         return []

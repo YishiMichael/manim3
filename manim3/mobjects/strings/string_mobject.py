@@ -149,7 +149,7 @@ class LabelledShapeMobject:
 class StringFileWriter(ABC):
     __slots__ = ("_parameters",)
 
-    _dir_name: ClassVar[str]
+    _DIR_NAME: ClassVar[str]
 
     def __init__(
         self,
@@ -188,7 +188,7 @@ class StringFileWriter(ABC):
     ) -> pathlib.Path:
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-        svg_dir = Config().path.get_output_subdir(cls._dir_name)
+        svg_dir = Config().path.get_output_subdir(cls._DIR_NAME)
         return svg_dir.joinpath(f"{hex_string}.svg")
 
     @classmethod

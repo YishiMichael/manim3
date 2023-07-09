@@ -94,22 +94,19 @@ from .mobjects.strings.text_mobject import Text
 from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
 
+from .rendering.buffers.attributes_buffer import AttributesBuffer
+from .rendering.buffers.index_buffer import IndexBuffer
+from .rendering.buffers.texture_id_buffer import TextureIdBuffer
+from .rendering.buffers.transform_feedback_buffer import TransformFeedbackBuffer
+from .rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from .rendering.context import ContextState
-from .rendering.framebuffer import Framebuffer
-from .rendering.gl_buffer import (
-    AttributesBuffer,
-    IndexBuffer,
-    TextureIdBuffer,
-    TransformFeedbackBuffer,
-    UniformBlockBuffer
-)
+from .rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from .rendering.mgl_enums import (
     BlendEquation,
     BlendFunc,
     ContextFlag,
     PrimitiveMode
 )
-from .rendering.texture import TextureFactory
 from .rendering.vertex_array import VertexArray
 
 from .scene.scene import Scene

@@ -16,7 +16,7 @@ from ...custom_typing import (
     NP_x3f8
 )
 from ...lazy.lazy import Lazy
-from ...rendering.gl_buffer import UniformBlockBuffer
+from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.model_interpolant import ModelInterpolant
 from ...utils.space import SpaceUtils
 from ..mobject import Mobject

@@ -182,7 +182,7 @@ def main() -> None:
     #config.rendering.write_video = True
     #config.rendering.write_last_frame = True
     #config.size.pixel_size = (480, 270)
-    ThreeDTextExample().render()
+    ChildSceneExample.render()
 
 
 if __name__ == "__main__":
