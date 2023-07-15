@@ -1,10 +1,10 @@
 import numpy as np
 
-from ..constants import (
+from ..constants.constants import (
     PI,
     TAU
 )
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_3f8,
     NP_f8
 )

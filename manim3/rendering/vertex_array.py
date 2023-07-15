@@ -8,12 +8,12 @@ from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
+from ..toplevel.toplevel import Toplevel
 from .buffer_formats.buffer_format import BufferFormat
 from .buffers.attributes_buffer import AttributesBuffer
 from .buffers.texture_id_buffer import TextureIdBuffer
 from .buffers.transform_feedback_buffer import TransformFeedbackBuffer
 from .buffers.uniform_block_buffer import UniformBlockBuffer
-from .context import Context
 from .framebuffers.framebuffer import Framebuffer
 from .indexed_attributes_buffer import IndexedAttributesBuffer
 from .mgl_enums import PrimitiveMode
@@ -163,19 +163,19 @@ class VertexArray(LazyObject):
 
         if texture_array_dict is None:
             texture_array_dict = {}
-        with Context.scope(
+        with Toplevel.context.scope(
             framebuffer=framebuffer.framebuffer,
             textures=self._program_._get_texture_bindings(texture_array_dict),
             uniform_buffers=self._uniform_block_bindings_
         ):
-            Context.set_state(framebuffer.context_state)
+            Toplevel.context.set_state(framebuffer.context_state)
             vertex_array.render()
 
     def transform(self) -> dict[str, np.ndarray]:
         transform_feedback_buffer = self._transform_feedback_buffer_
         with transform_feedback_buffer.temporary_buffer() as buffer:
             if (vertex_array := self._vertex_array_) is not None:
-                with Context.scope(
+                with Toplevel.context.scope(
                     uniform_buffers=self._uniform_block_bindings_
                 ):
                     vertex_array.transform(buffer=buffer)

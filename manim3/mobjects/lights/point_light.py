@@ -1,7 +1,7 @@
 import numpy as np
 
-from ...constants import ORIGIN
-from ...custom_typing import (
+from ...constants.constants import ORIGIN
+from ...constants.custom_typing import (
     NP_3f8,
     NP_44f8,
     NP_x3f8

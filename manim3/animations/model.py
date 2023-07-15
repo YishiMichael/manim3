@@ -1,6 +1,6 @@
 from typing import Callable
 
-from ..custom_typing import NP_3f8
+from ..constants.custom_typing import NP_3f8
 from ..mobjects.mobject import (
     AboutABC,
     Mobject

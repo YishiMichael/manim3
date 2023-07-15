@@ -1,5 +1,5 @@
-from ...constants import ORIGIN
-from ...custom_typing import NP_3f8
+from ...constants.constants import ORIGIN
+from ...constants.custom_typing import NP_3f8
 from ...utils.space import SpaceUtils
 from ..mobject import (
     AboutABC,

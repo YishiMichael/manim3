@@ -3,7 +3,7 @@ from typing import Callable
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_3f8,
     NP_44f8
 )

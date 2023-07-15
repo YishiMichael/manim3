@@ -2,8 +2,7 @@ import moderngl
 import numpy as np
 
 from ..animations.animation import Toplevel
-from ..config import Config
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_3f8,
     NP_f8,
     NP_x3f8
@@ -16,6 +15,7 @@ from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.vertex_array import VertexArray
+from ..scene.config import Config
 from ..utils.space import SpaceUtils
 from .lights.lighting import Lighting
 from .mobject_style_meta import MobjectStyleMeta

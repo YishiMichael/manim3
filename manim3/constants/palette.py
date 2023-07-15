@@ -1,4 +1,4 @@
-from .utils.color import ColorUtils
+from ..utils.color import ColorUtils
 
 
 _c = ColorUtils.standardize_color

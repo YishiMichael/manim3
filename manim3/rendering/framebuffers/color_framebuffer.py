@@ -1,11 +1,12 @@
 import moderngl
 
-from ...config import Config
-from ..context import (
-    Context,
-    ContextState
+from ...toplevel.context import ContextState
+from ...toplevel.toplevel import Toplevel
+from ..mgl_enums import (
+    BlendEquation,
+    BlendFunc,
+    ContextFlag
 )
-from ..mgl_enums import ContextFlag
 from .framebuffer import Framebuffer
 
 
@@ -17,8 +18,8 @@ class ColorFramebuffer(Framebuffer):
         size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
-            size = Config().size.pixel_size  # rendering.texture_size = (2048, 2048)
-        color_texture = Context.texture(
+            size = Toplevel.config.pixel_size  # texture_size = (2048, 2048)
+        color_texture = Toplevel.context.texture(
             size=size,
             components=3,
             dtype="f1"
@@ -26,7 +27,9 @@ class ColorFramebuffer(Framebuffer):
         super().__init__(
             color_attachments=(color_texture,),
             context_state=ContextState(
-                flags=(ContextFlag.BLEND,)
+                flags=(ContextFlag.BLEND,),
+                blend_funcs=((BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA),),
+                blend_equations=(BlendEquation.FUNC_ADD,)
             )
         )
         self.color_texture: moderngl.Texture = color_texture

@@ -4,17 +4,17 @@ import re
 import moderngl
 import numpy as np
 
-from ..config import Config
 from ..lazy.lazy import (
     Lazy,
     LazyObject
 )
+from ..toplevel.toplevel import Toplevel
+from ..utils.path import PathUtils
 from .buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from .buffer_formats.buffer_format import BufferFormat
 from .buffer_formats.structured_buffer_format import StructuredBufferFormat
 from .buffers.omitted_index_buffer import OmittedIndexBuffer
 from .buffers.uniform_block_buffer import UniformBlockBuffer
-from .context import Context
 from .indexed_attributes_buffer import IndexedAttributesBuffer
 
 
@@ -86,7 +86,7 @@ class Program(LazyObject):
         def read_shader_with_includes_replaced(
             filename: str
         ) -> str:
-            with Config().path.shaders_dir.joinpath(filename).open() as shader_file:
+            with PathUtils.shaders_dir.joinpath(filename).open() as shader_file:
                 shader_str = shader_file.read()
             return re.sub(
                 r"#include \"(.+?)\"",
@@ -99,7 +99,7 @@ class Program(LazyObject):
             custom_macros: tuple[str, ...],
             array_len_items: tuple[tuple[str, int], ...]
         ) -> moderngl.Program:
-            version_string = f"#version {Context.version_code} core"
+            version_string = f"#version {Toplevel.context.version_code} core"
             array_len_macros = [
                 f"#define {array_len_name} {array_len}"
                 for array_len_name, array_len in array_len_items
@@ -123,7 +123,7 @@ class Program(LazyObject):
                 )
                 if re.search(rf"\b{shader_type}\b", shader_str, flags=re.MULTILINE) is not None
             }
-            return Context.program(
+            return Toplevel.context.program(
                 vertex_shader=shaders["VERTEX_SHADER"],
                 fragment_shader=shaders.get("FRAGMENT_SHADER"),
                 geometry_shader=shaders.get("GEOMETRY_SHADER"),
@@ -253,7 +253,7 @@ class Program(LazyObject):
             components.append(f"{attributes_buffer_format._itemsize_ - current_stop}x")
         components.append("/v")
 
-        return Context.vertex_array(
+        return Toplevel.context.vertex_array(
             program=program,
             attributes_buffer=attributes_buffer.get_buffer(),
             buffer_format_str=" ".join(components),

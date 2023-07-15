@@ -8,12 +8,12 @@ from typing import (
 
 import manimpango
 
-from ...config import Config
-from ...constants import Alignment
-from ...custom_typing import (
+from ...constants.constants import Alignment
+from ...constants.custom_typing import (
     ColorT,
     SelectorT
 )
+from ...scene.config import Config
 from ...utils.color import ColorUtils
 from .string_mobject import (
     CommandFlag,

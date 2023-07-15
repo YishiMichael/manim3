@@ -1,10 +1,7 @@
 import moderngl
 
-from ...config import Config
-from ..context import (
-    Context,
-    ContextState
-)
+from ...toplevel.context import ContextState
+from ...toplevel.toplevel import Toplevel
 from ..mgl_enums import (
     BlendEquation,
     BlendFunc,
@@ -24,13 +21,13 @@ class OITFramebuffer(Framebuffer):
         size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
-            size = Config().size.pixel_size  # rendering.texture_size = (2048, 2048)
-        accum_texture = Context.texture(
+            size = Toplevel.config.pixel_size  # texture_size = (2048, 2048)
+        accum_texture = Toplevel.context.texture(
             size=size,
             components=4,
             dtype="f2"
         )
-        revealage_texture = Context.texture(
+        revealage_texture = Toplevel.context.texture(
             size=size,
             components=1,
             dtype="f2"

@@ -19,11 +19,11 @@ from typing import (
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 
-from ...config import Config
-from ...custom_typing import (
+from ...constants.custom_typing import (
     NP_3f8,
     SelectorT
 )
+from ...scene.config import Config
 from ...utils.color import ColorUtils
 from ...utils.iterables import IterUtils
 from ..shape_mobject import ShapeMobject

@@ -32,6 +32,44 @@ from .animations.transform import (
     TransformToCopy
 )
 
+from .constants.constants import (
+    Alignment,
+    DEGREES,
+    DL,
+    DOWN,
+    DR,
+    IN,
+    LEFT,
+    ORIGIN,
+    OUT,
+    PI,
+    RIGHT,
+    TAU,
+    UL,
+    UP,
+    UR,
+    X_AXIS,
+    Y_AXIS,
+    Z_AXIS
+)
+from .constants.custom_typing import (
+    ColorT,
+    NP_2f8,
+    NP_33f8,
+    NP_3f8,
+    NP_44f8,
+    NP_4f8,
+    NP_f8,
+    NP_xf8,
+    NP_x2f8,
+    NP_x33f8,
+    NP_x3f8,
+    NP_x44f8,
+    NP_x4f8,
+    SelectorT
+)
+from .constants.palette import *
+
 from .geometries.geometry import Geometry
 from .geometries.parametric_surface_geometry import ParametricSurfaceGeometry
 from .geometries.plane_geometry import PlaneGeometry
@@ -47,7 +85,7 @@ from .lazy.lazy import (
 from .mobjects.cameras.camera import Camera
 from .mobjects.cameras.orthographic_camera import OrthographicCamera
 from .mobjects.cameras.perspective_camera import PerspectiveCamera
-from .mobjects.child_scene_mobject import ChildSceneMobject
+#from .mobjects.child_scene_mobject import ChildSceneMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.lights.ambient_light import AmbientLight
 from .mobjects.lights.lighting import Lighting
@@ -109,50 +147,12 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
-from .scene.scene import Scene
-
 from .shape.multi_line_string import MultiLineString
 from .shape.shape import Shape
+
+from .toplevel.config import Config
+from .toplevel.scene import Scene
 
 from .utils.color import ColorUtils
 from .utils.rate import RateUtils
 from .utils.space import SpaceUtils
-
-from .config import Config
-from .constants import (
-    Alignment,
-    DEGREES,
-    DL,
-    DOWN,
-    DR,
-    IN,
-    LEFT,
-    ORIGIN,
-    OUT,
-    PI,
-    RIGHT,
-    TAU,
-    UL,
-    UP,
-    UR,
-    X_AXIS,
-    Y_AXIS,
-    Z_AXIS
-)
-from .custom_typing import (
-    ColorT,
-    NP_2f8,
-    NP_33f8,
-    NP_3f8,
-    NP_44f8,
-    NP_4f8,
-    NP_f8,
-    NP_xf8,
-    NP_x2f8,
-    NP_x33f8,
-    NP_x3f8,
-    NP_x44f8,
-    NP_x4f8,
-    SelectorT
-)
-from .palette import *

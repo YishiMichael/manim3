@@ -1,6 +1,6 @@
 import numpy as np
 
-from ...custom_typing import NP_3f8
+from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
 from ..mobject import Mobject

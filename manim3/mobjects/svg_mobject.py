@@ -10,7 +10,7 @@ import numpy as np
 from scipy.interpolate import BSpline
 import svgelements as se
 
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
     NP_xf8

@@ -1,7 +1,6 @@
 from typing import Callable
 
-import numpy as np
-import scipy.optimize
+#import scipy.optimize
 
 
 class RateUtils:
@@ -10,38 +9,45 @@ class RateUtils:
     def __new__(cls):
         raise TypeError
 
-    #@classmethod
-    #def compose(
-    #    cls,
-    #    *funcs: Callable[[float], float]
-    #) -> Callable[[float], float]:
-
-    #    def result(
-    #        x: float
-    #    ) -> float:
-    #        y = x
-    #        for func in reversed(funcs):
-    #            y = func(y)
-    #        return y
-
-    #    return result
-
     @classmethod
-    def inverse(
+    def compose(
         cls,
-        func: Callable[[float], float]
+        *funcs: Callable[[float], float]
     ) -> Callable[[float], float]:
 
         def result(
-            y: float
+            x: float
         ) -> float:
-            for x0 in np.linspace(0.0, 1.0, 5):
-                optimize_result = scipy.optimize.root(lambda x: func(float(x)) - y, x0)
-                if optimize_result.success:
-                    return float(optimize_result.x)
-            raise ValueError
+            y = x
+            for func in reversed(funcs):
+                y = func(y)
+            return y
 
         return result
+
+    #@classmethod
+    #def inverse(
+    #    cls,
+    #    func: Callable[[float], float]
+    #) -> Callable[[float], float]:
+
+    #    def result(
+    #        y: float
+    #    ) -> float:
+    #        #f: Callable[[float], float] = lambda x: func(x) - y
+    #        #x0 = min(np.linspace(0.0, 1.0, 5), key=lambda x: abs(f(x)))
+    #        #for x0 in np.linspace(0.0, 1.0, 5):
+    #        return float(scipy.optimize.newton(
+    #            lambda x: func(x) - y,
+    #            x0=0.0,
+    #            x1=1.0,
+    #            maxiter=128
+    #        ))  # type: ignore
+    #        #if optimize_result.success:
+    #        #    return float(optimize_result.x)
+    #        #raise ValueError
+
+    #    return result
 
     @classmethod
     def adjust(

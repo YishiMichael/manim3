@@ -1,14 +1,13 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from ...config import Config
-from ...constants import (
+from ...constants.constants import (
     ORIGIN,
     OUT,
     RIGHT,
     UP
 )
-from ...custom_typing import (
+from ...constants.custom_typing import (
     NP_2f8,
     NP_3f8,
     NP_44f8,
@@ -17,6 +16,7 @@ from ...custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ...toplevel.config import Config
 from ...utils.model_interpolant import ModelInterpolant
 from ...utils.space import SpaceUtils
 from ..mobject import Mobject

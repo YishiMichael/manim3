@@ -1,9 +1,7 @@
 import moderngl
 
-from ..context import (
-    Context,
-    ContextState
-)
+from ...toplevel.context import ContextState
+from ...toplevel.toplevel import Toplevel
 
 
 class Framebuffer:
@@ -21,7 +19,7 @@ class Framebuffer:
         context_state: ContextState
     ) -> None:
         if framebuffer is None:
-            framebuffer = Context.framebuffer(
+            framebuffer = Toplevel.context.framebuffer(
                 color_attachments=color_attachments,
                 depth_attachment=depth_attachment
             )

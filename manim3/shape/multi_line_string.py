@@ -7,7 +7,7 @@ from typing import (
 
 import numpy as np
 
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_x3f8,
     NP_xf8
 )

@@ -1,7 +1,7 @@
 import moderngl
 import numpy as np
 
-from ..custom_typing import NP_3f8
+from ..constants.custom_typing import NP_3f8
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
 from ..rendering.buffers.texture_id_buffer import TextureIdBuffer

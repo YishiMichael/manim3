@@ -3,7 +3,7 @@ import re
 from colour import Color
 import numpy as np
 
-from ..custom_typing import (
+from ..constants.custom_typing import (
     ColorT,
     NP_3f8
 )

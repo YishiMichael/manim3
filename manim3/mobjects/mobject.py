@@ -16,11 +16,11 @@ import weakref
 
 import numpy as np
 
-from ..constants import (
+from ..constants.constants import (
     ORIGIN,
     PI
 )
-from ..custom_typing import (
+from ..constants.custom_typing import (
     ColorT,
     NP_3f8,
     NP_44f8,

@@ -1,4 +1,4 @@
-from ...custom_typing import NP_xu4
+from ...constants.custom_typing import NP_xu4
 from .write_only_buffer import WriteOnlyBuffer
 
 

@@ -1,8 +1,8 @@
 import numpy as np
 from PIL import Image
 
-from ..config import Config
 from ..rendering.context import Context
+from ..scene.config import Config
 from ..utils.space import SpaceUtils
 from .mesh_mobject import MeshMobject
 
@@ -20,7 +20,7 @@ class ImageMobject(MeshMobject):
     ) -> None:
         super().__init__()
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image_texture = Context.texture(size=image.size, components=3)
+        image_texture = Context.texture(size=image.size, components=3, dtype="f1")
         image_texture.write(image.tobytes("raw", "RGB"))
         self._color_maps_ = [image_texture]
         #super().__init__(size=image.size)

@@ -2,7 +2,7 @@ from typing import Callable
 
 import numpy as np
 
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_3f8,
     NP_f8
 )

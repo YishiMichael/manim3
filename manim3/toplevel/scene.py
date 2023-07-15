@@ -12,25 +12,28 @@ from typing import (
 import moderngl
 from PIL import Image
 
-from ..animations.animation import (
-    Animation,
-    TimelineSignal,
-    TimelineStartSignal,
-    TimelineStopSignal,
-    Toplevel  # TODO
-)
-from ..config import Config
-from ..custom_typing import ColorT
+#from ..animations.animation import (
+#    Animation,
+#    TimelineSignal,
+#    TimelineStartSignal,
+#    TimelineStopSignal,
+#    Toplevel  # TODO
+#)
+from ..animations.animation import Animation
+from ..constants.custom_typing import ColorT
 from ..mobjects.cameras.camera import Camera
 from ..mobjects.cameras.perspective_camera import PerspectiveCamera
 from ..mobjects.mobject import Mobject
 from ..mobjects.lights.ambient_light import AmbientLight
 from ..mobjects.lights.lighting import Lighting
 from ..mobjects.scene_root_mobject import SceneRootMobject
-from ..rendering.context import Context
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
+#from ..scene.config import Config
 from ..utils.color import ColorUtils
+from ..utils.path import PathUtils
 from ..utils.rate import RateUtils
+from .config import Config
+from .toplevel import Toplevel
 
 
 class Scene(Animation):
@@ -60,7 +63,7 @@ class Scene(Animation):
         if lighting is None:
             lighting = Lighting(AmbientLight())
         if background_color is None:
-            background_color = Config().style.background_color
+            background_color = Toplevel.config.background_color
 
         self._camera: Camera = camera
         self._lighting: Lighting = lighting
@@ -79,14 +82,13 @@ class Scene(Animation):
     def _get_bound_scene(self) -> "Scene":
         return self
 
-    @classmethod
-    async def _render(cls) -> None:
-        config = Config().rendering
+    async def _render(self) -> None:
+        config = Toplevel.config
         fps = config.fps
         write_video = config.write_video
         write_last_frame = config.write_last_frame
         preview = config.preview
-        scene_name = cls.__name__
+        #scene_name = cls.__name__
         #animation_dict: dict[Animation, Callable[[float], float]] = {}
         animation_dict: dict[int, Callable[[float], None] | None] = {}
 
@@ -172,7 +174,7 @@ class Scene(Animation):
 
             self._root_mobject._render_scene(color_framebuffer)
             if write_last_frame:
-                cls._write_frame_to_image(color_framebuffer.color_texture, scene_name)
+                cls._write_frame_to_image(color_framebuffer.color_texture)
 
         Context.activate(title=scene_name, standalone=not preview)
         with cls._video_writer(write_video, fps, scene_name) as video_stdin:
@@ -197,7 +199,7 @@ class Scene(Animation):
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
-            "-s", "{}x{}".format(*Config().size.pixel_size),  # size of one frame
+            "-s", "{}x{}".format(*Toplevel.config.pixel_size),  # size of one frame
             "-pix_fmt", "rgb",
             "-r", str(fps),  # frames per second
             "-i", "-",  # The input comes from a pipe.
@@ -206,7 +208,7 @@ class Scene(Animation):
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            Config().path.output_dir.joinpath(f"{scene_name}.mp4")
+            PathUtils.output_dir.joinpath(f"{scene_name}.mp4")
         ), stdin=sp.PIPE)
         assert (video_stdin := writing_process.stdin) is not None
         yield video_stdin
@@ -219,11 +221,13 @@ class Scene(Animation):
         cls,
         framebuffer: moderngl.Framebuffer
     ) -> None:
-        window = Context.window
+        window = Toplevel.window._pyglet_window
+        assert window is not None
         if window.is_closing:
             raise KeyboardInterrupt
         window.clear()
-        Context.blit(framebuffer, Context.window_framebuffer)
+        assert (window_framebuffer := window.screen) is not None
+        Toplevel.context.blit(framebuffer, window_framebuffer)
         window.swap_buffers()
 
     @classmethod
@@ -237,22 +241,31 @@ class Scene(Animation):
     @classmethod
     def _write_frame_to_image(
         cls,
-        color_texture: moderngl.Texture,
-        scene_name: str
+        color_texture: moderngl.Texture
     ) -> None:
+        scene_name = cls.__name__
         image = Image.frombytes(
             "RGB",
-            Config().size.pixel_size,
+            Toplevel.config.pixel_size,
             color_texture.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image.save(Config().path.output_dir.joinpath(f"{scene_name}.png"))
+        image.save(PathUtils.output_dir.joinpath(f"{scene_name}.png"))
 
     @classmethod
-    def render(cls) -> None:
+    def render(
+        cls,
+        config: Config | None = None
+    ) -> None:
         #self = cls()
+        if config is None:
+            config = Config()
         try:
-            asyncio.run(cls._render())
+            with Toplevel.configure(
+                config=config,
+                scene_cls=cls
+            ) as self:
+                asyncio.run(self._render())
         except KeyboardInterrupt:
             pass
 

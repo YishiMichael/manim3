@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from functools import lru_cache
+#from dataclasses import dataclass
+#from functools import lru_cache
 import os
 import pathlib
 import re
@@ -9,14 +9,14 @@ from typing import (
     Iterator
 )
 
-import toml
+#import toml
 
-from ...config import Config
-from ...constants import Alignment
-from ...custom_typing import (
+from ...constants.constants import Alignment
+from ...constants.custom_typing import (
     ColorT,
     SelectorT
 )
+from ...scene.config import Config
 from .string_mobject import (
     CommandFlag,
     EdgeFlag,
@@ -37,15 +37,15 @@ class LaTeXError(ValueError):
         super().__init__(message)
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class TexTemplate:
-    description: str
-    compiler: str
-    preamble: str
+#@dataclass(
+#    frozen=True,
+#    kw_only=True,
+#    slots=True
+#)
+#class TexTemplate:
+#    description: str
+#    compiler: str
+#    preamble: str
 
 
 class TexFileWriter(StringFileWriter):
@@ -58,13 +58,14 @@ class TexFileWriter(StringFileWriter):
         cls,
         content: str,
         svg_path: pathlib.Path,
+        compiler: str,
         preamble: str,
-        template: str,
+        #template: str,
         alignment: Alignment,
         environment: str
     ) -> None:
-        tex_template = cls._get_tex_templates_dict()[template]
-        compiler = tex_template.compiler
+        #tex_template = cls._get_tex_templates_dict()[template]
+        #compiler = tex_template.compiler
         if compiler == "latex":
             program = "latex"
             dvi_ext = ".dvi"
@@ -94,7 +95,7 @@ class TexFileWriter(StringFileWriter):
                 end_environment = ""
             full_content = "\n".join((
                 preamble,
-                tex_template.preamble,
+                #tex_template.preamble,
                 "\\begin{document}",
                 alignment_command,
                 begin_environment,
@@ -139,15 +140,15 @@ class TexFileWriter(StringFileWriter):
             for ext in (".tex", dvi_ext, ".log", ".aux"):
                 svg_path.with_suffix(ext).unlink(missing_ok=True)
 
-    @staticmethod
-    @lru_cache(maxsize=1)
-    def _get_tex_templates_dict() -> dict[str, TexTemplate]:
-        with Config().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
-            template_content_dict = toml.load(tex_templates_file)
-        return {
-            name: TexTemplate(**template_content)
-            for name, template_content in template_content_dict.items()
-        }
+    #@staticmethod
+    #@lru_cache(maxsize=1)
+    #def _get_tex_templates_dict() -> dict[str, TexTemplate]:
+    #    with Config().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
+    #        template_content_dict = toml.load(tex_templates_file)
+    #    return {
+    #        name: TexTemplate(**template_content)
+    #        for name, template_content in template_content_dict.items()
+    #    }
 
 
 class MathjaxFileWriter(StringFileWriter):
@@ -300,8 +301,8 @@ class Tex(StringMobject):
         protect: Iterable[SelectorT] = (),
         tex_to_color_map: dict[SelectorT, ColorT] | None = None,
         use_mathjax: bool | None = None,
+        compiler: str | None = None,
         preamble: str | None = None,
-        template: str | None = None,
         alignment: Alignment | None = None,
         environment: str | None = None,
         base_color: ColorT | None = None,
@@ -316,10 +317,12 @@ class Tex(StringMobject):
         config = Config().tex
         if use_mathjax is None:
             use_mathjax = config.use_mathjax
+        if compiler is None:
+            compiler = config.compiler
         if preamble is None:
             preamble = config.preamble
-        if template is None:
-            template = config.template
+        #if template is None:
+        #    template = config.template
         if alignment is None:
             alignment = config.alignment
         if environment is None:
@@ -333,14 +336,15 @@ class Tex(StringMobject):
 
         if not use_mathjax:
             file_writer = TexFileWriter(
+                compiler=compiler,
                 preamble=preamble,
-                template=template,
+                #template=template,
                 alignment=alignment,
                 environment=environment
             )
         else:
             frame_scale *= self._MATHJAX_SCALE_FACTOR
-            # `template`, `preamble`, `alignment`, `environment`
+            # `compiler`, `template`, `alignment`, `environment`
             # all don't make an effect when using mathjax.
             file_writer = MathjaxFileWriter()
 

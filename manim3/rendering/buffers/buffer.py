@@ -11,11 +11,11 @@ from ...lazy.lazy import (
     Lazy,
     LazyObject
 )
+from ...toplevel.context import Context
 from ..buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from ..buffer_formats.buffer_format import BufferFormat
 from ..buffer_formats.buffer_layout import BufferLayout
 from ..buffer_formats.structured_buffer_format import StructuredBufferFormat
-from ..context import Context
 
 
 class Buffer(LazyObject):

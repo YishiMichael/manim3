@@ -1,7 +1,6 @@
 import numpy as np
 
-from ..config import Config
-from ..custom_typing import (
+from ..constants.custom_typing import (
     NP_3f8,
     NP_f8,
     NP_x3f8,
@@ -15,6 +14,7 @@ from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
+from ..scene.config import Config
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
 from .mobject_style_meta import MobjectStyleMeta
