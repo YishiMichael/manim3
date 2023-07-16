@@ -1,11 +1,11 @@
 import numpy as np
 
-from ...constants import (
+from ...constants.constants import (
     OUT,
     PI,
     TAU
 )
-from ...custom_typing import NP_x2f8
+from ...constants.custom_typing import NP_x2f8
 from ...shape.shape import Shape
 from ..shape_mobject import ShapeMobject
 

@@ -14,7 +14,8 @@ from ..rendering.mgl_enums import (
     ContextFlag,
     PrimitiveMode
 )
-from .toplevel import Toplevel
+from .config import Config
+#from .toplevel import Toplevel
 
 
 @dataclass(
@@ -29,7 +30,10 @@ class ContextState:
 
 
 class Context:
-    __slots__ = ("_mgl_context",)
+    __slots__ = (
+        "_mgl_context",
+        "_window_framebuffer"
+    )
 
     #_GL_VERSION_CODE: ClassVar[int] = 430
 
@@ -42,7 +46,7 @@ class Context:
         super().__init__()
         self._mgl_context: moderngl.Context = mgl_context
         #self._window: Window | None = window
-        #self._window_framebuffer: moderngl.Framebuffer | None = window_framebuffer
+        self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
 
     #mgl_context: ClassVar[moderngl.Context | None] = None
     #_window: ClassVar[Window | None] = None
@@ -72,10 +76,13 @@ class Context:
 
     @classmethod
     @contextmanager
-    def get_context(cls) -> "Iterator[Context]":
+    def get_context(
+        cls,
+        config: Config
+    ) -> "Iterator[Context]":
         mgl_context = moderngl.create_context(
-            require=Toplevel._GL_VERSION_CODE,
-            standalone=not Toplevel.config.preview
+            require=config.gl_version_code,
+            standalone=not config.preview
         )
         yield Context(
             mgl_context=mgl_context

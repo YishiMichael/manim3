@@ -1,4 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field
+)
 
 from colour import Color
 
@@ -16,6 +19,7 @@ class Config:
     write_video: bool = False
     write_last_frame: bool = False
     preview: bool = True
+    gl_version: tuple[int, int] = (4, 3)
 
     aspect_ratio: float = 16.0 / 9.0
     frame_height: float = 8.0
@@ -52,7 +56,12 @@ class Config:
     text_font_size: float = 30
     text_font: str = "Consolas"
     text_base_color: ColorT = Color("white")
-    text_global_config: dict[str, str] = {}
+    text_global_config: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def gl_version_code(self) -> int:
+        major_version, minor_version = self.gl_version
+        return major_version * 100 + minor_version * 10
 
     @property
     def frame_width(self) -> float:

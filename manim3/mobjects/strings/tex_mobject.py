@@ -16,7 +16,7 @@ from ...constants.custom_typing import (
     ColorT,
     SelectorT
 )
-from ...scene.config import Config
+from ...toplevel.toplevel import Toplevel
 from .string_mobject import (
     CommandFlag,
     EdgeFlag,
@@ -314,23 +314,23 @@ class Tex(StringMobject):
         if tex_to_color_map is None:
             tex_to_color_map = {}
 
-        config = Config().tex
+        config = Toplevel.config
         if use_mathjax is None:
-            use_mathjax = config.use_mathjax
+            use_mathjax = config.tex_use_mathjax
         if compiler is None:
-            compiler = config.compiler
+            compiler = config.tex_compiler
         if preamble is None:
-            preamble = config.preamble
+            preamble = config.tex_preamble
         #if template is None:
-        #    template = config.template
+        #    template = config.tex_template
         if alignment is None:
-            alignment = config.alignment
+            alignment = config.tex_alignment
         if environment is None:
-            environment = config.environment
+            environment = config.tex_environment
         if base_color is None:
-            base_color = config.base_color
+            base_color = config.tex_base_color
         if font_size is None:
-            font_size = config.font_size
+            font_size = config.tex_font_size
 
         frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
 

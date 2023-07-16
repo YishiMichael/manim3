@@ -16,7 +16,7 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...toplevel.config import Config
+from ...toplevel.toplevel import Toplevel
 from ...utils.model_interpolant import ModelInterpolant
 from ...utils.space import SpaceUtils
 from ..mobject import Mobject
@@ -34,19 +34,19 @@ class Camera(Mobject):
         # `frame_radii`: (|RIGHT - ORIGIN|, |UP - ORIGIN|)
         # `distance`: |OUT - ORIGIN|
         self.scale(np.append(
-            Config().size.frame_radii,
-            Config().camera.distance
+            Toplevel.config.frame_radii,
+            Toplevel.config.camera_distance
         ))
 
     @Lazy.variable_array
     @classmethod
     def _near_(cls) -> NP_f8:
-        return Config().camera.near * np.ones(())
+        return Toplevel.config.camera_near * np.ones(())
 
     @Lazy.variable_array
     @classmethod
     def _far_(cls) -> NP_f8:
-        return Config().camera.far * np.ones(())
+        return Toplevel.config.camera_far * np.ones(())
 
     @Lazy.property_array
     @classmethod

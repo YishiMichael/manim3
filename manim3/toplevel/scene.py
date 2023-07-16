@@ -3,7 +3,7 @@ from contextlib import contextmanager
 import itertools as it
 import subprocess as sp
 from typing import (
-    Callable,
+    #Callable,
     IO,
     Iterator
 )
@@ -19,8 +19,11 @@ from PIL import Image
 #    TimelineStopSignal,
 #    Toplevel  # TODO
 #)
-from ..animations.animation import Animation
-from ..constants.custom_typing import ColorT
+from ..animations.animation import (
+    Animation,
+    AnimationState
+)
+#from ..constants.custom_typing import ColorT
 from ..mobjects.cameras.camera import Camera
 from ..mobjects.cameras.perspective_camera import PerspectiveCamera
 from ..mobjects.mobject import Mobject
@@ -31,7 +34,7 @@ from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
 #from ..scene.config import Config
 from ..utils.color import ColorUtils
 from ..utils.path import PathUtils
-from ..utils.rate import RateUtils
+#from ..utils.rate import RateUtils
 from .config import Config
 from .toplevel import Toplevel
 
@@ -40,36 +43,38 @@ class Scene(Animation):
     __slots__ = (
         "_camera",
         "_lighting",
-        "_root_mobject"
+        "_root_mobject",
+        "_timestamp"
         #"_framebuffer"
     )
 
     def __init__(
-        self,
-        start_time: float = 0.0,
-        stop_time: float | None = None,
-        *,
-        camera: Camera | None = None,
-        lighting: Lighting | None = None,
-        background_color: ColorT | None = None
+        self
+        #start_time: float = 0.0,  # TODO
+        #stop_time: float | None = None,  # TODO
+        #*,
+        #camera: Camera | None = None,
+        #lighting: Lighting | None = None,
+        #background_color: ColorT | None = None
     ) -> None:
         super().__init__(
-            run_time=stop_time - start_time if stop_time is not None else None,
-            relative_rate=RateUtils.adjust(RateUtils.linear, lag_alpha=-start_time)
+            #run_time=stop_time - start_time if stop_time is not None else None,
+            #relative_rate=RateUtils.adjust(RateUtils.linear, lag_alpha=-start_time)
         )
 
-        if camera is None:
-            camera = PerspectiveCamera()
-        if lighting is None:
-            lighting = Lighting(AmbientLight())
-        if background_color is None:
-            background_color = Toplevel.config.background_color
+        #if camera is None:
+        #    camera = PerspectiveCamera()
+        #if lighting is None:
+        #    lighting = Lighting(AmbientLight())
+        #if background_color is None:
+        #    background_color = Toplevel.config.background_color
 
-        self._camera: Camera = camera
-        self._lighting: Lighting = lighting
+        self._camera: Camera = PerspectiveCamera()
+        self._lighting: Lighting = Lighting(AmbientLight())
         self._root_mobject: SceneRootMobject = SceneRootMobject(
-            background_color=ColorUtils.standardize_color(background_color)
+            background_color=ColorUtils.standardize_color(Toplevel.config.background_color)
         )
+        self._timestamp: float = 0.0
         #self._scene_ref = weakref.ref(self)
         #color_texture = Context.texture(components=3)
         #self._framebuffer: ColorFramebuffer = ColorFramebuffer(
@@ -79,8 +84,8 @@ class Scene(Animation):
         #    Config().style.background_color
         #)
 
-    def _get_bound_scene(self) -> "Scene":
-        return self
+    #def _get_bound_scene(self) -> "Scene":
+    #    return self
 
     async def _render(self) -> None:
         config = Toplevel.config
@@ -90,107 +95,115 @@ class Scene(Animation):
         preview = config.preview
         #scene_name = cls.__name__
         #animation_dict: dict[Animation, Callable[[float], float]] = {}
-        animation_dict: dict[int, Callable[[float], None] | None] = {}
+        #animation_dict: dict[int, Callable[[float], None] | None] = {}
 
-        def animate(
-            timestamp: float
-        ) -> None:
-            #for animation, absolute_rate in animation_dict.items():
-            #    if (updater := animation._updater) is not None:
-            #        updater(absolute_rate(timestamp))
-            for composed_updater in animation_dict.values():
-                if composed_updater is not None:
-                    composed_updater(timestamp)
+        #def animate(
+        #    timestamp: float
+        #) -> None:
+        #    #for animation, absolute_rate in animation_dict.items():
+        #    #    if (updater := animation._updater) is not None:
+        #    #        updater(absolute_rate(timestamp))
+        #    for composed_updater in animation_dict.values():
+        #        if composed_updater is not None:
+        #            composed_updater(timestamp)
 
-        def digest_signal(
-            signal: TimelineSignal
-        ) -> None:
-            animation_id = signal.animation_id
-            #Toplevel.set_animation_id(animation_id)
-            if isinstance(signal, TimelineStartSignal):
-                animation_dict[animation_id] = signal.composed_updater
-            elif isinstance(signal, TimelineStopSignal):
-                animation_dict.pop(animation_id)
-            #match signal.timeline_state:
-            #    case TimelineState.START:
-            #        assert signal.animation not in animation_dict
-            #        assert signal.absolute_rate is not None
-            #        animation_dict[signal.animation] = signal.absolute_rate
-            #    case TimelineState.STOP:
-            #        animation_dict.pop(signal.animation)
-            #    case TimelineState.AWAIT:
-            #        pass
+        #def digest_signal(
+        #    signal: TimelineSignal
+        #) -> None:
+        #    animation_id = signal.animation_id
+        #    #Toplevel.set_animation_id(animation_id)
+        #    if isinstance(signal, TimelineStartSignal):
+        #        animation_dict[animation_id] = signal.composed_updater
+        #    elif isinstance(signal, TimelineStopSignal):
+        #        animation_dict.pop(animation_id)
+        #    #match signal.timeline_state:
+        #    #    case TimelineState.START:
+        #    #        assert signal.animation not in animation_dict
+        #    #        assert signal.absolute_rate is not None
+        #    #        animation_dict[signal.animation] = signal.absolute_rate
+        #    #    case TimelineState.STOP:
+        #    #        animation_dict.pop(signal.animation)
+        #    #    case TimelineState.AWAIT:
+        #    #        pass
 
         async def run_frame(
-            signal_timeline: Iterator[TimelineSignal],
+            #signal_timeline: Iterator[TimelineSignal],
             color_framebuffer: ColorFramebuffer,
             clock_timestamp: float,
-            signal_timestamp: float,
+            #signal_timestamp: float,
             video_stdin: IO[bytes] | None
         ) -> float | None:
             await asyncio.sleep(0.0)
 
-            next_signal_timestamp = signal_timestamp
-            while next_signal_timestamp <= clock_timestamp:
-                animate(next_signal_timestamp)
-                try:
-                    signal = next(signal_timeline)
-                except StopIteration:
-                    return None
-                next_signal_timestamp = signal.timestamp
-                digest_signal(signal)
-            animate(clock_timestamp)
+            #next_signal_timestamp = signal_timestamp
+            #while next_signal_timestamp <= clock_timestamp:
+            #    animate(next_signal_timestamp)
+            #    try:
+            #        signal = next(signal_timeline)
+            #    except StopIteration:
+            #        return None
+            #    next_signal_timestamp = signal.timestamp
+            #    digest_signal(signal)
+            #animate(clock_timestamp)
 
+            self._timestamp = clock_timestamp
+            self._progress_animation()
+            self._update(clock_timestamp)
             self._root_mobject._render_scene(color_framebuffer)
             if preview:
-                cls._render_to_window(color_framebuffer.framebuffer)
+                self._render_to_window(color_framebuffer.framebuffer)
             if video_stdin is not None:
-                cls._write_frame_to_video(color_framebuffer.color_texture, video_stdin)
+                self._write_frame_to_video(color_framebuffer.color_texture, video_stdin)
 
-            return next_signal_timestamp
+            #return next_signal_timestamp
 
         async def run_frames(
-            signal_timeline: Iterator[TimelineSignal],
+            #signal_timeline: Iterator[TimelineSignal],
             color_framebuffer: ColorFramebuffer,
             video_stdin: IO[bytes] | None
         ) -> None:
             spf = 1.0 / fps
             sleep_time = spf if preview else 0.0
-            signal_timestamp = 0.0
+            #signal_timestamp = 0.0
             for frame_index in it.count():
-                signal_timestamp, _ = await asyncio.gather(
+                await asyncio.gather(
                     run_frame(
-                        signal_timeline,
+                        #signal_timeline,
                         color_framebuffer,
                         frame_index * spf,
-                        signal_timestamp,
+                        #signal_timestamp,
                         video_stdin
                     ),
                     asyncio.sleep(sleep_time),
                     return_exceptions=False  #True
                 )
-                if signal_timestamp is None:
+                if self._animation_state == AnimationState.AFTER_ANIMATION:
                     break
+                #if signal_timestamp is None:
+                #    break
 
             self._root_mobject._render_scene(color_framebuffer)
             if write_last_frame:
-                cls._write_frame_to_image(color_framebuffer.color_texture)
+                self._write_frame_to_image(color_framebuffer.color_texture)
 
-        Context.activate(title=scene_name, standalone=not preview)
-        with cls._video_writer(write_video, fps, scene_name) as video_stdin:
-            self = cls()
-            Toplevel.bind_animation_id_to_scene(self._id, self)
-            color_framebuffer = ColorFramebuffer()
-            signal_timeline = self._signal_timeline()
-            await run_frames(signal_timeline, color_framebuffer, video_stdin)
+        #Context.activate(title=scene_name, standalone=not preview)
+        #with cls._video_writer(write_video, fps, scene_name) as video_stdin:
+        #    self = cls()
+        #    Toplevel.bind_animation_id_to_scene(self._id, self)
+        #    color_framebuffer = ColorFramebuffer()
+        #    signal_timeline = self._signal_timeline()
+        #    await run_frames(signal_timeline, color_framebuffer, video_stdin)
+
+        self._prepare_animation()
+        with self._video_writer(write_video, fps) as video_stdin:
+            await run_frames(ColorFramebuffer(), video_stdin)
 
     @classmethod
     @contextmanager
     def _video_writer(
         cls,
         write_video: bool,
-        fps: float,
-        scene_name: str
+        fps: float
     ) -> Iterator[IO[bytes] | None]:
         if not write_video:
             yield None
@@ -208,7 +221,7 @@ class Scene(Animation):
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            PathUtils.output_dir.joinpath(f"{scene_name}.mp4")
+            PathUtils.output_dir.joinpath(f"{cls.__name__}.mp4")
         ), stdin=sp.PIPE)
         assert (video_stdin := writing_process.stdin) is not None
         yield video_stdin
@@ -223,12 +236,12 @@ class Scene(Animation):
     ) -> None:
         window = Toplevel.window._pyglet_window
         assert window is not None
-        if window.is_closing:
+        if window.has_exit:
             raise KeyboardInterrupt
         window.clear()
-        assert (window_framebuffer := window.screen) is not None
+        window_framebuffer = Toplevel.context._window_framebuffer
         Toplevel.context.blit(framebuffer, window_framebuffer)
-        window.swap_buffers()
+        window.flip()
 
     @classmethod
     def _write_frame_to_video(
@@ -243,14 +256,13 @@ class Scene(Animation):
         cls,
         color_texture: moderngl.Texture
     ) -> None:
-        scene_name = cls.__name__
         image = Image.frombytes(
             "RGB",
             Toplevel.config.pixel_size,
             color_texture.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image.save(PathUtils.output_dir.joinpath(f"{scene_name}.png"))
+        image.save(PathUtils.output_dir.joinpath(f"{cls.__name__}.png"))
 
     @classmethod
     def render(

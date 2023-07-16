@@ -11,7 +11,7 @@ from ...lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ...toplevel.context import Context
+from ...toplevel.toplevel import Toplevel
 from ..buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from ..buffer_formats.buffer_format import BufferFormat
 from ..buffer_formats.buffer_layout import BufferLayout
@@ -222,7 +222,7 @@ class Buffer(LazyObject):
     def _fetch_buffer(cls) -> moderngl.Buffer:
         if cls._vacant_buffers:
             return cls._vacant_buffers.pop()
-        return Context.buffer()
+        return Toplevel.context.buffer()
 
     @classmethod
     def _finalize_buffer(

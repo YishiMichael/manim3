@@ -1,8 +1,7 @@
 import numpy as np
 from PIL import Image
 
-from ..rendering.context import Context
-from ..scene.config import Config
+from ..toplevel.toplevel import Toplevel
 from ..utils.space import SpaceUtils
 from .mesh_mobject import MeshMobject
 
@@ -20,13 +19,13 @@ class ImageMobject(MeshMobject):
     ) -> None:
         super().__init__()
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image_texture = Context.texture(size=image.size, components=3, dtype="f1")
+        image_texture = Toplevel.context.texture(size=image.size, components=3, dtype="f1")
         image_texture.write(image.tobytes("raw", "RGB"))
         self._color_maps_ = [image_texture]
         #super().__init__(size=image.size)
         #self._color_map_.write(image.tobytes("raw", "RGB"))
 
-        pixel_per_unit = Config().size.pixel_per_unit
+        pixel_per_unit = Toplevel.config.pixel_per_unit
         original_width = image.width / pixel_per_unit
         original_height = image.height / pixel_per_unit
         scale_x, scale_y = SpaceUtils._get_frame_scale_vector(

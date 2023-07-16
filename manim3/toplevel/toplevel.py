@@ -6,23 +6,23 @@ from typing import (
 )
 
 from .config import Config
+from .context import Context
+from .window import Window
 
 if TYPE_CHECKING:
-    from .context import Context
     from .scene import Scene
-    from .window import Window
 
 
 class Toplevel:
     __slots__ = ()
 
-    _GL_VERSION: ClassVar[tuple[int, int]] = (4, 3)
-    _GL_VERSION_CODE: ClassVar[int] = 430
+    #_GL_VERSION: ClassVar[tuple[int, int]] = (4, 3)
+    #_GL_VERSION_CODE: ClassVar[int] = 430
 
     #_scene_name: ClassVar[str | None] = None
     _config: ClassVar[Config | None] = None
-    _window: "ClassVar[Window | None]" = None
-    _context: "ClassVar[Context | None]" = None
+    _window: ClassVar[Window | None] = None
+    _context: ClassVar[Context | None] = None
     _scene: "ClassVar[Scene | None]" = None
 
     #@classmethod
@@ -79,13 +79,13 @@ class Toplevel:
 
     @classmethod
     @property
-    def window(cls) -> "Window":
+    def window(cls) -> Window:
         assert (window := cls._window) is not None
         return window
 
     @classmethod
     @property
-    def context(cls) -> "Context":
+    def context(cls) -> Context:
         assert (context := cls._context) is not None
         return context
 
@@ -104,9 +104,9 @@ class Toplevel:
     ) -> "Iterator[Scene]":
         #cls._scene_name = scene_cls.__name__
         cls._config = config
-        with Window.get_window() as window:
+        with Window.get_window(config) as window:
             cls._window = window
-            with Context.get_context() as context:
+            with Context.get_context(config) as context:
                 cls._context = context
                 cls._scene = scene = scene_cls()
                 yield scene

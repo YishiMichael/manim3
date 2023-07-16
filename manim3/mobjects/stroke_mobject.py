@@ -14,7 +14,7 @@ from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
-from ..scene.config import Config
+from ..toplevel.toplevel import Toplevel
 from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
 from .mobject_style_meta import MobjectStyleMeta
@@ -72,7 +72,7 @@ class StrokeMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _width_(cls) -> NP_f8:
-        return Config().style.stroke_width * np.ones(())
+        return Toplevel.config.stroke_width * np.ones(())
 
     @Lazy.property_array
     @classmethod

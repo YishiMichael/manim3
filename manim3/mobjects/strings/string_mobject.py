@@ -23,9 +23,9 @@ from ...constants.custom_typing import (
     NP_3f8,
     SelectorT
 )
-from ...scene.config import Config
 from ...utils.color import ColorUtils
 from ...utils.iterables import IterUtils
+from ...utils.path import PathUtils
 from ..shape_mobject import ShapeMobject
 from ..svg_mobject import SVGMobject
 
@@ -188,7 +188,7 @@ class StringFileWriter(ABC):
     ) -> pathlib.Path:
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-        svg_dir = Config().path.get_output_subdir(cls._DIR_NAME)
+        svg_dir = PathUtils.get_output_subdir(cls._DIR_NAME)
         return svg_dir.joinpath(f"{hex_string}.svg")
 
     @classmethod

@@ -25,7 +25,7 @@ class ShapeTransformExample(Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(Transform(square, circle), run_time=2, rate_func=RateUtils.smooth)
         await self.wait()
 
 
@@ -54,9 +54,9 @@ class TexTransformExample(Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(Transform(text, tex), run_time=2, rate_func=RateUtils.smooth)
         await self.wait()
-        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2), run_time=2, rate_func=RateUtils.smooth))
+        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), run_time=2, rate_func=RateUtils.smooth)
         await self.wait(3)
 
 
@@ -73,9 +73,9 @@ class CreateTexExample(Scene):
             .set_style(color=BLUE, weight=10)
         )
         await self.wait()
-        await self.play(PartialCreate(text, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(PartialCreate(text), run_time=2, rate_func=RateUtils.smooth)
         await self.wait()
-        await self.play(PartialUncreate(text, run_time=2, rate_func=RateUtils.smooth, backwards=True))
+        await self.play(PartialUncreate(text, backwards=True), run_time=2, rate_func=RateUtils.smooth)
         await self.wait()
 
 
@@ -140,13 +140,13 @@ class OITExample(Scene):
 class LaggedAnimationExample(Scene):
     async def timeline(self) -> None:
         text = Text("Text").scale(3)
-        await self.play(LaggedParallel(*(
+        await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
                 Shift(char, UP, arrive=True)
             )
             for char in text
-        ), lag_time=0.4, rate_func=RateUtils.smooth))
+        ), lag_ratio=0.4), rate_func=RateUtils.smooth)
         await self.wait()
 
 

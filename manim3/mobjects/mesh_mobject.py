@@ -1,7 +1,6 @@
 import moderngl
 import numpy as np
 
-from ..animations.animation import Toplevel
 from ..constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -15,7 +14,7 @@ from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.vertex_array import VertexArray
-from ..scene.config import Config
+from ..toplevel.toplevel import Toplevel
 from ..utils.space import SpaceUtils
 from .lights.lighting import Lighting
 from .mobject_style_meta import MobjectStyleMeta
@@ -27,7 +26,7 @@ class MeshMobject(RenderableMobject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._lighting_ = Toplevel.get_scene()._lighting
+        self._lighting_ = Toplevel.scene._lighting
 
     @MobjectStyleMeta.register()
     @Lazy.variable
@@ -80,7 +79,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _specular_strength_(cls) -> NP_f8:
-        return Config().style.mesh_specular_strength * np.ones(())
+        return Toplevel.config.mesh_specular_strength * np.ones(())
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp_f8
@@ -88,7 +87,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _shininess_(cls) -> NP_f8:
-        return Config().style.mesh_shininess * np.ones(())
+        return Toplevel.config.mesh_shininess * np.ones(())
 
     @Lazy.variable_external
     @classmethod

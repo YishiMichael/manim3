@@ -13,7 +13,7 @@ from ...constants.custom_typing import (
     ColorT,
     SelectorT
 )
-from ...scene.config import Config
+from ...toplevel.toplevel import Toplevel
 from ...utils.color import ColorUtils
 from .string_mobject import (
     CommandFlag,
@@ -319,23 +319,23 @@ class Text(StringMobject):
         if local_configs is None:
             local_configs = {}
 
-        config = Config().text
+        config = Toplevel.config
         if justify is None:
-            justify = config.justify
+            justify = config.text_justify
         if indent is None:
-            indent = config.indent
+            indent = config.text_indent
         if alignment is None:
-            alignment = config.alignment
+            alignment = config.text_alignment
         if line_width is None:
-            line_width = config.line_width
+            line_width = config.text_line_width
         if font_size is None:
-            font_size = config.font_size
+            font_size = config.text_font_size
         if font is None:
-            font = config.font
+            font = config.text_font
         if base_color is None:
-            base_color = config.base_color
+            base_color = config.text_base_color
         if global_config is None:
-            global_config = config.global_config
+            global_config = config.text_global_config
 
         global_attrs = {
             "font_size": str(round(font_size * 1024.0)),

@@ -1,8 +1,8 @@
 from abc import abstractmethod
 
-from ..animations.animation import Toplevel
 from ..lazy.lazy import Lazy
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ..toplevel.toplevel import Toplevel
 from .cameras.camera import Camera
 from .mobject import Mobject
 from .mobject_style_meta import MobjectStyleMeta
@@ -13,7 +13,7 @@ class RenderableMobject(Mobject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._camera_ = Toplevel.get_scene()._camera
+        self._camera_ = Toplevel.scene._camera
 
     @MobjectStyleMeta.register()
     @Lazy.variable
