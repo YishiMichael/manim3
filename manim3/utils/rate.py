@@ -1,7 +1,5 @@
 from typing import Callable
 
-#import scipy.optimize
-
 
 class RateUtils:
     __slots__ = ()
@@ -22,30 +20,6 @@ class RateUtils:
             return rate_0(rate_1(x))
 
         return result
-
-    #@classmethod
-    #def inverse(
-    #    cls,
-    #    func: Callable[[float], float]
-    #) -> Callable[[float], float]:
-
-    #    def result(
-    #        y: float
-    #    ) -> float:
-    #        #f: Callable[[float], float] = lambda x: func(x) - y
-    #        #x0 = min(np.linspace(0.0, 1.0, 5), key=lambda x: abs(f(x)))
-    #        #for x0 in np.linspace(0.0, 1.0, 5):
-    #        return float(scipy.optimize.newton(
-    #            lambda x: func(x) - y,
-    #            x0=0.0,
-    #            x1=1.0,
-    #            maxiter=128
-    #        ))  # type: ignore
-    #        #if optimize_result.success:
-    #        #    return float(optimize_result.x)
-    #        #raise ValueError
-
-    #    return result
 
     @classmethod
     def lag_rate(

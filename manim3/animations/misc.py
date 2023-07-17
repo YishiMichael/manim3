@@ -33,10 +33,6 @@ class TransformMatchingStrings(Parallel):
         self,
         start_mobject: StringMobject,
         stop_mobject: StringMobject
-        #key_map: dict[SelectorT, SelectorT] | None = None,
-        #*,
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
 
         def zip_matched_part_items(

@@ -5,7 +5,6 @@ import operator as op
 from typing import Iterator
 
 import moderngl
-#from moderngl_window.context.pyglet.window import Window
 import OpenGL.GL as gl
 
 from ..rendering.mgl_enums import (
@@ -15,7 +14,6 @@ from ..rendering.mgl_enums import (
     PrimitiveMode
 )
 from .config import Config
-#from .toplevel import Toplevel
 
 
 @dataclass(
@@ -35,44 +33,13 @@ class Context:
         "_window_framebuffer"
     )
 
-    #_GL_VERSION_CODE: ClassVar[int] = 430
-
     def __init__(
         self,
         mgl_context: moderngl.Context
-        #window: Window | None = None,
-        #window_framebuffer: moderngl.Framebuffer | None = None
     ) -> None:
         super().__init__()
         self._mgl_context: moderngl.Context = mgl_context
-        #self._window: Window | None = window
         self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
-
-    #mgl_context: ClassVar[moderngl.Context | None] = None
-    #_window: ClassVar[Window | None] = None
-    #_window_framebuffer: ClassVar[moderngl.Framebuffer | None] = None
-
-    #@property
-    #def window(self) -> Window:
-    #    assert (window := self._window) is not None
-    #    return window
-
-    #@property
-    #def window_framebuffer(self) -> moderngl.Framebuffer:
-    #    assert (window_framebuffer := self._window_framebuffer) is not None
-    #    return window_framebuffer
-
-    #@classmethod
-    #@contextmanager
-    #def get_context(cls) -> "Iterator[Context]":
-    #    mgl_context = moderngl.create_context(
-    #        require=cls._GL_VERSION_CODE,
-    #        standalone=True
-    #    )
-    #    yield Context(
-    #        mgl_context=mgl_context
-    #    )
-    #    mgl_context.release()
 
     @classmethod
     @contextmanager
@@ -89,62 +56,10 @@ class Context:
         )
         mgl_context.release()
 
-    #@classmethod
-    #def activate(
-    #    cls,
-    #    title: str,
-    #    standalone: bool
-    #) -> None:
-    #    assert cls.mgl_context is None
-    #    if standalone:
-    #        window = None
-    #        mgl_context = moderngl.create_context(
-    #            require=cls._GL_VERSION_CODE,
-    #            standalone=True
-    #        )
-    #        window_framebuffer = None
-    #    else:
-    #        window = Window(
-    #            title=title,
-    #            size=Config().size.window_pixel_size,
-    #            fullscreen=False,
-    #            resizable=True,
-    #            gl_version=cls._GL_VERSION,
-    #            vsync=True,
-    #            cursor=True
-    #        )
-    #        mgl_context = window.ctx
-    #        window_framebuffer = mgl_context.detect_framebuffer()
-
-    #    mgl_context.gc_mode = "auto"
-    #    cls.mgl_context = mgl_context
-    #    cls._window = window
-    #    cls._window_framebuffer = window_framebuffer
-
-    #@classmethod
-    #@property
-    #def mgl_context(self) -> moderngl.Context:
-    #    #assert (mgl_context := self._mgl_context) is not None
-    #    return self._mgl_context
-
-    #@classmethod
-    #@property
-    #def window(cls) -> Window:
-    #    assert (window := cls._window) is not None
-    #    return window
-
-    #@classmethod
-    #@property
-    #def window_framebuffer(cls) -> moderngl.Framebuffer:
-    #    assert (window_framebuffer := cls._window_framebuffer) is not None
-    #    return window_framebuffer
-
-    #@classmethod
     def set_state(
         self,
         context_state: ContextState
     ) -> None:
-        #context = Context.mgl_context
         self._mgl_context.enable_only(reduce(op.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
         for index, ((src_blend_func, dst_blend_func), blend_equation) in enumerate(
             zip(context_state.blend_funcs, context_state.blend_equations, strict=True)
@@ -159,7 +74,6 @@ class Context:
                 blend_equation.value
             )
 
-    #@classmethod
     def blit(
         self,
         src: moderngl.Framebuffer,
@@ -172,7 +86,6 @@ class Context:
             gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
         )
 
-    #@classmethod
     @property
     def version_code(self) -> int:
         return self._mgl_context.version_code
@@ -181,35 +94,28 @@ class Context:
     def screen_framebuffer(self) -> moderngl.Framebuffer:
         return self._mgl_context.screen
 
-    #@classmethod
     def texture(
         self,
         *,
-        size: tuple[int, int],# | None = None,
+        size: tuple[int, int],
         components: int,
         dtype: str
     ) -> moderngl.Texture:
-        #if size is None:
-        #    size = Config().size.pixel_size  # rendering.texture_size = (2048, 2048)
         return self._mgl_context.texture(
             size=size,
             components=components,
             dtype=dtype
         )
 
-    #@classmethod
     def depth_texture(
         self,
         *,
-        size: tuple[int, int]# | None = None
+        size: tuple[int, int]
     ) -> moderngl.Texture:
-        #if size is None:
-        #    size = Config().size.pixel_size  # rendering.texture_size = (2048, 2048)
         return self._mgl_context.depth_texture(
             size=size
         )
 
-    #@classmethod
     def framebuffer(
         self,
         *,
@@ -221,12 +127,10 @@ class Context:
             depth_attachment=depth_attachment
         )
 
-    #@classmethod
     def buffer(self) -> moderngl.Buffer:
         # TODO: what effect does `dynamic` flag take?
         return self._mgl_context.buffer(reserve=1, dynamic=True)
 
-    #@classmethod
     def program(
         self,
         *,
@@ -246,7 +150,6 @@ class Context:
             varyings=varyings
         )
 
-    #@classmethod
     def vertex_array(
         self,
         *,
@@ -267,7 +170,6 @@ class Context:
             mode=mode.value
         )
 
-    #@classmethod
     def scope(
         self,
         *,

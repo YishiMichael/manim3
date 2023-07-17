@@ -32,7 +32,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable
     @classmethod
     def _geometry_(cls) -> Geometry:
-        # Default for `ImageMobject`, `ChildSceneMobject`.
+        # Default for `ImageMobject`.
         return PlaneGeometry()
 
     @MobjectStyleMeta.register(

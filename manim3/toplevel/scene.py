@@ -3,27 +3,17 @@ from contextlib import contextmanager
 import itertools as it
 import subprocess as sp
 from typing import (
-    #Callable,
     IO,
     Iterator
 )
-#import weakref
 
 import moderngl
 from PIL import Image
 
-#from ..animations.animation import (
-#    Animation,
-#    TimelineSignal,
-#    TimelineStartSignal,
-#    TimelineStopSignal,
-#    Toplevel  # TODO
-#)
 from ..animations.animation import (
     Animation,
     AnimationState
 )
-#from ..constants.custom_typing import ColorT
 from ..mobjects.cameras.camera import Camera
 from ..mobjects.cameras.perspective_camera import PerspectiveCamera
 from ..mobjects.mobject import Mobject
@@ -31,10 +21,8 @@ from ..mobjects.lights.ambient_light import AmbientLight
 from ..mobjects.lights.lighting import Lighting
 from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
-#from ..scene.config import Config
 from ..utils.color import ColorUtils
 from ..utils.path import PathUtils
-#from ..utils.rate import RateUtils
 from .config import Config
 from .toplevel import Toplevel
 
@@ -45,47 +33,16 @@ class Scene(Animation):
         "_lighting",
         "_root_mobject",
         "_timestamp"
-        #"_framebuffer"
     )
 
-    def __init__(
-        self
-        #start_time: float = 0.0,  # TODO
-        #stop_time: float | None = None,  # TODO
-        #*,
-        #camera: Camera | None = None,
-        #lighting: Lighting | None = None,
-        #background_color: ColorT | None = None
-    ) -> None:
-        super().__init__(
-            #run_time=stop_time - start_time if stop_time is not None else None,
-            #relative_rate=RateUtils.adjust(RateUtils.linear, lag_alpha=-start_time)
-        )
-
-        #if camera is None:
-        #    camera = PerspectiveCamera()
-        #if lighting is None:
-        #    lighting = Lighting(AmbientLight())
-        #if background_color is None:
-        #    background_color = Toplevel.config.background_color
-
+    def __init__(self) -> None:
+        super().__init__()
         self._camera: Camera = PerspectiveCamera()
         self._lighting: Lighting = Lighting(AmbientLight())
         self._root_mobject: SceneRootMobject = SceneRootMobject(
             background_color=ColorUtils.standardize_color(Toplevel.config.background_color)
         )
         self._timestamp: float = 0.0
-        #self._scene_ref = weakref.ref(self)
-        #color_texture = Context.texture(components=3)
-        #self._framebuffer: ColorFramebuffer = ColorFramebuffer(
-        #    color_texture=color_texture
-        #)
-        #self.set_background_color(
-        #    Config().style.background_color
-        #)
-
-    #def _get_bound_scene(self) -> "Scene":
-    #    return self
 
     async def _render(self) -> None:
         config = Toplevel.config
@@ -93,59 +50,13 @@ class Scene(Animation):
         write_video = config.write_video
         write_last_frame = config.write_last_frame
         preview = config.preview
-        #scene_name = cls.__name__
-        #animation_dict: dict[Animation, Callable[[float], float]] = {}
-        #animation_dict: dict[int, Callable[[float], None] | None] = {}
-
-        #def animate(
-        #    timestamp: float
-        #) -> None:
-        #    #for animation, absolute_rate in animation_dict.items():
-        #    #    if (updater := animation._updater) is not None:
-        #    #        updater(absolute_rate(timestamp))
-        #    for composed_updater in animation_dict.values():
-        #        if composed_updater is not None:
-        #            composed_updater(timestamp)
-
-        #def digest_signal(
-        #    signal: TimelineSignal
-        #) -> None:
-        #    animation_id = signal.animation_id
-        #    #Toplevel.set_animation_id(animation_id)
-        #    if isinstance(signal, TimelineStartSignal):
-        #        animation_dict[animation_id] = signal.composed_updater
-        #    elif isinstance(signal, TimelineStopSignal):
-        #        animation_dict.pop(animation_id)
-        #    #match signal.timeline_state:
-        #    #    case TimelineState.START:
-        #    #        assert signal.animation not in animation_dict
-        #    #        assert signal.absolute_rate is not None
-        #    #        animation_dict[signal.animation] = signal.absolute_rate
-        #    #    case TimelineState.STOP:
-        #    #        animation_dict.pop(signal.animation)
-        #    #    case TimelineState.AWAIT:
-        #    #        pass
 
         async def run_frame(
-            #signal_timeline: Iterator[TimelineSignal],
             color_framebuffer: ColorFramebuffer,
             clock_timestamp: float,
-            #signal_timestamp: float,
             video_stdin: IO[bytes] | None
-        ) -> float | None:
+        ) -> None:
             await asyncio.sleep(0.0)
-
-            #next_signal_timestamp = signal_timestamp
-            #while next_signal_timestamp <= clock_timestamp:
-            #    animate(next_signal_timestamp)
-            #    try:
-            #        signal = next(signal_timeline)
-            #    except StopIteration:
-            #        return None
-            #    next_signal_timestamp = signal.timestamp
-            #    digest_signal(signal)
-            #animate(clock_timestamp)
-
             self._timestamp = clock_timestamp
             self._progress_animation()
             self._update(clock_timestamp)
@@ -155,23 +66,17 @@ class Scene(Animation):
             if video_stdin is not None:
                 self._write_frame_to_video(color_framebuffer.color_texture, video_stdin)
 
-            #return next_signal_timestamp
-
         async def run_frames(
-            #signal_timeline: Iterator[TimelineSignal],
             color_framebuffer: ColorFramebuffer,
             video_stdin: IO[bytes] | None
         ) -> None:
             spf = 1.0 / fps
             sleep_time = spf if preview else 0.0
-            #signal_timestamp = 0.0
             for frame_index in it.count():
                 await asyncio.gather(
                     run_frame(
-                        #signal_timeline,
                         color_framebuffer,
                         frame_index * spf,
-                        #signal_timestamp,
                         video_stdin
                     ),
                     asyncio.sleep(sleep_time),
@@ -179,20 +84,10 @@ class Scene(Animation):
                 )
                 if self._animation_state == AnimationState.AFTER_ANIMATION:
                     break
-                #if signal_timestamp is None:
-                #    break
 
             self._root_mobject._render_scene(color_framebuffer)
             if write_last_frame:
                 self._write_frame_to_image(color_framebuffer.color_texture)
-
-        #Context.activate(title=scene_name, standalone=not preview)
-        #with cls._video_writer(write_video, fps, scene_name) as video_stdin:
-        #    self = cls()
-        #    Toplevel.bind_animation_id_to_scene(self._id, self)
-        #    color_framebuffer = ColorFramebuffer()
-        #    signal_timeline = self._signal_timeline()
-        #    await run_frames(signal_timeline, color_framebuffer, video_stdin)
 
         self._prepare_animation()
         with self._video_writer(write_video, fps) as video_stdin:
@@ -291,12 +186,6 @@ class Scene(Animation):
         self,
         *mobjects: "Mobject"
     ):
-        #for mobject in mobjects:
-        #    for descendant in mobject.iter_descendants():
-        #        if isinstance(descendant, RenderableMobject) and isinstance(descendant._camera_, InheritedCamera):
-        #            descendant._camera_ = self._camera
-        #        if isinstance(descendant, MeshMobject) and isinstance(descendant._lighting_, InheritedLighting):
-        #            descendant._lighting_ = self._lighting
         self.root_mobject.add(*mobjects)
         return self
 

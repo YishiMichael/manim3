@@ -17,9 +17,6 @@ class StructuredBufferFormat(BufferFormat):
         shape: tuple[int, ...],
         children: list[BufferFormat],
         layout: BufferLayout
-        #children: tuple[BufferFormat, ...],
-        #offsets: tuple[int, ...],
-        #itemsize: int
     ) -> None:
         structured_base_alignment = 16
         offsets: list[int] = []

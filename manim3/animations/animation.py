@@ -18,55 +18,6 @@ if TYPE_CHECKING:
     from ..toplevel.scene import Scene
 
 
-#class Toplevel:
-#    __slots__ = ()
-
-#    _timestamp: float
-#    _toplevel_animation: "Animation" = NotImplemented
-#    _active_animation_to_scene_dict: "weakref.WeakValueDictionary[Animation, Scene]" = weakref.WeakValueDictionary()
-
-#    def __new__(cls):
-#        raise TypeError
-
-#    @classmethod
-#    def bind_animation_to_scene(
-#        cls,
-#        animation: "Animation",
-#        scene: "Scene"
-#    ) -> None:
-#        assert animation not in cls._active_animation_to_scene_dict
-#        cls._active_animation_to_scene_dict[animation] = scene
-
-#    @classmethod
-#    def get_scene_by_animation(
-#        cls,
-#        animation: "Animation"
-#    ) -> "Scene":
-#        return cls._active_animation_to_scene_dict[animation]
-
-#    @classmethod
-#    def remove_animation(
-#        cls,
-#        animation: "Animation"
-#    ) -> None:
-#        cls._active_animation_to_scene_dict.pop(animation)
-
-#    @classmethod
-#    @contextmanager
-#    def set_animation(
-#        cls,
-#        animation: "Animation"
-#    ) -> Iterator[None]:
-#        stored_toplevel_animation = cls._toplevel_animation
-#        cls._toplevel_animation = animation
-#        yield
-#        cls._toplevel_animation = stored_toplevel_animation
-
-#    @classmethod
-#    def get_scene(cls) -> "Scene":
-#        return cls._active_animation_to_scene_dict[cls._toplevel_animation]
-
-
 class AnimationState(Enum):
     UNBOUND = 0
     BEFORE_ANIMATION = 1
@@ -98,8 +49,6 @@ class Animation(ABC):
         # This parameter is required mostly for the program to know
         # how long the animation is before running the timeline.
         run_alpha: float = float("inf")
-        #launch_condition: Callable[[], bool] | None = None,
-        #terminate_condition: Callable[[], bool] | None = None
     ) -> None:
         super().__init__()
         self._updater: Callable[[float], None] | None = updater
@@ -166,14 +115,6 @@ class Animation(ABC):
         self._children = None
 
     def _progress_animation(self) -> None:
-        ##with Toplevel.set_animation(self):
-        #while self._progress_condition():
-        #    try:
-        #        self._timeline_coroutine.send(None)
-        #    except StopIteration:
-        #        pass
-        #        #Toplevel.remove_animation(self)
-
         if self._animation_state in (AnimationState.UNBOUND, AnimationState.AFTER_ANIMATION):
             raise TypeError
         assert (launch_condition := self._launch_condition) is not None
@@ -212,9 +153,6 @@ class Animation(ABC):
         if (updater := self._updater) is not None:
             updater(absolute_rate(timestamp))
 
-    #def _get_bound_scene(self) -> "Scene":
-    #    return Toplevel.get_scene_by_animation(self)
-
     def prepare(
         self,
         animation: "Animation",
@@ -224,7 +162,6 @@ class Animation(ABC):
         rate: Callable[[float], float] | None = None,
         # Intepreted as "the inverse of run speed" if `_run_alpha` is infinity.
         run_time: float = 1.0,
-        #relative_rate: Callable[[float], float] = RateUtils.linear,
         launch_condition: Callable[[], bool] | None = None,
         terminate_condition: Callable[[], bool] | None = None
     ) -> None:
@@ -244,16 +181,6 @@ class Animation(ABC):
         )
         assert (children := self._children) is not None
         children.append(animation)
-        #bound_scene = self._get_bound_scene()
-        #for animation in animations:
-        #    assert animation._absolute_rate is NotImplemented
-        #    animation._absolute_rate = RateUtils.compose(
-        #        animation._relative_rate,
-        #        self._absolute_rate
-        #    )
-        #    #Toplevel.bind_animation_to_scene(animation, bound_scene)
-        #    self._children.append(animation)
-        #    animation._progress_timeline()
 
     async def wait_until(
         self,
@@ -318,7 +245,6 @@ class Animation(ABC):
     def terminated(self) -> Callable[[], bool]:
 
         def result() -> bool:
-            #print(self, self._animation_state)
             return self._animation_state == AnimationState.AFTER_ANIMATION
 
         return result
@@ -355,8 +281,6 @@ class Animation(ABC):
         self,
         delta_alpha: float = 1.0
     ) -> None:
-        #target_alpha = self._absolute_rate(Toplevel._timestamp) + delta_alpha
-        #await self.wait_until(lambda: self._absolute_rate(Toplevel._timestamp) >= target_alpha)
         await self.wait_until(self.progress_duration(delta_alpha))
 
     async def wait_forever(self) -> None:

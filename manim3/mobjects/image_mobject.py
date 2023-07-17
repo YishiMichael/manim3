@@ -22,8 +22,6 @@ class ImageMobject(MeshMobject):
         image_texture = Toplevel.context.texture(size=image.size, components=3, dtype="f1")
         image_texture.write(image.tobytes("raw", "RGB"))
         self._color_maps_ = [image_texture]
-        #super().__init__(size=image.size)
-        #self._color_map_.write(image.tobytes("raw", "RGB"))
 
         pixel_per_unit = Toplevel.config.pixel_per_unit
         original_width = image.width / pixel_per_unit

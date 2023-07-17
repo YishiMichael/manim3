@@ -26,10 +26,6 @@ class PathUtils:
     def shaders_dir(cls) -> pathlib.Path:
         return cls.src_dir.joinpath("shaders")
 
-    #@property
-    #def tex_templates_path(self) -> pathlib.Path:
-    #    return self.src_dir.joinpath("tex_templates.toml")
-
     @classmethod
     @property
     def user_script_path(cls) -> pathlib.Path:

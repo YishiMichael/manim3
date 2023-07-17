@@ -1,5 +1,3 @@
-#from dataclasses import dataclass
-#from functools import lru_cache
 import os
 import pathlib
 import re
@@ -8,8 +6,6 @@ from typing import (
     Iterable,
     Iterator
 )
-
-#import toml
 
 from ...constants.constants import Alignment
 from ...constants.custom_typing import (
@@ -37,17 +33,6 @@ class LaTeXError(ValueError):
         super().__init__(message)
 
 
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class TexTemplate:
-#    description: str
-#    compiler: str
-#    preamble: str
-
-
 class TexFileWriter(StringFileWriter):
     __slots__ = ()
 
@@ -60,12 +45,9 @@ class TexFileWriter(StringFileWriter):
         svg_path: pathlib.Path,
         compiler: str,
         preamble: str,
-        #template: str,
         alignment: Alignment,
         environment: str
     ) -> None:
-        #tex_template = cls._get_tex_templates_dict()[template]
-        #compiler = tex_template.compiler
         if compiler == "latex":
             program = "latex"
             dvi_ext = ".dvi"
@@ -77,7 +59,6 @@ class TexFileWriter(StringFileWriter):
                 f"Compiler '{compiler}' is not implemented"
             )
 
-        # Write tex file.
         tex_path = svg_path.with_suffix(".tex")
         with tex_path.open(mode="w", encoding="utf-8") as tex_file:
             match alignment:
@@ -95,7 +76,6 @@ class TexFileWriter(StringFileWriter):
                 end_environment = ""
             full_content = "\n".join((
                 preamble,
-                #tex_template.preamble,
                 "\\begin{document}",
                 alignment_command,
                 begin_environment,
@@ -139,16 +119,6 @@ class TexFileWriter(StringFileWriter):
             # Cleanup superfluous documents.
             for ext in (".tex", dvi_ext, ".log", ".aux"):
                 svg_path.with_suffix(ext).unlink(missing_ok=True)
-
-    #@staticmethod
-    #@lru_cache(maxsize=1)
-    #def _get_tex_templates_dict() -> dict[str, TexTemplate]:
-    #    with Config().path.tex_templates_path.open(encoding="utf-8") as tex_templates_file:
-    #        template_content_dict = toml.load(tex_templates_file)
-    #    return {
-    #        name: TexTemplate(**template_content)
-    #        for name, template_content in template_content_dict.items()
-    #    }
 
 
 class MathjaxFileWriter(StringFileWriter):
@@ -321,8 +291,6 @@ class Tex(StringMobject):
             compiler = config.tex_compiler
         if preamble is None:
             preamble = config.tex_preamble
-        #if template is None:
-        #    template = config.tex_template
         if alignment is None:
             alignment = config.tex_alignment
         if environment is None:
@@ -338,7 +306,6 @@ class Tex(StringMobject):
             file_writer = TexFileWriter(
                 compiler=compiler,
                 preamble=preamble,
-                #template=template,
                 alignment=alignment,
                 environment=environment
             )

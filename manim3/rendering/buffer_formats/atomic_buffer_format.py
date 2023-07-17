@@ -54,13 +54,6 @@ class AtomicBufferFormat(BufferFormat):
         shape: tuple[int, ...],
         gl_dtype_str: str,
         layout: BufferLayout
-        #base_char: str,
-        #base_itemsize: int,
-        #base_ndim: int,
-        #n_row: int,
-        #n_col: int,
-        #n_col_pseudo: int,
-        #base_alignment: int
     ) -> None:
         base_char, base_itemsize, base_shape = self._GL_DTYPES[gl_dtype_str]
         assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
@@ -120,15 +113,6 @@ class AtomicBufferFormat(BufferFormat):
     @classmethod
     def _base_alignment_(cls) -> int:
         return 0
-
-    #@Lazy.property_hashable
-    #@classmethod
-    #def _base_alignment_(
-    #    cls,
-    #    base_alignment_factor: int,
-    #    base_itemsize: int
-    #) -> int:
-    #    return base_alignment_factor * base_itemsize
 
     @Lazy.property_hashable
     @classmethod

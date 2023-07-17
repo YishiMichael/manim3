@@ -118,25 +118,6 @@ class OITExample(Scene):
         await self.wait(5)
 
 
-#class ChildSceneExample(Scene):
-#    async def timeline(self) -> None:
-#        child_scene_1 = ThreeDTextExample()
-#        self.prepare(child_scene_1)
-#        self.add(
-#            ChildSceneMobject(child_scene_1)
-#            .scale(0.5)
-#            .shift(LEFT * 3)
-#        )
-#        child_scene_2 = TexTransformExample()
-#        self.prepare(child_scene_2)
-#        self.add(
-#            ChildSceneMobject(child_scene_2)
-#            .scale(0.5)
-#            .shift(RIGHT * 3)
-#        )
-#        await self.wait(6)
-
-
 class LaggedAnimationExample(Scene):
     async def timeline(self) -> None:
         text = Text("Text").scale(3)

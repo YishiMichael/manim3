@@ -4,7 +4,6 @@ import numpy as np
 
 from ..mobjects.mobject import Mobject
 from ..mobjects.mobject_style_meta import MobjectStyleMeta
-#from ..utils.rate import RateUtils
 from .animation import Animation
 
 
@@ -17,8 +16,6 @@ class PartialBase(Animation):
         alpha_to_boundary_values: Callable[[float], tuple[float, float]],
         *,
         backwards: bool = False
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         callbacks = tuple(
             MobjectStyleMeta._partial(descendant)(descendant)
@@ -35,8 +32,6 @@ class PartialBase(Animation):
                 callback(start, stop)
 
         super().__init__(
-            #run_time=run_time,
-            #relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time),
             updater=updater,
             run_alpha=1.0
         )
@@ -54,8 +49,6 @@ class PartialCreate(PartialBase):
         mobject: Mobject,
         *,
         backwards: bool = False
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
 
         def alpha_to_boundary_values(
@@ -67,8 +60,6 @@ class PartialCreate(PartialBase):
             mobject=mobject,
             alpha_to_boundary_values=alpha_to_boundary_values,
             backwards=backwards
-            #run_time=run_time,
-            #rate_func=rate_func
         )
 
     async def timeline(self) -> None:
@@ -84,8 +75,6 @@ class PartialUncreate(PartialBase):
         mobject: Mobject,
         *,
         backwards: bool = False
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
 
         def alpha_to_boundary_values(
@@ -97,8 +86,6 @@ class PartialUncreate(PartialBase):
             mobject=mobject,
             alpha_to_boundary_values=alpha_to_boundary_values,
             backwards=backwards
-            #run_time=run_time,
-            #rate_func=rate_func
         )
 
     async def timeline(self) -> None:
@@ -115,8 +102,6 @@ class PartialFlash(PartialBase):
         *,
         flash_proportion: float = 1.0 / 16,
         backwards: bool = False
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         assert flash_proportion >= 0.0
 
@@ -137,8 +122,6 @@ class PartialFlash(PartialBase):
             mobject=mobject,
             alpha_to_boundary_values=alpha_to_boundary_values,
             backwards=backwards
-            #run_time=run_time,
-            #rate_func=rate_func
         )
 
     async def timeline(self) -> None:

@@ -89,63 +89,6 @@ class Buffer(LazyObject):
             )
             return (dtype_str, name, shape)
 
-        #def get_atomic_format(
-        #    name: str,
-        #    shape: tuple[int, ...],
-        #    gl_dtype_str: str
-        #) -> AtomicBufferFormat:
-        #    base_char, base_itemsize, base_shape = cls._GL_DTYPES[gl_dtype_str]
-        #    assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
-        #    shape_dict = dict(enumerate(base_shape))
-        #    n_col = shape_dict.get(0, 1)
-        #    n_row = shape_dict.get(1, 1)
-        #    if layout == BufferLayout.STD140:
-        #        n_col_pseudo = n_col if not shape and n_row == 1 else 4
-        #        n_col_alignment = n_col if not shape and n_col <= 2 and n_row == 1 else 4
-        #    else:
-        #        n_col_pseudo = n_col
-        #        n_col_alignment = n_col
-        #    return AtomicBufferFormat(
-        #        name=name,
-        #        shape=shape,
-        #        base_char=base_char,
-        #        base_itemsize=base_itemsize,
-        #        base_ndim=len(base_shape),
-        #        n_row=n_row,
-        #        n_col=n_col,
-        #        n_col_pseudo=n_col_pseudo,
-        #        base_alignment=n_col_alignment * base_itemsize
-        #    )
-
-        #def get_structured_format(
-        #    name: str,
-        #    shape: tuple[int, ...],
-        #    children: list[BufferFormat]
-        #) -> StructuredBufferFormat:
-        #    structured_base_alignment = 16
-        #    offsets: list[int] = []
-        #    offset: int = 0
-        #    for child in children:
-        #        if layout == BufferLayout.STD140:
-        #            if isinstance(child, AtomicBufferFormat):
-        #                base_alignment = child._base_alignment_
-        #            elif isinstance(child, StructuredBufferFormat):
-        #                base_alignment = structured_base_alignment
-        #            else:
-        #                raise TypeError
-        #            offset += (-offset) % base_alignment
-        #        offsets.append(offset)
-        #        offset += child._nbytes_
-        #    if layout == BufferLayout.STD140:
-        #        offset += (-offset) % structured_base_alignment
-        #    return StructuredBufferFormat(
-        #        name=name,
-        #        shape=shape,
-        #        children=tuple(children),
-        #        offsets=tuple(offsets),
-        #        itemsize=offset
-        #    )
-
         child_structs_dict = dict(child_struct_items)
         array_lens_dict = dict(array_len_items)
 

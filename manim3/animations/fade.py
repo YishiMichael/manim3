@@ -4,7 +4,6 @@ from typing import (
 )
 
 from ..mobjects.mobject import Mobject
-#from ..utils.rate import RateUtils
 from .composition import Parallel
 from .transform import (
     TransformFromCopy,
@@ -22,14 +21,10 @@ class FadeIn(TransformFromCopy):
         self,
         mobject: _MobjectT,
         func: Callable[[_MobjectT], _MobjectT] = lambda mob: mob
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
             mobject=mobject,
             func=lambda mob: func(mob.set_style(opacity=0.0))
-            #run_time=run_time,
-            #rate_func=rate_func
         )
 
     async def timeline(self) -> None:
@@ -44,14 +39,10 @@ class FadeOut(TransformToCopy):
         self,
         mobject: _MobjectT,
         func: Callable[[_MobjectT], _MobjectT] = lambda mob: mob
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         super().__init__(
             mobject=mobject,
             func=lambda mob: func(mob.set_style(opacity=0.0))
-            #run_time=run_time,
-            #rate_func=rate_func
         )
 
     async def timeline(self) -> None:
@@ -70,9 +61,6 @@ class FadeTransform(Parallel):
         self,
         start_mobject: Mobject,
         stop_mobject: Mobject
-        #*,
-        #run_time: float = 1.0,
-        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
         intermediate_start_mobject = start_mobject.copy()
         intermediate_stop_mobject = stop_mobject.copy()
@@ -85,8 +73,6 @@ class FadeTransform(Parallel):
                 mobject=intermediate_stop_mobject,
                 func=lambda mob: mob.match_bounding_box(start_mobject)
             )
-            #run_time=run_time,
-            #rate_func=rate_func
         )
         self._start_mobject: Mobject = start_mobject
         self._stop_mobject: Mobject = stop_mobject
