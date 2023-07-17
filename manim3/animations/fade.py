@@ -27,7 +27,7 @@ class FadeIn(TransformFromCopy):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            func=lambda mob: func(mob.set_style(weight=0.0))
+            func=lambda mob: func(mob.set_style(opacity=0.0))
             #run_time=run_time,
             #rate_func=rate_func
         )
@@ -49,7 +49,7 @@ class FadeOut(TransformToCopy):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            func=lambda mob: func(mob.set_style(weight=0.0))
+            func=lambda mob: func(mob.set_style(opacity=0.0))
             #run_time=run_time,
             #rate_func=rate_func
         )

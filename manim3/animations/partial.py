@@ -8,7 +8,7 @@ from ..mobjects.mobject_style_meta import MobjectStyleMeta
 from .animation import Animation
 
 
-class PartialABC(Animation):
+class PartialBase(Animation):
     __slots__ = ("_mobject",)
 
     def __init__(
@@ -37,12 +37,16 @@ class PartialABC(Animation):
         super().__init__(
             #run_time=run_time,
             #relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time),
-            updater=updater
+            updater=updater,
+            run_alpha=1.0
         )
         self._mobject: Mobject = mobject
 
+    async def timeline(self) -> None:
+        await self.wait()
 
-class PartialCreate(PartialABC):
+
+class PartialCreate(PartialBase):
     __slots__ = ()
 
     def __init__(
@@ -69,10 +73,10 @@ class PartialCreate(PartialABC):
 
     async def timeline(self) -> None:
         self.scene.add(self._mobject)
-        await self.wait()
+        await super().timeline()
 
 
-class PartialUncreate(PartialABC):
+class PartialUncreate(PartialBase):
     __slots__ = ()
 
     def __init__(
@@ -98,11 +102,11 @@ class PartialUncreate(PartialABC):
         )
 
     async def timeline(self) -> None:
-        await self.wait()
+        await super().timeline()
         self.scene.discard(self._mobject)
 
 
-class PartialFlash(PartialABC):
+class PartialFlash(PartialBase):
     __slots__ = ()
 
     def __init__(
@@ -139,5 +143,5 @@ class PartialFlash(PartialABC):
 
     async def timeline(self) -> None:
         self.scene.add(self._mobject)
-        await self.wait()
+        await super().timeline()
         self.scene.discard(self._mobject)

@@ -10,7 +10,7 @@ from ..utils.model_interpolant import ModelInterpolant
 from .animation import Animation
 
 
-class ModelFiniteAnimation(Animation):
+class ModelFiniteAnimationBase(Animation):
     __slots__ = ()
 
     def __init__(
@@ -33,7 +33,8 @@ class ModelFiniteAnimation(Animation):
             callback(alpha)
 
         super().__init__(
-            updater=updater
+            updater=updater,
+            run_alpha=1.0
             #run_time=run_time,
             #relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time)
         )
@@ -42,7 +43,7 @@ class ModelFiniteAnimation(Animation):
         await self.wait()
 
 
-class Shift(ModelFiniteAnimation):
+class Shift(ModelFiniteAnimationBase):
     __slots__ = ()
 
     def __init__(
@@ -63,7 +64,7 @@ class Shift(ModelFiniteAnimation):
         )
 
 
-class Scale(ModelFiniteAnimation):
+class Scale(ModelFiniteAnimationBase):
     __slots__ = ()
 
     def __init__(
@@ -86,7 +87,7 @@ class Scale(ModelFiniteAnimation):
         )
 
 
-class Rotate(ModelFiniteAnimation):
+class Rotate(ModelFiniteAnimationBase):
     __slots__ = ()
 
     def __init__(
@@ -109,7 +110,7 @@ class Rotate(ModelFiniteAnimation):
         )
 
 
-class ModelRunningAnimation(Animation):
+class ModelInfiniteAnimationBase(Animation):
     __slots__ = ()
 
     def __init__(
@@ -131,7 +132,7 @@ class ModelRunningAnimation(Animation):
         await self.wait_forever()
 
 
-class Shifting(ModelRunningAnimation):
+class Shifting(ModelInfiniteAnimationBase):
     __slots__ = ()
 
     def __init__(
@@ -149,7 +150,7 @@ class Shifting(ModelRunningAnimation):
         )
 
 
-class Scaling(ModelRunningAnimation):
+class Scaling(ModelInfiniteAnimationBase):
     __slots__ = ()
 
     def __init__(
@@ -169,7 +170,7 @@ class Scaling(ModelRunningAnimation):
         )
 
 
-class Rotating(ModelRunningAnimation):
+class Rotating(ModelInfiniteAnimationBase):
     __slots__ = ()
 
     def __init__(

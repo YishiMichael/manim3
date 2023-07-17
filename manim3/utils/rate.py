@@ -10,18 +10,16 @@ class RateUtils:
         raise TypeError
 
     @classmethod
-    def compose(
+    def compose_rates(
         cls,
-        *funcs: Callable[[float], float]
+        rate_0: Callable[[float], float],
+        rate_1: Callable[[float], float]
     ) -> Callable[[float], float]:
 
         def result(
             x: float
         ) -> float:
-            y = x
-            for func in reversed(funcs):
-                y = func(y)
-            return y
+            return rate_0(rate_1(x))
 
         return result
 
@@ -50,21 +48,35 @@ class RateUtils:
     #    return result
 
     @classmethod
-    def adjust(
+    def lag_rate(
         cls,
-        func: Callable[[float], float],
-        *,
-        run_time_scale: float = 1.0,
-        run_alpha_scale: float = 1.0,
-        lag_time: float = 0.0
+        rate: Callable[[float], float],
+        lag_time: float
     ) -> Callable[[float], float]:
 
         def result(
             t: float
         ) -> float:
-            return func((t - lag_time) / run_time_scale) * run_alpha_scale
+            return rate(t - lag_time)
 
         return result
+
+    @classmethod
+    def scale_rate(
+        cls,
+        rate: Callable[[float], float],
+        run_time_scale: float,
+        run_alpha_scale: float
+    ) -> Callable[[float], float]:
+
+        def result(
+            t: float
+        ) -> float:
+            return rate(t / run_time_scale) * run_alpha_scale
+
+        return result
+
+    # Rate functions, defined on `[0, 1] -> [0, 1]`.
 
     @classmethod
     def linear(

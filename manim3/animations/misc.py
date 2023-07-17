@@ -1,6 +1,5 @@
 import itertools as it
 from typing import (
-    Callable,
     Hashable,
     Iterable,
     Iterator,
@@ -11,7 +10,6 @@ from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.strings.string_mobject import StringMobject
 from ..utils.iterables import IterUtils
-from ..utils.rate import RateUtils
 from .composition import Parallel
 from .fade import FadeTransform
 from .transform import Transform
@@ -21,8 +19,6 @@ _K = TypeVar("_K", bound=Hashable)
 _K0 = TypeVar("_K0", bound=Hashable)
 _K1 = TypeVar("_K1", bound=Hashable)
 _T = TypeVar("_T")
-_T0 = TypeVar("_T0")
-_T1 = TypeVar("_T1")
 
 
 # TODO: under construction
@@ -36,11 +32,11 @@ class TransformMatchingStrings(Parallel):
     def __init__(
         self,
         start_mobject: StringMobject,
-        stop_mobject: StringMobject,
+        stop_mobject: StringMobject
         #key_map: dict[SelectorT, SelectorT] | None = None,
-        *,
-        run_time: float = 1.0,
-        rate_func: Callable[[float], float] = RateUtils.linear
+        #*,
+        #run_time: float = 1.0,
+        #rate_func: Callable[[float], float] = RateUtils.linear
     ) -> None:
 
         def zip_matched_part_items(
@@ -141,9 +137,9 @@ class TransformMatchingStrings(Parallel):
         ) -> Iterator[FadeTransform | Transform]:
 
             def match_elements_evenly(
-                elements_0: list[_T0],
-                elements_1: list[_T1]
-            ) -> Iterator[tuple[list[_T0], list[_T1]]]:
+                elements_0: list[_T],
+                elements_1: list[_T]
+            ) -> Iterator[tuple[list[_T], list[_T]]]:
                 len_0 = len(elements_0)
                 len_1 = len(elements_1)
                 if len_0 > len_1:
@@ -228,11 +224,7 @@ class TransformMatchingStrings(Parallel):
             )
         ))
 
-        super().__init__(
-            *animations,
-            run_time=run_time,
-            rate_func=rate_func
-        )
+        super().__init__(*animations)
         self._start_mobject: StringMobject = start_mobject
         self._stop_mobject: StringMobject = stop_mobject
         self._to_discard: list[Mobject] = [

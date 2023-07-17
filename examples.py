@@ -25,7 +25,7 @@ class ShapeTransformExample(Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle), run_time=2, rate_func=RateUtils.smooth)
+        await self.play(Transform(square, circle), run_time=2, rate=RateUtils.smooth)
         await self.wait()
 
 
@@ -54,9 +54,9 @@ class TexTransformExample(Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2, rate_func=RateUtils.smooth)
+        await self.play(Transform(text, tex), run_time=2, rate=RateUtils.smooth)
         await self.wait()
-        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), run_time=2, rate_func=RateUtils.smooth)
+        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), rate=RateUtils.smooth, run_time=2)
         await self.wait(3)
 
 
@@ -73,9 +73,9 @@ class CreateTexExample(Scene):
             .set_style(color=BLUE, weight=10)
         )
         await self.wait()
-        await self.play(PartialCreate(text), run_time=2, rate_func=RateUtils.smooth)
+        await self.play(PartialCreate(text), run_time=2, rate=RateUtils.smooth)
         await self.wait()
-        await self.play(PartialUncreate(text, backwards=True), run_time=2, rate_func=RateUtils.smooth)
+        await self.play(PartialUncreate(text, backwards=True), rate=RateUtils.smooth, run_time=2)
         await self.wait()
 
 
@@ -146,7 +146,7 @@ class LaggedAnimationExample(Scene):
                 Shift(char, UP, arrive=True)
             )
             for char in text
-        ), lag_ratio=0.4), rate_func=RateUtils.smooth)
+        ), lag_ratio=0.4, rate=RateUtils.linear))
         await self.wait()
 
 
@@ -169,7 +169,7 @@ class FormulaExample(Scene):
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula, run_time=2, rate_func=RateUtils.smooth))
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=RateUtils.smooth, run_time=2)
         await self.wait()
 
 

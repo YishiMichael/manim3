@@ -12,7 +12,7 @@ from .animation import Animation
 _MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
-class TransformABC(Animation):
+class TransformBase(Animation):
     __slots__ = (
         "_start_mobject",
         "_stop_mobject",
@@ -46,14 +46,18 @@ class TransformABC(Animation):
         super().__init__(
             #run_time=run_time,
             #relative_rate=RateUtils.adjust(rate_func, run_time_scale=run_time),
-            updater=updater
+            updater=updater,
+            run_alpha=1.0
         )
         self._start_mobject: Mobject = start_mobject
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
 
+    async def timeline(self) -> None:
+        await self.wait()
 
-class TransformTo(TransformABC):
+
+class TransformTo(TransformBase):
     __slots__ = ()
 
     def __init__(
@@ -71,11 +75,8 @@ class TransformTo(TransformABC):
             #rate_func=rate_func
         )
 
-    async def timeline(self) -> None:
-        await self.wait()
 
-
-class TransformFrom(TransformABC):
+class TransformFrom(TransformBase):
     __slots__ = ()
 
     def __init__(
@@ -92,9 +93,6 @@ class TransformFrom(TransformABC):
             #run_time=run_time,
             #rate_func=rate_func
         )
-
-    async def timeline(self) -> None:
-        await self.wait()
 
 
 class TransformToCopy(TransformTo):
@@ -133,7 +131,7 @@ class TransformFromCopy(TransformFrom):
         )
 
 
-class Transform(TransformABC):
+class Transform(TransformBase):
     __slots__ = ()
 
     def __init__(
@@ -154,6 +152,6 @@ class Transform(TransformABC):
     async def timeline(self) -> None:
         self.scene.discard(self._start_mobject)
         self.scene.add(self._intermediate_mobject)
-        await self.wait()
+        await super().timeline()
         self.scene.discard(self._intermediate_mobject)
         self.scene.add(self._stop_mobject)

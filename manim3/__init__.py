@@ -1,6 +1,6 @@
 from .animations.animation import Animation
 from .animations.composition import (
-    #Lagged,
+    Lagged,
     #LaggedParallel,
     Parallel,
     Series
