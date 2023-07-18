@@ -15,9 +15,9 @@ from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
 from ..toplevel.toplevel import Toplevel
-from ..shape.shape import MultiLineString
 from ..utils.space import SpaceUtils
-from .mobject_style_meta import MobjectStyleMeta
+from .mobject.mobject_style_meta import MobjectStyleMeta
+from .mobject.shape.shape import MultiLineString
 from .renderable_mobject import RenderableMobject
 
 
@@ -43,7 +43,7 @@ class StrokeMobject(RenderableMobject):
         return MultiLineString()
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_3f8
+        interpolate_method=SpaceUtils.lerp
     )
     @Lazy.variable_array
     @classmethod
@@ -51,7 +51,7 @@ class StrokeMobject(RenderableMobject):
         return np.ones((3,))
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_f8
+        interpolate_method=SpaceUtils.lerp
     )
     @Lazy.variable_array
     @classmethod
@@ -59,7 +59,7 @@ class StrokeMobject(RenderableMobject):
         return (1.0 - 2 ** (-32)) * np.ones(())
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_f8
+        interpolate_method=SpaceUtils.lerp
     )
     @Lazy.variable_array
     @classmethod
@@ -67,7 +67,7 @@ class StrokeMobject(RenderableMobject):
         return np.ones(())
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_f8
+        interpolate_method=SpaceUtils.lerp
     )
     @Lazy.variable_array
     @classmethod

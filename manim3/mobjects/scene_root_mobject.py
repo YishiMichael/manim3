@@ -10,7 +10,7 @@ from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
-from .mobject import Mobject
+from .mobject.mobject import Mobject
 from .renderable_mobject import RenderableMobject
 
 

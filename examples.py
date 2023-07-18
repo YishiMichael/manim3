@@ -25,7 +25,7 @@ class ShapeTransformExample(Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle), run_time=2, rate=RateUtils.smooth)
+        await self.play(Transform(square, circle), run_time=2, rate=Rates.smooth)
         await self.wait()
 
 
@@ -54,9 +54,9 @@ class TexTransformExample(Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2, rate=RateUtils.smooth)
+        await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth)
         await self.wait()
-        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), rate=RateUtils.smooth, run_time=2)
+        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), rate=Rates.smooth, run_time=2)
         await self.wait(3)
 
 
@@ -73,9 +73,9 @@ class CreateTexExample(Scene):
             .set_style(color=BLUE, weight=10)
         )
         await self.wait()
-        await self.play(PartialCreate(text), run_time=2, rate=RateUtils.smooth)
+        await self.play(PartialCreate(text), run_time=2, rate=Rates.smooth)
         await self.wait()
-        await self.play(PartialUncreate(text, backwards=True), rate=RateUtils.smooth, run_time=2)
+        await self.play(PartialUncreate(text, backwards=True), rate=Rates.smooth, run_time=2)
         await self.wait()
 
 
@@ -127,7 +127,7 @@ class LaggedAnimationExample(Scene):
                 Shift(char, UP, arrive=True)
             )
             for char in text
-        ), lag_ratio=0.4, rate=RateUtils.linear))
+        ), lag_ratio=0.5), rate=Rates.smooth, run_time=2.2)
         await self.wait()
 
 
@@ -150,19 +150,19 @@ class FormulaExample(Scene):
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=RateUtils.smooth, run_time=2)
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth, run_time=2)
         await self.wait()
 
 
 def main() -> None:
-    config = Config()
-    #config.tex.use_mathjax = True
-    #config.rendering.time_span = (2.0, 3.0)
-    #config.rendering.fps = 10
-    #config.rendering.preview = False
-    #config.rendering.write_video = True
-    #config.rendering.write_last_frame = True
-    #config.size.pixel_size = (480, 270)
+    config = Config(
+        fps=30,
+        #preview=False,
+        #tex_use_mathjax=True,
+        #write_video = True,
+        #write_last_frame=True,
+        #pixel_height=480
+    )
     LaggedAnimationExample.render(config)
 
 

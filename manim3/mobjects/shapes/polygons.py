@@ -6,7 +6,7 @@ from ...constants.constants import (
     TAU
 )
 from ...constants.custom_typing import NP_x2f8
-from ...shape.shape import Shape
+from ..mobject.shape.shape import Shape
 from ..shape_mobject import ShapeMobject
 
 

@@ -17,9 +17,10 @@ from ...constants.custom_typing import (
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...toplevel.toplevel import Toplevel
-from ...utils.model_interpolant import ModelInterpolant
 from ...utils.space import SpaceUtils
-from ..mobject import Mobject
+from ..mobject.mobject import Mobject
+from ..mobject.model_interpolants.rotate_model_interpolant import RotateModelInterpolant
+from ..mobject.model_interpolants.shift_model_interpolant import ShiftModelInterpolant
 
 
 class Camera(Mobject):
@@ -105,8 +106,8 @@ class Camera(Mobject):
     ) -> NP_44f8:
         model_basis = model_matrix[:3, :3]
         model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
-        return ModelInterpolant.from_rotate(-Rotation.from_matrix(model_basis_normalized).as_rotvec())() \
-            @ ModelInterpolant.from_shift(-eye)()
+        return RotateModelInterpolant(-Rotation.from_matrix(model_basis_normalized).as_rotvec())() \
+            @ ShiftModelInterpolant(-eye)()
 
     @Lazy.property_array
     @classmethod

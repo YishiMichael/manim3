@@ -10,13 +10,11 @@ from typing import (
 import moderngl
 from PIL import Image
 
-from ..animations.animation import (
-    Animation,
-    AnimationState
-)
+from ..animations.animation.animation import Animation
+from ..animations.animation.animation_state import AnimationState
 from ..mobjects.cameras.camera import Camera
 from ..mobjects.cameras.perspective_camera import PerspectiveCamera
-from ..mobjects.mobject import Mobject
+from ..mobjects.mobject.mobject import Mobject
 from ..mobjects.lights.ambient_light import AmbientLight
 from ..mobjects.lights.lighting import Lighting
 from ..mobjects.scene_root_mobject import SceneRootMobject
@@ -53,13 +51,10 @@ class Scene(Animation):
 
         async def run_frame(
             color_framebuffer: ColorFramebuffer,
-            clock_timestamp: float,
             video_stdin: IO[bytes] | None
         ) -> None:
             await asyncio.sleep(0.0)
-            self._timestamp = clock_timestamp
-            self._progress_animation()
-            self._update(clock_timestamp)
+            self._progress()
             self._root_mobject._render_scene(color_framebuffer)
             if preview:
                 self._render_to_window(color_framebuffer.framebuffer)
@@ -73,10 +68,10 @@ class Scene(Animation):
             spf = 1.0 / fps
             sleep_time = spf if preview else 0.0
             for frame_index in it.count():
+                self._timestamp = frame_index * spf
                 await asyncio.gather(
                     run_frame(
                         color_framebuffer,
-                        frame_index * spf,
                         video_stdin
                     ),
                     asyncio.sleep(sleep_time),
@@ -89,7 +84,7 @@ class Scene(Animation):
             if write_last_frame:
                 self._write_frame_to_image(color_framebuffer.color_texture)
 
-        self._prepare_animation()
+        self._schedule()
         with self._video_writer(write_video, fps) as video_stdin:
             await run_frames(ColorFramebuffer(), video_stdin)
 

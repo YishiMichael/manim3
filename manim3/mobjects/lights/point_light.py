@@ -8,15 +8,15 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
-from ..mobject import Mobject
-from ..mobject_style_meta import MobjectStyleMeta
+from ..mobject.mobject import Mobject
+from ..mobject.mobject_style_meta import MobjectStyleMeta
 
 
 class PointLight(Mobject):
     __slots__ = ()
 
     @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp_3f8
+        interpolate_method=SpaceUtils.lerp
     )
     @Lazy.variable_array
     @classmethod

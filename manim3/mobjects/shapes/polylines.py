@@ -5,8 +5,8 @@ from ...constants.custom_typing import (
     NP_3f8,
     NP_x3f8
 )
-from ...shape.line_string import LineString
-from ...shape.multi_line_string import MultiLineString
+from ..mobject.shape.line_string import LineString
+from ..mobject.shape.multi_line_string import MultiLineString
 from ..stroke_mobject import StrokeMobject
 
 

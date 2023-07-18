@@ -1,79 +1,30 @@
-from .animations.animation import Animation
-from .animations.composition import (
-    Lagged,
-    Parallel,
-    Series
-)
-from .animations.fade import (
-    FadeIn,
-    FadeOut
-)
+from .animations.animation.animation import Animation
+from .animations.animation.rates import Rates
+from .animations.composition.lagged import Lagged
+from .animations.composition.parallel import Parallel
+from .animations.composition.series import Series
+from .animations.fade.fade_in import FadeIn
+from .animations.fade.fade_out import FadeOut
+from .animations.fade.fade_transform import FadeTransform
 from .animations.misc import TransformMatchingStrings
-from .animations.model import (
-    Rotate,
-    Rotating,
-    Scale,
-    Scaling,
-    Shift,
-    Shifting
-)
-from .animations.partial import (
-    PartialCreate,
-    PartialFlash,
-    PartialUncreate
-)
-from .animations.transform import (
-    Transform,
-    TransformFrom,
-    TransformFromCopy,
-    TransformTo,
-    TransformToCopy
-)
+from .animations.model.rotate import Rotate
+from .animations.model.rotating import Rotating
+from .animations.model.scale import Scale
+from .animations.model.scaling import Scaling
+from .animations.model.shift import Shift
+from .animations.model.shifting import Shifting
+from .animations.partial.partial_create import PartialCreate
+from .animations.partial.partial_flash import PartialFlash
+from .animations.partial.partial_uncreate import PartialUncreate
+from .animations.transform.transform import Transform
+from .animations.transform.transform_from import TransformFrom
+from .animations.transform.transform_from_copy import TransformFromCopy
+from .animations.transform.transform_to import TransformTo
+from .animations.transform.transform_to_copy import TransformToCopy
 
-from .constants.constants import (
-    Alignment,
-    DEGREES,
-    DL,
-    DOWN,
-    DR,
-    IN,
-    LEFT,
-    ORIGIN,
-    OUT,
-    PI,
-    RIGHT,
-    TAU,
-    UL,
-    UP,
-    UR,
-    X_AXIS,
-    Y_AXIS,
-    Z_AXIS
-)
-from .constants.custom_typing import (
-    ColorT,
-    NP_2f8,
-    NP_33f8,
-    NP_3f8,
-    NP_44f8,
-    NP_4f8,
-    NP_f8,
-    NP_xf8,
-    NP_x2f8,
-    NP_x33f8,
-    NP_x3f8,
-    NP_x44f8,
-    NP_x4f8,
-    SelectorT
-)
+from .constants.constants import *
+from .constants.custom_typing import *
 from .constants.palette import *
-
-from .geometries.geometry import Geometry
-from .geometries.parametric_surface_geometry import ParametricSurfaceGeometry
-from .geometries.plane_geometry import PlaneGeometry
-from .geometries.prismoid_geometry import PrismoidGeometry
-from .geometries.shape_geometry import ShapeGeometry
-from .geometries.sphere_geometry import SphereGeometry
 
 from .lazy.lazy import (
     Lazy,
@@ -88,19 +39,23 @@ from .mobjects.lights.ambient_light import AmbientLight
 from .mobjects.lights.lighting import Lighting
 from .mobjects.lights.point_light import PointLight
 from .mobjects.mesh_mobject import MeshMobject
-from .mobjects.mobject import Mobject
-from .mobjects.relatives.about_relatives import (
-    AboutBorder,
-    AboutCenter,
-    AboutEdge,
-    AboutPoint
-)
-from .mobjects.relatives.align_relatives import (
-    AlignBorder,
-    AlignEdge,
-    AlignMobject,
-    AlignPoint
-)
+from .mobjects.mobject.abouts.about_border import AboutBorder
+from .mobjects.mobject.abouts.about_center import AboutCenter
+from .mobjects.mobject.abouts.about_edge import AboutEdge
+from .mobjects.mobject.abouts.about_point import AboutPoint
+from .mobjects.mobject.aligns.align_border import AlignBorder
+from .mobjects.mobject.aligns.align_edge import AlignEdge
+from .mobjects.mobject.aligns.align_mobject import AlignMobject
+from .mobjects.mobject.aligns.align_point import AlignPoint
+from .mobjects.mobject.geometries.geometry import Geometry
+from .mobjects.mobject.geometries.parametric_surface_geometry import ParametricSurfaceGeometry
+from .mobjects.mobject.geometries.plane_geometry import PlaneGeometry
+from .mobjects.mobject.geometries.prismoid_geometry import PrismoidGeometry
+from .mobjects.mobject.geometries.shape_geometry import ShapeGeometry
+from .mobjects.mobject.geometries.sphere_geometry import SphereGeometry
+from .mobjects.mobject.mobject import Mobject
+from .mobjects.mobject.shape.multi_line_string import MultiLineString
+from .mobjects.mobject.shape.shape import Shape
 from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.shape_mobject import ShapeMobject
 from .mobjects.shapes.polygons import (
@@ -143,12 +98,8 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
-from .shape.multi_line_string import MultiLineString
-from .shape.shape import Shape
-
 from .toplevel.config import Config
 from .toplevel.scene import Scene
 
 from .utils.color import ColorUtils
-from .utils.rate import RateUtils
 from .utils.space import SpaceUtils

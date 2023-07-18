@@ -5,8 +5,10 @@ from dataclasses import (
 
 from colour import Color
 
-from ..constants.constants import Alignment
-from ..constants.custom_typing import ColorT
+from ..constants.custom_typing import (
+    AlignmentT,
+    ColorT
+)
 
 
 @dataclass(
@@ -25,6 +27,7 @@ class Config:
     frame_height: float = 8.0
     pixel_height: float = 1080
     window_pixel_height: float = 540
+    texture_size: tuple[int, int] = (2048, 2048)
 
     camera_distance: float = 5.0
     camera_near: float = 0.1
@@ -44,14 +47,14 @@ class Config:
         "\\usepackage{amssymb}",
         "\\usepackage{xcolor}"  # Required for labelling.
     ))
-    tex_alignment: Alignment = Alignment.CENTER
+    tex_alignment: AlignmentT = "center"
     tex_environment: str = "align*"
     tex_base_color: ColorT = Color("white")
     tex_font_size: float = 30
 
     text_justify: bool = False
     text_indent: float = 0.0
-    text_alignment: Alignment = Alignment.LEFT
+    text_alignment: AlignmentT = "left"
     text_line_width: float = -1.0
     text_font_size: float = 30
     text_font: str = "Consolas"

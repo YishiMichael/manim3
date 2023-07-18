@@ -7,8 +7,8 @@ from typing import (
     Iterator
 )
 
-from ...constants.constants import Alignment
 from ...constants.custom_typing import (
+    AlignmentT,
     ColorT,
     SelectorT
 )
@@ -45,7 +45,7 @@ class TexFileWriter(StringFileWriter):
         svg_path: pathlib.Path,
         compiler: str,
         preamble: str,
-        alignment: Alignment,
+        alignment: AlignmentT,
         environment: str
     ) -> None:
         if compiler == "latex":
@@ -62,11 +62,11 @@ class TexFileWriter(StringFileWriter):
         tex_path = svg_path.with_suffix(".tex")
         with tex_path.open(mode="w", encoding="utf-8") as tex_file:
             match alignment:
-                case Alignment.LEFT:
+                case "left":
                     alignment_command = "\\flushleft"
-                case Alignment.CENTER:
+                case "center":
                     alignment_command = "\\centering"
-                case Alignment.RIGHT:
+                case "right":
                     alignment_command = "\\flushright"
             if environment:
                 begin_environment = f"\\begin{{{environment}}}"
@@ -273,7 +273,7 @@ class Tex(StringMobject):
         use_mathjax: bool | None = None,
         compiler: str | None = None,
         preamble: str | None = None,
-        alignment: Alignment | None = None,
+        alignment: AlignmentT | None = None,
         environment: str | None = None,
         base_color: ColorT | None = None,
         font_size: float | None = None

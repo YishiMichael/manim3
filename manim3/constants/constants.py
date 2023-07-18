@@ -1,4 +1,23 @@
-from enum import Enum
+__all__ = (
+    "ORIGIN",
+    "RIGHT",
+    "LEFT",
+    "UP",
+    "DOWN",
+    "OUT",
+    "IN",
+    "X_AXIS",
+    "Y_AXIS",
+    "Z_AXIS",
+    "UR",
+    "UL",
+    "DL",
+    "DR",
+    "PI",
+    "TAU",
+    "DEGREES"
+)
+
 
 import numpy as np
 
@@ -24,10 +43,3 @@ DR: NP_3f8 = DOWN + RIGHT
 PI: float = np.pi
 TAU: float = PI * 2.0
 DEGREES: float = PI / 180.0
-
-
-# Ported from `manimpango/enums.pyx`.
-class Alignment(Enum):
-    LEFT = 0
-    CENTER = 1
-    RIGHT = 2

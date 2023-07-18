@@ -18,7 +18,7 @@ class ColorFramebuffer(Framebuffer):
         size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
-            size = Toplevel.config.pixel_size  # texture_size = (2048, 2048)
+            size = Toplevel.config.texture_size
         color_texture = Toplevel.context.texture(
             size=size,
             components=3,

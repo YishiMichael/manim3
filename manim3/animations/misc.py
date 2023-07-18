@@ -6,13 +6,13 @@ from typing import (
     TypeVar
 )
 
-from ..mobjects.mobject import Mobject
+from ..mobjects.mobject.mobject import Mobject
 from ..mobjects.shape_mobject import ShapeMobject
 from ..mobjects.strings.string_mobject import StringMobject
 from ..utils.iterables import IterUtils
-from .composition import Parallel
-from .fade import FadeTransform
-from .transform import Transform
+from .composition.parallel import Parallel
+from .fade.fade_transform import FadeTransform
+from .transform.transform import Transform
 
 
 _K = TypeVar("_K", bound=Hashable)

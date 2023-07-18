@@ -1,3 +1,4 @@
+from enum import Enum
 import pathlib
 import re
 from typing import (
@@ -8,8 +9,8 @@ from typing import (
 
 import manimpango
 
-from ...constants.constants import Alignment
 from ...constants.custom_typing import (
+    AlignmentT,
     ColorT,
     SelectorT
 )
@@ -22,6 +23,13 @@ from .string_mobject import (
     StringMobject,
     StringParser
 )
+
+
+# Ported from `manimpango/enums.pyx`.
+class PangoAlignment(Enum):
+    LEFT = 0
+    CENTER = 1
+    RIGHT = 2
 
 
 class PangoUtils:
@@ -50,11 +58,18 @@ class PangoUtils:
         svg_path: pathlib.Path,
         justify: bool,
         indent: float,
-        alignment: Alignment,
+        alignment: AlignmentT,
         pango_width: float
     ) -> None:
         # `manimpango` is under construction,
         # so the following code is intended to suit its interface.
+        match alignment:
+            case "left":
+                pango_alignment = PangoAlignment.LEFT
+            case "center":
+                pango_alignment = PangoAlignment.CENTER
+            case "right":
+                pango_alignment = PangoAlignment.RIGHT
         manimpango.MarkupUtils.text2svg(
             text=markup_str,
             font="",                   # Already handled.
@@ -71,7 +86,7 @@ class PangoUtils:
             justify=justify,
             indent=indent,
             line_spacing=None,         # Already handled.
-            alignment=alignment,
+            alignment=pango_alignment,
             pango_width=pango_width
         )
 
@@ -88,7 +103,7 @@ class MarkupTextFileWriter(StringFileWriter):
         svg_path: pathlib.Path,
         justify: bool,
         indent: float,
-        alignment: Alignment,
+        alignment: AlignmentT,
         line_width: float
     ) -> None:
         PangoUtils.validate_markup_string(content)
@@ -100,7 +115,7 @@ class MarkupTextFileWriter(StringFileWriter):
             alignment=alignment,
             pango_width=(
                 -1 if line_width < 0.0
-                else line_width * Config().size.pixel_per_unit
+                else line_width * Toplevel.config.pixel_per_unit
             )
         )
 
@@ -306,7 +321,7 @@ class Text(StringMobject):
         local_configs: dict[SelectorT, dict[str, str]] | None = None,
         justify: bool | None = None,
         indent: float | None = None,
-        alignment: Alignment | None = None,
+        alignment: AlignmentT | None = None,
         line_width: float | None = None,
         font_size: float | None = None,
         font: str | None = None,
