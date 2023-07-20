@@ -187,26 +187,30 @@ class SVGMobject(ShapeMobject):
         se_shape: se.Shape
     ) -> Shape:
 
-        def iter_args_from_se_shape(
+        def iter_points_from_se_shape(
             se_shape: se.Shape
-        ) -> Iterator[tuple[NP_x2f8, bool]]:
+        ) -> Iterator[NP_x2f8]:
             se_path = se.Path(se_shape.segments(transformed=True))
             se_path.approximate_arcs_with_cubics()
             points_list: list[NP_2f8] = []
-            is_ring: bool = False
+            is_closed: bool = False
             for segment in se_path.segments(transformed=True):
                 match segment:
                     case se.Move(end=end):
-                        yield np.array(points_list), is_ring
+                        if is_closed:
+                            points_list.append(points_list[0])
+                        yield np.array(points_list)
                         points_list = [np.array(end)]
-                        is_ring = False
+                        is_closed = False
                     case se.Close():
-                        is_ring = True
+                        is_closed = True
                     case se.Line() | se.QuadraticBezier() | se.CubicBezier():
                         control_points = np.array(segment)
                         points_list.extend(BezierCurve(control_points).get_sample_points()[1:])
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-            yield np.array(points_list), is_ring
+            if is_closed:
+                points_list.append(points_list[0])
+            yield np.array(points_list)
 
-        return Shape(iter_args_from_se_shape(se_shape))
+        return Shape.from_points_iterable(iter_points_from_se_shape(se_shape))

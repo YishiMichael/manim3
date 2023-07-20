@@ -41,5 +41,5 @@ class ColorUtils:
         cls,
         color: ColorT
     ) -> str:
-        components = (cls.standardize_color(color) * 255.0).astype(int)
+        components = (cls.standardize_color(color) * 255.0).astype(np.int32)
         return "#" + "".join("{:02x}".format(component) for component in components)

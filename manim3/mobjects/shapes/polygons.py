@@ -7,6 +7,7 @@ from ...constants.constants import (
 )
 from ...constants.custom_typing import NP_x2f8
 from ..mobject.shape.shape import Shape
+from ..mobject.shape.stroke import Stroke
 from ..shape_mobject import ShapeMobject
 
 
@@ -17,7 +18,7 @@ class Polygon(ShapeMobject):
         self,
         points: NP_x2f8
     ) -> None:
-        super().__init__(Shape([(points, True)]))
+        super().__init__(Shape(Stroke(points=np.append(points, points[:1], axis=0))))
 
 
 class RegularPolygon(Polygon):

@@ -85,6 +85,8 @@ class Animation(ABC):
             relative_rate: Callable[[float], float],
             timestamp: float
         ) -> Callable[[float], float]:
+            # TODO: correct rate
+
             #print([
             #    (i/4, parent_absolute_rate(i/4))
             #    for i in range(11)

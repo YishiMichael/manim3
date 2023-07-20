@@ -3,7 +3,7 @@ import numpy as np
 from ....constants.custom_typing import (
     NP_x2f8,
     NP_x3f8,
-    NP_xu4
+    NP_xi4
 )
 from ....lazy.lazy import (
     Lazy,
@@ -20,8 +20,8 @@ class Geometry(LazyObject):
 
     @Lazy.variable_array
     @classmethod
-    def _index_(cls) -> NP_xu4:
-        return np.zeros((0,), dtype=np.uint32)
+    def _index_(cls) -> NP_xi4:
+        return np.arange(0)
 
     @Lazy.variable_array
     @classmethod
@@ -45,7 +45,7 @@ class Geometry(LazyObject):
         position: NP_x3f8,
         normal: NP_x3f8,
         uv: NP_x2f8,
-        index: NP_xu4
+        index: NP_xi4
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(

@@ -4,7 +4,7 @@ from ..constants.custom_typing import (
     NP_3f8,
     NP_f8,
     NP_x3f8,
-    NP_xu4
+    NP_xi4
 )
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
@@ -17,7 +17,7 @@ from ..rendering.vertex_array import VertexArray
 from ..toplevel.toplevel import Toplevel
 from ..utils.space import SpaceUtils
 from .mobject.mobject_style_meta import MobjectStyleMeta
-from .mobject.shape.shape import MultiLineString
+from .mobject.shape.stroke import Stroke
 from .renderable_mobject import RenderableMobject
 
 
@@ -26,21 +26,21 @@ class StrokeMobject(RenderableMobject):
 
     def __init__(
         self,
-        multi_line_string: MultiLineString | None = None
+        stroke: Stroke | None = None
     ) -> None:
         super().__init__()
-        if multi_line_string is not None:
-            self._multi_line_string_ = multi_line_string
+        if stroke is not None:
+            self._stroke_ = stroke
 
     @MobjectStyleMeta.register(
-        partial_method=MultiLineString.partial,
-        interpolate_method=MultiLineString.interpolate,
-        concatenate_method=MultiLineString.concatenate
+        partial_method=Stroke.partial,
+        interpolate_method=Stroke.interpolate,
+        concatenate_method=Stroke.concatenate
     )
     @Lazy.variable
     @classmethod
-    def _multi_line_string_(cls) -> MultiLineString:
-        return MultiLineString()
+    def _stroke_(cls) -> Stroke:
+        return Stroke()
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp
@@ -78,11 +78,9 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _local_sample_points_(
         cls,
-        multi_line_string__line_strings__points: list[NP_x3f8]
+        stroke__points: NP_x3f8
     ) -> NP_x3f8:
-        if not multi_line_string__line_strings__points:
-            return np.zeros((0, 3))
-        return np.concatenate(multi_line_string__line_strings__points)
+        return stroke__points
 
     @Lazy.property
     @classmethod
@@ -113,45 +111,42 @@ class StrokeMobject(RenderableMobject):
     @classmethod
     def _stroke_indexed_attributes_buffer_(
         cls,
-        multi_line_string__line_strings__points: list[NP_x3f8],
-        multi_line_string__line_strings__is_ring: list[bool]
+        stroke__points: NP_x3f8,
+        stroke__disjoints: NP_xi4
     ) -> IndexedAttributesBuffer:
+        segment_indices = np.delete(np.arange(len(stroke__points)), stroke__disjoints)[1:]
+        index = np.vstack((segment_indices - 1, segment_indices)).T.flatten()
 
-        def index_getter(
-            points_len: int,
-            is_ring: bool
-        ) -> NP_xu4:
-            arange = np.arange(points_len, dtype=np.uint32)
-            index_pairs = np.vstack((arange, np.roll(arange, -1))).T
-            if not is_ring:
-                index_pairs = index_pairs[:-1]
-            return index_pairs.flatten()
+        #def index_getter(
+        #    points_len: int
+        #) -> NP_xu4:
+        #    arange = np.arange(points_len, dtype=np.uint32)
+        #    return np.vstack((arange[:-1], arange[1:])).T.flatten()
 
-        if not multi_line_string__line_strings__points:
-            index = np.zeros((0,), dtype=np.uint32)
-            position = np.zeros((0, 3))
-        else:
-            points_lens = [len(points) for points in multi_line_string__line_strings__points]
-            offsets = np.cumsum((0, *points_lens[:-1]))
-            index = np.concatenate([
-                index_getter(points_len, is_ring) + offset
-                for points_len, is_ring, offset in zip(
-                    points_lens,
-                    multi_line_string__line_strings__is_ring,
-                    offsets,
-                    strict=True
-                )
-            ], dtype=np.uint32)
-            position = np.concatenate(multi_line_string__line_strings__points)
 
+        #if not multi_line_string__line_strings__points:
+        #    index = np.zeros((0,), dtype=np.uint32)
+        #    position = np.zeros((0, 3))
+        #else:
+        #    points_lens = [len(points) for points in multi_line_string__line_strings__points]
+        #    offsets = np.cumsum((0, *points_lens[:-1]))
+        #    index = np.concatenate([
+        #        index_getter(points_len) + offset
+        #        for points_len, offset in zip(
+        #            points_lens,
+        #            offsets,
+        #            strict=True
+        #        )
+        #    ], dtype=np.uint32)
+        #    position = np.concatenate(multi_line_string__line_strings__points)
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
                 fields=[
                     "vec3 in_position"
                 ],
-                num_vertex=len(position),
+                num_vertex=len(stroke__points),
                 data={
-                    "in_position": position
+                    "in_position": stroke__points
                 }
             ),
             index_buffer=IndexBuffer(

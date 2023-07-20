@@ -54,8 +54,8 @@ from .mobjects.mobject.geometries.prismoid_geometry import PrismoidGeometry
 from .mobjects.mobject.geometries.shape_geometry import ShapeGeometry
 from .mobjects.mobject.geometries.sphere_geometry import SphereGeometry
 from .mobjects.mobject.mobject import Mobject
-from .mobjects.mobject.shape.multi_line_string import MultiLineString
 from .mobjects.mobject.shape.shape import Shape
+from .mobjects.mobject.shape.stroke import Stroke
 from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.shape_mobject import ShapeMobject
 from .mobjects.shapes.polygons import (

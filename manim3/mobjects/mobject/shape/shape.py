@@ -1,4 +1,5 @@
 from functools import reduce
+import itertools as it
 from typing import (
     Callable,
     Iterable,
@@ -13,7 +14,7 @@ import shapely.validation
 from ....constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
-    NP_xu4
+    NP_xi4
 )
 from ....lazy.lazy import (
     Lazy,
@@ -21,8 +22,9 @@ from ....lazy.lazy import (
 )
 from ....utils.iterables import IterUtils
 from ....utils.space import SpaceUtils
-from .line_string import LineString
-from .multi_line_string import MultiLineString
+from .stroke import Stroke
+#from .line_string import LineString
+#from .multi_line_string import MultiLineString
 
 
 class Shape(LazyObject):
@@ -30,15 +32,12 @@ class Shape(LazyObject):
 
     def __init__(
         self,
-        args_iterable: Iterable[tuple[NP_x2f8, bool]] | None = None
+        stroke: Stroke | None = None
+        #points_iterable: Iterable[NP_x2f8] | None = None
     ) -> None:
         super().__init__()
-        if args_iterable is not None:
-            self._multi_line_string_ = MultiLineString(
-                LineString(SpaceUtils.increase_dimension(points), is_ring=is_ring)
-                for points, is_ring in args_iterable
-                if len(points)
-            )
+        if stroke is not None:
+            self._stroke_ = stroke
 
     def __and__(
         self,
@@ -66,29 +65,32 @@ class Shape(LazyObject):
 
     @Lazy.variable
     @classmethod
-    def _multi_line_string_(cls) -> MultiLineString:
-        return MultiLineString()
+    def _stroke_(cls) -> Stroke:
+        return Stroke()
 
     @Lazy.property_external
     @classmethod
     def _shapely_obj_(
         cls,
-        multi_line_string__line_strings: list[LineString]
+        stroke: Stroke
     ) -> shapely.geometry.base.BaseGeometry:
 
-        def get_shapely_component(
-            line_string: LineString
-        ) -> shapely.geometry.base.BaseGeometry:
-            points = SpaceUtils.decrease_dimension(line_string._points_)
-            if len(points) == 1:
-                return shapely.geometry.Point(points[0])
-            if len(points) == 2:
-                return shapely.geometry.LineString(points)
-            return shapely.validation.make_valid(shapely.geometry.Polygon(points))
+        #def get_shapely_component(
+        #    points: NP_x2f8
+        #) -> shapely.geometry.base.BaseGeometry | None:
+        #    #points = SpaceUtils.decrease_dimension(line_string._points_)
+        #    if len(points) < 3:
+        #        return None
+        #    #    return shapely.geometry.Point(points[0])
+        #    #if len(points) == 2:
+        #    #    return shapely.geometry.LineString(points)
+        #    return shapely.validation.make_valid(shapely.geometry.Polygon(points))
 
+        points = SpaceUtils.decrease_dimension(stroke._points_)
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
-            get_shapely_component(line_string)
-            for line_string in multi_line_string__line_strings
+            shapely.validation.make_valid(shapely.geometry.Polygon(points[start:stop]))
+            for start, stop in it.pairwise((0, *stroke._disjoints_, len(points)))
+            if stop - start >= 3
         ), shapely.geometry.GeometryCollection())
 
     @Lazy.property_external
@@ -96,7 +98,7 @@ class Shape(LazyObject):
     def _triangulation_(
         cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
-    ) -> tuple[NP_xu4, NP_x2f8]:
+    ) -> tuple[NP_xi4, NP_x2f8]:
 
         def get_shapely_polygons(
             shapely_obj: shapely.geometry.base.BaseGeometry
@@ -114,31 +116,31 @@ class Shape(LazyObject):
 
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
-        ) -> tuple[NP_xu4, NP_x2f8]:
+        ) -> tuple[NP_xi4, NP_x2f8]:
             ring_points_list = [
                 np.array(boundary.coords)
                 for boundary in [polygon.exterior, *polygon.interiors]
             ]
             points = np.concatenate(ring_points_list)
             if not len(points):
-                return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+                return np.arange(0, dtype=np.uint32), np.zeros((0, 2))
 
             ring_ends = np.cumsum([len(ring_points) for ring_points in ring_points_list], dtype=np.uint32)
-            return triangulate_float64(points, ring_ends), points
+            return triangulate_float64(points, ring_ends).astype(np.int32), points
 
         def concatenate_triangulations(
-            triangulations: Iterable[tuple[NP_xu4, NP_x2f8]]
-        ) -> tuple[NP_xu4, NP_x2f8]:
+            triangulations: Iterable[tuple[NP_xi4, NP_x2f8]]
+        ) -> tuple[NP_xi4, NP_x2f8]:
             index_iterator, points_iterator = IterUtils.unzip_pairs(triangulations)
             points_list = list(points_iterator)
             if not points_list:
-                return np.zeros((0,), dtype=np.uint32), np.zeros((0, 2))
+                return np.arange(0), np.zeros((0, 2))
 
             offsets = np.cumsum((0, *(len(points) for points in points_list[:-1])))
             all_index = np.concatenate([
                 index + offset
                 for index, offset in zip(index_iterator, offsets, strict=True)
-            ], dtype=np.uint32)
+            ])
             all_points = np.concatenate(points_list)
             return all_index, all_points
 
@@ -148,13 +150,29 @@ class Shape(LazyObject):
         )
 
     @classmethod
-    def from_multi_line_string(
+    def from_points_iterable(
         cls,
-        multi_line_string: MultiLineString
+        points_iterable: Iterable[NP_x2f8]
     ) -> "Shape":
-        result = Shape()
-        result._multi_line_string_ = multi_line_string
-        return result
+        points_list = [
+            points for points in points_iterable
+            if len(points) >= 2
+        ]
+        if not points_list:
+            return Shape()
+        return Shape(Stroke(
+            points=SpaceUtils.increase_dimension(np.concatenate(points_list)),
+            disjoints=np.cumsum([len(points) for points in points_list[:-1]])
+        ))
+
+    #@classmethod
+    #def from_stroke(
+    #    cls,
+    #    stroke: Stroke
+    #) -> "Shape":
+    #    result = Shape()
+    #    result._stroke_ = stroke
+    #    return result
 
     @classmethod
     def from_shapely_obj(
@@ -162,36 +180,36 @@ class Shape(LazyObject):
         shapely_obj: shapely.geometry.base.BaseGeometry
     ) -> "Shape":
 
-        def iter_args_from_shapely_obj(
+        def iter_points_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Iterator[tuple[NP_x2f8, bool]]:
+        ) -> Iterator[NP_x2f8]:
             match shapely_obj:
                 case shapely.geometry.Point() | shapely.geometry.LineString():
-                    yield np.array(shapely_obj.coords), False
+                    yield np.array(shapely_obj.coords)
                 case shapely.geometry.Polygon():
-                    yield np.array(shapely_obj.exterior.coords[:-1]), True
+                    yield np.array(shapely_obj.exterior.coords)
                     for interior in shapely_obj.interiors:
-                        yield np.array(interior.coords[:-1]), True
+                        yield np.array(interior.coords)
                 case shapely.geometry.base.BaseMultipartGeometry():
                     for shapely_obj_component in shapely_obj.geoms:
-                        yield from iter_args_from_shapely_obj(shapely_obj_component)
+                        yield from iter_points_from_shapely_obj(shapely_obj_component)
                 case _:
                     raise TypeError
 
-        return Shape(iter_args_from_shapely_obj(shapely_obj))
+        return Shape.from_points_iterable(iter_points_from_shapely_obj(shapely_obj))
 
     @classmethod
     def partial(
         cls,
         shape: "Shape"
     ) -> "Callable[[float, float], Shape]":
-        multi_line_string_partial_callback = MultiLineString.partial(shape._multi_line_string_)
+        stroke_partial_callback = Stroke.partial(shape._stroke_)
 
         def callback(
             start: float,
             stop: float
         ) -> Shape:
-            return Shape.from_multi_line_string(multi_line_string_partial_callback(start, stop))
+            return Shape(stroke_partial_callback(start, stop))
 
         return callback
 
@@ -201,17 +219,14 @@ class Shape(LazyObject):
         shape_0: "Shape",
         shape_1: "Shape"
     ) -> "Callable[[float], Shape]":
-        line_string_interpolate_callbacks = MultiLineString.interpolate_pieces(
-            shape_0._multi_line_string_, shape_1._multi_line_string_, has_inlay=True
+        stroke_interpolate_callback = Stroke._interpolate(
+            shape_0._stroke_, shape_1._stroke_, has_inlay=True
         )
 
         def callback(
             alpha: float
         ) -> Shape:
-            return Shape.from_multi_line_string(MultiLineString(
-                line_string_interpolate_callback(alpha)
-                for line_string_interpolate_callback in line_string_interpolate_callbacks
-            ))
+            return Shape(stroke_interpolate_callback(alpha))
 
         return callback
 
@@ -220,13 +235,13 @@ class Shape(LazyObject):
         cls,
         *shapes: "Shape"
     ) -> "Callable[[], Shape]":
-        multi_line_string_concatenate_callback = MultiLineString.concatenate(*(
-            shape._multi_line_string_
+        stroke_concatenate_callback = Stroke.concatenate(*(
+            shape._stroke_
             for shape in shapes
         ))
 
         def callback() -> Shape:
-            return Shape.from_multi_line_string(multi_line_string_concatenate_callback())
+            return Shape(stroke_concatenate_callback())
 
         return callback
 

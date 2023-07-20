@@ -32,6 +32,18 @@ class ShapeTransformExample(Scene):
 class TexTransformExample(Scene):
     async def timeline(self) -> None:
         text = (
+            #ShapeMobject(Shape(Stroke(
+            #    points=np.array([
+            #        [0,1,0],
+            #        [0,0,0],
+            #        [1,0,0],
+            #        [1,1,0],
+            #        [2,1,0],
+            #        [2,0,0],
+            #        [3,0,0]
+            #    ], dtype=np.float64),
+            #    disjoints=np.array([4])
+            #)))
             Text("Text")
             .scale(3)
             .set_style(color=ORANGE, opacity=0.5)
@@ -42,6 +54,18 @@ class TexTransformExample(Scene):
             .set_style(color=BLUE, weight=10)
         )
         tex = (
+            #ShapeMobject(Shape(Stroke(
+            #    points=np.array([
+            #        [-3,0.5,0],
+            #        [-3,0,0],
+            #        [-1,0,0],
+            #        [0,0,0],
+            #        [0,-2,0],
+            #        [2,0,0],
+            #        [2,1.5,0]
+            #    ]),
+            #    disjoints=np.array([2, 5])
+            #)))
             Tex("Tex")
             .scale(3)
             .set_style(color=BLUE, opacity=0.5)
@@ -163,7 +187,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=480
     )
-    LaggedAnimationExample.render(config)
+    TexTransformExample.render(config)
 
 
 if __name__ == "__main__":

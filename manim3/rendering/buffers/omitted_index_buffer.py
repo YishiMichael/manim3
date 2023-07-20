@@ -8,5 +8,5 @@ class OmittedIndexBuffer(IndexBuffer):
 
 	def __init__(self) -> None:
 		super().__init__(
-			data=np.zeros((0,), dtype=np.uint32)
+			data=np.arange(0)
 		)

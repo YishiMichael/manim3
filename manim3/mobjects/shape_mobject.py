@@ -38,5 +38,5 @@ class ShapeMobject(MeshMobject):
     def build_stroke(self) -> StrokeMobject:
         stroke = StrokeMobject()
         stroke._model_matrix_ = self._model_matrix_
-        stroke._multi_line_string_ = self._shape_._multi_line_string_
+        stroke._stroke_ = self._shape_._stroke_
         return stroke

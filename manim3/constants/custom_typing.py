@@ -1,20 +1,21 @@
 __all__ = (
     "NP_f8",
-	"NP_2f8",
-	"NP_3f8",
-	"NP_4f8",
-	"NP_33f8",
-	"NP_44f8",
-	"NP_xf8",
-	"NP_x2f8",
-	"NP_x3f8",
-	"NP_x4f8",
-	"NP_x33f8",
-	"NP_x44f8",
-	"NP_xu4",
-	"ColorT",
-	"AlignmentT",
-	"SelectorT"
+    "NP_2f8",
+    "NP_3f8",
+    "NP_4f8",
+    "NP_33f8",
+    "NP_44f8",
+    "NP_i4",
+    "NP_xf8",
+    "NP_x2f8",
+    "NP_x3f8",
+    "NP_x4f8",
+    "NP_x33f8",
+    "NP_x44f8",
+    "NP_xi4",
+    "ColorT",
+    "AlignmentT",
+    "SelectorT"
 )
 
 
@@ -36,6 +37,7 @@ NP_3f8 = np.ndarray[tuple[_3D], np.dtype[np.float64]]
 NP_4f8 = np.ndarray[tuple[_4D], np.dtype[np.float64]]
 NP_33f8 = np.ndarray[tuple[_3D, _3D], np.dtype[np.float64]]
 NP_44f8 = np.ndarray[tuple[_4D, _4D], np.dtype[np.float64]]
+NP_i4 = np.ndarray[tuple[()], np.dtype[np.int32]]
 
 NP_xf8 = np.ndarray[tuple[_XD], np.dtype[np.float64]]
 NP_x2f8 = np.ndarray[tuple[_XD, _2D], np.dtype[np.float64]]
@@ -43,8 +45,8 @@ NP_x3f8 = np.ndarray[tuple[_XD, _3D], np.dtype[np.float64]]
 NP_x4f8 = np.ndarray[tuple[_XD, _4D], np.dtype[np.float64]]
 NP_x33f8 = np.ndarray[tuple[_XD, _3D, _3D], np.dtype[np.float64]]
 NP_x44f8 = np.ndarray[tuple[_XD, _4D, _4D], np.dtype[np.float64]]
-
-NP_xu4 = np.ndarray[tuple[_XD], np.dtype[np.uint32]]
+NP_xi4 = np.ndarray[tuple[_XD], np.dtype[np.int32]]
+#NP_xu4 = np.ndarray[tuple[_XD], np.dtype[np.uint32]]
 
 ColorT = Color | str | NP_3f8
 AlignmentT = Literal["left", "center", "right"]

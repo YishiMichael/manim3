@@ -43,8 +43,8 @@ if TYPE_CHECKING:
     from .abouts.about import About
     from .aligns.align import Align
     from .geometries.geometry import Geometry
-    from .shape.multi_line_string import MultiLineString
     from .shape.shape import Shape
+    from .shape.stroke import Stroke
 
 
 @dataclass(
@@ -536,7 +536,7 @@ class Mobject(LazyObject):
         shape: "Shape | None" = None,
 
         # StrokeMobject
-        multi_line_string: "MultiLineString | None" = None,
+        stroke: "Stroke | None" = None,
         width: float | None = None,
 
         # setting configs
@@ -567,7 +567,7 @@ class Mobject(LazyObject):
                 "specular_strength": specular_strength,
                 "shininess": shininess,
                 "shape": shape,
-                "multi_line_string": multi_line_string,
+                "stroke": stroke,
                 "width": width
             }.items() if value is not None
         }

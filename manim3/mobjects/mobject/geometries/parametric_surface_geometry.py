@@ -34,7 +34,7 @@ class ParametricSurfaceGeometry(Geometry):
         index = np.ravel_multi_index(
             tuple(np.stack((se, sw, ne, sw, nw, ne), axis=3)),
             (u_len, v_len)
-        ).flatten().astype(np.uint32)
+        ).flatten()
 
         uv = np.stack(np.meshgrid(
             np.linspace(0.0, 1.0, u_len),
