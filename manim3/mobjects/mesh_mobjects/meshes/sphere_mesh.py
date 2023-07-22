@@ -8,10 +8,10 @@ from ....constants.custom_typing import (
     NP_3f8,
     NP_f8
 )
-from .parametric_surface_geometry import ParametricSurfaceGeometry
+from .parametric_surface_mesh import ParametricSurfaceMesh
 
 
-class SphereGeometry(ParametricSurfaceGeometry):
+class SphereMesh(ParametricSurfaceMesh):
     __slots__ = ()
 
     def __init__(

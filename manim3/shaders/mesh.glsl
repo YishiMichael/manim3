@@ -100,7 +100,7 @@ vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
         specular += pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
     }
     #endif
-    return min(ambient * u_ambient_strength + diffuse + specular * u_specular_strength, 1.0);
+    return ambient * u_ambient_strength + diffuse + specular * u_specular_strength, 1.0;
 }
 
 
@@ -112,7 +112,7 @@ void main() {
         color *= texture(t_color_maps[i], fs_in.uv).rgb;
     }
     #endif
-    write_to_oit_frag(frag_accum, frag_revealage, color, u_opacity, u_weight);
+    write_to_oit_frag(frag_accum, frag_revealage, min(color, 1.0), u_opacity, u_weight);
 }
 
 

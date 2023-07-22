@@ -56,14 +56,14 @@ class Circle(RegularPolygon):
         super().__init__(64)
 
 
-class Arc(Polygon):
-    __slots__ = ()
+#class Arc(Polygon):
+#    __slots__ = ()
 
-    def __init__(
-        self,
-        start_angle: float,
-        sweep_angle: float
-    ) -> None:
-        n_segments = int(np.ceil(sweep_angle / TAU * 64.0))
-        complex_coords = np.exp(1.0j * (start_angle + np.linspace(0.0, sweep_angle, n_segments + 1)))
-        super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)
+#    def __init__(
+#        self,
+#        start_angle: float,
+#        sweep_angle: float
+#    ) -> None:
+#        n_segments = int(np.ceil(sweep_angle / TAU * 64.0))
+#        complex_coords = np.exp(1.0j * (start_angle + np.linspace(0.0, sweep_angle, n_segments + 1)))
+#        super().__init__(np.vstack((complex_coords.real, complex_coords.imag)).T)

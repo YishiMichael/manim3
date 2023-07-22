@@ -39,12 +39,12 @@ from .model_interpolants.shift_model_interpolant import ShiftModelInterpolant
 
 if TYPE_CHECKING:
     from ..cameras.camera import Camera
+    from ..graph_mobjects.graphs.graph import Graph
     from ..lights.lighting import Lighting
+    from ..mesh_mobjects.meshes.mesh import Mesh
+    from ..shape_mobjects.shapes.shape import Shape
     from .abouts.about import About
     from .aligns.align import Align
-    from .geometries.geometry import Geometry
-    from .shape.shape import Shape
-    from .shape.stroke import Stroke
 
 
 @dataclass(
@@ -526,7 +526,7 @@ class Mobject(LazyObject):
         camera: "Camera | None" = None,
 
         # MeshMobject
-        geometry: "Geometry | None" = None,
+        mesh: "Mesh | None" = None,
         lighting: "Lighting | None" = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
@@ -535,8 +535,8 @@ class Mobject(LazyObject):
         # ShapeMobject
         shape: "Shape | None" = None,
 
-        # StrokeMobject
-        stroke: "Stroke | None" = None,
+        # GraphMobject
+        graph: "Graph | None" = None,
         width: float | None = None,
 
         # setting configs
@@ -561,13 +561,13 @@ class Mobject(LazyObject):
                 "weight": weight,
                 "model_matrix": model_matrix,
                 "camera": camera,
-                "geometry": geometry,
+                "mesh": mesh,
                 "lighting": lighting,
                 "ambient_strength": ambient_strength,
                 "specular_strength": specular_strength,
                 "shininess": shininess,
                 "shape": shape,
-                "stroke": stroke,
+                "graph": graph,
                 "width": width
             }.items() if value is not None
         }

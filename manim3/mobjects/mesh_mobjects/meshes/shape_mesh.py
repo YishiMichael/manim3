@@ -1,11 +1,11 @@
 import numpy as np
 
 from ....utils.space import SpaceUtils
-from ..shape.shape import Shape
-from .geometry import Geometry
+from ...shape_mobjects.shapes.shape import Shape
+from .mesh import Mesh
 
 
-class ShapeGeometry(Geometry):
+class ShapeMesh(Mesh):
     __slots__ = ()
 
     def __init__(

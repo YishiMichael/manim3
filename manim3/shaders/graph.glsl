@@ -6,7 +6,7 @@ layout (std140) uniform ub_camera {
 layout (std140) uniform ub_model {
     mat4 u_model_matrix;
 };
-layout (std140) uniform ub_stroke {
+layout (std140) uniform ub_graph {
     vec3 u_color;
     float u_opacity;
     float u_weight;

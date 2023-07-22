@@ -34,6 +34,7 @@ from .lazy.lazy import (
 from .mobjects.cameras.camera import Camera
 from .mobjects.cameras.orthographic_camera import OrthographicCamera
 from .mobjects.cameras.perspective_camera import PerspectiveCamera
+from .mobjects.graph_mobject import GraphMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.lights.ambient_light import AmbientLight
 from .mobjects.lights.lighting import Lighting
@@ -53,9 +54,9 @@ from .mobjects.mobject.geometries.plane_geometry import PlaneGeometry
 from .mobjects.mobject.geometries.prismoid_geometry import PrismoidGeometry
 from .mobjects.mobject.geometries.shape_geometry import ShapeGeometry
 from .mobjects.mobject.geometries.sphere_geometry import SphereGeometry
+from .mobjects.mobject.graph.graph import Graph
 from .mobjects.mobject.mobject import Mobject
 from .mobjects.mobject.shape.shape import Shape
-from .mobjects.mobject.shape.stroke import Stroke
 from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.shape_mobject import ShapeMobject
 from .mobjects.shapes.polygons import (
@@ -81,7 +82,6 @@ from .mobjects.shapes.polylines import (
 )
 from .mobjects.strings.tex_mobject import Tex
 from .mobjects.strings.text_mobject import Text
-from .mobjects.stroke_mobject import StrokeMobject
 from .mobjects.svg_mobject import SVGMobject
 
 from .rendering.buffers.attributes_buffer import AttributesBuffer

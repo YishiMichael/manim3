@@ -26,7 +26,7 @@ from ...constants.custom_typing import (
 from ...utils.color import ColorUtils
 from ...utils.iterables import IterUtils
 from ...utils.path import PathUtils
-from ..shape_mobject import ShapeMobject
+from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..svg_mobject import SVGMobject
 
 

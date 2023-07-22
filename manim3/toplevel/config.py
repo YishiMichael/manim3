@@ -36,7 +36,7 @@ class Config:
     background_color: ColorT = Color("black")
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
-    stroke_width: float = 0.05
+    graph_width: float = 0.05
 
     tex_use_mathjax: bool = False
     tex_compiler: str = "xelatex"

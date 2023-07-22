@@ -1,9 +1,9 @@
 import numpy as np
 
-from .parametric_surface_geometry import ParametricSurfaceGeometry
+from .parametric_surface_mesh import ParametricSurfaceMesh
 
 
-class PlaneGeometry(ParametricSurfaceGeometry):
+class PlaneMesh(ParametricSurfaceMesh):
     __slots__ = ()
 
     def __init__(

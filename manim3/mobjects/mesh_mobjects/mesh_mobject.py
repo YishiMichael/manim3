@@ -1,24 +1,25 @@
 import moderngl
 import numpy as np
 
-from ..constants.custom_typing import (
+from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
-    NP_x3f8
+    NP_x3f8,
+    NP_xi4
 )
-from ..lazy.lazy import Lazy
-from ..rendering.buffers.texture_id_buffer import TextureIdBuffer
-from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
-from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
-from ..rendering.vertex_array import VertexArray
-from ..toplevel.toplevel import Toplevel
-from ..utils.space import SpaceUtils
-from .lights.lighting import Lighting
-from .mobject.geometries.geometry import Geometry
-from .mobject.geometries.plane_geometry import PlaneGeometry
-from .mobject.mobject_style_meta import MobjectStyleMeta
-from .renderable_mobject import RenderableMobject
+from ...lazy.lazy import Lazy
+from ...rendering.buffers.texture_id_buffer import TextureIdBuffer
+from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
+from ...rendering.vertex_array import VertexArray
+from ...toplevel.toplevel import Toplevel
+from ...utils.space import SpaceUtils
+from ..lights.lighting import Lighting
+from ..mobject.mobject_style_meta import MobjectStyleMeta
+from ..renderable_mobject import RenderableMobject
+from .meshes.mesh import Mesh
+from .meshes.plane_mesh import PlaneMesh
 
 
 class MeshMobject(RenderableMobject):
@@ -31,9 +32,9 @@ class MeshMobject(RenderableMobject):
     @MobjectStyleMeta.register()
     @Lazy.variable
     @classmethod
-    def _geometry_(cls) -> Geometry:
+    def _mesh_(cls) -> Mesh:
         # Default for `ImageMobject`.
-        return PlaneGeometry()
+        return PlaneMesh()
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp
@@ -98,9 +99,10 @@ class MeshMobject(RenderableMobject):
     @classmethod
     def _local_sample_points_(
         cls,
-        geometry__position: NP_x3f8
+        geometry__position: NP_x3f8,
+        geometry__index: NP_xi4
     ) -> NP_x3f8:
-        return geometry__position
+        return geometry__position[geometry__index]
 
     @Lazy.property
     @classmethod

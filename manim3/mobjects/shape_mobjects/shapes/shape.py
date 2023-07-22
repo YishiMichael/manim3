@@ -22,7 +22,8 @@ from ....lazy.lazy import (
 )
 from ....utils.iterables import IterUtils
 from ....utils.space import SpaceUtils
-from .stroke import Stroke
+from ...graph_mobjects.graphs.graph import Graph
+#from .stroke import Stroke
 #from .line_string import LineString
 #from .multi_line_string import MultiLineString
 
@@ -32,12 +33,12 @@ class Shape(LazyObject):
 
     def __init__(
         self,
-        stroke: Stroke | None = None
+        graph: Graph | None = None
         #points_iterable: Iterable[NP_x2f8] | None = None
     ) -> None:
         super().__init__()
-        if stroke is not None:
-            self._stroke_ = stroke
+        if graph is not None:
+            self._graph_ = graph
 
     def __and__(
         self,
@@ -65,14 +66,14 @@ class Shape(LazyObject):
 
     @Lazy.variable
     @classmethod
-    def _stroke_(cls) -> Stroke:
-        return Stroke()
+    def _graph_(cls) -> Graph:
+        return Graph()
 
     @Lazy.property_external
     @classmethod
     def _shapely_obj_(
         cls,
-        stroke: Stroke
+        graph: Graph
     ) -> shapely.geometry.base.BaseGeometry:
 
         #def get_shapely_component(
@@ -86,7 +87,8 @@ class Shape(LazyObject):
         #    #    return shapely.geometry.LineString(points)
         #    return shapely.validation.make_valid(shapely.geometry.Polygon(points))
 
-        points = SpaceUtils.decrease_dimension(stroke._points_)
+        points = SpaceUtils.decrease_dimension(graph._vertices_)
+        edges = graph._edges_
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
             shapely.validation.make_valid(shapely.geometry.Polygon(points[start:stop]))
             for start, stop in it.pairwise((0, *stroke._disjoints_, len(points)))
@@ -134,7 +136,7 @@ class Shape(LazyObject):
             index_iterator, points_iterator = IterUtils.unzip_pairs(triangulations)
             points_list = list(points_iterator)
             if not points_list:
-                return np.arange(0), np.zeros((0, 2))
+                return np.zeros((0,), dtype=np.int32), np.zeros((0, 2))
 
             offsets = np.cumsum((0, *(len(points) for points in points_list[:-1])))
             all_index = np.concatenate([
@@ -158,11 +160,14 @@ class Shape(LazyObject):
             points for points in points_iterable
             if len(points) >= 2
         ]
-        if not points_list:
-            return Shape()
-        return Shape(Stroke(
-            points=SpaceUtils.increase_dimension(np.concatenate(points_list)),
-            disjoints=np.cumsum([len(points) for points in points_list[:-1]])
+        accumulated_lens = np.cumsum([len(points) for points in points_list])
+        concatenated_vertices = SpaceUtils.increase_dimension(
+            np.concatenate(points_list) if points_list else np.zeros((0, 2))
+        )
+        segment_indices = np.delete(np.arange(len(concatenated_vertices)), accumulated_lens[:-1])[1:]
+        return Shape(Graph(
+            vertices=concatenated_vertices,
+            edges=np.vstack((segment_indices - 1, segment_indices)).T
         ))
 
     #@classmethod
@@ -203,13 +208,13 @@ class Shape(LazyObject):
         cls,
         shape: "Shape"
     ) -> "Callable[[float, float], Shape]":
-        stroke_partial_callback = Stroke.partial(shape._stroke_)
+        graph_partial_callback = Graph.partial(shape._graph_)
 
         def callback(
             start: float,
             stop: float
         ) -> Shape:
-            return Shape(stroke_partial_callback(start, stop))
+            return Shape(graph_partial_callback(start, stop))
 
         return callback
 
@@ -218,15 +223,15 @@ class Shape(LazyObject):
         cls,
         shape_0: "Shape",
         shape_1: "Shape"
-    ) -> "Callable[[float], Shape]":
-        stroke_interpolate_callback = Stroke._interpolate(
-            shape_0._stroke_, shape_1._stroke_, has_inlay=True
+    ) -> "Callable[[float], Shape]":  # TODO
+        graph_interpolate_callback = Graph.interpolate(
+            shape_0._graph_, shape_1._graph_
         )
 
         def callback(
             alpha: float
         ) -> Shape:
-            return Shape(stroke_interpolate_callback(alpha))
+            return Shape.from_shapely_obj(Shape(graph_interpolate_callback(alpha))._shapely_obj_)
 
         return callback
 
@@ -235,13 +240,13 @@ class Shape(LazyObject):
         cls,
         *shapes: "Shape"
     ) -> "Callable[[], Shape]":
-        stroke_concatenate_callback = Stroke.concatenate(*(
-            shape._stroke_
+        graph_concatenate_callback = Graph.concatenate(*(
+            shape._graph_
             for shape in shapes
         ))
 
         def callback() -> Shape:
-            return Shape(stroke_concatenate_callback())
+            return Shape(graph_concatenate_callback())
 
         return callback
 

@@ -8,11 +8,11 @@ from ....constants.custom_typing import (
 )
 from ....utils.iterables import IterUtils
 from ....utils.space import SpaceUtils
-from ..shape.shape import Shape
-from .geometry import Geometry
+from ...shape_mobjects.shapes.shape import Shape
+from .mesh import Mesh
 
 
-class PrismoidGeometry(Geometry):
+class PrismoidMesh(Mesh):
     __slots__ = ()
 
     def __init__(
@@ -24,7 +24,7 @@ class PrismoidGeometry(Geometry):
         uv_list: list[NP_2f8] = []
         index_list: list[int] = []
         index_offset = 0
-        for line_string in shape._multi_line_string_._line_strings_:
+        for line_string in shape._multi_line_string_._line_strings_:  # TODO
             points = SpaceUtils.decrease_dimension(line_string._points_)
             # TODO: Shall we normalize winding?
 

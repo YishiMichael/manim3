@@ -3,7 +3,7 @@ from .mesh_mobject import MeshMobject
 from .mobject.geometries.shape_geometry import ShapeGeometry
 from .mobject.mobject_style_meta import MobjectStyleMeta
 from .mobject.shape.shape import Shape
-from .stroke_mobject import StrokeMobject
+from .graph_mobject import GraphMobject
 
 
 class ShapeMobject(MeshMobject):
@@ -35,8 +35,8 @@ class ShapeMobject(MeshMobject):
     ) -> ShapeGeometry:
         return ShapeGeometry(shape)
 
-    def build_stroke(self) -> StrokeMobject:
-        stroke = StrokeMobject()
+    def build_stroke(self) -> GraphMobject:
+        stroke = GraphMobject()
         stroke._model_matrix_ = self._model_matrix_
-        stroke._stroke_ = self._shape_._stroke_
+        stroke._graph_ = self._shape_._graph_
         return stroke

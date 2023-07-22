@@ -6,11 +6,11 @@ from ....constants.custom_typing import (
     NP_3f8,
     NP_f8
 )
-from .geometry import Geometry
+from .mesh import Mesh
 
 
 # TODO: Refactor with isosurfaces
-class ParametricSurfaceGeometry(Geometry):
+class ParametricSurfaceMesh(Mesh):
     __slots__ = ()
 
     def __init__(

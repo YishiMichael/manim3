@@ -1,46 +1,46 @@
 import numpy as np
 
-from ..constants.custom_typing import (
+from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
     NP_x3f8,
-    NP_xi4
+    NP_x2i4
 )
-from ..lazy.lazy import Lazy
-from ..rendering.buffers.attributes_buffer import AttributesBuffer
-from ..rendering.buffers.index_buffer import IndexBuffer
-from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
-from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
-from ..rendering.mgl_enums import PrimitiveMode
-from ..rendering.vertex_array import VertexArray
-from ..toplevel.toplevel import Toplevel
-from ..utils.space import SpaceUtils
-from .mobject.mobject_style_meta import MobjectStyleMeta
-from .mobject.shape.stroke import Stroke
-from .renderable_mobject import RenderableMobject
+from ...lazy.lazy import Lazy
+from ...rendering.buffers.attributes_buffer import AttributesBuffer
+from ...rendering.buffers.index_buffer import IndexBuffer
+from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
+from ...rendering.mgl_enums import PrimitiveMode
+from ...rendering.vertex_array import VertexArray
+from ...toplevel.toplevel import Toplevel
+from ...utils.space import SpaceUtils
+from ..mobject.mobject_style_meta import MobjectStyleMeta
+from ..renderable_mobject import RenderableMobject
+from .graphs.graph import Graph
 
 
-class StrokeMobject(RenderableMobject):
+class GraphMobject(RenderableMobject):
     __slots__ = ()
 
     def __init__(
         self,
-        stroke: Stroke | None = None
+        graph: Graph | None = None
     ) -> None:
         super().__init__()
-        if stroke is not None:
-            self._stroke_ = stroke
+        if graph is not None:
+            self._graph_ = graph
 
     @MobjectStyleMeta.register(
-        partial_method=Stroke.partial,
-        interpolate_method=Stroke.interpolate,
-        concatenate_method=Stroke.concatenate
+        partial_method=Graph.partial,
+        interpolate_method=Graph.interpolate,
+        concatenate_method=Graph.concatenate
     )
     @Lazy.variable
     @classmethod
-    def _stroke_(cls) -> Stroke:
-        return Stroke()
+    def _graph_(cls) -> Graph:
+        return Graph()
 
     @MobjectStyleMeta.register(
         interpolate_method=SpaceUtils.lerp
@@ -72,19 +72,20 @@ class StrokeMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _width_(cls) -> NP_f8:
-        return Toplevel.config.stroke_width * np.ones(())
+        return Toplevel.config.graph_width * np.ones(())
 
     @Lazy.property_array
     @classmethod
     def _local_sample_points_(
         cls,
-        stroke__points: NP_x3f8
+        graph__vertices: NP_x3f8,
+        graph__edges: NP_x2i4
     ) -> NP_x3f8:
-        return stroke__points
+        return graph__vertices[graph__edges.flatten()]
 
     @Lazy.property
     @classmethod
-    def _stroke_uniform_block_buffer_(
+    def _graph_uniform_block_buffer_(
         cls,
         color: NP_3f8,
         opacity: NP_f8,
@@ -92,7 +93,7 @@ class StrokeMobject(RenderableMobject):
         width: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
-            name="ub_stroke",
+            name="ub_graph",
             fields=[
                 "vec3 u_color",
                 "float u_opacity",
@@ -109,13 +110,13 @@ class StrokeMobject(RenderableMobject):
 
     @Lazy.property
     @classmethod
-    def _stroke_indexed_attributes_buffer_(
+    def _graph_indexed_attributes_buffer_(
         cls,
-        stroke__points: NP_x3f8,
-        stroke__disjoints: NP_xi4
+        graph__vertices: NP_x3f8,
+        graph__edges: NP_x2i4
     ) -> IndexedAttributesBuffer:
-        segment_indices = np.delete(np.arange(len(stroke__points)), stroke__disjoints)[1:]
-        index = np.vstack((segment_indices - 1, segment_indices)).T.flatten()
+        #segment_indices = np.delete(np.arange(len(stroke__points)), stroke__disjoints)[1:]
+        #index = np.vstack((segment_indices - 1, segment_indices)).T.flatten()
 
         #def index_getter(
         #    points_len: int
@@ -144,40 +145,40 @@ class StrokeMobject(RenderableMobject):
                 fields=[
                     "vec3 in_position"
                 ],
-                num_vertex=len(stroke__points),
+                num_vertex=len(graph__vertices),
                 data={
-                    "in_position": stroke__points
+                    "in_position": graph__vertices
                 }
             ),
             index_buffer=IndexBuffer(
-                data=index
+                data=graph__edges.flatten()
             ),
             mode=PrimitiveMode.LINES
         )
 
     @Lazy.property
     @classmethod
-    def _stroke_vertex_array_(
+    def _graph_vertex_array_(
         cls,
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
-        stroke_uniform_block_buffer: UniformBlockBuffer,
-        stroke_indexed_attributes_buffer: IndexedAttributesBuffer
+        graph_uniform_block_buffer: UniformBlockBuffer,
+        graph_indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
-            shader_filename="stroke",
+            shader_filename="graph",
             uniform_block_buffers=[
                 camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,
-                stroke_uniform_block_buffer
+                graph_uniform_block_buffer
             ],
-            indexed_attributes_buffer=stroke_indexed_attributes_buffer
+            indexed_attributes_buffer=graph_indexed_attributes_buffer
         )
 
     def _render(
         self,
         target_framebuffer: OITFramebuffer
     ) -> None:
-        self._stroke_vertex_array_.render(
+        self._graph_vertex_array_.render(
             framebuffer=target_framebuffer
         )

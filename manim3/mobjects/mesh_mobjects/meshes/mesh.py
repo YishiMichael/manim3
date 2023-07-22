@@ -15,13 +15,13 @@ from ....rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ....rendering.mgl_enums import PrimitiveMode
 
 
-class Geometry(LazyObject):
+class Mesh(LazyObject):
     __slots__ = ()
 
     @Lazy.variable_array
     @classmethod
     def _index_(cls) -> NP_xi4:
-        return np.arange(0)
+        return np.zeros((0,), dtype=np.int32)
 
     @Lazy.variable_array
     @classmethod
