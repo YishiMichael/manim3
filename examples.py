@@ -32,18 +32,6 @@ class ShapeTransformExample(m3.Scene):
 class TexTransformExample(m3.Scene):
     async def timeline(self) -> None:
         text = (
-            #ShapeMobject(Shape(Stroke(
-            #    points=np.array([
-            #        [0,1,0],
-            #        [0,0,0],
-            #        [1,0,0],
-            #        [1,1,0],
-            #        [2,1,0],
-            #        [2,0,0],
-            #        [3,0,0]
-            #    ], dtype=np.float64),
-            #    disjoints=np.array([4])
-            #)))
             m3.Text("Text")
             .scale(3)
             .set_style(color=m3.ORANGE, opacity=0.5)
@@ -54,18 +42,6 @@ class TexTransformExample(m3.Scene):
             .set_style(color=m3.BLUE, weight=10)
         )
         tex = (
-            #ShapeMobject(Shape(Stroke(
-            #    points=np.array([
-            #        [-3,0.5,0],
-            #        [-3,0,0],
-            #        [-1,0,0],
-            #        [0,0,0],
-            #        [0,-2,0],
-            #        [2,0,0],
-            #        [2,1.5,0]
-            #    ]),
-            #    disjoints=np.array([2, 5])
-            #)))
             m3.Tex("Tex")
             .scale(3)
             .set_style(color=m3.BLUE, opacity=0.5)
@@ -182,11 +158,11 @@ def main() -> None:
         fps=30,
         #preview=False,
         #tex_use_mathjax=True,
-        #write_video = True,
+        #write_video=True,
         #write_last_frame=True,
         #pixel_height=480
     )
-    CreateTexExample.render(config)
+    TexTransformExample.render(config)
 
 
 if __name__ == "__main__":

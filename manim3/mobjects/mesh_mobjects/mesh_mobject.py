@@ -4,8 +4,8 @@ import numpy as np
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
-    NP_x3f8,
-    NP_xi4
+    NP_x3i4,
+    NP_x3f8
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.texture_id_buffer import TextureIdBuffer
@@ -103,9 +103,9 @@ class MeshMobject(RenderableMobject):
     def _local_sample_positions_(
         cls,
         mesh__positions: NP_x3f8,
-        mesh__indices: NP_xi4
+        mesh__indices: NP_x3i4
     ) -> NP_x3f8:
-        return mesh__positions[mesh__indices]
+        return mesh__positions[mesh__indices.flatten()]
 
     @Lazy.property
     @classmethod

@@ -65,6 +65,7 @@ class Scene(Animation):
             color_framebuffer: ColorFramebuffer,
             video_stdin: IO[bytes] | None
         ) -> None:
+            self._schedule()
             spf = 1.0 / fps
             sleep_time = spf if preview else 0.0
             for frame_index in it.count():
@@ -84,7 +85,6 @@ class Scene(Animation):
             if write_last_frame:
                 self._write_frame_to_image(color_framebuffer.color_texture)
 
-        self._schedule()
         with self._video_writer(write_video, fps) as video_stdin:
             await run_frames(ColorFramebuffer(), video_stdin)
 
@@ -93,7 +93,7 @@ class Scene(Animation):
     def _video_writer(
         cls,
         write_video: bool,
-        fps: float
+        fps: int
     ) -> Iterator[IO[bytes] | None]:
         if not write_video:
             yield None
@@ -103,7 +103,7 @@ class Scene(Animation):
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
             "-s", "{}x{}".format(*Toplevel.config.pixel_size),  # size of one frame
-            "-pix_fmt", "rgb",
+            "-pix_fmt", "rgb24",
             "-r", str(fps),  # frames per second
             "-i", "-",  # The input comes from a pipe.
             "-vf", "vflip",

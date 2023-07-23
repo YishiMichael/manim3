@@ -3,7 +3,7 @@ import numpy as np
 from ....constants.custom_typing import (
     NP_x2f8,
     NP_x3f8,
-    NP_xi4
+    NP_x3i4
 )
 from ....lazy.lazy import (
     Lazy,
@@ -23,7 +23,7 @@ class Mesh(LazyObject):
         positions: NP_x3f8 | None = None,
         normals: NP_x3f8 | None = None,
         uvs: NP_x2f8 | None = None,
-        indices: NP_xi4 | None = None
+        indices: NP_x3i4 | None = None
     ) -> None:
         super().__init__()
         if positions is not None:
@@ -33,7 +33,6 @@ class Mesh(LazyObject):
         if uvs is not None:
             self._uvs_ = uvs
         if indices is not None:
-            assert len(indices) % 3 == 0
             self._indices_ = indices
 
     @Lazy.variable_array
@@ -53,8 +52,8 @@ class Mesh(LazyObject):
 
     @Lazy.variable_array
     @classmethod
-    def _indices_(cls) -> NP_xi4:
-        return np.zeros((0,), dtype=np.int32)
+    def _indices_(cls) -> NP_x3i4:
+        return np.zeros((0, 3), dtype=np.int32)
 
     @Lazy.property
     @classmethod
@@ -63,7 +62,7 @@ class Mesh(LazyObject):
         positions: NP_x3f8,
         normals: NP_x3f8,
         uvs: NP_x2f8,
-        indices: NP_xi4
+        indices: NP_x3i4
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
@@ -80,7 +79,7 @@ class Mesh(LazyObject):
                 }
             ),
             index_buffer=IndexBuffer(
-                data=indices
+                data=indices.flatten()
             ),
             mode=PrimitiveMode.TRIANGLES
         )

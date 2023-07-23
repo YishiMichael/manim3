@@ -83,5 +83,5 @@ class PrismoidMesh(Mesh):
             positions=np.array(position_list),
             normals=np.array(normal_list),
             uvs=np.array(uv_list),
-            indices=np.array(index_list)
+            indices=np.array(index_list).reshape((-1, 3))
         )

@@ -1,7 +1,4 @@
-from dataclasses import (
-    dataclass,
-    field
-)
+from dataclasses import dataclass
 
 from colour import Color
 
@@ -48,7 +45,7 @@ class Config:
     ))
     tex_alignment: AlignmentT = "center"
     tex_environment: str = "align*"
-    tex_base_color: ColorT = Color("white")
+    tex_color: ColorT = Color("white")
     tex_font_size: float = 30
 
     text_justify: bool = False
@@ -57,8 +54,7 @@ class Config:
     text_line_width: float = -1.0
     text_font_size: float = 30
     text_font: str = "Consolas"
-    text_base_color: ColorT = Color("white")
-    text_global_config: dict[str, str] = field(default_factory=dict)
+    text_color: ColorT = Color("white")
 
     @property
     def gl_version_code(self) -> int:

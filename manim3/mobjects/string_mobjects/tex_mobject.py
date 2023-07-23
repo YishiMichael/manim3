@@ -275,7 +275,7 @@ class Tex(StringMobject):
         preamble: str | None = None,
         alignment: AlignmentT | None = None,
         environment: str | None = None,
-        base_color: ColorT | None = None,
+        color: ColorT | None = None,
         font_size: float | None = None
     ) -> None:
         # Prevent from passing an empty string.
@@ -295,8 +295,8 @@ class Tex(StringMobject):
             alignment = config.tex_alignment
         if environment is None:
             environment = config.tex_environment
-        if base_color is None:
-            base_color = config.tex_base_color
+        if color is None:
+            color = config.tex_color
         if font_size is None:
             font_size = config.tex_font_size
 
@@ -331,6 +331,6 @@ class Tex(StringMobject):
             parser=parser
         )
 
-        self.set_style(color=base_color)
+        self.set_style(color=color)
         for selector, color in tex_to_color_map.items():
             self.select_parts(selector).set_style(color=color)

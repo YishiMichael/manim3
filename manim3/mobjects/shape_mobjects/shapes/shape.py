@@ -13,7 +13,7 @@ import shapely.validation
 from ....constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
-    NP_xi4
+    NP_x3i4
 )
 from ....lazy.lazy import (
     Lazy,
@@ -87,16 +87,16 @@ class Shape(LazyObject):
 
         positions_2d = SpaceUtils.decrease_dimension(graph._positions_)
         indices = graph._indices_
-        disjoints = np.flatnonzero(indices[1:-2:2] - indices[2:-1:2]) + 1
+        disjoints = np.flatnonzero(indices[:-1, 1] - indices[1:, 0]) + 1
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
             shapely.validation.make_valid(shapely.geometry.Polygon(
                 np.append(
-                    positions_2d[indices[2 * start : 2 * stop : 2]],
-                    [positions_2d[indices[2 * stop - 1]]],
+                    positions_2d[indices[start:stop, 0]],
+                    (positions_2d[indices[stop - 1, 1]],),
                     axis=0
                 )
             ))
-            for start, stop in it.pairwise((0, *disjoints, len(indices) // 2))
+            for start, stop in it.pairwise((0, *disjoints, len(indices)))
             if stop - start >= 2
         ), shapely.geometry.GeometryCollection())
 
@@ -105,7 +105,7 @@ class Shape(LazyObject):
     def _triangulation_(
         cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
-    ) -> tuple[NP_xi4, NP_x2f8]:
+    ) -> tuple[NP_x3i4, NP_x2f8]:
 
         def get_shapely_polygons(
             shapely_obj: shapely.geometry.base.BaseGeometry
@@ -123,7 +123,7 @@ class Shape(LazyObject):
 
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
-        ) -> tuple[NP_xi4, NP_x2f8]:
+        ) -> tuple[NP_x3i4, NP_x2f8]:
             ring_positions_list = [
                 np.array(boundary.coords)
                 for boundary in [polygon.exterior, *polygon.interiors]
@@ -132,18 +132,22 @@ class Shape(LazyObject):
             if not len(positions):
                 return np.arange(0, dtype=np.uint32), np.zeros((0, 2))
 
-            ring_ends = np.cumsum([len(ring_positions) for ring_positions in ring_positions_list], dtype=np.uint32)
-            return triangulate_float64(positions, ring_ends).astype(np.int32), positions
+            ring_ends = np.cumsum([
+                len(ring_positions) for ring_positions in ring_positions_list
+            ], dtype=np.uint32)
+            return triangulate_float64(positions, ring_ends).reshape((-1, 3)).astype(np.int32), positions
 
         def concatenate_triangulations(
-            triangulations: Iterable[tuple[NP_xi4, NP_x2f8]]
-        ) -> tuple[NP_xi4, NP_x2f8]:
+            triangulations: Iterable[tuple[NP_x3i4, NP_x2f8]]
+        ) -> tuple[NP_x3i4, NP_x2f8]:
             index_iterator, positions_iterator = IterUtils.unzip_pairs(triangulations)
             positions_list = list(positions_iterator)
             if not positions_list:
                 return np.zeros((0,), dtype=np.int32), np.zeros((0, 2))
 
-            offsets = np.cumsum((0, *(len(positions) for positions in positions_list[:-1])))
+            offsets = np.insert(np.cumsum([
+                len(positions) for positions in positions_list[:-1]
+            ], dtype=np.int32), 0, 0)
             all_indices = np.concatenate([
                 index + offset
                 for index, offset in zip(index_iterator, offsets, strict=True)
@@ -172,7 +176,9 @@ class Shape(LazyObject):
         positions = SpaceUtils.increase_dimension(np.concatenate([
             positions for positions, _ in path_list
         ]))
-        offsets = np.insert(np.cumsum([len(positions) for positions, _ in path_list[:-1]], dtype=np.int32), 0, 0)
+        offsets = np.insert(np.cumsum([
+            len(positions) for positions, _ in path_list[:-1]
+        ], dtype=np.int32), 0, 0)
         indices = np.concatenate([
             Graph._get_consecutive_indices(len(positions), is_ring=is_ring) + offset
             for (positions, is_ring), offset in zip(path_list, offsets, strict=True)

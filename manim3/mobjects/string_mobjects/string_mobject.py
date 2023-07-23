@@ -21,6 +21,7 @@ from scipy.spatial.distance import cdist
 
 from ...constants.custom_typing import (
     NP_3f8,
+    NP_xi4,
     SelectorT
 )
 from ...utils.color import ColorUtils
@@ -464,7 +465,7 @@ class StringParser(ABC):
         def get_matched_position_indices(
             positions_0: list[NP_3f8],
             positions_1: list[NP_3f8]
-        ) -> tuple[list[int], list[int]]:
+        ) -> tuple[NP_xi4, NP_xi4]:
             distance_matrix = cdist(positions_0, positions_1)
             return linear_sum_assignment(distance_matrix)
 

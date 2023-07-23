@@ -1,8 +1,8 @@
 import numpy as np
 
 from ....constants.custom_typing import (
-    NP_x3f8,
-    NP_xi4
+    NP_x2i4,
+    NP_x3f8
 )
 from ....utils.space import SpaceUtils
 from ...mobject.operation_handlers.interpolate_handler import InterpolateHandler
@@ -35,39 +35,29 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
         extended_positions_0 = np.concatenate((
             positions_0,
             SpaceUtils.lerp(
-                positions_0[indices_0[interpolated_indices_0 - 1]],
-                positions_0[indices_0[interpolated_indices_0]],
+                positions_0[indices_0[interpolated_indices_0, 0]],
+                positions_0[indices_0[interpolated_indices_0, 1]],
                 residues_0[:, None]
             )
         ))
         extended_positions_1 = np.concatenate((
             positions_1,
             SpaceUtils.lerp(
-                positions_1[indices_1[interpolated_indices_1 - 1]],
-                positions_1[indices_1[interpolated_indices_1]],
+                positions_1[indices_1[interpolated_indices_1, 0]],
+                positions_1[indices_1[interpolated_indices_1, 1]],
                 residues_1[:, None]
             )
         ))
         extended_indices_0 = np.insert(
-            indices_0,
-            np.repeat(interpolated_indices_0, 2),
+            indices_0.flatten(),
+            np.repeat(interpolated_indices_0 * 2 + 1, 2),
             np.repeat(np.arange(len(positions_0), len(extended_positions_0)), 2)
         )
         extended_indices_1 = np.insert(
-            indices_1,
-            np.repeat(interpolated_indices_1, 2),
+            indices_1.flatten(),
+            np.repeat(interpolated_indices_1 * 2 + 1, 2),
             np.repeat(np.arange(len(positions_1), len(extended_positions_1)), 2)
         )
-        #extended_indices_1 = np.insert(
-        #    edges_1[[0, -1]],
-        #    1,
-        #    np.insert(
-        #        edges_1[1:-1].reshape(-1, 2),
-        #        indices_1,
-        #        np.arange(len(positions_1), len(extended_positions_1))[:, None],
-        #        axis=0
-        #    ).flatten()
-        #)
         aligned_indices, indices = np.unique(
             np.array((extended_indices_0, extended_indices_1)),
             axis=1,
@@ -75,7 +65,7 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
         )
         self._aligned_positions_0: NP_x3f8 = extended_positions_0[aligned_indices[0]]
         self._aligned_positions_1: NP_x3f8 = extended_positions_1[aligned_indices[1]]
-        self._indices: NP_xi4 = indices
+        self._indices: NP_x2i4 = indices.reshape((-1, 2))
 
     def interpolate(
         self,

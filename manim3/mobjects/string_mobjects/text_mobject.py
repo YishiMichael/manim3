@@ -319,20 +319,22 @@ class Text(StringMobject):
         isolate: Iterable[SelectorT] = (),
         protect: Iterable[SelectorT] = (),
         local_configs: dict[SelectorT, dict[str, str]] | None = None,
+        global_config: dict[str, str] | None = None,
         justify: bool | None = None,
         indent: float | None = None,
         alignment: AlignmentT | None = None,
         line_width: float | None = None,
         font_size: float | None = None,
         font: str | None = None,
-        base_color: ColorT | None = None,
-        global_config: dict[str, str] | None = None,
+        color: ColorT | None = None,
         markup: bool = False
     ) -> None:
         if markup:
             PangoUtils.validate_markup_string(string)
         if local_configs is None:
             local_configs = {}
+        if global_config is None:
+            global_config = {}
 
         config = Toplevel.config
         if justify is None:
@@ -347,15 +349,13 @@ class Text(StringMobject):
             font_size = config.text_font_size
         if font is None:
             font = config.text_font
-        if base_color is None:
-            base_color = config.text_base_color
-        if global_config is None:
-            global_config = config.text_global_config
+        if color is None:
+            color = config.text_color
 
         global_attrs = {
             "font_size": str(round(font_size * 1024.0)),
             "font_family": font,
-            "foreground": ColorUtils.color_to_hex(base_color)
+            "foreground": ColorUtils.color_to_hex(color)
         }
         global_attrs.update(global_config)
 

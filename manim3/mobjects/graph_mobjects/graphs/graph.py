@@ -3,8 +3,9 @@ from typing import Literal
 import numpy as np
 
 from ....constants.custom_typing import (
-    NP_xi4,
+    NP_x2i4,
     NP_x3f8,
+    NP_xi4,
     NP_xf8
 )
 from ....lazy.lazy import (
@@ -20,13 +21,12 @@ class Graph(LazyObject):
     def __init__(
         self,
         positions: NP_x3f8 | None = None,
-        indices: NP_xi4 | None = None
+        indices: NP_x2i4 | None = None
     ) -> None:
         super().__init__()
         if positions is not None:
             self._positions_ = positions
         if indices is not None:
-            assert len(indices) % 2 == 0
             self._indices_ = indices
 
     @Lazy.variable_array
@@ -36,17 +36,17 @@ class Graph(LazyObject):
 
     @Lazy.variable_array
     @classmethod
-    def _indices_(cls) -> NP_xi4:
-        return np.zeros((0,), dtype=np.int32)
+    def _indices_(cls) -> NP_x2i4:
+        return np.zeros((0, 2), dtype=np.int32)
 
     @Lazy.property_array
     @classmethod
     def _knots_(
         cls,
         positions: NP_x3f8,
-        indices: NP_xi4
+        indices: NP_x2i4
     ) -> NP_xf8:
-        lengths = SpaceUtils.norm(positions[indices[1::2]] - positions[indices[::2]])
+        lengths = SpaceUtils.norm(positions[indices[:, 1]] - positions[indices[:, 0]])
         return np.insert(np.cumsum(lengths), 0, 0.0)
 
     @classmethod
@@ -57,22 +57,21 @@ class Graph(LazyObject):
         *,
         side: Literal["left", "right"] = "left"
     ) -> tuple[NP_xi4, NP_x3f8]:
-        index = np.clip(np.searchsorted(knots, values, side=side), 1, len(knots) - 1, dtype=np.int32)
-        residues = (values - knots[index - 1]) / np.maximum(knots[index] - knots[index - 1], 1e-6)
-        interpolated_indices = 2 * index - 1
-        return interpolated_indices, residues
+        indices = np.clip(np.searchsorted(knots, values, side=side), 1, len(knots) - 1, dtype=np.int32) - 1
+        residues = (values - knots[indices]) / np.maximum(knots[indices + 1] - knots[indices], 1e-6)
+        return indices, residues
 
     @classmethod
     def _get_consecutive_indices(
         cls,
-        n_points: int,
+        n: int,
         *,
         is_ring: bool
-    ) -> NP_xi4:
-        arange = np.arange(n_points)
-        result = np.vstack((arange, np.roll(arange, -1))).T.flatten()
+    ) -> NP_x2i4:
+        arange = np.arange(n)
+        result = np.vstack((arange, np.roll(arange, -1))).T
         if not is_ring:
-            result = result[:-2]
+            result = result[:-1]
         return result
 
     #@classmethod

@@ -4,7 +4,7 @@ from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
     NP_x3f8,
-    NP_xi4
+    NP_x2i4
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
@@ -82,7 +82,7 @@ class GraphMobject(RenderableMobject):
     def _local_sample_positions_(
         cls,
         graph__positions: NP_x3f8,
-        graph__indices: NP_xi4
+        graph__indices: NP_x2i4
     ) -> NP_x3f8:
         return graph__positions[graph__indices.flatten()]
 
@@ -116,7 +116,7 @@ class GraphMobject(RenderableMobject):
     def _graph_indexed_attributes_buffer_(
         cls,
         graph__positions: NP_x3f8,
-        graph__indices: NP_xi4
+        graph__indices: NP_x2i4
     ) -> IndexedAttributesBuffer:
         #segment_indices = np.delete(np.arange(len(stroke__points)), stroke__disjoints)[1:]
         #index = np.vstack((segment_indices - 1, segment_indices)).T.flatten()
@@ -154,7 +154,7 @@ class GraphMobject(RenderableMobject):
                 }
             ),
             index_buffer=IndexBuffer(
-                data=graph__indices
+                data=graph__indices.flatten()
             ),
             mode=PrimitiveMode.LINES
         )

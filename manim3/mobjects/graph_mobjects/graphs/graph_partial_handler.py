@@ -29,12 +29,13 @@ class GraphPartialHandler(PartialHandler[Graph]):
         knots = graph._knots_
         n_positions = len(positions)
         length = knots[-1]
+
         interpolated_indices, residues = Graph._interpolate_knots(knots, np.array((alpha_0, alpha_1)) * length)
         extended_positions = np.concatenate((
             positions,
             SpaceUtils.lerp(
-                positions[indices[interpolated_indices - 1]],
-                positions[indices[interpolated_indices]],
+                positions[indices[interpolated_indices, 0]],
+                positions[indices[interpolated_indices, 1]],
                 residues[:, None]
             )
             #np.array((
@@ -53,6 +54,6 @@ class GraphPartialHandler(PartialHandler[Graph]):
             indices=np.insert(
                 np.array((n_positions, n_positions + 1)),
                 1,
-                indices[slice(*interpolated_indices)]
-            )
+                indices[interpolated_indices[0] : interpolated_indices[1] + 1].flatten()[1:-1]
+            ).reshape((-1, 2))
         )
