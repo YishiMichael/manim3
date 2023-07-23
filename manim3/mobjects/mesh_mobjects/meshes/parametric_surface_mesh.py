@@ -9,7 +9,6 @@ from ....constants.custom_typing import (
 from .mesh import Mesh
 
 
-# TODO: Refactor with isosurfaces
 class ParametricSurfaceMesh(Mesh):
     __slots__ = ()
 
@@ -31,12 +30,12 @@ class ParametricSurfaceMesh(Mesh):
         nw = index_grid[:, :-1, +1:]
         sw = index_grid[:, :-1, :-1]
         se = index_grid[:, +1:, :-1]
-        index = np.ravel_multi_index(
+        indices = np.ravel_multi_index(
             tuple(np.stack((se, sw, ne, sw, nw, ne), axis=3)),
             (u_len, v_len)
         ).flatten()
 
-        uv = np.stack(np.meshgrid(
+        uvs = np.stack(np.meshgrid(
             np.linspace(0.0, 1.0, u_len),
             np.linspace(0.0, 1.0, v_len),
             indexing="ij"
@@ -46,11 +45,12 @@ class ParametricSurfaceMesh(Mesh):
             np.linspace(v_start, v_stop, v_len),
             indexing="ij"
         ), 2).reshape((-1, 2))
-        position = np.apply_along_axis(lambda p: func(*p), 1, samples)
-        normal = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
+        positions = np.apply_along_axis(lambda p: func(*p), 1, samples)
+        normals = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
 
-        super().__init__()
-        self._index_ = index
-        self._position_ = position
-        self._normal_ = normal
-        self._uv_ = uv
+        super().__init__(
+            positions=positions,
+            normals=normals,
+            uvs=uvs,
+            indices=indices
+        )

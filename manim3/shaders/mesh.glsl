@@ -100,7 +100,7 @@ vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
         specular += pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
     }
     #endif
-    return ambient * u_ambient_strength + diffuse + specular * u_specular_strength, 1.0;
+    return ambient * u_ambient_strength + diffuse + specular * u_specular_strength;
 }
 
 

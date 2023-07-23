@@ -1,19 +1,11 @@
-from typing import (
-    Callable,
-    Iterable,
-    Literal,
-    overload
-)
+from typing import Literal
 
 import numpy as np
 
 from ....constants.custom_typing import (
-    NP_f8,
-    NP_i4,
-    NP_x2i4,
+    NP_xi4,
     NP_x3f8,
-    NP_xf8,
-    NP_xi4
+    NP_xf8
 )
 from ....lazy.lazy import (
     Lazy,
@@ -27,174 +19,172 @@ class Graph(LazyObject):
 
     def __init__(
         self,
-        vertices: NP_x3f8 | None = None,
-        edges: NP_x2i4 | None = None
+        positions: NP_x3f8 | None = None,
+        indices: NP_xi4 | None = None
     ) -> None:
         super().__init__()
-        if vertices is not None:
-            self._vertices_ = vertices
-        if edges is not None:
-            self._edges_ = edges
+        if positions is not None:
+            self._positions_ = positions
+        if indices is not None:
+            assert len(indices) % 2 == 0
+            self._indices_ = indices
 
     @Lazy.variable_array
     @classmethod
-    def _vertices_(cls) -> NP_x3f8:
+    def _positions_(cls) -> NP_x3f8:
         return np.zeros((0, 3))
 
     @Lazy.variable_array
     @classmethod
-    def _edges_(cls) -> NP_x2i4:
-        return np.zeros((0, 2), dtype=np.int32)
+    def _indices_(cls) -> NP_xi4:
+        return np.zeros((0,), dtype=np.int32)
 
     @Lazy.property_array
     @classmethod
     def _knots_(
         cls,
-        vertices: NP_x3f8,
-        edges: NP_x2i4
+        positions: NP_x3f8,
+        indices: NP_xi4
     ) -> NP_xf8:
-        lengths = SpaceUtils.norm(vertices[edges[:, 1]] - vertices[edges[:, 0]])
+        lengths = SpaceUtils.norm(positions[indices[1::2]] - positions[indices[::2]])
         return np.insert(np.cumsum(lengths), 0, 0.0)
 
-    @overload
-    @classmethod
-    def _interpolate_knots(
-        cls,
-        knots: NP_xf8,
-        values: NP_f8,
-        *,
-        side: Literal["left", "right"]
-    ) -> tuple[NP_i4, NP_f8]: ...
-
-    @overload
     @classmethod
     def _interpolate_knots(
         cls,
         knots: NP_xf8,
         values: NP_xf8,
         *,
-        side: Literal["left", "right"]
-    ) -> tuple[NP_xi4, NP_xf8]: ...
+        side: Literal["left", "right"] = "left"
+    ) -> tuple[NP_xi4, NP_x3f8]:
+        index = np.clip(np.searchsorted(knots, values, side=side), 1, len(knots) - 1, dtype=np.int32)
+        residues = (values - knots[index - 1]) / np.maximum(knots[index] - knots[index - 1], 1e-6)
+        interpolated_indices = 2 * index - 1
+        return interpolated_indices, residues
 
     @classmethod
-    def _interpolate_knots(
+    def _get_consecutive_indices(
         cls,
-        knots: NP_xf8,
-        values: NP_f8 | NP_xf8,
+        n_points: int,
         *,
-        side: Literal["left", "right"]
-    ) -> tuple[NP_i4, NP_f8] | tuple[NP_xi4, NP_xf8]:
-        index = np.clip(np.searchsorted(knots, values, side=side), 1, len(knots) - 1, dtype=np.int32) - 1
-        residue = (values - knots[index]) / np.maximum(knots[index + 1] - knots[index], 1e-6)
-        return index, residue
+        is_ring: bool
+    ) -> NP_xi4:
+        arange = np.arange(n_points)
+        result = np.vstack((arange, np.roll(arange, -1))).T.flatten()
+        if not is_ring:
+            result = result[:-2]
+        return result
 
-    @classmethod
-    def partial(
-        cls,
-        graph: "Graph"
-    ) -> "Callable[[float, float], Graph]":
-        vertices = graph._vertices_
-        edges = graph._edges_
-        knots = graph._knots_
-        n_vertices = len(vertices)
-        length = knots[-1]
+    #@classmethod
+    #def partial(
+    #    cls,
+    #    graph: "Graph"
+    #) -> "Callable[[float, float], Graph]":
+    #    positions = graph._positions_
+    #    indices = graph._indices_
+    #    knots = graph._knots_
+    #    n_positions = len(positions)
+    #    length = knots[-1]
 
-        def callback(
-            start: float,
-            stop: float
-        ) -> Graph:
-            if start > stop:
-                return Graph()
-            start_index, start_residue = cls._interpolate_knots(knots, start * length, side="right")
-            stop_index, stop_residue = cls._interpolate_knots(knots, stop * length, side="left")
-            return Graph(
-                vertices=np.concatenate((
-                    vertices,
-                    np.array((
-                        SpaceUtils.lerp(*vertices[edges[start_index]])(start_residue),
-                        SpaceUtils.lerp(*vertices[edges[stop_index]])(stop_residue)
-                    ))
-                )),
-                edges=np.array((
-                    np.array((n_vertices, edges[start_index][0])),
-                    *edges[start_index + 1:stop_index],
-                    np.array((edges[stop_index][1], n_vertices + 1))
-                ))
-            )
+    #    def callback(
+    #        alpha_0: float,
+    #        alpha_1: float
+    #    ) -> Graph:
+    #        if alpha_0 > alpha_1:
+    #            return Graph()
+    #        interpolated_indices, residues = cls._interpolate_knots(knots, np.array((alpha_0, alpha_1)) * length)
+    #        extended_positions = np.concatenate((
+    #            positions,
+    #            SpaceUtils.lerp(
+    #                positions[indices[interpolated_indices - 1]],
+    #                positions[indices[interpolated_indices]],
+    #                residues[:, None]
+    #            )
+    #            #np.array((
+    #            #    SpaceUtils.lerp(
+    #            #        positions[indices[2 * interpolate_index_0]], positions[indices[2 * interpolate_index_0 + 1]]
+    #            #    )(residue_0),
+    #            #    SpaceUtils.lerp(
+    #            #        positions[indices[2 * interpolate_index_1]], positions[indices[2 * interpolate_index_1 + 1]]
+    #            #    )(residue_1)
+    #            #))
+    #        ))
+    #        #interpolated_index_0, residue_0 = cls._interpolate_knots(knots, alpha_0 * length, side="right")
+    #        #interpolated_index_1, residue_1 = cls._interpolate_knots(knots, alpha_1 * length, side="left")
+    #        return Graph(
+    #            positions=extended_positions,
+    #            indices=np.insert(
+    #                np.array((n_positions, n_positions + 1)),
+    #                1,
+    #                indices[slice(*interpolated_indices)]
+    #            )
+    #        )
 
-        return callback
+    #    return callback
 
-    @classmethod
-    def interpolate(
-        cls,
-        graph_0: "Graph",
-        graph_1: "Graph"
-    ) -> "Callable[[float], Graph]":
-        vertices_0 = graph_0._vertices_
-        vertices_1 = graph_1._vertices_
-        edges_0 = graph_0._edges_
-        edges_1 = graph_1._edges_
-        assert len(edges_0)
-        assert len(edges_1)
+    #@classmethod
+    #def interpolate(
+    #    cls,
+    #    graph_0: "Graph",
+    #    graph_1: "Graph"
+    #) -> "Callable[[float], Graph]":
 
-        knots_0 = graph_0._knots_ * graph_1._knots_[-1]
-        knots_1 = graph_1._knots_ * graph_0._knots_[-1]
-        indices_0, residues_0 = cls._interpolate_knots(knots_0, knots_1, side="right")
-        indices_1, residues_1 = cls._interpolate_knots(knots_1, knots_0, side="left")
-        interpolated_vertices_0 = SpaceUtils.lerp(vertices_0[indices_0 - 1], vertices_0[indices_0])(residues_0[:, None])
-        interpolated_vertices_1 = SpaceUtils.lerp(vertices_1[indices_1 - 1], vertices_1[indices_1])(residues_1[:, None])
 
-        edge_indices_0 = np.array((edges_0[:-1, 1], edges_0[1:, 0]))
-        joint_booleans_0 = edge_indices_0[0] == edge_indices_0[1]
-        preserved_vertex_indices_0 = np.delete(edge_indices_0.flatten(), 2 * joint_booleans_0.nonzero()[0])
-        repeats_0 = np.where(joint_booleans_0, 1, 2)
 
-        edge_indices_1 = np.array((edges_1[:-1, 1], edges_1[1:, 0]))
-        joint_booleans_1 = edge_indices_1[0] == edge_indices_1[1]
-        preserved_vertex_indices_1 = np.delete(edge_indices_1.flatten(), 2 * joint_booleans_1.nonzero()[0])
-        repeats_1 = np.where(joint_booleans_1, 1, 2)
+    #    #interpolated_positions_0 = SpaceUtils.lerp(positions_0[indices_0 - 1], positions_0[indices_0])(residues_0[:, None])
+    #    #interpolated_positions_1 = SpaceUtils.lerp(positions_1[indices_1 - 1], positions_1[indices_1])(residues_1[:, None])
 
-        # Merge together boundaries if they match.
-        boundary_vertex_indices = np.array(((edges_0[0, 0], edges_1[0, 0]), (edges_0[-1, 1], edges_1[-1, 1])))
-        ring_boolean = np.all(boundary_vertex_indices[0] == boundary_vertex_indices[1])
-        # `preserved_boundary_indices.shape` is either `(2, 2)` or `(1, 2)`.
-        preserved_boundary_indices = np.delete(boundary_vertex_indices, np.atleast_1d(ring_boolean).nonzero()[0], axis=0)
+    #    #edge_indices_0 = np.array((edges_0[:-1, 1], edges_0[1:, 0]))
+    #    #joint_booleans_0 = edge_indices_0[0] == edge_indices_0[1]
+    #    #preserved_vertex_indices_0 = np.delete(edge_indices_0.flatten(), 2 * joint_booleans_0.nonzero()[0])
+    #    #repeats_0 = np.where(joint_booleans_0, 1, 2)
 
-        extended_vertices_0 = np.concatenate((
-            np.repeat(interpolated_vertices_0, repeats_1, axis=0),
-            vertices_0[preserved_vertex_indices_0],
-            vertices_0[preserved_boundary_indices[:, 0]]
-        ))
-        extended_vertices_1 = np.concatenate((
-            vertices_1[preserved_vertex_indices_1],
-            np.repeat(interpolated_vertices_1, repeats_0, axis=0),
-            vertices_1[preserved_boundary_indices[:, 1]]
-        ))
-        concatenated_indices = np.concatenate((
-            np.repeat(indices_0 + np.arange(len(indices_0)), repeats_1),
-            np.repeat(indices_1 + np.arange(len(indices_1)), repeats_0)
-        ))
-        edges = np.array((
-            len(concatenated_indices),
-            *np.repeat(
-                np.argsort(concatenated_indices),
-                np.where(np.concatenate((
-                    np.repeat(joint_booleans_1, repeats_1),
-                    np.repeat(joint_booleans_0, repeats_0)
-                ))[concatenated_indices], 2, 1)
-            ),
-            len(concatenated_indices) + len(preserved_boundary_indices) - 1
-        )).reshape((-1, 2))
+    #    #edge_indices_1 = np.array((edges_1[:-1, 1], edges_1[1:, 0]))
+    #    #joint_booleans_1 = edge_indices_1[0] == edge_indices_1[1]
+    #    #preserved_vertex_indices_1 = np.delete(edge_indices_1.flatten(), 2 * joint_booleans_1.nonzero()[0])
+    #    #repeats_1 = np.where(joint_booleans_1, 1, 2)
 
-        def callback(
-            alpha: float
-        ) -> Graph:
-            return Graph(
-                vertices=SpaceUtils.lerp(extended_vertices_0, extended_vertices_1)(alpha),
-                edges=edges
-            )
+    #    ## Merge together boundaries if they match.
+    #    #boundary_vertex_indices = np.array(((edges_0[0, 0], edges_1[0, 0]), (edges_0[-1, 1], edges_1[-1, 1])))
+    #    #ring_boolean = np.all(boundary_vertex_indices[0] == boundary_vertex_indices[1])
+    #    ## `preserved_boundary_indices.shape` is either `(2, 2)` or `(1, 2)`.
+    #    #preserved_boundary_indices = np.delete(boundary_vertex_indices, np.atleast_1d(ring_boolean).nonzero()[0], axis=0)
 
-        return callback
+    #    #extended_positions_0 = np.concatenate((
+    #    #    np.repeat(interpolated_positions_0, repeats_1, axis=0),
+    #    #    positions_0[preserved_vertex_indices_0],
+    #    #    positions_0[preserved_boundary_indices[:, 0]]
+    #    #))
+    #    #extended_positions_1 = np.concatenate((
+    #    #    positions_1[preserved_vertex_indices_1],
+    #    #    np.repeat(interpolated_positions_1, repeats_0, axis=0),
+    #    #    positions_1[preserved_boundary_indices[:, 1]]
+    #    #))
+    #    #concatenated_indices = np.concatenate((
+    #    #    np.repeat(indices_0 + np.arange(len(indices_0)), repeats_1),
+    #    #    np.repeat(indices_1 + np.arange(len(indices_1)), repeats_0)
+    #    #))
+    #    #edges = np.array((
+    #    #    len(concatenated_indices),
+    #    #    *np.repeat(
+    #    #        np.argsort(concatenated_indices),
+    #    #        np.where(np.concatenate((
+    #    #            np.repeat(joint_booleans_1, repeats_1),
+    #    #            np.repeat(joint_booleans_0, repeats_0)
+    #    #        ))[concatenated_indices], 2, 1)
+    #    #    ),
+    #    #    len(concatenated_indices) + len(preserved_boundary_indices) - 1
+    #    #)).reshape((-1, 2))
+
+    #    def callback(
+    #        alpha: float
+    #    ) -> Graph:
+    #        return Graph(
+    #            positions=SpaceUtils.lerp(aligned_positions_0, aligned_positions_1)(alpha),
+    #            indices=indices
+    #        )
+
+    #    return callback
 
     #@classmethod
     #def _interpolate(
@@ -291,63 +281,63 @@ class Graph(LazyObject):
 
     #    return callback
 
-    @classmethod
-    def concatenate(
-        cls,
-        *graphs: "Graph"
-    ) -> "Callable[[], Graph]":
-        result = cls._concatenate(*graphs)
+    #@classmethod
+    #def concatenate(
+    #    cls,
+    #    *graphs: "Graph"
+    #) -> "Callable[[], Graph]":
+    #    result = cls._concatenate(*graphs)
 
-        def callback() -> Graph:
-            return result
+    #    def callback() -> Graph:
+    #        return result
 
-        return callback
+    #    return callback
 
-    @classmethod
-    def _concatenate(
-        cls,
-        *graphs: "Graph"
-    ) -> "Graph":
-        if not graphs:
-            return Graph()
+    #@classmethod
+    #def _concatenate(
+    #    cls,
+    #    *graphs: "Graph"
+    #) -> "Graph":
+    #    if not graphs:
+    #        return Graph()
 
-        vertices = np.concatenate([
-            graph._vertices_
-            for graph in graphs
-        ])
-        offsets = np.insert(np.cumsum([
-            len(graph._vertices_)
-            for graph in graphs[:-1]
-        ]), 0, 0)
-        edges = np.concatenate([
-            graph._edges_ + offset
-            for graph, offset in zip(graphs, offsets, strict=True)
-        ])
-        return Graph(
-            vertices=vertices,
-            edges=edges
-        )
+    #    positions = np.concatenate([
+    #        graph._positions_
+    #        for graph in graphs
+    #    ])
+    #    offsets = np.insert(np.cumsum([
+    #        len(graph._positions_)
+    #        for graph in graphs[:-1]
+    #    ]), 0, 0)
+    #    indices = np.concatenate([
+    #        graph._indices_ + offset
+    #        for graph, offset in zip(graphs, offsets, strict=True)
+    #    ])
+    #    return Graph(
+    #        positions=positions,
+    #        indices=indices
+    #    )
 
-    @classmethod
-    def args_from_vertex_batches(
-        cls,
-        vertices_batches: Iterable[NP_x3f8]
-    ) -> tuple[NP_x3f8, NP_x2i4]:
-        batch_list = [
-            batch for batch in vertices_batches
-            if len(batch) >= 2
-        ]
-        accumulated_lens = np.cumsum([len(batch) for batch in batch_list])
-        concatenated_vertices = SpaceUtils.increase_dimension(
-            np.concatenate(batch_list) if batch_list else np.zeros((0, 3))
-        )
-        segment_indices = np.delete(np.arange(len(concatenated_vertices)), accumulated_lens[:-1])[1:]
-        return concatenated_vertices, np.vstack((segment_indices - 1, segment_indices)).T
+    #@classmethod
+    #def args_from_vertex_batches(
+    #    cls,
+    #    positions_batches: Iterable[NP_x3f8]
+    #) -> tuple[NP_x3f8, NP_xi4]:
+    #    batch_list = [
+    #        batch for batch in positions_batches
+    #        if len(batch) >= 2
+    #    ]
+    #    accumulated_lens = np.cumsum([len(batch) for batch in batch_list])
+    #    concatenated_positions = SpaceUtils.increase_dimension(
+    #        np.concatenate(batch_list) if batch_list else np.zeros((0, 3))
+    #    )
+    #    segment_indices = np.delete(np.arange(len(concatenated_positions)), accumulated_lens[:-1])[1:]
+    #    return concatenated_positions, np.vstack((segment_indices - 1, segment_indices)).T
 
-    @classmethod
-    def from_vertex_batches(
-        cls,
-        vertices_batches: Iterable[NP_x3f8]
-    ) -> "Graph":
-        vertices, edges = cls.args_from_vertex_batches(vertices_batches)
-        return Graph(vertices=vertices, edges=edges)
+    #@classmethod
+    #def from_vertex_batches(
+    #    cls,
+    #    positions_batches: Iterable[NP_x3f8]
+    #) -> "Graph":
+    #    positions, edges = cls.args_from_vertex_batches(positions_batches)
+    #    return Graph(positions=positions, edges=edges)

@@ -1,10 +1,10 @@
 from ....constants.constants import ORIGIN
 from ....constants.custom_typing import NP_3f8
 from ..mobject import Mobject
-from .align_point import AlignPoint
+from .align_position import AlignPosition
 
 
-class AlignMobject(AlignPoint):
+class AlignMobject(AlignPosition):
     __slots__ = ()
 
     def __init__(
@@ -14,7 +14,7 @@ class AlignMobject(AlignPoint):
         buff: float | NP_3f8 = 0.0
     ) -> None:
         super().__init__(
-            point=mobject.get_bounding_box_point(direction),
+            position=mobject.get_bounding_box_position(direction),
             direction=direction,
             buff=buff
         )

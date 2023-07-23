@@ -1,21 +1,21 @@
 from ...mobjects.mobject.abouts.about import About
+from ...mobjects.mobject.remodel_handlers.remodel_handler import RemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from ...mobjects.mobject.model_interpolants.model_interpolant import ModelInterpolant
-from .model_base import ModelBase
+from .remodel_base import RemodelBase
 
 
-class ModelInfiniteBase(ModelBase):
+class ReodelInfiniteBase(RemodelBase):
     __slots__ = ()
 
     def __init__(
         self,
         mobject: Mobject,
-        model_interpolant: ModelInterpolant,
+        remodel_handler: RemodelHandler,
         about: About | None = None
     ) -> None:
         super().__init__(
             mobject=mobject,
-            model_interpolant=model_interpolant,
+            remodel_handler=remodel_handler,
             about=about
         )
 

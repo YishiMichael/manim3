@@ -27,7 +27,7 @@ class Align:
         mobject: "Mobject",
         direction_sign: float
     ) -> NP_3f8:
-        target_point = self._about._get_about_point(mobject)
+        target_position = self._about._get_about_position(mobject)
         direction = direction_sign * self._direction
-        point_to_align = mobject.get_bounding_box_point(direction) + self._buff * direction
-        return target_point - point_to_align
+        position_to_align = mobject.get_bounding_box_position(direction) + self._buff * direction
+        return target_position - position_to_align

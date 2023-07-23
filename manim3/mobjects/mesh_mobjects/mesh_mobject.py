@@ -14,76 +14,79 @@ from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-from ...utils.space import SpaceUtils
 from ..lights.lighting import Lighting
-from ..mobject.mobject_style_meta import MobjectStyleMeta
+from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
+from ..mobject.operation_handlers.mobject_operation import MobjectOperation
 from ..renderable_mobject import RenderableMobject
 from .meshes.mesh import Mesh
-from .meshes.plane_mesh import PlaneMesh
 
 
 class MeshMobject(RenderableMobject):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        mesh: Mesh | None = None
+    ) -> None:
         super().__init__()
+        if mesh is not None:
+            self._mesh_ = mesh
         self._lighting_ = Toplevel.scene._lighting
 
-    @MobjectStyleMeta.register()
+    @MobjectOperation.register()
     @Lazy.variable
     @classmethod
     def _mesh_(cls) -> Mesh:
-        # Default for `ImageMobject`.
-        return PlaneMesh()
+        return Mesh()
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
-        return (1.0 - 2 ** (-32)) * np.ones(())
+        return np.ones(())
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectStyleMeta.register()
+    @MobjectOperation.register()
     @Lazy.variable
     @classmethod
     def _lighting_(cls) -> Lighting:
         return Lighting()
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _ambient_strength_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _specular_strength_(cls) -> NP_f8:
         return Toplevel.config.mesh_specular_strength * np.ones(())
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
@@ -97,12 +100,12 @@ class MeshMobject(RenderableMobject):
 
     @Lazy.property_array
     @classmethod
-    def _local_sample_points_(
+    def _local_sample_positions_(
         cls,
-        geometry__position: NP_x3f8,
-        geometry__index: NP_xi4
+        mesh__positions: NP_x3f8,
+        mesh__indices: NP_xi4
     ) -> NP_x3f8:
-        return geometry__position[geometry__index]
+        return mesh__positions[mesh__indices]
 
     @Lazy.property
     @classmethod
@@ -144,7 +147,7 @@ class MeshMobject(RenderableMobject):
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
-        geometry__indexed_attributes_buffer: IndexedAttributesBuffer
+        mesh__indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_filename="mesh",
@@ -162,7 +165,7 @@ class MeshMobject(RenderableMobject):
                 model_uniform_block_buffer,
                 material_uniform_block_buffer
             ],
-            indexed_attributes_buffer=geometry__indexed_attributes_buffer
+            indexed_attributes_buffer=mesh__indexed_attributes_buffer
         )
 
     def _render(

@@ -8,15 +8,16 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space import SpaceUtils
+from ..mobject.operation_handlers.mobject_operation import MobjectOperation
+from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
 from ..mobject.mobject import Mobject
-from ..mobject.mobject_style_meta import MobjectStyleMeta
 
 
 class PointLight(Mobject):
     __slots__ = ()
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
@@ -25,7 +26,7 @@ class PointLight(Mobject):
 
     @Lazy.property_array
     @classmethod
-    def _local_sample_points_(cls) -> NP_x3f8:
+    def _local_sample_positions_(cls) -> NP_x3f8:
         return np.array((ORIGIN,))
 
     @Lazy.property_array

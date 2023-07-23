@@ -1,7 +1,6 @@
 from functools import reduce
 import itertools as it
 from typing import (
-    Callable,
     Iterable,
     Iterator
 )
@@ -34,7 +33,6 @@ class Shape(LazyObject):
     def __init__(
         self,
         graph: Graph | None = None
-        #points_iterable: Iterable[NP_x2f8] | None = None
     ) -> None:
         super().__init__()
         if graph is not None:
@@ -87,12 +85,19 @@ class Shape(LazyObject):
         #    #    return shapely.geometry.LineString(points)
         #    return shapely.validation.make_valid(shapely.geometry.Polygon(points))
 
-        points = SpaceUtils.decrease_dimension(graph._vertices_)
-        edges = graph._edges_
+        positions_2d = SpaceUtils.decrease_dimension(graph._positions_)
+        indices = graph._indices_
+        disjoints = np.flatnonzero(indices[1:-2:2] - indices[2:-1:2]) + 1
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
-            shapely.validation.make_valid(shapely.geometry.Polygon(points[start:stop]))
-            for start, stop in it.pairwise((0, *stroke._disjoints_, len(points)))
-            if stop - start >= 3
+            shapely.validation.make_valid(shapely.geometry.Polygon(
+                np.append(
+                    positions_2d[indices[2 * start : 2 * stop : 2]],
+                    [positions_2d[indices[2 * stop - 1]]],
+                    axis=0
+                )
+            ))
+            for start, stop in it.pairwise((0, *disjoints, len(indices) // 2))
+            if stop - start >= 2
         ), shapely.geometry.GeometryCollection())
 
     @Lazy.property_external
@@ -119,32 +124,32 @@ class Shape(LazyObject):
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
         ) -> tuple[NP_xi4, NP_x2f8]:
-            ring_points_list = [
+            ring_positions_list = [
                 np.array(boundary.coords)
                 for boundary in [polygon.exterior, *polygon.interiors]
             ]
-            points = np.concatenate(ring_points_list)
-            if not len(points):
+            positions = np.concatenate(ring_positions_list)
+            if not len(positions):
                 return np.arange(0, dtype=np.uint32), np.zeros((0, 2))
 
-            ring_ends = np.cumsum([len(ring_points) for ring_points in ring_points_list], dtype=np.uint32)
-            return triangulate_float64(points, ring_ends).astype(np.int32), points
+            ring_ends = np.cumsum([len(ring_positions) for ring_positions in ring_positions_list], dtype=np.uint32)
+            return triangulate_float64(positions, ring_ends).astype(np.int32), positions
 
         def concatenate_triangulations(
             triangulations: Iterable[tuple[NP_xi4, NP_x2f8]]
         ) -> tuple[NP_xi4, NP_x2f8]:
-            index_iterator, points_iterator = IterUtils.unzip_pairs(triangulations)
-            points_list = list(points_iterator)
-            if not points_list:
+            index_iterator, positions_iterator = IterUtils.unzip_pairs(triangulations)
+            positions_list = list(positions_iterator)
+            if not positions_list:
                 return np.zeros((0,), dtype=np.int32), np.zeros((0, 2))
 
-            offsets = np.cumsum((0, *(len(points) for points in points_list[:-1])))
-            all_index = np.concatenate([
+            offsets = np.cumsum((0, *(len(positions) for positions in positions_list[:-1])))
+            all_indices = np.concatenate([
                 index + offset
                 for index, offset in zip(index_iterator, offsets, strict=True)
             ])
-            all_points = np.concatenate(points_list)
-            return all_index, all_points
+            all_positions = np.concatenate(positions_list)
+            return all_indices, all_positions
 
         return concatenate_triangulations(
             get_polygon_triangulation(polygon)
@@ -152,22 +157,29 @@ class Shape(LazyObject):
         )
 
     @classmethod
-    def from_points_iterable(
+    def from_paths(
         cls,
-        points_iterable: Iterable[NP_x2f8]
+        paths: Iterable[tuple[NP_x2f8, bool]]
     ) -> "Shape":
-        points_list = [
-            points for points in points_iterable
-            if len(points) >= 2
+        path_list = [
+            (positions, is_ring)
+            for positions, is_ring in paths
+            if len(positions)
         ]
-        accumulated_lens = np.cumsum([len(points) for points in points_list])
-        concatenated_vertices = SpaceUtils.increase_dimension(
-            np.concatenate(points_list) if points_list else np.zeros((0, 2))
-        )
-        segment_indices = np.delete(np.arange(len(concatenated_vertices)), accumulated_lens[:-1])[1:]
+        if not path_list:
+            return Shape()
+
+        positions = SpaceUtils.increase_dimension(np.concatenate([
+            positions for positions, _ in path_list
+        ]))
+        offsets = np.insert(np.cumsum([len(positions) for positions, _ in path_list[:-1]], dtype=np.int32), 0, 0)
+        indices = np.concatenate([
+            Graph._get_consecutive_indices(len(positions), is_ring=is_ring) + offset
+            for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
+        ])
         return Shape(Graph(
-            vertices=concatenated_vertices,
-            edges=np.vstack((segment_indices - 1, segment_indices)).T
+            positions=positions,
+            indices=indices
         ))
 
     #@classmethod
@@ -185,70 +197,72 @@ class Shape(LazyObject):
         shapely_obj: shapely.geometry.base.BaseGeometry
     ) -> "Shape":
 
-        def iter_points_from_shapely_obj(
+        def iter_paths_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Iterator[NP_x2f8]:
+        ) -> Iterator[tuple[NP_x2f8, bool]]:
             match shapely_obj:
                 case shapely.geometry.Point() | shapely.geometry.LineString():
-                    yield np.array(shapely_obj.coords)
+                    yield np.array(shapely_obj.coords), False
                 case shapely.geometry.Polygon():
-                    yield np.array(shapely_obj.exterior.coords)
+                    yield np.array(shapely_obj.exterior.coords[:-1]), True
                     for interior in shapely_obj.interiors:
-                        yield np.array(interior.coords)
+                        yield np.array(interior.coords[:-1]), True
                 case shapely.geometry.base.BaseMultipartGeometry():
                     for shapely_obj_component in shapely_obj.geoms:
-                        yield from iter_points_from_shapely_obj(shapely_obj_component)
+                        yield from iter_paths_from_shapely_obj(shapely_obj_component)
                 case _:
                     raise TypeError
 
-        return Shape.from_points_iterable(iter_points_from_shapely_obj(shapely_obj))
+        return Shape.from_paths(iter_paths_from_shapely_obj(shapely_obj))
 
-    @classmethod
-    def partial(
-        cls,
-        shape: "Shape"
-    ) -> "Callable[[float, float], Shape]":
-        graph_partial_callback = Graph.partial(shape._graph_)
+    #@classmethod
+    #def partial(
+    #    cls,
+    #    shape: "Shape"
+    #) -> "Callable[[float, float], Shape]":
+    #    graph_partial_callback = Graph.partial(shape._graph_)
 
-        def callback(
-            start: float,
-            stop: float
-        ) -> Shape:
-            return Shape(graph_partial_callback(start, stop))
+    #    def callback(
+    #        alpha_0: float,
+    #        alpha_1: float
+    #    ) -> Shape:
+    #        return Shape(graph_partial_callback(alpha_0, alpha_1))
 
-        return callback
+    #    return callback
 
-    @classmethod
-    def interpolate(
-        cls,
-        shape_0: "Shape",
-        shape_1: "Shape"
-    ) -> "Callable[[float], Shape]":  # TODO
-        graph_interpolate_callback = Graph.interpolate(
-            shape_0._graph_, shape_1._graph_
-        )
+    #@classmethod
+    #def interpolate(
+    #    cls,
+    #    shape_0: "Shape",
+    #    shape_1: "Shape"
+    #) -> "Callable[[float], Shape]":  # TODO
+    #    graph_interpolate_callback = Graph.interpolate(
+    #        shape_0._graph_, shape_1._graph_
+    #    )
 
-        def callback(
-            alpha: float
-        ) -> Shape:
-            return Shape.from_shapely_obj(Shape(graph_interpolate_callback(alpha))._shapely_obj_)
+    #    
 
-        return callback
+    #    def callback(
+    #        alpha: float
+    #    ) -> Shape:
+    #        return Shape.from_shapely_obj(Shape(graph_interpolate_callback(alpha))._shapely_obj_)
 
-    @classmethod
-    def concatenate(
-        cls,
-        *shapes: "Shape"
-    ) -> "Callable[[], Shape]":
-        graph_concatenate_callback = Graph.concatenate(*(
-            shape._graph_
-            for shape in shapes
-        ))
+    #    return callback
 
-        def callback() -> Shape:
-            return Shape(graph_concatenate_callback())
+    #@classmethod
+    #def concatenate(
+    #    cls,
+    #    *shapes: "Shape"
+    #) -> "Callable[[], Shape]":
+    #    graph_concatenate_callback = Graph.concatenate(*(
+    #        shape._graph_
+    #        for shape in shapes
+    #    ))
 
-        return callback
+    #    def callback() -> Shape:
+    #        return Shape(graph_concatenate_callback())
+
+    #    return callback
 
     # operations ported from shapely
 

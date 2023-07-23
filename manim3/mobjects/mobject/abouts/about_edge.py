@@ -13,8 +13,8 @@ class AboutEdge(About):
         super().__init__()
         self._edge: NP_3f8 = edge
 
-    def _get_about_point(
+    def _get_about_position(
         self,
         mobject: Mobject
     ) -> NP_3f8:
-        return mobject.get_bounding_box_point(self._edge)
+        return mobject.get_bounding_box_position(self._edge)

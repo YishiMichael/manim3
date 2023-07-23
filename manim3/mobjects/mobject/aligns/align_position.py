@@ -1,21 +1,21 @@
 from ....constants.constants import ORIGIN
 from ....constants.custom_typing import NP_3f8
-from ..abouts.about_point import AboutPoint
+from ..abouts.about_position import AboutPosition
 from .align import Align
 
 
-class AlignPoint(Align):
+class AlignPosition(Align):
     __slots__ = ()
 
     def __init__(
         self,
-        point: NP_3f8,
+        position: NP_3f8,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0
     ) -> None:
         super().__init__(
-            about=AboutPoint(self._point),
+            about=AboutPosition(position),
             direction=direction,
             buff=buff
         )
-        self._point: NP_3f8 = point
+        self._position: NP_3f8 = position

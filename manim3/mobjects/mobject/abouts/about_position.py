@@ -3,18 +3,18 @@ from ..mobject import Mobject
 from .about import About
 
 
-class AboutPoint(About):
-    __slots__ = ("_point",)
+class AboutPosition(About):
+    __slots__ = ("_position",)
 
     def __init__(
         self,
-        point: NP_3f8
+        position: NP_3f8
     ) -> None:
         super().__init__()
-        self._point: NP_3f8 = point
+        self._position: NP_3f8 = position
 
-    def _get_about_point(
+    def _get_about_position(
         self,
         mobject: Mobject
     ) -> NP_3f8:
-        return self._point
+        return self._position

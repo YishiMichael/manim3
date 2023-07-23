@@ -27,7 +27,6 @@ class Config:
     frame_height: float = 8.0
     pixel_height: float = 1080
     window_pixel_height: float = 540
-    texture_size: tuple[int, int] = (2048, 2048)
 
     camera_distance: float = 5.0
     camera_near: float = 0.1

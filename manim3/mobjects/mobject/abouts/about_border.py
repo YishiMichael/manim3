@@ -15,7 +15,7 @@ class AboutBorder(About):
         super().__init__()
         self._border: NP_3f8 = border
 
-    def _get_about_point(
+    def _get_about_position(
         self,
         mobject: Mobject
     ) -> NP_3f8:

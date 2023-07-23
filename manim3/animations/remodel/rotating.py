@@ -1,21 +1,21 @@
 from ...constants.custom_typing import NP_3f8
 from ...mobjects.mobject.abouts.about import About
+from ...mobjects.mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from ...mobjects.mobject.model_interpolants.scale_model_interpolant import ScaleModelInterpolant
-from .model_infinite_base import ModelInfiniteBase
+from .remodel_finite_base import RemodelFiniteBase
 
 
-class Scaling(ModelInfiniteBase):
+class Rotating(RemodelFiniteBase):
     __slots__ = ()
 
     def __init__(
         self,
         mobject: Mobject,
-        factor: float | NP_3f8,
+        rotvec: NP_3f8,
         about: About | None = None
     ) -> None:
         super().__init__(
             mobject=mobject,
-            model_interpolant=ScaleModelInterpolant(factor),
+            remodel_handler=RotateRemodelHandler(rotvec),
             about=about
         )

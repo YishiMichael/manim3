@@ -7,10 +7,9 @@ class PolylineGraph(Graph):
 
     def __init__(
         self,
-        points: NP_x3f8
+        positions: NP_x3f8
     ) -> None:
-        vertices, edges = type(self).args_from_vertex_batches([points])
         super().__init__(
-            vertices=vertices,
-            edges=edges
+            positions=positions,
+            indices=Graph._get_consecutive_indices(len(positions), is_ring=False)
         )

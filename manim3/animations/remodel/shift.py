@@ -1,10 +1,10 @@
 from ...constants.custom_typing import NP_3f8
+from ...mobjects.mobject.remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from ...mobjects.mobject.model_interpolants.shift_model_interpolant import ShiftModelInterpolant
-from .model_finite_base import ModelFiniteBase
+from .remodel_finite_base import RemodelFiniteBase
 
 
-class Shift(ModelFiniteBase):
+class Shift(RemodelFiniteBase):
     __slots__ = ()
 
     def __init__(
@@ -16,6 +16,6 @@ class Shift(ModelFiniteBase):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            model_interpolant=ShiftModelInterpolant(vector),
+            remodel_handler=ShiftRemodelHandler(vector),
             arrive=arrive
         )

@@ -2,10 +2,10 @@ from ....constants.custom_typing import (
     NP_3f8,
     NP_44f8
 )
-from .model_interpolant import ModelInterpolant
+from .remodel_handler import RemodelHandler
 
 
-class ConstantModelInterpolant(ModelInterpolant):
+class ConstantRemodelHandler(RemodelHandler):
     __slots__ = ("_matrix",)
 
     def __init__(
@@ -15,7 +15,7 @@ class ConstantModelInterpolant(ModelInterpolant):
         super().__init__()
         self._matrix: NP_44f8 = matrix
 
-    def __call__(
+    def remodel(
         self,
         alpha: float | NP_3f8 = 1.0
     ) -> NP_44f8:

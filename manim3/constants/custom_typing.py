@@ -44,10 +44,9 @@ NP_x3f8 = np.ndarray[tuple[_XD, _3D], np.dtype[np.float64]]
 NP_x4f8 = np.ndarray[tuple[_XD, _4D], np.dtype[np.float64]]
 NP_x33f8 = np.ndarray[tuple[_XD, _3D, _3D], np.dtype[np.float64]]
 NP_x44f8 = np.ndarray[tuple[_XD, _4D, _4D], np.dtype[np.float64]]
-NP_xi4 = np.ndarray[tuple[_XD], np.dtype[np.int32]]
 
 NP_i4 = np.ndarray[tuple[()], np.dtype[np.int32]]
-NP_x2i4 = np.ndarray[tuple[_XD, _2D], np.dtype[np.int32]]
+NP_xi4 = np.ndarray[tuple[_XD], np.dtype[np.int32]]
 NP_xxi4 = np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
 
 ColorT = Color | str | NP_3f8

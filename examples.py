@@ -1,35 +1,35 @@
 import numpy as np
 import re
 
-from manim3 import *
+import manim3 as m3
 
 
-class ShapeTransformExample(Scene):
+class ShapeTransformExample(m3.Scene):
     async def timeline(self) -> None:
         square = (
-            Square()
-            .set_style(color=WHITE, opacity=1.0)
+            m3.Square()
+            .set_style(color=m3.WHITE, opacity=1.0)
         )
         square.add(
             square.build_stroke()
-            .set_style(color=YELLOW, width=0.0)
+            .set_style(color=m3.YELLOW, width=0.0)
         )
         circle = (
-            Circle()
-            .set_style(color=PINK, opacity=0.9)
+            m3.Circle()
+            .set_style(color=m3.PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=YELLOW, weight=10)
+            .set_style(color=m3.YELLOW, weight=10)
         )
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle), run_time=2, rate=Rates.smooth)
+        await self.play(m3.Transform(square, circle), run_time=2, rate=m3.Rates.smooth)
         await self.wait()
 
 
-class TexTransformExample(Scene):
+class TexTransformExample(m3.Scene):
     async def timeline(self) -> None:
         text = (
             #ShapeMobject(Shape(Stroke(
@@ -44,14 +44,14 @@ class TexTransformExample(Scene):
             #    ], dtype=np.float64),
             #    disjoints=np.array([4])
             #)))
-            Text("Text")
+            m3.Text("Text")
             .scale(3)
-            .set_style(color=ORANGE, opacity=0.5)
+            .set_style(color=m3.ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, weight=10)
+            .set_style(color=m3.BLUE, weight=10)
         )
         tex = (
             #ShapeMobject(Shape(Stroke(
@@ -66,120 +66,119 @@ class TexTransformExample(Scene):
             #    ]),
             #    disjoints=np.array([2, 5])
             #)))
-            Tex("Tex")
+            m3.Tex("Tex")
             .scale(3)
-            .set_style(color=BLUE, opacity=0.5)
+            .set_style(color=m3.BLUE, opacity=0.5)
             .concatenate()
-            .shift(RIGHT * 2)
+            .shift(m3.RIGHT * 2)
         )
         tex.add(
             tex.build_stroke()
-            .set_style(color=PINK, weight=10)
+            .set_style(color=m3.PINK, weight=10)
         )
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth)
+        await self.play(m3.Transform(text, tex), run_time=2, rate=m3.Rates.smooth)
         await self.wait()
-        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), rate=Rates.smooth, run_time=2)
+        await self.play(m3.TransformTo(tex, tex.copy().shift(m3.RIGHT * 2)), rate=m3.Rates.smooth, run_time=2)
         await self.wait(3)
 
 
-class CreateTexExample(Scene):
+class CreateTexExample(m3.Scene):
     async def timeline(self) -> None:
         text = (
-            Text("Text")
+            m3.Text("Text")
             .scale(3)
-            .set_style(color=ORANGE, opacity=0.5)
+            .set_style(color=m3.ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, weight=10)
+            .set_style(color=m3.BLUE, weight=10)
         )
         await self.wait()
-        await self.play(PartialCreate(text), run_time=2, rate=Rates.smooth)
+        await self.play(m3.PartialCreate(text), run_time=2, rate=m3.Rates.smooth)
         await self.wait()
-        await self.play(PartialUncreate(text, backwards=True), rate=Rates.smooth, run_time=2)
+        await self.play(m3.PartialUncreate(text, backwards=True), rate=m3.Rates.smooth, run_time=2)
         await self.wait()
 
 
-class ThreeDTextExample(Scene):
+class ThreeDTextExample(m3.Scene):
     async def timeline(self) -> None:
-        text = Text("Text").concatenate()
+        text = m3.Text("Text").concatenate()
         text_3d = (
-            MeshMobject()
-            .set_style(geometry=PrismoidGeometry(text._shape_))
+            m3.MeshMobject(m3.PrismoidMesh(text._shape_))
             .scale(5.0)
-            .scale_to(0.5, alpha=Z_AXIS)
+            .scale_to(0.5, alpha=m3.Z_AXIS)
             .set_style(
                 color="#00FFAA",
                 opacity=0.25,
-                lighting=Lighting(
-                    AmbientLight().set_style(color=WHITE * 0.3),
-                    PointLight().shift(RIGHT * 5)
+                lighting=m3.Lighting(
+                    m3.AmbientLight().set_style(color=m3.WHITE * 0.3),
+                    m3.PointLight().shift(m3.RIGHT * 5)
                 )
             )
         )
         self.add(text_3d)
-        self.prepare(Rotating(self.camera, 0.5 * DOWN))
+        self.prepare(m3.Rotating(self.camera, 0.5 * m3.DOWN))
         await self.wait(10)
 
 
-class OITExample(Scene):
+class OITExample(m3.Scene):
     async def timeline(self) -> None:
         self.add(*(
-            (Circle()
+            (m3.Circle()
                 .set_style(color=color, opacity=opacity)
-                .shift(RIGHT * 0.5)
-                .rotate(OUT * angle)
+                .shift(m3.RIGHT * 0.5)
+                .rotate(m3.OUT * angle)
             )
             for color, opacity, angle in zip(
-                (RED, GREEN, BLUE),
+                (m3.RED, m3.GREEN, m3.BLUE),
                 (0.3, 0.5, 0.6),
-                np.linspace(0, TAU, 3, endpoint=False)
+                np.linspace(0, m3.TAU, 3, endpoint=False)
             )
         ))
         await self.wait(5)
 
 
-class LaggedAnimationExample(Scene):
+class LaggedAnimationExample(m3.Scene):
     async def timeline(self) -> None:
-        text = Text("Text").scale(3)
-        await self.play(Parallel(*(
-            Parallel(
-                FadeIn(char),
-                Shift(char, UP, arrive=True)
+        text = m3.Text("Text").scale(3)
+        await self.play(m3.Parallel(*(
+            m3.Parallel(
+                m3.FadeIn(char),
+                m3.Shift(char, m3.UP, arrive=True)
             )
             for char in text
-        ), lag_ratio=0.5), rate=Rates.smooth, run_time=2.2)
+        ), lag_ratio=0.5), rate=m3.Rates.smooth, run_time=2.2)
         await self.wait()
 
 
-class FormulaExample(Scene):
+class FormulaExample(m3.Scene):
     async def timeline(self) -> None:
-        factored_formula = Tex(
+        factored_formula = m3.Tex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             tex_to_color_map={
-                re.compile(r"a_{\d}"): TEAL,
-                re.compile(r"b_{\d}"): ORANGE
+                re.compile(r"a_{\d}"): m3.TEAL,
+                re.compile(r"b_{\d}"): m3.ORANGE
             }
         ).scale(0.7)
-        expanded_formula = Tex(
+        expanded_formula = m3.Tex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
             tex_to_color_map={
-                re.compile(r"a_{\d}"): TEAL,
-                re.compile(r"b_{\d}"): ORANGE
+                re.compile(r"a_{\d}"): m3.TEAL,
+                re.compile(r"b_{\d}"): m3.ORANGE
             }
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth, run_time=2)
+        await self.play(m3.TransformMatchingStrings(factored_formula, expanded_formula), rate=m3.Rates.smooth, run_time=2)
         await self.wait()
 
 
 def main() -> None:
-    config = Config(
+    config = m3.Config(
         fps=30,
         #preview=False,
         #tex_use_mathjax=True,
@@ -187,7 +186,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=480
     )
-    TexTransformExample.render(config)
+    CreateTexExample.render(config)
 
 
 if __name__ == "__main__":

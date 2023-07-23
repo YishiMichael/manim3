@@ -1,15 +1,15 @@
 from typing import Callable
 
 from ...mobjects.mobject.mobject import Mobject
-from ...mobjects.mobject.mobject_style_meta import MobjectStyleMeta
+from ...mobjects.mobject.operation_handlers.partial_bound_handler import PartialBoundHandler
 from ..animation.animation import Animation
 
 
 class PartialBase(Animation):
     __slots__ = (
+        "_partial_bound_handlers",
         "_mobject",
         "_alpha_to_boundary_values",
-        "_callbacks",
         "_backwards"
     )
 
@@ -24,23 +24,23 @@ class PartialBase(Animation):
         super().__init__(
             run_alpha=1.0
         )
-        self._mobject: Mobject = mobject
-        self._alpha_to_boundary_values: Callable[[float], tuple[float, float]] = alpha_to_boundary_values
-        self._callbacks: list[Callable[[float, float], None]] = [
-            MobjectStyleMeta._partial(descendant)(descendant)
+        self._partial_bound_handlers: list[PartialBoundHandler] = [
+            PartialBoundHandler(descendant, descendant)
             for descendant in mobject.iter_descendants()
         ]
+        self._mobject: Mobject = mobject
+        self._alpha_to_boundary_values: Callable[[float], tuple[float, float]] = alpha_to_boundary_values
         self._backwards: bool = backwards
 
     def updater(
         self,
         alpha: float
     ) -> None:
-        start, stop = self._alpha_to_boundary_values(alpha)
+        alpha_0, alpha_1 = self._alpha_to_boundary_values(alpha)
         if self._backwards:
-            start, stop = 1.0 - stop, 1.0 - start
-        for callback in self._callbacks:
-            callback(start, stop)
+            alpha_0, alpha_1 = 1.0 - alpha_1, 1.0 - alpha_0
+        for partial_bound_handler in self._partial_bound_handlers:
+            partial_bound_handler.partial(alpha_0, alpha_1)
 
     async def timeline(self) -> None:
         await self.wait()

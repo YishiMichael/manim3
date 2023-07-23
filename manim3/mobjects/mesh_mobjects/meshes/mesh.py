@@ -18,34 +18,52 @@ from ....rendering.mgl_enums import PrimitiveMode
 class Mesh(LazyObject):
     __slots__ = ()
 
-    @Lazy.variable_array
-    @classmethod
-    def _index_(cls) -> NP_xi4:
-        return np.zeros((0,), dtype=np.int32)
+    def __init__(
+        self,
+        positions: NP_x3f8 | None = None,
+        normals: NP_x3f8 | None = None,
+        uvs: NP_x2f8 | None = None,
+        indices: NP_xi4 | None = None
+    ) -> None:
+        super().__init__()
+        if positions is not None:
+            self._positions_ = positions
+        if normals is not None:
+            self._normals_ = normals
+        if uvs is not None:
+            self._uvs_ = uvs
+        if indices is not None:
+            assert len(indices) % 3 == 0
+            self._indices_ = indices
 
     @Lazy.variable_array
     @classmethod
-    def _position_(cls) -> NP_x3f8:
+    def _positions_(cls) -> NP_x3f8:
         return np.zeros((0, 3))
 
     @Lazy.variable_array
     @classmethod
-    def _normal_(cls) -> NP_x3f8:
+    def _normals_(cls) -> NP_x3f8:
         return np.zeros((0, 3))
 
     @Lazy.variable_array
     @classmethod
-    def _uv_(cls) -> NP_x2f8:
+    def _uvs_(cls) -> NP_x2f8:
         return np.zeros((0, 2))
+
+    @Lazy.variable_array
+    @classmethod
+    def _indices_(cls) -> NP_xi4:
+        return np.zeros((0,), dtype=np.int32)
 
     @Lazy.property
     @classmethod
     def _indexed_attributes_buffer_(
         cls,
-        position: NP_x3f8,
-        normal: NP_x3f8,
-        uv: NP_x2f8,
-        index: NP_xi4
+        positions: NP_x3f8,
+        normals: NP_x3f8,
+        uvs: NP_x2f8,
+        indices: NP_xi4
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
@@ -54,15 +72,15 @@ class Mesh(LazyObject):
                     "vec3 in_normal",
                     "vec2 in_uv"
                 ],
-                num_vertex=len(position),
+                num_vertex=len(positions),
                 data={
-                    "in_position": position,
-                    "in_normal": normal,
-                    "in_uv": uv
+                    "in_position": positions,
+                    "in_normal": normals,
+                    "in_uv": uvs
                 }
             ),
             index_buffer=IndexBuffer(
-                data=index
+                data=indices
             ),
             mode=PrimitiveMode.TRIANGLES
         )

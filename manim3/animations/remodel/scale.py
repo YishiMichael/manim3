@@ -1,11 +1,11 @@
 from ...constants.custom_typing import NP_3f8
 from ...mobjects.mobject.abouts.about import About
+from ...mobjects.mobject.remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from ...mobjects.mobject.model_interpolants.scale_model_interpolant import ScaleModelInterpolant
-from .model_finite_base import ModelFiniteBase
+from .remodel_finite_base import RemodelFiniteBase
 
 
-class Scale(ModelFiniteBase):
+class Scale(RemodelFiniteBase):
     __slots__ = ()
 
     def __init__(
@@ -18,7 +18,7 @@ class Scale(ModelFiniteBase):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            model_interpolant=ScaleModelInterpolant(scale),
+            remodel_handler=ScaleRemodelHandler(scale),
             about=about,
             arrive=arrive
         )

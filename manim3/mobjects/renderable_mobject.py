@@ -5,7 +5,7 @@ from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..toplevel.toplevel import Toplevel
 from .cameras.camera import Camera
 from .mobject.mobject import Mobject
-from .mobject.mobject_style_meta import MobjectStyleMeta
+from .mobject.operation_handlers.mobject_operation import MobjectOperation
 
 
 class RenderableMobject(Mobject):
@@ -15,7 +15,7 @@ class RenderableMobject(Mobject):
         super().__init__()
         self._camera_ = Toplevel.scene._camera
 
-    @MobjectStyleMeta.register()
+    @MobjectOperation.register()
     @Lazy.variable
     @classmethod
     def _camera_(cls) -> Camera:

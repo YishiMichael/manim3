@@ -7,8 +7,8 @@ from ...constants.custom_typing import (
     NP_xxi4
 )
 from ...utils.space import SpaceUtils
-from ..shape_mobject import ShapeMobject
-from .polygons import Polygon
+from .shape_mobject import ShapeMobject
+from .polygon import Polygon
 
 
 class Polyhedron(ShapeMobject):
@@ -16,42 +16,42 @@ class Polyhedron(ShapeMobject):
 
     def __init__(
         self,
-        vertices: NP_x3f8,
+        positions: NP_x3f8,
         faces: NP_xxi4
     ) -> None:
         super().__init__()
         self.add(*(
-            type(self)._get_transformed_face(vertices[face])
+            type(self)._get_transformed_face(positions[face])
             for face in faces
         ))
 
     @classmethod
     def _get_transformed_face(
         cls,
-        vertices: NP_x3f8
+        positions: NP_x3f8
     ) -> Polygon:
-        points, matrix = cls._convert_coplanar_vertices(vertices)
-        return Polygon(points).apply_transform(matrix)
+        positions_2d, matrix = cls._convert_coplanar_positions(positions)
+        return Polygon(positions_2d).apply_transform(matrix)
 
     @classmethod
-    def _convert_coplanar_vertices(
+    def _convert_coplanar_positions(
         cls,
-        vertices: NP_x3f8
+        positions: NP_x3f8
     ) -> tuple[NP_x2f8, NP_44f8]:
-        assert len(vertices) >= 3
-        # We first choose three points that define the plane.
-        # Instead of choosing `vertices[:3]`, we choose `vertices[:2]` and the geometric centroid,
+        assert len(positions) >= 3
+        # We first choose three positions that define the plane.
+        # Instead of choosing `positions[:3]`, we choose `positions[:2]` and the geometric centroid,
         # in order to reduce the chance that they happen to be colinear.
         # The winding order should be counterclockwise.
-        origin = vertices[0]
-        x_axis = SpaceUtils.normalize(vertices[1] - vertices[0])
-        z_axis = SpaceUtils.normalize(np.cross(x_axis, np.average(vertices, axis=0) - origin))
+        origin = positions[0]
+        x_axis = SpaceUtils.normalize(positions[1] - positions[0])
+        z_axis = SpaceUtils.normalize(np.cross(x_axis, np.average(positions, axis=0) - origin))
         y_axis = np.cross(z_axis, x_axis)
         rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
 
-        transformed = (np.linalg.inv(rotation_matrix) @ (vertices - origin).T).T
+        transformed = (np.linalg.inv(rotation_matrix) @ (positions - origin).T).T
         transformed_xy, transformed_z = SpaceUtils.decrease_dimension(transformed, extract_z=True)
-        assert np.isclose(transformed_z, 0.0).all(), "Vertices are not coplanar"
+        assert np.isclose(transformed_z, 0.0).all(), "Positions are not coplanar"
 
         matrix = np.identity(4)
         matrix[:3, :3] = rotation_matrix
@@ -61,13 +61,13 @@ class Polyhedron(ShapeMobject):
 
 # The five platonic solids are ported from manim community.
 # `/manim/mobject/three_d/polyhedra.py`
-# All these polyhedra have all vertices sitting on the unit sphere.
+# All these polyhedra have all positions sitting on the unit sphere.
 class Tetrahedron(Polyhedron):
     __slots__ = ()
 
     def __init__(self) -> None:
         super().__init__(
-            vertices=(1.0 / np.sqrt(3.0)) * np.array((
+            positions=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
                 (1.0, -1.0, -1.0),
                 (-1.0, 1.0, -1.0),
@@ -87,7 +87,7 @@ class Cube(Polyhedron):
 
     def __init__(self) -> None:
         super().__init__(
-            vertices=(1.0 / np.sqrt(3.0)) * np.array((
+            positions=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
                 (1.0, 1.0, -1.0),
                 (1.0, -1.0, 1.0),
@@ -113,7 +113,7 @@ class Octahedron(Polyhedron):
 
     def __init__(self) -> None:
         super().__init__(
-            vertices=np.array((
+            positions=np.array((
                 (1.0, 0.0, 0.0),
                 (-1.0, 0.0, 0.0),
                 (0.0, 1.0, 0.0),
@@ -141,7 +141,7 @@ class Dodecahedron(Polyhedron):
         unit_a = (1.0 + np.sqrt(5.0)) / 2.0
         unit_b = -(1.0 - np.sqrt(5.0)) / 2.0
         super().__init__(
-            vertices=(1.0 / np.sqrt(3.0)) * np.array((
+            positions=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
                 (1.0, 1.0, -1.0),
                 (1.0, -1.0, 1.0),
@@ -187,7 +187,7 @@ class Icosahedron(Polyhedron):
         unit_a = np.sqrt(50.0 + 10.0 * np.sqrt(5.0)) / 10.0
         unit_b = np.sqrt(50.0 - 10.0 * np.sqrt(5.0)) / 10.0
         super().__init__(
-            vertices=np.array((
+            positions=np.array((
                 (0.0, unit_a, unit_b),
                 (0.0, unit_a, -unit_b),
                 (0.0, -unit_a, unit_b),

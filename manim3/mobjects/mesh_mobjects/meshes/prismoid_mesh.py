@@ -79,8 +79,9 @@ class PrismoidMesh(Mesh):
             index_list.extend(index_offset + shape_index)
             index_offset += len(shape_points)
 
-        super().__init__()
-        self._index_ = np.array(index_list)
-        self._position_ = np.array(position_list)
-        self._normal_ = np.array(normal_list)
-        self._uv_ = np.array(uv_list)
+        super().__init__(
+            positions=np.array(position_list),
+            normals=np.array(normal_list),
+            uvs=np.array(uv_list),
+            indices=np.array(index_list)
+        )

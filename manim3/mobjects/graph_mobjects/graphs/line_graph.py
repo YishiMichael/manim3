@@ -9,7 +9,7 @@ class LineGraph(PolylineGraph):
 
     def __init__(
         self,
-        start_point: NP_3f8,
-        stop_point: NP_3f8
+        start_position: NP_3f8,
+        stop_position: NP_3f8
     ) -> None:
-        super().__init__(points=np.array((start_point, stop_point)))
+        super().__init__(positions=np.array((start_position, stop_position)))

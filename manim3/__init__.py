@@ -6,21 +6,21 @@ from .animations.composition.series import Series
 from .animations.fade.fade_in import FadeIn
 from .animations.fade.fade_out import FadeOut
 from .animations.fade.fade_transform import FadeTransform
-from .animations.misc import TransformMatchingStrings
-from .animations.model.rotate import Rotate
-from .animations.model.rotating import Rotating
-from .animations.model.scale import Scale
-from .animations.model.scaling import Scaling
-from .animations.model.shift import Shift
-from .animations.model.shifting import Shifting
 from .animations.partial.partial_create import PartialCreate
 from .animations.partial.partial_flash import PartialFlash
 from .animations.partial.partial_uncreate import PartialUncreate
+from .animations.remodel.rotate import Rotate
+from .animations.remodel.rotating import Rotating
+from .animations.remodel.scale import Scale
+from .animations.remodel.scaling import Scaling
+from .animations.remodel.shift import Shift
+from .animations.remodel.shifting import Shifting
 from .animations.transform.transform import Transform
 from .animations.transform.transform_from import TransformFrom
 from .animations.transform.transform_from_copy import TransformFromCopy
 from .animations.transform.transform_to import TransformTo
 from .animations.transform.transform_to_copy import TransformToCopy
+from .animations.misc import TransformMatchingStrings
 
 from .constants.constants import *
 from .constants.custom_typing import *
@@ -34,40 +34,34 @@ from .lazy.lazy import (
 from .mobjects.cameras.camera import Camera
 from .mobjects.cameras.orthographic_camera import OrthographicCamera
 from .mobjects.cameras.perspective_camera import PerspectiveCamera
-from .mobjects.graph_mobject import GraphMobject
-from .mobjects.image_mobject import ImageMobject
+from .mobjects.graph_mobjects.graph_mobject import GraphMobject
+from .mobjects.graph_mobjects.graphs.graph import Graph
+from .mobjects.graph_mobjects.graphs.line_graph import LineGraph
+from .mobjects.graph_mobjects.graphs.polyline_graph import PolylineGraph
+from .mobjects.graph_mobjects.line import Line
+from .mobjects.graph_mobjects.polyline import Polyline
 from .mobjects.lights.ambient_light import AmbientLight
 from .mobjects.lights.lighting import Lighting
 from .mobjects.lights.point_light import PointLight
-from .mobjects.mesh_mobject import MeshMobject
+from .mobjects.mesh_mobjects.mesh_mobject import MeshMobject
+from .mobjects.mesh_mobjects.meshes.mesh import Mesh
+from .mobjects.mesh_mobjects.meshes.parametric_surface_mesh import ParametricSurfaceMesh
+from .mobjects.mesh_mobjects.meshes.plane_mesh import PlaneMesh
+from .mobjects.mesh_mobjects.meshes.prismoid_mesh import PrismoidMesh
+from .mobjects.mesh_mobjects.meshes.shape_mesh import ShapeMesh
+from .mobjects.mesh_mobjects.meshes.sphere_mesh import SphereMesh
 from .mobjects.mobject.abouts.about_border import AboutBorder
 from .mobjects.mobject.abouts.about_center import AboutCenter
 from .mobjects.mobject.abouts.about_edge import AboutEdge
-from .mobjects.mobject.abouts.about_point import AboutPoint
+from .mobjects.mobject.abouts.about_position import AboutPosition
 from .mobjects.mobject.aligns.align_border import AlignBorder
 from .mobjects.mobject.aligns.align_edge import AlignEdge
 from .mobjects.mobject.aligns.align_mobject import AlignMobject
-from .mobjects.mobject.aligns.align_point import AlignPoint
-from .mobjects.mobject.geometries.geometry import Geometry
-from .mobjects.mobject.geometries.parametric_surface_geometry import ParametricSurfaceGeometry
-from .mobjects.mobject.geometries.plane_geometry import PlaneGeometry
-from .mobjects.mobject.geometries.prismoid_geometry import PrismoidGeometry
-from .mobjects.mobject.geometries.shape_geometry import ShapeGeometry
-from .mobjects.mobject.geometries.sphere_geometry import SphereGeometry
-from .mobjects.mobject.graph.graph import Graph
+from .mobjects.mobject.aligns.align_position import AlignPosition
 from .mobjects.mobject.mobject import Mobject
-from .mobjects.mobject.shape.shape import Shape
-from .mobjects.renderable_mobject import RenderableMobject
-from .mobjects.shape_mobject import ShapeMobject
-from .mobjects.shapes.polygons import (
-    Arc,
-    Circle,
-    Polygon,
-    RegularPolygon,
-    Square,
-    Triangle
-)
-from .mobjects.shapes.polyhedra import (
+from .mobjects.shape_mobjects.circle import Circle
+from .mobjects.shape_mobjects.polygon import Polygon
+from .mobjects.shape_mobjects.polyhedra import (
     Cube,
     Dodecahedron,
     Icosahedron,
@@ -75,13 +69,13 @@ from .mobjects.shapes.polyhedra import (
     Polyhedron,
     Tetrahedron
 )
-from .mobjects.shapes.polylines import (
-    Dot,
-    Line,
-    Polyline,
-)
-from .mobjects.strings.tex_mobject import Tex
-from .mobjects.strings.text_mobject import Text
+from .mobjects.shape_mobjects.regular_polygon import RegularPolygon
+from .mobjects.shape_mobjects.shape_mobject import ShapeMobject
+from .mobjects.shape_mobjects.square import Square
+from .mobjects.string_mobjects.tex_mobject import Tex
+from .mobjects.string_mobjects.text_mobject import Text
+from .mobjects.image_mobject import ImageMobject
+from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.svg_mobject import SVGMobject
 
 from .rendering.buffers.attributes_buffer import AttributesBuffer

@@ -1,7 +1,5 @@
 from typing import (
-    Generic,
     Literal,
-    TypeVar,
     overload
 )
 
@@ -19,31 +17,6 @@ from ..constants.custom_typing import (
     NP_x3f8,
     NP_x4f8
 )
-
-
-_TensorT = TypeVar("_TensorT", bound=np.ndarray)
-
-
-class Lerp(Generic[_TensorT]):
-    __slots__ = (
-        "_tensor_0",
-        "_tensor_1"
-    )
-
-    def __init__(
-        self,
-        tensor_0: _TensorT,
-        tensor_1: _TensorT
-    ) -> None:
-        super().__init__()
-        self._tensor_0: _TensorT = tensor_0
-        self._tensor_1: _TensorT = tensor_1
-
-    def __call__(
-        self,
-        alpha: float | _TensorT
-    ) -> _TensorT:
-        return (1.0 - alpha) * self._tensor_0 + alpha * self._tensor_1
 
 
 class SpaceUtils:
@@ -127,10 +100,11 @@ class SpaceUtils:
     @classmethod
     def lerp(
         cls,
-        tensor_0: _TensorT,
-        tensor_1: _TensorT
-    ) -> Lerp[_TensorT]:
-        return Lerp(tensor_0, tensor_1)
+        tensor_0: np.ndarray,
+        tensor_1: np.ndarray,
+        alpha: float | np.ndarray
+    ) -> np.ndarray:
+        return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
     @overload
     @classmethod

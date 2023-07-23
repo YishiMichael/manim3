@@ -11,7 +11,7 @@ class About(ABC):
     __slots__ = ()
 
     @abstractmethod
-    def _get_about_point(
+    def _get_about_position(
         self,
         mobject: Mobject
     ) -> NP_3f8:

@@ -1,9 +1,12 @@
-from ..lazy.lazy import Lazy
-from .mesh_mobject import MeshMobject
-from .mobject.geometries.shape_geometry import ShapeGeometry
-from .mobject.mobject_style_meta import MobjectStyleMeta
-from .mobject.shape.shape import Shape
-from .graph_mobject import GraphMobject
+from ...lazy.lazy import Lazy
+from ..graph_mobjects.graph_mobject import GraphMobject
+from ..mesh_mobjects.mesh_mobject import MeshMobject
+from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
+from ..mobject.operation_handlers.mobject_operation import MobjectOperation
+from .shapes.shape import Shape
+from .shapes.shape_concatenate_handler import ShapeConcatenateHandler
+from .shapes.shape_interpolate_handler import ShapeInterpolateHandler
+from .shapes.shape_partial_handler import ShapePartialHandler
 
 
 class ShapeMobject(MeshMobject):
@@ -17,10 +20,10 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self._shape_ = shape
 
-    @MobjectStyleMeta.register(
-        partial_method=Shape.partial,
-        interpolate_method=Shape.interpolate,
-        concatenate_method=Shape.concatenate
+    @MobjectOperation.register(
+        partial=ShapePartialHandler,
+        interpolate=ShapeInterpolateHandler,
+        concatenate=ShapeConcatenateHandler
     )
     @Lazy.variable
     @classmethod
@@ -29,11 +32,11 @@ class ShapeMobject(MeshMobject):
 
     @Lazy.property
     @classmethod
-    def _geometry_(
+    def _mesh_(
         cls,
         shape: Shape
-    ) -> ShapeGeometry:
-        return ShapeGeometry(shape)
+    ) -> ShapeMesh:
+        return ShapeMesh(shape)
 
     def build_stroke(self) -> GraphMobject:
         stroke = GraphMobject()

@@ -4,7 +4,7 @@ from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
     NP_x3f8,
-    NP_x2i4
+    NP_xi4
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
@@ -15,10 +15,13 @@ from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-from ...utils.space import SpaceUtils
-from ..mobject.mobject_style_meta import MobjectStyleMeta
+from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
+from ..mobject.operation_handlers.mobject_operation import MobjectOperation
 from ..renderable_mobject import RenderableMobject
 from .graphs.graph import Graph
+from .graphs.graph_concatenate_handler import GraphConcatenateHandler
+from .graphs.graph_interpolate_handler import GraphInterpolateHandler
+from .graphs.graph_partial_handler import GraphPartialHandler
 
 
 class GraphMobject(RenderableMobject):
@@ -32,42 +35,42 @@ class GraphMobject(RenderableMobject):
         if graph is not None:
             self._graph_ = graph
 
-    @MobjectStyleMeta.register(
-        partial_method=Graph.partial,
-        interpolate_method=Graph.interpolate,
-        concatenate_method=Graph.concatenate
+    @MobjectOperation.register(
+        partial=GraphPartialHandler,
+        interpolate=GraphInterpolateHandler,
+        concatenate=GraphConcatenateHandler
     )
     @Lazy.variable
     @classmethod
     def _graph_(cls) -> Graph:
         return Graph()
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
-        return (1.0 - 2 ** (-32)) * np.ones(())
+        return np.ones(())
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
@@ -76,12 +79,12 @@ class GraphMobject(RenderableMobject):
 
     @Lazy.property_array
     @classmethod
-    def _local_sample_points_(
+    def _local_sample_positions_(
         cls,
-        graph__vertices: NP_x3f8,
-        graph__edges: NP_x2i4
+        graph__positions: NP_x3f8,
+        graph__indices: NP_xi4
     ) -> NP_x3f8:
-        return graph__vertices[graph__edges.flatten()]
+        return graph__positions[graph__indices.flatten()]
 
     @Lazy.property
     @classmethod
@@ -112,8 +115,8 @@ class GraphMobject(RenderableMobject):
     @classmethod
     def _graph_indexed_attributes_buffer_(
         cls,
-        graph__vertices: NP_x3f8,
-        graph__edges: NP_x2i4
+        graph__positions: NP_x3f8,
+        graph__indices: NP_xi4
     ) -> IndexedAttributesBuffer:
         #segment_indices = np.delete(np.arange(len(stroke__points)), stroke__disjoints)[1:]
         #index = np.vstack((segment_indices - 1, segment_indices)).T.flatten()
@@ -145,13 +148,13 @@ class GraphMobject(RenderableMobject):
                 fields=[
                     "vec3 in_position"
                 ],
-                num_vertex=len(graph__vertices),
+                num_vertex=len(graph__positions),
                 data={
-                    "in_position": graph__vertices
+                    "in_position": graph__positions
                 }
             ),
             index_buffer=IndexBuffer(
-                data=graph__edges.flatten()
+                data=graph__indices
             ),
             mode=PrimitiveMode.LINES
         )

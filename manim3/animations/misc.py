@@ -7,8 +7,8 @@ from typing import (
 )
 
 from ..mobjects.mobject.mobject import Mobject
-from ..mobjects.shape_mobject import ShapeMobject
-from ..mobjects.strings.string_mobject import StringMobject
+from ..mobjects.shape_mobjects.shape_mobject import ShapeMobject
+from ..mobjects.string_mobjects.string_mobject import StringMobject
 from ..utils.iterables import IterUtils
 from .composition.parallel import Parallel
 from .fade.fade_transform import FadeTransform

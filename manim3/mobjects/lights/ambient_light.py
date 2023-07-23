@@ -2,16 +2,16 @@ import numpy as np
 
 from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
-from ...utils.space import SpaceUtils
+from ..mobject.operation_handlers.mobject_operation import MobjectOperation
+from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
 from ..mobject.mobject import Mobject
-from ..mobject.mobject_style_meta import MobjectStyleMeta
 
 
 class AmbientLight(Mobject):
     __slots__ = ()
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod

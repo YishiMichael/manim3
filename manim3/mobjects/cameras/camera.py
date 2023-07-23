@@ -18,9 +18,9 @@ from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...toplevel.toplevel import Toplevel
 from ...utils.space import SpaceUtils
+from ..mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
+from ..mobject.remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 from ..mobject.mobject import Mobject
-from ..mobject.model_interpolants.rotate_model_interpolant import RotateModelInterpolant
-from ..mobject.model_interpolants.shift_model_interpolant import ShiftModelInterpolant
 
 
 class Camera(Mobject):
@@ -57,7 +57,7 @@ class Camera(Mobject):
 
     @Lazy.property_array
     @classmethod
-    def _local_sample_points_(cls) -> NP_x3f8:
+    def _local_sample_positions_(cls) -> NP_x3f8:
         return np.array((OUT,))
 
     @Lazy.property_array
@@ -106,8 +106,8 @@ class Camera(Mobject):
     ) -> NP_44f8:
         model_basis = model_matrix[:3, :3]
         model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
-        return RotateModelInterpolant(-Rotation.from_matrix(model_basis_normalized).as_rotvec())() \
-            @ ShiftModelInterpolant(-eye)()
+        return RotateRemodelHandler(-Rotation.from_matrix(model_basis_normalized).as_rotvec()).remodel() \
+            @ ShiftRemodelHandler(-eye).remodel()
 
     @Lazy.property_array
     @classmethod

@@ -3,7 +3,6 @@ import itertools as it
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Iterable,
     Iterator,
     overload
@@ -11,6 +10,7 @@ from typing import (
 import weakref
 
 import numpy as np
+
 
 from ...constants.constants import (
     ORIGIN,
@@ -30,12 +30,14 @@ from ...lazy.lazy import (
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.color import ColorUtils
 from ...utils.space import SpaceUtils
-from .mobject_style_meta import MobjectStyleMeta
-from .model_interpolants.constant_model_interpolant import ConstantModelInterpolant
-from .model_interpolants.model_interpolant import ModelInterpolant
-from .model_interpolants.rotate_model_interpolant import RotateModelInterpolant
-from .model_interpolants.scale_model_interpolant import ScaleModelInterpolant
-from .model_interpolants.shift_model_interpolant import ShiftModelInterpolant
+from .operation_handlers.concatenate_bound_handler import ConcatenateBoundHandler
+from .operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
+from .operation_handlers.mobject_operation import MobjectOperation
+from .remodel_handlers.constant_remodel_handler import ConstantRemodelHandler
+from .remodel_handlers.remodel_bound_handler import RemodelBoundHandler
+from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
+from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
+from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 
 if TYPE_CHECKING:
     from ..cameras.camera import Camera
@@ -278,8 +280,8 @@ class Mobject(LazyObject):
 
     # model matrix
 
-    @MobjectStyleMeta.register(
-        interpolate_method=SpaceUtils.lerp
+    @MobjectOperation.register(
+        interpolate=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
@@ -304,7 +306,7 @@ class Mobject(LazyObject):
 
     @Lazy.property_array
     @classmethod
-    def _local_sample_points_(cls) -> NP_x3f8:
+    def _local_sample_positions_(cls) -> NP_x3f8:
         # Implemented in subclasses.
         return np.zeros((0, 3))
 
@@ -313,14 +315,14 @@ class Mobject(LazyObject):
     def _bounding_box_without_descendants_(
         cls,
         model_matrix: NP_44f8,
-        local_sample_points: NP_x3f8
+        local_sample_positions: NP_x3f8
     ) -> BoundingBox | None:
-        if not len(local_sample_points):
+        if not len(local_sample_positions):
             return None
-        world_sample_points = SpaceUtils.apply_affine(model_matrix, local_sample_points)
+        world_sample_positions = SpaceUtils.apply_affine(model_matrix, local_sample_positions)
         return BoundingBox(
-            maximum=world_sample_points.max(axis=0),
-            minimum=world_sample_points.min(axis=0)
+            maximum=world_sample_positions.max(axis=0),
+            minimum=world_sample_positions.min(axis=0)
         )
 
     @Lazy.property_external
@@ -330,7 +332,7 @@ class Mobject(LazyObject):
         bounding_box_without_descendants: BoundingBox | None,
         real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
     ) -> BoundingBox | None:
-        points_array = np.array(list(it.chain.from_iterable(
+        positions_array = np.array(list(it.chain.from_iterable(
             (bounding_box.maximum, bounding_box.minimum)
             for bounding_box in (
                 bounding_box_without_descendants,
@@ -338,11 +340,11 @@ class Mobject(LazyObject):
             )
             if bounding_box is not None
         )))
-        if not len(points_array):
+        if not len(positions_array):
             return None
         return BoundingBox(
-            maximum=points_array.max(axis=0),
-            minimum=points_array.min(axis=0)
+            maximum=positions_array.max(axis=0),
+            minimum=positions_array.min(axis=0)
         )
 
     def get_bounding_box(
@@ -354,7 +356,7 @@ class Mobject(LazyObject):
             result = self._bounding_box_with_descendants_
         else:
             result = self._bounding_box_without_descendants_
-        assert result is not None, "Trying to calculate the bounding box of some mobject with no points"
+        assert result is not None, "Trying to calculate the bounding box of some mobject with no positions"
         return result
 
     def get_bounding_box_size(
@@ -365,7 +367,7 @@ class Mobject(LazyObject):
         bounding_box = self.get_bounding_box(broadcast=broadcast)
         return bounding_box.radii * 2.0
 
-    def get_bounding_box_point(
+    def get_bounding_box_position(
         self,
         direction: NP_3f8,
         *,
@@ -379,43 +381,43 @@ class Mobject(LazyObject):
         *,
         broadcast: bool = True
     ) -> NP_3f8:
-        return self.get_bounding_box_point(ORIGIN, broadcast=broadcast)
+        return self.get_bounding_box_position(ORIGIN, broadcast=broadcast)
 
-    # transform
+    # remodel
 
-    def _apply_transform_callback(
-        self,
-        model_interpolant: ModelInterpolant,
-        about: "About | None" = None
-    ) -> Callable[[float | NP_3f8], None]:
-        if about is None:
-            pre_transform = np.identity(4)
-            post_transform = np.identity(4)
-        else:
-            about_point = about._get_about_point(mobject=self)
-            pre_transform = ShiftModelInterpolant(-about_point)()
-            post_transform = ShiftModelInterpolant(about_point)()
+    #def _remodel_callback(
+    #    self,
+    #    model_interpolant: RemodelHandler,
+    #    about: "About | None" = None
+    #) -> Callable[[float | NP_3f8], None]:
+    #    if about is None:
+    #        pre_transform = np.identity(4)
+    #        post_transform = np.identity(4)
+    #    else:
+    #        about_position = about._get_about_position(mobject=self)
+    #        pre_transform = ShiftRemodelHandler(-about_position)()
+    #        post_transform = ShiftRemodelHandler(about_position)()
 
-        mobject_to_model_matrix = {
-            mobject: mobject._model_matrix_
-            for mobject in self.iter_descendants()
-        }
+    #    mobject_to_model_matrix = {
+    #        mobject: mobject._model_matrix_
+    #        for mobject in self.iter_descendants()
+    #    }
 
-        def callback(
-            alpha: float | NP_3f8
-        ) -> None:
-            matrix = post_transform @ model_interpolant(alpha) @ pre_transform
-            for mobject, model_matrix in mobject_to_model_matrix.items():
-                mobject._model_matrix_ = matrix @ model_matrix
+    #    def callback(
+    #        alpha: float | NP_3f8
+    #    ) -> None:
+    #        matrix = post_transform @ model_interpolant(alpha) @ pre_transform
+    #        for mobject, model_matrix in mobject_to_model_matrix.items():
+    #            mobject._model_matrix_ = matrix @ model_matrix
 
-        return callback
+    #    return callback
 
-    def apply_transform(
+    def apply_matrix(
         self,
         matrix: NP_44f8,
         about: "About | None" = None
     ):
-        self._apply_transform_callback(ConstantModelInterpolant(matrix), about=about)(1.0)
+        RemodelBoundHandler(self, ConstantRemodelHandler(matrix), about=about).remodel()
         return self
 
     def shift(
@@ -425,7 +427,7 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        self._apply_transform_callback(ShiftModelInterpolant(vector))(alpha)
+        RemodelBoundHandler(self, ShiftRemodelHandler(vector)).remodel(alpha)
         return self
 
     def move_to(
@@ -459,7 +461,7 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        self._apply_transform_callback(ScaleModelInterpolant(factor), about=about)(alpha)
+        RemodelBoundHandler(self, ScaleRemodelHandler(factor), about=about).remodel(alpha)
         return self
 
     def scale_to(
@@ -490,7 +492,7 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        self._apply_transform_callback(RotateModelInterpolant(rotvec), about=about)(alpha)
+        RemodelBoundHandler(self, RotateRemodelHandler(rotvec), about=about).remodel(alpha)
         return self
 
     def flip(
@@ -504,10 +506,10 @@ class Mobject(LazyObject):
         )
         return self
 
-    # meta methods
+    # style
 
     def concatenate(self):
-        MobjectStyleMeta._concatenate(*self.iter_children())(self)()
+        ConcatenateBoundHandler(self, *self.iter_children()).concatenate()
         self.clear()
         return self
 

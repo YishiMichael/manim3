@@ -1,11 +1,11 @@
 from ...constants.custom_typing import NP_3f8
 from ...mobjects.mobject.abouts.about import About
+from ...mobjects.mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from ...mobjects.mobject.model_interpolants.rotate_model_interpolant import RotateModelInterpolant
-from .model_finite_base import ModelFiniteBase
+from .remodel_finite_base import RemodelFiniteBase
 
 
-class Rotate(ModelFiniteBase):
+class Rotate(RemodelFiniteBase):
     __slots__ = ()
 
     def __init__(
@@ -18,7 +18,7 @@ class Rotate(ModelFiniteBase):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            model_interpolant=RotateModelInterpolant(rotvec),
+            remodel_handler=RotateRemodelHandler(rotvec),
             about=about,
             arrive=arrive
         )

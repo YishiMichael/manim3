@@ -12,12 +12,13 @@ class ShapeMesh(Mesh):
         self,
         shape: Shape
     ) -> None:
-        index, points = shape._triangulation_
-        position = SpaceUtils.increase_dimension(points)
-        normal = SpaceUtils.increase_dimension(np.zeros_like(points), z_value=1.0)
+        indices, positions_2d = shape._triangulation_
+        positions = SpaceUtils.increase_dimension(positions_2d)
+        normals = SpaceUtils.increase_dimension(np.zeros_like(positions_2d), z_value=1.0)
 
-        super().__init__()
-        self._index_ = index
-        self._position_ = position
-        self._normal_ = normal
-        self._uv_ = points
+        super().__init__(
+            positions=positions,
+            normals=normals,
+            uvs=positions_2d,
+            indices=indices
+        )

@@ -8,7 +8,10 @@ class Line(GraphMobject):
 
     def __init__(
         self,
-        start_point: NP_3f8,
-        stop_point: NP_3f8
+        start_position: NP_3f8,
+        stop_position: NP_3f8
     ) -> None:
-        super().__init__(graph=LineGraph(start_point=start_point, stop_point=stop_point))
+        super().__init__(LineGraph(
+            start_position=start_position,
+            stop_position=stop_position
+        ))

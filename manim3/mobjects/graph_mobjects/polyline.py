@@ -8,6 +8,8 @@ class Polyline(GraphMobject):
 
     def __init__(
         self,
-        points: NP_x3f8
+        positions: NP_x3f8
     ) -> None:
-        super().__init__(graph=PolylineGraph(points=points))
+        super().__init__(PolylineGraph(
+            positions=positions
+        ))
