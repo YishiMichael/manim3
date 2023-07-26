@@ -11,5 +11,5 @@ class PolylineGraph(Graph):
     ) -> None:
         super().__init__(
             positions=positions,
-            indices=Graph._get_consecutive_indices(len(positions), is_ring=False)
+            edges=Graph._get_consecutive_edges(len(positions), is_ring=False)
         )

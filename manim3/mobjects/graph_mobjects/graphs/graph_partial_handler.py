@@ -1,6 +1,5 @@
 import numpy as np
 
-from ....utils.space import SpaceUtils
 from ...mobject.operation_handlers.partial_handler import PartialHandler
 from .graph import Graph
 
@@ -25,41 +24,33 @@ class GraphPartialHandler(PartialHandler[Graph]):
 
         graph = self._graph
         positions = graph._positions_
-        indices = graph._indices_
-        knots = graph._knots_
-        n_positions = len(positions)
-        length = knots[-1]
+        edges = graph._edges_
+        knots = Graph._get_knots(
+            positions=positions,
+            edges=edges
+        )
+        n_positions = len(positions) * np.ones((), dtype=np.int32)
 
-        interpolated_indices, residues = Graph._interpolate_knots(knots, np.array((alpha_0, alpha_1)) * length)
-        extended_positions = np.concatenate((
+        values = np.array((alpha_0, alpha_1)) * knots[-1]
+        interpolated_indices = np.searchsorted(knots[1:-1], values)
+        all_positions = np.concatenate((
             positions,
-            SpaceUtils.lerp(
-                positions[indices[interpolated_indices, 0]],
-                positions[indices[interpolated_indices, 1]],
-                residues[:, None]
+            Graph._interpolate_positions(
+                positions=positions,
+                edges=edges,
+                knots=knots,
+                values=values,
+                indices=interpolated_indices
             )
-            #np.array((
-            #    SpaceUtils.lerp(
-            #        positions[indices[2 * interpolate_index_0]], positions[indices[2 * interpolate_index_0 + 1]]
-            #    )(residue_0),
-            #    SpaceUtils.lerp(
-            #        positions[indices[2 * interpolate_index_1]], positions[indices[2 * interpolate_index_1 + 1]]
-            #    )(residue_1)
-            #))
         ))
-        #interpolated_index_0, residue_0 = cls._interpolate_knots(knots, alpha_0 * length, side="right")
-        #interpolated_index_1, residue_1 = cls._interpolate_knots(knots, alpha_1 * length, side="left")
         return Graph(
-            positions=extended_positions,
-            indices=np.column_stack((
-                np.insert(indices[interpolated_indices[0] + 1 : interpolated_indices[1] + 1, 0], 0, n_positions),
-                np.append(indices[interpolated_indices[0] : interpolated_indices[1], 1], n_positions + 1)
-            ))
-
-
-            #np.insert(
-            #    np.array((n_positions, n_positions + 1)),
-            #    1,
-            #    indices[interpolated_indices[0] : interpolated_indices[1] + 1].flatten()[1:-1]
-            #).reshape((-1, 2))
+            positions=all_positions,
+            edges=Graph._reassemble_edges(
+                edges=edges,
+                selected_transitions=np.arange(interpolated_indices[0], interpolated_indices[1]),
+                prepend=n_positions,
+                append=n_positions + 1,
+                insertion_indices=np.zeros((0,), dtype=np.int32),
+                insertion_values=np.zeros((0,), dtype=np.int32)
+            )
         )

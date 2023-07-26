@@ -82,9 +82,9 @@ class GraphMobject(RenderableMobject):
     def _local_sample_positions_(
         cls,
         graph__positions: NP_x3f8,
-        graph__indices: NP_x2i4
+        graph__edges: NP_x2i4
     ) -> NP_x3f8:
-        return graph__positions[graph__indices.flatten()]
+        return graph__positions[graph__edges.flatten()]
 
     @Lazy.property
     @classmethod
@@ -116,33 +116,8 @@ class GraphMobject(RenderableMobject):
     def _graph_indexed_attributes_buffer_(
         cls,
         graph__positions: NP_x3f8,
-        graph__indices: NP_x2i4
+        graph__edges: NP_x2i4
     ) -> IndexedAttributesBuffer:
-        #segment_indices = np.delete(np.arange(len(stroke__points)), stroke__disjoints)[1:]
-        #index = np.vstack((segment_indices - 1, segment_indices)).T.flatten()
-
-        #def index_getter(
-        #    points_len: int
-        #) -> NP_xu4:
-        #    arange = np.arange(points_len, dtype=np.uint32)
-        #    return np.vstack((arange[:-1], arange[1:])).T.flatten()
-
-
-        #if not multi_line_string__line_strings__points:
-        #    index = np.zeros((0,), dtype=np.uint32)
-        #    position = np.zeros((0, 3))
-        #else:
-        #    points_lens = [len(points) for points in multi_line_string__line_strings__points]
-        #    offsets = np.cumsum((0, *points_lens[:-1]))
-        #    index = np.concatenate([
-        #        index_getter(points_len) + offset
-        #        for points_len, offset in zip(
-        #            points_lens,
-        #            offsets,
-        #            strict=True
-        #        )
-        #    ], dtype=np.uint32)
-        #    position = np.concatenate(multi_line_string__line_strings__points)
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
                 fields=[
@@ -154,7 +129,7 @@ class GraphMobject(RenderableMobject):
                 }
             ),
             index_buffer=IndexBuffer(
-                data=graph__indices.flatten()
+                data=graph__edges.flatten()
             ),
             mode=PrimitiveMode.LINES
         )

@@ -12,7 +12,7 @@ class ShapeMesh(Mesh):
         self,
         shape: Shape
     ) -> None:
-        indices, positions_2d = shape._triangulation_
+        faces, positions_2d = shape._triangulation_
         positions = SpaceUtils.increase_dimension(positions_2d)
         normals = SpaceUtils.increase_dimension(np.zeros_like(positions_2d), z_value=1.0)
 
@@ -20,5 +20,5 @@ class ShapeMesh(Mesh):
             positions=positions,
             normals=normals,
             uvs=positions_2d,
-            indices=indices
+            faces=faces
         )

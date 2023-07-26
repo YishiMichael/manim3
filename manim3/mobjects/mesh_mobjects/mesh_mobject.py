@@ -103,9 +103,9 @@ class MeshMobject(RenderableMobject):
     def _local_sample_positions_(
         cls,
         mesh__positions: NP_x3f8,
-        mesh__indices: NP_x3i4
+        mesh__faces: NP_x3i4
     ) -> NP_x3f8:
-        return mesh__positions[mesh__indices.flatten()]
+        return mesh__positions[mesh__faces.flatten()]
 
     @Lazy.property
     @classmethod

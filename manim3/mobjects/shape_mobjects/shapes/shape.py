@@ -22,9 +22,6 @@ from ....lazy.lazy import (
 from ....utils.iterables import IterUtils
 from ....utils.space import SpaceUtils
 from ...graph_mobjects.graphs.graph import Graph
-#from .stroke import Stroke
-#from .line_string import LineString
-#from .multi_line_string import MultiLineString
 
 
 class Shape(LazyObject):
@@ -74,30 +71,23 @@ class Shape(LazyObject):
         graph: Graph
     ) -> shapely.geometry.base.BaseGeometry:
 
-        #def get_shapely_component(
-        #    points: NP_x2f8
-        #) -> shapely.geometry.base.BaseGeometry | None:
-        #    #points = SpaceUtils.decrease_dimension(line_string._points_)
-        #    if len(points) < 3:
-        #        return None
-        #    #    return shapely.geometry.Point(points[0])
-        #    #if len(points) == 2:
-        #    #    return shapely.geometry.LineString(points)
-        #    return shapely.validation.make_valid(shapely.geometry.Polygon(points))
-
-        positions_2d = SpaceUtils.decrease_dimension(graph._positions_)
-        indices = graph._indices_
-        disjoints = np.flatnonzero(indices[:-1, 1] - indices[1:, 0]) + 1
-        return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
-            shapely.validation.make_valid(shapely.geometry.Polygon(
-                np.append(
-                    positions_2d[indices[start:stop, 0]],
-                    (positions_2d[indices[stop - 1, 1]],),
+        def get_polygon_positions(
+            graph: Graph
+        ) -> Iterator[NP_x2f8]:
+            positions = SpaceUtils.decrease_dimension(graph._positions_)
+            edges = graph._edges_
+            disjoints = Graph._get_disjoints(edges=edges)
+            for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
+                yield np.append(
+                    positions[edges[start:stop, 0]],
+                    (positions[edges[stop - 1, 1]],),
                     axis=0
                 )
-            ))
-            for start, stop in it.pairwise((0, *disjoints, len(indices)))
-            if stop - start >= 2
+
+        return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
+            shapely.validation.make_valid(shapely.geometry.Polygon(polygon_positions))
+            for polygon_positions in get_polygon_positions(graph)
+            if len(polygon_positions) >= 3
         ), shapely.geometry.GeometryCollection())
 
     @Lazy.property_external
@@ -140,7 +130,7 @@ class Shape(LazyObject):
         def concatenate_triangulations(
             triangulations: Iterable[tuple[NP_x3i4, NP_x2f8]]
         ) -> tuple[NP_x3i4, NP_x2f8]:
-            index_iterator, positions_iterator = IterUtils.unzip_pairs(triangulations)
+            faces_iterator, positions_iterator = IterUtils.unzip_pairs(triangulations)
             positions_list = list(positions_iterator)
             if not positions_list:
                 return np.zeros((0,), dtype=np.int32), np.zeros((0, 2))
@@ -148,12 +138,12 @@ class Shape(LazyObject):
             offsets = np.insert(np.cumsum([
                 len(positions) for positions in positions_list[:-1]
             ], dtype=np.int32), 0, 0)
-            all_indices = np.concatenate([
-                index + offset
-                for index, offset in zip(index_iterator, offsets, strict=True)
+            all_faces = np.concatenate([
+                faces + offset
+                for faces, offset in zip(faces_iterator, offsets, strict=True)
             ])
             all_positions = np.concatenate(positions_list)
-            return all_indices, all_positions
+            return all_faces, all_positions
 
         return concatenate_triangulations(
             get_polygon_triangulation(polygon)
@@ -179,23 +169,14 @@ class Shape(LazyObject):
         offsets = np.insert(np.cumsum([
             len(positions) for positions, _ in path_list[:-1]
         ], dtype=np.int32), 0, 0)
-        indices = np.concatenate([
-            Graph._get_consecutive_indices(len(positions), is_ring=is_ring) + offset
+        edges = np.concatenate([
+            Graph._get_consecutive_edges(len(positions), is_ring=is_ring) + offset
             for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
         ])
         return Shape(Graph(
             positions=positions,
-            indices=indices
+            edges=edges
         ))
-
-    #@classmethod
-    #def from_stroke(
-    #    cls,
-    #    stroke: Stroke
-    #) -> "Shape":
-    #    result = Shape()
-    #    result._stroke_ = stroke
-    #    return result
 
     @classmethod
     def from_shapely_obj(
@@ -221,55 +202,6 @@ class Shape(LazyObject):
                     raise TypeError
 
         return Shape.from_paths(iter_paths_from_shapely_obj(shapely_obj))
-
-    #@classmethod
-    #def partial(
-    #    cls,
-    #    shape: "Shape"
-    #) -> "Callable[[float, float], Shape]":
-    #    graph_partial_callback = Graph.partial(shape._graph_)
-
-    #    def callback(
-    #        alpha_0: float,
-    #        alpha_1: float
-    #    ) -> Shape:
-    #        return Shape(graph_partial_callback(alpha_0, alpha_1))
-
-    #    return callback
-
-    #@classmethod
-    #def interpolate(
-    #    cls,
-    #    shape_0: "Shape",
-    #    shape_1: "Shape"
-    #) -> "Callable[[float], Shape]":  # TODO
-    #    graph_interpolate_callback = Graph.interpolate(
-    #        shape_0._graph_, shape_1._graph_
-    #    )
-
-    #    
-
-    #    def callback(
-    #        alpha: float
-    #    ) -> Shape:
-    #        return Shape.from_shapely_obj(Shape(graph_interpolate_callback(alpha))._shapely_obj_)
-
-    #    return callback
-
-    #@classmethod
-    #def concatenate(
-    #    cls,
-    #    *shapes: "Shape"
-    #) -> "Callable[[], Shape]":
-    #    graph_concatenate_callback = Graph.concatenate(*(
-    #        shape._graph_
-    #        for shape in shapes
-    #    ))
-
-    #    def callback() -> Shape:
-    #        return Shape(graph_concatenate_callback())
-
-    #    return callback
 
     # operations ported from shapely
 

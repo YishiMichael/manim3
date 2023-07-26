@@ -23,7 +23,7 @@ class PrismoidMesh(Mesh):
         position_list: list[NP_3f8] = []
         normal_list: list[NP_3f8] = []
         uv_list: list[NP_2f8] = []
-        indices_list: list[NP_x3i4] = []
+        faces_list: list[NP_x3i4] = []
         index_offset = 0
         for line_string in shape._multi_line_string_._line_strings_:  # TODO
             points = SpaceUtils.decrease_dimension(line_string._points_)
@@ -65,8 +65,8 @@ class PrismoidMesh(Mesh):
             for (i0, ip0), (i1, ip1) in it.islice(it.pairwise(it.cycle(enumerate(ips))), l):
                 if ip0 == ip1:
                     continue
-                indices_list.append(np.array((i0, i0 + l, i1)) + index_offset)
-                indices_list.append(np.array((i1 + l, i1, i0 + l)) + index_offset)
+                faces_list.append(np.array((i0, i0 + l, i1)) + index_offset)
+                faces_list.append(np.array((i1 + l, i1, i0 + l)) + index_offset)
             index_offset += 2 * l
 
         # Assemble top and bottom faces.
@@ -75,12 +75,12 @@ class PrismoidMesh(Mesh):
             position_list.extend(SpaceUtils.increase_dimension(shape_points, z_value=sign))
             normal_list.extend(SpaceUtils.increase_dimension(np.zeros_like(shape_points), z_value=sign))
             uv_list.extend(shape_points)
-            indices_list.extend(index_offset + shape_index)
+            faces_list.extend(index_offset + shape_index)
             index_offset += len(shape_points)
 
         super().__init__(
             positions=np.fromiter(position_list, dtype=np.dtype((np.float64, (3,)))),
             normals=np.fromiter(normal_list, dtype=np.dtype((np.float64, (3,)))),
             uvs=np.fromiter(uv_list, dtype=np.dtype((np.float64, (2,)))),
-            indices=np.fromiter(indices_list, dtype=np.dtype((np.int32, (3,))))
+            faces=np.fromiter(faces_list, dtype=np.dtype((np.int32, (3,))))
         )

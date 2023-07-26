@@ -384,33 +384,6 @@ class Mobject(LazyObject):
 
     # remodel
 
-    #def _remodel_callback(
-    #    self,
-    #    model_interpolant: RemodelHandler,
-    #    about: "About | None" = None
-    #) -> Callable[[float | NP_3f8], None]:
-    #    if about is None:
-    #        pre_transform = np.identity(4)
-    #        post_transform = np.identity(4)
-    #    else:
-    #        about_position = about._get_about_position(mobject=self)
-    #        pre_transform = ShiftRemodelHandler(-about_position)()
-    #        post_transform = ShiftRemodelHandler(about_position)()
-
-    #    mobject_to_model_matrix = {
-    #        mobject: mobject._model_matrix_
-    #        for mobject in self.iter_descendants()
-    #    }
-
-    #    def callback(
-    #        alpha: float | NP_3f8
-    #    ) -> None:
-    #        matrix = post_transform @ model_interpolant(alpha) @ pre_transform
-    #        for mobject, model_matrix in mobject_to_model_matrix.items():
-    #            mobject._model_matrix_ = matrix @ model_matrix
-
-    #    return callback
-
     def apply_matrix(
         self,
         matrix: NP_44f8,

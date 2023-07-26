@@ -13,5 +13,5 @@ class PolygonShape(Shape):
     ) -> None:
         super().__init__(Graph(
             positions=SpaceUtils.increase_dimension(positions),
-            indices=Graph._get_consecutive_indices(len(positions), is_ring=True)
+            edges=Graph._get_consecutive_edges(len(positions), is_ring=True)
         ))

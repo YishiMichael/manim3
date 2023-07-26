@@ -30,7 +30,7 @@ class ParametricSurfaceMesh(Mesh):
         nw = index_grid[:, :-1, +1:]
         sw = index_grid[:, :-1, :-1]
         se = index_grid[:, +1:, :-1]
-        indices = np.ravel_multi_index(
+        faces = np.ravel_multi_index(
             tuple(np.stack((se, sw, ne, sw, nw, ne), axis=3)),
             (u_len, v_len)
         ).reshape((-1, 3))
@@ -52,5 +52,5 @@ class ParametricSurfaceMesh(Mesh):
             positions=positions,
             normals=normals,
             uvs=uvs,
-            indices=indices
+            faces=faces
         )

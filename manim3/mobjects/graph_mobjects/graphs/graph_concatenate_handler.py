@@ -27,11 +27,11 @@ class GraphConcatenateHandler(ConcatenateHandler[Graph]):
             len(graph._positions_)
             for graph in graphs[:-1]
         ]), 0, 0)
-        indices = np.concatenate([
-            graph._indices_ + offset
+        edges = np.concatenate([
+            graph._edges_ + offset
             for graph, offset in zip(graphs, offsets, strict=True)
         ])
         return Graph(
             positions=positions,
-            indices=indices
+            edges=edges
         )
