@@ -89,11 +89,10 @@ class Buffer(LazyObject):
             )
             return (dtype_str, name, shape)
 
-        child_structs_dict = dict(child_struct_items)
-        array_lens_dict = dict(array_len_items)
-
         def get_buffer_format(
-            field: str
+            field: str,
+            child_structs_dict: dict[str, tuple[str, ...]],
+            array_lens_dict: dict[str, int]
         ) -> BufferFormat:
             dtype_str, name, shape = parse_field_str(field, array_lens_dict)
             if (child_struct_fields := child_structs_dict.get(dtype_str)) is None:
@@ -107,13 +106,21 @@ class Buffer(LazyObject):
                 name=name,
                 shape=shape,
                 children=[
-                    get_buffer_format(child_struct_field)
+                    get_buffer_format(
+                        child_struct_field,
+                        child_structs_dict,
+                        array_lens_dict
+                    )
                     for child_struct_field in child_struct_fields
                 ],
                 layout=layout
             )
 
-        return get_buffer_format(field)
+        return get_buffer_format(
+            field,
+            dict(child_struct_items),
+            dict(array_len_items)
+        )
 
     @Lazy.property_external
     @classmethod

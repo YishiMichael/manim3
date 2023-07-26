@@ -53,21 +53,21 @@ class ShapeInterpolateHandler(InterpolateHandler[Shape]):
             real_knots_0,
             side="left"
         )
-        boundary_positions_0 = Graph._interpolate_positions(
+        outline_positions_0 = Graph._interpolate_positions(
             positions=positions_0,
             edges=edges_0,
             knots=aligned_knots_0,
             values=real_knots_1,
             indices=interpolated_indices_0
         )
-        boundary_positions_1 = Graph._interpolate_positions(
+        outline_positions_1 = Graph._interpolate_positions(
             positions=positions_1,
             edges=edges_1,
             knots=aligned_knots_1,
             values=real_knots_0,
             indices=interpolated_indices_1
         )
-        boundary_edges_0, boundary_edges_1 = Graph._align_edges(
+        outline_edges_0, outline_edges_1 = Graph._align_edges(
             edges_0=edges_0,
             edges_1=edges_1,
             selected_transitions_0=np.arange(len(edges_0) - 1),
@@ -102,21 +102,21 @@ class ShapeInterpolateHandler(InterpolateHandler[Shape]):
         interpolated_positions_0, interpolated_positions_1, edges = Graph._get_unique_positions(
             positions_0=np.concatenate((
                 positions_0,
-                boundary_positions_0,
+                outline_positions_0,
                 np.average(positions_0, axis=0, keepdims=True)
             )),
             positions_1=np.concatenate((
                 positions_1,
-                boundary_positions_1,
+                outline_positions_1,
                 np.average(positions_1, axis=0, keepdims=True)
             )),
             edges_0=np.concatenate((
-                boundary_edges_0,
+                outline_edges_0,
                 inlay_edges_0,
                 np.ones_like(inlay_edges_1) * (len(positions_0) + len(edges_1) - 1)
             )),
             edges_1=np.concatenate((
-                boundary_edges_1,
+                outline_edges_1,
                 np.ones_like(inlay_edges_1) * (len(positions_1) + len(edges_0) - 1),
                 inlay_edges_1
             ))

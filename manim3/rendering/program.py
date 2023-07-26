@@ -213,14 +213,6 @@ class Program(LazyObject):
         self,
         indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> moderngl.VertexArray | None:
-        attributes_buffer = indexed_attributes_buffer._attributes_buffer_
-        index_buffer = indexed_attributes_buffer._index_buffer_
-        mode = indexed_attributes_buffer._mode_
-        assert isinstance(attributes_buffer_format := attributes_buffer._buffer_format_, StructuredBufferFormat)
-        use_index_buffer = not isinstance(index_buffer, OmittedIndexBuffer)
-
-        if attributes_buffer_format._is_empty_ or use_index_buffer and index_buffer._buffer_format_._is_empty_:
-            return None
 
         def get_item_components(
             child: AtomicBufferFormat
@@ -229,6 +221,15 @@ class Program(LazyObject):
             if padding_n_col := child._n_col_pseudo_ - child._n_col_:
                 components.append(f"{padding_n_col}x{child._base_itemsize_}")
             return components * child._n_row_
+
+        attributes_buffer = indexed_attributes_buffer._attributes_buffer_
+        index_buffer = indexed_attributes_buffer._index_buffer_
+        mode = indexed_attributes_buffer._mode_
+        assert isinstance(attributes_buffer_format := attributes_buffer._buffer_format_, StructuredBufferFormat)
+        use_index_buffer = not isinstance(index_buffer, OmittedIndexBuffer)
+
+        if attributes_buffer_format._is_empty_ or use_index_buffer and index_buffer._buffer_format_._is_empty_:
+            return None
 
         program = self._info_.program
         attribute_names: list[str] = []

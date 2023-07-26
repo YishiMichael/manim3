@@ -168,14 +168,6 @@ class TexParser(StringParser):
             |(?P<open>{+)
             |(?P<close>}+)
         """, flags=re.VERBOSE | re.DOTALL)
-
-        def get_match_obj_by_span(
-            span: tuple[int, int]
-        ) -> re.Match[str]:
-            match_obj = pattern.fullmatch(string, pos=span[0], endpos=span[1])
-            assert match_obj is not None
-            return match_obj
-
         open_stack: list[tuple[int, int]] = []
         for match_obj in pattern.finditer(string):
             if not match_obj.group("close"):
@@ -190,8 +182,14 @@ class TexParser(StringParser):
                     raise ValueError("Missing '{' inserted")
                 open_start, open_stop = open_stack.pop()
                 n = min(open_stop - open_start, close_stop - close_start)
-                yield get_match_obj_by_span((open_stop - n, open_stop))
-                yield get_match_obj_by_span((close_start, close_start + n))
+                assert (open_match_obj := pattern.fullmatch(
+                    string, pos=open_stop - n, endpos=open_stop
+                )) is not None
+                yield open_match_obj
+                assert (close_match_obj := pattern.fullmatch(
+                    string, pos=close_start, endpos=close_start + n
+                )) is not None
+                yield close_match_obj
                 close_start += n
                 if close_start < close_stop:
                     continue

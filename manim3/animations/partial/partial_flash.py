@@ -14,7 +14,6 @@ class PartialFlash(PartialBase):
         flash_proportion: float = 1.0 / 16,
         backwards: bool = False
     ) -> None:
-        assert flash_proportion >= 0.0
 
         def clip_proportion(
             alpha: float
@@ -29,6 +28,7 @@ class PartialFlash(PartialBase):
                 clip_proportion(alpha * (1.0 + flash_proportion))
             )
 
+        assert flash_proportion >= 0.0
         super().__init__(
             mobject=mobject,
             alpha_to_boundary_values=alpha_to_boundary_values,

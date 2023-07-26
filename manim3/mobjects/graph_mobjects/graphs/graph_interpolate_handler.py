@@ -44,21 +44,21 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
             real_knots_0,
             side="left"
         )
-        boundary_positions_0 = Graph._interpolate_positions(
+        outline_positions_0 = Graph._interpolate_positions(
             positions=positions_0,
             edges=edges_0,
             knots=aligned_knots_0,
             values=real_knots_1,
             indices=interpolated_indices_0
         )
-        boundary_positions_1 = Graph._interpolate_positions(
+        outline_positions_1 = Graph._interpolate_positions(
             positions=positions_1,
             edges=edges_1,
             knots=aligned_knots_1,
             values=real_knots_0,
             indices=interpolated_indices_1
         )
-        boundary_edges_0, boundary_edges_1 = Graph._align_edges(
+        outline_edges_0, outline_edges_1 = Graph._align_edges(
             edges_0=edges_0,
             edges_1=edges_1,
             selected_transitions_0=np.arange(len(edges_0) - 1),
@@ -71,14 +71,14 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
         interpolated_positions_0, interpolated_positions_1, edges = Graph._get_unique_positions(
             positions_0=np.concatenate((
                 positions_0,
-                boundary_positions_0
+                outline_positions_0
             )),
             positions_1=np.concatenate((
                 positions_1,
-                boundary_positions_1
+                outline_positions_1
             )),
-            edges_0=boundary_edges_0,
-            edges_1=boundary_edges_1
+            edges_0=outline_edges_0,
+            edges_1=outline_edges_1
         )
 
         super().__init__(graph_0, graph_1)

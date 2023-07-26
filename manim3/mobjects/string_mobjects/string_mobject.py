@@ -305,6 +305,28 @@ class StringParser(ABC):
                 flag_value * i
             )
 
+        def add_labelled_item(
+            label_to_span_dict: dict[int, Span],
+            replaced_items: list[CommandItem | LabelledInsertionItem],
+            label: int,
+            span: Span,
+            attrs: dict[str, str],
+            pos: int
+        ) -> None:
+            label_to_span_dict[label] = span
+            replaced_items.insert(pos, LabelledInsertionItem(
+                label=label,
+                edge_flag=EdgeFlag.START,
+                attrs=attrs,
+                index=span.start
+            ))
+            replaced_items.append(LabelledInsertionItem(
+                label=label,
+                edge_flag=EdgeFlag.STOP,
+                attrs=attrs,
+                index=span.stop
+            ))
+
         index_items = sorted((
             (span_item, edge_flag, priority, i)
             for priority, span_item_iterator in enumerate((
@@ -341,26 +363,6 @@ class StringParser(ABC):
         open_command_stack: list[tuple[int, CommandItem]] = []
         open_stack: list[tuple[int, ConfiguredItem | IsolatedItem, int, list[int]]] = []
 
-        def add_labelled_item(
-            label: int,
-            span: Span,
-            attrs: dict[str, str],
-            pos: int
-        ) -> None:
-            label_to_span_dict[label] = span
-            replaced_items.insert(pos, LabelledInsertionItem(
-                label=label,
-                edge_flag=EdgeFlag.START,
-                attrs=attrs,
-                index=span.start
-            ))
-            replaced_items.append(LabelledInsertionItem(
-                label=label,
-                edge_flag=EdgeFlag.STOP,
-                attrs=attrs,
-                index=span.stop
-            ))
-
         for span_item, edge_flag, _, _ in index_items:
             if isinstance(span_item, ProtectedItem | CommandItem):
                 protect_level += edge_flag.get_value()
@@ -382,6 +384,8 @@ class StringParser(ABC):
                     )
                     if attrs is not None:
                         add_labelled_item(
+                            label_to_span_dict=label_to_span_dict,
+                            replaced_items=replaced_items,
                             label=next(label_counter),
                             span=Span(open_command_item.span.stop, command_item.span.start),
                             attrs=attrs,
@@ -404,12 +408,16 @@ class StringParser(ABC):
             assert open_bracket_stack == bracket_stack, \
                 f"Cannot handle substring: '{string[span.as_slice()]}'"
             add_labelled_item(
+                label_to_span_dict=label_to_span_dict,
+                replaced_items=replaced_items,
                 label=next(label_counter),
                 span=span,
                 attrs=span_item.attrs if isinstance(span_item, ConfiguredItem) else {},
                 pos=pos
             )
         add_labelled_item(
+            label_to_span_dict=label_to_span_dict,
+            replaced_items=replaced_items,
             label=0,
             span=Span(0, len(string)),
             attrs=global_attrs,
