@@ -1,7 +1,7 @@
-import numpy as np
 import re
 
 import manim3 as m3
+import numpy as np
 
 
 class ShapeTransformExample(m3.Scene):

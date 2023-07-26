@@ -1,7 +1,7 @@
 import asyncio
-from contextlib import contextmanager
 import itertools as it
 import subprocess as sp
+from contextlib import contextmanager
 from typing import (
     IO,
     Iterator

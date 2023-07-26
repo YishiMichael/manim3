@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from ....lazy.lazy import LazyVariableDescriptor
-from .mobject_operation import MobjectOperation
+from ..style_meta import StyleMeta
 from .partial_handler import PartialHandler
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ class PartialBoundHandler:
     ) -> None:
         super().__init__()
         partial_handler_dict: dict[LazyVariableDescriptor, PartialHandler] = {}
-        for info in MobjectOperation._operation_infos:
+        for info in StyleMeta._operation_infos:
             descriptor = info.descriptor
             partial_handler_cls = info.partial_handler_cls
             if not all(

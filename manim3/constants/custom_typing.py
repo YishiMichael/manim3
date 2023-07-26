@@ -22,11 +22,11 @@ __all__ = (
 )
 
 
-from colour import Color
 import re
 from typing import Literal
 
 import numpy as np
+from colour import Color
 
 
 _XD = int

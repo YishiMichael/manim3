@@ -1,5 +1,6 @@
-from dataclasses import dataclass
 import itertools as it
+import weakref
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -7,10 +8,8 @@ from typing import (
     Iterator,
     overload
 )
-import weakref
 
 import numpy as np
-
 
 from ...constants.constants import (
     ORIGIN,
@@ -32,12 +31,12 @@ from ...utils.color import ColorUtils
 from ...utils.space import SpaceUtils
 from .operation_handlers.concatenate_bound_handler import ConcatenateBoundHandler
 from .operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-from .operation_handlers.mobject_operation import MobjectOperation
 from .remodel_handlers.constant_remodel_handler import ConstantRemodelHandler
 from .remodel_handlers.remodel_bound_handler import RemodelBoundHandler
 from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
 from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
+from .style_meta import StyleMeta
 
 if TYPE_CHECKING:
     from ..cameras.camera import Camera
@@ -280,8 +279,8 @@ class Mobject(LazyObject):
 
     # model matrix
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
@@ -332,14 +331,14 @@ class Mobject(LazyObject):
         bounding_box_without_descendants: BoundingBox | None,
         real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
     ) -> BoundingBox | None:
-        positions_array = np.array(list(it.chain.from_iterable(
+        positions_array = np.fromiter((it.chain.from_iterable(
             (bounding_box.maximum, bounding_box.minimum)
             for bounding_box in (
                 bounding_box_without_descendants,
                 *real_descendants__bounding_box_without_descendants
             )
             if bounding_box is not None
-        )))
+        )), dtype=np.dtype((np.float64, (3,))))
         if not len(positions_array):
             return None
         return BoundingBox(
@@ -548,7 +547,7 @@ class Mobject(LazyObject):
 
         def standardize_input(
             value: Any
-        ) -> np.ndarray:
+        ) -> Any:
             if not isinstance(value, float | int | np.ndarray):
                 return value
             return value * np.ones((), dtype=np.float64)
@@ -574,11 +573,16 @@ class Mobject(LazyObject):
             }.items() if value is not None
         }
 
+        style_descriptors = [
+            info.descriptor for info in StyleMeta._operation_infos
+        ]
         for mobject in self.iter_descendants(broadcast=broadcast):
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
             for key, value in style.items():
                 if (descriptor := type(mobject)._lazy_descriptor_dict.get(key)) is None:
+                    continue
+                if descriptor not in style_descriptors:
                     continue
                 if not isinstance(descriptor, LazyVariableDescriptor):
                     continue

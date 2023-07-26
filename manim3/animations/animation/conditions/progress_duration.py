@@ -1,5 +1,5 @@
-from typing import TYPE_CHECKING
 import weakref
+from typing import TYPE_CHECKING
 
 from ....toplevel.toplevel import Toplevel
 from ..animation_state import AnimationState

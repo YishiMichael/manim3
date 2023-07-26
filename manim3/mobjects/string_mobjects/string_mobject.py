@@ -1,3 +1,7 @@
+import hashlib
+import itertools as it
+import pathlib
+import re
 from abc import (
     ABC,
     abstractmethod
@@ -5,10 +9,6 @@ from abc import (
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
-import hashlib
-import itertools as it
-import pathlib
-import re
 from typing import (
     Any,
     ClassVar,

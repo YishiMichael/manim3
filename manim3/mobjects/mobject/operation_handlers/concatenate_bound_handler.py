@@ -4,8 +4,8 @@ from ....lazy.lazy import (
     LazyContainer,
     LazyVariableDescriptor
 )
+from ..style_meta import StyleMeta
 from .concatenate_handler import ConcatenateHandler
-from .mobject_operation import MobjectOperation
 
 if TYPE_CHECKING:
     from ..mobject import Mobject
@@ -26,7 +26,7 @@ class ConcatenateBoundHandler:
         super().__init__()
         concatenate_handler_dict: dict[LazyVariableDescriptor, ConcatenateHandler] = {}
         copied_container_dict: dict[LazyVariableDescriptor, LazyContainer] = {}
-        for info in MobjectOperation._operation_infos:
+        for info in StyleMeta._operation_infos:
             descriptor = info.descriptor
             concatenate_handler_cls = info.concatenate_handler_cls
             if not all(

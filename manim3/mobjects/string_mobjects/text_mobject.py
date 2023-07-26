@@ -1,6 +1,6 @@
-from enum import Enum
 import pathlib
 import re
+from enum import Enum
 from typing import (
     ClassVar,
     Iterable,

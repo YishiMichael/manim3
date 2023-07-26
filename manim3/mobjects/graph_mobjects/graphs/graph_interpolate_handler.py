@@ -48,24 +48,40 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
                 residues_1[:, None]
             )
         ))
-        extended_indices_0 = np.insert(
-            indices_0.flatten(),
-            np.repeat(interpolated_indices_0 * 2 + 1, 2),
-            np.repeat(np.arange(len(positions_0), len(extended_positions_0)), 2)
-        )
-        extended_indices_1 = np.insert(
-            indices_1.flatten(),
-            np.repeat(interpolated_indices_1 * 2 + 1, 2),
-            np.repeat(np.arange(len(positions_1), len(extended_positions_1)), 2)
-        )
-        aligned_indices, indices = np.unique(
-            np.array((extended_indices_0, extended_indices_1)),
+        extended_indices_0 = np.column_stack((
+            np.insert(np.insert(
+                indices_0[1:, 0],
+                interpolated_indices_0,
+                np.arange(len(positions_0), len(extended_positions_0))
+            ), 0, indices_0[0, 0]),
+            np.append(np.insert(
+                indices_0[:-1, 1],
+                interpolated_indices_0,
+                np.arange(len(positions_0), len(extended_positions_0))
+            ), indices_0[-1, 1])
+        ))
+        extended_indices_1 = np.column_stack((
+            np.insert(np.insert(
+                indices_1[1:, 0],
+                interpolated_indices_1,
+                np.arange(len(positions_1), len(extended_positions_1))
+            ), 0, indices_1[0, 0]),
+            np.append(np.insert(
+                indices_1[:-1, 1],
+                interpolated_indices_1,
+                np.arange(len(positions_1), len(extended_positions_1))
+            ), indices_1[-1, 1])
+        ))
+        aligned_indices, indices_inverse = np.unique(
+            np.array((extended_indices_0.flatten(), extended_indices_1.flatten())),
             axis=1,
             return_inverse=True
         )
+
+        super().__init__(graph_0, graph_1)
         self._aligned_positions_0: NP_x3f8 = extended_positions_0[aligned_indices[0]]
         self._aligned_positions_1: NP_x3f8 = extended_positions_1[aligned_indices[1]]
-        self._indices: NP_x2i4 = indices.reshape((-1, 2))
+        self._indices: NP_x2i4 = indices_inverse.reshape((-1, 2))
 
     def interpolate(
         self,

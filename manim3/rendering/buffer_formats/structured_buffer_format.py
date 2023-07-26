@@ -1,6 +1,5 @@
 import numpy as np
 
-
 from ...lazy.lazy import Lazy
 from .atomic_buffer_format import AtomicBufferFormat
 from .buffer_format import BufferFormat

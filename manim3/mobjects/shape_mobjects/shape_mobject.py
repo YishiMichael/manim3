@@ -2,7 +2,7 @@ from ...lazy.lazy import Lazy
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
 from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
-from ..mobject.operation_handlers.mobject_operation import MobjectOperation
+from ..mobject.style_meta import StyleMeta
 from .shapes.shape import Shape
 from .shapes.shape_concatenate_handler import ShapeConcatenateHandler
 from .shapes.shape_interpolate_handler import ShapeInterpolateHandler
@@ -20,10 +20,10 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self._shape_ = shape
 
-    @MobjectOperation.register(
-        partial=ShapePartialHandler,
-        interpolate=ShapeInterpolateHandler,
-        concatenate=ShapeConcatenateHandler
+    @StyleMeta.register(
+        partial_operation=ShapePartialHandler,
+        interpolate_operation=ShapeInterpolateHandler,
+        concatenate_operation=ShapeConcatenateHandler
     )
     @Lazy.variable
     @classmethod

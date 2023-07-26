@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING
 
 from ....lazy.lazy import LazyVariableDescriptor
+from ..style_meta import StyleMeta
 from .interpolate_handler import InterpolateHandler
-from .mobject_operation import MobjectOperation
 
 if TYPE_CHECKING:
     from ..mobject import Mobject
@@ -22,7 +22,7 @@ class InterpolateBoundHandler:
     ) -> None:
         super().__init__()
         interpolate_handler_dict: dict[LazyVariableDescriptor, InterpolateHandler] = {}
-        for info in MobjectOperation._operation_infos:
+        for info in StyleMeta._operation_infos:
             descriptor = info.descriptor
             interpolate_handler_cls = info.interpolate_handler_cls
             if not all(

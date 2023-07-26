@@ -1,5 +1,5 @@
-from functools import reduce
 import operator as op
+from functools import reduce
 
 import numpy as np
 

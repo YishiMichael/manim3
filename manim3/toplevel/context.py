@@ -1,7 +1,7 @@
+import operator as op
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import reduce
-import operator as op
 from typing import Iterator
 
 import moderngl

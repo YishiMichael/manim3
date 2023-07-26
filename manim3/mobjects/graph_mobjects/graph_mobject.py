@@ -16,7 +16,7 @@ from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-from ..mobject.operation_handlers.mobject_operation import MobjectOperation
+from ..mobject.style_meta import StyleMeta
 from ..renderable_mobject import RenderableMobject
 from .graphs.graph import Graph
 from .graphs.graph_concatenate_handler import GraphConcatenateHandler
@@ -35,42 +35,42 @@ class GraphMobject(RenderableMobject):
         if graph is not None:
             self._graph_ = graph
 
-    @MobjectOperation.register(
-        partial=GraphPartialHandler,
-        interpolate=GraphInterpolateHandler,
-        concatenate=GraphConcatenateHandler
+    @StyleMeta.register(
+        partial_operation=GraphPartialHandler,
+        interpolate_operation=GraphInterpolateHandler,
+        concatenate_operation=GraphConcatenateHandler
     )
     @Lazy.variable
     @classmethod
     def _graph_(cls) -> Graph:
         return Graph()
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod

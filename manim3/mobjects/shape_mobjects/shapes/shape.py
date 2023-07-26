@@ -1,14 +1,14 @@
-from functools import reduce
 import itertools as it
+from functools import reduce
 from typing import (
     Iterable,
     Iterator
 )
 
-from mapbox_earcut import triangulate_float64
 import numpy as np
 import shapely.geometry
 import shapely.validation
+from mapbox_earcut import triangulate_float64
 
 from ....constants.custom_typing import (
     NP_2f8,
@@ -124,9 +124,9 @@ class Shape(LazyObject):
         def get_polygon_triangulation(
             polygon: shapely.geometry.Polygon
         ) -> tuple[NP_x3i4, NP_x2f8]:
-            ring_positions_list = [
-                np.array(boundary.coords)
-                for boundary in [polygon.exterior, *polygon.interiors]
+            ring_positions_list: list[NP_x2f8] = [
+                np.fromiter(boundary.coords, dtype=np.dtype((np.float64, (2,))))
+                for boundary in (polygon.exterior, *polygon.interiors)
             ]
             positions = np.concatenate(ring_positions_list)
             if not len(positions):
@@ -206,13 +206,14 @@ class Shape(LazyObject):
         def iter_paths_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
         ) -> Iterator[tuple[NP_x2f8, bool]]:
+            positions_dtype = np.dtype((np.float64, (2,)))
             match shapely_obj:
                 case shapely.geometry.Point() | shapely.geometry.LineString():
-                    yield np.array(shapely_obj.coords), False
+                    yield np.fromiter(shapely_obj.coords, dtype=positions_dtype), False
                 case shapely.geometry.Polygon():
-                    yield np.array(shapely_obj.exterior.coords[:-1]), True
+                    yield np.fromiter(shapely_obj.exterior.coords[:-1], dtype=positions_dtype), True
                     for interior in shapely_obj.interiors:
-                        yield np.array(interior.coords[:-1]), True
+                        yield np.fromiter(interior.coords[:-1], dtype=positions_dtype), True
                 case shapely.geometry.base.BaseMultipartGeometry():
                     for shapely_obj_component in shapely_obj.geoms:
                         yield from iter_paths_from_shapely_obj(shapely_obj_component)

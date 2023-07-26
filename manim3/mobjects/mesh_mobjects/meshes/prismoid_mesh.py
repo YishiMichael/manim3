@@ -4,7 +4,8 @@ import numpy as np
 
 from ....constants.custom_typing import (
     NP_2f8,
-    NP_3f8
+    NP_3f8,
+    NP_x3i4
 )
 from ....utils.iterables import IterUtils
 from ....utils.space import SpaceUtils
@@ -22,7 +23,7 @@ class PrismoidMesh(Mesh):
         position_list: list[NP_3f8] = []
         normal_list: list[NP_3f8] = []
         uv_list: list[NP_2f8] = []
-        index_list: list[int] = []
+        indices_list: list[NP_x3i4] = []
         index_offset = 0
         for line_string in shape._multi_line_string_._line_strings_:  # TODO
             points = SpaceUtils.decrease_dimension(line_string._points_)
@@ -64,10 +65,8 @@ class PrismoidMesh(Mesh):
             for (i0, ip0), (i1, ip1) in it.islice(it.pairwise(it.cycle(enumerate(ips))), l):
                 if ip0 == ip1:
                     continue
-                index_list.extend(
-                    index_offset + i
-                    for i in (i0, i0 + l, i1, i1 + l, i1, i0 + l)
-                )
+                indices_list.append(np.array((i0, i0 + l, i1)) + index_offset)
+                indices_list.append(np.array((i1 + l, i1, i0 + l)) + index_offset)
             index_offset += 2 * l
 
         # Assemble top and bottom faces.
@@ -76,12 +75,12 @@ class PrismoidMesh(Mesh):
             position_list.extend(SpaceUtils.increase_dimension(shape_points, z_value=sign))
             normal_list.extend(SpaceUtils.increase_dimension(np.zeros_like(shape_points), z_value=sign))
             uv_list.extend(shape_points)
-            index_list.extend(index_offset + shape_index)
+            indices_list.extend(index_offset + shape_index)
             index_offset += len(shape_points)
 
         super().__init__(
-            positions=np.array(position_list),
-            normals=np.array(normal_list),
-            uvs=np.array(uv_list),
-            indices=np.array(index_list).reshape((-1, 3))
+            positions=np.fromiter(position_list, dtype=np.dtype((np.float64, (3,)))),
+            normals=np.fromiter(normal_list, dtype=np.dtype((np.float64, (3,)))),
+            uvs=np.fromiter(uv_list, dtype=np.dtype((np.float64, (2,)))),
+            indices=np.fromiter(indices_list, dtype=np.dtype((np.int32, (3,))))
         )

@@ -51,9 +51,15 @@ class GraphPartialHandler(PartialHandler[Graph]):
         #interpolated_index_1, residue_1 = cls._interpolate_knots(knots, alpha_1 * length, side="left")
         return Graph(
             positions=extended_positions,
-            indices=np.insert(
-                np.array((n_positions, n_positions + 1)),
-                1,
-                indices[interpolated_indices[0] : interpolated_indices[1] + 1].flatten()[1:-1]
-            ).reshape((-1, 2))
+            indices=np.column_stack((
+                np.insert(indices[interpolated_indices[0] + 1 : interpolated_indices[1] + 1, 0], 0, n_positions),
+                np.append(indices[interpolated_indices[0] : interpolated_indices[1], 1], n_positions + 1)
+            ))
+
+
+            #np.insert(
+            #    np.array((n_positions, n_positions + 1)),
+            #    1,
+            #    indices[interpolated_indices[0] : interpolated_indices[1] + 1].flatten()[1:-1]
+            #).reshape((-1, 2))
         )

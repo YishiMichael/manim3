@@ -1,8 +1,8 @@
+import asyncio
 from abc import (
     ABC,
     abstractmethod
 )
-import asyncio
 from typing import (
     TYPE_CHECKING,
     Callable,

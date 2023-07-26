@@ -16,7 +16,7 @@ from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ..lights.lighting import Lighting
 from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-from ..mobject.operation_handlers.mobject_operation import MobjectOperation
+from ..mobject.style_meta import StyleMeta
 from ..renderable_mobject import RenderableMobject
 from .meshes.mesh import Mesh
 
@@ -33,60 +33,60 @@ class MeshMobject(RenderableMobject):
             self._mesh_ = mesh
         self._lighting_ = Toplevel.scene._lighting
 
-    @MobjectOperation.register()
+    @StyleMeta.register()
     @Lazy.variable
     @classmethod
     def _mesh_(cls) -> Mesh:
         return Mesh()
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _color_(cls) -> NP_3f8:
         return np.ones((3,))
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _weight_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectOperation.register()
+    @StyleMeta.register()
     @Lazy.variable
     @classmethod
     def _lighting_(cls) -> Lighting:
         return Lighting()
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _ambient_strength_(cls) -> NP_f8:
         return np.ones(())
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
     def _specular_strength_(cls) -> NP_f8:
         return Toplevel.config.mesh_specular_strength * np.ones(())
 
-    @MobjectOperation.register(
-        interpolate=LerpInterpolateHandler
+    @StyleMeta.register(
+        interpolate_operation=LerpInterpolateHandler
     )
     @Lazy.variable_array
     @classmethod
@@ -175,6 +175,6 @@ class MeshMobject(RenderableMobject):
         self._mesh_vertex_array_.render(
             framebuffer=target_framebuffer,
             texture_array_dict={
-                "t_color_maps": np.array(self._color_maps_, dtype=moderngl.Texture)
+                "t_color_maps": np.fromiter(self._color_maps_, dtype=moderngl.Texture)
             }
         )

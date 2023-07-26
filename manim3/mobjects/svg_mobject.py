@@ -1,4 +1,3 @@
-import itertools as it
 import pathlib
 from typing import (
     Callable,
@@ -7,8 +6,8 @@ from typing import (
 )
 
 import numpy as np
-from scipy.interpolate import BSpline
 import svgelements as se
+from scipy.interpolate import BSpline
 
 from ..constants.custom_typing import (
     NP_2f8,
@@ -68,16 +67,19 @@ class BezierCurve(BSpline):
                 return samples
             positions = gamma(samples)
             directions = SpaceUtils.normalize(np.diff(positions, axis=0))
-            angles = abs(np.arccos((directions[1:] * directions[:-1]).sum(axis=1)))
-            large_angle_indices = np.squeeze(np.argwhere(angles > np.pi / 16.0), axis=1)
+            angle_cosines = (directions[1:] * directions[:-1]).sum(axis=1)
+            large_angle_indices = np.flatnonzero(angle_cosines < np.cos(np.pi / 16.0))
             if not len(large_angle_indices):
                 return samples
-            insertion_index_pairs = np.array(list(dict.fromkeys(it.chain.from_iterable(
-                ((i, i + 1), (i + 1, i + 2))
-                for i in large_angle_indices
-            ))))
-            new_samples = np.average(samples[insertion_index_pairs], axis=1)
-            return smoothen_samples(gamma, np.sort(np.concatenate((samples, new_samples))), bisect_depth + 1)
+            insertion_indices = np.unique(np.concatenate(
+                (large_angle_indices, large_angle_indices + 1)
+            ))
+            new_samples = np.insert(
+                samples,
+                insertion_indices + 1,
+                (samples[insertion_indices] + samples[insertion_indices + 1]) / 2.0
+            )
+            return smoothen_samples(gamma, new_samples, bisect_depth + 1)
 
         if self._degree <= 1:
             start_position = self.gamma(0.0)
@@ -194,10 +196,11 @@ class SVGMobject(ShapeMobject):
             se_path.approximate_arcs_with_cubics()
             positions_list: list[NP_2f8] = []
             is_ring: bool = False
+            positions_dtype = np.dtype((np.float64, (2,)))
             for segment in se_path.segments(transformed=True):
                 match segment:
                     case se.Move(end=end):
-                        yield np.array(positions_list), is_ring
+                        yield np.fromiter(positions_list, dtype=positions_dtype), is_ring
                         positions_list = [np.array(end)]
                         is_ring = False
                     case se.Close():
@@ -207,6 +210,6 @@ class SVGMobject(ShapeMobject):
                         positions_list.extend(BezierCurve(control_positions).get_sample_positions()[1:])
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-            yield np.array(positions_list), is_ring
+            yield np.fromiter(positions_list, dtype=positions_dtype), is_ring
 
         return Shape.from_paths(iter_paths_from_se_shape(se_shape))

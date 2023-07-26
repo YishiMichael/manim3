@@ -117,16 +117,17 @@ calculation result of some property.
 """
 
 
+import copy
+import inspect
+import itertools as it
+import re
+import sys
+import weakref
 from abc import (
     ABC,
     abstractmethod
 )
-import copy
-import inspect
-import itertools as it
 from functools import wraps
-import re
-import sys
 from typing import (
     Any,
     Callable,
@@ -140,7 +141,6 @@ from typing import (
     TypeVar,
     overload
 )
-import weakref
 
 import numpy as np
 
