@@ -25,20 +25,20 @@ class GraphPartialHandler(PartialHandler[Graph]):
         graph = self._graph
         positions = graph._positions_
         edges = graph._edges_
-        knots = Graph._get_knots(
+        cumlengths = Graph._get_cumlengths(
             positions=positions,
             edges=edges
         )
         n_positions = len(positions) * np.ones((), dtype=np.int32)
 
-        values = np.array((alpha_0, alpha_1)) * knots[-1]
-        interpolated_indices = np.searchsorted(knots[1:-1], values)
+        values = np.array((alpha_0, alpha_1)) * cumlengths[-1]
+        interpolated_indices = np.searchsorted(cumlengths[1:-1], values)
         all_positions = np.concatenate((
             positions,
             Graph._interpolate_positions(
                 positions=positions,
                 edges=edges,
-                knots=knots,
+                full_knots=cumlengths,
                 values=values,
                 indices=interpolated_indices
             )
@@ -47,10 +47,10 @@ class GraphPartialHandler(PartialHandler[Graph]):
             positions=all_positions,
             edges=Graph._reassemble_edges(
                 edges=edges,
-                selected_transitions=np.arange(interpolated_indices[0], interpolated_indices[1]),
+                transition_indices=np.arange(interpolated_indices[0], interpolated_indices[1]),
                 prepend=n_positions,
                 append=n_positions + 1,
                 insertion_indices=np.zeros((0,), dtype=np.int32),
-                insertion_values=np.zeros((0,), dtype=np.int32)
+                insertions=np.zeros((0,), dtype=np.int32)
             )
         )

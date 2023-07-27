@@ -28,45 +28,28 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
         assert len(edges_0)
         assert len(edges_1)
 
-        knots_0 = Graph._get_knots(positions_0, edges_0)
-        knots_1 = Graph._get_knots(positions_1, edges_1)
-        aligned_knots_0 = knots_0 * knots_1[-1]
-        aligned_knots_1 = knots_1 * knots_0[-1]
-        real_knots_0 = aligned_knots_0[1:-1]
-        real_knots_1 = aligned_knots_1[1:-1]
-        interpolated_indices_0 = np.searchsorted(
-            real_knots_0,
-            real_knots_1,
-            side="right"
-        )
-        interpolated_indices_1 = np.searchsorted(
-            real_knots_1,
-            real_knots_0,
-            side="left"
-        )
-        outline_positions_0 = Graph._interpolate_positions(
+        cumlengths_0 = Graph._get_cumlengths(positions_0, edges_0)
+        cumlengths_1 = Graph._get_cumlengths(positions_1, edges_1)
+        full_knots_0 = cumlengths_0 * cumlengths_1[-1]
+        full_knots_1 = cumlengths_1 * cumlengths_0[-1]
+        knots_0 = full_knots_0[1:-1]
+        knots_1 = full_knots_1[1:-1]
+
+        outline_edges_0, outline_positions_0, _ = Graph._get_decomposed_edges(
             positions=positions_0,
             edges=edges_0,
-            knots=aligned_knots_0,
-            values=real_knots_1,
-            indices=interpolated_indices_0
+            insertions=np.arange(len(edges_1) - 1) + len(positions_0),
+            full_knots=full_knots_0,
+            values=knots_1,
+            side="right"
         )
-        outline_positions_1 = Graph._interpolate_positions(
+        outline_edges_1, outline_positions_1, _ = Graph._get_decomposed_edges(
             positions=positions_1,
             edges=edges_1,
-            knots=aligned_knots_1,
-            values=real_knots_0,
-            indices=interpolated_indices_1
-        )
-        outline_edges_0, outline_edges_1 = Graph._align_edges(
-            edges_0=edges_0,
-            edges_1=edges_1,
-            selected_transitions_0=np.arange(len(edges_0) - 1),
-            selected_transitions_1=np.arange(len(edges_1) - 1),
-            insertion_indices_0=interpolated_indices_0,
-            insertion_indices_1=interpolated_indices_1,
-            insertion_indices_offset_0=len(positions_0),
-            insertion_indices_offset_1=len(positions_1)
+            insertions=np.arange(len(edges_0) - 1) + len(positions_1),
+            full_knots=full_knots_1,
+            values=knots_0,
+            side="left"
         )
         interpolated_positions_0, interpolated_positions_1, edges = Graph._get_unique_positions(
             positions_0=np.concatenate((

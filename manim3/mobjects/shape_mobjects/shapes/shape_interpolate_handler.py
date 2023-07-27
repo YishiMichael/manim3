@@ -5,8 +5,8 @@ from ....constants.custom_typing import (
     NP_x3f8
 )
 from ....utils.space import SpaceUtils
-from ...mobject.operation_handlers.interpolate_handler import InterpolateHandler
 from ...graph_mobjects.graphs.graph import Graph
+from ...mobject.operation_handlers.interpolate_handler import InterpolateHandler
 from .shape import Shape
 
 
@@ -31,73 +31,59 @@ class ShapeInterpolateHandler(InterpolateHandler[Shape]):
         assert len(edges_0)
         assert len(edges_1)
 
-        knots_0 = Graph._get_knots(
+        cumlengths_0 = Graph._get_cumlengths(
             positions=positions_0,
             edges=edges_0
         )
-        knots_1 = Graph._get_knots(
+        cumlengths_1 = Graph._get_cumlengths(
             positions=positions_1,
             edges=edges_1
         )
-        aligned_knots_0 = knots_0 * knots_1[-1]
-        aligned_knots_1 = knots_1 * knots_0[-1]
-        real_knots_0 = aligned_knots_0[1:-1]
-        real_knots_1 = aligned_knots_1[1:-1]
-        interpolated_indices_0 = np.searchsorted(
-            real_knots_0,
-            real_knots_1,
-            side="right"
-        )
-        interpolated_indices_1 = np.searchsorted(
-            real_knots_1,
-            real_knots_0,
-            side="left"
-        )
-        outline_positions_0 = Graph._interpolate_positions(
+        full_knots_0 = cumlengths_0 * cumlengths_1[-1]
+        full_knots_1 = cumlengths_1 * cumlengths_0[-1]
+        knots_0 = full_knots_0[1:-1]
+        knots_1 = full_knots_1[1:-1]
+        outline_edges_0, outline_positions_0, interpolated_indices_0 = Graph._get_decomposed_edges(
             positions=positions_0,
             edges=edges_0,
-            knots=aligned_knots_0,
-            values=real_knots_1,
-            indices=interpolated_indices_0
+            insertions=np.arange(len(edges_1) - 1) + len(positions_0),
+            full_knots=full_knots_0,
+            values=knots_1,
+            side="right"
         )
-        outline_positions_1 = Graph._interpolate_positions(
+        outline_edges_1, outline_positions_1, interpolated_indices_1 = Graph._get_decomposed_edges(
             positions=positions_1,
             edges=edges_1,
-            knots=aligned_knots_1,
-            values=real_knots_0,
-            indices=interpolated_indices_1
-        )
-        outline_edges_0, outline_edges_1 = Graph._align_edges(
-            edges_0=edges_0,
-            edges_1=edges_1,
-            selected_transitions_0=np.arange(len(edges_0) - 1),
-            selected_transitions_1=np.arange(len(edges_1) - 1),
-            insertion_indices_0=interpolated_indices_0,
-            insertion_indices_1=interpolated_indices_1,
-            insertion_indices_offset_0=len(positions_0),
-            insertion_indices_offset_1=len(positions_1)
+            insertions=np.arange(len(edges_0) - 1) + len(positions_1),
+            full_knots=full_knots_1,
+            values=knots_0,
+            side="left"
         )
         disjoints_0 = Graph._get_disjoints(edges=edges_0)
         disjoints_1 = Graph._get_disjoints(edges=edges_1)
-        inlay_interpolated_indices_0 = np.searchsorted(
-            real_knots_0[disjoints_0],
-            real_knots_1[disjoints_1],
-            side="right"
+        inlay_edges_0 = Graph._reassemble_edges(
+            edges=edges_0,
+            transition_indices=disjoints_0,
+            prepend=edges_0[0, 0],
+            append=edges_0[-1, 1],
+            insertion_indices=np.searchsorted(
+                disjoints_0,
+                interpolated_indices_0[disjoints_1],
+                side="right"
+            ).astype(np.int32),
+            insertions=disjoints_1 + len(positions_0)
         )
-        inlay_interpolated_indices_1 = np.searchsorted(
-            real_knots_1[disjoints_1],
-            real_knots_0[disjoints_0],
-            side="left"
-        )
-        inlay_edges_0, inlay_edges_1 = Graph._align_edges(
-            edges_0=edges_0,
-            edges_1=edges_1,
-            selected_transitions_0=disjoints_0,
-            selected_transitions_1=disjoints_1,
-            insertion_indices_0=inlay_interpolated_indices_0,
-            insertion_indices_1=inlay_interpolated_indices_1,
-            insertion_indices_offset_0=len(positions_0),
-            insertion_indices_offset_1=len(positions_1)
+        inlay_edges_1 = Graph._reassemble_edges(
+            edges=edges_1,
+            transition_indices=disjoints_1,
+            prepend=edges_1[0, 0],
+            append=edges_1[-1, 1],
+            insertion_indices=np.searchsorted(
+                disjoints_1,
+                interpolated_indices_1[disjoints_0],
+                side="left"
+            ).astype(np.int32),
+            insertions=disjoints_0 + len(positions_1)
         )
         interpolated_positions_0, interpolated_positions_1, edges = Graph._get_unique_positions(
             positions_0=np.concatenate((

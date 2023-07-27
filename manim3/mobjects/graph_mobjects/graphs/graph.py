@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 
 from ....constants.custom_typing import (
@@ -39,7 +41,7 @@ class Graph(LazyObject):
         return np.zeros((0, 2), dtype=np.int32)
 
     @classmethod
-    def _get_knots(
+    def _get_cumlengths(
         cls,
         positions: NP_x3f8,
         edges: NP_x2i4
@@ -59,11 +61,11 @@ class Graph(LazyObject):
         cls,
         positions: NP_x3f8,
         edges: NP_x2i4,
-        knots: NP_xf8,
+        full_knots: NP_xf8,
         values: NP_xf8,
         indices: NP_xi4
     ) -> NP_x3f8:
-        residues = (values - knots[indices]) / np.maximum(knots[indices + 1] - knots[indices], 1e-6)
+        residues = (values - full_knots[indices]) / np.maximum(full_knots[indices + 1] - full_knots[indices], 1e-6)
         return SpaceUtils.lerp(
             positions[edges[indices, 0]],
             positions[edges[indices, 1]],
@@ -74,54 +76,52 @@ class Graph(LazyObject):
     def _reassemble_edges(
         cls,
         edges: NP_x2i4,
-        selected_transitions: NP_xi4,
+        transition_indices: NP_xi4,
         prepend: NP_i4,
         append: NP_i4,
         insertion_indices: NP_xi4,
-        insertion_values: NP_xi4
+        insertions: NP_xi4
     ) -> NP_x2i4:
         return np.column_stack((
             np.insert(np.insert(
-                edges[selected_transitions + 1, 0],
+                edges[transition_indices + 1, 0],
                 insertion_indices,
-                insertion_values
+                insertions
             ), 0, prepend),
             np.append(np.insert(
-                edges[selected_transitions, 1],
+                edges[transition_indices, 1],
                 insertion_indices,
-                insertion_values
+                insertions
             ), append)
         ))
 
     @classmethod
-    def _align_edges(
+    def _get_decomposed_edges(
         cls,
-        edges_0: NP_x2i4,
-        edges_1: NP_x2i4,
-        selected_transitions_0: NP_xi4,
-        selected_transitions_1: NP_xi4,
-        insertion_indices_0: NP_xi4,
-        insertion_indices_1: NP_xi4,
-        insertion_indices_offset_0: int,
-        insertion_indices_offset_1: int
-    ) -> tuple[NP_x2i4, NP_x2i4]:
-        aligned_edges_0 = cls._reassemble_edges(
-            edges=edges_0,
-            selected_transitions=selected_transitions_0,
-            prepend=edges_0[0, 0],
-            append=edges_0[-1, 1],
-            insertion_indices=insertion_indices_0,
-            insertion_values=selected_transitions_1 + insertion_indices_offset_0
+        positions: NP_x3f8,
+        edges: NP_x2i4,
+        insertions: NP_xi4,
+        full_knots: NP_xf8,
+        values: NP_xf8,
+        side: Literal["left", "right"]
+    ) -> tuple[NP_x2i4, NP_x3f8, NP_xi4]:
+        interpolated_indices = np.searchsorted(full_knots[1:-1], values, side=side).astype(np.int32)
+        decomposed_edges = cls._reassemble_edges(
+            edges=edges,
+            transition_indices=np.arange(len(edges) - 1),
+            prepend=edges[0, 0],
+            append=edges[-1, 1],
+            insertion_indices=interpolated_indices,
+            insertions=insertions
         )
-        aligned_edges_1 = cls._reassemble_edges(
-            edges=edges_1,
-            selected_transitions=selected_transitions_1,
-            prepend=edges_1[0, 0],
-            append=edges_1[-1, 1],
-            insertion_indices=insertion_indices_1,
-            insertion_values=selected_transitions_0 + insertion_indices_offset_1
+        interpolated_positions = cls._interpolate_positions(
+            positions=positions,
+            edges=edges,
+            full_knots=full_knots,
+            values=values,
+            indices=interpolated_indices
         )
-        return aligned_edges_0, aligned_edges_1
+        return decomposed_edges, interpolated_positions, interpolated_indices
 
     @classmethod
     def _get_unique_positions(

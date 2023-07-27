@@ -162,7 +162,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=480
     )
-    TexTransformExample.render(config)
+    LaggedAnimationExample.render(config)
 
 
 if __name__ == "__main__":
