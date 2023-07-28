@@ -4,7 +4,7 @@ import numpy as np
 from ..constants.custom_typing import NP_3f8
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
-from ..rendering.buffers.texture_id_buffer import TextureIdBuffer
+from ..rendering.buffers.texture_buffer import TextureBuffer
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
@@ -15,30 +15,38 @@ from .renderable_mobject import RenderableMobject
 
 
 class SceneRootMobject(Mobject):
-    __slots__ = (
-        "_background_color",
-        "_oit_framebuffer"
-    )
+    __slots__ = ("_background_color",)
 
     def __init__(
         self,
         background_color: NP_3f8
     ) -> None:
         super().__init__()
+        self._oit_framebuffer_ = OITFramebuffer()
         self._background_color: NP_3f8 = background_color
-        self._oit_framebuffer: OITFramebuffer = OITFramebuffer()
+
+    @Lazy.variable
+    @classmethod
+    def _oit_framebuffer_(cls) -> OITFramebuffer:
+        return NotImplemented
 
     @Lazy.property
     @classmethod
-    def _oit_compose_vertex_array_(cls) -> VertexArray:
+    def _oit_compose_vertex_array_(
+        cls,
+        oit_framebuffer__accum_texture: moderngl.Texture,
+        oit_framebuffer__revealage_texture: moderngl.Texture
+    ) -> VertexArray:
         return VertexArray(
             shader_filename="oit_compose",
-            texture_id_buffers=[
-                TextureIdBuffer(
-                    field="sampler2D t_accum_map"
+            texture_buffers=[
+                TextureBuffer(
+                    field="sampler2D t_accum_map",
+                    texture_array=np.array(oit_framebuffer__accum_texture, dtype=moderngl.Texture)
                 ),
-                TextureIdBuffer(
-                    field="sampler2D t_revealage_map"
+                TextureBuffer(
+                    field="sampler2D t_revealage_map",
+                    texture_array=np.array(oit_framebuffer__revealage_texture, dtype=moderngl.Texture)
                 )
             ],
             indexed_attributes_buffer=IndexedAttributesBuffer(
@@ -71,20 +79,21 @@ class SceneRootMobject(Mobject):
         self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
-        target_framebuffer.framebuffer.clear(
+        target_framebuffer._framebuffer_.clear(
             color=tuple(self._background_color)
         )
 
-        oit_framebuffer = self._oit_framebuffer
-        oit_framebuffer.framebuffer.clear()
+        oit_framebuffer = self._oit_framebuffer_
+        oit_framebuffer._framebuffer_.clear()
         for mobject in self.iter_descendants():
             if isinstance(mobject, RenderableMobject):
                 mobject._render(oit_framebuffer)
 
-        self._oit_compose_vertex_array_.render(
-            framebuffer=target_framebuffer,
-            texture_array_dict={
-                "t_accum_map": np.array(oit_framebuffer.accum_texture, dtype=moderngl.Texture),
-                "t_revealage_map": np.array(oit_framebuffer.revealage_texture, dtype=moderngl.Texture)
-            }
-        )
+        #self._oit_compose_vertex_array_.render(target_framebuffer
+        #    framebuffer=target_framebuffer,
+        #    texture_array_dict={
+        #        "t_accum_map": np.array(oit_framebuffer.accum_texture, dtype=moderngl.Texture),
+        #        "t_revealage_map": np.array(oit_framebuffer.revealage_texture, dtype=moderngl.Texture)
+        #    }
+        #)
+        self._oit_compose_vertex_array_.render(target_framebuffer)

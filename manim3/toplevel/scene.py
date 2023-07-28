@@ -57,9 +57,9 @@ class Scene(Animation):
             self._progress()
             self._root_mobject._render_scene(color_framebuffer)
             if preview:
-                self._render_to_window(color_framebuffer.framebuffer)
+                self._render_to_window(color_framebuffer._framebuffer_)
             if video_stdin is not None:
-                self._write_frame_to_video(color_framebuffer.color_texture, video_stdin)
+                self._write_frame_to_video(color_framebuffer._color_texture_, video_stdin)
 
         async def run_frames(
             color_framebuffer: ColorFramebuffer,
@@ -83,7 +83,7 @@ class Scene(Animation):
 
             self._root_mobject._render_scene(color_framebuffer)
             if write_last_frame:
-                self._write_frame_to_image(color_framebuffer.color_texture)
+                self._write_frame_to_image(color_framebuffer._color_texture_)
 
         with self._video_writer(write_video, fps) as video_stdin:
             await run_frames(ColorFramebuffer(), video_stdin)

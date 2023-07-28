@@ -43,6 +43,3 @@ class WriteOnlyBuffer(Buffer):
         data_dict: dict[str, np.ndarray]
     ) -> None:
         self._data_dict_ = data_dict
-
-    def get_buffer(self) -> moderngl.Buffer:
-        return self._buffer_

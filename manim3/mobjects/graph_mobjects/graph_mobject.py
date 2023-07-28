@@ -157,6 +157,4 @@ class GraphMobject(RenderableMobject):
         self,
         target_framebuffer: OITFramebuffer
     ) -> None:
-        self._graph_vertex_array_.render(
-            framebuffer=target_framebuffer
-        )
+        self._graph_vertex_array_.render(target_framebuffer)

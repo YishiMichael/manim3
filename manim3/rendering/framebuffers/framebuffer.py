@@ -1,27 +1,34 @@
 import moderngl
 
+from ...lazy.lazy import (
+    Lazy,
+    LazyObject
+)
 from ...toplevel.context import ContextState
 from ...toplevel.toplevel import Toplevel
 
 
-class Framebuffer:
-    __slots__ = (
-        "framebuffer",
-        "context_state"
-    )
+class Framebuffer(LazyObject):
+    __slots__ = ()
 
     def __init__(
         self,
         *,
         color_attachments: tuple[moderngl.Texture, ...] = (),
-        depth_attachment: moderngl.Texture | None = None,
-        framebuffer: moderngl.Framebuffer | None = None,
-        context_state: ContextState
+        depth_attachment: moderngl.Texture | None = None
     ) -> None:
-        if framebuffer is None:
-            framebuffer = Toplevel.context.framebuffer(
-                color_attachments=color_attachments,
-                depth_attachment=depth_attachment
-            )
-        self.framebuffer: moderngl.Framebuffer = framebuffer
-        self.context_state: ContextState = context_state
+        super().__init__()
+        self._framebuffer_ = Toplevel.context.framebuffer(
+            color_attachments=color_attachments,
+            depth_attachment=depth_attachment
+        )
+
+    @Lazy.variable_external
+    @classmethod
+    def _framebuffer_(cls) -> moderngl.Framebuffer:
+        return NotImplemented
+
+    @Lazy.property_external
+    @classmethod
+    def _context_state_(cls) -> ContextState:
+        return NotImplemented

@@ -1,5 +1,6 @@
 import moderngl
 
+from ...lazy.lazy import Lazy
 from ...toplevel.context import ContextState
 from ...toplevel.toplevel import Toplevel
 from ..mgl_enums import (
@@ -11,10 +12,7 @@ from .framebuffer import Framebuffer
 
 
 class OITFramebuffer(Framebuffer):
-    __slots__ = (
-        "accum_texture",
-        "revealage_texture"
-    )
+    __slots__ = ()
 
     def __init__(
         self,
@@ -33,12 +31,26 @@ class OITFramebuffer(Framebuffer):
             dtype="f2"
         )
         super().__init__(
-            color_attachments=(accum_texture, revealage_texture),
-            context_state=ContextState(
-                flags=(ContextFlag.BLEND,),
-                blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ONE, BlendFunc.ONE)),
-                blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
-            )
+            color_attachments=(accum_texture, revealage_texture)
         )
-        self.accum_texture: moderngl.Texture = accum_texture
-        self.revealage_texture: moderngl.Texture = revealage_texture
+        self._accum_texture_ = accum_texture
+        self._revealage_texture_ = revealage_texture
+
+    @Lazy.variable_external
+    @classmethod
+    def _accum_texture_(cls) -> moderngl.Texture:
+        return NotImplemented
+
+    @Lazy.variable_external
+    @classmethod
+    def _revealage_texture_(cls) -> moderngl.Texture:
+        return NotImplemented
+
+    @Lazy.property_external
+    @classmethod
+    def _context_state_(cls) -> ContextState:
+        return ContextState(
+            flags=(ContextFlag.BLEND,),
+            blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ONE, BlendFunc.ONE)),
+            blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
+        )

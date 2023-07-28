@@ -8,7 +8,7 @@ from ...constants.custom_typing import (
     NP_x3f8
 )
 from ...lazy.lazy import Lazy
-from ...rendering.buffers.texture_id_buffer import TextureIdBuffer
+from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
@@ -151,12 +151,13 @@ class MeshMobject(RenderableMobject):
     ) -> VertexArray:
         return VertexArray(
             shader_filename="mesh",
-            texture_id_buffers=[
-                TextureIdBuffer(
+            texture_buffers=[
+                TextureBuffer(
                     field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",
                     array_lens={
                         "NUM_T_COLOR_MAPS": len(color_maps)
-                    }
+                    },
+                    texture_array=np.fromiter(color_maps, dtype=moderngl.Texture)
                 )
             ],
             uniform_block_buffers=[
@@ -172,9 +173,12 @@ class MeshMobject(RenderableMobject):
         self,
         target_framebuffer: OITFramebuffer
     ) -> None:
-        self._mesh_vertex_array_.render(
-            framebuffer=target_framebuffer,
-            texture_array_dict={
-                "t_color_maps": np.fromiter(self._color_maps_, dtype=moderngl.Texture)
-            }
-        )
+        #self._mesh_vertex_array_.render(target_framebuffer
+        #    framebuffer=target_framebuffer,
+        #    texture_array_dict={
+        #        "t_color_maps": np.fromiter(self._color_maps_, dtype=moderngl.Texture)
+        #    }
+        #)
+        self._mesh_vertex_array_.render(target_framebuffer)
+        #print(target_framebuffer._accum_texture_.read() == b"\x00" * len(target_framebuffer._accum_texture_.read()))
+        #print(target_framebuffer._revealage_texture_.read() == b"\x00" * len(target_framebuffer._revealage_texture_.read()))
