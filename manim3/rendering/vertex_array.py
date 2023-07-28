@@ -33,20 +33,6 @@ class ProgramAttributeInfo:
     array_length: int
     dimension: int
     shape: str
-    #__slots__ = (
-    #    "_array_length",
-    #    "_dimension",
-    #    "_shape"
-    #)
-
-    #def __init__(
-    #    self,
-    #    attribute: moderngl.Attribute
-    #) -> None:
-    #    super().__init__()
-    #    self._array_length: int = attribute.array_length
-    #    self._dimension: int = attribute.dimension
-    #    self._shape: str = attribute.shape
 
     def verify_buffer_format(
         self,
@@ -69,44 +55,6 @@ class ProgramUniformInfo:
     array_length: int
     shape: tuple[int, ...]
     binding: int
-    #__slots__ = (
-    #    "_array_length",
-    #    "_shape",
-    #    #"_size",
-    #    "_binding"
-    #)
-
-    #def __init__(
-    #    self,
-    #    uniform_dict: dict[tuple[int, ...], moderngl.Uniform],
-    #    binding: int
-    #) -> None:
-    #    assert uniform_dict
-    #    unique_array_lengths = list(dict.fromkeys(
-    #        uniform.array_length
-    #        for uniform in uniform_dict.values()
-    #    ))
-    #    array_length = unique_array_lengths.pop()
-    #    assert not unique_array_lengths
-    #    shape = tuple(
-    #        max(indices) + 1
-    #        for indices in zip(*uniform_dict)
-    #    )
-
-    #    value = binding
-    #    for multi_index in it.product(*(range(n) for n in shape)):
-    #        uniform = uniform_dict[multi_index]
-    #        assert uniform.dimension == 1
-    #        uniform.value = value if array_length == 1 else list(range(value, value + array_length))
-    #        value += array_length
-
-    #    #size = reduce(op.mul, shape, 1)
-    #    #assert size == len(uniform_dict)
-    #    super().__init__()
-    #    self._array_length: int = array_length
-    #    self._shape: tuple[int, ...] = shape
-    #    #self._size: int = size
-    #    self._binding: int = binding
 
     def verify_buffer_format(
         self,
@@ -131,19 +79,6 @@ class ProgramUniformInfo:
 class ProgramUniformBlockInfo:
     size: int
     binding: int
-    #__slots__ = (
-    #    "_size",
-    #    "_binding"
-    #)
-
-    #def __init__(
-    #    self,
-    #    size: int,
-    #    binding: int
-    #) -> None:
-    #    super().__init__()
-    #    self._size: int = size
-    #    self._binding: int = binding
 
     def verify_buffer_format(
         self,
@@ -164,8 +99,6 @@ class ProgramInfo:
     attribute_info_dict: dict[str, ProgramAttributeInfo]
     uniform_info_dict: dict[str, ProgramUniformInfo]
     uniform_block_info_dict: dict[str, ProgramUniformBlockInfo]
-    #texture_binding_offset_dict: dict[str, int]
-    #uniform_block_binding_dict: dict[str, int]
 
 
 class VertexArray(LazyObject):
@@ -261,7 +194,6 @@ class VertexArray(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        #texture_buffers__buffer_format: list[BufferFormat],
         transform_feedback_buffer__np_buffer_pointer_keys: tuple[str, ...]
     ) -> ProgramInfo:
 
@@ -275,103 +207,6 @@ class VertexArray(LazyObject):
                 lambda match_obj: read_shader_with_includes_replaced(match_obj.group(1)),
                 shader_str
             )
-
-        #def construct_moderngl_program(
-        #    shader_str: str,
-        #    custom_macros: tuple[str, ...],
-        #    array_len_items: tuple[tuple[str, int], ...],
-        #    varyings: tuple[str, ...]
-        #) -> moderngl.Program:
-        #    version_string = f"#version {Toplevel.context.version_code} core"
-        #    array_len_macros = [
-        #        f"#define {array_len_name} {array_len}"
-        #        for array_len_name, array_len in array_len_items
-        #    ]
-        #    shaders = {
-        #        shader_type: "\n".join([
-        #            version_string,
-        #            "\n",
-        #            f"#define {shader_type}",
-        #            *custom_macros,
-        #            *array_len_macros,
-        #            "\n",
-        #            shader_str
-        #        ])
-        #        for shader_type in (
-        #            "VERTEX_SHADER",
-        #            "FRAGMENT_SHADER",
-        #            "GEOMETRY_SHADER",
-        #            "TESS_CONTROL_SHADER",
-        #            "TESS_EVALUATION_SHADER"
-        #        )
-        #        if re.search(rf"\b{shader_type}\b", shader_str, flags=re.MULTILINE) is not None
-        #    }
-        #    return Toplevel.context.program(
-        #        vertex_shader=shaders["VERTEX_SHADER"],
-        #        fragment_shader=shaders.get("FRAGMENT_SHADER"),
-        #        geometry_shader=shaders.get("GEOMETRY_SHADER"),
-        #        tess_control_shader=shaders.get("TESS_CONTROL_SHADER"),
-        #        tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER"),
-        #        varyings=varyings
-        #    )
-
-        #def set_texture_bindings(
-        #    program: moderngl.Program
-        #    #texture_buffer_format_dict: dict[str, BufferFormat]
-        #) -> dict[str, int]:
-        #    texture_binding_offset_dict: dict[str, int] = {}
-        #    binding_offset = 1
-        #    texture_uniform_match_pattern = re.compile(r"""
-        #        (?P<name>\w+?)
-        #        (?P<multi_index>(\[\d+?\])*)
-        #    """, flags=re.VERBOSE)
-        #    for raw_name in program:
-        #        member = program[raw_name]
-        #        if not isinstance(member, moderngl.Uniform):
-        #            continue
-        #        # Used as a `sampler2D`.
-        #        assert member.dimension == 1
-        #        match_obj = texture_uniform_match_pattern.fullmatch(raw_name)
-        #        assert match_obj is not None
-        #        name = match_obj.group("name")
-        #        #texture_buffer_format = texture_buffer_format_dict[name]
-        #        offset = texture_binding_offset_dict.setdefault(name, binding_offset)
-        #        #if name not in texture_binding_offset_dict:
-        #        #    texture_binding_offset_dict[name] = binding_offset
-        #            #binding_offset += texture_buffer_format._size_
-        #        #multi_index = tuple(
-        #        #    int(index_match.group(1))
-        #        #    for index_match in re.finditer(r"\[(\d+?)\]", match_obj.group("multi_index"))
-        #        #)
-        #        array_length = member.array_length
-        #        binding_offset += array_length
-        #        #if not (shape := texture_buffer_format._shape_):
-        #        #    assert not multi_index
-        #        #    uniform_size = 1
-        #        #    local_offset = 0
-        #        #else:
-        #        #    *dims, uniform_size = shape
-        #        #    local_offset = np.ravel_multi_index(multi_index, dims) * uniform_size
-        #        #assert member.array_length == uniform_size
-        #        #offset = texture_binding_offset_dict[name] + local_offset
-        #        member.value = offset if array_length == 1 else list(range(offset, offset + array_length))
-        #    return texture_binding_offset_dict
-
-        #def set_uniform_block_bindings(
-        #    program: moderngl.Program
-        #) -> dict[str, int]:
-        #    uniform_block_binding_dict: dict[str, int] = {}
-        #    binding = 0
-        #    for name in program:
-        #        member = program[name]
-        #        if not isinstance(member, moderngl.UniformBlock):
-        #            continue
-        #        # Ensure the name doesn't contain `[]`.
-        #        assert re.fullmatch(r"\w+", name) is not None
-        #        uniform_block_binding_dict[name] = binding
-        #        member.binding = binding
-        #        binding += 1
-        #    return uniform_block_binding_dict
 
         shader_str = read_shader_with_includes_replaced(f"{shader_filename}.glsl")
         shaders = {
@@ -478,25 +313,11 @@ class VertexArray(LazyObject):
             uniform_block.binding = uniform_block_binding
             uniform_block_binding += 1
 
-        #uniform_block_info_dict: dict[str, ProgramUniformBlockInfo] = {
-        #    name: ProgramUniformBlockInfo(
-        #        size=uniform_block.size,
-        #        binding=uniform_block_binding
-        #    )
-        #    for uniform_block_binding, (name, uniform_block) in enumerate(uniform_blocks.items())
-        #}
-
-        #program = construct_moderngl_program(shader_str, custom_macros, array_len_items, varyings)
-        #texture_binding_offset_dict = set_texture_bindings(program)
-        #uniform_block_binding_dict = set_uniform_block_bindings(program)
-
         return ProgramInfo(
             program=program,
             attribute_info_dict=attribute_info_dict,
             uniform_info_dict=uniform_info_dict,
             uniform_block_info_dict=uniform_block_info_dict
-            #texture_binding_offset_dict=texture_binding_offset_dict,
-            #uniform_block_binding_dict=uniform_block_binding_dict
         )
 
     @_program_info_.finalizer
@@ -514,14 +335,6 @@ class VertexArray(LazyObject):
         program_info: ProgramInfo,
         indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> moderngl.VertexArray | None:
-        #def get_item_components(
-        #    child: AtomicBufferFormat
-        #) -> list[str]:
-        #    components = [f"{child._n_col_}{child._base_char_}{child._base_itemsize_}"]
-        #    if padding_n_col := child._n_col_pseudo_ - child._n_col_:
-        #        components.append(f"{padding_n_col}x{child._base_itemsize_}")
-        #    return components * child._n_row_
-
         attributes_buffer = indexed_attributes_buffer._attributes_buffer_
         index_buffer = indexed_attributes_buffer._index_buffer_
         mode = indexed_attributes_buffer._mode_
@@ -552,30 +365,6 @@ class VertexArray(LazyObject):
         if current_stop != attributes_buffer_format._itemsize_:
             components.append(f"{attributes_buffer_format._itemsize_ - current_stop}x")
         components.append("/v")
-        #program = self._info_.program
-        #attribute_names: list[str] = []
-        #components: list[str] = []
-        #current_stop: int = 0
-        #for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_, strict=True):
-        #    assert isinstance(child, AtomicBufferFormat)
-        #    name = child._name_
-        #    if (attribute_info := attribute_info_dict.get(name)) is None:
-        #        continue
-        #    if not attribute_info.verify_buffer_format(child):
-        #        continue
-        #    #assert isinstance(attribute, moderngl.Attribute)
-        #    #assert not child._is_empty_
-        #    #assert attribute.array_length == child._size_
-        #    #assert attribute.dimension == child._n_col_ * child._n_row_
-        #    #assert attribute.shape == child._base_char_.replace("u", "I")
-        #    attribute_names.append(name)
-        #    if current_stop != offset:
-        #        components.append(f"{offset - current_stop}x")
-        #    components.extend(get_item_components(child) * child._size_)
-        #    current_stop = offset + child._nbytes_
-        #if current_stop != attributes_buffer_format._itemsize_:
-        #    components.append(f"{attributes_buffer_format._itemsize_ - current_stop}x")
-        #components.append("/v")
 
         return Toplevel.context.vertex_array(
             program=program_info.program,

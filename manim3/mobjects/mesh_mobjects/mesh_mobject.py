@@ -173,12 +173,4 @@ class MeshMobject(RenderableMobject):
         self,
         target_framebuffer: OITFramebuffer
     ) -> None:
-        #self._mesh_vertex_array_.render(target_framebuffer
-        #    framebuffer=target_framebuffer,
-        #    texture_array_dict={
-        #        "t_color_maps": np.fromiter(self._color_maps_, dtype=moderngl.Texture)
-        #    }
-        #)
         self._mesh_vertex_array_.render(target_framebuffer)
-        #print(target_framebuffer._accum_texture_.read() == b"\x00" * len(target_framebuffer._accum_texture_.read()))
-        #print(target_framebuffer._revealage_texture_.read() == b"\x00" * len(target_framebuffer._revealage_texture_.read()))

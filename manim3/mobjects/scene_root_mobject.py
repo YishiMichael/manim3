@@ -89,11 +89,4 @@ class SceneRootMobject(Mobject):
             if isinstance(mobject, RenderableMobject):
                 mobject._render(oit_framebuffer)
 
-        #self._oit_compose_vertex_array_.render(target_framebuffer
-        #    framebuffer=target_framebuffer,
-        #    texture_array_dict={
-        #        "t_accum_map": np.array(oit_framebuffer.accum_texture, dtype=moderngl.Texture),
-        #        "t_revealage_map": np.array(oit_framebuffer.revealage_texture, dtype=moderngl.Texture)
-        #    }
-        #)
         self._oit_compose_vertex_array_.render(target_framebuffer)
