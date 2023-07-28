@@ -1,5 +1,4 @@
-from typing import Callable
-
+from ..animation.rates.rate import Rate
 from ..animation.animation import Animation
 
 
@@ -7,23 +6,23 @@ class Lagged(Animation):
     __slots__ = (
         "_animation",
         "_rate",
-        "_lag_ratio"
+        "_lag_time"
     )
 
     def __init__(
         self,
         animation: Animation,
         *,
-        rate: Callable[[float], float] | None = None,
-        lag_ratio: float = 0.0
+        rate: Rate | None = None,
+        lag_time: float = 0.0
     ) -> None:
         super().__init__(
-            run_alpha=lag_ratio + animation._run_alpha
+            run_alpha=lag_time + animation._run_alpha
         )
         self._animation: Animation = animation
-        self._rate: Callable[[float], float] | None = rate
-        self._lag_ratio: float = lag_ratio
+        self._rate: Rate | None = rate
+        self._lag_time: float = lag_time
 
     async def timeline(self) -> None:
-        await self.wait(self._lag_ratio)
+        await self.wait(self._lag_time)
         await self.play(self._animation, rate=self._rate)

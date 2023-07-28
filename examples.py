@@ -25,7 +25,7 @@ class ShapeTransformExample(m3.Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(m3.Transform(square, circle), run_time=2, rate=m3.Rates.smooth)
+        await self.play(m3.Transform(square, circle), run_time=2, rate=m3.Smooth())
         await self.wait()
 
 
@@ -54,9 +54,9 @@ class TexTransformExample(m3.Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(m3.Transform(text, tex), run_time=2, rate=m3.Rates.smooth)
+        await self.play(m3.Transform(text, tex), run_time=2, rate=m3.Smooth())
         await self.wait()
-        await self.play(m3.TransformTo(tex, tex.copy().shift(m3.RIGHT * 2)), rate=m3.Rates.smooth, run_time=2)
+        await self.play(m3.TransformTo(tex, tex.copy().shift(m3.RIGHT * 2)), rate=m3.Smooth(), run_time=2)
         await self.wait(3)
 
 
@@ -73,9 +73,9 @@ class CreateTexExample(m3.Scene):
             .set_style(color=m3.BLUE, weight=10)
         )
         await self.wait()
-        await self.play(m3.PartialCreate(text), run_time=2, rate=m3.Rates.smooth)
+        await self.play(m3.PartialCreate(text), run_time=2, rate=m3.Smooth())
         await self.wait()
-        await self.play(m3.PartialUncreate(text, backwards=True), rate=m3.Rates.smooth, run_time=2)
+        await self.play(m3.PartialUncreate(text, backwards=True), rate=m3.Smooth(), run_time=2)
         await self.wait()
 
 
@@ -126,7 +126,7 @@ class LaggedAnimationExample(m3.Scene):
                 m3.Shift(char, m3.UP, arrive=True)
             )
             for char in text
-        ), lag_ratio=0.5), rate=m3.Rates.smooth, run_time=2.2)
+        ), lag_time=0.5), rate=m3.Smooth(), run_time=2.5)
         await self.wait()
 
 
@@ -149,7 +149,7 @@ class FormulaExample(m3.Scene):
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(m3.TransformMatchingStrings(factored_formula, expanded_formula), rate=m3.Rates.smooth, run_time=2)
+        await self.play(m3.TransformMatchingStrings(factored_formula, expanded_formula), rate=m3.Smooth(), run_time=2)
         await self.wait()
 
 

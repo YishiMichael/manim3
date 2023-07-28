@@ -1,47 +1,42 @@
-import itertools as it
-from typing import Callable
-
-from ..animation.animation import Animation
 from ..animation.conditions.all import All
-from ..animation.conditions.launched import Launched
 from ..animation.conditions.terminated import Terminated
+from ..animation.rates.rate import Rate
+from ..animation.animation import Animation
 from .lagged import Lagged
 
 
 class Parallel(Animation):
     __slots__ = (
-        "_animations",
-        "_rate",
-        "_lag_ratio"
+        "_animation_items",
+        "_rate"
     )
 
     def __init__(
         self,
         *animations: Animation,
-        rate: Callable[[float], float] | None = None,
+        rate: Rate | None = None,
+        lag_time: float = 0.0,
         lag_ratio: float = 0.0
     ) -> None:
+        accumulated_lag_time = 0.0
+        animation_items: list[tuple[Animation, float]] = []
+        for animation in animations:
+            animation_items.append((animation, accumulated_lag_time))
+            accumulated_lag_time += lag_time + lag_ratio * animation._run_alpha
         super().__init__(
             run_alpha=max((
-                index * lag_ratio + animation._run_alpha
-                for index, animation in enumerate(animations)
+                animation_lag_time + animation._run_alpha
+                for animation, animation_lag_time in animation_items
             ), default=0.0)
         )
-        self._animations: list[Animation] = list(animations)
-        self._rate: Callable[[float], float] | None = rate
-        self._lag_ratio: float = lag_ratio
+        self._animation_items: list[tuple[Animation, float]] = animation_items
+        self._rate: Rate | None = rate
 
     async def timeline(self) -> None:
-        animations = self._animations
+        animation_items = self._animation_items
         rate = self._rate
-        lag_ratio = self._lag_ratio
-        if animations:
-            self.prepare(animations[0], rate=rate)
-        for prev_animation, animation in it.pairwise(animations):
-            self.prepare(
-                Lagged(animation, rate=rate, lag_ratio=lag_ratio),
-                launch_condition=Launched(prev_animation)
-            )
+        for animation, animation_lag_time in animation_items:
+            self.prepare(Lagged(animation, lag_time=animation_lag_time), rate=rate)
         await self.wait_until(All(
-            Terminated(animation) for animation in animations
+            Terminated(animation) for animation, _ in animation_items
         ))

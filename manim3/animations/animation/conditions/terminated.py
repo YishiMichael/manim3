@@ -18,7 +18,7 @@ class Terminated(Condition):
         super().__init__()
         self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
 
-    def _judge(self) -> bool:
+    def judge(self) -> bool:
         animation = self._animation_ref()
         return animation is None or \
             animation._animation_state == AnimationState.AFTER_ANIMATION

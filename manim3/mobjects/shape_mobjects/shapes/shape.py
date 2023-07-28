@@ -76,6 +76,8 @@ class Shape(LazyObject):
         ) -> Iterator[NP_x2f8]:
             positions = SpaceUtils.decrease_dimension(graph._positions_)
             edges = graph._edges_
+            if not len(edges):
+                return
             disjoints = Graph._get_disjoints(edges=edges)
             for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
                 yield np.append(

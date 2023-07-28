@@ -332,8 +332,8 @@ class VertexArray(LazyObject):
     @classmethod
     def _vertex_array_(
         cls,
-        program_info: ProgramInfo,
-        indexed_attributes_buffer: IndexedAttributesBuffer
+        indexed_attributes_buffer: IndexedAttributesBuffer,
+        program_info: ProgramInfo
     ) -> moderngl.VertexArray | None:
         attributes_buffer = indexed_attributes_buffer._attributes_buffer_
         index_buffer = indexed_attributes_buffer._index_buffer_
@@ -388,8 +388,8 @@ class VertexArray(LazyObject):
     @classmethod
     def _texture_bindings_(
         cls,
-        program_info: ProgramInfo,
-        texture_buffers: list[TextureBuffer]
+        texture_buffers: list[TextureBuffer],
+        program_info: ProgramInfo
     ) -> tuple[tuple[moderngl.Texture, int], ...]:
         return tuple(
             (texture, binding)
@@ -403,8 +403,8 @@ class VertexArray(LazyObject):
     @classmethod
     def _uniform_block_bindings_(
         cls,
-        program_info: ProgramInfo,
-        uniform_block_buffers: list[UniformBlockBuffer]
+        uniform_block_buffers: list[UniformBlockBuffer],
+        program_info: ProgramInfo
     ) -> tuple[tuple[moderngl.Buffer, int], ...]:
         return tuple(
             (uniform_block_buffer._buffer_, uniform_block_info.binding)

@@ -13,5 +13,5 @@ class Any(Condition):
         super().__init__()
         self._consitions: list[Condition] = list(conditions)
 
-    def _judge(self) -> bool:
-        return any(condition._judge() for condition in self._consitions)
+    def judge(self) -> bool:
+        return any(condition.judge() for condition in self._consitions)

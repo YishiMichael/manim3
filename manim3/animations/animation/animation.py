@@ -5,7 +5,6 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Coroutine
 )
 
@@ -16,16 +15,66 @@ from .conditions.condition import Condition
 from .conditions.never import Never
 from .conditions.progress_duration import ProgressDuration
 from .conditions.terminated import Terminated
-from .rates import Rates
+from .rates.linear import Linear
+from .rates.rate import Rate
 
 if TYPE_CHECKING:
     from ...toplevel.scene import Scene
 
 
+class AbsoluteRate(Rate):
+    __slots__ = (
+        "_parent_absolute_rate",
+        "_relative_rate",
+        "_initial_alpha"
+    )
+
+    def __init__(
+        self,
+        parent_absolute_rate: Rate,
+        relative_rate: Rate,
+        timestamp: float
+    ) -> None:
+        super().__init__()
+        self._parent_absolute_rate: Rate = parent_absolute_rate
+        self._relative_rate: Rate = relative_rate
+        self._initial_alpha: float = parent_absolute_rate.at(timestamp)
+
+    def at(
+        self,
+        t: float
+    ) -> float:
+        return self._relative_rate.at(self._parent_absolute_rate.at(t) - self._initial_alpha)
+
+
+class ScaledRate(Rate):
+    __slots__ = (
+        "_rate",
+        "_run_time_scale",
+        "_run_alpha_scale"
+    )
+
+    def __init__(
+        self,
+        rate: Rate,
+        run_time_scale: float,
+        run_alpha_scale: float
+    ) -> None:
+        super().__init__()
+        self._rate: Rate = rate
+        self._run_time_scale: float = run_time_scale
+        self._run_alpha_scale: float = run_alpha_scale
+
+    def at(
+        self,
+        t: float
+    ) -> float:
+        return self._rate.at(t / self._run_time_scale) * self._run_alpha_scale
+
+
 class Animation(ABC):
     __slots__ = (
         "__weakref__",
-        #"_updater",
         "_run_alpha",
         "_animation_state",
         "_parent_absolute_rate",
@@ -47,17 +96,16 @@ class Animation(ABC):
         run_alpha: float = float("inf")
     ) -> None:
         super().__init__()
-        #self._updater: Callable[[float], None] | None = updater
         self._run_alpha: float = run_alpha
 
         self._animation_state: AnimationState = AnimationState.UNBOUND
         # Alive in `AnimationState.BEFORE_ANIMATION`, `AnimationState.ON_ANIMATION`.
-        self._parent_absolute_rate: Callable[[float], float] | None = None
-        self._relative_rate: Callable[[float], float] | None = None
+        self._parent_absolute_rate: Rate | None = None
+        self._relative_rate: Rate | None = None
         self._launch_condition: Condition | None = None
         self._terminate_condition: Condition | None = None
         # Alive in `AnimationState.ON_ANIMATION`.
-        self._absolute_rate: Callable[[float], float] | None = None
+        self._absolute_rate: Rate | None = None
         self._progress_condition: Condition | None = None
         self._children: list[Animation] | None = None
         self._timeline_coroutine: Coroutine[None, None, None] | None = None
@@ -66,8 +114,8 @@ class Animation(ABC):
         self,
         # `[0.0, +infty) -> [0.0, +infty), time |-> alpha`
         # Must be an increasing function.
-        relative_rate: Callable[[float], float] = Rates.linear,
-        parent_absolute_rate: Callable[[float], float] = Rates.linear,
+        relative_rate: Rate = Linear(),
+        parent_absolute_rate: Rate = Linear(),
         launch_condition: Condition = Always(),
         terminate_condition: Condition = Never()
     ) -> None:
@@ -79,53 +127,16 @@ class Animation(ABC):
         self._terminate_condition = terminate_condition
 
     def _launch(self) -> None:
-
-        def make_absolute_rate(
-            parent_absolute_rate: Callable[[float], float],
-            relative_rate: Callable[[float], float],
-            timestamp: float
-        ) -> Callable[[float], float]:
-            # TODO: correct rate
-
-            #print([
-            #    (i/4, parent_absolute_rate(i/4))
-            #    for i in range(11)
-            #])
-            #print([
-            #    (i/4, relative_rate(i/4))
-            #    for i in range(11)
-            #])
-            #print(timestamp)
-
-            def result(
-                t: float
-            ) -> float:
-                return relative_rate(parent_absolute_rate(t) - parent_absolute_rate(timestamp))
-
-            #print([
-            #    (i/4, result(i/4))
-            #    for i in range(11)
-            #])
-            #print()
-            return result
-
         assert self._animation_state == AnimationState.BEFORE_ANIMATION
         assert (parent_absolute_rate := self._parent_absolute_rate) is not None
         assert (relative_rate := self._relative_rate) is not None
         self._animation_state = AnimationState.ON_ANIMATION
         self._timeline_coroutine = self.timeline()
-        self._absolute_rate = make_absolute_rate(
+        self._absolute_rate = AbsoluteRate(
             parent_absolute_rate=parent_absolute_rate,
             relative_rate=relative_rate,
             timestamp=Toplevel.scene._timestamp
         )
-        #self._absolute_rate = RateUtils.compose_rates(
-        #    RateUtils.lag_rate(
-        #        relative_rate,
-        #        lag_time=parent_absolute_rate(Toplevel.scene._timestamp)
-        #    ),
-        #    parent_absolute_rate
-        #)
         self._progress_condition = Always()
         self._children = []
         self.updater(0.0)
@@ -150,21 +161,21 @@ class Animation(ABC):
         assert (launch_condition := self._launch_condition) is not None
         assert (terminate_condition := self._terminate_condition) is not None
         if self._animation_state == AnimationState.BEFORE_ANIMATION:
-            if not launch_condition._judge():
+            if not launch_condition.judge():
                 return
             self._launch()
         assert self._animation_state == AnimationState.ON_ANIMATION
         assert (absolute_rate := self._absolute_rate) is not None
         assert (children := self._children) is not None
         assert (timeline_coroutine := self._timeline_coroutine) is not None
-        self.updater(absolute_rate(Toplevel.scene._timestamp))
-        while not terminate_condition._judge():
+        self.updater(absolute_rate.at(Toplevel.scene._timestamp))
+        while not terminate_condition.judge():
             for child in children[:]:
                 child._progress()
                 if child._animation_state == AnimationState.AFTER_ANIMATION:
                     children.remove(child)
             assert (progress_condition := self._progress_condition) is not None
-            if not progress_condition._judge():
+            if not progress_condition.judge():
                 return
             try:
                 timeline_coroutine.send(None)
@@ -182,39 +193,34 @@ class Animation(ABC):
         self,
         animation: "Animation",
         *,
-        # If provided, should be defined on `[0, 1] -> [0, 1]` and increasing.
         # Forced to be `None` if `_run_alpha` is infinity.
-        rate: Callable[[float], float] | None = None,
+        rate: Rate | None = None,
         # Intepreted as "the inverse of run speed" if `_run_alpha` is infinity.
-        run_time: float = 1.0,
+        run_time: float | None = None,
         launch_condition: Condition = Always(),
         terminate_condition: Condition = Never()
     ) -> None:
-
-        def scale_rate(
-            rate: Callable[[float], float],
-            run_time_scale: float,
-            run_alpha_scale: float
-        ) -> Callable[[float], float]:
-
-            def result(
-                t: float
-            ) -> float:
-                return rate(t / run_time_scale) * run_alpha_scale
-
-            return result
-
         assert self._animation_state == AnimationState.ON_ANIMATION
         assert (absolute_rate := self._absolute_rate) is not None
-        assert (run_alpha := animation._run_alpha) != float("inf") or rate is None
-        relative_rate = scale_rate(
-            rate=rate if rate is not None else Rates.linear,
-            run_time_scale=run_time,
-            run_alpha_scale=run_alpha if run_alpha != float("inf") else 1.0
-        )
+
+        if (run_alpha := animation._run_alpha) == float("inf"):
+            assert rate is None
+            run_alpha_scale = 1.0
+        else:
+            run_alpha_scale = run_alpha
+        if run_time is None:
+            run_time_scale = run_alpha_scale
+        else:
+            run_time_scale = run_time
+        if rate is None:
+            rate = Linear()
         animation._schedule(
             parent_absolute_rate=absolute_rate,
-            relative_rate=relative_rate,
+            relative_rate=ScaledRate(
+                rate=rate,
+                run_time_scale=run_time_scale,
+                run_alpha_scale=run_alpha_scale
+            ),
             launch_condition=launch_condition,
             terminate_condition=terminate_condition
         )
@@ -243,8 +249,8 @@ class Animation(ABC):
     async def play(
         self,
         animation: "Animation",
-        rate: Callable[[float], float] | None = None,
-        run_time: float = 1.0
+        rate: Rate | None = None,
+        run_time: float | None = None
     ) -> None:
         self.prepare(animation, rate=rate, run_time=run_time)
         await self.wait_until(Terminated(animation))

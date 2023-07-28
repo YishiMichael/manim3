@@ -8,5 +8,5 @@ class Condition(ABC):
     __slots__ = ()
 
     @abstractmethod
-    def _judge(self) -> bool:
+    def judge(self) -> bool:
         pass

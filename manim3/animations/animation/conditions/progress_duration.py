@@ -23,9 +23,9 @@ class ProgressDuration(Condition):
         assert animation._animation_state == AnimationState.ON_ANIMATION
         assert animation._absolute_rate is not None
         self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-        self._target_alpha: float = animation._absolute_rate(Toplevel.scene._timestamp) + delta_alpha
+        self._target_alpha: float = animation._absolute_rate.at(Toplevel.scene._timestamp) + delta_alpha
 
-    def _judge(self) -> bool:
+    def judge(self) -> bool:
         animation = self._animation_ref()
         return animation is None or animation._absolute_rate is None or \
-            animation._absolute_rate(Toplevel.scene._timestamp) >= self._target_alpha
+            animation._absolute_rate.at(Toplevel.scene._timestamp) >= self._target_alpha
