@@ -1,6 +1,6 @@
 from ...constants.custom_typing import NP_x2f8
-from .shape_mobject import ShapeMobject
 from .shapes.polygon_shape import PolygonShape
+from .shape_mobject import ShapeMobject
 
 
 class Polygon(ShapeMobject):

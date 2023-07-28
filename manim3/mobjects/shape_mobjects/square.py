@@ -1,5 +1,5 @@
-from .shape_mobject import ShapeMobject
 from .shapes.square_shape import SquareShape
+from .shape_mobject import ShapeMobject
 
 
 class Square(ShapeMobject):

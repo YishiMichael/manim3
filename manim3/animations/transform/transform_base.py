@@ -1,5 +1,5 @@
-from ...mobjects.mobject.mobject import Mobject
 from ...mobjects.mobject.operation_handlers.interpolate_bound_handler import InterpolateBoundHandler
+from ...mobjects.mobject.mobject import Mobject
 from ..animation.animation import Animation
 
 

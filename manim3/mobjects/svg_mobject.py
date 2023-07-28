@@ -15,8 +15,8 @@ from ..constants.custom_typing import (
     NP_xf8
 )
 from ..utils.space import SpaceUtils
-from .shape_mobjects.shape_mobject import ShapeMobject
 from .shape_mobjects.shapes.shape import Shape
+from .shape_mobjects.shape_mobject import ShapeMobject
 
 
 class BezierCurve(BSpline):

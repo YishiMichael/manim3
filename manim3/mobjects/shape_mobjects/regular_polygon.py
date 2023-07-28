@@ -1,5 +1,5 @@
-from .shape_mobject import ShapeMobject
 from .shapes.regular_polygon_shape import RegularPolygonShape
+from .shape_mobject import ShapeMobject
 
 
 class RegularPolygon(ShapeMobject):

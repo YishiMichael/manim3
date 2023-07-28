@@ -7,8 +7,8 @@ from ...constants.custom_typing import (
     NP_xxi4
 )
 from ...utils.space import SpaceUtils
-from .shape_mobject import ShapeMobject
 from .polygon import Polygon
+from .shape_mobject import ShapeMobject
 
 
 class Polyhedron(ShapeMobject):
@@ -31,7 +31,7 @@ class Polyhedron(ShapeMobject):
         positions: NP_x3f8
     ) -> Polygon:
         positions_2d, matrix = cls._convert_coplanar_positions(positions)
-        return Polygon(positions_2d).apply_transform(matrix)
+        return Polygon(positions_2d).apply_matrix(matrix)
 
     @classmethod
     def _convert_coplanar_positions(

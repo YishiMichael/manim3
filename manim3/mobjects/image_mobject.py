@@ -3,8 +3,8 @@ from PIL import Image
 
 from ..toplevel.toplevel import Toplevel
 from ..utils.space import SpaceUtils
-from .mesh_mobjects.mesh_mobject import MeshMobject
 from .mesh_mobjects.meshes.plane_mesh import PlaneMesh
+from .mesh_mobjects.mesh_mobject import MeshMobject
 
 
 class ImageMobject(MeshMobject):

@@ -1,7 +1,7 @@
 from typing import Callable
 
-from ...mobjects.mobject.mobject import Mobject
 from ...mobjects.mobject.operation_handlers.partial_bound_handler import PartialBoundHandler
+from ...mobjects.mobject.mobject import Mobject
 from ..animation.animation import Animation
 
 

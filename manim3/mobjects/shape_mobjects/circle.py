@@ -1,5 +1,5 @@
-from .shape_mobject import ShapeMobject
 from .shapes.circle_shape import CircleShape
+from .shape_mobject import ShapeMobject
 
 
 class Circle(ShapeMobject):

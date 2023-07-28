@@ -824,42 +824,42 @@ class LazyPropertyDescriptor(LazyDescriptor[
 
         slot = self.get_slot(instance)
         if not slot._is_expired:
-            container = slot.get_property_container()
-        else:
-            parameter_tree_iterator, linked_variable_slots_iterator = IterUtils.unzip_pairs(
-                construct_parameter_item(descriptor_name_chain, instance)
-                for descriptor_name_chain in self.descriptor_name_chains
-            )
-            slot.link_variable_slots(dict.fromkeys(
-                linked_variable_slot
-                for linked_variable_slot in it.chain.from_iterable(linked_variable_slots_iterator)
-                if linked_variable_slot._is_writable
-            ))
-            parameter_trees = tuple(parameter_tree_iterator)
-            key = tuple(
-                construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
-                for parameter_tree in parameter_trees
-            )
+            return slot.get_property_container()
 
-            if (container := self.key_to_container_cache.get(key)) is None:
-                parameters = tuple(
-                    construct_parameter(parameter_tree, requires_unwrapping=requires_unwrapping)
-                    for parameter_tree, requires_unwrapping in zip(
-                        parameter_trees, self.requires_unwrapping_tuple, strict=True
-                    )
+        parameter_tree_iterator, linked_variable_slots_iterator = IterUtils.unzip_pairs(
+            construct_parameter_item(descriptor_name_chain, instance)
+            for descriptor_name_chain in self.descriptor_name_chains
+        )
+        slot.link_variable_slots(dict.fromkeys(
+            linked_variable_slot
+            for linked_variable_slot in it.chain.from_iterable(linked_variable_slots_iterator)
+            if linked_variable_slot._is_writable
+        ))
+        parameter_trees = tuple(parameter_tree_iterator)
+        key = tuple(
+            construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
+            for parameter_tree in parameter_trees
+        )
+
+        if (container := self.key_to_container_cache.get(key)) is None:
+            parameters = tuple(
+                construct_parameter(parameter_tree, requires_unwrapping=requires_unwrapping)
+                for parameter_tree, requires_unwrapping in zip(
+                    parameter_trees, self.requires_unwrapping_tuple, strict=True
                 )
-                container = self.converter.r2c(
-                    self.method(type(instance), *parameters)
-                )
-                for element in container._iter_elements():
-                    for variable_slot in element._iter_variable_slots():
-                        variable_slot.make_readonly()
-                self.key_to_container_cache[key] = container
+            )
+            container = self.converter.r2c(
+                self.method(type(instance), *parameters)
+            )
+            for element in container._iter_elements():
+                for variable_slot in element._iter_variable_slots():
+                    variable_slot.make_readonly()
+            self.key_to_container_cache[key] = container
 
-                if (finalize_method := self.finalize_method) is not None:
-                    weakref.finalize(container, finalize_method, type(instance), self.converter.c2r(container))
+            if (finalize_method := self.finalize_method) is not None:
+                weakref.finalize(container, finalize_method, type(instance), self.converter.c2r(container))
 
-            slot.set_property_container(container)
+        slot.set_property_container(container)
         return container
 
     def set_container(
