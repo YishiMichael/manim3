@@ -25,7 +25,6 @@ from ...constants.custom_typing import (
     SelectorT
 )
 from ...utils.color import ColorUtils
-from ...utils.iterables import IterUtils
 from ...utils.path import PathUtils
 from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..svg_mobject import SVGMobject
@@ -595,7 +594,7 @@ class StringParser(ABC):
         if not self._labelled_shape_mobjects:
             return
 
-        label_iterator, grouper_iterator = IterUtils.unzip_pairs(it.groupby(
+        labelled_groupers = list(it.groupby(
             self._labelled_shape_mobjects,
             key=lambda labelled_shape_item: labelled_shape_item.label
         ))
@@ -607,7 +606,7 @@ class StringParser(ABC):
         index_iterator = (
             boundary_item_to_index_dict[boundary_item]
             for boundary_item in iter_boundary_items(
-                label_iterator=label_iterator,
+                label_iterator=(label for label, _ in labelled_groupers),
                 label_to_span_dict=self._label_to_span_dict
             )
         )
@@ -619,7 +618,7 @@ class StringParser(ABC):
             else ""
             for replaced_item in self._replaced_items
         ]
-        for grouper in grouper_iterator:
+        for _, grouper in labelled_groupers:
             start_index = next(index_iterator)
             stop_index = next(index_iterator)
             if start_index >= stop_index:

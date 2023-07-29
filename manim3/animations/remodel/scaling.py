@@ -2,10 +2,10 @@ from ...constants.custom_typing import NP_3f8
 from ...mobjects.mobject.abouts.about import About
 from ...mobjects.mobject.remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from .remodel_finite_base import RemodelFiniteBase
+from .remodel_infinite_base import RemodelInfiniteBase
 
 
-class Scaling(RemodelFiniteBase):
+class Scaling(RemodelInfiniteBase):
     __slots__ = ()
 
     def __init__(

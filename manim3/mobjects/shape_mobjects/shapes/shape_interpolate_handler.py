@@ -59,6 +59,7 @@ class ShapeInterpolateHandler(InterpolateHandler[Shape]):
             values=knots_0,
             side="left"
         )
+
         disjoints_0 = Graph._get_disjoints(edges=edges_0)
         disjoints_1 = Graph._get_disjoints(edges=edges_1)
         inlay_edges_0 = Graph._reassemble_edges(

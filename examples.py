@@ -79,13 +79,11 @@ class CreateTexExample(m3.Scene):
         await self.wait()
 
 
-class ThreeDTextExample(m3.Scene):
+class ThreeDExample(m3.Scene):
     async def timeline(self) -> None:
-        text = m3.Text("Text").concatenate()
-        text_3d = (
-            m3.MeshMobject(m3.PrismoidMesh(text._shape_))
-            .scale(5.0)
-            .scale_to(0.5, alpha=m3.Z_AXIS)
+        dodec = (
+            m3.Dodecahedron()
+            .scale(2.0)
             .set_style(
                 color="#00FFAA",
                 opacity=0.25,
@@ -95,7 +93,7 @@ class ThreeDTextExample(m3.Scene):
                 )
             )
         )
-        self.add(text_3d)
+        self.add(dodec)
         self.prepare(m3.Rotating(self.camera, 0.5 * m3.DOWN))
         await self.wait(10)
 
@@ -162,7 +160,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=480
     )
-    LaggedAnimationExample.render(config)
+    TexTransformExample.render(config)
 
 
 if __name__ == "__main__":

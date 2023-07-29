@@ -4,7 +4,7 @@ from ...mobjects.mobject.mobject import Mobject
 from .remodel_base import RemodelBase
 
 
-class ReodelInfiniteBase(RemodelBase):
+class RemodelInfiniteBase(RemodelBase):
     __slots__ = ()
 
     def __init__(

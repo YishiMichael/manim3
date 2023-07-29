@@ -2,10 +2,10 @@ from ...constants.custom_typing import NP_3f8
 from ...mobjects.mobject.abouts.about import About
 from ...mobjects.mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from ...mobjects.mobject.mobject import Mobject
-from .remodel_finite_base import RemodelFiniteBase
+from .remodel_infinite_base import RemodelInfiniteBase
 
 
-class Rotating(RemodelFiniteBase):
+class Rotating(RemodelInfiniteBase):
     __slots__ = ()
 
     def __init__(

@@ -19,7 +19,6 @@ from ....lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ....utils.iterables import IterUtils
 from ....utils.space import SpaceUtils
 from ...graph_mobjects.graphs.graph import Graph
 
@@ -80,11 +79,10 @@ class Shape(LazyObject):
                 return
             disjoints = Graph._get_disjoints(edges=edges)
             for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
-                yield np.append(
-                    positions[edges[start:stop, 0]],
-                    (positions[edges[stop - 1, 1]],),
-                    axis=0
-                )
+                indices = edges[start:stop, 0]
+                if indices[0] != (tail_index := edges[stop - 1, 1]):
+                    indices = np.append(indices, tail_index)
+                yield positions[indices]
 
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
             shapely.validation.make_valid(shapely.geometry.Polygon(polygon_positions))
@@ -132,8 +130,10 @@ class Shape(LazyObject):
         def concatenate_triangulations(
             triangulations: Iterable[tuple[NP_x3i4, NP_x2f8]]
         ) -> tuple[NP_x3i4, NP_x2f8]:
-            faces_iterator, positions_iterator = IterUtils.unzip_pairs(triangulations)
-            positions_list = list(positions_iterator)
+            triangulations_list = list(triangulations)
+            positions_list = [
+                positions for _, positions in triangulations_list
+            ]
             if not positions_list:
                 return np.zeros((0,), dtype=np.int32), np.zeros((0, 2))
 
@@ -142,7 +142,7 @@ class Shape(LazyObject):
             ], dtype=np.int32), 0, 0)
             all_faces = np.concatenate([
                 faces + offset
-                for faces, offset in zip(faces_iterator, offsets, strict=True)
+                for (faces, _), offset in zip(triangulations_list, offsets, strict=True)
             ])
             all_positions = np.concatenate(positions_list)
             return all_faces, all_positions

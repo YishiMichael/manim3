@@ -9,7 +9,6 @@ from typing import (
 from ..mobjects.mobject.mobject import Mobject
 from ..mobjects.shape_mobjects.shape_mobject import ShapeMobject
 from ..mobjects.string_mobjects.string_mobject import StringMobject
-from ..utils.iterables import IterUtils
 from .composition.parallel import Parallel
 from .fade.fade_transform import FadeTransform
 from .transform.transform import Transform
@@ -72,8 +71,9 @@ class TransformMatchingStrings(Parallel):
             ):
                 if not substr:
                     continue
-                _, mobject_iter_iter = IterUtils.unzip_pairs(indexed_mobject_iter_iter)
-                if len(result := tuple(mobject_iter_iter)) != n:
+                #_, mobject_iter_iter = IterUtils.unzip_pairs(indexed_mobject_iter_iter)
+                result = tuple(mobject_iter for _, mobject_iter in indexed_mobject_iter_iter)
+                if len(result) != n:
                     continue
                 yield result
 
