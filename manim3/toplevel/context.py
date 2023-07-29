@@ -1,8 +1,6 @@
 import operator as op
-from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import reduce
-from typing import Iterator
 
 import moderngl
 import OpenGL.GL as gl
@@ -13,7 +11,6 @@ from ..rendering.mgl_enums import (
     ContextFlag,
     PrimitiveMode
 )
-from .config import Config
 
 
 @dataclass(
@@ -40,21 +37,6 @@ class Context:
         super().__init__()
         self._mgl_context: moderngl.Context = mgl_context
         self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
-
-    @classmethod
-    @contextmanager
-    def get_context(
-        cls,
-        config: Config
-    ) -> "Iterator[Context]":
-        mgl_context = moderngl.create_context(
-            require=config.gl_version_code,
-            standalone=not config.preview
-        )
-        yield Context(
-            mgl_context=mgl_context
-        )
-        mgl_context.release()
 
     def set_state(
         self,

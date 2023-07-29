@@ -35,6 +35,7 @@ from .animations.misc import TransformMatchingStrings
 from .constants.constants import *
 from .constants.custom_typing import *
 from .constants.palette import *
+from .constants.pyglet_constants import *
 
 from .lazy.lazy import (
     Lazy,
@@ -100,6 +101,26 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
+from .toplevel.event_capturers import (
+    EventCapturer,
+    KeyPressCaptured,
+    KeyReleaseCaptured,
+    MouseDragCaptured,
+    MouseMotionCaptured,
+    MousePressCaptured,
+    MouseReleaseCaptured,
+    MouseScrollCaptured
+)
+from .toplevel.events import (
+    Event,
+    KeyPress,
+    KeyRelease,
+    MouseDrag,
+    MouseMotion,
+    MousePress,
+    MouseRelease,
+    MouseScroll
+)
 from .toplevel.config import Config
 from .toplevel.scene import Scene
 

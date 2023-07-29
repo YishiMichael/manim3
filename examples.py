@@ -1,158 +1,319 @@
 import re
 
-import manim3 as m3
 import numpy as np
+from manim3 import *
 
 
-class ShapeTransformExample(m3.Scene):
+class ShapeTransformExample(Scene):
     async def timeline(self) -> None:
         square = (
-            m3.Square()
-            .set_style(color=m3.WHITE, opacity=1.0)
+            Square()
+            .set_style(color=WHITE, opacity=1.0)
         )
         square.add(
             square.build_stroke()
-            .set_style(color=m3.YELLOW, width=0.0)
+            .set_style(color=YELLOW, width=0.0)
         )
         circle = (
-            m3.Circle()
-            .set_style(color=m3.PINK, opacity=0.9)
+            Circle()
+            .set_style(color=PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=m3.YELLOW, weight=10)
+            .set_style(color=YELLOW, weight=10)
         )
 
         self.add(square)
         await self.wait()
-        await self.play(m3.Transform(square, circle), run_time=2, rate=m3.Smooth())
+        await self.play(Transform(square, circle), run_time=2, rate=Smooth())
         await self.wait()
 
 
-class TexTransformExample(m3.Scene):
+class TexTransformExample(Scene):
     async def timeline(self) -> None:
         text = (
-            m3.Text("Text")
+            Text("Text")
             .scale(3)
-            .set_style(color=m3.ORANGE, opacity=0.5)
+            .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=m3.BLUE, weight=10)
+            .set_style(color=BLUE, weight=10)
         )
         tex = (
-            m3.Tex("Tex")
+            Tex("Tex")
             .scale(3)
-            .set_style(color=m3.BLUE, opacity=0.5)
+            .set_style(color=BLUE, opacity=0.5)
             .concatenate()
-            .shift(m3.RIGHT * 2)
+            .shift(RIGHT * 2)
         )
         tex.add(
             tex.build_stroke()
-            .set_style(color=m3.PINK, weight=10)
+            .set_style(color=PINK, weight=10)
         )
         self.add(text)
         await self.wait()
-        await self.play(m3.Transform(text, tex), run_time=2, rate=m3.Smooth())
+        await self.play(Transform(text, tex), run_time=2, rate=Smooth())
         await self.wait()
-        await self.play(m3.TransformTo(tex, tex.copy().shift(m3.RIGHT * 2)), rate=m3.Smooth(), run_time=2)
+        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), rate=Smooth(), run_time=2)
         await self.wait(3)
 
 
-class CreateTexExample(m3.Scene):
+class CreateTexExample(Scene):
     async def timeline(self) -> None:
         text = (
-            m3.Text("Text")
+            Text("Text")
             .scale(3)
-            .set_style(color=m3.ORANGE, opacity=0.5)
+            .set_style(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=m3.BLUE, weight=10)
+            .set_style(color=BLUE, weight=10)
         )
         await self.wait()
-        await self.play(m3.PartialCreate(text), run_time=2, rate=m3.Smooth())
+        await self.play(PartialCreate(text), run_time=2, rate=Smooth())
         await self.wait()
-        await self.play(m3.PartialUncreate(text, backwards=True), rate=m3.Smooth(), run_time=2)
+        await self.play(PartialUncreate(text, backwards=True), rate=Smooth(), run_time=2)
         await self.wait()
 
 
-class ThreeDExample(m3.Scene):
+class ThreeDExample(Scene):
     async def timeline(self) -> None:
         dodec = (
-            m3.Dodecahedron()
+            Dodecahedron()
             .scale(2.0)
             .set_style(
                 color="#00FFAA",
                 opacity=0.25,
-                lighting=m3.Lighting(
-                    m3.AmbientLight().set_style(color=m3.WHITE * 0.3),
-                    m3.PointLight().shift(m3.RIGHT * 5)
+                lighting=Lighting(
+                    AmbientLight().set_style(color=WHITE * 0.3),
+                    PointLight().shift(RIGHT * 5)
                 )
             )
         )
         self.add(dodec)
-        self.prepare(m3.Rotating(self.camera, 0.5 * m3.DOWN))
+        self.prepare(Rotating(self.camera, 0.5 * DOWN))
         await self.wait(10)
 
 
-class OITExample(m3.Scene):
+class OITExample(Scene):
     async def timeline(self) -> None:
         self.add(*(
-            (m3.Circle()
+            (Circle()
                 .set_style(color=color, opacity=opacity)
-                .shift(m3.RIGHT * 0.5)
-                .rotate(m3.OUT * angle)
+                .shift(RIGHT * 0.5)
+                .rotate(OUT * angle)
             )
             for color, opacity, angle in zip(
-                (m3.RED, m3.GREEN, m3.BLUE),
+                (RED, GREEN, BLUE),
                 (0.3, 0.5, 0.6),
-                np.linspace(0, m3.TAU, 3, endpoint=False)
+                np.linspace(0, TAU, 3, endpoint=False)
             )
         ))
         await self.wait(5)
 
 
-class LaggedAnimationExample(m3.Scene):
+class LaggedAnimationExample(Scene):
     async def timeline(self) -> None:
-        text = m3.Text("Text").scale(3)
-        await self.play(m3.Parallel(*(
-            m3.Parallel(
-                m3.FadeIn(char),
-                m3.Shift(char, m3.UP, arrive=True)
+        text = Text("Text").scale(3)
+        await self.play(Parallel(*(
+            Parallel(
+                FadeIn(char),
+                Shift(char, UP, arrive=True)
             )
             for char in text
-        ), lag_time=0.5), rate=m3.Smooth(), run_time=2.5)
-        await self.wait()
+        ), lag_time=0.5), rate=Smooth())
+        await self.wait(20)
 
 
-class FormulaExample(m3.Scene):
+class FormulaExample(Scene):
     async def timeline(self) -> None:
-        factored_formula = m3.Tex(
+        factored_formula = Tex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             tex_to_color_map={
-                re.compile(r"a_{\d}"): m3.TEAL,
-                re.compile(r"b_{\d}"): m3.ORANGE
+                re.compile(r"a_{\d}"): TEAL,
+                re.compile(r"b_{\d}"): ORANGE
             }
         ).scale(0.7)
-        expanded_formula = m3.Tex(
+        expanded_formula = Tex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
             tex_to_color_map={
-                re.compile(r"a_{\d}"): m3.TEAL,
-                re.compile(r"b_{\d}"): m3.ORANGE
+                re.compile(r"a_{\d}"): TEAL,
+                re.compile(r"b_{\d}"): ORANGE
             }
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(m3.TransformMatchingStrings(factored_formula, expanded_formula), rate=m3.Smooth(), run_time=2)
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Smooth(), run_time=2)
         await self.wait()
 
 
+class InteractiveExample(Scene):
+    async def timeline(self) -> None:
+        squares = ShapeMobject().add(*(
+            (
+                Circle()
+                .scale(0.5)
+                .shift(x * RIGHT)
+                .set_style(color=color)
+            )
+            for x, color in zip(
+                np.linspace(-4.0, 4.0, 5),
+                (RED, YELLOW, GREEN, BLUE, PURPLE)
+            )
+        ))
+        text = Text("Press space to animate.").shift(1.5 * DOWN)
+        self.add(squares, text)
+        animations = [
+            Shift(square, UP)
+            for square in squares
+        ]
+        for animation in animations:
+            self.prepare(
+                animation,
+                rate=Smooth(),
+                launch_condition=KeyPressCaptured(KEY.SPACE)
+            )
+        await self.wait_until(All(Terminated(animation) for animation in animations))
+        await self.wait()
+
+
+class MobjectPositionInRange(Condition):
+    __slots__ = (
+        "_mobject",
+        "_direction",
+        "_x_min",
+        "_x_max",
+        "_y_min",
+        "_y_max",
+        "_z_min",
+        "_z_max"
+    )
+
+    def __init__(
+        self,
+        mobject: Mobject,
+        direction: NP_3f8 = ORIGIN,
+        *,
+        x_min: float | None = None,
+        x_max: float | None = None,
+        y_min: float | None = None,
+        y_max: float | None = None,
+        z_min: float | None = None,
+        z_max: float | None = None
+    ) -> None:
+        super().__init__()
+        self._mobject: Mobject = mobject
+        self._direction: NP_3f8 = direction
+        self._x_min: float | None = x_min
+        self._x_max: float | None = x_max
+        self._y_min: float | None = y_min
+        self._y_max: float | None = y_max
+        self._z_min: float | None = z_min
+        self._z_max: float | None = z_max
+
+    def judge(self) -> bool:
+        position = self._mobject.get_bounding_box_position(self._direction)
+        x_val, y_val, z_val = position
+        return all((
+            (x_min := self._x_min) is None or x_val >= x_min,
+            (x_max := self._x_max) is None or x_val <= x_max,
+            (y_min := self._y_min) is None or y_val >= y_min,
+            (y_max := self._y_max) is None or y_val <= y_max,
+            (z_min := self._z_min) is None or z_val >= z_min,
+            (z_max := self._z_max) is None or z_val <= z_max
+        ))
+
+
+class NoteAnimation(Animation):
+    __slots__ = (
+        "_note",
+        "_key"
+    )
+
+    def __init__(
+        self,
+        note: Mobject,
+        key: int
+    ) -> None:
+        super().__init__()
+        self._note: Mobject = note
+        self._key: int = key
+
+    async def timeline(self) -> None:
+        note = self._note
+        judge_condition = MobjectPositionInRange(note, y_min=-3.4, y_max=-2.6)
+        self.scene.add(note)
+        await self.play(
+            Shifting(note, 7.0 * DOWN),
+            terminate_condition=Any((
+                All((
+                    KeyPressCaptured(self._key),
+                    judge_condition
+                )),
+                MobjectPositionInRange(note, y_max=-3.4)
+            ))
+        )
+        if not judge_condition.judge():
+            note.set_style(opacity=0.4)
+            await self.play(
+                Shifting(note, 10.0 * DOWN),
+                terminate_condition=MobjectPositionInRange(note, y_max=-5.0)
+            )
+            self.scene.discard(note)
+            return
+
+        await self.play(Parallel(
+            FadeOut(note),
+            Scale(note, 2.0, AboutCenter())
+        ), rate=RushFrom())
+
+
+class GameExample(Scene):
+    async def timeline(self) -> None:
+        score = [
+            "|  | |    |      |     |   | |  ",
+            " |  |    |     |   |  |   |  | |",
+            "| |   |   | |  || |  |  |   | | ",
+            "    |  | |    |  |  |   || |   |"
+        ]
+        keys = [KEY.LEFT, KEY.DOWN, KEY.UP, KEY.RIGHT]
+        x_coords = np.linspace(-3.0, 3.0, 4)
+        note_template = Mobject().add(
+            body := Polygon(np.array((
+                (0.5, 0.0),
+                (0.46, 0.04),
+                (-0.46, 0.04),
+                (-0.5, 0.0),
+                (-0.46, -0.04),
+                (0.46, -0.04)
+            ))).set_style(
+                width=0.25,
+                color=BLUE_B,
+                opacity=0.95
+            ),
+            body.build_stroke()
+        )
+        judge_line = Line(8.0 * LEFT, 8.0 * RIGHT).shift(3.0 * DOWN).set_style(
+            width=0.03,
+            color=GOLD_A
+        )
+        self.add(judge_line)
+        for note_chars in zip(*score, strict=True):
+            for note_char, key, x_coord in zip(note_chars, keys, x_coords, strict=True):
+                if note_char == " ":
+                    continue
+                note = note_template.copy().shift(x_coord * RIGHT + 5.0 * UP)
+                self.prepare(NoteAnimation(note, key))
+            await self.wait(0.25)
+        await self.wait(3.0)
+
+
 def main() -> None:
-    config = m3.Config(
+    config = Config(
         fps=30,
         #preview=False,
         #tex_use_mathjax=True,
@@ -160,7 +321,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=480
     )
-    TexTransformExample.render(config)
+    GameExample.render(config)
 
 
 if __name__ == "__main__":

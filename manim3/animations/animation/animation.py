@@ -250,9 +250,17 @@ class Animation(ABC):
         self,
         animation: "Animation",
         rate: Rate | None = None,
-        run_time: float | None = None
+        run_time: float | None = None,
+        launch_condition: Condition = Always(),
+        terminate_condition: Condition = Never()
     ) -> None:
-        self.prepare(animation, rate=rate, run_time=run_time)
+        self.prepare(
+            animation,
+            rate=rate,
+            run_time=run_time,
+            launch_condition=launch_condition,
+            terminate_condition=terminate_condition
+        )
         await self.wait_until(Terminated(animation))
 
     async def wait(

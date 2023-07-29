@@ -54,7 +54,10 @@ class Scene(Animation):
             video_stdin: IO[bytes] | None
         ) -> None:
             await asyncio.sleep(0.0)
+            if preview:
+                Toplevel.window.dispatch_events()
             self._progress()
+            Toplevel.event_queue.clear()
             self._root_mobject._render_scene(color_framebuffer)
             if preview:
                 self._render_to_window(color_framebuffer._framebuffer_)
@@ -124,14 +127,9 @@ class Scene(Animation):
         cls,
         framebuffer: moderngl.Framebuffer
     ) -> None:
-        window = Toplevel.window._pyglet_window
-        assert window is not None
-        if window.has_exit:
-            raise KeyboardInterrupt
-        window.clear()
         window_framebuffer = Toplevel.context._window_framebuffer
         Toplevel.context.blit(framebuffer, window_framebuffer)
-        window.flip()
+        Toplevel.window.flip()
 
     @classmethod
     def _write_frame_to_video(
