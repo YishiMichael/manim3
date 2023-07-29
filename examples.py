@@ -175,7 +175,7 @@ class InteractiveExample(Scene):
             self.prepare(
                 animation,
                 rate=Smooth(),
-                launch_condition=KeyPressCaptured(KEY.SPACE)
+                launch_condition=EventCaptured(KeyPress, symbol=KEY.SPACE)
             )
         await self.wait_until(All(Terminated(animation) for animation in animations))
         await self.wait()
@@ -251,7 +251,7 @@ class NoteAnimation(Animation):
             Shifting(note, 7.0 * DOWN),
             terminate_condition=Any((
                 All((
-                    KeyPressCaptured(self._key),
+                    EventCaptured(KeyPress, symbol=self._key),
                     judge_condition
                 )),
                 MobjectPositionInRange(note, y_max=-3.4)
@@ -268,7 +268,7 @@ class NoteAnimation(Animation):
 
         await self.play(Parallel(
             FadeOut(note),
-            Scale(note, 2.0, AboutCenter())
+            Scale(note, 1.5, AboutCenter())
         ), rate=RushFrom())
 
 
@@ -280,7 +280,7 @@ class GameExample(Scene):
             "| |   |   | |  || |  |  |   | | ",
             "    |  | |    |  |  |   || |   |"
         ]
-        keys = [KEY.LEFT, KEY.DOWN, KEY.UP, KEY.RIGHT]
+        keys = [KEY.D, KEY.F, KEY.J, KEY.K]
         x_coords = np.linspace(-3.0, 3.0, 4)
         note_template = Mobject().add(
             body := Polygon(np.array((
@@ -301,7 +301,21 @@ class GameExample(Scene):
             width=0.03,
             color=GOLD_A
         )
+        key_texts = [
+            Text(char).concatenate().build_stroke().shift(x_coord * RIGHT + 2.0 * DOWN)
+            for char, x_coord in zip("DFJK", x_coords, strict=True)
+        ]
+
         self.add(judge_line)
+        await self.play(Parallel(*(
+            PartialCreate(key_text)
+            for key_text in key_texts
+        ), lag_time=0.5), run_time=1.5)
+        await self.wait()
+        await self.play(Parallel(*(
+            PartialUncreate(key_text)
+            for key_text in key_texts
+        ), lag_time=0.5), run_time=1.5)
         for note_chars in zip(*score, strict=True):
             for note_char, key, x_coord in zip(note_chars, keys, x_coords, strict=True):
                 if note_char == " ":
@@ -319,7 +333,7 @@ def main() -> None:
         #tex_use_mathjax=True,
         #write_video=True,
         #write_last_frame=True,
-        #pixel_height=480
+        #pixel_height=540
     )
     GameExample.render(config)
 

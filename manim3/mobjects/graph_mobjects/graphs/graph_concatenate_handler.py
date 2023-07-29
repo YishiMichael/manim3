@@ -26,7 +26,7 @@ class GraphConcatenateHandler(ConcatenateHandler[Graph]):
         offsets = np.insert(np.cumsum([
             len(graph._positions_)
             for graph in graphs[:-1]
-        ]), 0, 0)
+        ], dtype=np.int32), 0, 0)
         edges = np.concatenate([
             graph._edges_ + offset
             for graph, offset in zip(graphs, offsets, strict=True)

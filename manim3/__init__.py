@@ -2,6 +2,7 @@ from .animations.animation.conditions.all import All
 from .animations.animation.conditions.always import Always
 from .animations.animation.conditions.any import Any
 from .animations.animation.conditions.condition import Condition
+from .animations.animation.conditions.event_captured import EventCaptured
 from .animations.animation.conditions.launched import Launched
 from .animations.animation.conditions.never import Never
 from .animations.animation.conditions.terminated import Terminated
@@ -101,26 +102,14 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
-from .toplevel.event_capturers import (
-    EventCapturer,
-    KeyPressCaptured,
-    KeyReleaseCaptured,
-    MouseDragCaptured,
-    MouseMotionCaptured,
-    MousePressCaptured,
-    MouseReleaseCaptured,
-    MouseScrollCaptured
-)
-from .toplevel.events import (
-    Event,
-    KeyPress,
-    KeyRelease,
-    MouseDrag,
-    MouseMotion,
-    MousePress,
-    MouseRelease,
-    MouseScroll
-)
+from .toplevel.events.event import Event
+from .toplevel.events.key_press import KeyPress
+from .toplevel.events.key_release import KeyRelease
+from .toplevel.events.mouse_drag import MouseDrag
+from .toplevel.events.mouse_motion import MouseMotion
+from .toplevel.events.mouse_press import MousePress
+from .toplevel.events.mouse_release import MouseRelease
+from .toplevel.events.mouse_scroll import MouseScroll
 from .toplevel.config import Config
 from .toplevel.scene import Scene
 

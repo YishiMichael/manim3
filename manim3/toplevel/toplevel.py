@@ -9,18 +9,16 @@ import moderngl
 from pyglet.gl import Config as WindowConfig
 from pyglet.window import Window
 
+from .events.event import Event
+from .events.key_press import KeyPress
+from .events.key_release import KeyRelease
+from .events.mouse_drag import MouseDrag
+from .events.mouse_motion import MouseMotion
+from .events.mouse_press import MousePress
+from .events.mouse_release import MouseRelease
+from .events.mouse_scroll import MouseScroll
 from .config import Config
 from .context import Context
-from .events import (
-    Event,
-    KeyPress,
-    KeyRelease,
-    MouseDrag,
-    MouseMotion,
-    MousePress,
-    MouseRelease,
-    MouseScroll
-)
 
 if TYPE_CHECKING:
     from .scene import Scene

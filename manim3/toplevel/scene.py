@@ -157,7 +157,6 @@ class Scene(Animation):
         cls,
         config: Config | None = None
     ) -> None:
-        #self = cls()
         if config is None:
             config = Config()
         try:

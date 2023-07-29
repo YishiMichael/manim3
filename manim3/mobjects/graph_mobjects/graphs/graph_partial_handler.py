@@ -19,12 +19,12 @@ class GraphPartialHandler(PartialHandler[Graph]):
         alpha_0: float,
         alpha_1: float
     ) -> Graph:
-        if alpha_0 > alpha_1:
-            return Graph()
-
         graph = self._graph
         positions = graph._positions_
         edges = graph._edges_
+        if alpha_0 > alpha_1 or not len(edges):
+            return Graph()
+
         cumlengths = Graph._get_cumlengths(
             positions=positions,
             edges=edges
