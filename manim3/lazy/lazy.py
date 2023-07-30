@@ -917,8 +917,10 @@ class LazyObject(ABC):
                 assert isinstance(descriptor, LazyPropertyDescriptor)
                 assert type(converter) == type(overridden_descriptor.converter)
                 assert issubclass(element_type, overridden_descriptor.element_type)
-                assert return_annotation == overridden_descriptor.return_annotation or \
-                    issubclass(return_annotation, overridden_descriptor.return_annotation)
+                assert (
+                    return_annotation == overridden_descriptor.return_annotation
+                    or issubclass(return_annotation, overridden_descriptor.return_annotation)
+                )
 
         def complete_property_descriptor_info(
             property_descriptor: LazyPropertyDescriptor,

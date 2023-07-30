@@ -5,11 +5,16 @@ from .event import Event
 
 @dataclass(
     frozen=True,
-    kw_only=True,
     slots=True
 )
 class MouseScroll(Event):
-    x: int
-    y: int
-    scroll_x: float
-    scroll_y: float
+    x: int | None
+    y: int | None
+    scroll_x: float | None
+    scroll_y: float | None
+
+    def _capture(
+        self,
+        event: Event
+    ) -> bool:
+        return isinstance(event, MouseScroll)

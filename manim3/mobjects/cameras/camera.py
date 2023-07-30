@@ -106,8 +106,10 @@ class Camera(Mobject):
     ) -> NP_44f8:
         model_basis = model_matrix[:3, :3]
         model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
-        return RotateRemodelHandler(-Rotation.from_matrix(model_basis_normalized).as_rotvec()).remodel() \
+        return (
+            RotateRemodelHandler(-Rotation.from_matrix(model_basis_normalized).as_rotvec()).remodel()
             @ ShiftRemodelHandler(-eye).remodel()
+        )
 
     @Lazy.property_array
     @classmethod

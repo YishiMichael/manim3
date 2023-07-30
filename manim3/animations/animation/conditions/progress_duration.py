@@ -27,5 +27,8 @@ class ProgressDuration(Condition):
 
     def judge(self) -> bool:
         animation = self._animation_ref()
-        return animation is None or animation._absolute_rate is None or \
-            animation._absolute_rate.at(Toplevel.scene._timestamp) >= self._target_alpha
+        return (
+            animation is None
+            or animation._absolute_rate is None
+            or animation._absolute_rate.at(Toplevel.scene._timestamp) >= self._target_alpha
+        )

@@ -20,5 +20,7 @@ class Launched(Condition):
 
     def judge(self) -> bool:
         animation = self._animation_ref()
-        return animation is None or \
-            animation._animation_state in (AnimationState.ON_ANIMATION, AnimationState.AFTER_ANIMATION)
+        return (
+            animation is None
+            or animation._animation_state in (AnimationState.ON_ANIMATION, AnimationState.AFTER_ANIMATION)
+        )

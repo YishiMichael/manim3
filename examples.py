@@ -175,7 +175,7 @@ class InteractiveExample(Scene):
             self.prepare(
                 animation,
                 rate=Smooth(),
-                launch_condition=EventCaptured(KeyPress, symbol=KEY.SPACE)
+                launch_condition=EventCaptured(KeyPress(KEY.SPACE))
             )
         await self.wait_until(All(Terminated(animation) for animation in animations))
         await self.wait()
@@ -251,7 +251,7 @@ class NoteAnimation(Animation):
             Shifting(note, 7.0 * DOWN),
             terminate_condition=Any((
                 All((
-                    EventCaptured(KeyPress, symbol=self._key),
+                    EventCaptured(KeyPress(self._key)),
                     judge_condition
                 )),
                 MobjectPositionInRange(note, y_max=-3.4)

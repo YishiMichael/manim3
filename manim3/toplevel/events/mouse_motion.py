@@ -5,11 +5,16 @@ from .event import Event
 
 @dataclass(
     frozen=True,
-    kw_only=True,
     slots=True
 )
 class MouseMotion(Event):
-    x: int
-    y: int
-    dx: int
-    dy: int
+    x: int | None = None
+    y: int | None = None
+    dx: int | None = None
+    dy: int | None = None
+
+    def _capture(
+        self,
+        event: Event
+    ) -> bool:
+        return isinstance(event, MouseMotion)
