@@ -24,8 +24,8 @@ from ...constants.custom_typing import (
     NP_xi4,
     SelectorT
 )
-from ...utils.color import ColorUtils
-from ...utils.path import PathUtils
+from ...utils.color_utils import ColorUtils
+from ...utils.path_utils import PathUtils
 from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..svg_mobject import SVGMobject
 
@@ -500,9 +500,9 @@ class StringParser(ABC):
         frame_scale: float
     ) -> Iterator[LabelledShapeMobject]:
 
-        def iter_shape_mobjects(
+        def get_svg_mobject(
             is_labelled: bool
-        ) -> Iterator[ShapeMobject]:
+        ) -> SVGMobject:
             content_replaced_pieces = [
                 cls._replace_for_content(match_obj=replaced_item.match_obj)
                 if isinstance(replaced_item, CommandItem)
@@ -520,27 +520,29 @@ class StringParser(ABC):
                 stop_index=len(content_replaced_pieces)
             )
             svg_path = file_writer.get_svg_file(content)
-            svg_mobject = SVGMobject(
+            return SVGMobject(
                 file_path=svg_path,
                 frame_scale=frame_scale
             )
-            for mobject in svg_mobject:
-                if isinstance(mobject, ShapeMobject):
-                    yield mobject
-            #return .iter_children_by_type(mobject_type=ShapeMobject)
 
-        plain_shapes_iterator = iter_shape_mobjects(is_labelled=False)
+        plain_shapes = [
+            mobject for mobject in get_svg_mobject(is_labelled=False)
+            if isinstance(mobject, ShapeMobject)
+        ]
         if labels_count == 1:
-            for plain_shape in plain_shapes_iterator:
+            for plain_shape in plain_shapes:
                 yield LabelledShapeMobject(
                     label=0,
                     shape_mobject=plain_shape
                 )
             return
 
-        labelled_shapes_iterator = iter_shape_mobjects(is_labelled=True)
+        labelled_shapes = [
+            mobject for mobject in get_svg_mobject(is_labelled=True)
+            if isinstance(mobject, ShapeMobject)
+        ]
         for plain_shape, labelled_shape in cls._iter_matched_shape_mobjects(
-            list(plain_shapes_iterator), list(labelled_shapes_iterator)
+            plain_shapes, labelled_shapes
         ):
             label = int(ColorUtils.color_to_hex(labelled_shape._color_)[1:], 16)
             yield LabelledShapeMobject(

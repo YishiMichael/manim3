@@ -15,7 +15,7 @@ from ...constants.custom_typing import (
     SelectorT
 )
 from ...toplevel.toplevel import Toplevel
-from ...utils.color import ColorUtils
+from ...utils.color_utils import ColorUtils
 from .string_mobject import (
     CommandFlag,
     EdgeFlag,

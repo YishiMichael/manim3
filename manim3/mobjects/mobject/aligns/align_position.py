@@ -18,4 +18,3 @@ class AlignPosition(Align):
             direction=direction,
             buff=buff
         )
-        self._position: NP_3f8 = position

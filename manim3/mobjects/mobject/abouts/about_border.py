@@ -1,5 +1,5 @@
 from ....constants.custom_typing import NP_3f8
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from ...renderable_mobject import RenderableMobject
 from ..mobject import Mobject
 from .about import About

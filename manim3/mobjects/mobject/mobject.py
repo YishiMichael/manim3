@@ -27,8 +27,8 @@ from ...lazy.lazy import (
     LazyVariableDescriptor
 )
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...utils.color import ColorUtils
-from ...utils.space import SpaceUtils
+from ...utils.color_utils import ColorUtils
+from ...utils.space_utils import SpaceUtils
 from .operation_handlers.concatenate_bound_handler import ConcatenateBoundHandler
 from .operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
 from .remodel_handlers.constant_remodel_handler import ConstantRemodelHandler
@@ -355,7 +355,7 @@ class Mobject(LazyObject):
             result = self._bounding_box_with_descendants_
         else:
             result = self._bounding_box_without_descendants_
-        assert result is not None, "Trying to calculate the bounding box of some mobject with no positions"
+        assert result is not None, "Trying to calculate the bounding box of an empty mobject"
         return result
 
     def get_bounding_box_size(

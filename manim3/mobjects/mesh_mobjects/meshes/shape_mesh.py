@@ -1,6 +1,6 @@
 import numpy as np
 
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from ...shape_mobjects.shapes.shape import Shape
 from .mesh import Mesh
 

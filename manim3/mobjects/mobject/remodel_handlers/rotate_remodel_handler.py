@@ -5,7 +5,7 @@ from ....constants.custom_typing import (
     NP_3f8,
     NP_44f8
 )
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from .remodel_handler import RemodelHandler
 
 

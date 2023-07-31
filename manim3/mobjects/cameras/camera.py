@@ -17,7 +17,7 @@ from ...constants.custom_typing import (
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...toplevel.toplevel import Toplevel
-from ...utils.space import SpaceUtils
+from ...utils.space_utils import SpaceUtils
 from ..mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from ..mobject.remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 from ..mobject.mobject import Mobject

@@ -6,7 +6,7 @@ from ...constants.custom_typing import (
     NP_x3f8,
     NP_xxi4
 )
-from ...utils.space import SpaceUtils
+from ...utils.space_utils import SpaceUtils
 from .polygon import Polygon
 from .shape_mobject import ShapeMobject
 

@@ -2,7 +2,7 @@ from typing import TypeVar
 
 import numpy as np
 
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from .interpolate_handler import InterpolateHandler
 
 

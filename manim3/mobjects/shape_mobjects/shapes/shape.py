@@ -19,7 +19,7 @@ from ....lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from ...graph_mobjects.graphs.graph import Graph
 
 

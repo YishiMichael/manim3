@@ -14,7 +14,7 @@ from ..constants.custom_typing import (
     NP_x2f8,
     NP_xf8
 )
-from ..utils.space import SpaceUtils
+from ..utils.space_utils import SpaceUtils
 from .shape_mobjects.shapes.shape import Shape
 from .shape_mobjects.shape_mobject import ShapeMobject
 
@@ -111,8 +111,8 @@ class SVGMobject(ShapeMobject):
         if bbox is None:
             return
 
-        # Handle transform before constructing `ShapeMesh`
-        # so that the center of the mesh falls on the origin.
+        # Handle transform before constructing `Shape`s
+        # so that the center of the entire shape falls on the origin.
         transform = self._get_transform(
             bbox=bbox,
             width=width,
@@ -122,13 +122,13 @@ class SVGMobject(ShapeMobject):
 
         # TODO: handle strokes, etc.
         self.add(*(
-            ShapeMobject(
-                self._get_shape_from_se_shape(shape * transform)
-            ).set_style(
-                color=fill.hex if (fill := shape.fill) is not None else None
+            ShapeMobject(shape).set_style(
+                color=fill.hex if (fill := se_shape.fill) is not None else None
             )
-            for shape in svg.elements()
-            if isinstance(shape, se.Shape)
+            for se_shape in svg.elements()
+            if isinstance(se_shape, se.Shape)
+            # Filter out empty shapes.
+            and len((shape := self._get_shape_from_se_shape(se_shape * transform))._graph_._edges_)
         ))
 
     @classmethod

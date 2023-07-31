@@ -24,7 +24,7 @@ class Align:
 
     def _get_shift_vector(
         self,
-        mobject: "Mobject",
+        mobject: Mobject,
         direction_sign: float
     ) -> NP_3f8:
         target_position = self._about._get_about_position(mobject)

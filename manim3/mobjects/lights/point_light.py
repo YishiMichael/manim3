@@ -7,7 +7,7 @@ from ...constants.custom_typing import (
     NP_x3f8
 )
 from ...lazy.lazy import Lazy
-from ...utils.space import SpaceUtils
+from ...utils.space_utils import SpaceUtils
 from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
 from ..mobject.mobject import Mobject
 from ..mobject.style_meta import StyleMeta

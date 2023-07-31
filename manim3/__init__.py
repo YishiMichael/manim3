@@ -7,6 +7,7 @@ from .animations.animation.conditions.launched import Launched
 from .animations.animation.conditions.never import Never
 from .animations.animation.conditions.terminated import Terminated
 from .animations.animation.rates.linear import Linear
+from .animations.animation.rates.rate import Rate
 from .animations.animation.rates.rush_from import RushFrom
 from .animations.animation.rates.rush_into import RushInto
 from .animations.animation.rates.smooth import Smooth
@@ -113,5 +114,6 @@ from .toplevel.events.mouse_scroll import MouseScroll
 from .toplevel.config import Config
 from .toplevel.scene import Scene
 
-from .utils.color import ColorUtils
-from .utils.space import SpaceUtils
+from .utils.color_utils import ColorUtils
+from .utils.path_utils import PathUtils
+from .utils.space_utils import SpaceUtils

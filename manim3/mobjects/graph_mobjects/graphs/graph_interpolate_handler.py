@@ -4,7 +4,7 @@ from ....constants.custom_typing import (
     NP_x2i4,
     NP_x3f8
 )
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from ...mobject.operation_handlers.interpolate_handler import InterpolateHandler
 from .graph import Graph
 

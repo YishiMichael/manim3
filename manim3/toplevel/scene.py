@@ -19,8 +19,8 @@ from ..mobjects.lights.ambient_light import AmbientLight
 from ..mobjects.lights.lighting import Lighting
 from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
-from ..utils.color import ColorUtils
-from ..utils.path import PathUtils
+from ..utils.color_utils import ColorUtils
+from ..utils.path_utils import PathUtils
 from .config import Config
 from .toplevel import Toplevel
 

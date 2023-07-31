@@ -1,5 +1,5 @@
 from ....constants.custom_typing import NP_x2f8
-from ....utils.space import SpaceUtils
+from ....utils.space_utils import SpaceUtils
 from ...graph_mobjects.graphs.graph import Graph
 from .shape import Shape
 

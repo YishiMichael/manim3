@@ -9,7 +9,7 @@ class SquareShape(PolygonShape):
     def __init__(self) -> None:
         super().__init__(positions=np.array((
             (1.0, 1.0),
-            (1.0, -1.0),
+            (-1.0, 1.0),
             (-1.0, -1.0),
-            (-1.0, 1.0)
+            (1.0, -1.0)
         )))

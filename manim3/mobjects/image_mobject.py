@@ -2,7 +2,7 @@ import numpy as np
 from PIL import Image
 
 from ..toplevel.toplevel import Toplevel
-from ..utils.space import SpaceUtils
+from ..utils.space_utils import SpaceUtils
 from .mesh_mobjects.meshes.plane_mesh import PlaneMesh
 from .mesh_mobjects.mesh_mobject import MeshMobject
 

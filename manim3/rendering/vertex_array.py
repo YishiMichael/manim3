@@ -10,7 +10,7 @@ from ..lazy.lazy import (
     LazyObject
 )
 from ..toplevel.toplevel import Toplevel
-from ..utils.path import PathUtils
+from ..utils.path_utils import PathUtils
 from .buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from .buffer_formats.buffer_format import BufferFormat
 from .buffer_formats.structured_buffer_format import StructuredBufferFormat

@@ -213,6 +213,8 @@ class Toplevel:
                 minor_version=minor_version
             )
         )
+        # Keep a strong reference to the handler object, as per
+        # `https://pyglet.readthedocs.io/en/latest/programming_guide/events.html#stacking-event-handlers`.
         handlers = WindowHandlers()
         pyglet_window.push_handlers(handlers)
         yield pyglet_window

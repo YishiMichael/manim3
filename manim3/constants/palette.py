@@ -65,7 +65,7 @@ __all__ = (
 )
 
 
-from ..utils.color import ColorUtils
+from ..utils.color_utils import ColorUtils
 
 
 _c = ColorUtils.standardize_color
