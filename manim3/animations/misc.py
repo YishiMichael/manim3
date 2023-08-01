@@ -232,5 +232,4 @@ class TransformMatchingStrings(Parallel):
         self.scene.discard(self._start_mobject)
         await super().timeline()
         self.scene.add(self._stop_mobject)
-        for mobject in self._to_discard:
-            self.scene.discard(mobject)
+        self.scene.discard(*self._to_discard)

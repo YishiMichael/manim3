@@ -121,7 +121,7 @@ class TexFileWriter(StringFileWriter):
                 svg_path.with_suffix(ext).unlink(missing_ok=True)
 
 
-class MathjaxFileWriter(StringFileWriter):
+class MathJaxFileWriter(StringFileWriter):
     __slots__ = ()
 
     _DIR_NAME: ClassVar[str] = "_mathjax"
@@ -257,9 +257,11 @@ class TexParser(StringParser):
 class Tex(StringMobject):
     __slots__ = ()
 
+    _parser_cls: ClassVar[type[StringParser]] = TexParser
+    _ENVIRONMENT: ClassVar[str] = ""
     # In this convension, `font_size=30` would make the height of "x" become roughly 0.30.
     _TEX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.001577
-    _MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.188
+    #_MATHJAX_SCALE_FACTOR: ClassVar[float] = 6.188
 
     def __init__(
         self,
@@ -267,68 +269,164 @@ class Tex(StringMobject):
         *,
         isolate: Iterable[SelectorT] = (),
         protect: Iterable[SelectorT] = (),
-        tex_to_color_map: dict[SelectorT, ColorT] | None = None,
-        use_mathjax: bool | None = None,
+        color: ColorT | None = None,
+        font_size: float | None = None,
+        alignment: AlignmentT | None = None,
         compiler: str | None = None,
         preamble: str | None = None,
-        alignment: AlignmentT | None = None,
-        environment: str | None = None,
-        color: ColorT | None = None,
-        font_size: float | None = None
+        #environment: str | None = None,
+        local_colors: dict[SelectorT, ColorT] | None = None
     ) -> None:
         # Prevent from passing an empty string.
-        if not string.strip():
-            string = "\\\\"
-        if tex_to_color_map is None:
-            tex_to_color_map = {}
+        #if not string.strip():
+        #    string = "\\\\"
 
         config = Toplevel.config
-        if use_mathjax is None:
-            use_mathjax = config.tex_use_mathjax
-        if compiler is None:
-            compiler = config.tex_compiler
-        if preamble is None:
-            preamble = config.tex_preamble
-        if alignment is None:
-            alignment = config.tex_alignment
-        if environment is None:
-            environment = config.tex_environment
         if color is None:
             color = config.tex_color
         if font_size is None:
             font_size = config.tex_font_size
+        if alignment is None:
+            alignment = config.tex_alignment
+        if compiler is None:
+            compiler = config.tex_compiler
+        if preamble is None:
+            preamble = config.tex_preamble
+        if local_colors is None:
+            local_colors = {}
+        #if environment is None:
+        #    environment = config.tex_environment
 
-        frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
+        #frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
 
-        if not use_mathjax:
-            file_writer = TexFileWriter(
-                compiler=compiler,
-                preamble=preamble,
-                alignment=alignment,
-                environment=environment
-            )
-        else:
-            frame_scale *= self._MATHJAX_SCALE_FACTOR
-            # `compiler`, `template`, `alignment`, `environment`
-            # all don't make an effect when using mathjax.
-            file_writer = MathjaxFileWriter()
+        #if not use_mathjax:
+        #    file_writer = TexFileWriter(
+        #        compiler=compiler,
+        #        preamble=preamble,
+        #        alignment=alignment,
+        #        environment=environment
+        #    )
+        #else:
+        #    frame_scale *= self._MATHJAX_SCALE_FACTOR
+        #    # `compiler`, `template`, `alignment`, `environment`
+        #    # all don't make an effect when using mathjax.
+        #    file_writer = MathJaxFileWriter()
 
-        parser = TexParser(
+        #parser = TexParser(
+        #    string=string,
+        #    isolate=isolate,
+        #    protect=protect,
+        #    local_attrs={
+        #        selector: {}
+        #        for selector in local_colors
+        #    },
+        #    global_attrs={},
+        #    file_writer=file_writer,
+        #    frame_scale=frame_scale
+        #)
+        cls = type(self)
+        super().__init__(
+            #parser=parser
             string=string,
             isolate=isolate,
             protect=protect,
+            global_attrs={},
             local_attrs={
                 selector: {}
-                for selector in tex_to_color_map
+                for selector in local_colors
             },
-            global_attrs={},
-            file_writer=file_writer,
-            frame_scale=frame_scale
-        )
-        super().__init__(
-            parser=parser
+            file_writer=TexFileWriter(
+                compiler=compiler,
+                preamble=preamble,
+                alignment=alignment,
+                environment=cls._ENVIRONMENT
+            ),
+            frame_scale=cls._TEX_SCALE_FACTOR_PER_FONT_POINT * font_size
         )
 
         self.set_style(color=color)
-        for selector, color in tex_to_color_map.items():
+        for selector, color in local_colors.items():
+            self.select_parts(selector).set_style(color=color)
+
+
+class MathTex(Tex):
+    __slots__ = ()
+
+    _ENVIRONMENT: ClassVar[str] = "align*"
+
+
+class MathJax(StringMobject):
+    __slots__ = ()
+
+    _parser_cls: ClassVar[type[StringParser]] = TexParser
+    _MATHJAX_SCALE_FACTOR_PER_FONT_POINT: ClassVar[float] = 0.009758
+
+    def __init__(
+        self,
+        string: str,
+        *,
+        isolate: Iterable[SelectorT] = (),
+        protect: Iterable[SelectorT] = (),
+        color: ColorT | None = None,
+        font_size: float | None = None,
+        local_colors: dict[SelectorT, ColorT] | None = None
+    ) -> None:
+        # Prevent from passing an empty string.
+        #if not string.strip():
+        #    string = "\\\\"
+
+        config = Toplevel.config
+        if color is None:
+            color = config.tex_color
+        if font_size is None:
+            font_size = config.tex_font_size
+        if local_colors is None:
+            local_colors = {}
+        #if environment is None:
+        #    environment = config.tex_environment
+
+        #frame_scale = font_size * self._TEX_SCALE_FACTOR_PER_FONT_POINT
+
+        #if not use_mathjax:
+        #    file_writer = TexFileWriter(
+        #        compiler=compiler,
+        #        preamble=preamble,
+        #        alignment=alignment,
+        #        environment=environment
+        #    )
+        #else:
+        #    frame_scale *= self._MATHJAX_SCALE_FACTOR
+        #    # `compiler`, `template`, `alignment`, `environment`
+        #    # all don't make an effect when using mathjax.
+        #    file_writer = MathJaxFileWriter()
+
+        #parser = TexParser(
+        #    string=string,
+        #    isolate=isolate,
+        #    protect=protect,
+        #    local_attrs={
+        #        selector: {}
+        #        for selector in local_colors
+        #    },
+        #    global_attrs={},
+        #    file_writer=file_writer,
+        #    frame_scale=frame_scale
+        #)
+        cls = type(self)
+        super().__init__(
+            #parser=parser
+            string=string,
+            isolate=isolate,
+            protect=protect,
+            global_attrs={},
+            local_attrs={
+                selector: {}
+                for selector in local_colors
+            },
+            file_writer=MathJaxFileWriter(),
+            frame_scale=cls._MATHJAX_SCALE_FACTOR_PER_FONT_POINT * font_size
+        )
+
+        self.set_style(color=color)
+        for selector, color in local_colors.items():
             self.select_parts(selector).set_style(color=color)

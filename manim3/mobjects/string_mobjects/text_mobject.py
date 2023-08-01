@@ -307,9 +307,10 @@ class TextParser(MarkupTextParser):
         return match_obj.group()
 
 
-class Text(StringMobject):
+class MarkupText(StringMobject):
     __slots__ = ()
 
+    _parser_cls: ClassVar[type[StringParser]] = MarkupTextParser
     _TEXT_SCALE_FACTOR: ClassVar[float] = 0.01147
 
     def __init__(
@@ -318,63 +319,86 @@ class Text(StringMobject):
         *,
         isolate: Iterable[SelectorT] = (),
         protect: Iterable[SelectorT] = (),
-        local_configs: dict[SelectorT, dict[str, str]] | None = None,
-        global_config: dict[str, str] | None = None,
+        color: ColorT | None = None,
+        font_size: float | None = None,
+        alignment: AlignmentT | None = None,
+        font: str | None = None,
         justify: bool | None = None,
         indent: float | None = None,
-        alignment: AlignmentT | None = None,
         line_width: float | None = None,
-        font_size: float | None = None,
-        font: str | None = None,
-        color: ColorT | None = None,
-        markup: bool = False
+        global_config: dict[str, str] | None = None,
+        local_colors: dict[SelectorT, ColorT] | None = None,
+        local_configs: dict[SelectorT, dict[str, str]] | None = None
+        #markup: bool = False
     ) -> None:
-        if markup:
-            PangoUtils.validate_markup_string(string)
-        if local_configs is None:
-            local_configs = {}
-        if global_config is None:
-            global_config = {}
+        #if markup:
+        #    PangoUtils.validate_markup_string(string)
 
         config = Toplevel.config
+        if color is None:
+            color = config.text_color
+        if font_size is None:
+            font_size = config.text_font_size
+        if alignment is None:
+            alignment = config.text_alignment
+        if font is None:
+            font = config.text_font
         if justify is None:
             justify = config.text_justify
         if indent is None:
             indent = config.text_indent
-        if alignment is None:
-            alignment = config.text_alignment
         if line_width is None:
             line_width = config.text_line_width
-        if font_size is None:
-            font_size = config.text_font_size
-        if font is None:
-            font = config.text_font
-        if color is None:
-            color = config.text_color
+        if global_config is None:
+            global_config = {}
+        if local_colors is None:
+            local_colors = {}
+        if local_configs is None:
+            local_configs = {}
 
-        global_attrs = {
-            "font_size": str(round(font_size * 1024.0)),
-            "font_family": font,
-            "foreground": ColorUtils.color_to_hex(color)
-        }
-        global_attrs.update(global_config)
-
-        file_writer = MarkupTextFileWriter(
-            justify=justify,
-            indent=indent,
-            alignment=alignment,
-            line_width=line_width
-        )
-        parser_class = MarkupTextParser if markup else TextParser
-        parser = parser_class(
+        #file_writer = MarkupTextFileWriter(
+        #    justify=justify,
+        #    indent=indent,
+        #    alignment=alignment,
+        #    line_width=line_width
+        #)
+        #parser_class = MarkupTextParser if markup else TextParser
+        #parser = parser_class(
+        #    string=string,
+        #    isolate=isolate,
+        #    protect=protect,
+        #    local_attrs=local_configs,
+        #    global_attrs=global_attrs,
+        #    file_writer=file_writer,
+        #    frame_scale=self._TEXT_SCALE_FACTOR
+        #)
+        super().__init__(
+            #parser=parser
             string=string,
             isolate=isolate,
             protect=protect,
-            local_attrs=local_configs,
-            global_attrs=global_attrs,
-            file_writer=file_writer,
+            global_attrs={
+                "foreground": ColorUtils.color_to_hex(color),
+                "font_size": str(round(font_size * 1024.0)),
+                "font_family": font
+            } | global_config,
+            local_attrs={
+                selector: {
+                    "foreground": ColorUtils.color_to_hex(local_color)
+                } | local_configs.get(selector, {})
+                for selector, local_color in local_colors.items()
+            },
+            file_writer=MarkupTextFileWriter(
+                justify=justify,
+                indent=indent,
+                alignment=alignment,
+                line_width=line_width
+            ),
             frame_scale=self._TEXT_SCALE_FACTOR
         )
-        super().__init__(
-            parser=parser
-        )
+
+
+class Text(MarkupText):
+    __slots__ = ()
+
+    _parser_cls: ClassVar[type[StringParser]] = TextParser

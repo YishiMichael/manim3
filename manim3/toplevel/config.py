@@ -34,7 +34,9 @@ class Config:
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
 
-    tex_use_mathjax: bool = False
+    tex_color: ColorT = Color("white")
+    tex_font_size: float = 30
+    tex_alignment: AlignmentT = "center"
     tex_compiler: str = "xelatex"
     tex_preamble: str = "\n".join((
         "\\documentclass[preview]{standalone}",
@@ -43,18 +45,14 @@ class Config:
         "\\usepackage{amssymb}",
         "\\usepackage{xcolor}"  # Required for labelling.
     ))
-    tex_alignment: AlignmentT = "center"
-    tex_environment: str = "align*"
-    tex_color: ColorT = Color("white")
-    tex_font_size: float = 30
 
+    text_color: ColorT = Color("white")
+    text_font_size: float = 30
+    text_alignment: AlignmentT = "center"
+    text_font: str = "Consolas"
     text_justify: bool = False
     text_indent: float = 0.0
-    text_alignment: AlignmentT = "left"
     text_line_width: float = -1.0
-    text_font_size: float = 30
-    text_font: str = "Consolas"
-    text_color: ColorT = Color("white")
 
     @property
     def gl_version_code(self) -> int:

@@ -132,7 +132,7 @@ class FormulaExample(Scene):
     async def timeline(self) -> None:
         factored_formula = Tex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
-            tex_to_color_map={
+            local_colors={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
@@ -140,7 +140,7 @@ class FormulaExample(Scene):
         expanded_formula = Tex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
-            tex_to_color_map={
+            local_colors={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
