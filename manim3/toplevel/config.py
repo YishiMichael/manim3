@@ -36,7 +36,7 @@ class Config:
 
     tex_color: ColorT = Color("white")
     tex_font_size: float = 30
-    tex_alignment: AlignmentT = "center"
+    tex_alignment: AlignmentT = "left"
     tex_compiler: str = "xelatex"
     tex_preamble: str = "\n".join((
         "\\documentclass[preview]{standalone}",
@@ -48,11 +48,14 @@ class Config:
 
     text_color: ColorT = Color("white")
     text_font_size: float = 30
-    text_alignment: AlignmentT = "center"
+    text_alignment: AlignmentT = "left"
     text_font: str = "Consolas"
     text_justify: bool = False
     text_indent: float = 0.0
     text_line_width: float = -1.0
+
+    code_font: str = "JetBrains Mono"
+    code_language_extension: str = ".py"
 
     @property
     def gl_version_code(self) -> int:

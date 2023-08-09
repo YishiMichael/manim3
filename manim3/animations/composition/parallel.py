@@ -1,4 +1,4 @@
-from ..animation.conditions.all import All
+from ..animation.conditions.condition_all import ConditionAll
 from ..animation.conditions.terminated import Terminated
 from ..animation.rates.rate import Rate
 from ..animation.animation import Animation
@@ -37,6 +37,6 @@ class Parallel(Animation):
         rate = self._rate
         for animation, animation_lag_time in animation_items:
             self.prepare(Lagged(animation, lag_time=animation_lag_time), rate=rate)
-        await self.wait_until(All(
+        await self.wait_until(ConditionAll(
             Terminated(animation) for animation, _ in animation_items
         ))

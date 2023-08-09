@@ -114,7 +114,7 @@ class Scene(Animation):
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            PathUtils.output_dir.joinpath(f"{cls.__name__}.mp4")
+            PathUtils.get_output_subdir("videos").joinpath(f"{cls.__name__}.mp4")
         ), stdin=sp.PIPE)
         assert (video_stdin := writing_process.stdin) is not None
         yield video_stdin
@@ -150,7 +150,7 @@ class Scene(Animation):
             color_texture.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image.save(PathUtils.output_dir.joinpath(f"{cls.__name__}.png"))
+        image.save(PathUtils.get_output_subdir("images").joinpath(f"{cls.__name__}.png"))
 
     @classmethod
     def render(

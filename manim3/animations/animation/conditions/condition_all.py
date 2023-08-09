@@ -3,7 +3,7 @@ from typing import Iterable
 from .condition import Condition
 
 
-class All(Condition):
+class ConditionAll(Condition):
     __slots__ = ("_consitions",)
 
     def __init__(

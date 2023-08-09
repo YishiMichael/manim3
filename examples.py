@@ -177,7 +177,7 @@ class InteractiveExample(Scene):
                 rate=Smooth(),
                 launch_condition=EventCaptured(KeyPress(KEY.SPACE))
             )
-        await self.wait_until(All(Terminated(animation) for animation in animations))
+        await self.wait_until(ConditionAll(Terminated(animation) for animation in animations))
         await self.wait()
 
 
@@ -249,8 +249,8 @@ class NoteAnimation(Animation):
         self.scene.add(note)
         await self.play(
             Shifting(note, 7.0 * DOWN),
-            terminate_condition=Any((
-                All((
+            terminate_condition=ConditionAny((
+                ConditionAll((
                     EventCaptured(KeyPress(self._key)),
                     judge_condition
                 )),
@@ -331,8 +331,8 @@ def main() -> None:
         fps=30,
         #preview=False,
         #tex_use_mathjax=True,
-        #write_video=True,
-        #write_last_frame=True,
+        write_video=True,
+        write_last_frame=True,
         #pixel_height=540
     )
     TexTransformExample.render(config)

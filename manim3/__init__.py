@@ -1,7 +1,7 @@
-from .animations.animation.conditions.all import All
 from .animations.animation.conditions.always import Always
-from .animations.animation.conditions.any import Any
 from .animations.animation.conditions.condition import Condition
+from .animations.animation.conditions.condition_all import ConditionAll
+from .animations.animation.conditions.condition_any import ConditionAny
 from .animations.animation.conditions.event_captured import EventCaptured
 from .animations.animation.conditions.launched import Launched
 from .animations.animation.conditions.never import Never
@@ -84,7 +84,10 @@ from .mobjects.shape_mobjects.regular_polygon import RegularPolygon
 from .mobjects.shape_mobjects.shape_mobject import ShapeMobject
 from .mobjects.shape_mobjects.square import Square
 from .mobjects.string_mobjects.tex_mobject import Tex
-from .mobjects.string_mobjects.text_mobject import Text
+from .mobjects.string_mobjects.text_mobject import (
+    Code,
+    Text
+)
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.svg_mobject import SVGMobject
