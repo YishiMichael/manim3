@@ -1,11 +1,11 @@
 import hashlib
 import json
+import pathlib
 from abc import (
     ABC,
     abstractmethod
 )
 from contextlib import contextmanager
-import pathlib
 from typing import (
     Generic,
     Iterator,
@@ -23,8 +23,6 @@ _OutputDataT = TypeVar("_OutputDataT")
 class MobjectIO(ABC, Generic[_InputDataT, _OutputDataT, _JSONDataT]):
     __slots__ = ()
 
-    #_dir_name: ClassVar[str]
-
     def __new__(cls):
         raise TypeError
 
@@ -33,24 +31,22 @@ class MobjectIO(ABC, Generic[_InputDataT, _OutputDataT, _JSONDataT]):
         cls,
         input_data: _InputDataT
     ) -> _OutputDataT:
+        # Notice that as we are using `str(input_data)` as key,
+        # each item shall have an explicit string representation of data,
+        # which shall not contain any address.
         hash_content = str(input_data)
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
         json_path = PathUtils.get_output_subdir(cls._dir_name).joinpath(f"{hex_string}.json")
-        #svg_path = cls.get_hash_path(
-        #    hash_content=hash_content,
-        #    dir_name=cls._dir_name,
-        #    suffix=".svg"
-        #)
         if not json_path.exists():
             with cls.display_during_execution():
-                temp_path = PathUtils.get_output_subdir("_temp").joinpath(f"{hex_string}.json")
+                temp_path = PathUtils.get_output_subdir("_temp").joinpath(hex_string)
                 output_data = cls.generate(input_data, temp_path)
                 json_data = cls.dump_json(output_data)
-                with open(json_path, "w", encoding="utf-8") as json_file:
-                    json.dump(json_data, json_file, ensure_ascii=False)
-        with open(json_path, encoding="utf-8") as json_file:
-            json_data = json.load(json_file)
+                json_text = json.dumps(json_data, ensure_ascii=False)
+                json_path.write_text(json_text, encoding="utf-8")
+        json_text = json_path.read_text(encoding="utf-8")
+        json_data = json.loads(json_text)
         return cls.load_json(json_data)
 
     @classmethod
@@ -83,18 +79,6 @@ class MobjectIO(ABC, Generic[_InputDataT, _OutputDataT, _JSONDataT]):
         json_data: _JSONDataT
     ) -> _OutputDataT:
         pass
-
-    #@classmethod
-    #def get_hash_path(
-    #    cls,
-    #    hash_content: str,
-    #    dir_name: str,
-    #    suffix: str
-    #) -> pathlib.Path:
-    #    # Truncating at 16 bytes for cleanliness.
-    #    hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-    #    svg_dir = PathUtils.get_output_subdir(dir_name)
-    #    return svg_dir.joinpath(f"{hex_string}{suffix}")
 
     @classmethod
     @contextmanager

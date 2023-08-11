@@ -200,15 +200,14 @@ class VertexArray(LazyObject):
         def read_shader_with_includes_replaced(
             filename: str
         ) -> str:
-            with PathUtils.shaders_dir.joinpath(filename).open() as shader_file:
-                shader_str = shader_file.read()
+            shader_text = PathUtils.shaders_dir.joinpath(filename).read_text(encoding="utf-8")
             return re.sub(
                 r"#include \"(.+?)\"",
                 lambda match_obj: read_shader_with_includes_replaced(match_obj.group(1)),
-                shader_str
+                shader_text
             )
 
-        shader_str = read_shader_with_includes_replaced(f"{shader_filename}.glsl")
+        shader_text = read_shader_with_includes_replaced(f"{shader_filename}.glsl")
         shaders = {
             shader_type: "\n".join((
                 f"#version {Toplevel.context.version_code} core",
@@ -220,7 +219,7 @@ class VertexArray(LazyObject):
                     for array_len_name, array_len in array_len_items
                 ),
                 "\n",
-                shader_str
+                shader_text
             ))
             for shader_type in (
                 "VERTEX_SHADER",
@@ -229,7 +228,7 @@ class VertexArray(LazyObject):
                 "TESS_CONTROL_SHADER",
                 "TESS_EVALUATION_SHADER"
             )
-            if re.search(rf"\b{shader_type}\b", shader_str, flags=re.MULTILINE) is not None
+            if re.search(rf"\b{shader_type}\b", shader_text, flags=re.MULTILINE) is not None
         }
         program = Toplevel.context.program(
             vertex_shader=shaders["VERTEX_SHADER"],

@@ -331,8 +331,8 @@ def main() -> None:
         fps=30,
         #preview=False,
         #tex_use_mathjax=True,
-        write_video=True,
-        write_last_frame=True,
+        #write_video=True,
+        #write_last_frame=True,
         #pixel_height=540
     )
     TexTransformExample.render(config)

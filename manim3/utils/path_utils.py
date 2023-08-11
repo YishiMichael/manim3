@@ -28,6 +28,11 @@ class PathUtils:
 
     @classmethod
     @property
+    def plugins_dir(cls) -> pathlib.Path:
+        return cls.src_dir.joinpath("plugins")
+
+    @classmethod
+    @property
     def user_script_path(cls) -> pathlib.Path:
         return pathlib.Path(sys.argv[0]).absolute()
 

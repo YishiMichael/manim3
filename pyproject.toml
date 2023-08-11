@@ -17,15 +17,13 @@ classifiers = [
 ]
 dependencies = [
     "colour",
-    "manimpango",
     "mapbox-earcut",
     "moderngl",
-    "moderngl_window",
     "numpy",
     "pillow",
-    "pygments",
+    "pyglet",
+    "pyopengl",
     "scipy",
     "shapely",
-    "svgelements",
-    "toml"
+    "svgelements"
 ]

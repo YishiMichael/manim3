@@ -21,85 +21,14 @@ from .shape_mobjects.shapes.shape import Shape
 from .shape_mobjects.shape_mobject import ShapeMobject
 
 
-#class BezierCurve(BSpline):
-#    __slots__ = ()
-#
-#    def __init__(
-#        self,
-#        control_positions: NP_x2f8
-#    ) -> None:
-#        degree = len(control_positions) - 1
-#        assert degree >= 0
-#        super().__init__(
-#            t=np.append(np.zeros(degree + 1), np.ones(degree + 1)),
-#            c=control_positions,
-#            k=degree
-#        )
-
-    #@overload
-    #def gamma(
-    #    self,
-    #    sample: float
-    #) -> NP_2f8: ...
-
-    #@overload
-    #def gamma(
-    #    self,
-    #    sample: NP_xf8
-    #) -> NP_x2f8: ...
-
-    #def gamma(
-    #    self,
-    #    sample: float | NP_xf8
-    #) -> NP_2f8 | NP_x2f8:
-    #    return self.__call__(sample)
-
-    #def get_sample_positions(self) -> NP_x2f8:
-    #    return self(np.linspace(0.0, 1.0, 9))
-
-        #def smoothen_samples(
-        #    gamma: Callable[[NP_xf8], NP_x2f8],
-        #    samples: NP_xf8,
-        #    bisect_depth: int
-        #) -> NP_xf8:
-        #    # Bisect a segment if one of its endpositions has a turning angle above the threshold.
-        #    # Bisect for no more than 4 times, so each curve will be split into no more than 16 segments.
-        #    if bisect_depth == 4:
-        #        return samples
-        #    positions = gamma(samples)
-        #    directions = SpaceUtils.normalize(np.diff(positions, axis=0))
-        #    angle_cosines = (directions[1:] * directions[:-1]).sum(axis=1)
-        #    large_angle_indices = np.flatnonzero(angle_cosines < np.cos(np.pi / 16.0))
-        #    if not len(large_angle_indices):
-        #        return samples
-        #    insertion_indices = np.unique(np.concatenate(
-        #        (large_angle_indices, large_angle_indices + 1)
-        #    ))
-        #    new_samples = np.insert(
-        #        samples,
-        #        insertion_indices + 1,
-        #        (samples[insertion_indices] + samples[insertion_indices + 1]) / 2.0
-        #    )
-        #    return smoothen_samples(gamma, new_samples, bisect_depth + 1)
-
-        #if self._degree <= 1:
-        #    start_position = self.gamma(0.0)
-        #    stop_position = self.gamma(1.0)
-        #    if np.isclose(SpaceUtils.norm(stop_position - start_position), 0.0):
-        #        return np.array((start_position,))
-        #    return np.array((start_position, stop_position))
-        #samples = smoothen_samples(self.gamma, np.linspace(0.0, 1.0, 3), 1)
-        #return self.gamma(samples)
-
-
 @dataclass(
     frozen=True,
     kw_only=True,
     slots=True
 )
 class SVGMobjectInputData:
-    svg_path: str | pathlib.Path
-    svg_content: str
+    svg_path: pathlib.Path
+    svg_text: str
     width: float | None
     height: float | None
     frame_scale: float | None
@@ -128,8 +57,6 @@ class SVGMobjectJSON(TypedDict):
 class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobjectJSON]):
     __slots__ = ()
 
-    #_dir_name: ClassVar[str] = "svg_mobject"
-
     @property
     @classmethod
     def _dir_name(cls) -> str:
@@ -142,7 +69,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
         temp_path: pathlib.Path
     ) -> SVGMobjectOutputData:
         return SVGMobjectOutputData(
-            shape_mobjects=list(cls.iter_shape_mobject_from_svg(
+            shape_mobjects=list(cls._iter_shape_mobject_from_svg(
                 svg_path=input_data.svg_path,
                 width=input_data.width,
                 height=input_data.height,
@@ -157,7 +84,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
     ) -> SVGMobjectJSON:
         return SVGMobjectJSON(
             shape_mobjects=[
-                cls.shape_mobject_to_json(shape_mobject)
+                cls._shape_mobject_to_json(shape_mobject)
                 for shape_mobject in output_data.shape_mobjects
             ]
         )
@@ -169,13 +96,13 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
     ) -> SVGMobjectOutputData:
         return SVGMobjectOutputData(
             shape_mobjects=[
-                cls.json_to_shape_mobject(shape_mobject_json)
+                cls._json_to_shape_mobject(shape_mobject_json)
                 for shape_mobject_json in json_data["shape_mobjects"]
             ]
         )
 
     @classmethod
-    def iter_shape_mobject_from_svg(
+    def _iter_shape_mobject_from_svg(
         cls,
         svg_path: str | pathlib.Path,
         *,
@@ -291,15 +218,9 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
                 color=se_shape.fill.hexrgb if se_shape.fill is not None else None,
                 opacity=se_shape.fill.opacity if se_shape.fill is not None else None
             )
-            #yield ShapeMobjectJSON(
-            #    positions=[round(float(value), 6) for value in graph._positions_[:, :2].flatten()],
-            #    edges=[int(value) for value in graph._edges_.flatten()],
-            #    color=se_shape.fill.hexrgb if se_shape.fill is not None else None,
-            #    opacity=se_shape.fill.opacity if se_shape.fill is not None else None
-            #)
 
     @classmethod
-    def shape_mobject_to_json(
+    def _shape_mobject_to_json(
         cls,
         shape_mobject: ShapeMobject
     ) -> ShapeMobjectJSON:
@@ -312,7 +233,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
         )
 
     @classmethod
-    def json_to_shape_mobject(
+    def _json_to_shape_mobject(
         cls,
         shape_mobject_json: ShapeMobjectJSON
     ) -> ShapeMobject:
@@ -344,11 +265,10 @@ class SVGMobject(ShapeMobject):
         frame_scale: float | None = None
     ) -> None:
         super().__init__()
-        with open(svg_path, encoding="utf-8") as svg_file:
-            svg_content = svg_file.read()
+        svg_path = pathlib.Path(svg_path)
         output_data = SVGMobjectIO.get(SVGMobjectInputData(
             svg_path=svg_path,
-            svg_content=svg_content,
+            svg_text=svg_path.read_text(encoding="utf-8"),
             width=width,
             height=height,
             frame_scale=frame_scale

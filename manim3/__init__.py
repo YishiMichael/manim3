@@ -83,11 +83,12 @@ from .mobjects.shape_mobjects.polyhedra import (
 from .mobjects.shape_mobjects.regular_polygon import RegularPolygon
 from .mobjects.shape_mobjects.shape_mobject import ShapeMobject
 from .mobjects.shape_mobjects.square import Square
-from .mobjects.string_mobjects.tex_mobject import Tex
-from .mobjects.string_mobjects.text_mobject import (
-    Code,
-    Text
-)
+from .mobjects.string_mobjects.code import Code
+from .mobjects.string_mobjects.markup import Markup
+from .mobjects.string_mobjects.math_tex import MathTex
+from .mobjects.string_mobjects.mathjax import MathJax
+from .mobjects.string_mobjects.tex import Tex
+from .mobjects.string_mobjects.text import Text
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.renderable_mobject import RenderableMobject
 from .mobjects.svg_mobject import SVGMobject

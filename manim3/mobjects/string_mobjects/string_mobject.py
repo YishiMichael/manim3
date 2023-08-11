@@ -5,10 +5,8 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import (
-    Generic,
     Iterable,
     Iterator,
-    TypeVar,
     TypedDict
 )
 
@@ -25,9 +23,6 @@ from ..svg_mobject import (
 )
 
 
-_StringMobjectInputDataT = TypeVar("_StringMobjectInputDataT", bound="StringMobjectInputData")
-
-
 class CommandFlag(Enum):
     OPEN = 1
     CLOSE = -1
@@ -42,20 +37,14 @@ class EdgeFlag(Enum):
         return EdgeFlag(-self.value)
 
 
+@dataclass(
+    unsafe_hash=True,
+    frozen=True,
+    slots=True
+)
 class Span:
-    __slots__ = (
-        "start",
-        "stop"
-    )
-
-    def __init__(
-        self,
-        start: int,
-        stop: int
-    ) -> None:
-        assert start <= stop, f"Invalid span: ({start}, {stop})"
-        self.start: int = start
-        self.stop: int = stop
+    start: int
+    stop: int
 
     def contains(
         self,
@@ -131,91 +120,15 @@ class LabelledInsertionItem:
         return Span(index, index)
 
 
-#class StringFileWriter(ABC):
-#    __slots__ = ("_parameters",)
-
-#    _dir_name: ClassVar[str]
-
-#    def __init__(
-#        self,
-#        **parameters: Any
-#    ) -> None:
-#        super().__init__()
-#        self._parameters: dict[str, Any] = parameters
-
-#    def get_svg_file(
-#        self,
-#        content: str
-#    ) -> pathlib.Path:
-#        parameters = self._parameters
-#        cls = type(self)
-#        hash_content = str((content, *parameters.values()))
-#        svg_path = cls.get_hash_path(
-#            hash_content=hash_content,
-#            dir_name=cls._dir_name,
-#            suffix=".svg"
-#        )
-#        if not svg_path.exists():
-#            with cls.display_during_execution():
-#                cls.create_svg_file(content, svg_path, **parameters)
-#        return svg_path
-
-#    @classmethod
-#    @abstractmethod
-#    def create_svg_file(
-#        cls,
-#        content: str,
-#        svg_path: pathlib.Path,
-#        **parameters: Any
-#    ) -> None:
-#        pass
-
-#    @classmethod
-#    def get_hash_path(
-#        cls,
-#        hash_content: str,
-#        dir_name: str,
-#        suffix: str
-#    ) -> pathlib.Path:
-#        # Truncating at 16 bytes for cleanliness.
-#        hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-#        svg_dir = PathUtils.get_output_subdir(dir_name)
-#        return svg_dir.joinpath(f"{hex_string}{suffix}")
-
-#    @classmethod
-#    @contextmanager
-#    def display_during_execution(cls) -> Iterator[None]:
-#        message = "Generating temporary files of StringMobject..."
-#        try:
-#            print(message, end="\r")
-#            yield
-#        finally:
-#            print(" " * len(message), end="\r")
-
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class StringMobjectWritingConfig:
-#    pass
-
-
 @dataclass(
     frozen=True,
     kw_only=True,
     slots=True
 )
 class StringMobjectInputData:
-    #parser_cls: type[StringParser]
     string: str
     isolate: list[Span]
     protect: list[Span]
-    #global_attrs: dict[str, str]
-    #local_attrs: dict[SelectorT, dict[str, str]]
-    #writing_config: _StringMobjectWritingConfigT
-    #file_writing_config: StringFileWritingConfig
-    #frame_scale: float
 
 
 @dataclass(
@@ -239,27 +152,23 @@ class StringMobjectJSON(TypedDict):
     group_part_indices: list[list[int]]
 
 
-class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputData, StringMobjectJSON]):
+class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData, StringMobjectJSON]):
     __slots__ = ()
 
     @classmethod
     def generate(
         cls,
-        input_data: _StringMobjectInputDataT,
+        input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> StringMobjectOutputData:
-        #parser_cls = input_data.parser_cls
         string = input_data.string
-        isolate = input_data.isolate
-        protect = input_data.protect
-        global_attrs = cls._get_global_attrs(input_data, temp_path)  #input_data.global_attrs
-        local_attrs = cls._get_local_attrs(input_data, temp_path)  #input_data.local_attrs
-        #writing_config = input_data.writing_config
+        global_attrs = cls._get_global_attrs(input_data, temp_path)
+        local_attrs = cls._get_local_attrs(input_data, temp_path)
 
         label_to_span_dict, replaced_items = cls._get_label_to_span_dict_and_replaced_items(
             string=string,
-            isolate=isolate,
-            protect=protect,
+            isolate=input_data.isolate,
+            protect=input_data.protect,
             global_attrs=global_attrs,
             local_attrs=local_attrs
         )
@@ -279,10 +188,8 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
                 is_labelled=True
             ),
             requires_labelling=len(label_to_span_dict) > 1,
-            #file_writing_config=file_writing_config,
             input_data=input_data,
-            temp_path=temp_path,
-            #frame_scale=frame_scale
+            temp_path=temp_path
         )
         spans = [label_to_span_dict[label] for label in labels]
 
@@ -301,21 +208,6 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
             )
         )
 
-        #self.add(*shape_mobjects)
-        #self._string: str = string
-        #self._shape_mobjects: list[ShapeMobject] = shape_mobjects
-        #self._spans: list[Span] = spans
-        #self._labelled_part_items: list[tuple[str, list[int]]] = cls._get_labelled_part_items(
-        #    string=string,
-        #    spans=spans
-        #)
-        #self._group_part_items: list[tuple[str, list[int]]] = cls._get_group_part_items(
-        #    labels=labels,
-        #    label_to_span_dict=label_to_span_dict,
-        #    original_pieces=original_pieces,
-        #    replaced_items=replaced_items
-        #)
-
     @classmethod
     def dump_json(
         cls,
@@ -323,7 +215,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     ) -> StringMobjectJSON:
         return StringMobjectJSON(
             shape_mobjects=[
-                SVGMobjectIO.shape_mobject_to_json(shape_mobject)
+                SVGMobjectIO._shape_mobject_to_json(shape_mobject)
                 for shape_mobject in output_data.shape_mobjects
             ],
             spans=[[span.start, span.stop] for span in output_data.spans],
@@ -340,7 +232,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     ) -> StringMobjectOutputData:
         return StringMobjectOutputData(
             shape_mobjects=[
-                SVGMobjectIO.json_to_shape_mobject(shape_mobject_json)
+                SVGMobjectIO._json_to_shape_mobject(shape_mobject_json)
                 for shape_mobject_json in json_data["shape_mobjects"]
             ],
             spans=[Span(*span_values) for span_values in json_data["spans"]],
@@ -362,27 +254,14 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
         unlabelled_content: str,
         labelled_content: str,
         requires_labelling: bool,
-        input_data: _StringMobjectInputDataT,
-        #file_writing_config: StringFileWritingConfig,
+        input_data: StringMobjectInputData,
         temp_path: pathlib.Path
-        #frame_scale: float
     ) -> tuple[list[int], list[ShapeMobject]]:
         unlabelled_shapes = cls._get_shape_mobjects(unlabelled_content, input_data, temp_path)
-        #SVGMobject(
-        #    svg_path=cls._create_svg_file(unlabelled_content, writing_config, temp_path),
-        #    frame_scale=frame_scale
-        #)._shape_mobjects
         if not requires_labelling or not unlabelled_shapes:
             return [0] * len(unlabelled_shapes), unlabelled_shapes
 
         labelled_shapes = cls._get_shape_mobjects(labelled_content, input_data, temp_path)
-        #[
-        #    mobject for mobject in SVGMobject(
-        #        svg_path=cls._create_svg_file(labelled_content, writing_config, temp_path),
-        #        frame_scale=frame_scale
-        #    )
-        #    if isinstance(mobject, ShapeMobject)
-        #]
         assert len(unlabelled_shapes) == len(labelled_shapes)
 
         ShapeMobject().add(*labelled_shapes).match_bounding_box(
@@ -406,7 +285,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     def _get_shape_mobjects(
         cls,
         content: str,
-        input_data: _StringMobjectInputDataT,
+        input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> list[ShapeMobject]:
         svg_path = temp_path.with_suffix(".svg")
@@ -416,16 +295,12 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
                 input_data=input_data,
                 svg_path=svg_path
             )
-            shape_mobjects = list(SVGMobjectIO.iter_shape_mobject_from_svg(
+            shape_mobjects = list(SVGMobjectIO._iter_shape_mobject_from_svg(
                 svg_path=svg_path,
                 frame_scale=cls._get_svg_frame_scale(input_data)
             ))
         finally:
             svg_path.unlink(missing_ok=True)
-
-        #finally:
-        #    for extension in cls._temp_extensions:
-        #        temp_path.with_suffix(extension).unlink(missing_ok=True)
 
         return shape_mobjects
 
@@ -433,7 +308,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     @abstractmethod
     def _get_global_attrs(
         cls,
-        input_data: _StringMobjectInputDataT,
+        input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[str, str]:
         pass
@@ -442,7 +317,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     @abstractmethod
     def _get_local_attrs(
         cls,
-        input_data: _StringMobjectInputDataT,
+        input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[Span, dict[str, str]]:
         pass
@@ -452,7 +327,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     def _create_svg(
         cls,
         content: str,
-        input_data: _StringMobjectInputDataT,
+        input_data: StringMobjectInputData,
         svg_path: pathlib.Path
     ) -> None:
         pass
@@ -461,7 +336,7 @@ class StringMobjectIO(MobjectIO[_StringMobjectInputDataT, StringMobjectOutputDat
     @abstractmethod
     def _get_svg_frame_scale(
         cls,
-        input_data: _StringMobjectInputDataT
+        input_data: StringMobjectInputData
     ) -> float:
         pass
 
@@ -826,8 +701,8 @@ class StringMobject(ShapeMobject):
 
     Each instance of `StringMobject` generates 2 svg files.
     The additional one is generated with some color commands inserted,
-    so that each child of the original `SVGMobject` will be labelled
-    by the color of its paired child from the additional `SVGMobject`.
+    so that each child of the original svg will be labelled
+    by the color of its paired child from the additional svg.
     """
     __slots__ = (
         "_string",
@@ -837,28 +712,13 @@ class StringMobject(ShapeMobject):
         "_group_part_items"
     )
 
-    #_parser_cls: ClassVar[type[StringParser]]
-    #_io_cls: ClassVar[type[StringMobjectIO]]
-    #_dir_name: ClassVar[str]
-
     def __init__(
         self,
-        #string: str,
-        #*,
         **kwargs
-        #io_cls: type[StringMobjectIO[_StringMobjectWritingConfigT]],
-        #isolate: Iterable[SelectorT],
-        #protect: Iterable[SelectorT],
-        #global_attrs: dict[str, str],
-        #local_attrs: dict[SelectorT, dict[str, str]],
-        #writing_config: StringMobjectWritingConfig
-        #frame_scale: float
     ) -> None:
         super().__init__()
 
         cls = type(self)
-        #parser_cls = cls._parser_cls
-        #io_cls = cls._io_cls
         input_data = cls._input_data_cls(**kwargs)
         output_data = cls._io_cls.get(input_data)
 
@@ -872,95 +732,6 @@ class StringMobject(ShapeMobject):
         self._labelled_part_items: list[tuple[str, list[int]]] = labelled_part_items
         self._group_part_items: list[tuple[str, list[int]]] = group_part_items
         self.add(*shape_mobjects)
-
-        #shape_mobjects = output_data.shape_mobjects
-        #self._shape_mobjects: list[ShapeMobject] = shape_mobjects
-        #parser_cls = cls._parser_cls
-        #label_to_span_dict, replaced_items = parser_cls._get_label_to_span_dict_and_replaced_items(
-        #    string=string,
-        #    isolate=isolate,
-        #    protect=protect,
-        #    global_attrs=global_attrs,
-        #    local_attrs=local_attrs
-        #)
-        #original_pieces = parser_cls._get_original_pieces(
-        #    replaced_items=replaced_items,
-        #    string=string
-        #)
-        #labels, shape_mobjects = cls._get_labels_and_shape_mobjects(
-        #    unlabelled_content=parser_cls._get_content(
-        #        original_pieces=original_pieces,
-        #        replaced_items=replaced_items,
-        #        is_labelled=False
-        #    ),
-        #    labelled_content=parser_cls._get_content(
-        #        original_pieces=original_pieces,
-        #        replaced_items=replaced_items,
-        #        is_labelled=True
-        #    ),
-        #    requires_labelling=len(label_to_span_dict) > 1,
-        #    file_writing_config=file_writing_config,
-        #    frame_scale=frame_scale
-        #)
-        #spans = [label_to_span_dict[label] for label in labels]
-
-        #self.add(*shape_mobjects)
-        #self._string: str = string
-        #self._shape_mobjects: list[ShapeMobject] = shape_mobjects
-        #self._spans: list[Span] = spans
-        #self._labelled_part_items: list[tuple[str, list[int]]] = parser_cls._get_labelled_part_items(
-        #    string=string,
-        #    spans=spans
-        #)
-        #self._group_part_items: list[tuple[str, list[int]]] = parser_cls._get_group_part_items(
-        #    labels=labels,
-        #    label_to_span_dict=label_to_span_dict,
-        #    original_pieces=original_pieces,
-        #    replaced_items=replaced_items
-        #)
-
-    #@classmethod
-    #def _get_svg_file(
-    #    cls,
-    #    content: str,
-    #    file_writing_config: StringFileWritingConfig
-    #) -> pathlib.Path:
-    #    hash_content = str((content, file_writing_config))
-    #    # Truncating at 16 bytes for cleanliness.
-    #    hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-    #    svg_dir = PathUtils.get_output_subdir(cls._dir_name)
-    #    svg_path = svg_dir.joinpath(f"{hex_string}.svg")
-    #    #svg_path = cls.get_hash_path(
-    #    #    hash_content=hash_content,
-    #    #    dir_name=cls._dir_name,
-    #    #    suffix=".svg"
-    #    #)
-    #    if not svg_path.exists():
-    #        with cls._display_during_execution():
-    #            cls._create_svg_file(content, svg_path, file_writing_config)
-    #    return svg_path
-
-    #@classmethod
-    #def get_hash_path(
-    #    cls,
-    #    hash_content: str,
-    #    dir_name: str,
-    #    suffix: str
-    #) -> pathlib.Path:
-    #    # Truncating at 16 bytes for cleanliness.
-    #    hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-    #    svg_dir = PathUtils.get_output_subdir(dir_name)
-    #    return svg_dir.joinpath(f"{hex_string}{suffix}")
-
-    #@classmethod
-    #@contextmanager
-    #def _display_during_execution(cls) -> Iterator[None]:
-    #    message = "Generating temporary files of StringMobject..."
-    #    try:
-    #        print(message, end="\r")
-    #        yield
-    #    finally:
-    #        print(" " * len(message), end="\r")
 
     @classmethod
     @property
@@ -996,6 +767,7 @@ class StringMobject(ShapeMobject):
                 for match_obj in selector.finditer(string):
                     yield Span(*match_obj.span())
             case (int() as start, int() as stop):
+                assert start <= stop
                 yield Span(start, stop)
 
     @classmethod

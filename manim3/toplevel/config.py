@@ -34,28 +34,36 @@ class Config:
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
 
-    tex_color: ColorT = Color("white")
-    tex_font_size: float = 30
+    latex_color: ColorT = Color("white")
+    latex_font_size: float = 30
     tex_alignment: AlignmentT = "left"
     tex_compiler: str = "xelatex"
-    tex_preamble: str = "\n".join((
-        "\\documentclass[preview]{standalone}",
+    tex_preambles: tuple[str, ...] = (
         "\\usepackage[UTF8]{ctex}",
         "\\usepackage{amsmath}",
         "\\usepackage{amssymb}",
         "\\usepackage{xcolor}"  # Required for labelling.
-    ))
+    )
+    math_tex_inline: bool = False
+    # See `https://docs.mathjax.org/en/latest/input/tex/extensions/index.html`.
+    mathjax_extensions: tuple[str, ...] = (
+        "ams",
+        "autoload",
+        "base",
+        "newcommand",
+        "require"
+    )
+    mathjax_inline: bool = False
 
-    text_color: ColorT = Color("white")
-    text_font_size: float = 30
-    text_alignment: AlignmentT = "left"
-    text_font: str = "Consolas"
-    text_justify: bool = False
-    text_indent: float = 0.0
-    text_line_width: float = -1.0
-
+    pango_color: ColorT = Color("white")
+    pango_font_size: float = 30
+    pango_alignment: AlignmentT = "left"
+    pango_font: str = "Consolas"
+    pango_justify: bool = False
+    pango_indent: float = 0.0
+    pango_line_width: float = -1.0
     code_font: str = "JetBrains Mono"
-    code_language_extension: str = ".py"
+    code_language_suffix: str = ".py"
 
     @property
     def gl_version_code(self) -> int:

@@ -1,8 +1,11 @@
 __pycache__/
 *.py[cod]
 
+node_modules/
+package-lock.json
+result.json
+
 /dist/
 /manim3_output/
 /playground/
 /videos/
-result.json
