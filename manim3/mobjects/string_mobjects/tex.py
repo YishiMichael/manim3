@@ -70,34 +70,25 @@ class TexIO(LatexStringMobjectIO):
         tex_path.write_text(full_content, encoding="utf-8")
 
         try:
-            # tex to dvi
             if os.system(" ".join((
                 program,
+                f"\"{tex_path}\"",
                 "-interaction=batchmode",
                 "-halt-on-error",
                 f"-output-directory=\"{svg_path.parent}\"",
-                f"\"{tex_path}\"",
-                ">",
-                os.devnull
-            ))):
-                error_message = "LaTeX error"
-                log_text = svg_path.with_suffix(".log").read_text(encoding="utf-8")
-                if (error_match_obj := re.search(r"(?<=\n! ).*", log_text)) is not None:
-                    error_message += f": {error_match_obj.group()}"
-                raise IOError(error_message)
-
-            # dvi to svg
-            os.system(" ".join((
+                ">", os.devnull
+            ))) or os.system(" ".join((
                 "dvisvgm",
                 f"\"{svg_path.with_suffix(dvi_suffix)}\"",
                 "-n",
-                "-v",
-                "0",
-                "-o",
-                f"\"{svg_path}\"",
-                ">",
-                os.devnull
-            )))
+                "-v", "0",
+                "-o", f"\"{svg_path}\"",
+                ">", os.devnull
+            ))):
+                raise IOError("TexIO: Failed to execute latex command")
+            log_text = svg_path.with_suffix(".log").read_text(encoding="utf-8")
+            if (error_match_obj := re.search(r"(?<=\n! ).*", log_text)) is not None:
+                raise ValueError(f"LaTeX error: {error_match_obj.group()}")
 
         finally:
             for suffix in (".tex", dvi_suffix, ".log", ".aux"):
@@ -106,7 +97,7 @@ class TexIO(LatexStringMobjectIO):
     @classmethod
     @property
     def _scale_factor_per_font_point(cls) -> float:
-        return 0.001577  # TODO: Affected by frame height?
+        return 0.001577
 
 
 class Tex(LatexStringMobject):

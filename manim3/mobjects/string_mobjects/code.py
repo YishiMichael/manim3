@@ -77,16 +77,18 @@ class CodeIO(PangoStringMobjectIO):
             # First open the file, then launch the command.
             # We separate these two steps as file loading is asynchronous,
             # and operations on `view` has no effect while loading.
-            os.system(" ".join((
+            if os.system(" ".join((
                 "subl",
+                f"\"{code_path}\"",
                 "--background",   # Don't activate the application.
-                f"\"{code_path}\""
-            )))
-            os.system(" ".join((
+                ">", os.devnull
+            ))) or os.system(" ".join((
                 "subl",
                 "--background",
-                "--command", "export_highlight"
-            )))
+                "--command", "export_highlight",
+                ">", os.devnull
+            ))):
+                raise IOError("CodeIO: Failed to execute subl command")
 
             json_str = temp_path.with_suffix(".json").read_text(encoding="utf-8")
             local_attrs = dict(

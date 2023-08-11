@@ -51,7 +51,7 @@ class PangoUtils:
         validate_error = manimpango.MarkupUtils.validate(markup_str)
         if not validate_error:
             return
-        raise ValueError(f"Invalid markup string: {validate_error}")
+        raise ValueError(f"Markup error: {validate_error}")
 
     @classmethod
     def create_markup_svg(

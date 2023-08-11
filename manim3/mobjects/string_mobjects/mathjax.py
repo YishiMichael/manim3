@@ -41,18 +41,19 @@ class MathJaxIO(LatexStringMobjectIO):
         mathjax_program_path = PathUtils.plugins_dir.joinpath("mathjax/index.js")
         full_content = content.replace("\n", " ")
 
-        os.system(" ".join((
+        if os.system(" ".join((
             "node",
             f"\"{mathjax_program_path}\"",
             f"--tex=\"{full_content}\"",
             f"--extensions=\"{' '.join(input_data.extensions)}\"",
             f"--inline={input_data.inline}",
-            ">",
-            f"\"{svg_path}\""
-        )))
+            f"--path=\"{svg_path}\"",
+            ">", os.devnull
+        ))):
+            raise IOError("MathJaxIO: Failed to execute node command")
         svg_text = svg_path.read_text(encoding="utf-8")
         if (error_match_obj := re.search(r"<text\b.*?>(.*)</text>", svg_text)) is not None:
-            raise IOError(f"MathJax error: {error_match_obj.group(1)}")
+            raise ValueError(f"MathJax error: {error_match_obj.group(1)}")
 
     @classmethod
     @property
