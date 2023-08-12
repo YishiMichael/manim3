@@ -33,7 +33,7 @@ class MobjectIO(ABC, Generic[_InputDataT, _OutputDataT, _JSONDataT]):
     ) -> _OutputDataT:
         # Notice that as we are using `str(input_data)` as key,
         # each item shall have an explicit string representation of data,
-        # which shall not contain any address.
+        # which shall not contain any information varying in each run, like addresses.
         hash_content = str(input_data)
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]

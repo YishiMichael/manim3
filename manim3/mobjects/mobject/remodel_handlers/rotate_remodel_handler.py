@@ -5,7 +5,6 @@ from ....constants.custom_typing import (
     NP_3f8,
     NP_44f8
 )
-from ....utils.space_utils import SpaceUtils
 from .remodel_handler import RemodelHandler
 
 
@@ -23,7 +22,6 @@ class RotateRemodelHandler(RemodelHandler):
         self,
         alpha: float | NP_3f8 = 1.0
     ) -> NP_44f8:
-        rotvec = SpaceUtils.lerp(np.zeros((3,)), self._rotvec, alpha)
         m = np.identity(4)
-        m[:3, :3] = Rotation.from_rotvec(rotvec).as_matrix()
+        m[:3, :3] = Rotation.from_rotvec(self._rotvec * alpha).as_matrix()
         return m

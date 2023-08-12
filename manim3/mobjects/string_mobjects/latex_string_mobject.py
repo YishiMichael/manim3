@@ -57,7 +57,6 @@ class LatexStringMobjectIO(StringMobjectIO):
         cls,
         input_data: LatexStringMobjectInputData
     ) -> float:
-        # Through the convension, `font_size=30` would make the height of "x" become roughly 0.30.
         return cls._scale_factor_per_font_point * input_data.font_size
 
     @classmethod

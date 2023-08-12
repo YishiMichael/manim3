@@ -9,9 +9,10 @@ from typing import (
 )
 
 try:
-    import manimpango
+    # Soft dependency.
+    from manimpango import MarkupUtils
 except ImportError:
-    pass
+    MarkupUtils = None
 
 from ...constants.custom_typing import (
     AlignmentT,
@@ -35,62 +36,6 @@ class PangoAlignment(Enum):
     LEFT = 0
     CENTER = 1
     RIGHT = 2
-
-
-class PangoUtils:
-    __slots__ = ()
-
-    def __new__(cls):
-        raise TypeError
-
-    @classmethod
-    def validate_markup_string(
-        cls,
-        markup_str: str
-    ) -> None:
-        validate_error = manimpango.MarkupUtils.validate(markup_str)
-        if not validate_error:
-            return
-        raise ValueError(f"Markup error: {validate_error}")
-
-    @classmethod
-    def create_markup_svg(
-        cls,
-        markup_str: str,
-        svg_path: pathlib.Path,
-        justify: bool,
-        indent: float,
-        alignment: AlignmentT,
-        pango_width: float
-    ) -> None:
-        # `manimpango` is under construction,
-        # so the following code is intended to suit its interface.
-        match alignment:
-            case "left":
-                pango_alignment = PangoAlignment.LEFT
-            case "center":
-                pango_alignment = PangoAlignment.CENTER
-            case "right":
-                pango_alignment = PangoAlignment.RIGHT
-        manimpango.MarkupUtils.text2svg(
-            text=markup_str,
-            font="",                   # Already handled.
-            slant="NORMAL",            # Already handled.
-            weight="NORMAL",           # Already handled.
-            size=1,                    # Already handled.
-            _=0,                       # Empty parameter.
-            disable_liga=False,
-            file_name=str(svg_path),
-            START_X=0,
-            START_Y=0,
-            width=16384,               # Ensure the canvas is large enough
-            height=16384,              # to hold all glyphs.
-            justify=justify,
-            indent=indent,
-            line_spacing=None,         # Already handled.
-            alignment=pango_alignment,
-            pango_width=pango_width
-        )
 
 
 @dataclass(
@@ -175,20 +120,40 @@ class PangoStringMobjectIO(StringMobjectIO):
         input_data: PangoStringMobjectInputData,
         svg_path: pathlib.Path
     ) -> None:
-        justify = input_data.justify
-        indent = input_data.indent
-        alignment = input_data.alignment
-        line_width = input_data.line_width
+        if MarkupUtils is None:
+            raise IOError("PangoStringMobjectIO: manimpango is not found")
+        if (validate_error := MarkupUtils.validate(content)):
+            raise ValueError(f"Markup error: {validate_error}")
 
-        PangoUtils.validate_markup_string(content)
-        PangoUtils.create_markup_svg(
-            markup_str=content,
-            svg_path=svg_path,
-            justify=justify,
-            indent=indent,
-            alignment=alignment,
+        # `manimpango` is under construction,
+        # so the following code is intended to suit its interface.
+        match input_data.alignment:
+            case "left":
+                pango_alignment = PangoAlignment.LEFT
+            case "center":
+                pango_alignment = PangoAlignment.CENTER
+            case "right":
+                pango_alignment = PangoAlignment.RIGHT
+
+        MarkupUtils.text2svg(
+            text=content,
+            font="",                   # Already handled.
+            slant="NORMAL",            # Already handled.
+            weight="NORMAL",           # Already handled.
+            size=1,                    # Already handled.
+            _=0,                       # Empty parameter.
+            disable_liga=False,
+            file_name=str(svg_path),
+            START_X=0,
+            START_Y=0,
+            width=16384,               # Ensure the canvas is large enough
+            height=16384,              # to hold all glyphs.
+            justify=input_data.justify,
+            indent=input_data.indent,
+            line_spacing=None,         # Already handled.
+            alignment=pango_alignment,
             pango_width=(
-                -1 if line_width < 0.0
+                -1 if (line_width := input_data.line_width) < 0.0
                 else line_width * Toplevel.config.pixel_per_unit
             )
         )

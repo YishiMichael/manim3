@@ -338,6 +338,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
         cls,
         input_data: StringMobjectInputData
     ) -> float:
+        # `font_size=30` shall make the height of "x" become roughly 0.30.
         pass
 
     # parsing
