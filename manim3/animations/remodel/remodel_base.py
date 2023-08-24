@@ -1,7 +1,9 @@
 from ...mobjects.mobject.abouts.about import About
-from ...mobjects.mobject.remodel_handlers.remodel_bound_handler import RemodelBoundHandler
 from ...mobjects.mobject.remodel_handlers.remodel_handler import RemodelHandler
-from ...mobjects.mobject.mobject import Mobject
+from ...mobjects.mobject.mobject import (
+    Mobject,
+    RemodelBoundHandler
+)
 from ..animation.animation import Animation
 
 
@@ -18,7 +20,10 @@ class RemodelBase(Animation):
         super().__init__(
             run_alpha=run_alpha
         )
-        self._remodel_bound_handler: RemodelBoundHandler = RemodelBoundHandler(mobject, remodel_handler, about)
+        self._remodel_bound_handler: RemodelBoundHandler = mobject._get_remodel_bound_handler(
+            remodel_handler=remodel_handler,
+            about=about
+        )
 
     def updater(
         self,

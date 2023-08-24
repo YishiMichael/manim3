@@ -46,8 +46,6 @@ py examples.py
 ```
 A window running a scene shall pop up.
 
-After you have installed all third-party modules listed in `requirements.py`
-
 
 ## License
 MIT license

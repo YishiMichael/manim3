@@ -1,8 +1,8 @@
-import itertools as it
 from functools import reduce
 from typing import (
     Iterable,
-    Iterator
+    Iterator,
+    Literal
 )
 
 import numpy as np
@@ -13,7 +13,12 @@ from mapbox_earcut import triangulate_float64
 from ....constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
-    NP_x3i4
+    NP_x2i4,
+    NP_x3i4,
+    NP_xb,
+    NP_xi4,
+    NPE_b,
+    NPE_i4
 )
 from ....lazy.lazy import (
     Lazy,
@@ -26,13 +31,24 @@ from ...graph_mobjects.graphs.graph import Graph
 class Shape(LazyObject):
     __slots__ = ()
 
+    #def __init__(
+    #    self,
+    #    graph: Graph | None = None
+    #) -> None:
+    #    super().__init__()
+    #    if graph is not None:
+    #        self._graph_ = graph
+
     def __init__(
         self,
-        graph: Graph | None = None
+        positions: NP_x2f8 | None = None,
+        counts: NP_xi4 | None = None
     ) -> None:
         super().__init__()
-        if graph is not None:
-            self._graph_ = graph
+        if positions is not None:
+            self._positions_ = positions
+        if counts is not None:
+            self._counts_ = counts
 
     def __and__(
         self,
@@ -58,36 +74,62 @@ class Shape(LazyObject):
     ) -> "Shape":
         return self.symmetric_difference(other)
 
-    @Lazy.variable
+    @Lazy.variable_array
     @classmethod
-    def _graph_(cls) -> Graph:
-        return Graph()
+    def _positions_(cls) -> NP_x2f8:
+        return np.zeros((0, 2))
+
+    @Lazy.variable_array
+    @classmethod
+    def _counts_(cls) -> NP_xi4:
+        return np.zeros((0,), dtype=np.int32)
+
+    @Lazy.property_array
+    @classmethod
+    def _intervals_(
+        cls,
+        counts: NP_xi4
+    ) -> NP_x2i4:
+        counts_cumsum = np.cumsum(counts, dtype=np.int32)
+        return np.column_stack((
+            np.insert(counts_cumsum[:-1], 0, 0),
+            counts_cumsum
+        ))
+
+    #@Lazy.variable
+    #@classmethod
+    #def _graph_(cls) -> Graph:
+    #    return Graph()
 
     @Lazy.property_external
     @classmethod
     def _shapely_obj_(
         cls,
-        graph: Graph
+        #graph: Graph
+        positions: NP_x2f8,
+        intervals: NP_x2i4
     ) -> shapely.geometry.base.BaseGeometry:
 
-        def get_polygon_positions(
-            graph: Graph
-        ) -> Iterator[NP_x2f8]:
-            positions = SpaceUtils.decrease_dimension(graph._positions_)
-            edges = graph._edges_
-            if not len(edges):
-                return
-            disjoints = Graph._get_disjoints(edges=edges)
-            for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
-                indices = edges[start:stop, 0]
-                if indices[0] != (tail_index := edges[stop - 1, 1]):
-                    indices = np.append(indices, tail_index)
-                yield positions[indices]
+        #def get_polygon_positions(
+        #    graph: Graph
+        #) -> Iterator[NP_x2f8]:
+        #    positions = SpaceUtils.decrease_dimension(graph._positions_)
+        #    edges = graph._edges_
+        #    if not len(edges):
+        #        return
+        #    disjoints = Graph._get_disjoints(edges=edges)
+        #    for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
+        #        indices = edges[start:stop, 0]
+        #        if indices[0] != (tail_index := edges[stop - 1, 1]):
+        #            indices = np.append(indices, tail_index)
+        #        yield positions[indices]
 
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
-            shapely.validation.make_valid(shapely.geometry.Polygon(polygon_positions))
-            for polygon_positions in get_polygon_positions(graph)
-            if len(polygon_positions) >= 3
+            shapely.validation.make_valid(shapely.geometry.Polygon(positions[start:stop]))
+            for start, stop in intervals
+            if stop - start >= 3
+            #for polygon_positions in get_polygon_positions(graph)
+            #if len(polygon_positions) >= 3
         ), shapely.geometry.GeometryCollection())
 
     @Lazy.property_external
@@ -153,32 +195,77 @@ class Shape(LazyObject):
         )
 
     @classmethod
+    def to_graph(
+        cls,
+        shape: "Shape"
+    ) -> Graph:
+
+        def get_edges(
+            start: NPE_i4,
+            stop: NPE_i4
+        ) -> NP_x2i4:
+            arange = np.arange(start, stop, dtype=np.int32)
+            return np.column_stack((
+                arange,
+                np.roll(arange, -1)
+            ))
+
+        if not len(intervals := shape._intervals_):
+            return Graph()
+        return Graph(
+            positions=SpaceUtils.increase_dimension(shape._positions_),
+            edges=np.concatenate([
+                get_edges(start, stop)
+                for start, stop in intervals
+            ])
+        )
+
+    @classmethod
+    def from_graph(
+        cls,
+        graph: Graph
+    ) -> "Shape":
+        if not len(edges := graph._edges_):
+            return Shape()
+        disjoints = np.flatnonzero(edges[:-1, 1] - edges[1:, 0])
+
+    @classmethod
     def from_paths(
         cls,
         paths: Iterable[tuple[NP_x2f8, bool]]
     ) -> "Shape":
         path_list = [
-            (positions, is_ring)
-            for positions, is_ring in paths
+            (positions, ring)
+            for positions, ring in paths
             if len(positions)
         ]
         if not path_list:
             return Shape()
-
-        positions = SpaceUtils.increase_dimension(np.concatenate([
-            positions for positions, _ in path_list
-        ]))
-        offsets = np.insert(np.cumsum([
-            len(positions) for positions, _ in path_list[:-1]
-        ], dtype=np.int32), 0, 0)
-        edges = np.concatenate([
-            Graph._get_consecutive_edges(len(positions), is_ring=is_ring) + offset
-            for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
-        ])
-        return Shape(Graph(
-            positions=positions,
-            edges=edges
-        ))
+        return Shape(
+            positions=np.concatenate([
+                positions for positions, _ in path_list
+            ]),
+            counts=np.fromiter((
+                len(positions) for positions, _ in path_list
+            ), dtype=np.int32),
+            rings=np.fromiter((
+                ring for _, ring in path_list
+            ), dtype=np.bool_)
+        )
+        #positions = SpaceUtils.increase_dimension(np.concatenate([
+        #    positions for positions, _ in path_list
+        #]))
+        #offsets = np.insert(np.cumsum([
+        #    len(positions) for positions, _ in path_list[:-1]
+        #], dtype=np.int32), 0, 0)
+        #edges = np.concatenate([
+        #    Graph._get_consecutive_edges(len(positions), is_ring=is_ring) + offset
+        #    for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
+        #])
+        #return Shape(Graph(
+        #    positions=positions,
+        #    edges=edges
+        #))
 
     @classmethod
     def from_shapely_obj(
@@ -247,8 +334,8 @@ class Shape(LazyObject):
         self,
         distance: float,
         quad_segs: int = 16,
-        cap_style: str = "round",
-        join_style: str = "round",
+        cap_style: Literal["round", "square", "flat"] = "round",
+        join_style: Literal["round", "mitre", "bevel"] = "round",
         mitre_limit: float = 5.0,
         single_sided: bool = False
     ) -> "Shape":

@@ -59,7 +59,7 @@ class GraphMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _opacity_(cls) -> NP_f8:
-        return np.ones(())
+        return np.float64(1.0)
 
     @StyleMeta.register(
         interpolate_operation=LerpInterpolateHandler
@@ -67,7 +67,7 @@ class GraphMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _weight_(cls) -> NP_f8:
-        return np.ones(())
+        return np.float64(1.0)
 
     @StyleMeta.register(
         interpolate_operation=LerpInterpolateHandler
@@ -75,7 +75,7 @@ class GraphMobject(RenderableMobject):
     @Lazy.variable_array
     @classmethod
     def _width_(cls) -> NP_f8:
-        return Toplevel.config.graph_width * np.ones(())
+        return np.float64(Toplevel.config.graph_width)
 
     @Lazy.property_array
     @classmethod

@@ -1,3 +1,4 @@
+# TODO: The document is outdated.
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.
@@ -42,15 +43,15 @@ dependent variables of lazy properties. Once modified, the related lazy
 properties will be expired, and will be recomputed when fetching.
 
 Containers under `LazyVariableSlot` objects are never shared among instances,
-since data mutating is modifying to affect a particular instance. Data
-contained, on the other hand, can be shared freely.
+since data modification is expected to be applied to a particular instance.
+Data contained, on the other hand, can be shared freely.
 
 Methods decorated by `Lazy.variable` should not take any argument except for
 `cls` and return the *initial* value for this data.
 
 Lazy variables are of course mutable. All can be modified via `__set__`
-except for `COLLECTION` mode (where `LazyDynamicContainer.reset` comes into
-play; a list-like public interface is provided to perform modification).
+except for `COLLECTION` mode (where `LazyDynamicContainer.reset` is used
+instead; a list-like public interface is provided to perform modification).
 Among all cases above, a common value will be shared among instances except
 in `EXTERNAL` mode, in which case a new `LazyWrapper` object will be instanced
 and assigned specially to the instance. `LazyWrapper` is derived from
@@ -184,14 +185,14 @@ class TreeNode(Generic[_TreeNodeContentT]):
         self._children = tuple(nodes)
         return self
 
-    def apply_deepest(
+    def apply_to_leaf(
         self,
         callback: "Callable[[_TreeNodeContentT], TreeNode[_TreeNodeContentT]]"
     ) -> "TreeNode[_TreeNodeContentT]":
         if (children := self._children) is None:
             return callback(self._content)
         return TreeNode(self._content).bind(
-            child.apply_deepest(callback)
+            child.apply_to_leaf(callback)
             for child in children
         )
 
@@ -770,7 +771,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
             parameter_tree: TreeNode[LazyObject] = TreeNode(instance)
             linked_variable_slots: list[LazyVariableSlot] = []
             for reversed_index, descriptor_name in reversed(list(zip(it.count(), reversed(descriptor_name_chain)))):
-                parameter_tree = parameter_tree.apply_deepest(
+                parameter_tree = parameter_tree.apply_to_leaf(
                     construct_parameter_tree(descriptor_name, not reversed_index, linked_variable_slots)
                 )
             return parameter_tree, linked_variable_slots
@@ -837,7 +838,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
         ))
         parameter_trees = tuple(parameter_tree for parameter_tree, _ in parameter_items)
         key = tuple(
-            construct_parameter_key(parameter_tree.apply_deepest(expand_dependencies))
+            construct_parameter_key(parameter_tree.apply_to_leaf(expand_dependencies))
             for parameter_tree in parameter_trees
         )
 

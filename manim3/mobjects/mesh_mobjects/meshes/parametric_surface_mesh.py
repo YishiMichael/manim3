@@ -3,8 +3,8 @@ from typing import Callable
 import numpy as np
 
 from ....constants.custom_typing import (
-    NP_3f8,
-    NP_f8
+    NP_x2f8,
+    NP_x3f8
 )
 from .mesh import Mesh
 
@@ -15,8 +15,8 @@ class ParametricSurfaceMesh(Mesh):
     def __init__(
         self,
         *,
-        func: Callable[[NP_f8, NP_f8], NP_3f8],
-        normal_func: Callable[[NP_f8, NP_f8], NP_3f8],
+        func: Callable[[NP_x2f8], NP_x3f8],
+        normal_func: Callable[[NP_x2f8], NP_x3f8],
         u_range: tuple[float, float],
         v_range: tuple[float, float],
         resolution: tuple[int, int] = (128, 128)
@@ -40,13 +40,13 @@ class ParametricSurfaceMesh(Mesh):
             np.linspace(0.0, 1.0, v_len),
             indexing="ij"
         ), 2).reshape((-1, 2))
-        samples = np.stack(np.meshgrid(
+        samples: NP_x2f8 = np.stack(np.meshgrid(
             np.linspace(u_start, u_stop, u_len),
             np.linspace(v_start, v_stop, v_len),
             indexing="ij"
         ), 2).reshape((-1, 2))
-        positions = np.apply_along_axis(lambda p: func(*p), 1, samples)
-        normals = np.apply_along_axis(lambda p: normal_func(*p), 1, samples)
+        positions = func(samples)
+        normals = normal_func(samples)
 
         super().__init__(
             positions=positions,

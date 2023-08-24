@@ -5,8 +5,8 @@ from ....constants.constants import (
     TAU
 )
 from ....constants.custom_typing import (
-    NP_3f8,
-    NP_f8
+    NP_x2f8,
+    NP_x3f8
 )
 from .parametric_surface_mesh import ParametricSurfaceMesh
 
@@ -17,10 +17,11 @@ class SphereMesh(ParametricSurfaceMesh):
     def __init__(self) -> None:
 
         def func(
-            theta: NP_f8,
-            phi: NP_f8
-        ) -> NP_3f8:
-            return np.array((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
+            samples: NP_x2f8
+        ) -> NP_x3f8:
+            theta = samples[:, 0]
+            phi = samples[:, 1]
+            return np.column_stack((np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)))
 
         super().__init__(
             func=func,

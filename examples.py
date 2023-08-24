@@ -73,9 +73,9 @@ class CreateTexExample(Scene):
             .set_style(color=BLUE, weight=10)
         )
         await self.wait()
-        await self.play(PartialCreate(text), run_time=2, rate=Smooth())
+        await self.play(Create(text), run_time=2, rate=Smooth())
         await self.wait()
-        await self.play(PartialUncreate(text, backwards=True), rate=Smooth(), run_time=2)
+        await self.play(Uncreate(text, backwards=True), rate=Smooth(), run_time=2)
         await self.wait()
 
 
@@ -308,12 +308,12 @@ class GameExample(Scene):
 
         self.add(judge_line)
         await self.play(Parallel(*(
-            PartialCreate(key_text)
+            Create(key_text)
             for key_text in key_texts
         ), lag_time=0.5), run_time=1.5)
         await self.wait()
         await self.play(Parallel(*(
-            PartialUncreate(key_text)
+            Uncreate(key_text)
             for key_text in key_texts
         ), lag_time=0.5), run_time=1.5)
         for note_chars in zip(*score, strict=True):

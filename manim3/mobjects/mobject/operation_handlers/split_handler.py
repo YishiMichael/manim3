@@ -7,11 +7,13 @@ from typing import (
     TypeVar
 )
 
+from ....constants.custom_typing import NP_xf8
+
 
 _T = TypeVar("_T")
 
 
-class PartialHandler(Generic[_T], ABC):
+class SplitHandler(Generic[_T], ABC):
     __slots__ = ()
 
     @abstractmethod
@@ -22,9 +24,8 @@ class PartialHandler(Generic[_T], ABC):
         pass
 
     @abstractmethod
-    def partial(
+    def split(
         self,
-        alpha_0: float,
-        alpha_1: float
+        alphas: NP_xf8
     ) -> _T:
         pass

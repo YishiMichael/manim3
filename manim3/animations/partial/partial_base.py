@@ -1,13 +1,13 @@
 from typing import Callable
 
-from ...mobjects.mobject.operation_handlers.partial_bound_handler import PartialBoundHandler
+from ...mobjects.mobject.operation_handlers.split_bound_handler import SplitBoundHandler
 from ...mobjects.mobject.mobject import Mobject
 from ..animation.animation import Animation
 
 
 class PartialBase(Animation):
     __slots__ = (
-        "_partial_bound_handlers",
+        "_split_bound_handlers",
         "_mobject",
         "_alpha_to_boundary_values",
         "_backwards"
@@ -24,8 +24,8 @@ class PartialBase(Animation):
         super().__init__(
             run_alpha=1.0
         )
-        self._partial_bound_handlers: list[PartialBoundHandler] = [
-            PartialBoundHandler(descendant, descendant)
+        self._split_bound_handlers: list[SplitBoundHandler] = [
+            SplitBoundHandler(descendant, descendant)
             for descendant in mobject.iter_descendants()
         ]
         self._mobject: Mobject = mobject
@@ -39,8 +39,8 @@ class PartialBase(Animation):
         alpha_0, alpha_1 = self._alpha_to_boundary_values(alpha)
         if self._backwards:
             alpha_0, alpha_1 = 1.0 - alpha_1, 1.0 - alpha_0
-        for partial_bound_handler in self._partial_bound_handlers:
-            partial_bound_handler.partial(alpha_0, alpha_1)
+        for split_bound_handler in self._split_bound_handlers:
+            split_bound_handler.split(alpha_0, alpha_1)
 
     async def timeline(self) -> None:
         await self.wait()

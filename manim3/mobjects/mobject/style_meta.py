@@ -14,7 +14,7 @@ from ...lazy.lazy import (
 )
 from .operation_handlers.concatenate_handler import ConcatenateHandler
 from .operation_handlers.interpolate_handler import InterpolateHandler
-from .operation_handlers.partial_handler import PartialHandler
+from .operation_handlers.split_handler import SplitHandler
 
 
 _ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
@@ -30,7 +30,7 @@ _DataRawT = TypeVar("_DataRawT")
 )
 class OperationInfo(Generic[_InstanceT, _ContainerT, _DataT, _DataRawT]):
     descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]
-    partial_handler_cls: type[PartialHandler[_ContainerT]] | None
+    split_handler_cls: type[SplitHandler[_ContainerT]] | None
     interpolate_handler_cls: type[InterpolateHandler[_ContainerT]] | None
     concatenate_handler_cls: type[ConcatenateHandler[_ContainerT]] | None
 
@@ -47,7 +47,7 @@ class StyleMeta:
     def register(
         cls,
         *,
-        partial_operation: type[PartialHandler] | None | None = None,
+        split_operation: type[SplitHandler] | None | None = None,
         interpolate_operation: type[InterpolateHandler] | None = None,
         concatenate_operation: type[ConcatenateHandler] | None = None
     ) -> Callable[
@@ -61,7 +61,7 @@ class StyleMeta:
             assert not isinstance(descriptor.converter, LazyCollectionConverter)
             cls._operation_infos.append(OperationInfo(
                 descriptor=descriptor,
-                partial_handler_cls=partial_operation,
+                split_handler_cls=split_operation,
                 interpolate_handler_cls=interpolate_operation,
                 concatenate_handler_cls=concatenate_operation
             ))

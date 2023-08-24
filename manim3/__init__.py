@@ -18,9 +18,9 @@ from .animations.composition.series import Series
 from .animations.fade.fade_in import FadeIn
 from .animations.fade.fade_out import FadeOut
 from .animations.fade.fade_transform import FadeTransform
-from .animations.partial.partial_create import PartialCreate
-from .animations.partial.partial_flash import PartialFlash
-from .animations.partial.partial_uncreate import PartialUncreate
+from .animations.partial.create import Create
+from .animations.partial.flash import Flash
+from .animations.partial.uncreate import Uncreate
 from .animations.remodel.rotate import Rotate
 from .animations.remodel.rotating import Rotating
 from .animations.remodel.scale import Scale

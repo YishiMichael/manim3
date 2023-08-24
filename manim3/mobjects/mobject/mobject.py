@@ -31,8 +31,7 @@ from ...utils.color_utils import ColorUtils
 from ...utils.space_utils import SpaceUtils
 from .operation_handlers.concatenate_bound_handler import ConcatenateBoundHandler
 from .operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-from .remodel_handlers.constant_remodel_handler import ConstantRemodelHandler
-from .remodel_handlers.remodel_bound_handler import RemodelBoundHandler
+from .remodel_handlers.remodel_handler import RemodelHandler
 from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
 from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
@@ -67,6 +66,46 @@ class BoundingBox:
         # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
         radii[np.isclose(radii, 0.0)] = 1e-8
         return radii
+
+
+class RemodelBoundHandler:
+    __slots__ = (
+        "_remodel_handler",
+        "_post_remodel",
+        "_pre_remodel",
+        "_mobject_to_model_matrix"
+    )
+
+    def __init__(
+        self,
+        mobject: "Mobject",
+        remodel_handler: RemodelHandler,
+        about: "About | None" = None
+    ) -> None:
+        super().__init__()
+        if about is None:
+            post_remodel = np.identity(4)
+            pre_remodel = np.identity(4)
+        else:
+            about_position = about._get_about_position(mobject=mobject)
+            post_remodel = ShiftRemodelHandler(about_position).remodel()
+            pre_remodel = ShiftRemodelHandler(-about_position).remodel()
+
+        self._remodel_handler: RemodelHandler = remodel_handler
+        self._post_remodel: NP_44f8 = post_remodel
+        self._pre_remodel: NP_44f8 = pre_remodel
+        self._mobject_to_model_matrix: "dict[Mobject, NP_44f8]" = {
+            descendant: descendant._model_matrix_
+            for descendant in mobject.iter_descendants()
+        }
+
+    def remodel(
+        self,
+        alpha: float | NP_3f8 = 1.0
+    ) -> None:
+        matrix = self._post_remodel @ self._remodel_handler.remodel(alpha) @ self._pre_remodel
+        for mobject, model_matrix in self._mobject_to_model_matrix.items():
+            mobject._model_matrix_ = matrix @ model_matrix
 
 
 class Mobject(LazyObject):
@@ -384,13 +423,16 @@ class Mobject(LazyObject):
 
     # remodel
 
-    def apply_matrix(
+    def _get_remodel_bound_handler(
         self,
-        matrix: NP_44f8,
+        remodel_handler: RemodelHandler,
         about: "About | None" = None
-    ):
-        RemodelBoundHandler(self, ConstantRemodelHandler(matrix), about=about).remodel()
-        return self
+    ) -> RemodelBoundHandler:
+        return RemodelBoundHandler(
+            mobject=self,
+            remodel_handler=remodel_handler,
+            about=about
+        )
 
     def shift(
         self,
@@ -399,7 +441,9 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        RemodelBoundHandler(self, ShiftRemodelHandler(vector)).remodel(alpha)
+        self._get_remodel_bound_handler(
+            remodel_handler=ShiftRemodelHandler(vector)
+        ).remodel(alpha)
         return self
 
     def move_to(
@@ -433,7 +477,10 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        RemodelBoundHandler(self, ScaleRemodelHandler(factor), about=about).remodel(alpha)
+        self._get_remodel_bound_handler(
+            remodel_handler=ScaleRemodelHandler(factor),
+            about=about
+        ).remodel(alpha)
         return self
 
     def scale_to(
@@ -464,7 +511,10 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        RemodelBoundHandler(self, RotateRemodelHandler(rotvec), about=about).remodel(alpha)
+        self._get_remodel_bound_handler(
+            remodel_handler=RotateRemodelHandler(rotvec),
+            about=about
+        ).remodel(alpha)
         return self
 
     def flip(
@@ -521,9 +571,9 @@ class Mobject(LazyObject):
         def standardize_input(
             value: Any
         ) -> Any:
-            if not isinstance(value, float | int | np.ndarray):
-                return value
-            return value * np.ones((), dtype=np.float64)
+            if isinstance(value, float | int | np.number | np.ndarray):
+                return np.asarray(value, dtype=np.float64)
+            return value
 
         if color is not None:
             color = ColorUtils.standardize_color(color)

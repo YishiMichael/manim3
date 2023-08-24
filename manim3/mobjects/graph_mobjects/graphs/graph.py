@@ -147,7 +147,7 @@ class Graph(LazyObject):
         cls,
         n: int,
         *,
-        is_ring: bool
+        is_ring: bool  # TODO
     ) -> NP_x2i4:
         arange = np.arange(n)
         result = np.vstack((arange, np.roll(arange, -1))).T

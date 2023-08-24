@@ -2,7 +2,7 @@ from ...mobjects.mobject.mobject import Mobject
 from .partial_base import PartialBase
 
 
-class PartialCreate(PartialBase):
+class Create(PartialBase):
     __slots__ = ()
 
     def __init__(

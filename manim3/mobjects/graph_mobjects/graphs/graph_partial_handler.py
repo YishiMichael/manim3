@@ -29,7 +29,7 @@ class GraphPartialHandler(PartialHandler[Graph]):
             positions=positions,
             edges=edges
         )
-        n_positions = len(positions) * np.ones((), dtype=np.int32)
+        n_positions = np.int32(len(positions))
 
         values = np.array((alpha_0, alpha_1)) * cumlengths[-1]
         interpolated_indices = np.searchsorted(cumlengths[1:-1], values)

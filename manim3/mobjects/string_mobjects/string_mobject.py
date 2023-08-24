@@ -198,7 +198,8 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
             spans=spans,
             labelled_part_items=cls._get_labelled_part_items(
                 string=string,
-                spans=spans
+                spans=spans,
+                label_to_span_dict=label_to_span_dict
             ),
             group_part_items=cls._get_group_part_items(
                 labels=labels,
@@ -559,11 +560,12 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     def _get_labelled_part_items(
         cls,
         string: str,
-        spans: list[Span]
+        spans: list[Span],
+        label_to_span_dict: dict[int, Span]
     ) -> list[tuple[str, list[int]]]:
         return [
             (string[span.as_slice()], cls._get_indices_by_span(span, spans))
-            for span in spans
+            for span in label_to_span_dict.values()
         ]
 
     @classmethod

@@ -11,11 +11,11 @@ from ..constants.custom_typing import (
     NP_3f8,
     NP_44f8,
     NP_4f8,
-    NP_f8,
     NP_xf8,
     NP_x2f8,
     NP_x3f8,
-    NP_x4f8
+    NP_x4f8,
+    NPE_f8
 )
 
 
@@ -30,7 +30,7 @@ class SpaceUtils:
     def norm(
         cls,
         vector: NP_2f8 | NP_3f8 | NP_4f8
-    ) -> NP_f8: ...
+    ) -> NPE_f8: ...
 
     @overload
     @classmethod
@@ -43,7 +43,7 @@ class SpaceUtils:
     def norm(
         cls,
         vector: NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8
-    ) -> NP_f8 | NP_xf8:
+    ) -> NPE_f8 | NP_xf8:
         return np.linalg.norm(vector, axis=-1)
 
     @overload

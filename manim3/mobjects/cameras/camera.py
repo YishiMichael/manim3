@@ -95,7 +95,7 @@ class Camera(Mobject):
         eye: NP_3f8,
         target: NP_3f8
     ) -> NP_f8:
-        return SpaceUtils.norm(eye - target)
+        return np.array(SpaceUtils.norm(eye - target))
 
     @Lazy.property_array
     @classmethod
