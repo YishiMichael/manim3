@@ -31,8 +31,8 @@ _DataRawT = TypeVar("_DataRawT")
 class OperationInfo(Generic[_InstanceT, _ContainerT, _DataT, _DataRawT]):
     descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]
     split_handler_cls: type[SplitHandler[_ContainerT]] | None
-    interpolate_handler_cls: type[InterpolateHandler[_ContainerT]] | None
     concatenate_handler_cls: type[ConcatenateHandler[_ContainerT]] | None
+    interpolate_handler_cls: type[InterpolateHandler[_ContainerT]] | None
 
 
 class StyleMeta:
@@ -48,8 +48,8 @@ class StyleMeta:
         cls,
         *,
         split_operation: type[SplitHandler] | None | None = None,
-        interpolate_operation: type[InterpolateHandler] | None = None,
-        concatenate_operation: type[ConcatenateHandler] | None = None
+        concatenate_operation: type[ConcatenateHandler] | None = None,
+        interpolate_operation: type[InterpolateHandler] | None = None
     ) -> Callable[
         [LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]],
         LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]
@@ -62,8 +62,8 @@ class StyleMeta:
             cls._operation_infos.append(OperationInfo(
                 descriptor=descriptor,
                 split_handler_cls=split_operation,
-                interpolate_handler_cls=interpolate_operation,
-                concatenate_handler_cls=concatenate_operation
+                concatenate_handler_cls=concatenate_operation,
+                interpolate_handler_cls=interpolate_operation
             ))
             return descriptor
 

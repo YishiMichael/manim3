@@ -6,7 +6,7 @@ from ..mobject.style_meta import StyleMeta
 from .shapes.shape import Shape
 from .shapes.shape_concatenate_handler import ShapeConcatenateHandler
 from .shapes.shape_interpolate_handler import ShapeInterpolateHandler
-from .shapes.shape_partial_handler import ShapePartialHandler
+from .shapes.shape_split_handler import ShapeSplitHandler
 
 
 class ShapeMobject(MeshMobject):
@@ -21,9 +21,9 @@ class ShapeMobject(MeshMobject):
             self._shape_ = shape
 
     @StyleMeta.register(
-        partial_operation=ShapePartialHandler,
-        interpolate_operation=ShapeInterpolateHandler,
-        concatenate_operation=ShapeConcatenateHandler
+        split_operation=ShapeSplitHandler,
+        concatenate_operation=ShapeConcatenateHandler,
+        interpolate_operation=ShapeInterpolateHandler
     )
     @Lazy.variable
     @classmethod

@@ -1,10 +1,10 @@
 import numpy as np
 
-from ...mobject.operation_handlers.partial_handler import PartialHandler
+from ...mobject.operation_handlers.split_handler import SplitHandler
 from .graph import Graph
 
 
-class GraphPartialHandler(PartialHandler[Graph]):
+class GraphSplitHandler(SplitHandler[Graph]):
     __slots__ = ("_graph",)
 
     def __init__(
@@ -14,7 +14,7 @@ class GraphPartialHandler(PartialHandler[Graph]):
         super().__init__(graph)
         self._graph: Graph = graph
 
-    def partial(
+    def split(
         self,
         alpha_0: float,
         alpha_1: float

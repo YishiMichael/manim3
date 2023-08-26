@@ -21,7 +21,7 @@ from ..renderable_mobject import RenderableMobject
 from .graphs.graph import Graph
 from .graphs.graph_concatenate_handler import GraphConcatenateHandler
 from .graphs.graph_interpolate_handler import GraphInterpolateHandler
-from .graphs.graph_partial_handler import GraphPartialHandler
+from .graphs.graph_split_handler import GraphSplitHandler
 
 
 class GraphMobject(RenderableMobject):
@@ -36,9 +36,9 @@ class GraphMobject(RenderableMobject):
             self._graph_ = graph
 
     @StyleMeta.register(
-        partial_operation=GraphPartialHandler,
-        interpolate_operation=GraphInterpolateHandler,
-        concatenate_operation=GraphConcatenateHandler
+        split_operation=GraphSplitHandler,
+        concatenate_operation=GraphConcatenateHandler,
+        interpolate_operation=GraphInterpolateHandler
     )
     @Lazy.variable
     @classmethod

@@ -13,7 +13,7 @@ class EventCaptured(Condition):
         super().__init__()
         self._event: Event = event
 
-    def judge(self):
+    def judge(self) -> bool:
         targeting_event = self._event
         event_queue = Toplevel.event_queue
         for event in event_queue:
