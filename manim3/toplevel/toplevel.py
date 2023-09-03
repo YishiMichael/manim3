@@ -230,6 +230,7 @@ class Toplevel:
             require=config.gl_version_code,
             standalone=not config.preview
         )
+        mgl_context.gc_mode = "auto"
         yield Context(
             mgl_context=mgl_context
         )

@@ -43,9 +43,11 @@ class SplitBoundHandler:
 
     def split(
         self,
-        alphas: NP_xf8
+        alpha_0: float,
+        alpha_1: float
+        #alphas: NP_xf8
     ) -> None:
         dst = self._dst
         for descriptor, split_handler in self._split_handler_dict.items():
-            dst_container = descriptor.converter.r2c(split_handler.split(alphas))
+            dst_container = descriptor.converter.r2c(split_handler.split(alpha_0, alpha_1))
             descriptor.set_container(dst, dst_container)

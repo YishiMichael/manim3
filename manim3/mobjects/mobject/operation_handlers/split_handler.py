@@ -27,6 +27,8 @@ class SplitHandler(Generic[_T], ABC):
     @abstractmethod
     def split(
         self,
-        alphas: NP_xf8
+        alpha_0: float,
+        alpha_1: float
+        #alphas: NP_xf8
     ) -> _T:
         pass

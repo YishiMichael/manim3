@@ -55,7 +55,7 @@ class AtomicBufferFormat(BufferFormat):
         gl_dtype_str: str,
         layout: BufferLayout
     ) -> None:
-        base_char, base_itemsize, base_shape = self._GL_DTYPES[gl_dtype_str]
+        base_char, base_itemsize, base_shape = type(self)._GL_DTYPES[gl_dtype_str]
         assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
         shape_dict = dict(enumerate(base_shape))
         n_col = shape_dict.get(0, 1)

@@ -319,13 +319,13 @@ class VertexArray(LazyObject):
             uniform_block_info_dict=uniform_block_info_dict
         )
 
-    @_program_info_.finalizer
-    @classmethod
-    def _program_info_finalizer(
-        cls,
-        program_info: ProgramInfo
-    ) -> None:
-        program_info.program.release()
+    #@_program_info_.finalizer
+    #@classmethod
+    #def _program_info_finalizer(
+    #    cls,
+    #    program_info: ProgramInfo
+    #) -> None:
+    #    program_info.program.release()
 
     @Lazy.property_external
     @classmethod
@@ -374,14 +374,14 @@ class VertexArray(LazyObject):
             mode=mode
         )
 
-    @_vertex_array_.finalizer
-    @classmethod
-    def _vertex_array_finalizer(
-        cls,
-        vertex_array: moderngl.VertexArray | None
-    ) -> None:
-        if vertex_array is not None:
-            vertex_array.release()
+    #@_vertex_array_.finalizer
+    #@classmethod
+    #def _vertex_array_finalizer(
+    #    cls,
+    #    vertex_array: moderngl.VertexArray | None
+    #) -> None:
+    #    if vertex_array is not None:
+    #        vertex_array.release()
 
     @Lazy.property_external
     @classmethod

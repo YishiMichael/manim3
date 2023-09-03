@@ -335,7 +335,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540
     )
-    TexTransformExample.render(config)
+    GameExample.render(config)
 
 
 if __name__ == "__main__":

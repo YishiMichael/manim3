@@ -201,9 +201,11 @@ class Cache(dict[_KT, _VT]):
     # Use `Cache` instead of `weakref.WeakValueDictionary` to
     # keep strong references to objects for a while even after
     # all external references to them disappear.
-    __slots__ = ()
+    __slots__ = ("_capacity",)
 
-    _MAX_SIZE: ClassVar[int] = 64
+    def __init__(self) -> None:
+        super().__init__()
+        self._capacity: int = 64
 
     @staticmethod
     def restrict_size(
@@ -217,8 +219,8 @@ class Cache(dict[_KT, _VT]):
             **kwargs: _Parameters.kwargs
         ) -> _T:
             result = method(self, *args, **kwargs)
-            max_size = type(self)._MAX_SIZE
-            while len(self) > max_size:
+            capacity = self._capacity
+            while len(self) > capacity:
                 self.pop(next(iter(self)))
             return result
 
@@ -578,13 +580,13 @@ class LazyDescriptor(ABC, Generic[_InstanceT, _SlotT, _ContainerT, _DataT, _Data
     def __init__(
         self,
         method: Callable[..., _DataRawT],
-        converter_class: type[LazyConverter[_ContainerT, _DataT, _DataRawT]]
+        converter: LazyConverter[_ContainerT, _DataT, _DataRawT]
     ) -> None:
         super().__init__()
         self.method: Callable[..., _DataRawT] = method
         self.element_type: type[LazyObject] = LazyObject
         self.return_annotation: _AnnotationT = NotImplemented
-        self.converter: LazyConverter[_ContainerT, _DataT, _DataRawT] = converter_class()
+        self.converter: LazyConverter[_ContainerT, _DataT, _DataRawT] = converter
         self.instance_to_slot_dict: weakref.WeakKeyDictionary[_InstanceT, _SlotT] = weakref.WeakKeyDictionary()
 
     @overload
@@ -660,11 +662,11 @@ class LazyVariableDescriptor(LazyDescriptor[
     def __init__(
         self,
         method: Callable[..., _DataRawT],
-        converter_class: type[LazyConverter[_ContainerT, _DataT, _DataRawT]]
+        converter: LazyConverter[_ContainerT, _DataT, _DataRawT]
     ) -> None:
         super().__init__(
             method=method,
-            converter_class=converter_class
+            converter=converter
         )
         self.default_container: _ContainerT | None = None
 
@@ -714,11 +716,11 @@ class LazyPropertyDescriptor(LazyDescriptor[
     def __init__(
         self,
         method: Callable[..., _DataRawT],
-        converter_class: type[LazyConverter[_ContainerT, _DataT, _DataRawT]]
+        converter: LazyConverter[_ContainerT, _DataT, _DataRawT]
     ) -> None:
         super().__init__(
             method=method,
-            converter_class=converter_class
+            converter=converter
         )
         self.finalize_method: Callable[[type[_InstanceT], _DataRawT], None] | None = None
         self.descriptor_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
@@ -868,7 +870,7 @@ class LazyPropertyDescriptor(LazyDescriptor[
         instance: _InstanceT,
         new_container: _ContainerT
     ) -> None:
-        raise ValueError("Attempting to set a writable property")
+        raise ValueError("Attempting to set a property")
 
     def initialize_property_slot(
         self,
@@ -1036,7 +1038,7 @@ class LazyObject(ABC):
             src_value = copy.copy(self.__getattribute__(slot_name))
             # TODO: This looks like a temporary patch... Is there any better practice?
             if isinstance(src_value, weakref.WeakSet):
-                # Use `WeakSet.update` instead of `copy.copy` for better behavior.
+                # Use `WeakSet.copy` instead of `copy.copy` for better behavior.
                 dst_value = src_value.copy()
             else:
                 dst_value = copy.copy(src_value)
@@ -1205,7 +1207,7 @@ class Lazy:
     ]:
         return LazyVariableDescriptor(
             method.__func__,
-            LazyIndividualConverter
+            LazyIndividualConverter()
         )
 
     @classmethod
@@ -1217,7 +1219,7 @@ class Lazy:
     ]:
         return LazyVariableDescriptor(
             method.__func__,
-            LazyCollectionConverter
+            LazyCollectionConverter()
         )
 
     @classmethod
@@ -1229,7 +1231,7 @@ class Lazy:
     ]:
         return LazyVariableDescriptor(
             method.__func__,
-            LazyExternalConverter
+            LazyExternalConverter()
         )
 
     @classmethod
@@ -1241,7 +1243,7 @@ class Lazy:
     ]:
         return LazyVariableDescriptor(
             method.__func__,
-            LazyHashableConverter
+            LazyHashableConverter()
         )
 
     @classmethod
@@ -1253,7 +1255,7 @@ class Lazy:
     ]:
         return LazyVariableDescriptor(
             method.__func__,
-            LazyArrayConverter
+            LazyArrayConverter()
         )
 
     @classmethod
@@ -1265,7 +1267,7 @@ class Lazy:
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
-            LazyIndividualConverter
+            LazyIndividualConverter()
         )
 
     @classmethod
@@ -1277,7 +1279,7 @@ class Lazy:
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
-            LazyCollectionConverter
+            LazyCollectionConverter()
         )
 
     @classmethod
@@ -1289,7 +1291,7 @@ class Lazy:
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
-            LazyExternalConverter
+            LazyExternalConverter()
         )
 
     @classmethod
@@ -1301,7 +1303,7 @@ class Lazy:
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
-            LazyHashableConverter
+            LazyHashableConverter()
         )
 
     @classmethod
@@ -1313,5 +1315,5 @@ class Lazy:
     ]:
         return LazyPropertyDescriptor(
             method.__func__,
-            LazyArrayConverter
+            LazyArrayConverter()
         )

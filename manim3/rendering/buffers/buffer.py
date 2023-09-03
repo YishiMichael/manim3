@@ -1,8 +1,5 @@
 import re
-from typing import (
-    ClassVar,
-    Iterator
-)
+from typing import Iterator
 
 import moderngl
 import numpy as np
@@ -11,7 +8,7 @@ from ...lazy.lazy import (
     Lazy,
     LazyObject
 )
-from ...toplevel.toplevel import Toplevel
+#from ...toplevel.toplevel import Toplevel
 from ..buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from ..buffer_formats.buffer_format import BufferFormat
 from ..buffer_formats.buffer_layout import BufferLayout
@@ -21,7 +18,7 @@ from ..buffer_formats.structured_buffer_format import StructuredBufferFormat
 class Buffer(LazyObject):
     __slots__ = ()
 
-    _vacant_buffers: ClassVar[list[moderngl.Buffer]] = []
+    #_vacant_buffers: ClassVar[list[moderngl.Buffer]] = []
 
     def __init__(
         self,
@@ -168,27 +165,27 @@ class Buffer(LazyObject):
     ) -> tuple[str, ...]:
         return tuple(np_buffer_pointers)
 
-    @classmethod
-    def _fetch_buffer(cls) -> moderngl.Buffer:
-        if cls._vacant_buffers:
-            return cls._vacant_buffers.pop()
-        return Toplevel.context.buffer()
+    #@classmethod
+    #def _fetch_buffer(cls) -> moderngl.Buffer:
+    #    if cls._vacant_buffers:
+    #        return cls._vacant_buffers.pop()
+    #    return Toplevel.context.buffer()
+
+    #@classmethod
+    #def _finalize_buffer(
+    #    cls,
+    #    buffer: moderngl.Buffer
+    #) -> None:
+    #    cls._vacant_buffers.append(buffer)
 
     @classmethod
-    def _finalize_buffer(
+    def _write_to_bytes(
         cls,
-        buffer: moderngl.Buffer
-    ) -> None:
-        cls._vacant_buffers.append(buffer)
-
-    @classmethod
-    def _write_to_buffer(
-        cls,
-        buffer: moderngl.Buffer,
+        #buffer: moderngl.Buffer,
+        data_dict: dict[str, np.ndarray],
         np_buffer: np.ndarray,
-        np_buffer_pointers: dict[str, tuple[np.ndarray, int]],
-        data_dict: dict[str, np.ndarray]
-    ) -> None:
+        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
+    ) -> bytes:
         for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
             data = data_dict[key]
             if not np_buffer_pointer.size:
@@ -198,18 +195,19 @@ class Buffer(LazyObject):
             assert np_buffer_pointer.shape == data_expanded.shape
             np_buffer_pointer[...] = data_expanded
 
-        buffer.orphan(np_buffer.nbytes)
-        buffer.write(np_buffer.tobytes())
+        return np_buffer.tobytes()
+        #buffer.orphan(np_buffer.nbytes)
+        #buffer.write(np_buffer.tobytes())
 
     @classmethod
-    def _read_from_buffer(
+    def _read_from_bytes(
         cls,
-        buffer: moderngl.Buffer,
+        data_bytes: bytes,
         np_buffer: np.ndarray,
         np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
     ) -> dict[str, np.ndarray]:
         data_dict: dict[str, np.ndarray] = {}
-        np_buffer[...] = np.frombuffer(buffer.read(), dtype=np_buffer.dtype).reshape(np_buffer.shape)
+        np_buffer[...] = np.frombuffer(data_bytes, dtype=np_buffer.dtype).reshape(np_buffer.shape)
         for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
             data_expanded = np_buffer_pointer[...]
             data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))

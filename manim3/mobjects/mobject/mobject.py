@@ -1,3 +1,4 @@
+import copy
 import itertools as it
 import weakref
 from dataclasses import dataclass
@@ -289,10 +290,10 @@ class Mobject(LazyObject):
 
     def copy(self):
         # Copy all descendants. The result is not bound to any mobject.
-        result = self._copy()
+        result = copy.copy(self)#self._copy()
         real_descendants = list(self._real_descendants_)
         real_descendants_copy = [
-            descendant._copy()
+            copy.copy(descendant)#descendant._copy()
             for descendant in real_descendants
         ]
         descendants = [self, *real_descendants]

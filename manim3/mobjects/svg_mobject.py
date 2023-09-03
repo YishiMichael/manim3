@@ -254,7 +254,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
 
 class SVGMobject(ShapeMobject):
-    __slots__ = ("_shape_mobjects")
+    __slots__ = ("_shape_mobjects",)
 
     def __init__(
         self,

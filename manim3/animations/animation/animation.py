@@ -189,6 +189,10 @@ class Animation(ABC):
     ) -> None:
         pass
 
+    @abstractmethod
+    async def timeline(self) -> None:
+        pass
+
     def prepare(
         self,
         animation: "Animation",
@@ -235,10 +239,6 @@ class Animation(ABC):
         assert self._progress_condition is not None
         self._progress_condition = progress_condition
         await asyncio.sleep(0.0)
-
-    @abstractmethod
-    async def timeline(self) -> None:
-        pass
 
     # shortcuts
 

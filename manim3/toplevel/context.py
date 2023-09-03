@@ -109,9 +109,12 @@ class Context:
             depth_attachment=depth_attachment
         )
 
-    def buffer(self) -> moderngl.Buffer:
-        # TODO: what effect does `dynamic` flag take?
-        return self._mgl_context.buffer(reserve=1, dynamic=True)
+    def buffer(
+        self,
+        data: bytes | None = None,
+        reserve: int = 0
+    ) -> moderngl.Buffer:
+        return self._mgl_context.buffer(data=data, reserve=reserve)
 
     def program(
         self,
