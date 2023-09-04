@@ -1,5 +1,8 @@
-from ...mobjects.mobject.operation_handlers.interpolate_bound_handler import InterpolateBoundHandler
-from ...mobjects.mobject.mobject import Mobject
+#from ...mobjects.mobject.operation_handlers.interpolate_bound_handler import InterpolateBoundHandler
+from ...mobjects.mobject.mobject import (
+    InterpolateBoundHandler,
+    Mobject
+)
 from ..animation.animation import Animation
 
 
@@ -21,7 +24,12 @@ class TransformBase(Animation):
             run_alpha=1.0
         )
         self._interpolate_bound_handlers: list[InterpolateBoundHandler] = [
-            InterpolateBoundHandler(intermediate_descendant, start_descendant, stop_descendant)
+            Mobject._get_interpolate_bound_handler(
+                dst_mobject=intermediate_descendant,
+                src_mobject_0=start_descendant,
+                src_mobject_1=stop_descendant
+            )
+            #InterpolateBoundHandler(intermediate_descendant, start_descendant, stop_descendant)
             for start_descendant, stop_descendant, intermediate_descendant in zip(
                 start_mobject.iter_descendants(),
                 stop_mobject.iter_descendants(),
@@ -38,7 +46,7 @@ class TransformBase(Animation):
         alpha: float
     ) -> None:
         for interpolate_bound_handler in self._interpolate_bound_handlers:
-            interpolate_bound_handler.interpolate(alpha)
+            interpolate_bound_handler._interpolate(alpha)
 
     async def timeline(self) -> None:
         await self.wait()

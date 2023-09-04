@@ -1,6 +1,9 @@
 import moderngl
 import numpy as np
 
+from manim3.mobjects.mobject.mobject_attributes.array_attribute import ArrayAttribute
+from manim3.mobjects.mobject.mobject_attributes.color_attribute import ColorAttribute
+
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -15,8 +18,8 @@ from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ..lights.lighting import Lighting
-from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-from ..mobject.style_meta import StyleMeta
+#from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
+#from ..mobject.style_meta import StyleMeta
 from ..renderable_mobject import RenderableMobject
 from .meshes.mesh import Mesh
 
@@ -33,84 +36,82 @@ class MeshMobject(RenderableMobject):
             self._mesh_ = mesh
         self._lighting_ = Toplevel.scene._lighting
 
-    @StyleMeta.register()
-    @Lazy.variable
-    @classmethod
-    def _mesh_(cls) -> Mesh:
+    #@StyleMeta.register()
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _mesh_() -> Mesh:
         return Mesh()
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _color_(cls) -> NP_3f8:
-        return np.ones((3,))
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _color_() -> ColorAttribute:
+        return ColorAttribute(np.ones((3,)))
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _opacity_(cls) -> NP_f8:
-        return np.ones(())
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _opacity_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(1.0)
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _weight_(cls) -> NP_f8:
-        return np.ones(())
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _weight_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(1.0)
 
-    @StyleMeta.register()
-    @Lazy.variable
-    @classmethod
-    def _lighting_(cls) -> Lighting:
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _ambient_strength_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(1.0)
+
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _specular_strength_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(Toplevel.config.mesh_specular_strength)
+
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _shininess_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(Toplevel.config.mesh_shininess)
+
+    #@StyleMeta.register()
+    @Lazy.variable()
+    @staticmethod
+    def _lighting_() -> Lighting:
         return Lighting()
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _ambient_strength_(cls) -> NP_f8:
-        return np.ones(())
-
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _specular_strength_(cls) -> NP_f8:
-        return Toplevel.config.mesh_specular_strength * np.ones(())
-
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _shininess_(cls) -> NP_f8:
-        return Toplevel.config.mesh_shininess * np.ones(())
-
-    @Lazy.variable_external
-    @classmethod
-    def _color_maps_(cls) -> list[moderngl.Texture]:
+    @Lazy.variable()
+    @staticmethod
+    def _color_maps_() -> list[moderngl.Texture]:
         return []
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _local_sample_positions_(
-        cls,
         mesh__positions: NP_x3f8,
         mesh__faces: NP_x3i4
     ) -> NP_x3f8:
         return mesh__positions[mesh__faces.flatten()]
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _material_uniform_block_buffer_(
-        cls,
         color: NP_3f8,
         opacity: NP_f8,
         weight: NP_f8,
@@ -138,10 +139,9 @@ class MeshMobject(RenderableMobject):
             }
         )
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _mesh_vertex_array_(
-        cls,
         color_maps: list[moderngl.Texture],
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
@@ -174,3 +174,10 @@ class MeshMobject(RenderableMobject):
         target_framebuffer: OITFramebuffer
     ) -> None:
         self._mesh_vertex_array_.render(target_framebuffer)
+
+    def bind_lighting(
+        self,
+        lighting: Lighting
+    ):
+        self._lighting_ = lighting
+        return self

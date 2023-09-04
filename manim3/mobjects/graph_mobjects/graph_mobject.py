@@ -1,10 +1,11 @@
 import numpy as np
 
+
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
-    NP_x3f8,
-    NP_x2i4
+    NP_x2i4,
+    NP_x3f8
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
@@ -15,13 +16,14 @@ from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-from ..mobject.style_meta import StyleMeta
+#from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
+#from ..mobject.style_meta import StyleMeta
+from ..mobject.mobject_attributes.array_attribute import ArrayAttribute
 from ..renderable_mobject import RenderableMobject
 from .graphs.graph import Graph
-from .graphs.graph_concatenate_handler import GraphConcatenateHandler
-from .graphs.graph_interpolate_handler import GraphInterpolateHandler
-from .graphs.graph_split_handler import GraphSplitHandler
+#from .graphs.graph_concatenate_handler import GraphConcatenateHandler
+#from .graphs.graph_interpolate_handler import GraphInterpolateHandler
+#from .graphs.graph_split_handler import GraphSplitHandler
 
 
 class GraphMobject(RenderableMobject):
@@ -35,61 +37,59 @@ class GraphMobject(RenderableMobject):
         if graph is not None:
             self._graph_ = graph
 
-    @StyleMeta.register(
-        split_operation=GraphSplitHandler,
-        concatenate_operation=GraphConcatenateHandler,
-        interpolate_operation=GraphInterpolateHandler
-    )
-    @Lazy.variable
-    @classmethod
-    def _graph_(cls) -> Graph:
+    #@StyleMeta.register(
+    #    split_operation=GraphSplitHandler,
+    #    concatenate_operation=GraphConcatenateHandler,
+    #    interpolate_operation=GraphInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _graph_() -> Graph:
         return Graph()
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _color_(cls) -> NP_3f8:
-        return np.ones((3,))
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _color_() -> ArrayAttribute[NP_3f8]:
+        return ArrayAttribute(np.ones((3,)))
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _opacity_(cls) -> NP_f8:
-        return np.float64(1.0)
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _opacity_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(1.0)
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _weight_(cls) -> NP_f8:
-        return np.float64(1.0)
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _weight_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(1.0)
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _width_(cls) -> NP_f8:
-        return np.float64(Toplevel.config.graph_width)
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _width_() -> ArrayAttribute[NP_f8]:
+        return ArrayAttribute(Toplevel.config.graph_width)
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _local_sample_positions_(
-        cls,
         graph__positions: NP_x3f8,
         graph__edges: NP_x2i4
     ) -> NP_x3f8:
         return graph__positions[graph__edges.flatten()]
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _graph_uniform_block_buffer_(
-        cls,
         color: NP_3f8,
         opacity: NP_f8,
         weight: NP_f8,
@@ -111,10 +111,9 @@ class GraphMobject(RenderableMobject):
             }
         )
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _graph_indexed_attributes_buffer_(
-        cls,
         graph__positions: NP_x3f8,
         graph__edges: NP_x2i4
     ) -> IndexedAttributesBuffer:
@@ -134,10 +133,9 @@ class GraphMobject(RenderableMobject):
             mode=PrimitiveMode.LINES
         )
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _graph_vertex_array_(
-        cls,
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         graph_uniform_block_buffer: UniformBlockBuffer,

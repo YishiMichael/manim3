@@ -13,7 +13,7 @@ class RemodelHandler(ABC):
     __slots__ = ()
 
     @abstractmethod
-    def remodel(
+    def _remodel(
         self,
         alpha: float | NP_3f8 = 1.0
     ) -> NP_44f8:

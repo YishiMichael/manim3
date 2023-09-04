@@ -17,28 +17,31 @@ class Lighting(LazyObject):
         *lights: AmbientLight | PointLight
     ) -> None:
         super().__init__()
+        ambient_lights: list[AmbientLight] = []
+        point_lights: list[PointLight] = []
         for light in lights:
             if isinstance(light, AmbientLight):
-                self._ambient_lights_.append(light)
+                ambient_lights.append(light)
             else:
-                self._point_lights_.append(light)
+                point_lights.append(light)
+        self._ambient_lights_ = tuple(ambient_lights)
+        self._point_lights_ = tuple(point_lights)
 
-    @Lazy.variable_collection
-    @classmethod
-    def _ambient_lights_(cls) -> list[AmbientLight]:
-        return []
+    @Lazy.variable_collection(frozen=False)
+    @staticmethod
+    def _ambient_lights_() -> tuple[AmbientLight, ...]:
+        return ()
 
-    @Lazy.variable_collection
-    @classmethod
-    def _point_lights_(cls) -> list[PointLight]:
-        return []
+    @Lazy.variable_collection(frozen=False)
+    @staticmethod
+    def _point_lights_() -> tuple[PointLight, ...]:
+        return ()
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _lighting_uniform_block_buffer_(
-        cls,
-        ambient_lights: list[AmbientLight],
-        point_lights: list[PointLight]
+        ambient_lights: tuple[AmbientLight, ...],
+        point_lights: tuple[PointLight, ...]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_lighting",

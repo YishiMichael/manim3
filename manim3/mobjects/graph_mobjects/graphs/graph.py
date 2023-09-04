@@ -9,14 +9,12 @@ from ....constants.custom_typing import (
     NP_xi4,
     NP_xf8
 )
-from ....lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ....lazy.lazy import Lazy
 from ....utils.space_utils import SpaceUtils
+from ...mobject.mobject_attributes.mobject_attribute import MobjectAttribute
 
 
-class Graph(LazyObject):
+class Graph(MobjectAttribute):
     __slots__ = ()
 
     def __init__(
@@ -30,14 +28,14 @@ class Graph(LazyObject):
         if edges is not None:
             self._edges_ = edges
 
-    @Lazy.variable_array
-    @classmethod
-    def _positions_(cls) -> NP_x3f8:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _positions_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable_array
-    @classmethod
-    def _edges_(cls) -> NP_x2i4:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _edges_() -> NP_x2i4:
         return np.zeros((0, 2), dtype=np.int32)
 
     @classmethod

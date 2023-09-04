@@ -18,7 +18,7 @@ class RotateRemodelHandler(RemodelHandler):
         super().__init__()
         self._rotvec: NP_3f8 = rotvec
 
-    def remodel(
+    def _remodel(
         self,
         alpha: float | NP_3f8 = 1.0
     ) -> NP_44f8:

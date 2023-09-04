@@ -8,19 +8,19 @@ class ShapeTransformExample(Scene):
     async def timeline(self) -> None:
         square = (
             Square()
-            .set_style(color=WHITE, opacity=1.0)
+            .set(color=WHITE, opacity=1.0)
         )
         square.add(
             square.build_stroke()
-            .set_style(color=YELLOW, width=0.0)
+            .set(color=YELLOW, width=0.0)
         )
         circle = (
             Circle()
-            .set_style(color=PINK, opacity=0.9)
+            .set(color=PINK, opacity=0.9)
         )
         circle.add(
             circle.build_stroke()
-            .set_style(color=YELLOW, weight=10)
+            .set(color=YELLOW, weight=10)
         )
 
         self.add(square)
@@ -34,23 +34,23 @@ class TexTransformExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_style(color=ORANGE, opacity=0.5)
+            .set(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, weight=10)
+            .set(color=BLUE, weight=10)
         )
         tex = (
             Tex("Tex")
             .scale(3)
-            .set_style(color=BLUE, opacity=0.5)
+            .set(color=BLUE, opacity=0.5)
             .concatenate()
             .shift(RIGHT * 2)
         )
         tex.add(
             tex.build_stroke()
-            .set_style(color=PINK, weight=10)
+            .set(color=PINK, weight=10)
         )
         self.add(text)
         await self.wait()
@@ -65,12 +65,12 @@ class CreateTexExample(Scene):
         text = (
             Text("Text")
             .scale(3)
-            .set_style(color=ORANGE, opacity=0.5)
+            .set(color=ORANGE, opacity=0.5)
             .concatenate()
         )
         text.add(
             text.build_stroke()
-            .set_style(color=BLUE, weight=10)
+            .set(color=BLUE, weight=10)
         )
         await self.wait()
         await self.play(Create(text), run_time=2, rate=Smooth())
@@ -84,14 +84,14 @@ class ThreeDExample(Scene):
         dodec = (
             Dodecahedron()
             .scale(2.0)
-            .set_style(
+            .set(
                 color="#00FFAA",
-                opacity=0.25,
-                lighting=Lighting(
-                    AmbientLight().set_style(color=WHITE * 0.3),
-                    PointLight().shift(RIGHT * 5)
-                )
+                opacity=0.25
             )
+            .bind_lighting(Lighting(
+                AmbientLight().set(color=WHITE * 0.3),
+                PointLight().shift(RIGHT * 5)
+            ))
         )
         self.add(dodec)
         self.prepare(Rotating(self.camera, 0.5 * DOWN))
@@ -102,7 +102,7 @@ class OITExample(Scene):
     async def timeline(self) -> None:
         self.add(*(
             (Circle()
-                .set_style(color=color, opacity=opacity)
+                .set(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
                 .rotate(OUT * angle)
             )
@@ -158,7 +158,7 @@ class InteractiveExample(Scene):
                 Circle()
                 .scale(0.5)
                 .shift(x * RIGHT)
-                .set_style(color=color)
+                .set(color=color)
             )
             for x, color in zip(
                 np.linspace(-4.0, 4.0, 5),
@@ -258,7 +258,7 @@ class NoteAnimation(Animation):
             ))
         )
         if not judge_condition.judge():
-            note.set_style(opacity=0.4)
+            note.set(opacity=0.4)
             await self.play(
                 Shifting(note, 10.0 * DOWN),
                 terminate_condition=MobjectPositionInRange(note, y_max=-5.0)
@@ -290,14 +290,14 @@ class GameExample(Scene):
                 (-0.5, 0.0),
                 (-0.46, -0.04),
                 (0.46, -0.04)
-            ))).set_style(
+            ))).set(
                 width=0.25,
                 color=BLUE_B,
                 opacity=0.95
             ),
             body.build_stroke()
         )
-        judge_line = Line(8.0 * LEFT, 8.0 * RIGHT).shift(3.0 * DOWN).set_style(
+        judge_line = Line(8.0 * LEFT, 8.0 * RIGHT).shift(3.0 * DOWN).set(
             width=0.03,
             color=GOLD_A
         )

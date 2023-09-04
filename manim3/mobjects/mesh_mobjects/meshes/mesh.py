@@ -1,21 +1,20 @@
 import numpy as np
 
+
 from ....constants.custom_typing import (
     NP_x2f8,
     NP_x3f8,
     NP_x3i4
 )
-from ....lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ....lazy.lazy import Lazy
 from ....rendering.buffers.attributes_buffer import AttributesBuffer
 from ....rendering.buffers.index_buffer import IndexBuffer
 from ....rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ....rendering.mgl_enums import PrimitiveMode
+from ...mobject.mobject_attributes.mobject_attribute import MobjectAttribute
 
 
-class Mesh(LazyObject):
+class Mesh(MobjectAttribute):
     __slots__ = ()
 
     def __init__(
@@ -35,30 +34,29 @@ class Mesh(LazyObject):
         if faces is not None:
             self._faces_ = faces
 
-    @Lazy.variable_array
-    @classmethod
-    def _positions_(cls) -> NP_x3f8:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _positions_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable_array
-    @classmethod
-    def _normals_(cls) -> NP_x3f8:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _normals_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable_array
-    @classmethod
-    def _uvs_(cls) -> NP_x2f8:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _uvs_() -> NP_x2f8:
         return np.zeros((0, 2))
 
-    @Lazy.variable_array
-    @classmethod
-    def _faces_(cls) -> NP_x3i4:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _faces_() -> NP_x3i4:
         return np.zeros((0, 3), dtype=np.int32)
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _indexed_attributes_buffer_(
-        cls,
         positions: NP_x3f8,
         normals: NP_x3f8,
         uvs: NP_x2f8,

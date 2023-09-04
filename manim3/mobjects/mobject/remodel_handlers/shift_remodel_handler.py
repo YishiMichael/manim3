@@ -17,7 +17,7 @@ class ShiftRemodelHandler(RemodelHandler):
         super().__init__()
         self._vector: NP_3f8 = vector
 
-    def remodel(
+    def _remodel(
         self,
         alpha: float | NP_3f8 = 1.0
     ) -> NP_44f8:

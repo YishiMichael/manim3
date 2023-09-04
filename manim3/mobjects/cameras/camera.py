@@ -39,47 +39,44 @@ class Camera(Mobject):
             Toplevel.config.camera_distance
         ))
 
-    @Lazy.variable_array
-    @classmethod
-    def _near_(cls) -> NP_f8:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _near_() -> NP_f8:
         return Toplevel.config.camera_near * np.ones(())
 
-    @Lazy.variable_array
-    @classmethod
-    def _far_(cls) -> NP_f8:
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _far_() -> NP_f8:
         return Toplevel.config.camera_far * np.ones(())
 
-    @Lazy.property_array
-    @classmethod
-    def _projection_matrix_(cls) -> NP_44f8:
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _projection_matrix_() -> NP_44f8:
         # Implemented in subclasses.
         return np.identity(4)
 
-    @Lazy.property_array
-    @classmethod
-    def _local_sample_positions_(cls) -> NP_x3f8:
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _local_sample_positions_() -> NP_x3f8:
         return np.array((OUT,))
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _target_(
-        cls,
         model_matrix: NP_44f8
     ) -> NP_3f8:
         return SpaceUtils.apply_affine(model_matrix, ORIGIN)
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _eye_(
-        cls,
         model_matrix: NP_44f8
     ) -> NP_3f8:
         return SpaceUtils.apply_affine(model_matrix, OUT)
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _frame_radii_(
-        cls,
         model_matrix: NP_44f8,
         target: NP_3f8
     ) -> NP_2f8:
@@ -88,19 +85,17 @@ class Camera(Mobject):
             SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, UP) - target)
         ))
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _distance_(
-        cls,
         eye: NP_3f8,
         target: NP_3f8
     ) -> NP_f8:
         return np.array(SpaceUtils.norm(eye - target))
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _view_matrix_(
-        cls,
         model_matrix: NP_44f8,
         eye: NP_3f8
     ) -> NP_44f8:
@@ -111,19 +106,17 @@ class Camera(Mobject):
             @ ShiftRemodelHandler(-eye).remodel()
         )
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _projection_view_matrix_(
-        cls,
         projection_matrix: NP_44f8,
         view_matrix: NP_44f8
     ) -> NP_44f8:
         return projection_matrix @ view_matrix
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _camera_uniform_block_buffer_(
-        cls,
         projection_view_matrix: NP_44f8,
         eye: NP_3f8,
         frame_radii: NP_2f8

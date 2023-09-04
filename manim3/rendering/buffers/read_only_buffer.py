@@ -21,7 +21,7 @@ class ReadOnlyBuffer(Buffer):
         self,
         buffer: moderngl.Buffer
     ) -> dict[str, np.ndarray]:
-        return self._read_from_bytes(
+        return type(self)._read_from_bytes(
             data_bytes=buffer.read(),
             np_buffer=self._np_buffer_,
             np_buffer_pointers=self._np_buffer_pointers_

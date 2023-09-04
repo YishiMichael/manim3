@@ -8,7 +8,11 @@ from ..animation.animation import Animation
 
 
 class RemodelBase(Animation):
-    __slots__ = ("_remodel_bound_handler",)
+    __slots__ = (
+        "_mobject_to_original_model_matrix",
+        "_remodel_handler",
+        "_about"
+    )
 
     def __init__(
         self,
@@ -20,13 +24,29 @@ class RemodelBase(Animation):
         super().__init__(
             run_alpha=run_alpha
         )
-        self._remodel_bound_handler: RemodelBoundHandler = mobject._get_remodel_bound_handler(
+        self._remodel_bound_handlers: list[RemodelBoundHandler] = mobject._get_remodel_bound_handlers(
             remodel_handler=remodel_handler,
             about=about
         )
+        #self._mobject: Mobject = mobject
+        #self._original_model_matrix_dict: dict[Mobject, NP_44f8] = {
+        #    descendant: descendant._model_matrix_._array_
+        #    for descendant in mobject.iter_descendants()
+        #}
+        #self._remodel_handler: RemodelHandler = remodel_handler
+        #self._about: About | None = about
 
     def updater(
         self,
         alpha: float
     ) -> None:
-        self._remodel_bound_handler.remodel(alpha)
+        #remodel_handler = self._remodel_handler
+        #about = self._about
+        #for mobject, original_model_matrix in self._original_model_matrix_dict.items():
+        #    mobject._remodel(
+        #        remodel_matrix=remodel_handler._remodel(alpha),
+        #        about=about,
+        #        original_model_matrix=original_model_matrix
+        #    )
+        for remodel_bound_handler in self._remodel_bound_handlers:
+            remodel_bound_handler._remodel(alpha)

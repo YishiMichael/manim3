@@ -20,7 +20,7 @@ class ScaleRemodelHandler(RemodelHandler):
         assert (factor > 0.0).all(), "Scale factor must be positive"
         self._factor: NP_3f8 = factor
 
-    def remodel(
+    def _remodel(
         self,
         alpha: float | NP_3f8 = 1.0
     ) -> NP_44f8:

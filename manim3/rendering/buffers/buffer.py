@@ -1,7 +1,7 @@
 import re
 from typing import Iterator
 
-import moderngl
+#import moderngl
 import numpy as np
 
 from ...lazy.lazy import (
@@ -36,30 +36,29 @@ class Buffer(LazyObject):
         if array_lens is not None:
             self._array_len_items_ = tuple(array_lens.items())
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _field_(cls) -> str:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _field_() -> str:
         return ""
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _child_struct_items_(cls) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _child_struct_items_() -> tuple[tuple[str, tuple[str, ...]], ...]:
         return ()
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _array_len_items_(cls) -> tuple[tuple[str, int], ...]:
+    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _array_len_items_() -> tuple[tuple[str, int], ...]:
         return ()
 
-    @Lazy.property_hashable
-    @classmethod
-    def _layout_(cls) -> BufferLayout:
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _layout_() -> BufferLayout:
         return BufferLayout.PACKED
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _buffer_format_(
-        cls,
         field: str,
         child_struct_items: tuple[tuple[str, tuple[str, ...]], ...],
         array_len_items: tuple[tuple[str, int], ...],
@@ -119,19 +118,17 @@ class Buffer(LazyObject):
             dict(array_len_items)
         )
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _np_buffer_(
-        cls,
         buffer_format__shape: tuple[int, ...],
         buffer_format__dtype: np.dtype
     ) -> np.ndarray:
         return np.zeros(buffer_format__shape, dtype=buffer_format__dtype)
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _np_buffer_pointers_(
-        cls,
         np_buffer: np.ndarray,
         buffer_format: BufferFormat
     ) -> dict[str, tuple[np.ndarray, int]]:
@@ -157,10 +154,9 @@ class Buffer(LazyObject):
             for key, np_buffer_pointer, base_ndim in get_pointers(np_buffer, buffer_format, ())
         }
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _np_buffer_pointer_keys_(
-        cls,
         np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
     ) -> tuple[str, ...]:
         return tuple(np_buffer_pointers)

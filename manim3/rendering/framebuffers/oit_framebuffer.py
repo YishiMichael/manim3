@@ -36,19 +36,19 @@ class OITFramebuffer(Framebuffer):
         self._accum_texture_ = accum_texture
         self._revealage_texture_ = revealage_texture
 
-    @Lazy.variable_external
-    @classmethod
-    def _accum_texture_(cls) -> moderngl.Texture:
+    @Lazy.variable()
+    @staticmethod
+    def _accum_texture_() -> moderngl.Texture:
         return NotImplemented
 
-    @Lazy.variable_external
-    @classmethod
-    def _revealage_texture_(cls) -> moderngl.Texture:
+    @Lazy.variable()
+    @staticmethod
+    def _revealage_texture_() -> moderngl.Texture:
         return NotImplemented
 
-    @Lazy.property_external
-    @classmethod
-    def _context_state_(cls) -> ContextState:
+    @Lazy.property()
+    @staticmethod
+    def _context_state_() -> ContextState:
         return ContextState(
             flags=(ContextFlag.BLEND,),
             blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ONE, BlendFunc.ONE)),

@@ -22,49 +22,46 @@ class BufferFormat(LazyObject):
         self._name_ = name
         self._shape_ = shape
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _name_(cls) -> str:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _name_() -> str:
         return ""
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _shape_(cls) -> tuple[int, ...]:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _shape_() -> tuple[int, ...]:
         return ()
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _itemsize_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _itemsize_() -> int:
         # Implemented in subclasses.
         return 0
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _size_(
-        cls,
         shape: tuple[int, ...]
     ) -> int:
         return reduce(op.mul, shape, 1)
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _nbytes_(
-        cls,
         itemsize: int,
         size: int
     ) -> int:
         return itemsize * size
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _is_empty_(
-        cls,
         size: int
     ) -> bool:
         return not size
 
-    @Lazy.property_hashable
-    @classmethod
-    def _dtype_(cls) -> np.dtype:
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _dtype_() -> np.dtype:
         # Implemented in subclasses.
         return np.dtype("f4")

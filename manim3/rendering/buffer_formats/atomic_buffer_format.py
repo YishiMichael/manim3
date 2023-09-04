@@ -79,63 +79,60 @@ class AtomicBufferFormat(BufferFormat):
         self._n_col_pseudo_ = n_col_pseudo
         self._base_alignment_ = n_col_alignment * base_itemsize
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _base_char_(cls) -> str:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _base_char_() -> str:
         return ""
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _base_itemsize_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _base_itemsize_() -> int:
         return 0
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _base_ndim_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _base_ndim_() -> int:
         return 0
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _n_row_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _n_row_() -> int:
         return 0
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _n_col_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _n_col_() -> int:
         return 0
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _n_col_pseudo_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _n_col_pseudo_() -> int:
         return 0
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _base_alignment_(cls) -> int:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _base_alignment_() -> int:
         return 0
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _row_itemsize_(
-        cls,
         n_col_pseudo: int,
         base_itemsize: int
     ) -> int:
         return n_col_pseudo * base_itemsize
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _itemsize_(
-        cls,
         n_row: int,
         row_itemsize: int
     ) -> int:
         return n_row * row_itemsize
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _dtype_(
-        cls,
         base_char: str,
         base_itemsize: int,
         n_col: int,

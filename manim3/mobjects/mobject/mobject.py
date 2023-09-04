@@ -4,9 +4,11 @@ import weakref
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
-    Any,
+    #Any,
+    ClassVar,
     Iterable,
     Iterator,
+    #TypeVar,
     overload
 )
 
@@ -20,30 +22,36 @@ from ...constants.custom_typing import (
     ColorT,
     NP_3f8,
     NP_44f8,
-    NP_x3f8
+    NP_x3f8,
+    NP_xf8
 )
 from ...lazy.lazy import (
     Lazy,
-    LazyObject,
-    LazyVariableDescriptor
+    LazyDescriptor,
+    LazyObject
 )
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...utils.color_utils import ColorUtils
+#from ...utils.color_utils import ColorUtils
 from ...utils.space_utils import SpaceUtils
-from .operation_handlers.concatenate_bound_handler import ConcatenateBoundHandler
-from .operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
+#from ..cameras.camera import Camera
+from ..graph_mobjects.graphs.graph import Graph
+#from ..lights.lighting import Lighting
+from ..mesh_mobjects.meshes.mesh import Mesh
+from ..shape_mobjects.shapes.shape import Shape
+from .mobject_attributes.array_attribute import ArrayAttribute
+from .mobject_attributes.mobject_attribute import (
+    InterpolateHandler,
+    MobjectAttribute
+)
+#from .operation_handlers.concatenate_bound_handler import ConcatenateBoundHandler
+#from .operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
 from .remodel_handlers.remodel_handler import RemodelHandler
 from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
 from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
-from .style_meta import StyleMeta
+#from .style_meta import StyleMeta
 
 if TYPE_CHECKING:
-    from ..cameras.camera import Camera
-    from ..graph_mobjects.graphs.graph import Graph
-    from ..lights.lighting import Lighting
-    from ..mesh_mobjects.meshes.mesh import Mesh
-    from ..shape_mobjects.shapes.shape import Shape
     from .abouts.about import About
     from .aligns.align import Align
 
@@ -69,51 +77,32 @@ class BoundingBox:
         return radii
 
 
-class RemodelBoundHandler:
-    __slots__ = (
-        "_remodel_handler",
-        "_post_remodel",
-        "_pre_remodel",
-        "_mobject_to_model_matrix"
-    )
-
-    def __init__(
-        self,
-        mobject: "Mobject",
-        remodel_handler: RemodelHandler,
-        about: "About | None" = None
-    ) -> None:
-        super().__init__()
-        if about is None:
-            post_remodel = np.identity(4)
-            pre_remodel = np.identity(4)
-        else:
-            about_position = about._get_about_position(mobject=mobject)
-            post_remodel = ShiftRemodelHandler(about_position).remodel()
-            pre_remodel = ShiftRemodelHandler(-about_position).remodel()
-
-        self._remodel_handler: RemodelHandler = remodel_handler
-        self._post_remodel: NP_44f8 = post_remodel
-        self._pre_remodel: NP_44f8 = pre_remodel
-        self._mobject_to_model_matrix: "dict[Mobject, NP_44f8]" = {
-            descendant: descendant._model_matrix_
-            for descendant in mobject.iter_descendants()
-        }
-
-    def remodel(
-        self,
-        alpha: float | NP_3f8 = 1.0
-    ) -> None:
-        matrix = self._post_remodel @ self._remodel_handler.remodel(alpha) @ self._pre_remodel
-        for mobject, model_matrix in self._mobject_to_model_matrix.items():
-            mobject._model_matrix_ = matrix @ model_matrix
-
-
 class Mobject(LazyObject):
     __slots__ = (
         "_parents",
         "_real_ancestors"
     )
+
+    _attribute_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
+    _equivalent_cls_mro_index: ClassVar[int] = 0
+
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+
+        cls._attribute_descriptors = {
+            name: descriptor
+            for name, descriptor in cls._lazy_descriptors.items()
+            if not descriptor._is_multiple
+            and descriptor._is_variable
+            and descriptor._frozen
+            and descriptor._hasher is Lazy.branch_hasher
+            and issubclass(descriptor._element_type, MobjectAttribute)
+        }
+
+        base_cls = cls.__base__
+        assert issubclass(base_cls, Mobject)
+        if cls._attribute_descriptors == base_cls._attribute_descriptors:
+            cls._equivalent_cls_mro_index = base_cls._equivalent_cls_mro_index + 1
 
     def __init__(self) -> None:
         super().__init__()
@@ -135,26 +124,26 @@ class Mobject(LazyObject):
     def __getitem__(
         self,
         index: slice
-    ) -> "list[Mobject]": ...
+    ) -> "tuple[Mobject, ...]": ...
 
     def __getitem__(
         self,
         index: int | slice
-    ) -> "Mobject | list[Mobject]":
+    ) -> "Mobject | tuple[Mobject, ...]":
         return self._children_.__getitem__(index)
 
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    @Lazy.variable_collection
-    @classmethod
-    def _children_(cls) -> "list[Mobject]":
-        return []
+    @Lazy.variable_collection(frozen=False)
+    @staticmethod
+    def _children_() -> "tuple[Mobject, ...]":
+        return ()
 
-    @Lazy.variable_collection
-    @classmethod
-    def _real_descendants_(cls) -> "list[Mobject]":
-        return []
+    @Lazy.variable_collection(frozen=False)
+    @staticmethod
+    def _real_descendants_() -> "tuple[Mobject, ...]":
+        return ()
 
     @classmethod
     def _refresh_families(
@@ -180,7 +169,7 @@ class Mobject(LazyObject):
             iter_ancestors_by_parents(mobject)
             for mobject in mobjects
         )):
-            ancestor._real_descendants_.reset(dict.fromkeys(it.chain.from_iterable(
+            ancestor._real_descendants_ = tuple(dict.fromkeys(it.chain.from_iterable(
                 iter_descendants_by_children(child)
                 for child in ancestor._children_
             )))
@@ -231,9 +220,11 @@ class Mobject(LazyObject):
             if mobject in self.iter_ancestors()
         ]):
             raise ValueError(f"Circular relationship occurred when adding {invalid_mobjects} to {self}")
-        self._children_.extend(filtered_mobjects)
+        children = list(self._children_)
         for mobject in filtered_mobjects:
+            children.append(mobject)
             mobject._parents.add(self)
+        self._children_ = tuple(children)
         self._refresh_families(self)
         return self
 
@@ -245,44 +236,54 @@ class Mobject(LazyObject):
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject in self._children_
         ]
-        self._children_.eliminate(filtered_mobjects)
+        children = list(self._children_)
         for mobject in filtered_mobjects:
+            children.remove(mobject)
             mobject._parents.remove(self)
+        self._children_ = tuple(children)
+        #children = list(self._children_)
+        #for mobject in filtered_mobjects:
+
+        #children.extend(filtered_mobjects)
+        #self._children_ = tuple(children)
+        #self._children_.eliminate(filtered_mobjects)
+        #for mobject in filtered_mobjects:
+        #    mobject._parents.remove(self)
         self._refresh_families(self, *filtered_mobjects)
         return self
 
-    def added_by(
-        self,
-        *mobjects: "Mobject"
-    ):
-        filtered_mobjects = [
-            mobject for mobject in dict.fromkeys(mobjects)
-            if mobject not in self._parents
-        ]
-        if (invalid_mobjects := [
-            mobject for mobject in filtered_mobjects
-            if mobject in self.iter_descendants()
-        ]):
-            raise ValueError(f"Circular relationship occurred when adding {self} to {invalid_mobjects}")
-        self._parents.update(filtered_mobjects)
-        for mobject in filtered_mobjects:
-            mobject._children_.append(self)
-        self._refresh_families(self)
-        return self
+    #def added_by(
+    #    self,
+    #    *mobjects: "Mobject"
+    #):
+    #    filtered_mobjects = [
+    #        mobject for mobject in dict.fromkeys(mobjects)
+    #        if mobject not in self._parents
+    #    ]
+    #    if (invalid_mobjects := [
+    #        mobject for mobject in filtered_mobjects
+    #        if mobject in self.iter_descendants()
+    #    ]):
+    #        raise ValueError(f"Circular relationship occurred when adding {self} to {invalid_mobjects}")
+    #    self._parents.update(filtered_mobjects)
+    #    for mobject in filtered_mobjects:
+    #        mobject._children_.append(self)
+    #    self._refresh_families(self)
+    #    return self
 
-    def discarded_by(
-        self,
-        *mobjects: "Mobject"
-    ):
-        filtered_mobjects = [
-            mobject for mobject in dict.fromkeys(mobjects)
-            if mobject in self._parents
-        ]
-        self._parents.difference_update(filtered_mobjects)
-        for mobject in filtered_mobjects:
-            mobject._children_.remove(self)
-        self._refresh_families(self, *filtered_mobjects)
-        return self
+    #def discarded_by(
+    #    self,
+    #    *mobjects: "Mobject"
+    #):
+    #    filtered_mobjects = [
+    #        mobject for mobject in dict.fromkeys(mobjects)
+    #        if mobject in self._parents
+    #    ]
+    #    self._parents.difference_update(filtered_mobjects)
+    #    for mobject in filtered_mobjects:
+    #        mobject._children_.remove(self)
+    #    self._refresh_families(self, *filtered_mobjects)
+    #    return self
 
     def clear(self):
         self.discard(*self.iter_children())
@@ -307,10 +308,10 @@ class Mobject(LazyObject):
                 for mobject in mobjects
             )
 
-        result._children_.reset(match_copies(self._children_))
+        result._children_ = tuple(match_copies(self._children_))
         result._parents.clear()
         for real_descendant, real_descendant_copy in zip(real_descendants, real_descendants_copy, strict=True):
-            real_descendant_copy._children_.reset(match_copies(real_descendant._children_))
+            real_descendant_copy._children_ = tuple(match_copies(real_descendant._children_))
             real_descendant_copy._parents.clear()
             real_descendant_copy._parents.update(match_copies(real_descendant._parents))
 
@@ -319,18 +320,17 @@ class Mobject(LazyObject):
 
     # model matrix
 
-    @StyleMeta.register(
-        interpolate_operation=LerpInterpolateHandler
-    )
-    @Lazy.variable_array
-    @classmethod
-    def _model_matrix_(cls) -> NP_44f8:
-        return np.identity(4)
+    #@StyleMeta.register(
+    #    interpolate_operation=LerpInterpolateHandler
+    #)
+    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _model_matrix_() -> ArrayAttribute[NP_44f8]:
+        return ArrayAttribute(np.identity(4))
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _model_uniform_block_buffer_(
-        cls,
         model_matrix: NP_44f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
@@ -343,16 +343,15 @@ class Mobject(LazyObject):
             }
         )
 
-    @Lazy.property_array
-    @classmethod
-    def _local_sample_positions_(cls) -> NP_x3f8:
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _local_sample_positions_() -> NP_x3f8:
         # Implemented in subclasses.
         return np.zeros((0, 3))
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _bounding_box_without_descendants_(
-        cls,
         model_matrix: NP_44f8,
         local_sample_positions: NP_x3f8
     ) -> BoundingBox | None:
@@ -364,10 +363,9 @@ class Mobject(LazyObject):
             minimum=world_sample_positions.min(axis=0)
         )
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _bounding_box_with_descendants_(
-        cls,
         bounding_box_without_descendants: BoundingBox | None,
         real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
     ) -> BoundingBox | None:
@@ -424,16 +422,53 @@ class Mobject(LazyObject):
 
     # remodel
 
-    def _get_remodel_bound_handler(
+    #def _remodel(
+    #    self,
+    #    remodel_matrix: NP_44f8,
+    #    about: "About | None",
+    #    original_model_matrix: NP_44f8
+    #):
+    #    if about is not None:
+    #        about_position = about._get_about_position(mobject=self)
+    #        post_remodel = ShiftRemodelHandler(about_position)._remodel()
+    #        pre_remodel = ShiftRemodelHandler(-about_position)._remodel()
+    #        remodel_matrix = post_remodel @ remodel_matrix @ pre_remodel
+    #    self._model_matrix_ = ArrayAttribute(remodel_matrix @ original_model_matrix)
+    #    return self
+
+    #def _remodel_descendants(
+    #    self,
+    #    remodel_matrix: NP_44f8,
+    #    about: "About | None"
+    #):
+    #    for mobject in self.iter_descendants():
+    #        mobject._remodel(
+    #            remodel_matrix=remodel_matrix,
+    #            about=about,
+    #            original_model_matrix=mobject._model_matrix_._array_
+    #        )
+
+    def _get_remodel_bound_handlers(
         self,
         remodel_handler: RemodelHandler,
         about: "About | None" = None
-    ) -> RemodelBoundHandler:
-        return RemodelBoundHandler(
-            mobject=self,
-            remodel_handler=remodel_handler,
-            about=about
-        )
+    ) -> "list[RemodelBoundHandler]":
+        if about is not None:
+            about_position = about._get_about_position(mobject=self)
+            pre_remodel = ShiftRemodelHandler(-about_position)._remodel()
+            post_remodel = ShiftRemodelHandler(about_position)._remodel()
+        else:
+            pre_remodel = np.identity(4)
+            post_remodel = np.identity(4)
+        return [
+            RemodelBoundHandler(
+                mobject=mobject,
+                remodel_handler=remodel_handler,
+                pre_remodel=pre_remodel,
+                post_remodel=post_remodel
+            )
+            for mobject in self.iter_descendants()
+        ]
 
     def shift(
         self,
@@ -442,9 +477,50 @@ class Mobject(LazyObject):
         *,
         alpha: float | NP_3f8 = 1.0
     ):
-        self._get_remodel_bound_handler(
+        #self._remodel_descendants(
+        #    remodel_matrix=ShiftRemodelHandler(vector)._remodel(alpha),
+        #    about=None
+        #)
+        for remodel_bound_handler in self._get_remodel_bound_handlers(
             remodel_handler=ShiftRemodelHandler(vector)
-        ).remodel(alpha)
+        ):
+            remodel_bound_handler._remodel(alpha)
+        return self
+
+    def scale(
+        self,
+        factor: float | NP_3f8,
+        about: "About | None" = None,
+        *,
+        alpha: float | NP_3f8 = 1.0
+    ):
+        #self._remodel_descendants(
+        #    remodel_matrix=ScaleRemodelHandler(factor)._remodel(alpha),
+        #    about=about
+        #)
+        for remodel_bound_handler in self._get_remodel_bound_handlers(
+            remodel_handler=ScaleRemodelHandler(factor),
+            about=about
+        ):
+            remodel_bound_handler._remodel(alpha)
+        return self
+
+    def rotate(
+        self,
+        rotvec: NP_3f8,
+        about: "About | None" = None,
+        *,
+        alpha: float | NP_3f8 = 1.0
+    ):
+        #self._remodel_descendants(
+        #    remodel_matrix=RotateRemodelHandler(rotvec)._remodel(alpha),
+        #    about=about
+        #)
+        for remodel_bound_handler in self._get_remodel_bound_handlers(
+            remodel_handler=RotateRemodelHandler(rotvec),
+            about=about
+        ):
+            remodel_bound_handler._remodel(alpha)
         return self
 
     def move_to(
@@ -471,23 +547,11 @@ class Mobject(LazyObject):
         )
         return self
 
-    def scale(
-        self,
-        factor: float | NP_3f8,
-        about: "About | None" = None,
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        self._get_remodel_bound_handler(
-            remodel_handler=ScaleRemodelHandler(factor),
-            about=about
-        ).remodel(alpha)
-        return self
-
     def scale_to(
         self,
         target: float | NP_3f8,
         about: "About | None" = None,
+        *,
         alpha: float | NP_3f8 = 1.0
     ):
         factor = target / self.get_bounding_box_size()
@@ -502,20 +566,7 @@ class Mobject(LazyObject):
         self,
         mobject: "Mobject"
     ):
-        self.shift(-self.get_center()).scale_to(mobject.get_bounding_box_size()).shift(mobject.get_center())
-        return self
-
-    def rotate(
-        self,
-        rotvec: NP_3f8,
-        about: "About | None" = None,
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        self._get_remodel_bound_handler(
-            remodel_handler=RotateRemodelHandler(rotvec),
-            about=about
-        ).remodel(alpha)
+        self.shift(-self.get_center()).scale_to(mobject.get_bounding_box_size(), ).shift(mobject.get_center())
         return self
 
     def flip(
@@ -531,12 +582,144 @@ class Mobject(LazyObject):
 
     # style
 
+    @classmethod
+    @property
+    def _equivalent_cls(cls) -> "type[Mobject]":
+        return cls.__mro__[cls._equivalent_cls_mro_index]
+
+    def _copy_attributes_from(
+        self,
+        src: "Mobject"
+    ) -> None:
+        assert (equivalent_cls := type(self)._equivalent_cls) == type(src)._equivalent_cls
+        for descriptor in equivalent_cls._attribute_descriptors.values():
+            descriptor._set(self, descriptor._get(src))
+
+    def _state_copy(self) -> "Mobject":
+        result = type(self)._equivalent_cls()
+        result._copy_attributes_from(self)
+        return result
+
+    @classmethod
+    def _get_interpolate_bound_handler(
+        cls,
+        dst_mobject: "Mobject",
+        src_mobject_0: "Mobject",
+        src_mobject_1: "Mobject"
+    ) -> "InterpolateBoundHandler":
+        assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, src_mobject_0, src_mobject_1))
+        #mobject = cls()
+        interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = {}
+        for descriptor in cls._attribute_descriptors.values():
+            data_0 = descriptor._get(src_mobject_0)
+            data_1 = descriptor._get(src_mobject_1)
+            if data_0 is data_1:
+                #descriptor._set(dst_mobject, data)
+                continue
+            if not descriptor._element_type._interpolate_implemented:
+                raise ValueError(f"Uninterpolable variables of `{descriptor._name}` don't match")
+            interpolate_handler = descriptor._element_type._interpolate(data_0, data_1)
+            interpolate_handler_dict[descriptor] = interpolate_handler
+            #data_list = [
+            #    descriptor._get(mobject)
+            #    for mobject in mobjects
+            #]
+            #concatenate_data = descriptor._element_type._concatenate(data_list)
+            #if concatenate_data is not NotImplemented:
+            #    descriptor._set(result_mobject, concatenate_data)
+            #    continue
+            #unique_data = list(dict.fromkeys(data_list))
+            #if not unique_data:
+            #    continue
+            #descriptor._set(result_mobject, unique_data.pop())
+            #assert not unique_data, f"Uncatenatable variables of `{descriptor._name}` don't match"
+        return InterpolateBoundHandler(dst_mobject, interpolate_handler_dict)
+
+    @classmethod
+    def _cls_split(
+        cls,
+        dst_mobject_list: "list[Mobject]",
+        src_mobject: "Mobject",
+        alphas: NP_xf8
+    ) -> None:
+        #assert cls is type(src_mobject)._equivalent_cls
+        #result_mobjects = [cls() for _ in range(len(alphas) + 1)]
+        assert all(cls is type(mobject)._equivalent_cls for mobject in (*dst_mobject_list, src_mobject))
+        #src_data_dict: dict[LazyDescriptor, object] = {}
+        for descriptor in cls._attribute_descriptors.values():
+            src_data = descriptor._get(src_mobject)
+            if not descriptor._element_type._split_implemented:
+                for dst_mobject in dst_mobject_list:
+                    descriptor._set(dst_mobject, src_data)
+                continue
+            #src_data_dict[descriptor] = src_data
+            dst_data_list = descriptor._element_type._split(src_data, alphas)
+            for dst_mobject, dst_data in zip(dst_mobject_list, dst_data_list, strict=True):
+                descriptor._set(dst_mobject, dst_data)
+        #return dst_mobject_list
+        #return SplitBoundHandler(dst_mobject_list, src_data_dict)
+
+    @classmethod
+    def _cls_concatenate(
+        cls,
+        dst_mobject: "Mobject",
+        src_mobject_list: "list[Mobject]"
+    ) -> None:
+        #assert cls is type(dst_mobject)._equivalent_cls
+        assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, *src_mobject_list))
+        #src_data_list_dict: dict[LazyDescriptor, list[object]] = {}
+        #result_mobject = cls()
+        for descriptor in cls._attribute_descriptors.values():
+            src_data_list = [
+                descriptor._get(src_mobject)
+                for src_mobject in src_mobject_list
+            ]
+            if not descriptor._element_type._concatenate_implemented:
+                unique_src_data_list = list(dict.fromkeys(src_data_list))
+                if not unique_src_data_list:
+                    continue
+                src_data = unique_src_data_list.pop()
+                descriptor._set(dst_mobject, src_data)
+                assert not unique_src_data_list, f"Uncatenatable variables of `{descriptor._name}` don't match"
+                #for dst_mobject in dst_mobject_list:
+                #    descriptor._set(dst_mobject, src_data)
+                continue
+            dst_data = descriptor._element_type._concatenate(src_data_list)
+            descriptor._set(dst_mobject, dst_data)
+            #dst_data = descriptor._element_type._concatenate(src_data_list)
+            #if dst_data is not NotImplemented:
+            #    descriptor._set(dst_mobject, dst_data)
+            #    continue
+        #return ConcatenateBoundHandler(dst_mobject, src_data_list_dict)
+
+        #return dst_mobject
+
+    def split(
+        self,
+        alphas: NP_xf8
+    ):
+        dst_mobject_list = [self._equivalent_cls() for _ in range(len(alphas) + 1)]
+        self._equivalent_cls._cls_split(
+            dst_mobject_list=dst_mobject_list,
+            src_mobject=self,
+            alphas=alphas
+        )
+        self._copy_attributes_from(self._equivalent_cls())
+        self.add(*dst_mobject_list)
+        return self
+
     def concatenate(self):
-        ConcatenateBoundHandler(self, *self.iter_children()).concatenate()
+        #ConcatenateBoundHandler(self, *self.iter_children()).concatenate()
+        #dst_mobject = self._equivalent_cls()
+        self._equivalent_cls._cls_concatenate(
+            dst_mobject=self,
+            src_mobject_list=list(self.iter_children())
+        )
+        #self._copy_attributes_from(dst_mobject)
         self.clear()
         return self
 
-    def set_style(
+    def set(
         self,
         *,
         # polymorphism variables
@@ -548,20 +731,20 @@ class Mobject(LazyObject):
         model_matrix: NP_44f8 | None = None,
 
         # RenderableMobject
-        camera: "Camera | None" = None,
+        #camera: "Camera | None" = None,
 
         # MeshMobject
-        mesh: "Mesh | None" = None,
-        lighting: "Lighting | None" = None,
+        mesh: Mesh | None = None,
+        #lighting: "Lighting | None" = None,
         ambient_strength: float | None = None,
         specular_strength: float | None = None,
         shininess: float | None = None,
 
         # ShapeMobject
-        shape: "Shape | None" = None,
+        shape: Shape | None = None,
 
         # GraphMobject
-        graph: "Graph | None" = None,
+        graph: Graph | None = None,
         width: float | None = None,
 
         # setting configs
@@ -569,25 +752,25 @@ class Mobject(LazyObject):
         type_filter: "type[Mobject] | None" = None
     ):
 
-        def standardize_input(
-            value: Any
-        ) -> Any:
-            if isinstance(value, float | int | np.number | np.ndarray):
-                return np.asarray(value, dtype=np.float64)
-            return value
+        #def standardize_input(
+        #    value: Any
+        #) -> Any:
+        #    if isinstance(value, float | int | np.number | np.ndarray):
+        #        return np.asarray(value, dtype=np.float64)
+        #    return value
 
-        if color is not None:
-            color = ColorUtils.standardize_color(color)
+        #if color is not None:
+        #    color = ColorUtils.standardize_color(color)
         style = {
-            f"_{key}_": standardize_input(value)
+            f"_{key}_": value
             for key, value in {
                 "color": color,
                 "opacity": opacity,
                 "weight": weight,
                 "model_matrix": model_matrix,
-                "camera": camera,
+                #"camera": camera,
                 "mesh": mesh,
-                "lighting": lighting,
+                #"lighting": lighting,
                 "ambient_strength": ambient_strength,
                 "specular_strength": specular_strength,
                 "shininess": shininess,
@@ -597,18 +780,138 @@ class Mobject(LazyObject):
             }.items() if value is not None
         }
 
-        style_descriptors = [
-            info.descriptor for info in StyleMeta._operation_infos
-        ]
+        #style_descriptors = [
+        #    info.descriptor for info in StyleMeta._operation_infos
+        #]
         for mobject in self.iter_descendants(broadcast=broadcast):
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
             for key, value in style.items():
-                if (descriptor := type(mobject)._lazy_descriptor_dict.get(key)) is None:
+                if (descriptor := type(mobject)._attribute_descriptors.get(key)) is None:
                     continue
-                if descriptor not in style_descriptors:
-                    continue
-                if not isinstance(descriptor, LazyVariableDescriptor):
-                    continue
-                descriptor.__set__(mobject, value)
+                #if not descriptor._is_variable:
+                #    continue
+                descriptor.__set__(mobject, descriptor._element_type._convert_input(value))
         return self
+
+
+class RemodelBoundHandler:
+    __slots__ = (
+        "_mobject",
+        "_remodel_handler",
+        "_pre_remodel",
+        "_post_remodel",
+        "_original_model"
+    )
+
+    def __init__(
+        self,
+        mobject: Mobject,
+        remodel_handler: RemodelHandler,
+        pre_remodel: NP_44f8,
+        post_remodel: NP_44f8
+        #about: "About | None" = None
+    ) -> None:
+        super().__init__()
+        #if about is None:
+        #    post_remodel = np.identity(4)
+        #    pre_remodel = np.identity(4)
+        #else:
+        #    about_position = about._get_about_position(mobject=mobject)
+        #    post_remodel = ShiftRemodelHandler(about_position)._remodel()
+        #    pre_remodel = ShiftRemodelHandler(-about_position)._remodel()
+
+        self._mobject: Mobject = mobject
+        self._remodel_handler: RemodelHandler = remodel_handler
+        self._pre_remodel: NP_44f8 = pre_remodel
+        self._post_remodel: NP_44f8 = post_remodel
+        #self._about: About | None = about
+        #self._pre_remodel: NP_44f8 = pre_remodel
+        self._original_model: NP_44f8 = mobject._model_matrix_._array_
+        #self._mobject_to_model_matrix: "dict[Mobject, NP_44f8]" = {
+        #    descendant: descendant._model_matrix_._array_
+        #    for descendant in mobject.iter_descendants()
+        #}
+
+    def _remodel(
+        self,
+        alpha: float | NP_3f8 = 1.0
+    ) -> None:
+        self._mobject._model_matrix_ = ArrayAttribute(
+            self._post_remodel @ self._remodel_handler._remodel(alpha) @ self._pre_remodel @ self._original_model
+        )
+        #matrix = self._post_remodel @ self._remodel_handler._remodel(alpha) @ self._pre_remodel
+        #for mobject, model_matrix in self._mobject_to_model_matrix.items():
+        #    mobject._model_matrix_ = ArrayAttribute(matrix @ model_matrix)
+
+
+class InterpolateBoundHandler:
+    __slots__ = (
+        "_dst_mobject",
+        "_interpolate_handler_dict"
+    )
+
+    def __init__(
+        self,
+        dst_mobject: Mobject,
+        interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler]
+    ) -> None:
+        super().__init__()
+        self._dst_mobject: Mobject = dst_mobject
+        self._interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = interpolate_handler_dict
+
+    def _interpolate(
+        self,
+        alpha: float
+    ) -> None:
+        dst_mobject = self._dst_mobject
+        for descriptor, interpolate_handler in self._interpolate_handler_dict.items():
+            descriptor._set(dst_mobject, interpolate_handler._interpolate(alpha))
+
+
+#class SplitBoundHandler:
+#    __slots__ = (
+#        "_dst_mobject_list",
+#        "_src_data_dict"
+#    )
+
+#    def __init__(
+#        self,
+#        dst_mobject_list: list[Mobject],
+#        src_data_dict: dict[LazyDescriptor, object]
+#    ) -> None:
+#        super().__init__()
+#        self._dst_mobject_list: list[Mobject] = dst_mobject_list
+#        self._src_data_dict: dict[LazyDescriptor, object] = src_data_dict
+
+#    def _split(
+#        self,
+#        alphas: NP_xf8
+#    ) -> None:
+#        dst_mobject_list = self._dst_mobject_list
+#        for descriptor, src_data in self._src_data_dict.items():
+#            dst_data_list = descriptor._element_type._split(src_data, alphas)
+#            for dst_mobject, dst_data in zip(dst_mobject_list, dst_data_list, strict=True):
+#                descriptor._set(dst_mobject, dst_data)
+
+
+#class ConcatenateBoundHandler:
+#    __slots__ = (
+#        "_dst_mobject",
+#        "_src_data_list_dict"
+#    )
+
+#    def __init__(
+#        self,
+#        dst_mobject: Mobject,
+#        src_data_list_dict: dict[LazyDescriptor, list[object]]
+#    ) -> None:
+#        super().__init__()
+#        self._dst_mobject: Mobject = dst_mobject
+#        self._src_data_list_dict: dict[LazyDescriptor, list[object]] = src_data_list_dict
+
+#    def _concatenate(self) -> None:
+#        dst_mobject = self._dst_mobject
+#        for descriptor, src_data_list in self._src_data_list_dict.items():
+#            dst_data = descriptor._element_type._concatenate(src_data_list)
+#            descriptor._set(dst_mobject, dst_data)

@@ -10,20 +10,19 @@ import shapely.geometry
 import shapely.validation
 from mapbox_earcut import triangulate_float64
 
+
 from ....constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
     NP_x3i4
 )
-from ....lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ....lazy.lazy import Lazy
 from ....utils.space_utils import SpaceUtils
 from ...graph_mobjects.graphs.graph import Graph
+from ...mobject.mobject_attributes.mobject_attribute import MobjectAttribute
 
 
-class Shape(LazyObject):
+class Shape(MobjectAttribute):
     __slots__ = ()
 
     def __init__(
@@ -68,15 +67,14 @@ class Shape(LazyObject):
     #def _counts_(cls) -> NP_xi4:
     #    return np.zeros((0,), dtype=np.int32)
 
-    @Lazy.variable
-    @classmethod
-    def _graph_(cls) -> Graph:
+    @Lazy.variable()
+    @staticmethod
+    def _graph_() -> Graph:
         return Graph()
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _shapely_obj_(
-        cls,
         graph: Graph
         #positions: NP_x2f8,
         #counts: NP_xi4
@@ -104,10 +102,9 @@ class Shape(LazyObject):
             if len(polygon_positions) >= 3
         ), shapely.geometry.GeometryCollection())
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _triangulation_(
-        cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
     ) -> tuple[NP_x3i4, NP_x2f8]:
 

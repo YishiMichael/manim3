@@ -25,15 +25,14 @@ class SceneRootMobject(Mobject):
         self._oit_framebuffer_ = OITFramebuffer()
         self._background_color: NP_3f8 = background_color
 
-    @Lazy.variable
-    @classmethod
-    def _oit_framebuffer_(cls) -> OITFramebuffer:
+    @Lazy.variable()
+    @staticmethod
+    def _oit_framebuffer_() -> OITFramebuffer:
         return NotImplemented
 
-    @Lazy.property
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _oit_compose_vertex_array_(
-        cls,
         oit_framebuffer__accum_texture: moderngl.Texture,
         oit_framebuffer__revealage_texture: moderngl.Texture
     ) -> VertexArray:

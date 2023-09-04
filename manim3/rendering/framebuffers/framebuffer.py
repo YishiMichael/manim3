@@ -23,12 +23,12 @@ class Framebuffer(LazyObject):
             depth_attachment=depth_attachment
         )
 
-    @Lazy.variable_external
-    @classmethod
-    def _framebuffer_(cls) -> moderngl.Framebuffer:
+    @Lazy.variable()
+    @staticmethod
+    def _framebuffer_() -> moderngl.Framebuffer:
         return NotImplemented
 
-    @Lazy.property_external
-    @classmethod
-    def _context_state_(cls) -> ContextState:
+    @Lazy.property()
+    @staticmethod
+    def _context_state_() -> ContextState:
         return NotImplemented

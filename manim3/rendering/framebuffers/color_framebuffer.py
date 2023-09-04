@@ -30,14 +30,14 @@ class ColorFramebuffer(Framebuffer):
         )
         self._color_texture_ = color_texture
 
-    @Lazy.variable_external
-    @classmethod
-    def _color_texture_(cls) -> moderngl.Texture:
+    @Lazy.variable()
+    @staticmethod
+    def _color_texture_() -> moderngl.Texture:
         return NotImplemented
 
-    @Lazy.property_external
-    @classmethod
-    def _context_state_(cls) -> ContextState:
+    @Lazy.property()
+    @staticmethod
+    def _context_state_() -> ContextState:
         return ContextState(
             flags=(ContextFlag.BLEND,),
             blend_funcs=((BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA),),

@@ -38,27 +38,26 @@ class StructuredBufferFormat(BufferFormat):
             name=name,
             shape=shape
         )
-        self._children_.reset(children)
+        self._children_ = tuple(children)
         self._offsets_ = tuple(offsets)
         self._itemsize_ = offset
 
-    @Lazy.variable_collection
-    @classmethod
-    def _children_(cls) -> list[BufferFormat]:
-        return []
-
-    @Lazy.variable_hashable
-    @classmethod
-    def _offsets_(cls) -> tuple[int, ...]:
+    @Lazy.variable_collection(hasher=Lazy.branch_hasher)
+    @staticmethod
+    def _children_() -> tuple[BufferFormat, ...]:
         return ()
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _offsets_() -> tuple[int, ...]:
+        return ()
+
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _dtype_(
-        cls,
-        children__name: list[str],
-        children__dtype: list[np.dtype],
-        children__shape: list[tuple[int, ...]],
+        children__name: tuple[str, ...],
+        children__dtype: tuple[np.dtype, ...],
+        children__shape: tuple[tuple[int, ...], ...],
         offsets: tuple[int, ...],
         itemsize: int
     ) -> np.dtype:

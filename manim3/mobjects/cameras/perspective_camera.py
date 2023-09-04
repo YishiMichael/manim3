@@ -12,10 +12,9 @@ from .camera import Camera
 class PerspectiveCamera(Camera):
     __slots__ = ()
 
-    @Lazy.property_array
-    @classmethod
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
     def _projection_matrix_(
-        cls,
         frame_radii: NP_2f8,
         near: NP_f8,
         far: NP_f8,

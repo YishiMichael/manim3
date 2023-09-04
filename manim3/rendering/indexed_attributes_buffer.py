@@ -24,21 +24,21 @@ class IndexedAttributesBuffer(LazyObject):
             self._index_buffer_ = index_buffer
         self._mode_ = mode
 
-    @Lazy.variable
-    @classmethod
-    def _attributes_buffer_(cls) -> AttributesBuffer:
+    @Lazy.variable()
+    @staticmethod
+    def _attributes_buffer_() -> AttributesBuffer:
         return AttributesBuffer(
             fields=[],
             num_vertex=0,
             data={}
         )
 
-    @Lazy.variable
-    @classmethod
-    def _index_buffer_(cls) -> IndexBuffer:
+    @Lazy.variable()
+    @staticmethod
+    def _index_buffer_() -> IndexBuffer:
         return OmittedIndexBuffer()
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _mode_(cls) -> PrimitiveMode:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _mode_() -> PrimitiveMode:
         return PrimitiveMode.TRIANGLES

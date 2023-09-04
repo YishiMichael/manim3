@@ -27,7 +27,7 @@ class TextureBuffer(Buffer):
         )
         self._texture_array_ = texture_array
 
-    @Lazy.variable_external
-    @classmethod
-    def _texture_array_(cls) -> np.ndarray:
+    @Lazy.variable()
+    @staticmethod
+    def _texture_array_() -> np.ndarray:
         return np.zeros((), dtype=moderngl.Texture)

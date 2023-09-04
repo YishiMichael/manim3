@@ -119,37 +119,37 @@ class VertexArray(LazyObject):
         if custom_macros is not None:
             self._custom_macros_ = tuple(custom_macros)
         if texture_buffers is not None:
-            self._texture_buffers_.reset(texture_buffers)
+            self._texture_buffers_ = tuple(texture_buffers)
         if uniform_block_buffers is not None:
-            self._uniform_block_buffers_.reset(uniform_block_buffers)
+            self._uniform_block_buffers_ = tuple(uniform_block_buffers)
         if indexed_attributes_buffer is not None:
             self._indexed_attributes_buffer_ = indexed_attributes_buffer
         if transform_feedback_buffer is not None:
             self._transform_feedback_buffer_ = transform_feedback_buffer
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _shader_filename_(cls) -> str:
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _shader_filename_() -> str:
         return ""
 
-    @Lazy.variable_hashable
-    @classmethod
-    def _custom_macros_(cls) -> tuple[str, ...]:
+    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _custom_macros_() -> tuple[str, ...]:
         return ()
 
-    @Lazy.variable_collection
-    @classmethod
-    def _texture_buffers_(cls) -> list[TextureBuffer]:
-        return []
+    @Lazy.variable_collection()
+    @staticmethod
+    def _texture_buffers_() -> tuple[TextureBuffer, ...]:
+        return ()
 
-    @Lazy.variable_collection
-    @classmethod
-    def _uniform_block_buffers_(cls) -> list[UniformBlockBuffer]:
-        return []
+    @Lazy.variable_collection()
+    @staticmethod
+    def _uniform_block_buffers_() -> tuple[UniformBlockBuffer, ...]:
+        return ()
 
-    @Lazy.variable
-    @classmethod
-    def _indexed_attributes_buffer_(cls) -> IndexedAttributesBuffer:
+    @Lazy.variable()
+    @staticmethod
+    def _indexed_attributes_buffer_() -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
                 fields=[],
@@ -159,20 +159,19 @@ class VertexArray(LazyObject):
             mode=PrimitiveMode.POINTS
         )
 
-    @Lazy.variable
-    @classmethod
-    def _transform_feedback_buffer_(cls) -> TransformFeedbackBuffer:
+    @Lazy.variable()
+    @staticmethod
+    def _transform_feedback_buffer_() -> TransformFeedbackBuffer:
         return TransformFeedbackBuffer(
             fields=[],
             num_vertex=0
         )
 
-    @Lazy.property_hashable
-    @classmethod
+    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _array_len_items_(
-        cls,
-        texture_buffers__array_len_items: list[tuple[tuple[str, int], ...]],
-        uniform_block_buffers__array_len_items: list[tuple[tuple[str, int], ...]],
+        texture_buffers__array_len_items: tuple[tuple[tuple[str, int], ...], ...],
+        uniform_block_buffers__array_len_items: tuple[tuple[tuple[str, int], ...], ...],
         indexed_attributes_buffer__attributes_buffer__array_len_items: tuple[tuple[str, int], ...],
         transform_feedback_buffer__array_len_items: tuple[tuple[str, int], ...]
     ) -> tuple[tuple[str, int], ...]:
@@ -187,10 +186,9 @@ class VertexArray(LazyObject):
             if not re.fullmatch(r"__\w+__", array_len_name)
         )
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _program_info_(
-        cls,
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
@@ -320,17 +318,16 @@ class VertexArray(LazyObject):
         )
 
     #@_program_info_.finalizer
-    #@classmethod
+    #@staticmethod
     #def _program_info_finalizer(
     #    cls,
     #    program_info: ProgramInfo
     #) -> None:
     #    program_info.program.release()
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property()
+    @staticmethod
     def _vertex_array_(
-        cls,
         indexed_attributes_buffer: IndexedAttributesBuffer,
         program_info: ProgramInfo
     ) -> moderngl.VertexArray | None:
@@ -375,7 +372,7 @@ class VertexArray(LazyObject):
         )
 
     #@_vertex_array_.finalizer
-    #@classmethod
+    #@staticmethod
     #def _vertex_array_finalizer(
     #    cls,
     #    vertex_array: moderngl.VertexArray | None
@@ -383,11 +380,10 @@ class VertexArray(LazyObject):
     #    if vertex_array is not None:
     #        vertex_array.release()
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _texture_bindings_(
-        cls,
-        texture_buffers: list[TextureBuffer],
+        texture_buffers: tuple[TextureBuffer, ...],
         program_info: ProgramInfo
     ) -> tuple[tuple[moderngl.Texture, int], ...]:
         return tuple(
@@ -398,11 +394,10 @@ class VertexArray(LazyObject):
             for binding, texture in enumerate(texture_buffer._texture_array_.flatten(), start=uniform_info.binding)
         )
 
-    @Lazy.property_external
-    @classmethod
+    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
     def _uniform_block_bindings_(
-        cls,
-        uniform_block_buffers: list[UniformBlockBuffer],
+        uniform_block_buffers: tuple[UniformBlockBuffer, ...],
         program_info: ProgramInfo
     ) -> tuple[tuple[moderngl.Buffer, int], ...]:
         return tuple(

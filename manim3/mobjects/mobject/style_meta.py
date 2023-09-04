@@ -1,70 +1,73 @@
-from dataclasses import dataclass
-from typing import (
-    Callable,
-    ClassVar,
-    Generic,
-    TypeVar
-)
+#from dataclasses import dataclass
+#from typing import (
+#    Callable,
+#    ClassVar,
+#    Generic,
+#    TypeVar
+#)
 
-from ...lazy.lazy import (
-    LazyCollectionConverter,
-    LazyContainer,
-    LazyObject,
-    LazyVariableDescriptor
-)
-from .operation_handlers.concatenate_handler import ConcatenateHandler
-from .operation_handlers.interpolate_handler import InterpolateHandler
-from .operation_handlers.split_handler import SplitHandler
+#from ...lazy.lazy import LazyDescriptor
+#from .operation_handlers.concatenate_handler import ConcatenateHandler
+#from .operation_handlers.interpolate_handler import InterpolateHandler
+#from .operation_handlers.split_handler import SplitHandler
 
 
-_ContainerT = TypeVar("_ContainerT", bound="LazyContainer")
-_InstanceT = TypeVar("_InstanceT", bound="LazyObject")
-_DataT = TypeVar("_DataT")
-_DataRawT = TypeVar("_DataRawT")
+#_ElementT = TypeVar("_ElementT")
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class OperationInfo(Generic[_InstanceT, _ContainerT, _DataT, _DataRawT]):
-    descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]
-    split_handler_cls: type[SplitHandler[_ContainerT]] | None
-    concatenate_handler_cls: type[ConcatenateHandler[_ContainerT]] | None
-    interpolate_handler_cls: type[InterpolateHandler[_ContainerT]] | None
+#@dataclass(
+#    frozen=True,
+#    kw_only=True,
+#    slots=True
+#)
+#class OperationInfo(Generic[_DataT, _ElementT]):
+#    descriptor: LazyDescriptor[_DataT, _ElementT]
+#    split_handler_cls: type[SplitHandler[_DataT]] | None
+#    concatenate_handler_cls: type[ConcatenateHandler[_DataT]] | None
+#    interpolate_handler_cls: type[InterpolateHandler[_DataT]] | None
 
 
-class StyleMeta:
-    __slots__ = ()
+#class StyleMeta:
+#    __slots__ = ()
 
-    _operation_infos: ClassVar[list[OperationInfo]] = []
+#    _operation_infos: ClassVar[list[OperationInfo]] = []
 
-    def __new__(cls):
-        raise TypeError
+#    def __new__(cls):
+#        raise TypeError
 
-    @classmethod
-    def register(
-        cls,
-        *,
-        split_operation: type[SplitHandler] | None | None = None,
-        concatenate_operation: type[ConcatenateHandler] | None = None,
-        interpolate_operation: type[InterpolateHandler] | None = None
-    ) -> Callable[
-        [LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]],
-        LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]
-    ]:
+#    @classmethod
+#    def register(
+#        cls,
+#        *,
+#        converter: Callable[[object], object] | None = None
+#        #split_operation: type[SplitHandler[_DataT]] | None | None = None,
+#        #concatenate_operation: type[ConcatenateHandler[_DataT]] | None = None,
+#        #interpolate_operation: type[InterpolateHandler[_DataT]] | None = None
+#    ) -> Callable[
+#        [LazyDescriptor[_ElementT, _ElementT]],
+#        LazyDescriptor[_ElementT, _ElementT]
+#    ]:
 
-        def callback(
-            descriptor: LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]
-        ) -> LazyVariableDescriptor[_InstanceT, _ContainerT, _DataT, _DataRawT]:
-            assert not isinstance(descriptor.converter, LazyCollectionConverter)
-            cls._operation_infos.append(OperationInfo(
-                descriptor=descriptor,
-                split_handler_cls=split_operation,
-                concatenate_handler_cls=concatenate_operation,
-                interpolate_handler_cls=interpolate_operation
-            ))
-            return descriptor
+#        def identity_converter(
+#            obj: object
+#        ) -> object:
+#            return object
 
-        return callback
+#        if converter is None:
+#            converter = identity_converter
+
+#        def callback(
+#            descriptor: LazyDescriptor[_ElementT, _ElementT]
+#        ) -> LazyDescriptor[_ElementT, _ElementT]:
+#            assert descriptor._is_variable
+#            assert not descriptor._is_multiple
+#            #assert not isinstance(descriptor.converter, LazyCollectionConverter)
+#            cls._operation_infos.append(OperationInfo(
+#                descriptor=descriptor,
+#                split_handler_cls=split_operation,
+#                concatenate_handler_cls=concatenate_operation,
+#                interpolate_handler_cls=interpolate_operation
+#            ))
+#            return descriptor
+
+#        return callback
