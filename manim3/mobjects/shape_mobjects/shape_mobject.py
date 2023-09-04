@@ -30,7 +30,7 @@ class ShapeMobject(MeshMobject):
     def _shape_() -> Shape:
         return Shape()
 
-    @Lazy.property()
+    @Lazy.property(hasher=Lazy.branch_hasher)
     @staticmethod
     def _mesh_(
         shape: Shape

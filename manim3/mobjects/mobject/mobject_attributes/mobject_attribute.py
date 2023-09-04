@@ -3,6 +3,7 @@ from abc import (
     abstractmethod
 )
 from typing import (
+    Any,
     ClassVar,
     Generic,
     TypeVar
@@ -33,8 +34,9 @@ class MobjectAttribute(LazyObject):
     @classmethod
     def _convert_input(
         cls: type[_MobjectAttributeT],
-        attribute_input: _MobjectAttributeT
+        attribute_input: Any
     ) -> _MobjectAttributeT:
+        assert isinstance(attribute_input, cls)
         return attribute_input
 
     @classmethod

@@ -8,11 +8,7 @@ from ..animation.animation import Animation
 
 
 class RemodelBase(Animation):
-    __slots__ = (
-        "_mobject_to_original_model_matrix",
-        "_remodel_handler",
-        "_about"
-    )
+    __slots__ = ("_remodel_bound_handlers",)
 
     def __init__(
         self,

@@ -1,3 +1,4 @@
+import copy
 import inspect
 import itertools as it
 import re
@@ -20,14 +21,29 @@ from typing import (
 import numpy as np
 
 
-#_T = TypeVar("_T")
+_T = TypeVar("_T")
 _KT = TypeVar("_KT", bound=Hashable)
 _VT = TypeVar("_VT")
 _DataT = TypeVar("_DataT")
 _ElementT = TypeVar("_ElementT")
+_LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 #_HashInT = TypeVar("_HashInT")
 #_HashOutT = TypeVar("_HashOutT", bound=Hashable)
 #_Parameters = ParamSpec("_Parameters")
+
+
+class Wrapper(Generic[_T]):
+    __slots__ = (
+        "__weakref__",
+        "_value"
+    )
+
+    def __init__(
+        self,
+        value: _T
+    ) -> None:
+        super().__init__()
+        self._value: _T = value
 
 
 class Cache(Generic[_KT, _VT]):
@@ -257,6 +273,7 @@ class PseudoTree:
 
 class LazySlot(Generic[_DataT]):
     __slots__ = (
+        "__weakref__",
         "_data",
         "_linked_slots",
         "_is_writable"
@@ -279,7 +296,7 @@ class LazySlot(Generic[_DataT]):
         self._data = data
 
     def _iter_linked_slots(self) -> "Iterator[LazySlot]":
-        return iter(self._linked_slots)
+        return iter(set(self._linked_slots))
 
     def _link(
         self,
@@ -503,6 +520,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
         "_cache",
         #"_finalize_method",
         "_element_type",
+        "_element_type_annotation",
         #"_parameter_name_chains",
         "_descriptor_chains",
         "_registration"
@@ -537,12 +555,13 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
         #self._logic_processor_cls: type[LogicProcessor[_DataT, _ElementT]] = logic_processor_cls
         #self._storage_processor_cls: type[StorageProcessor[_DataT, _ElementT]] = storage_processor_cls
         #self._frozen_processor_cls: type[FrozenProcessor[_ElementT]] = frozen_processor_cls
-        self._cache: Cache[Hashable, _DataT] = Cache(capacity=cache_capacity)
+        self._cache: Cache[Hashable, list[_ElementT]] = Cache(capacity=cache_capacity)
         #self._finalize_method: Callable[[type[_InstanceT], _ElementT], None] | None = None
         self._element_type: type[_ElementT] = NotImplemented
+        self._element_type_annotation: type = NotImplemented
         #self._parameter_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
         self._descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...] = NotImplemented
-        self._registration: weakref.WeakValueDictionary[Hashable, _ElementT] = NotImplemented  # Shared when overridden.
+        self._registration: weakref.WeakValueDictionary[Hashable, Wrapper[_ElementT]] = NotImplemented  # Shared when overridden.
 
     @overload
     def __get__(
@@ -584,15 +603,23 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
         self,
         descriptor: "LazyDescriptor"
     ) -> bool:
+        #print(self._is_multiple, descriptor._is_multiple)
+        #print(self._decomposer, descriptor._decomposer)
+        #print(self._is_multiple, descriptor._is_multiple)
+        #print(self._is_variable, descriptor._is_variable)
+        #print(self._hasher, descriptor._hasher)
+        #print(self._frozen, descriptor._frozen)
+        #print(self._element_type, descriptor._element_type)
+        #print()
         return (
             self._is_multiple is descriptor._is_multiple
-            and self._decomposer is descriptor._decomposer
-            and self._composer is descriptor._composer
-            and self._is_variable is descriptor._is_variable
+            #and self._decomposer is descriptor._decomposer
+            #and self._composer is descriptor._composer
+            #and self._is_variable is descriptor._is_variable
             and self._hasher is descriptor._hasher
             and self._frozen is descriptor._frozen
             and (
-                self._element_type == descriptor._element_type
+                self._element_type_annotation == descriptor._element_type_annotation
                 or issubclass(self._element_type, descriptor._element_type)
             )
         )
@@ -633,22 +660,36 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
             branch_structure: list[list[int]] = []
             linked_variable_slots: list[LazySlot] = []
             for descriptor in descriptor_chain:
-                elements_list = [
-                    list(descriptor._decomposer(
-                        type(leaf)._lazy_descriptors[descriptor._name]._get(leaf)
-                    ))
-                    for leaf in leaf_list
-                ]
-                if descriptor._is_variable:
-                    linked_variable_slots.extend(
-                        descriptor._get_slot(leaf)
-                        for leaf in leaf_list
-                    )
-                else:
-                    linked_variable_slots.extend(it.chain.from_iterable(
-                        descriptor._get_slot(leaf)._iter_linked_slots()
-                        for leaf in leaf_list
-                    ))
+                elements_list: list = []
+                for leaf in leaf_list:
+                    overridden_descriptor = type(leaf)._lazy_descriptors[descriptor._name]
+                    elements_list.append(list(descriptor._decomposer(overridden_descriptor._get(leaf))))
+                    if overridden_descriptor._is_variable:
+                        linked_variable_slots.extend(
+                            overridden_descriptor._get_slot(leaf)
+                            for leaf in leaf_list
+                        )
+                    else:
+                        linked_variable_slots.extend(it.chain.from_iterable(
+                            overridden_descriptor._get_slot(leaf)._iter_linked_slots()
+                            for leaf in leaf_list
+                        ))
+                #elements_list = [
+                #    list(descriptor._decomposer(
+                #        type(leaf)._lazy_descriptors[descriptor._name]._get(leaf)
+                #    ))
+                #    for leaf in leaf_list
+                #]
+                #if descriptor._is_variable:
+                #    linked_variable_slots.extend(
+                #        descriptor._get_slot(leaf)
+                #        for leaf in leaf_list
+                #    )
+                #else:
+                #    linked_variable_slots.extend(it.chain.from_iterable(
+                #        descriptor._get_slot(leaf)._iter_linked_slots()
+                #        for leaf in leaf_list
+                #    ))
                 leaf_list = list(it.chain.from_iterable(elements_list))
                 if descriptor._is_multiple:
                     branch_structure.append([len(elements) for elements in elements_list])
@@ -696,12 +737,14 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
                 pseudo_tree.key()
                 for pseudo_tree in pseudo_trees
             )
-            if (data := self._cache.get(key)) is None:
+            if (elements := self._cache.get(key)) is None:
                 data = self._register_data(self._method(*(
                     pseudo_tree.tree()[0]
                     for pseudo_tree in pseudo_trees
                 )))
-                self._cache.set(key, data)
+                self._cache.set(key, list(self._decomposer(data)))
+            else:
+                data = self._composer(iter(elements))
             # As variables do not have parameters,
             # it's guaranteed that if `linked_variable_slots` is not empty,
             # `slot` is a property slot and is indeed linked to variable slots.
@@ -808,19 +851,19 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
 
         def register_element(
             element: _ElementT,
-            registration: weakref.WeakValueDictionary[Hashable, _ElementT],
+            registration: weakref.WeakValueDictionary[Hashable, Wrapper[_ElementT]],
             hasher: Callable[[_ElementT], Hashable],
             frozen: bool
         ) -> _ElementT:
-            if element in registration.values():
-                return element
+            #if element in registration.values():
+            #    return element
             key = hasher(element)
             if (registered_element := registration.get(key)) is None:
                 if frozen:
                     freeze(element)
-                registered_element = element
-                registration[key] = element
-            return registered_element
+                registered_element = Wrapper(element)
+                registration[key] = registered_element
+            return registered_element._value
 
         registration = self._registration
         hasher = self._hasher
@@ -955,13 +998,10 @@ class LazyDescriptor(ABC, Generic[_DataT, _ElementT]):
 
 
 class LazyObject(ABC):
-    __slots__ = (
-        "__weakref__",
-        "_lazy_slots"
-    )
+    __slots__ = ("_lazy_slots",)
 
     _lazy_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
-    #_py_slots: ClassVar[tuple[str, ...]] = ()
+    _py_slots: ClassVar[tuple[str, ...]] = ()
 
     def __init_subclass__(cls) -> None:
 
@@ -972,18 +1012,22 @@ class LazyObject(ABC):
         ) -> tuple[LazyDescriptor, ...]:
             descriptor_chain: list[LazyDescriptor] = []
             element_type = root_class
+            #expected_annotation = element_type
             collection_level = 0
             for descriptor_name in name_chain:
+                #print(name_chain, element_type)
                 assert issubclass(element_type, LazyObject)
                 descriptor = element_type._lazy_descriptors[descriptor_name]
                 descriptor_chain.append(descriptor)
                 element_type = descriptor._element_type
+                #expected_annotation = descriptor._element_type_annotation
                 if descriptor._is_multiple:
                     collection_level += 1
-            expected_annotation = element_type
+            expected_annotation = descriptor_chain[-1]._element_type_annotation
             for _ in range(collection_level):
                 expected_annotation = tuple[expected_annotation, ...]
-            assert expected_annotation == parameter_annotation
+            #print(cls, name_chain, expected_annotation, parameter_annotation)
+            assert expected_annotation == parameter_annotation or isinstance(expected_annotation, TypeVar)
             return tuple(descriptor_chain)
 
         super().__init_subclass__()
@@ -996,16 +1040,32 @@ class LazyObject(ABC):
         }
         cls._lazy_descriptors = base_cls._lazy_descriptors | new_descriptors
 
+        # Use dict.fromkeys to preserve order (by first occurrance).
+        cls._py_slots = tuple(dict.fromkeys(
+            slot
+            for base_cls in reversed(cls.__mro__)
+            if issubclass(base_cls, LazyObject)
+            for slot in base_cls.__slots__
+            if slot != "__weakref__"
+        ))
+
         for name, descriptor in new_descriptors.items():
             signature = inspect.signature(descriptor._method, locals={cls.__name__: cls}, eval_str=True)
 
             return_annotation = signature.return_annotation
             if descriptor._is_multiple:
                 assert return_annotation.__origin__ is tuple
-                element_type, ellipsis = return_annotation.__args__
+                element_type_annotation, ellipsis = return_annotation.__args__
                 assert ellipsis is ...
             else:
-                element_type = return_annotation
+                element_type_annotation = return_annotation
+            descriptor._element_type_annotation = element_type_annotation
+
+            try:
+                element_type = element_type_annotation.__origin__
+            except AttributeError:
+                element_type = element_type_annotation
+            #print(isinstance(element_type_annotation, GenericAlias), element_type_annotation)
             descriptor._element_type = element_type
 
             descriptor._descriptor_chains = tuple(
@@ -1049,6 +1109,9 @@ class LazyObject(ABC):
 
             overridden_descriptor = base_cls._lazy_descriptors.get(name)
             if overridden_descriptor is None:
+                #if "__weakref__" in dir(element_type):
+                #    descriptor._registration = weakref.WeakValueDictionary()  # TODO: weakref to dataclass
+                #else:
                 descriptor._registration = weakref.WeakValueDictionary()
             else:
                 descriptor._registration = overridden_descriptor._registration
@@ -1076,6 +1139,23 @@ class LazyObject(ABC):
         self._lazy_slots: dict[str, LazySlot] = {}
         for descriptor in type(self)._lazy_descriptors.values():
             descriptor._init(self)
+
+    def _copy(self: _LazyObjectT) -> _LazyObjectT:
+        result = copy.copy(self)
+        for descriptor in type(self)._lazy_descriptors.values():
+            descriptor._init(result)
+            if descriptor._is_variable:
+                descriptor._set(result, descriptor._get(self))
+        for slot_name in type(self)._py_slots:
+            src_value = copy.copy(self.__getattribute__(slot_name))
+            # TODO: This looks like a temporary patch... Is there any better practice?
+            if isinstance(src_value, weakref.WeakSet):
+                # Use `WeakSet.copy` instead of `copy.copy` for better behavior.
+                dst_value = src_value.copy()
+            else:
+                dst_value = copy.copy(src_value)
+            result.__setattr__(slot_name, dst_value)
+        return result
 
     #@classmethod
     #def _iter_variable_descriptors(cls) -> Iterator[LazyDescriptor]:

@@ -2,15 +2,15 @@ from ...mobjects.mobject.mobject import Mobject
 from .partial_evenly import PartialEvenly
 
 
-class Flash(PartialEvenly):
+class Dashed(PartialEvenly):
     __slots__ = ()
 
     def __init__(
         self,
         mobject: Mobject,
         *,
-        proportion: float = 1.0 / 16,
-        n_segments: int = 1,
+        proportion: float = 1.0 / 2,
+        n_segments: int = 16,
         backwards: bool = False
     ) -> None:
         assert 0.0 <= proportion <= 1.0
@@ -19,22 +19,16 @@ class Flash(PartialEvenly):
             alpha: float
         ) -> tuple[float, float]:
             return (
-                max(alpha * (1.0 + proportion) - proportion, 0.0),
-                min(alpha * (1.0 + proportion), 1.0)
+                alpha,
+                alpha + proportion
             )
 
         super().__init__(
             mobject=mobject,
             alpha_to_boundaries=alpha_to_boundaries,
             backwards=backwards,
-            n_segments=n_segments,
-            run_alpha=1.0
+            n_segments=n_segments
         )
 
     async def timeline(self) -> None:
-        self.scene.add(self._mobject)
-        await self.wait()
-        self.scene.discard(self._mobject)
-
-    #async def timeline(self) -> None:
-    #    await self.wait()
+        await self.wait_forever()

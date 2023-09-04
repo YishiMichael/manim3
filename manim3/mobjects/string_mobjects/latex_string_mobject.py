@@ -194,6 +194,6 @@ class LatexStringMobject(StringMobject):
             **kwargs
         )
 
-        self.set_style(color=color)
+        self.set(color=color)
         for selector, local_color in local_colors.items():
-            self.select_parts(selector).set_style(color=local_color)
+            self.select_parts(selector).set(color=local_color)

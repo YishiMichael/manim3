@@ -214,7 +214,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
             if not len(shape._graph_._edges_):
                 # Filter out empty shapes.
                 continue
-            yield ShapeMobject(shape).set_style(
+            yield ShapeMobject(shape).set(
                 color=se_shape.fill.hexrgb if se_shape.fill is not None else None,
                 opacity=se_shape.fill.opacity if se_shape.fill is not None else None
             )
@@ -228,8 +228,8 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
         return ShapeMobjectJSON(
             positions=[round(float(value), 6) for value in graph._positions_[:, :2].flatten()],
             edges=[int(value) for value in graph._edges_.flatten()],
-            color=ColorUtils.color_to_hex(shape_mobject._color_),
-            opacity=round(float(shape_mobject._opacity_), 6)
+            color=ColorUtils.color_to_hex(shape_mobject._color_._array_),
+            opacity=round(float(shape_mobject._opacity_._array_), 6)
         )
 
     @classmethod
@@ -247,7 +247,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
                 np.fromiter(positions, dtype=np.float64).reshape(-1, 2)
             ),
             edges=np.fromiter(edges, dtype=np.int32).reshape(-1, 2)
-        ))).set_style(
+        ))).set(
             color=color,
             opacity=opacity
         )

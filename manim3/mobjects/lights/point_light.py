@@ -33,6 +33,6 @@ class PointLight(Mobject):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _position_(
-        model_matrix: NP_44f8
+        model_matrix__array: NP_44f8
     ) -> NP_3f8:
-        return SpaceUtils.apply_affine(model_matrix, ORIGIN)
+        return SpaceUtils.apply_affine(model_matrix__array, ORIGIN)

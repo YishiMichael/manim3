@@ -1,4 +1,3 @@
-import copy
 import itertools as it
 import weakref
 from dataclasses import dataclass
@@ -8,6 +7,7 @@ from typing import (
     ClassVar,
     Iterable,
     Iterator,
+    TypedDict,
     #TypeVar,
     overload
 )
@@ -52,8 +52,33 @@ from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 #from .style_meta import StyleMeta
 
 if TYPE_CHECKING:
+    from typing_extensions import Unpack
+
     from .abouts.about import About
     from .aligns.align import Align
+
+
+class StyleKwargs(TypedDict, total=False):
+    # polymorphism variables
+    color: ColorT
+    opacity: float
+    weight: float
+
+    # Mobject
+    model_matrix: NP_44f8
+
+    # MeshMobject
+    mesh: Mesh
+    ambient_strength: float
+    specular_strength: float
+    shininess: float
+
+    # ShapeMobject
+    shape: Shape
+
+    # GraphMobject
+    graph: Graph
+    width: float
 
 
 @dataclass(
@@ -79,11 +104,12 @@ class BoundingBox:
 
 class Mobject(LazyObject):
     __slots__ = (
+        "__weakref__",
         "_parents",
         "_real_ancestors"
     )
 
-    _attribute_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
+    _attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
     _equivalent_cls_mro_index: ClassVar[int] = 0
 
     def __init_subclass__(cls):
@@ -238,8 +264,13 @@ class Mobject(LazyObject):
         ]
         children = list(self._children_)
         for mobject in filtered_mobjects:
+            #print(self)
+            #print(mobject)
+            #print(mobject._parents)
+            #print(children)
             children.remove(mobject)
             mobject._parents.remove(self)
+            #print()
         self._children_ = tuple(children)
         #children = list(self._children_)
         #for mobject in filtered_mobjects:
@@ -291,10 +322,18 @@ class Mobject(LazyObject):
 
     def copy(self):
         # Copy all descendants. The result is not bound to any mobject.
-        result = copy.copy(self)#self._copy()
+
+        #def copy_standalone(mobject: Mobject):
+        #    result = mobject._copy()
+        #    #result._lazy_slots = mobject._lazy_slots.copy()
+        #    result._parents = mobject._parents.copy()
+        #    result._real_ancestors = mobject._real_ancestors.copy()
+        #    return mobject
+
+        result = self._copy()
         real_descendants = list(self._real_descendants_)
         real_descendants_copy = [
-            copy.copy(descendant)#descendant._copy()
+            descendant._copy()
             for descendant in real_descendants
         ]
         descendants = [self, *real_descendants]
@@ -331,7 +370,7 @@ class Mobject(LazyObject):
     @Lazy.property()
     @staticmethod
     def _model_uniform_block_buffer_(
-        model_matrix: NP_44f8
+        model_matrix__array: NP_44f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_model",
@@ -339,7 +378,7 @@ class Mobject(LazyObject):
                 "mat4 u_model_matrix"
             ],
             data={
-                "u_model_matrix": model_matrix.T
+                "u_model_matrix": model_matrix__array.T
             }
         )
 
@@ -352,12 +391,12 @@ class Mobject(LazyObject):
     @Lazy.property()
     @staticmethod
     def _bounding_box_without_descendants_(
-        model_matrix: NP_44f8,
+        model_matrix__array: NP_44f8,
         local_sample_positions: NP_x3f8
     ) -> BoundingBox | None:
         if not len(local_sample_positions):
             return None
-        world_sample_positions = SpaceUtils.apply_affine(model_matrix, local_sample_positions)
+        world_sample_positions = SpaceUtils.apply_affine(model_matrix__array, local_sample_positions)
         return BoundingBox(
             maximum=world_sample_positions.max(axis=0),
             minimum=world_sample_positions.min(axis=0)
@@ -367,7 +406,7 @@ class Mobject(LazyObject):
     @staticmethod
     def _bounding_box_with_descendants_(
         bounding_box_without_descendants: BoundingBox | None,
-        real_descendants__bounding_box_without_descendants: list[BoundingBox | None]
+        real_descendants__bounding_box_without_descendants: tuple[BoundingBox | None, ...]
     ) -> BoundingBox | None:
         positions_array = np.fromiter((it.chain.from_iterable(
             (bounding_box.maximum, bounding_box.minimum)
@@ -595,10 +634,10 @@ class Mobject(LazyObject):
         for descriptor in equivalent_cls._attribute_descriptors.values():
             descriptor._set(self, descriptor._get(src))
 
-    def _state_copy(self) -> "Mobject":
-        result = type(self)._equivalent_cls()
-        result._copy_attributes_from(self)
-        return result
+    #def _state_copy(self) -> "Mobject":
+    #    result = type(self)._equivalent_cls()
+    #    result._copy_attributes_from(self)
+    #    return result
 
     @classmethod
     def _get_interpolate_bound_handler(
@@ -722,34 +761,35 @@ class Mobject(LazyObject):
     def set(
         self,
         *,
-        # polymorphism variables
-        color: ColorT | None = None,
-        opacity: float | None = None,
-        weight: float | None = None,
+        ## polymorphism variables
+        #color: ColorT | None = None,
+        #opacity: float | None = None,
+        #weight: float | None = None,
 
-        # Mobject
-        model_matrix: NP_44f8 | None = None,
+        ## Mobject
+        #model_matrix: NP_44f8 | None = None,
 
-        # RenderableMobject
-        #camera: "Camera | None" = None,
+        ## RenderableMobject
+        ##camera: "Camera | None" = None,
 
-        # MeshMobject
-        mesh: Mesh | None = None,
-        #lighting: "Lighting | None" = None,
-        ambient_strength: float | None = None,
-        specular_strength: float | None = None,
-        shininess: float | None = None,
+        ## MeshMobject
+        #mesh: Mesh | None = None,
+        ##lighting: "Lighting | None" = None,
+        #ambient_strength: float | None = None,
+        #specular_strength: float | None = None,
+        #shininess: float | None = None,
 
-        # ShapeMobject
-        shape: Shape | None = None,
+        ## ShapeMobject
+        #shape: Shape | None = None,
 
-        # GraphMobject
-        graph: Graph | None = None,
-        width: float | None = None,
+        ## GraphMobject
+        #graph: Graph | None = None,
+        #width: float | None = None,
 
         # setting configs
         broadcast: bool = True,
-        type_filter: "type[Mobject] | None" = None
+        type_filter: "type[Mobject] | None" = None,
+        **kwargs: "Unpack[StyleKwargs]"
     ):
 
         #def standardize_input(
@@ -761,24 +801,24 @@ class Mobject(LazyObject):
 
         #if color is not None:
         #    color = ColorUtils.standardize_color(color)
-        style = {
-            f"_{key}_": value
-            for key, value in {
-                "color": color,
-                "opacity": opacity,
-                "weight": weight,
-                "model_matrix": model_matrix,
-                #"camera": camera,
-                "mesh": mesh,
-                #"lighting": lighting,
-                "ambient_strength": ambient_strength,
-                "specular_strength": specular_strength,
-                "shininess": shininess,
-                "shape": shape,
-                "graph": graph,
-                "width": width
-            }.items() if value is not None
-        }
+        #style = {
+        #    f"_{key}_": value
+        #    for key, value in {
+        #        "color": color,
+        #        "opacity": opacity,
+        #        "weight": weight,
+        #        "model_matrix": model_matrix,
+        #        #"camera": camera,
+        #        "mesh": mesh,
+        #        #"lighting": lighting,
+        #        "ambient_strength": ambient_strength,
+        #        "specular_strength": specular_strength,
+        #        "shininess": shininess,
+        #        "shape": shape,
+        #        "graph": graph,
+        #        "width": width
+        #    }.items() if value is not None
+        #}
 
         #style_descriptors = [
         #    info.descriptor for info in StyleMeta._operation_infos
@@ -786,8 +826,10 @@ class Mobject(LazyObject):
         for mobject in self.iter_descendants(broadcast=broadcast):
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
-            for key, value in style.items():
-                if (descriptor := type(mobject)._attribute_descriptors.get(key)) is None:
+            for key, value in kwargs.items():
+                #if value is None:
+                #    continue
+                if (descriptor := type(mobject)._attribute_descriptors.get(f"_{key}_")) is None:
                     continue
                 #if not descriptor._is_variable:
                 #    continue

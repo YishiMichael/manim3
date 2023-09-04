@@ -19,6 +19,7 @@ from .animations.fade.fade_in import FadeIn
 from .animations.fade.fade_out import FadeOut
 from .animations.fade.fade_transform import FadeTransform
 from .animations.partial.create import Create
+from .animations.partial.dashed import Dashed
 from .animations.partial.flash import Flash
 from .animations.partial.uncreate import Uncreate
 from .animations.remodel.rotate import Rotate

@@ -20,7 +20,7 @@ class FadeIn(TransformFromCopy):
     ) -> None:
         super().__init__(
             mobject=mobject,
-            func=lambda mob: func(mob.set_style(opacity=0.0))
+            func=lambda mob: func(mob.set(opacity=0.0))
         )
 
     async def timeline(self) -> None:

@@ -42,12 +42,12 @@ class Camera(Mobject):
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
     def _near_() -> NP_f8:
-        return Toplevel.config.camera_near * np.ones(())
+        return Toplevel.config.camera_near * np.ones(())  # TODO
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
     def _far_() -> NP_f8:
-        return Toplevel.config.camera_far * np.ones(())
+        return Toplevel.config.camera_far * np.ones(())  # TODO
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
@@ -63,26 +63,26 @@ class Camera(Mobject):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _target_(
-        model_matrix: NP_44f8
+        model_matrix__array: NP_44f8
     ) -> NP_3f8:
-        return SpaceUtils.apply_affine(model_matrix, ORIGIN)
+        return SpaceUtils.apply_affine(model_matrix__array, ORIGIN)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _eye_(
-        model_matrix: NP_44f8
+        model_matrix__array: NP_44f8
     ) -> NP_3f8:
-        return SpaceUtils.apply_affine(model_matrix, OUT)
+        return SpaceUtils.apply_affine(model_matrix__array, OUT)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _frame_radii_(
-        model_matrix: NP_44f8,
+        model_matrix__array: NP_44f8,
         target: NP_3f8
     ) -> NP_2f8:
         return np.array((
-            SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, RIGHT) - target),
-            SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, UP) - target)
+            SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix__array, RIGHT) - target),
+            SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix__array, UP) - target)
         ))
 
     @Lazy.property(hasher=Lazy.array_hasher)
@@ -96,14 +96,14 @@ class Camera(Mobject):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _view_matrix_(
-        model_matrix: NP_44f8,
+        model_matrix__array: NP_44f8,
         eye: NP_3f8
     ) -> NP_44f8:
-        model_basis = model_matrix[:3, :3]
+        model_basis = model_matrix__array[:3, :3]
         model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
         return (
-            RotateRemodelHandler(-Rotation.from_matrix(model_basis_normalized).as_rotvec()).remodel()
-            @ ShiftRemodelHandler(-eye).remodel()
+            RotateRemodelHandler(-Rotation.from_matrix(model_basis_normalized).as_rotvec())._remodel()
+            @ ShiftRemodelHandler(-eye)._remodel()
         )
 
     @Lazy.property(hasher=Lazy.array_hasher)

@@ -112,12 +112,12 @@ class MeshMobject(RenderableMobject):
     @Lazy.property()
     @staticmethod
     def _material_uniform_block_buffer_(
-        color: NP_3f8,
-        opacity: NP_f8,
-        weight: NP_f8,
-        ambient_strength: NP_f8,
-        specular_strength: NP_f8,
-        shininess: NP_f8
+        color__array: NP_3f8,
+        opacity__array: NP_f8,
+        weight__array: NP_f8,
+        ambient_strength__array: NP_f8,
+        specular_strength__array: NP_f8,
+        shininess__array: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_material",
@@ -130,12 +130,12 @@ class MeshMobject(RenderableMobject):
                 "float u_shininess"
             ],
             data={
-                "u_color": color,
-                "u_opacity": opacity,
-                "u_weight": weight,
-                "u_ambient_strength": ambient_strength,
-                "u_specular_strength": specular_strength,
-                "u_shininess": shininess
+                "u_color": color__array,
+                "u_opacity": opacity__array,
+                "u_weight": weight__array,
+                "u_ambient_strength": ambient_strength__array,
+                "u_specular_strength": specular_strength__array,
+                "u_shininess": shininess__array
             }
         )
 

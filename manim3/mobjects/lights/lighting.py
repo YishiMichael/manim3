@@ -64,7 +64,7 @@ class Lighting(LazyObject):
             },
             data={
                 "u_ambient_lights.color": np.fromiter((
-                    ambient_light._color_
+                    ambient_light._color_._array_
                     for ambient_light in ambient_lights
                 ), dtype=np.dtype((np.float64, (3,)))),
                 "u_point_lights.position": np.fromiter((
@@ -72,7 +72,7 @@ class Lighting(LazyObject):
                     for point_light in point_lights
                 ), dtype=np.dtype((np.float64, (3,)))),
                 "u_point_lights.color": np.fromiter((
-                    point_light._color_
+                    point_light._color_._array_
                     for point_light in point_lights
                 ), dtype=np.dtype((np.float64, (3,))))
             }

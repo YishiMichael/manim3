@@ -90,10 +90,10 @@ class GraphMobject(RenderableMobject):
     @Lazy.property()
     @staticmethod
     def _graph_uniform_block_buffer_(
-        color: NP_3f8,
-        opacity: NP_f8,
-        weight: NP_f8,
-        width: NP_f8
+        color__array: NP_3f8,
+        opacity__array: NP_f8,
+        weight__array: NP_f8,
+        width__array: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_graph",
@@ -104,10 +104,10 @@ class GraphMobject(RenderableMobject):
                 "float u_width"
             ],
             data={
-                "u_color": color,
-                "u_opacity": opacity,
-                "u_weight": weight,
-                "u_width": width
+                "u_color": color__array,
+                "u_opacity": opacity__array,
+                "u_weight": weight__array,
+                "u_width": width__array
             }
         )
 
