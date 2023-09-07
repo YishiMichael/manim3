@@ -29,6 +29,7 @@ class PartialBase(Animation):
         super().__init__(
             run_alpha=run_alpha
         )
+        #print(mobject._graph_._edges_)
         self._mobject: Mobject = mobject
         self._original_mobject: Mobject = mobject.copy()
         self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
@@ -44,6 +45,8 @@ class PartialBase(Animation):
         self,
         alpha: float
     ) -> None:
+        #print(self._mobject)
+        #print(self._original_mobject)
         split_alphas, concatenate_indices = self._alpha_to_segments(alpha)
         for mobject, original_mobject in zip(
             self._mobject.iter_descendants(),
@@ -52,15 +55,23 @@ class PartialBase(Animation):
         ):
             equivalent_cls = type(mobject)._equivalent_cls
             mobjects = [equivalent_cls() for _ in range(len(split_alphas) + 1)]
-            equivalent_cls._cls_split(
+            #print(mobject, len(mobject._graph_._edges_))
+            equivalent_cls._split_into(
                 dst_mobject_list=mobjects,
                 src_mobject=original_mobject,
                 alphas=split_alphas
             )
-            equivalent_cls._cls_concatenate(
+            #print(self._mobject._lazy_slots)
+            #print(self._original_mobject._lazy_slots)
+            #print(self._mobject._graph_)
+            #print(self._original_mobject._graph_)
+            equivalent_cls._concatenate_into(
                 dst_mobject=mobject,
                 src_mobject_list=[mobjects[index] for index in concatenate_indices]
             )
+            #print(self._mobject._graph_)
+            #print(self._original_mobject._graph_)
+            #print()
         #alpha_0, alpha_1 = self._alpha_to_boundary_values(alpha)
         ##if self._backwards:
         ##    alpha_0, alpha_1 = 1.0 - alpha_1, 1.0 - alpha_0

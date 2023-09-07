@@ -3,6 +3,7 @@ import weakref
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
+    Callable,
     #Any,
     ClassVar,
     Iterable,
@@ -108,6 +109,11 @@ class Mobject(LazyObject):
         "_parents",
         "_real_ancestors"
     )
+    _special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
+        "__weakref__": None,
+        "_parents": weakref.WeakSet.copy,
+        "_real_ancestors": weakref.WeakSet.copy
+    }
 
     _attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
     _equivalent_cls_mro_index: ClassVar[int] = 0
@@ -319,6 +325,13 @@ class Mobject(LazyObject):
     def clear(self):
         self.discard(*self.iter_children())
         return self
+
+    #def _copy(self):
+    #    result = super()._copy()
+    #    # Use `WeakSet.copy` instead of `copy.copy` for better behavior.
+    #    result._parents = self._parents.copy()
+    #    result._real_ancestors = self._real_ancestors.copy()
+    #    return result
 
     def copy(self):
         # Copy all descendants. The result is not bound to any mobject.
@@ -626,13 +639,13 @@ class Mobject(LazyObject):
     def _equivalent_cls(cls) -> "type[Mobject]":
         return cls.__mro__[cls._equivalent_cls_mro_index]
 
-    def _copy_attributes_from(
-        self,
-        src: "Mobject"
-    ) -> None:
-        assert (equivalent_cls := type(self)._equivalent_cls) == type(src)._equivalent_cls
-        for descriptor in equivalent_cls._attribute_descriptors.values():
-            descriptor._set(self, descriptor._get(src))
+    #def _copy_attributes_from(
+    #    self,
+    #    src: "Mobject"
+    #) -> None:
+    #    assert (equivalent_cls := type(self)._equivalent_cls) == type(src)._equivalent_cls
+    #    for descriptor in equivalent_cls._attribute_descriptors.values():
+    #        descriptor._set(self, descriptor._get(src))
 
     #def _state_copy(self) -> "Mobject":
     #    result = type(self)._equivalent_cls()
@@ -646,12 +659,13 @@ class Mobject(LazyObject):
         src_mobject_0: "Mobject",
         src_mobject_1: "Mobject"
     ) -> "InterpolateBoundHandler":
+        #print(cls, *(type(mobject)._equivalent_cls for mobject in (dst_mobject, src_mobject_0, src_mobject_1)))
         assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, src_mobject_0, src_mobject_1))
         #mobject = cls()
         interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = {}
         for descriptor in cls._attribute_descriptors.values():
-            data_0 = descriptor._get(src_mobject_0)
-            data_1 = descriptor._get(src_mobject_1)
+            data_0 = descriptor.__get__(src_mobject_0)
+            data_1 = descriptor.__get__(src_mobject_1)
             if data_0 is data_1:
                 #descriptor._set(dst_mobject, data)
                 continue
@@ -675,7 +689,7 @@ class Mobject(LazyObject):
         return InterpolateBoundHandler(dst_mobject, interpolate_handler_dict)
 
     @classmethod
-    def _cls_split(
+    def _split_into(
         cls,
         dst_mobject_list: "list[Mobject]",
         src_mobject: "Mobject",
@@ -686,20 +700,20 @@ class Mobject(LazyObject):
         assert all(cls is type(mobject)._equivalent_cls for mobject in (*dst_mobject_list, src_mobject))
         #src_data_dict: dict[LazyDescriptor, object] = {}
         for descriptor in cls._attribute_descriptors.values():
-            src_data = descriptor._get(src_mobject)
+            src_data = descriptor.__get__(src_mobject)
             if not descriptor._element_type._split_implemented:
                 for dst_mobject in dst_mobject_list:
-                    descriptor._set(dst_mobject, src_data)
+                    descriptor.__set__(dst_mobject, src_data)
                 continue
             #src_data_dict[descriptor] = src_data
             dst_data_list = descriptor._element_type._split(src_data, alphas)
             for dst_mobject, dst_data in zip(dst_mobject_list, dst_data_list, strict=True):
-                descriptor._set(dst_mobject, dst_data)
+                descriptor.__set__(dst_mobject, dst_data)
         #return dst_mobject_list
         #return SplitBoundHandler(dst_mobject_list, src_data_dict)
 
     @classmethod
-    def _cls_concatenate(
+    def _concatenate_into(
         cls,
         dst_mobject: "Mobject",
         src_mobject_list: "list[Mobject]"
@@ -710,7 +724,7 @@ class Mobject(LazyObject):
         #result_mobject = cls()
         for descriptor in cls._attribute_descriptors.values():
             src_data_list = [
-                descriptor._get(src_mobject)
+                descriptor.__get__(src_mobject)
                 for src_mobject in src_mobject_list
             ]
             if not descriptor._element_type._concatenate_implemented:
@@ -718,13 +732,13 @@ class Mobject(LazyObject):
                 if not unique_src_data_list:
                     continue
                 src_data = unique_src_data_list.pop()
-                descriptor._set(dst_mobject, src_data)
+                descriptor.__set__(dst_mobject, src_data)
                 assert not unique_src_data_list, f"Uncatenatable variables of `{descriptor._name}` don't match"
                 #for dst_mobject in dst_mobject_list:
-                #    descriptor._set(dst_mobject, src_data)
+                #    descriptor.__set__(dst_mobject, src_data)
                 continue
             dst_data = descriptor._element_type._concatenate(src_data_list)
-            descriptor._set(dst_mobject, dst_data)
+            descriptor.__set__(dst_mobject, dst_data)
             #dst_data = descriptor._element_type._concatenate(src_data_list)
             #if dst_data is not NotImplemented:
             #    descriptor._set(dst_mobject, dst_data)
@@ -737,20 +751,23 @@ class Mobject(LazyObject):
         self,
         alphas: NP_xf8
     ):
-        dst_mobject_list = [self._equivalent_cls() for _ in range(len(alphas) + 1)]
-        self._equivalent_cls._cls_split(
+        equivalent_cls = type(self)._equivalent_cls
+        dst_mobject_list = [equivalent_cls() for _ in range(len(alphas) + 1)]
+        equivalent_cls._split_into(
             dst_mobject_list=dst_mobject_list,
             src_mobject=self,
             alphas=alphas
         )
-        self._copy_attributes_from(self._equivalent_cls())
+        for descriptor in equivalent_cls._attribute_descriptors.values():
+            descriptor._init(self)
+        #self._copy_attributes_from(self._equivalent_cls())
         self.add(*dst_mobject_list)
         return self
 
     def concatenate(self):
         #ConcatenateBoundHandler(self, *self.iter_children()).concatenate()
         #dst_mobject = self._equivalent_cls()
-        self._equivalent_cls._cls_concatenate(
+        self._equivalent_cls._concatenate_into(
             dst_mobject=self,
             src_mobject_list=list(self.iter_children())
         )
@@ -908,7 +925,7 @@ class InterpolateBoundHandler:
     ) -> None:
         dst_mobject = self._dst_mobject
         for descriptor, interpolate_handler in self._interpolate_handler_dict.items():
-            descriptor._set(dst_mobject, interpolate_handler._interpolate(alpha))
+            descriptor.__set__(dst_mobject, interpolate_handler._interpolate(alpha))
 
 
 #class SplitBoundHandler:

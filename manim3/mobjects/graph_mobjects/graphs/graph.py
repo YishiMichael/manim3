@@ -1,3 +1,4 @@
+import itertools as it
 from typing import Literal
 
 import numpy as np
@@ -11,7 +12,10 @@ from ....constants.custom_typing import (
 )
 from ....lazy.lazy import Lazy
 from ....utils.space_utils import SpaceUtils
-from ...mobject.mobject_attributes.mobject_attribute import MobjectAttribute
+from ...mobject.mobject_attributes.mobject_attribute import (
+    InterpolateHandler,
+    MobjectAttribute
+)
 
 
 class Graph(MobjectAttribute):
@@ -37,6 +41,148 @@ class Graph(MobjectAttribute):
     @staticmethod
     def _edges_() -> NP_x2i4:
         return np.zeros((0, 2), dtype=np.int32)
+
+    @classmethod
+    def _interpolate(
+        cls,
+        graph_0: "Graph",
+        graph_1: "Graph"
+    ) -> "GraphInterpolateHandler":
+        positions_0 = graph_0._positions_
+        positions_1 = graph_1._positions_
+        edges_0 = graph_0._edges_
+        edges_1 = graph_1._edges_
+        assert len(edges_0)
+        assert len(edges_1)
+
+        cumlengths_0 = Graph._get_cumlengths(positions_0, edges_0)
+        cumlengths_1 = Graph._get_cumlengths(positions_1, edges_1)
+        full_knots_0 = cumlengths_0 * cumlengths_1[-1]
+        full_knots_1 = cumlengths_1 * cumlengths_0[-1]
+        knots_0 = full_knots_0[1:-1]
+        knots_1 = full_knots_1[1:-1]
+
+        outline_edges_0, outline_positions_0, _ = Graph._get_decomposed_edges(
+            positions=positions_0,
+            edges=edges_0,
+            insertions=np.arange(len(edges_1) - 1) + len(positions_0),
+            full_knots=full_knots_0,
+            values=knots_1,
+            side="right"
+        )
+        outline_edges_1, outline_positions_1, _ = Graph._get_decomposed_edges(
+            positions=positions_1,
+            edges=edges_1,
+            insertions=np.arange(len(edges_0) - 1) + len(positions_1),
+            full_knots=full_knots_1,
+            values=knots_0,
+            side="left"
+        )
+        interpolated_positions_0, interpolated_positions_1, edges = Graph._get_unique_positions(
+            positions_0=np.concatenate((
+                positions_0,
+                outline_positions_0
+            )),
+            positions_1=np.concatenate((
+                positions_1,
+                outline_positions_1
+            )),
+            edges_0=outline_edges_0,
+            edges_1=outline_edges_1
+        )
+        return GraphInterpolateHandler(interpolated_positions_0, interpolated_positions_1, edges)
+
+    @classmethod
+    def _split(
+        cls,
+        graph: "Graph",
+        alphas: NP_xf8
+    ) -> "list[Graph]":
+        #print(alphas)
+        positions = graph._positions_
+        edges = graph._edges_
+        if not len(edges):
+            return [Graph() for _ in range(len(alphas) + 1)]
+
+        cumlengths = Graph._get_cumlengths(
+            positions=positions,
+            edges=edges
+        )
+        #n_positions = np.int32(len(positions))
+
+        values = alphas * cumlengths[-1]
+        interpolated_indices = np.searchsorted(cumlengths[1:-1], values)
+        all_positions = np.concatenate((
+            positions,
+            Graph._interpolate_positions(
+                positions=positions,
+                edges=edges,
+                full_knots=cumlengths,
+                values=values,
+                indices=interpolated_indices
+            )
+        ))
+        #split_insertions = np.arange(len(interpolated_indices)) + len(positions)
+        #prepends = np.insert(insertions, 0, edges[0, 0])
+        #appends = np.append(insertions, edges[-1, 1])
+        #print(edges)
+        #print([Graph._reassemble_edges(
+        #            edges=edges,
+        #            transition_indices=np.arange(interpolated_index_0, interpolate_index_1),
+        #            prepend=prepend,
+        #            append=append,
+        #            insertion_indices=np.zeros((0,), dtype=np.int32),
+        #            insertions=np.zeros((0,), dtype=np.int32)
+        #        )
+        #for (prepend, append), (interpolated_index_0, interpolate_index_1) in zip(
+        #        it.pairwise(np.array((edges[0, 0], *(np.arange(len(alphas)) + len(positions)), edges[-1, 1]))),
+        #        it.pairwise(np.array((0, *interpolated_indices, len(edges) - 1))),
+        #        strict=True
+        #    )
+        #])
+        return [
+            Graph(
+                positions=all_positions,
+                edges=Graph._reassemble_edges(
+                    edges=edges,
+                    transition_indices=np.arange(interpolated_index_0, interpolate_index_1),
+                    prepend=prepend,
+                    append=append,
+                    insertion_indices=np.zeros((0,), dtype=np.int32),
+                    insertions=np.zeros((0,), dtype=np.int32)
+                )
+            )
+            for (prepend, append), (interpolated_index_0, interpolate_index_1) in zip(
+                it.pairwise(np.array((edges[0, 0], *(np.arange(len(alphas)) + len(positions)), edges[-1, 1]))),
+                it.pairwise(np.array((0, *interpolated_indices, len(edges) - 1))),
+                strict=True
+            )
+        ]  # TODO: simplify: remove unused positions
+
+    @classmethod
+    def _concatenate(
+        cls,
+        graphs: "list[Graph]"
+    ) -> "Graph":
+        if not graphs:
+            return Graph()
+
+        positions = np.concatenate([
+            graph._positions_
+            for graph in graphs
+        ])
+        offsets = np.insert(np.cumsum([
+            len(graph._positions_)
+            for graph in graphs[:-1]
+        ], dtype=np.int32), 0, 0)
+        edges = np.concatenate([
+            graph._edges_ + offset
+            for graph, offset in zip(graphs, offsets, strict=True)
+        ])
+        return Graph(
+            positions=positions,
+            edges=edges
+        )
 
     @classmethod
     def _get_cumlengths(
@@ -152,3 +298,31 @@ class Graph(MobjectAttribute):
         if not is_ring:
             result = result[:-1]
         return result
+
+
+class GraphInterpolateHandler(InterpolateHandler[Graph]):
+    __slots__ = (
+        "_interpolated_positions_0",
+        "_interpolated_positions_1",
+        "_edges"
+    )
+
+    def __init__(
+        self,
+        interpolated_positions_0: NP_x3f8,
+        interpolated_positions_1: NP_x3f8,
+        edges: NP_x2i4
+    ) -> None:
+        super().__init__()
+        self._interpolated_positions_0: NP_x3f8 = interpolated_positions_0
+        self._interpolated_positions_1: NP_x3f8 = interpolated_positions_1
+        self._edges: NP_x2i4 = edges
+
+    def _interpolate(
+        self,
+        alpha: float
+    ) -> Graph:
+        return Graph(
+            positions=SpaceUtils.lerp(self._interpolated_positions_0, self._interpolated_positions_1, alpha),
+            edges=self._edges
+        )

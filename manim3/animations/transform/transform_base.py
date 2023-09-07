@@ -24,7 +24,7 @@ class TransformBase(Animation):
             run_alpha=1.0
         )
         self._interpolate_bound_handlers: list[InterpolateBoundHandler] = [
-            Mobject._get_interpolate_bound_handler(
+            type(intermediate_descendant)._equivalent_cls._get_interpolate_bound_handler(
                 dst_mobject=intermediate_descendant,
                 src_mobject_0=start_descendant,
                 src_mobject_1=stop_descendant

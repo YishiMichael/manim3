@@ -27,7 +27,7 @@ class PartialEvenly(PartialBase):
         ) -> tuple[NP_xf8, list[int]]:
             start_value, stop_value = alpha_to_boundaries(alpha)
             linspace = np.linspace(0.0, 1.0, n_segments, endpoint=False)
-            split_alphas = np.column_stack((start_value + linspace, stop_value + linspace)).T
+            split_alphas = np.column_stack((start_value + linspace, stop_value + linspace)).T.flatten()
             if split_alphas[-1] > 1.0:
                 split_alphas = np.roll(split_alphas, 1)
                 split_alphas[0] -= 1.0
