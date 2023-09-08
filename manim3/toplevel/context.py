@@ -114,7 +114,14 @@ class Context:
         data: bytes | None = None,
         reserve: int = 0
     ) -> moderngl.Buffer:
+        #print(data)
+        #reserve = 0 if data else 1
+        if not data and not reserve:
+            data = None
+            reserve = 1
         return self._mgl_context.buffer(data=data, reserve=reserve)
+        #print(buffer.glo)  # TODO
+        #return buffer
 
     def program(
         self,

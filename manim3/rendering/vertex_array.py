@@ -424,7 +424,7 @@ class VertexArray(LazyObject):
 
     def transform(self) -> dict[str, np.ndarray]:
         transform_feedback_buffer = self._transform_feedback_buffer_
-        with transform_feedback_buffer.temporary_buffer() as buffer:
+        with transform_feedback_buffer.buffer() as buffer:
             if (vertex_array := self._vertex_array_) is not None:
                 with Toplevel.context.scope(
                     uniform_buffers=self._uniform_block_bindings_

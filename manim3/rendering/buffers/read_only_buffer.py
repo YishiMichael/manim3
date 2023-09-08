@@ -12,7 +12,7 @@ class ReadOnlyBuffer(Buffer):
     __slots__ = ()
 
     @contextmanager
-    def temporary_buffer(self) -> Iterator[moderngl.Buffer]:
+    def buffer(self) -> Iterator[moderngl.Buffer]:
         yield Toplevel.context.buffer(reserve=self._buffer_format_._nbytes_)
         #yield buffer
         #self._finalize_buffer(buffer)
