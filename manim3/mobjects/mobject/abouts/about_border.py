@@ -20,4 +20,4 @@ class AboutBorder(About):
         mobject: Mobject
     ) -> NP_3f8:
         assert isinstance(mobject, RenderableMobject)
-        return SpaceUtils.apply_affine(mobject._camera_._model_matrix_._array_, self._border)
+        return SpaceUtils.apply_affine(mobject._camera_._camera_._model_matrix_._array_, self._border)

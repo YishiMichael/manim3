@@ -1,8 +1,7 @@
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from ...constants.custom_typing import (
-    NP_44f8,
-    NP_x2f8,
     NP_x3f8,
     NP_xxi4
 )
@@ -30,14 +29,6 @@ class Polyhedron(ShapeMobject):
         cls,
         positions: NP_x3f8
     ) -> Polygon:
-        positions_2d, matrix = cls._convert_coplanar_positions(positions)
-        return Polygon(positions_2d).apply_matrix(matrix)  # TODO
-
-    @classmethod
-    def _convert_coplanar_positions(
-        cls,
-        positions: NP_x3f8
-    ) -> tuple[NP_x2f8, NP_44f8]:
         assert len(positions) >= 3
         # We first choose three positions that define the plane.
         # Instead of choosing `positions[:3]`, we choose `positions[:2]` and the geometric centroid,
@@ -48,15 +39,12 @@ class Polyhedron(ShapeMobject):
         z_axis = SpaceUtils.normalize(np.cross(x_axis, np.average(positions, axis=0) - origin))
         y_axis = np.cross(z_axis, x_axis)
         rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
+        rotation_vector = Rotation.from_matrix(rotation_matrix).as_rotvec()
 
         transformed = (np.linalg.inv(rotation_matrix) @ (positions - origin).T).T
         transformed_xy, transformed_z = SpaceUtils.decrease_dimension(transformed, extract_z=True)
         assert np.isclose(transformed_z, 0.0).all(), "Positions are not coplanar"
-
-        matrix = np.identity(4)
-        matrix[:3, :3] = rotation_matrix
-        matrix[:3, 3] = origin
-        return transformed_xy, matrix
+        return Polygon(transformed_xy).rotate(rotation_vector).shift(origin)
 
 
 # The five platonic solids are ported from manim community.

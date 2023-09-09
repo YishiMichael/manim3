@@ -1,7 +1,4 @@
 import re
-from typing import Iterator
-
-import numpy as np
 
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
@@ -112,78 +109,9 @@ class Buffer(LazyObject):
             dict(array_len_items)
         )
 
-    @Lazy.property()
-    @staticmethod
-    def _np_buffer_(
-        buffer_format__shape: tuple[int, ...],
-        buffer_format__dtype: np.dtype
-    ) -> np.ndarray:
-        return np.zeros(buffer_format__shape, dtype=buffer_format__dtype)
-
-    @Lazy.property()
-    @staticmethod
-    def _np_buffer_pointers_(
-        np_buffer: np.ndarray,
-        buffer_format: BufferFormat
-    ) -> dict[str, tuple[np.ndarray, int]]:
-
-        def get_pointers(
-            np_buffer_pointer: np.ndarray,
-            buffer_format: BufferFormat,
-            name_chain: tuple[str, ...]
-        ) -> Iterator[tuple[str, np.ndarray, int]]:
-            if isinstance(buffer_format, AtomicBufferFormat):
-                yield ".".join(name_chain), np_buffer_pointer["_"], buffer_format._base_ndim_
-            elif isinstance(buffer_format, StructuredBufferFormat):
-                for child in buffer_format._children_:
-                    name = child._name_
-                    yield from get_pointers(
-                        np_buffer_pointer[name],
-                        child,
-                        name_chain + (name,)
-                    )
-
-        return {
-            key: (np_buffer_pointer, base_ndim)
-            for key, np_buffer_pointer, base_ndim in get_pointers(np_buffer, buffer_format, ())
-        }
-
     @Lazy.property_collection(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _np_buffer_pointer_keys_(
-        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
+    def _buffer_pointer_keys_(
+        buffer_format__pointers: tuple[tuple[tuple[str, ...], int], ...]
     ) -> tuple[str, ...]:
-        return tuple(np_buffer_pointers)
-
-    @classmethod
-    def _write_to_bytes(
-        cls,
-        data_dict: dict[str, np.ndarray],
-        np_buffer: np.ndarray,
-        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
-    ) -> bytes:
-        for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
-            data = data_dict[key]
-            if not np_buffer_pointer.size:
-                assert not data.size
-                continue
-            data_expanded = np.expand_dims(data, axis=tuple(range(-2, -base_ndim)))
-            assert np_buffer_pointer.shape == data_expanded.shape
-            np_buffer_pointer[...] = data_expanded
-
-        return np_buffer.tobytes()
-
-    @classmethod
-    def _read_from_bytes(
-        cls,
-        data_bytes: bytes,
-        np_buffer: np.ndarray,
-        np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
-    ) -> dict[str, np.ndarray]:
-        data_dict: dict[str, np.ndarray] = {}
-        np_buffer[...] = np.frombuffer(data_bytes, dtype=np_buffer.dtype).reshape(np_buffer.shape)
-        for key, (np_buffer_pointer, base_ndim) in np_buffer_pointers.items():
-            data_expanded = np_buffer_pointer[...]
-            data = np.squeeze(data_expanded, axis=tuple(range(-2, -base_ndim)))
-            data_dict[key] = data
-        return data_dict
+        return tuple(".".join(name_chain) for name_chain, _ in buffer_format__pointers)

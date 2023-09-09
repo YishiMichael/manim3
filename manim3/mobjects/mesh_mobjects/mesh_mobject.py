@@ -31,7 +31,6 @@ class MeshMobject(RenderableMobject):
         super().__init__()
         if mesh is not None:
             self._mesh_ = mesh
-        self._lighting_ = Toplevel.scene._lighting
 
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
@@ -71,7 +70,7 @@ class MeshMobject(RenderableMobject):
     @Lazy.variable()
     @staticmethod
     def _lighting_() -> Lighting:
-        return Lighting()
+        return Toplevel.scene._lighting
 
     @Lazy.variable()
     @staticmethod
@@ -120,12 +119,13 @@ class MeshMobject(RenderableMobject):
     @staticmethod
     def _mesh_vertex_array_(
         color_maps: list[moderngl.Texture],
-        camera__camera_uniform_block_buffer: UniformBlockBuffer,
+        camera__camera__camera_uniform_block_buffer: UniformBlockBuffer,
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
         mesh__indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
+        #print(lighting__lighting_uniform_block_buffer._buffer_format_._read(lighting__lighting_uniform_block_buffer._buffer_.read()))
         return VertexArray(
             shader_filename="mesh",
             texture_buffers=[
@@ -138,7 +138,7 @@ class MeshMobject(RenderableMobject):
                 )
             ],
             uniform_block_buffers=[
-                camera__camera_uniform_block_buffer,
+                camera__camera__camera_uniform_block_buffer,
                 lighting__lighting_uniform_block_buffer,
                 model_uniform_block_buffer,
                 material_uniform_block_buffer
@@ -151,10 +151,3 @@ class MeshMobject(RenderableMobject):
         target_framebuffer: OITFramebuffer
     ) -> None:
         self._mesh_vertex_array_.render(target_framebuffer)
-
-    def bind_lighting(
-        self,
-        lighting: Lighting
-    ):
-        self._lighting_ = lighting
-        return self

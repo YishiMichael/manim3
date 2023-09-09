@@ -86,12 +86,12 @@ class ThreeDExample(Scene):
             .scale(2.0)
             .set(
                 color="#00FFAA",
-                opacity=0.25
+                opacity=0.25,
+                lighting=Lighting(
+                    AmbientLight().set(color=WHITE * 0.3),
+                    PointLight().shift(RIGHT * 5)
+                )
             )
-            .bind_lighting(Lighting(
-                AmbientLight().set(color=WHITE * 0.3),
-                PointLight().shift(RIGHT * 5)
-            ))
         )
         self.add(dodec)
         self.prepare(Rotating(self.camera, 0.5 * DOWN))
@@ -308,7 +308,7 @@ class GameExample(Scene):
 
         self.add(judge_line)
         await self.play(Parallel(*(
-            Create(key_text)
+            Create(key_text, n_segments=2)
             for key_text in key_texts
         ), lag_time=0.5), run_time=1.5)
         await self.wait()
@@ -335,7 +335,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540
     )
-    GameExample.render(config)
+    ThreeDExample.render(config)
 
 
 if __name__ == "__main__":

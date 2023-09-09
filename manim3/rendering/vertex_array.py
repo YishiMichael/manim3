@@ -190,7 +190,7 @@ class VertexArray(LazyObject):
         shader_filename: str,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
-        transform_feedback_buffer__np_buffer_pointer_keys: tuple[str, ...]
+        transform_feedback_buffer__buffer_pointer_keys: tuple[str, ...]
     ) -> ProgramInfo:
 
         def read_shader_with_includes_replaced(
@@ -232,7 +232,7 @@ class VertexArray(LazyObject):
             geometry_shader=shaders.get("GEOMETRY_SHADER"),
             tess_control_shader=shaders.get("TESS_CONTROL_SHADER"),
             tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER"),
-            varyings=transform_feedback_buffer__np_buffer_pointer_keys
+            varyings=transform_feedback_buffer__buffer_pointer_keys
         )
 
         attributes: dict[str, moderngl.Attribute] = {}

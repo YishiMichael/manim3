@@ -45,6 +45,8 @@ from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 if TYPE_CHECKING:
     from typing_extensions import Unpack
 
+    from ..cameras.camera import Camera
+    from ..lights.lighting import Lighting
     from .abouts.about import About
     from .aligns.align import Align
 
@@ -58,11 +60,15 @@ class StyleKwargs(TypedDict, total=False):
     # Mobject
     model_matrix: NP_44f8
 
+    # RenderableMobject
+    camera: "Camera"
+
     # MeshMobject
     mesh: Mesh
     ambient_strength: float
     specular_strength: float
     shininess: float
+    lighting: "Lighting"
 
     # ShapeMobject
     shape: Shape
@@ -116,8 +122,6 @@ class Mobject(LazyObject):
             for name, descriptor in cls._lazy_descriptors.items()
             if not descriptor._is_multiple
             and descriptor._is_variable
-            and descriptor._freeze
-            and descriptor._hasher is Lazy.branch_hasher
             and issubclass(descriptor._element_type, MobjectAttribute)
         }
 

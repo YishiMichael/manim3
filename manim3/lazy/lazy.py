@@ -233,6 +233,9 @@ class Lazy:
     def array_hasher(
         element: np.ndarray
     ) -> bytes:
+        # In order to make the hasher works properly, all `np.ndarray`
+        # instances bound to some descriptor shall share `dtype`, `ndim`,
+        # and at least `ndim - 1` fixed entries of `shape`.
         return element.tobytes()
 
     @staticmethod

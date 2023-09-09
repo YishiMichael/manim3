@@ -144,3 +144,10 @@ class AtomicBufferFormat(BufferFormat):
             "formats": [(np.dtype(f"{base_char}{base_itemsize}"), (n_col,))],
             "itemsize": row_itemsize
         }), (n_row,)))
+
+    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _pointers_(
+        base_ndim: int
+    ) -> tuple[tuple[tuple[str, ...], int], ...]:
+        return (((), base_ndim),)

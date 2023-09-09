@@ -113,7 +113,7 @@ class GraphMobject(RenderableMobject):
     @Lazy.property()
     @staticmethod
     def _graph_vertex_array_(
-        camera__camera_uniform_block_buffer: UniformBlockBuffer,
+        camera__camera__camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         graph_uniform_block_buffer: UniformBlockBuffer,
         graph_indexed_attributes_buffer: IndexedAttributesBuffer
@@ -121,7 +121,7 @@ class GraphMobject(RenderableMobject):
         return VertexArray(
             shader_filename="graph",
             uniform_block_buffers=[
-                camera__camera_uniform_block_buffer,
+                camera__camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,
                 graph_uniform_block_buffer
             ],

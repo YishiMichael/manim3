@@ -67,3 +67,15 @@ class StructuredBufferFormat(BufferFormat):
             "offsets": list(offsets),
             "itemsize": itemsize
         })
+
+    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _pointers_(
+        children__name: tuple[str, ...],
+        children__pointers: tuple[tuple[tuple[tuple[str, ...], int], ...], ...]
+    ) -> tuple[tuple[tuple[str, ...], int], ...]:
+        return tuple(
+            ((child_name,) + name_chain, base_ndim)
+            for child_name, child_pointers in zip(children__name, children__pointers, strict=True)
+            for name_chain, base_ndim in child_pointers
+        )

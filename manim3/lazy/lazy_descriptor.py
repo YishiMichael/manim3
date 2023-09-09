@@ -4,7 +4,6 @@ from abc import ABC
 from typing import (
     TYPE_CHECKING,
     Callable,
-    ClassVar,
     Generic,
     Hashable,
     Iterator,
@@ -153,7 +152,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         self._is_variable: bool = is_variable
         self._hasher: Callable[[_T], Hashable] = hasher
         self._freeze: bool = freeze
-        self._freezer: Callable[[_T], None] | None = None
+        self._freezer: Callable[[_T], None] = type(self)._empty_freezer
         self._cache: Cache[Registered[Hashable], tuple[Registered[_T], ...]] = Cache(capacity=cache_capacity)
         self._parameter_key_registration: Registration[Hashable, Hashable] = Registration()
         # Shared when overridden.
@@ -358,7 +357,8 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         self,
         elements: tuple[_T, ...]
     ) -> tuple[Registered[_T], ...]:
-        if self._freeze and (freezer := self._freezer) is not None:
+        if self._freeze:
+            freezer = self._freezer
             for element in elements:
                 freezer(element)
         element_registration = self._element_registration
@@ -367,3 +367,9 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
             element_registration.register(hasher(element), element)
             for element in elements
         )
+
+    @staticmethod
+    def _empty_freezer(
+        element: _T
+    ) -> None:
+        return

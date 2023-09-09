@@ -3,6 +3,7 @@ import numpy as np
 
 from ...lazy.lazy import Lazy
 from ...toplevel.toplevel import Toplevel
+from ..buffer_formats.buffer_format import BufferFormat
 from .buffer import Buffer
 
 
@@ -17,15 +18,10 @@ class WriteOnlyBuffer(Buffer):
     @Lazy.property()
     @staticmethod
     def _buffer_(
-        np_buffer: np.ndarray,
-        np_buffer_pointers: dict[str, tuple[np.ndarray, int]],
-        data_dict: dict[str, np.ndarray]
+        data_dict: dict[str, np.ndarray],
+        buffer_format: BufferFormat
     ) -> moderngl.Buffer:
-        return Toplevel.context.buffer(data=Buffer._write_to_bytes(
-            data_dict=data_dict,
-            np_buffer=np_buffer,
-            np_buffer_pointers=np_buffer_pointers
-        ))
+        return Toplevel.context.buffer(data=buffer_format._write(data_dict))
 
     def write(
         self,

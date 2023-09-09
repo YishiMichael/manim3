@@ -1,13 +1,14 @@
 import numpy as np
 
+
 from ...lazy.lazy import Lazy
-from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
 from .ambient_light import AmbientLight
 from .point_light import PointLight
 
 
-class Lighting(LazyObject):
+class Lighting(MobjectAttribute):
     __slots__ = ()
 
     def __init__(
