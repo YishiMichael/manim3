@@ -29,6 +29,3 @@ class Create(PartialEvenly):
     async def timeline(self) -> None:
         self.scene.add(self._mobject)
         await self.wait()
-
-    #async def timeline(self) -> None:
-    #    await self.wait()

@@ -1,6 +1,5 @@
 import numpy as np
 
-
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -16,14 +15,9 @@ from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-#from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-#from ..mobject.style_meta import StyleMeta
 from ..mobject.mobject_attributes.array_attribute import ArrayAttribute
 from ..renderable_mobject import RenderableMobject
 from .graphs.graph import Graph
-#from .graphs.graph_concatenate_handler import GraphConcatenateHandler
-#from .graphs.graph_interpolate_handler import GraphInterpolateHandler
-#from .graphs.graph_split_handler import GraphSplitHandler
 
 
 class GraphMobject(RenderableMobject):
@@ -37,43 +31,26 @@ class GraphMobject(RenderableMobject):
         if graph is not None:
             self._graph_ = graph
 
-    #@StyleMeta.register(
-    #    split_operation=GraphSplitHandler,
-    #    concatenate_operation=GraphConcatenateHandler,
-    #    interpolate_operation=GraphInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _graph_() -> Graph:
         return Graph()
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _color_() -> ArrayAttribute[NP_3f8]:
         return ArrayAttribute(np.ones((3,)))
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _opacity_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(1.0)
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _weight_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(1.0)
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _width_() -> ArrayAttribute[NP_f8]:

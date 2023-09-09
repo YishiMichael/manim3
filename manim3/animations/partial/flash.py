@@ -35,6 +35,3 @@ class Flash(PartialEvenly):
         self.scene.add(self._mobject)
         await self.wait()
         self.scene.discard(self._mobject)
-
-    #async def timeline(self) -> None:
-    #    await self.wait()

@@ -1,4 +1,3 @@
-#from ...mobjects.mobject.operation_handlers.interpolate_bound_handler import InterpolateBoundHandler
 from ...mobjects.mobject.mobject import (
     InterpolateBoundHandler,
     Mobject
@@ -29,7 +28,6 @@ class TransformBase(Animation):
                 src_mobject_0=start_descendant,
                 src_mobject_1=stop_descendant
             )
-            #InterpolateBoundHandler(intermediate_descendant, start_descendant, stop_descendant)
             for start_descendant, stop_descendant, intermediate_descendant in zip(
                 start_mobject.iter_descendants(),
                 stop_mobject.iter_descendants(),

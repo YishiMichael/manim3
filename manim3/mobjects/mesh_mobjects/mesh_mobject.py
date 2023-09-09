@@ -1,9 +1,6 @@
 import moderngl
 import numpy as np
 
-from manim3.mobjects.mobject.mobject_attributes.array_attribute import ArrayAttribute
-from manim3.mobjects.mobject.mobject_attributes.color_attribute import ColorAttribute
-
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -18,8 +15,8 @@ from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ..lights.lighting import Lighting
-#from ..mobject.operation_handlers.lerp_interpolate_handler import LerpInterpolateHandler
-#from ..mobject.style_meta import StyleMeta
+from ..mobject.mobject_attributes.array_attribute import ArrayAttribute
+from ..mobject.mobject_attributes.color_attribute import ColorAttribute
 from ..renderable_mobject import RenderableMobject
 from .meshes.mesh import Mesh
 
@@ -36,61 +33,41 @@ class MeshMobject(RenderableMobject):
             self._mesh_ = mesh
         self._lighting_ = Toplevel.scene._lighting
 
-    #@StyleMeta.register()
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _color_() -> ColorAttribute:
         return ColorAttribute(np.ones((3,)))
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _opacity_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(1.0)
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _weight_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(1.0)
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _ambient_strength_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(1.0)
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _specular_strength_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(Toplevel.config.mesh_specular_strength)
 
-    #@StyleMeta.register(
-    #    interpolate_operation=LerpInterpolateHandler
-    #)
     @Lazy.variable(hasher=Lazy.branch_hasher)
     @staticmethod
     def _shininess_() -> ArrayAttribute[NP_f8]:
         return ArrayAttribute(Toplevel.config.mesh_shininess)
 
-    #@StyleMeta.register()
     @Lazy.variable()
     @staticmethod
     def _lighting_() -> Lighting:

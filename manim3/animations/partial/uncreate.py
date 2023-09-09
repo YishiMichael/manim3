@@ -29,6 +29,3 @@ class Uncreate(PartialEvenly):
     async def timeline(self) -> None:
         await self.wait()
         self.scene.discard(self._mobject)
-
-    #async def timeline(self) -> None:
-    #    await self.wait()
