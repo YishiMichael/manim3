@@ -1,9 +1,7 @@
 import numpy as np
 
-from ...lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ...lazy.lazy import Lazy
+from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from .ambient_light import AmbientLight
 from .point_light import PointLight
@@ -27,12 +25,12 @@ class Lighting(LazyObject):
         self._ambient_lights_ = tuple(ambient_lights)
         self._point_lights_ = tuple(point_lights)
 
-    @Lazy.variable_collection(frozen=False)
+    @Lazy.variable_collection(freeze=False)
     @staticmethod
     def _ambient_lights_() -> tuple[AmbientLight, ...]:
         return ()
 
-    @Lazy.variable_collection(frozen=False)
+    @Lazy.variable_collection(freeze=False)
     @staticmethod
     def _point_lights_() -> tuple[PointLight, ...]:
         return ()

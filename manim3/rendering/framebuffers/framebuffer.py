@@ -1,9 +1,7 @@
 import moderngl
 
-from ...lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ...lazy.lazy import Lazy
+from ...lazy.lazy_object import LazyObject
 from ...toplevel.context import ContextState
 from ...toplevel.toplevel import Toplevel
 

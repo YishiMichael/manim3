@@ -1,14 +1,10 @@
 import re
 from typing import Iterator
 
-#import moderngl
 import numpy as np
 
-from ...lazy.lazy import (
-    Lazy,
-    LazyObject
-)
-#from ...toplevel.toplevel import Toplevel
+from ...lazy.lazy import Lazy
+from ...lazy.lazy_object import LazyObject
 from ..buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from ..buffer_formats.buffer_format import BufferFormat
 from ..buffer_formats.buffer_layout import BufferLayout
@@ -17,8 +13,6 @@ from ..buffer_formats.structured_buffer_format import StructuredBufferFormat
 
 class Buffer(LazyObject):
     __slots__ = ()
-
-    #_vacant_buffers: ClassVar[list[moderngl.Buffer]] = []
 
     def __init__(
         self,
@@ -161,23 +155,9 @@ class Buffer(LazyObject):
     ) -> tuple[str, ...]:
         return tuple(np_buffer_pointers)
 
-    #@classmethod
-    #def _fetch_buffer(cls) -> moderngl.Buffer:
-    #    if cls._vacant_buffers:
-    #        return cls._vacant_buffers.pop()
-    #    return Toplevel.context.buffer()
-
-    #@classmethod
-    #def _finalize_buffer(
-    #    cls,
-    #    buffer: moderngl.Buffer
-    #) -> None:
-    #    cls._vacant_buffers.append(buffer)
-
     @classmethod
     def _write_to_bytes(
         cls,
-        #buffer: moderngl.Buffer,
         data_dict: dict[str, np.ndarray],
         np_buffer: np.ndarray,
         np_buffer_pointers: dict[str, tuple[np.ndarray, int]]
@@ -192,8 +172,6 @@ class Buffer(LazyObject):
             np_buffer_pointer[...] = data_expanded
 
         return np_buffer.tobytes()
-        #buffer.orphan(np_buffer.nbytes)
-        #buffer.write(np_buffer.tobytes())
 
     @classmethod
     def _read_from_bytes(

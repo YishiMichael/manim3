@@ -24,11 +24,9 @@ from ...constants.custom_typing import (
     NP_x3f8,
     NP_xf8
 )
-from ...lazy.lazy import (
-    Lazy,
-    LazyDescriptor,
-    LazyObject
-)
+from ...lazy.lazy import Lazy
+from ...lazy.lazy_descriptor import LazyDescriptor
+from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graphs.graph import Graph
@@ -118,7 +116,7 @@ class Mobject(LazyObject):
             for name, descriptor in cls._lazy_descriptors.items()
             if not descriptor._is_multiple
             and descriptor._is_variable
-            and descriptor._frozen
+            and descriptor._freeze
             and descriptor._hasher is Lazy.branch_hasher
             and issubclass(descriptor._element_type, MobjectAttribute)
         }
@@ -159,12 +157,12 @@ class Mobject(LazyObject):
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    @Lazy.variable_collection(frozen=False)
+    @Lazy.variable_collection(freeze=False)
     @staticmethod
     def _children_() -> "tuple[Mobject, ...]":
         return ()
 
-    @Lazy.variable_collection(frozen=False)
+    @Lazy.variable_collection(freeze=False)
     @staticmethod
     def _real_descendants_() -> "tuple[Mobject, ...]":
         return ()

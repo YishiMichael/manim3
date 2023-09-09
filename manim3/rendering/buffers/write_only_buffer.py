@@ -27,14 +27,6 @@ class WriteOnlyBuffer(Buffer):
             np_buffer_pointers=np_buffer_pointers
         ))
 
-    #@_buffer_.finalizer
-    #@classmethod
-    #def _buffer_finalizer(
-    #    cls,
-    #    buffer: moderngl.Buffer
-    #) -> None:
-    #    cls._finalize_buffer(buffer)
-
     def write(
         self,
         data_dict: dict[str, np.ndarray]

@@ -14,8 +14,6 @@ class ReadOnlyBuffer(Buffer):
     @contextmanager
     def buffer(self) -> Iterator[moderngl.Buffer]:
         yield Toplevel.context.buffer(reserve=self._buffer_format_._nbytes_)
-        #yield buffer
-        #self._finalize_buffer(buffer)
 
     def read(
         self,

@@ -14,7 +14,7 @@ class RenderableMobject(Mobject):
         super().__init__()
         self._camera_ = Toplevel.scene._camera
 
-    @Lazy.variable(frozen=False)
+    @Lazy.variable(freeze=False)
     @staticmethod
     def _camera_() -> Camera:
         return Camera()

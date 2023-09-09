@@ -5,10 +5,8 @@ from dataclasses import dataclass
 import moderngl
 import numpy as np
 
-from ..lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ..lazy.lazy import Lazy
+from ..lazy.lazy_object import LazyObject
 from ..toplevel.toplevel import Toplevel
 from ..utils.path_utils import PathUtils
 from .buffer_formats.atomic_buffer_format import AtomicBufferFormat
@@ -317,14 +315,6 @@ class VertexArray(LazyObject):
             uniform_block_info_dict=uniform_block_info_dict
         )
 
-    #@_program_info_.finalizer
-    #@staticmethod
-    #def _program_info_finalizer(
-    #    cls,
-    #    program_info: ProgramInfo
-    #) -> None:
-    #    program_info.program.release()
-
     @Lazy.property()
     @staticmethod
     def _vertex_array_(
@@ -370,15 +360,6 @@ class VertexArray(LazyObject):
             index_buffer=index_buffer._buffer_ if use_index_buffer else None,
             mode=mode
         )
-
-    #@_vertex_array_.finalizer
-    #@staticmethod
-    #def _vertex_array_finalizer(
-    #    cls,
-    #    vertex_array: moderngl.VertexArray | None
-    #) -> None:
-    #    if vertex_array is not None:
-    #        vertex_array.release()
 
     @Lazy.property_collection(hasher=Lazy.naive_hasher)
     @staticmethod

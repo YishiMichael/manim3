@@ -40,10 +40,8 @@ from .constants.custom_typing import *
 from .constants.palette import *
 from .constants.pyglet_constants import *
 
-from .lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from .lazy.lazy import Lazy
+from .lazy.lazy_object import LazyObject
 
 from .mobjects.cameras.camera import Camera
 from .mobjects.cameras.orthographic_camera import OrthographicCamera

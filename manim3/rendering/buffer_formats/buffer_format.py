@@ -3,10 +3,8 @@ from functools import reduce
 
 import numpy as np
 
-from ...lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ...lazy.lazy import Lazy
+from ...lazy.lazy_object import LazyObject
 
 
 class BufferFormat(LazyObject):

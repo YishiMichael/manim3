@@ -1,7 +1,5 @@
-from ..lazy.lazy import (
-    Lazy,
-    LazyObject
-)
+from ..lazy.lazy import Lazy
+from ..lazy.lazy_object import LazyObject
 from .buffers.attributes_buffer import AttributesBuffer
 from .buffers.index_buffer import IndexBuffer
 from .buffers.omitted_index_buffer import OmittedIndexBuffer
