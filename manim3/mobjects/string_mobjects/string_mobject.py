@@ -269,8 +269,8 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
             ShapeMobject().add(*unlabelled_shapes)
         )
         distance_matrix = cdist(
-            [shape.get_center() for shape in unlabelled_shapes],
-            [shape.get_center() for shape in labelled_shapes]
+            [shape.get_centroid() for shape in unlabelled_shapes],
+            [shape.get_centroid() for shape in labelled_shapes]
         )
         unlabelled_indices, labelled_indices = linear_sum_assignment(distance_matrix)
         return [

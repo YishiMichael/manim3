@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import pathlib
+from dataclasses import dataclass
 from typing import (
     Iterator,
     TypedDict
@@ -15,7 +15,6 @@ from ..constants.custom_typing import (
 )
 from ..utils.color_utils import ColorUtils
 from ..utils.space_utils import SpaceUtils
-from .graph_mobjects.graphs.graph import Graph
 from .mobject.mobject_io import MobjectIO
 from .shape_mobjects.shapes.shape import Shape
 from .shape_mobjects.shape_mobject import ShapeMobject
@@ -45,7 +44,7 @@ class SVGMobjectOutputData:
 
 class ShapeMobjectJSON(TypedDict):
     positions: list[float]  # flattened
-    edges: list[int]  # flattened
+    counts: list[int]
     color: str
     opacity: float
 
@@ -146,7 +145,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
                 radius_x=radius_x,
                 radius_y=radius_y
             )
-            scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
+            scale_x, scale_y = SpaceUtils.get_frame_scale_vector(
                 original_width=radius_x * 2.0,
                 original_height=radius_y * 2.0,
                 specified_width=width,
@@ -163,7 +162,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
         def iter_paths_from_se_shape(
             se_shape: se.Shape
-        ) -> Iterator[tuple[NP_x2f8, bool]]:
+        ) -> Iterator[NP_x2f8]:
             se_path = se.Path(se_shape.segments(transformed=True))
             se_path.approximate_arcs_with_cubics()
             positions_list: list[NP_2f8] = []
@@ -172,7 +171,8 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
             for segment in se_path.segments(transformed=True):
                 match segment:
                     case se.Move(end=end):
-                        yield np.fromiter(positions_list, dtype=positions_dtype), is_ring
+                        if is_ring:
+                            yield np.fromiter(positions_list, dtype=positions_dtype)
                         positions_list = [np.array(end)]
                         is_ring = False
                     case se.Close():
@@ -191,14 +191,15 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
                         positions_list.extend(curve(np.linspace(0.0, 1.0, 9)[1:]))
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-            yield np.fromiter(positions_list, dtype=positions_dtype), is_ring
+            if is_ring:
+                yield np.fromiter(positions_list, dtype=positions_dtype)
 
         svg: se.SVG = se.SVG.parse(svg_path)
         bbox: tuple[float, float, float, float] | None = svg.bbox()
         if bbox is None:
             return []
 
-        # Handle transform before constructing `Shape`s
+        # Handle transform before constructing `Shape`s,
         # so that the center of the entire shape falls on the origin.
         transform = get_transform(
             bbox=bbox,
@@ -211,23 +212,26 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
             if not isinstance(se_shape, se.Shape):
                 continue
             shape = Shape.from_paths(iter_paths_from_se_shape(se_shape * transform))
-            if not len(shape._graph_._edges_):
+            if not len(shape._positions_):
                 # Filter out empty shapes.
                 continue
-            yield ShapeMobject(shape).set(
-                color=se_shape.fill.hexrgb if se_shape.fill is not None else None,
-                opacity=se_shape.fill.opacity if se_shape.fill is not None else None
-            )
+            style_dict = {}
+            if se_shape.fill is not None:
+                if (color := se_shape.fill.hexrgb) is not None:
+                    style_dict["color"] = color
+                if (opacity := se_shape.fill.opacity) is not None:
+                    style_dict["opacity"] = opacity
+            yield ShapeMobject(shape).set(**style_dict)
 
     @classmethod
     def _shape_mobject_to_json(
         cls,
         shape_mobject: ShapeMobject
     ) -> ShapeMobjectJSON:
-        graph = shape_mobject._shape_._graph_
+        shape = shape_mobject._shape_
         return ShapeMobjectJSON(
-            positions=[round(float(value), 6) for value in graph._positions_[:, :2].flatten()],
-            edges=[int(value) for value in graph._edges_.flatten()],
+            positions=[round(float(value), 6) for value in shape._positions_.flatten()],
+            counts=[int(value) for value in shape._counts_],
             color=ColorUtils.color_to_hex(shape_mobject._color_._array_),
             opacity=round(float(shape_mobject._opacity_._array_), 6)
         )
@@ -238,16 +242,14 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
         shape_mobject_json: ShapeMobjectJSON
     ) -> ShapeMobject:
         positions = shape_mobject_json["positions"]
-        edges = shape_mobject_json["edges"]
+        counts = shape_mobject_json["counts"]
         color = shape_mobject_json["color"]
         opacity = shape_mobject_json["opacity"]
 
-        return ShapeMobject(Shape(Graph(
-            positions=SpaceUtils.increase_dimension(
-                np.fromiter(positions, dtype=np.float64).reshape(-1, 2)
-            ),
-            edges=np.fromiter(edges, dtype=np.int32).reshape(-1, 2)
-        ))).set(
+        return ShapeMobject(Shape(
+            positions=np.fromiter(positions, dtype=np.float64).reshape(-1, 2),
+            counts=np.fromiter(counts, dtype=np.int32)
+        )).set(
             color=color,
             opacity=opacity
         )

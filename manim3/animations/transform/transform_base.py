@@ -39,7 +39,7 @@ class TransformBase(Animation):
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
 
-    def updater(
+    def update(
         self,
         alpha: float
     ) -> None:

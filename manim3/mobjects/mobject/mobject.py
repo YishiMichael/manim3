@@ -1,5 +1,6 @@
 import itertools as it
 import weakref
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
@@ -13,10 +14,11 @@ from typing import (
 
 import numpy as np
 
-from ...constants.constants import (
-    ORIGIN,
-    PI
-)
+from ...animatables.models.model import Model
+#from ...constants.constants import (
+#    ORIGIN,
+#    PI
+#)
 from ...constants.custom_typing import (
     ColorT,
     NP_3f8,
@@ -26,29 +28,32 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_descriptor import LazyDescriptor
-from ...lazy.lazy_object import LazyObject
+#from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ...toplevel.toplevel import Toplevel
 from ...utils.space_utils import SpaceUtils
+from ..cameras.camera import Camera
 from ..graph_mobjects.graphs.graph import Graph
+from ..lights.lighting import Lighting
 from ..mesh_mobjects.meshes.mesh import Mesh
 from ..shape_mobjects.shapes.shape import Shape
-from .mobject_attributes.array_attribute import ArrayAttribute
-from .mobject_attributes.mobject_attribute import (
-    InterpolateHandler,
-    MobjectAttribute
-)
-from .remodel_handlers.remodel_handler import RemodelHandler
-from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
-from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
-from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
+#from .mobject_attributes.array_attribute import ArrayAttribute
+#from .mobject_attributes.mobject_attribute import (
+#    InterpolateHandler,
+#    MobjectAttribute
+#)
+#from .remodel_handlers.remodel_handler import RemodelHandler
+#from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
+#from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
+#from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 
 if TYPE_CHECKING:
     from typing_extensions import Unpack
 
-    from ..cameras.camera import Camera
-    from ..lights.lighting import Lighting
-    from .abouts.about import About
-    from .aligns.align import Align
+    
+    #from .abouts.about import About
+    #from .aligns.align import Align
 
 
 class StyleKwargs(TypedDict, total=False):
@@ -58,17 +63,14 @@ class StyleKwargs(TypedDict, total=False):
     weight: float
 
     # Mobject
-    model_matrix: NP_44f8
-
-    # RenderableMobject
-    camera: "Camera"
+    camera: Camera
 
     # MeshMobject
     mesh: Mesh
     ambient_strength: float
     specular_strength: float
     shininess: float
-    lighting: "Lighting"
+    lighting: Lighting
 
     # ShapeMobject
     shape: Shape
@@ -87,19 +89,19 @@ class BoundingBox:
     maximum: NP_3f8
     minimum: NP_3f8
 
-    @property
-    def center(self) -> NP_3f8:
-        return (self.maximum + self.minimum) / 2.0
+    #@property
+    #def center(self) -> NP_3f8:
+    #    return (self.maximum + self.minimum) / 2.0
 
-    @property
-    def radii(self) -> NP_3f8:
-        radii = (self.maximum - self.minimum) / 2.0
-        # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
-        radii[np.isclose(radii, 0.0)] = 1e-8
-        return radii
+    #@property
+    #def radii(self) -> NP_3f8:
+    #    radii = (self.maximum - self.minimum) / 2.0
+    #    # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
+    #    radii[np.isclose(radii, 0.0)] = 1e-8
+    #    return radii
 
 
-class Mobject(LazyObject):
+class Mobject(Model):
     __slots__ = (
         "__weakref__",
         "_parents",
@@ -305,15 +307,15 @@ class Mobject(LazyObject):
 
     # model matrix
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
-    @staticmethod
-    def _model_matrix_() -> ArrayAttribute[NP_44f8]:
-        return ArrayAttribute(np.identity(4))
+    #@Lazy.variable(hasher=Lazy.branch_hasher)
+    #@staticmethod
+    #def _model_matrix_() -> ArrayAttribute[NP_44f8]:
+    #    return ArrayAttribute(np.identity(4))
 
     @Lazy.property()
     @staticmethod
     def _model_uniform_block_buffer_(
-        model_matrix__array: NP_44f8
+        model_matrix: NP_44f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_model",
@@ -321,7 +323,7 @@ class Mobject(LazyObject):
                 "mat4 u_model_matrix"
             ],
             data={
-                "u_model_matrix": model_matrix__array.T
+                "u_model_matrix": model_matrix.T
             }
         )
 
@@ -331,198 +333,226 @@ class Mobject(LazyObject):
         # Implemented in subclasses.
         return np.zeros((0, 3))
 
-    @Lazy.property()
+    @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
-    def _bounding_box_without_descendants_(
-        model_matrix__array: NP_44f8,
-        local_sample_positions: NP_x3f8
-    ) -> BoundingBox | None:
-        if not len(local_sample_positions):
-            return None
-        world_sample_positions = SpaceUtils.apply_affine(model_matrix__array, local_sample_positions)
-        return BoundingBox(
-            maximum=world_sample_positions.max(axis=0),
-            minimum=world_sample_positions.min(axis=0)
-        )
+    def _world_sample_positions_(
+        model_matrix: NP_44f8,
+        local_sample_positions: NP_x3f8,
+    ) -> NP_x3f8:
+        return SpaceUtils.apply_affine(model_matrix, local_sample_positions)
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _bounding_box_without_descendants_(
+    #    model_matrix__array: NP_44f8,
+    #    local_sample_positions: NP_x3f8
+    #) -> BoundingBox | None:
+    #    if not len(local_sample_positions):
+    #        return None
+    #    world_sample_positions = SpaceUtils.apply_affine(model_matrix__array, local_sample_positions)
+    #    return BoundingBox(
+    #        maximum=world_sample_positions.max(axis=0),
+    #        minimum=world_sample_positions.min(axis=0)
+    #    )
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _bounding_box_with_descendants_(
+    #    bounding_box_without_descendants: BoundingBox | None,
+    #    real_descendants__bounding_box_without_descendants: tuple[BoundingBox | None, ...]
+    #) -> BoundingBox | None:
+    #    positions_array = np.fromiter((it.chain.from_iterable(
+    #        (bounding_box.maximum, bounding_box.minimum)
+    #        for bounding_box in (
+    #            bounding_box_without_descendants,
+    #            *real_descendants__bounding_box_without_descendants
+    #        )
+    #        if bounding_box is not None
+    #    )), dtype=np.dtype((np.float64, (3,))))
+    #    if not len(positions_array):
+    #        return None
+    #    return BoundingBox(
+    #        maximum=positions_array.max(axis=0),
+    #        minimum=positions_array.min(axis=0)
+    #    )
 
     @Lazy.property()
     @staticmethod
-    def _bounding_box_with_descendants_(
-        bounding_box_without_descendants: BoundingBox | None,
-        real_descendants__bounding_box_without_descendants: tuple[BoundingBox | None, ...]
-    ) -> BoundingBox | None:
-        positions_array = np.fromiter((it.chain.from_iterable(
-            (bounding_box.maximum, bounding_box.minimum)
-            for bounding_box in (
-                bounding_box_without_descendants,
-                *real_descendants__bounding_box_without_descendants
-            )
-            if bounding_box is not None
-        )), dtype=np.dtype((np.float64, (3,))))
+    def _bounding_box_(
+        world_sample_positions: NP_x3f8,
+        real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
+    ) -> BoundingBox:
+        positions_array = np.concatenate((
+            world_sample_positions,
+            *real_descendants__world_sample_positions
+        ))
         if not len(positions_array):
-            return None
+            return BoundingBox(
+                maximum=np.zeros((1, 3)),
+                minimum=np.zeros((1, 3))
+            )
         return BoundingBox(
             maximum=positions_array.max(axis=0),
             minimum=positions_array.min(axis=0)
         )
 
-    def get_bounding_box(
-        self,
-        *,
-        broadcast: bool = True
-    ) -> BoundingBox:
-        if broadcast:
-            result = self._bounding_box_with_descendants_
-        else:
-            result = self._bounding_box_without_descendants_
-        assert result is not None, "Trying to calculate the bounding box of an empty mobject"
-        return result
-
-    def get_bounding_box_size(
-        self,
-        *,
-        broadcast: bool = True
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _centroid_(
+        bounding_box: BoundingBox
     ) -> NP_3f8:
-        bounding_box = self.get_bounding_box(broadcast=broadcast)
-        return bounding_box.radii * 2.0
+        return (bounding_box.maximum + bounding_box.minimum) / 2.0
 
-    def get_bounding_box_position(
-        self,
-        direction: NP_3f8,
-        *,
-        broadcast: bool = True
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _radii_(
+        bounding_box: BoundingBox
     ) -> NP_3f8:
-        bounding_box = self.get_bounding_box(broadcast=broadcast)
-        return bounding_box.center + direction * bounding_box.radii
+        return (bounding_box.maximum - bounding_box.minimum) / 2.0
+        # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
+        #radii[np.isclose(radii, 0.0)] = 1e-8
+        #return radii
 
-    def get_center(
-        self,
-        *,
-        broadcast: bool = True
-    ) -> NP_3f8:
-        return self.get_bounding_box_position(ORIGIN, broadcast=broadcast)
+    #def get_bounding_box(self) -> BoundingBox:
+    #    if (result := self._bounding_box_) is None:
+    #        raise ValueError("Trying to calculate the bounding box of an empty mobject")
+    #    return result
+
+    #def get_bounding_box_size(self) -> NP_3f8:
+    #    bounding_box = self.get_bounding_box()
+    #    return bounding_box.radii * 2.0
+
+    #def get_bounding_box_position(
+    #    self,
+    #    direction: NP_3f8
+    #) -> NP_3f8:
+    #    bounding_box = self._bounding_box_
+    #    return bounding_box.center + direction * bounding_box.radii
+
+    #def get_center(self) -> NP_3f8:
+    #    return self.get_bounding_box_position(ORIGIN)
 
     # remodel
 
-    def _get_remodel_bound_handlers(
-        self,
-        remodel_handler: RemodelHandler,
-        about: "About | None" = None
-    ) -> "list[RemodelBoundHandler]":
-        if about is not None:
-            about_position = about._get_about_position(mobject=self)
-            pre_remodel = ShiftRemodelHandler(-about_position)._remodel()
-            post_remodel = ShiftRemodelHandler(about_position)._remodel()
-        else:
-            pre_remodel = np.identity(4)
-            post_remodel = np.identity(4)
-        return [
-            RemodelBoundHandler(
-                mobject=mobject,
-                remodel_handler=remodel_handler,
-                pre_remodel=pre_remodel,
-                post_remodel=post_remodel
-            )
-            for mobject in self.iter_descendants()
-        ]
+    #def _get_remodel_bound_handlers(
+    #    self,
+    #    remodel_handler: RemodelHandler,
+    #    about: "About | None" = None
+    #) -> "list[RemodelBoundHandler]":
+    #    if about is not None:
+    #        about_position = about._get_about_position(mobject=self)
+    #        pre_remodel = ShiftRemodelHandler(-about_position)._remodel()
+    #        post_remodel = ShiftRemodelHandler(about_position)._remodel()
+    #    else:
+    #        pre_remodel = np.identity(4)
+    #        post_remodel = np.identity(4)
+    #    return [
+    #        RemodelBoundHandler(
+    #            mobject=mobject,
+    #            remodel_handler=remodel_handler,
+    #            pre_remodel=pre_remodel,
+    #            post_remodel=post_remodel
+    #        )
+    #        for mobject in self.iter_descendants()
+    #    ]
 
-    def shift(
-        self,
-        vector: NP_3f8,
-        # `about` is meaningless for shifting.
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        for remodel_bound_handler in self._get_remodel_bound_handlers(
-            remodel_handler=ShiftRemodelHandler(vector)
-        ):
-            remodel_bound_handler._remodel(alpha)
-        return self
+    #def shift(
+    #    self,
+    #    vector: NP_3f8,
+    #    # `about` is meaningless for shifting.
+    #    *,
+    #    alpha: float | NP_3f8 = 1.0
+    #):
+    #    for remodel_bound_handler in self._get_remodel_bound_handlers(
+    #        remodel_handler=ShiftRemodelHandler(vector)
+    #    ):
+    #        remodel_bound_handler._remodel(alpha)
+    #    return self
 
-    def scale(
-        self,
-        factor: float | NP_3f8,
-        about: "About | None" = None,
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        for remodel_bound_handler in self._get_remodel_bound_handlers(
-            remodel_handler=ScaleRemodelHandler(factor),
-            about=about
-        ):
-            remodel_bound_handler._remodel(alpha)
-        return self
+    #def scale(
+    #    self,
+    #    factor: float | NP_3f8,
+    #    about: "About | None" = None,
+    #    *,
+    #    alpha: float | NP_3f8 = 1.0
+    #):
+    #    for remodel_bound_handler in self._get_remodel_bound_handlers(
+    #        remodel_handler=ScaleRemodelHandler(factor),
+    #        about=about
+    #    ):
+    #        remodel_bound_handler._remodel(alpha)
+    #    return self
 
-    def rotate(
-        self,
-        rotvec: NP_3f8,
-        about: "About | None" = None,
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        for remodel_bound_handler in self._get_remodel_bound_handlers(
-            remodel_handler=RotateRemodelHandler(rotvec),
-            about=about
-        ):
-            remodel_bound_handler._remodel(alpha)
-        return self
+    #def rotate(
+    #    self,
+    #    rotvec: NP_3f8,
+    #    about: "About | None" = None,
+    #    *,
+    #    alpha: float | NP_3f8 = 1.0
+    #):
+    #    for remodel_bound_handler in self._get_remodel_bound_handlers(
+    #        remodel_handler=RotateRemodelHandler(rotvec),
+    #        about=about
+    #    ):
+    #        remodel_bound_handler._remodel(alpha)
+    #    return self
 
-    def move_to(
-        self,
-        align: "Align",
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        self.shift(
-            vector=align._get_shift_vector(mobject=self, direction_sign=1.0),
-            alpha=alpha
-        )
-        return self
+    #def move_to(
+    #    self,
+    #    align: "Align",
+    #    *,
+    #    alpha: float | NP_3f8 = 1.0
+    #):
+    #    self.shift(
+    #        vector=align._get_shift_vector(mobject=self, direction_sign=1.0),
+    #        alpha=alpha
+    #    )
+    #    return self
 
-    def next_to(
-        self,
-        align: "Align",
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        self.shift(
-            vector=align._get_shift_vector(mobject=self, direction_sign=-1.0),
-            alpha=alpha
-        )
-        return self
+    #def next_to(
+    #    self,
+    #    align: "Align",
+    #    *,
+    #    alpha: float | NP_3f8 = 1.0
+    #):
+    #    self.shift(
+    #        vector=align._get_shift_vector(mobject=self, direction_sign=-1.0),
+    #        alpha=alpha
+    #    )
+    #    return self
 
-    def scale_to(
-        self,
-        target: float | NP_3f8,
-        about: "About | None" = None,
-        *,
-        alpha: float | NP_3f8 = 1.0
-    ):
-        factor = target / self.get_bounding_box_size()
-        self.scale(
-            factor=factor,
-            about=about,
-            alpha=alpha
-        )
-        return self
+    #def scale_to(
+    #    self,
+    #    target: float | NP_3f8,
+    #    about: "About | None" = None,
+    #    *,
+    #    alpha: float | NP_3f8 = 1.0
+    #):
+    #    factor = target / self.get_bounding_box_size()
+    #    self.scale(
+    #        factor=factor,
+    #        about=about,
+    #        alpha=alpha
+    #    )
+    #    return self
 
-    def match_bounding_box(
-        self,
-        mobject: "Mobject"
-    ):
-        self.shift(-self.get_center()).scale_to(mobject.get_bounding_box_size(), ).shift(mobject.get_center())
-        return self
+    #def match_bounding_box(
+    #    self,
+    #    mobject: "Mobject"
+    #):
+    #    self.shift(-self.get_center()).scale_to(mobject.get_bounding_box_size()).shift(mobject.get_center())
+    #    return self
 
-    def flip(
-        self,
-        axis: NP_3f8,
-        about: "About | None" = None
-    ):
-        self.rotate(
-            rotvec=SpaceUtils.normalize(axis) * PI,
-            about=about
-        )
-        return self
+    #def flip(
+    #    self,
+    #    axis: NP_3f8,
+    #    about: "About | None" = None
+    #):
+    #    self.rotate(
+    #        rotvec=SpaceUtils.normalize(axis) * PI,
+    #        about=about
+    #    )
+    #    return self
 
     # attributes
 
@@ -551,70 +581,70 @@ class Mobject(LazyObject):
             interpolate_handler_dict[descriptor] = interpolate_handler
         return InterpolateBoundHandler(dst_mobject, interpolate_handler_dict)
 
-    @classmethod
-    def _split_into(
-        cls,
-        dst_mobject_list: "list[Mobject]",
-        src_mobject: "Mobject",
-        alphas: NP_xf8
-    ) -> None:
-        assert all(cls is type(mobject)._equivalent_cls for mobject in (*dst_mobject_list, src_mobject))
-        for descriptor in cls._attribute_descriptors.values():
-            src_data = descriptor.__get__(src_mobject)
-            if not descriptor._element_type._split_implemented:
-                for dst_mobject in dst_mobject_list:
-                    descriptor.__set__(dst_mobject, src_data)
-                continue
-            dst_data_list = descriptor._element_type._split(src_data, alphas)
-            for dst_mobject, dst_data in zip(dst_mobject_list, dst_data_list, strict=True):
-                descriptor.__set__(dst_mobject, dst_data)
+    #@classmethod
+    #def _split_into(
+    #    cls,
+    #    dst_mobject_list: "list[Mobject]",
+    #    src_mobject: "Mobject",
+    #    alphas: NP_xf8
+    #) -> None:
+    #    assert all(cls is type(mobject)._equivalent_cls for mobject in (*dst_mobject_list, src_mobject))
+    #    for descriptor in cls._attribute_descriptors.values():
+    #        src_data = descriptor.__get__(src_mobject)
+    #        if not descriptor._element_type._split_implemented:
+    #            for dst_mobject in dst_mobject_list:
+    #                descriptor.__set__(dst_mobject, src_data)
+    #            continue
+    #        dst_data_list = descriptor._element_type._split(src_data, alphas)
+    #        for dst_mobject, dst_data in zip(dst_mobject_list, dst_data_list, strict=True):
+    #            descriptor.__set__(dst_mobject, dst_data)
 
-    @classmethod
-    def _concatenate_into(
-        cls,
-        dst_mobject: "Mobject",
-        src_mobject_list: "list[Mobject]"
-    ) -> None:
-        assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, *src_mobject_list))
-        for descriptor in cls._attribute_descriptors.values():
-            src_data_list = [
-                descriptor.__get__(src_mobject)
-                for src_mobject in src_mobject_list
-            ]
-            if not descriptor._element_type._concatenate_implemented:
-                unique_src_data_list = list(dict.fromkeys(src_data_list))
-                if not unique_src_data_list:
-                    continue
-                src_data = unique_src_data_list.pop()
-                descriptor.__set__(dst_mobject, src_data)
-                assert not unique_src_data_list, f"Uncatenatable variables of `{descriptor._name}` don't match"
-                continue
-            dst_data = descriptor._element_type._concatenate(src_data_list)
-            descriptor.__set__(dst_mobject, dst_data)
+    #@classmethod
+    #def _concatenate_into(
+    #    cls,
+    #    dst_mobject: "Mobject",
+    #    src_mobject_list: "list[Mobject]"
+    #) -> None:
+    #    assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, *src_mobject_list))
+    #    for descriptor in cls._attribute_descriptors.values():
+    #        src_data_list = [
+    #            descriptor.__get__(src_mobject)
+    #            for src_mobject in src_mobject_list
+    #        ]
+    #        if not descriptor._element_type._concatenate_implemented:
+    #            unique_src_data_list = list(dict.fromkeys(src_data_list))
+    #            if not unique_src_data_list:
+    #                continue
+    #            src_data = unique_src_data_list.pop()
+    #            descriptor.__set__(dst_mobject, src_data)
+    #            assert not unique_src_data_list, f"Uncatenatable variables of `{descriptor._name}` don't match"
+    #            continue
+    #        dst_data = descriptor._element_type._concatenate(src_data_list)
+    #        descriptor.__set__(dst_mobject, dst_data)
 
-    def split(
-        self,
-        alphas: NP_xf8
-    ):
-        equivalent_cls = type(self)._equivalent_cls
-        dst_mobject_list = [equivalent_cls() for _ in range(len(alphas) + 1)]
-        equivalent_cls._split_into(
-            dst_mobject_list=dst_mobject_list,
-            src_mobject=self,
-            alphas=alphas
-        )
-        for descriptor in equivalent_cls._attribute_descriptors.values():
-            descriptor._init(self)
-        self.add(*dst_mobject_list)
-        return self
+    #def split(
+    #    self,
+    #    alphas: NP_xf8
+    #):
+    #    equivalent_cls = type(self)._equivalent_cls
+    #    dst_mobject_list = [equivalent_cls() for _ in range(len(alphas) + 1)]
+    #    equivalent_cls._split_into(
+    #        dst_mobject_list=dst_mobject_list,
+    #        src_mobject=self,
+    #        alphas=alphas
+    #    )
+    #    for descriptor in equivalent_cls._attribute_descriptors.values():
+    #        descriptor._init(self)
+    #    self.add(*dst_mobject_list)
+    #    return self
 
-    def concatenate(self):
-        self._equivalent_cls._concatenate_into(
-            dst_mobject=self,
-            src_mobject_list=list(self.iter_children())
-        )
-        self.clear()
-        return self
+    #def concatenate(self):
+    #    self._equivalent_cls._concatenate_into(
+    #        dst_mobject=self,
+    #        src_mobject_list=list(self.iter_children())
+    #    )
+    #    self.clear()
+    #    return self
 
     def set(
         self,
@@ -632,58 +662,72 @@ class Mobject(LazyObject):
                 descriptor.__set__(mobject, descriptor._element_type._convert_input(value))
         return self
 
+    # render
 
-class RemodelBoundHandler:
-    __slots__ = (
-        "_mobject",
-        "_remodel_handler",
-        "_pre_remodel",
-        "_post_remodel",
-        "_original_model"
-    )
+    @Lazy.variable(freeze=False)
+    @staticmethod
+    def _camera_() -> Camera:
+        return Toplevel.scene._camera
 
-    def __init__(
+    @abstractmethod
+    def _render(
         self,
-        mobject: Mobject,
-        remodel_handler: RemodelHandler,
-        pre_remodel: NP_44f8,
-        post_remodel: NP_44f8
+        target_framebuffer: OITFramebuffer
     ) -> None:
-        super().__init__()
-        self._mobject: Mobject = mobject
-        self._remodel_handler: RemodelHandler = remodel_handler
-        self._pre_remodel: NP_44f8 = pre_remodel
-        self._post_remodel: NP_44f8 = post_remodel
-        self._original_model: NP_44f8 = mobject._model_matrix_._array_
-
-    def _remodel(
-        self,
-        alpha: float | NP_3f8 = 1.0
-    ) -> None:
-        self._mobject._model_matrix_ = ArrayAttribute(
-            self._post_remodel @ self._remodel_handler._remodel(alpha) @ self._pre_remodel @ self._original_model
-        )
+        pass
 
 
-class InterpolateBoundHandler:
-    __slots__ = (
-        "_dst_mobject",
-        "_interpolate_handler_dict"
-    )
+#class RemodelBoundHandler:
+#    __slots__ = (
+#        "_mobject",
+#        "_remodel_handler",
+#        "_pre_remodel",
+#        "_post_remodel",
+#        "_original_model"
+#    )
 
-    def __init__(
-        self,
-        dst_mobject: Mobject,
-        interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler]
-    ) -> None:
-        super().__init__()
-        self._dst_mobject: Mobject = dst_mobject
-        self._interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = interpolate_handler_dict
+#    def __init__(
+#        self,
+#        mobject: Mobject,
+#        remodel_handler: RemodelHandler,
+#        pre_remodel: NP_44f8,
+#        post_remodel: NP_44f8
+#    ) -> None:
+#        super().__init__()
+#        self._mobject: Mobject = mobject
+#        self._remodel_handler: RemodelHandler = remodel_handler
+#        self._pre_remodel: NP_44f8 = pre_remodel
+#        self._post_remodel: NP_44f8 = post_remodel
+#        self._original_model: NP_44f8 = mobject._model_matrix_._array_
 
-    def _interpolate(
-        self,
-        alpha: float
-    ) -> None:
-        dst_mobject = self._dst_mobject
-        for descriptor, interpolate_handler in self._interpolate_handler_dict.items():
-            descriptor.__set__(dst_mobject, interpolate_handler._interpolate(alpha))
+#    def _remodel(
+#        self,
+#        alpha: float | NP_3f8 = 1.0
+#    ) -> None:
+#        self._mobject._model_matrix_ = ArrayAttribute(
+#            self._post_remodel @ self._remodel_handler._remodel(alpha) @ self._pre_remodel @ self._original_model
+#        )
+
+
+#class InterpolateBoundHandler:
+#    __slots__ = (
+#        "_dst_mobject",
+#        "_interpolate_handler_dict"
+#    )
+
+#    def __init__(
+#        self,
+#        dst_mobject: Mobject,
+#        interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler]
+#    ) -> None:
+#        super().__init__()
+#        self._dst_mobject: Mobject = dst_mobject
+#        self._interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = interpolate_handler_dict
+
+#    def _interpolate(
+#        self,
+#        alpha: float
+#    ) -> None:
+#        dst_mobject = self._dst_mobject
+#        for descriptor, interpolate_handler in self._interpolate_handler_dict.items():
+#            descriptor.__set__(dst_mobject, interpolate_handler._interpolate(alpha))

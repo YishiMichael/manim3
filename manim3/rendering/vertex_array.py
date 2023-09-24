@@ -1,4 +1,5 @@
 import itertools as it
+import pathlib
 import re
 from dataclasses import dataclass
 
@@ -105,7 +106,7 @@ class VertexArray(LazyObject):
     def __init__(
         self,
         *,
-        shader_filename: str,
+        shader_path: pathlib.Path,
         custom_macros: list[str] | None = None,
         texture_buffers: list[TextureBuffer] | None = None,
         uniform_block_buffers: list[UniformBlockBuffer] | None = None,
@@ -113,7 +114,7 @@ class VertexArray(LazyObject):
         transform_feedback_buffer: TransformFeedbackBuffer | None = None
     ) -> None:
         super().__init__()
-        self._shader_filename_ = shader_filename
+        self._shader_path_ = shader_path
         if custom_macros is not None:
             self._custom_macros_ = tuple(custom_macros)
         if texture_buffers is not None:
@@ -127,8 +128,8 @@ class VertexArray(LazyObject):
 
     @Lazy.variable(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _shader_filename_() -> str:
-        return ""
+    def _shader_path_() -> pathlib.Path:
+        return NotImplemented
 
     @Lazy.variable_collection(hasher=Lazy.naive_hasher)
     @staticmethod
@@ -187,23 +188,25 @@ class VertexArray(LazyObject):
     @Lazy.property()
     @staticmethod
     def _program_info_(
-        shader_filename: str,
+        shader_path: pathlib.Path,
         custom_macros: tuple[str, ...],
         array_len_items: tuple[tuple[str, int], ...],
         transform_feedback_buffer__buffer_pointer_keys: tuple[str, ...]
     ) -> ProgramInfo:
 
         def read_shader_with_includes_replaced(
-            filename: str
+            shader_path: pathlib.Path
         ) -> str:
-            shader_text = PathUtils.shaders_dir.joinpath(filename).read_text(encoding="utf-8")
+            shader_text = shader_path.read_text(encoding="utf-8")
             return re.sub(
                 r"#include \"(.+?)\"",
-                lambda match_obj: read_shader_with_includes_replaced(match_obj.group(1)),
+                lambda match_obj: read_shader_with_includes_replaced(
+                    PathUtils.shaders_dir.joinpath(match_obj.group(1))
+                ),
                 shader_text
             )
 
-        shader_text = read_shader_with_includes_replaced(f"{shader_filename}.glsl")
+        shader_text = read_shader_with_includes_replaced(shader_path)
         shaders = {
             shader_type: "\n".join((
                 f"#version {Toplevel.context.version_code} core",
@@ -344,8 +347,8 @@ class VertexArray(LazyObject):
             if current_stop != offset:
                 components.append(f"{offset - current_stop}x")
             element_components = [f"{child._n_col_}{child._base_char_}{child._base_itemsize_}"]
-            if padding_n_col := child._n_col_pseudo_ - child._n_col_:
-                element_components.append(f"{padding_n_col}x{child._base_itemsize_}")
+            if n_col_padding := child._n_col_pseudo_ - child._n_col_:
+                element_components.append(f"{n_col_padding}x{child._base_itemsize_}")
             components.extend(element_components * (child._n_row_ * child._size_))
             current_stop = offset + child._nbytes_
         if current_stop != attributes_buffer_format._itemsize_:

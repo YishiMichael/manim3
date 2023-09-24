@@ -25,7 +25,7 @@ class RemodelBase(Animation):
             about=about
         )
 
-    def updater(
+    def update(
         self,
         alpha: float
     ) -> None:

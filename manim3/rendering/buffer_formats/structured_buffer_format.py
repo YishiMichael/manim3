@@ -42,7 +42,7 @@ class StructuredBufferFormat(BufferFormat):
         self._offsets_ = tuple(offsets)
         self._itemsize_ = offset
 
-    @Lazy.variable_collection(hasher=Lazy.branch_hasher)
+    @Lazy.variable_collection()
     @staticmethod
     def _children_() -> tuple[BufferFormat, ...]:
         return ()

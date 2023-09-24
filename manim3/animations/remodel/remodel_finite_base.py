@@ -23,12 +23,12 @@ class RemodelFiniteBase(RemodelBase):
         )
         self._arrive: bool = arrive
 
-    def updater(
+    def update(
         self,
         alpha: float
     ) -> None:
         alpha_lagging = 1.0 if self._arrive else 0.0
-        super().updater(alpha - alpha_lagging)
+        super().update(alpha - alpha_lagging)
 
     async def timeline(self) -> None:
         await self.wait()

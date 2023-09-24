@@ -10,16 +10,21 @@ import shapely.geometry
 import shapely.validation
 from mapbox_earcut import triangulate_float64
 
-
 from ....constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
-    NP_x3i4
+    NP_x2i4,
+    NP_x3i4,
+    NP_xf8,
+    NP_xi4
 )
 from ....lazy.lazy import Lazy
 from ....utils.space_utils import SpaceUtils
 from ...graph_mobjects.graphs.graph import Graph
-from ...mobject.mobject_attributes.mobject_attribute import MobjectAttribute
+from ...mobject.mobject_attributes.mobject_attribute import (
+    InterpolateHandler,
+    MobjectAttribute
+)
 
 
 class Shape(MobjectAttribute):
@@ -27,11 +32,15 @@ class Shape(MobjectAttribute):
 
     def __init__(
         self,
-        graph: Graph | None = None
+        # Should satisfy `all(counts > 0)` and `len(positions) == sum(counts)`.
+        positions: NP_x2f8 | None = None,
+        counts: NP_xi4 | None = None
     ) -> None:
         super().__init__()
-        if graph is not None:
-            self._graph_ = graph
+        if positions is not None:
+            self._positions_ = positions
+        if counts is not None:
+            self._counts_ = counts
 
     def __and__(
         self,
@@ -57,49 +66,67 @@ class Shape(MobjectAttribute):
     ) -> "Shape":
         return self.symmetric_difference(other)
 
-    #@Lazy.variable_array
-    #@classmethod
-    #def _positions_(cls) -> NP_x2f8:
-    #    return np.zeros((0, 2))
-
-    #@Lazy.variable_array
-    #@classmethod
-    #def _counts_(cls) -> NP_xi4:
-    #    return np.zeros((0,), dtype=np.int32)
-
-    @Lazy.variable()
+    @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
-    def _graph_() -> Graph:
-        return Graph()
+    def _positions_() -> NP_x2f8:
+        return np.zeros((0, 2))
+
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _counts_() -> NP_xi4:
+        return np.zeros((0,), dtype=np.int32)
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _cumcounts_(
+        counts: NP_xi4
+    ) -> NP_xi4:
+        return np.insert(np.cumsum(counts), 0, 0)
+
+    @Lazy.property()
+    @staticmethod
+    def _graph_(
+        positions: NP_x2f8,
+        cumcounts: NP_xi4
+    ) -> Graph:
+        edges_0 = np.arange(len(positions), dtype=np.int32)
+        edges_1 = np.arange(len(positions), dtype=np.int32)
+        edges_1[cumcounts[:-1]] = np.roll(edges_1[cumcounts[:-1]], 1)
+        edges_1 = np.roll(edges_1, -1)
+        return Graph(
+            positions=SpaceUtils.increase_dimension(positions),
+            edges=np.column_stack((edges_0, edges_1))
+        )
 
     @Lazy.property()
     @staticmethod
     def _shapely_obj_(
-        graph: Graph
-        #positions: NP_x2f8,
-        #counts: NP_xi4
+        #graph: Graph
+        positions: NP_x2f8,
+        cumcounts: NP_xi4
     ) -> shapely.geometry.base.BaseGeometry:
 
-        def get_polygon_positions(
-            graph: Graph
-        ) -> Iterator[NP_x2f8]:
-            positions = SpaceUtils.decrease_dimension(graph._positions_)
-            edges = graph._edges_
-            if not len(edges):
-                return
-            disjoints = Graph._get_disjoints(edges=edges)
-            for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
-                indices = edges[start:stop, 0]
-                if indices[0] != (tail_index := edges[stop - 1, 1]):
-                    indices = np.append(indices, tail_index)
-                yield positions[indices]
+        #def get_polygon_positions(
+        #    positions: NP_x2f8,
+        #    cumcounts: NP_xi4
+        #) -> Iterator[NP_x2f8]:
+        #    positions = SpaceUtils.decrease_dimension(graph._positions_)
+        #    edges = graph._edges_
+        #    if not len(edges):
+        #        return
+        #    disjoints = Graph._get_disjoints(edges=edges)
+        #    for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
+        #        indices = edges[start:stop, 0]
+        #        if indices[0] != (tail_index := edges[stop - 1, 1]):
+        #            indices = np.append(indices, tail_index)
+        #        yield positions[indices]
 
         return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
-            shapely.validation.make_valid(shapely.geometry.Polygon(polygon_positions))
-            #for start, stop in it.pairwise(disjoints)
-            #if stop - start >= 3
-            for polygon_positions in get_polygon_positions(graph)
-            if len(polygon_positions) >= 3
+            shapely.validation.make_valid(shapely.geometry.Polygon(positions[start:stop]))
+            for start, stop in it.pairwise(cumcounts)
+            if stop - start >= 3
+            #for polygon_positions in get_polygon_positions(positions, cumcounts)
+            #if len(polygon_positions) >= 3
         ), shapely.geometry.GeometryCollection())
 
     @Lazy.property()
@@ -163,6 +190,28 @@ class Shape(MobjectAttribute):
             for polygon in get_shapely_polygons(shapely_obj)
         )
 
+    @classmethod
+    def _interpolate(
+        cls,
+        shape_0: "Shape",
+        shape_1: "Shape"
+    ) -> "ShapeInterpolateHandler":
+        #graph_interpolate_handler = Graph._interpolate(shape_0._graph_, shape_1._graph_)
+        #position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph_interpolate_handler._edges)
+        # TODO
+        positions_0, positions_1, edges = Graph._general_interpolate(
+            graph_0=shape_0._graph_,
+            graph_1=shape_1._graph_,
+            disjoints_0=shape_0._cumcounts_,
+            disjoints_1=shape_1._cumcounts_
+        )
+        position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
+        return ShapeInterpolateHandler(
+            positions_0=SpaceUtils.decrease_dimension(positions_0)[position_indices],
+            positions_1=SpaceUtils.decrease_dimension(positions_1)[position_indices],
+            counts=counts
+        )
+
     #@classmethod
     #def to_graph(
     #    cls,
@@ -178,9 +227,55 @@ class Shape(MobjectAttribute):
     #    )
 
     @classmethod
+    def _split(
+        cls,
+        shape: "Shape",
+        alphas: NP_xf8
+    ) -> "list[Shape]":
+        return [
+            cls.from_graph(graph)
+            for graph in Graph._split(shape._graph_, alphas)
+        ]
+
+    @classmethod
+    def _concatenate(
+        cls,
+        shapes: "list[Shape]"
+    ) -> "Shape":
+        return cls.from_graph(Graph._concatenate([
+            shape._graph_ for shape in shapes
+        ]))
+
+    @classmethod
+    def _get_position_indices_and_counts_from_edges(
+        cls,
+        edges: NP_x2i4
+    ) -> tuple[NP_xi4, NP_xi4]:
+        if not len(edges):
+            return np.zeros((0,), dtype=np.int32), np.zeros((0,), dtype=np.int32)
+
+        disjoints = np.insert(np.array((0, len(edges))), 1, np.flatnonzero(edges[:-1, 1] - edges[1:, 0]) + 1)
+        not_ring_indices = np.flatnonzero(edges[disjoints[:-1], 0] - edges[disjoints[1:] - 1, 1])
+        position_indices = np.insert(edges[:, 0], disjoints[not_ring_indices + 1], edges[disjoints[not_ring_indices + 1] - 1, 1])
+        counts = np.diff(disjoints)
+        counts[not_ring_indices] += 1
+        return position_indices, counts
+
+    @classmethod
+    def from_graph(
+        cls,
+        graph: Graph
+    ) -> "Shape":
+        position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph._edges_)
+        return Shape(
+            positions=SpaceUtils.decrease_dimension(graph._positions_)[position_indices],
+            counts=counts
+        )
+
+    @classmethod
     def from_paths(
         cls,
-        paths: Iterable[tuple[NP_x2f8, bool]]
+        paths: Iterable[NP_x2f8]
     ) -> "Shape":
         #path_list = [
         #    (positions, ring)
@@ -201,20 +296,18 @@ class Shape(MobjectAttribute):
         #    ), dtype=np.bool_)
         #)
         path_list = list(paths)
-        positions = SpaceUtils.increase_dimension(np.concatenate([
-            positions for positions, _ in path_list
-        ]))
-        offsets = np.insert(np.cumsum([
-            len(positions) for positions, _ in path_list[:-1]
-        ], dtype=np.int32), 0, 0)
-        edges = np.concatenate([
-            Graph._get_consecutive_edges(len(positions), is_ring=is_ring) + offset
-            for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
-        ])
-        return Shape(Graph(
-            positions=positions,
-            edges=edges
-        ))
+        #positions = SpaceUtils.increase_dimension(np.concatenate(path_list))
+        #offsets = np.insert(np.cumsum([
+        #    len(positions) for positions, _ in path_list[:-1]
+        #], dtype=np.int32), 0, 0)
+        #edges = np.concatenate([
+        #    Graph._get_consecutive_edges(len(positions), is_ring=is_ring) + offset
+        #    for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
+        #])
+        return Shape(
+            positions=np.concatenate(path_list),
+            counts=np.fromiter((len(path) for path in path_list), dtype=np.int32)
+        )
 
     @classmethod
     def from_shapely_obj(
@@ -224,15 +317,15 @@ class Shape(MobjectAttribute):
 
         def iter_paths_from_shapely_obj(
             shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Iterator[tuple[NP_x2f8, bool]]:
+        ) -> Iterator[NP_x2f8]:
             positions_dtype = np.dtype((np.float64, (2,)))
             match shapely_obj:
                 case shapely.geometry.Point() | shapely.geometry.LineString():
-                    yield np.fromiter(shapely_obj.coords, dtype=positions_dtype), False
+                    yield np.fromiter(shapely_obj.coords, dtype=positions_dtype)
                 case shapely.geometry.Polygon():
-                    yield np.fromiter(shapely_obj.exterior.coords[:-1], dtype=positions_dtype), True
+                    yield np.fromiter(shapely_obj.exterior.coords[:-1], dtype=positions_dtype)
                     for interior in shapely_obj.interiors:
-                        yield np.fromiter(interior.coords[:-1], dtype=positions_dtype), True
+                        yield np.fromiter(interior.coords[:-1], dtype=positions_dtype)
                 case shapely.geometry.base.BaseMultipartGeometry():
                     for shapely_obj_component in shapely_obj.geoms:
                         yield from iter_paths_from_shapely_obj(shapely_obj_component)
@@ -320,3 +413,31 @@ class Shape(MobjectAttribute):
         other: "Shape"
     ) -> "Shape":
         return Shape.from_shapely_obj(self.shapely_obj.symmetric_difference(other.shapely_obj))
+
+
+class ShapeInterpolateHandler(InterpolateHandler[Shape]):
+    __slots__ = (
+        "_positions_0",
+        "_positions_1",
+        "_counts"
+    )
+
+    def __init__(
+        self,
+        positions_0: NP_x2f8,
+        positions_1: NP_x2f8,
+        counts: NP_xi4
+    ) -> None:
+        super().__init__()
+        self._positions_0: NP_x2f8 = positions_0
+        self._positions_1: NP_x2f8 = positions_1
+        self._counts: NP_xi4 = counts
+
+    def _interpolate(
+        self,
+        alpha: float
+    ) -> Shape:
+        return Shape(
+            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+            counts=self._counts
+        )

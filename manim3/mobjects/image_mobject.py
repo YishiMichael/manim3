@@ -24,12 +24,12 @@ class ImageMobject(MeshMobject):
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         image_texture = Toplevel.context.texture(size=image.size, components=3, dtype="f1")
         image_texture.write(image.tobytes("raw", "RGB"))
-        self._color_maps_ = [image_texture]
+        self._color_maps_ = (image_texture,)
 
         pixel_per_unit = Toplevel.config.pixel_per_unit
         original_width = image.width / pixel_per_unit
         original_height = image.height / pixel_per_unit
-        scale_x, scale_y = SpaceUtils._get_frame_scale_vector(
+        scale_x, scale_y = SpaceUtils.get_frame_scale_vector(
             original_width=original_width,
             original_height=original_height,
             specified_width=width,

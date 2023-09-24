@@ -205,6 +205,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         return (
             self._is_multiple is descriptor._is_multiple
             and self._hasher is descriptor._hasher
+            and self._freeze is descriptor._freeze
             and (
                 self._element_type_annotation == descriptor._element_type_annotation
                 or issubclass(self._element_type, descriptor._element_type)

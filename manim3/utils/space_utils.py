@@ -4,6 +4,7 @@ from typing import (
 )
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 from ..constants.custom_typing import (
     NP_2f8,
@@ -203,7 +204,7 @@ class SpaceUtils:
         return result, z_value
 
     @classmethod
-    def _get_frame_scale_vector(
+    def get_frame_scale_vector(
         cls,
         *,
         original_width: float,
@@ -224,3 +225,30 @@ class SpaceUtils:
             case _:
                 raise ValueError  # never
         return scale_factor, scale_factor
+
+    @classmethod
+    def matrix_from_shift(
+        cls,
+        vector: NP_3f8
+    ) -> NP_44f8:
+        matrix = np.identity(4)
+        matrix[:3, 3] = vector
+        return matrix
+
+    @classmethod
+    def matrix_from_scale(
+        cls,
+        factor: NP_3f8
+    ) -> NP_44f8:
+        matrix = np.identity(4)
+        matrix[:3, :3] = np.diag(factor)
+        return matrix
+
+    @classmethod
+    def matrix_from_rotate(
+        cls,
+        rotvec: NP_3f8
+    ) -> NP_44f8:
+        matrix = np.identity(4)
+        matrix[:3, :3] = Rotation.from_rotvec(rotvec).as_matrix()
+        return matrix

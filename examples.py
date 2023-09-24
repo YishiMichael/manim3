@@ -55,8 +55,6 @@ class TexTransformExample(Scene):
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex), run_time=2, rate=Smooth())
-        await self.wait()
-        await self.play(TransformTo(tex, tex.copy().shift(RIGHT * 2)), rate=Smooth(), run_time=2)
         await self.wait(3)
 
 
@@ -95,7 +93,16 @@ class ThreeDExample(Scene):
         )
         self.add(dodec)
         self.prepare(Rotating(self.camera, 0.5 * DOWN))
-        await self.wait(10)
+
+        text = Text("Dodecahedron")
+        await self.play(Parallel(*(
+            Parallel(
+                FadeIn(char),
+                Shift(char, UP, arrive=True)
+            )
+            for char in text
+        ), lag_time=0.5), rate=Smooth())
+        await self.wait(3)
 
 
 class OITExample(Scene):
@@ -330,10 +337,9 @@ def main() -> None:
     config = Config(
         fps=30,
         #preview=False,
-        #tex_use_mathjax=True,
-        #write_video=True,
+        write_video=True,
         #write_last_frame=True,
-        #pixel_height=540
+        pixel_height=540
     )
     ThreeDExample.render(config)
 

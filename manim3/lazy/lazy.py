@@ -59,8 +59,9 @@ parameters:
   Forced to be true when `is_variable` is false. When false, `hasher` is
   forced to be `id`.
 
-  Note, freezing data does not block `__set__`. Unbinding data by reassigning
-  a new one does not unfreeze the data.
+  Note, freezing bound data does not block `__set__`. In other words, we are
+  freezing the data itself, not the binding relation. However, Unbinding data
+  by reassigning a new one does not unfreeze the data.
 
   In fact, the freezing procedure can not go beyond the lazy scope. It only
   prevents users from calling `__set__` of variable descriptors on descendant
@@ -88,7 +89,7 @@ from typing import (
 import numpy as np
 
 from .lazy_descriptor import LazyDescriptor
-from .lazy_object import LazyObject
+#from .lazy_object import LazyObject
 
 
 _T = TypeVar("_T")
@@ -233,20 +234,20 @@ class Lazy:
     def array_hasher(
         element: np.ndarray
     ) -> bytes:
-        # In order to make the hasher works properly, all `np.ndarray`
+        # In order to make the hasher work properly, all `np.ndarray`
         # instances bound to some descriptor shall share `dtype`, `ndim`,
         # and at least `ndim - 1` fixed entries of `shape`.
         return element.tobytes()
 
-    @staticmethod
-    def branch_hasher(
-        element: LazyObject
-    ) -> Hashable:
-        return (type(element), tuple(
-            tuple(
-                id(variable_element)
-                for variable_element in descriptor._get_elements(element)
-            )
-            for descriptor in type(element)._lazy_descriptors.values()
-            if descriptor._is_variable
-        ))
+    #@staticmethod
+    #def branch_hasher(
+    #    element: LazyObject
+    #) -> Hashable:
+    #    return (type(element), tuple(
+    #        tuple(
+    #            id(variable_element)
+    #            for variable_element in descriptor._get_elements(element)
+    #        )
+    #        for descriptor in type(element)._lazy_descriptors.values()
+    #        if descriptor._is_variable
+    #    ))

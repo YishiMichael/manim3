@@ -1,8 +1,9 @@
-import copy
+#import copy
 import inspect
 from abc import ABC
 from typing import (
-    Callable,
+    Any,
+    #Callable,
     ClassVar,
     TypeVar
 )
@@ -11,20 +12,32 @@ from .lazy_descriptor import LazyDescriptor
 from .lazy_slot import LazySlot
 
 
+_LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
+
+
 class LazyObject(ABC):
     __slots__ = (
         "_lazy_slots",
         "_is_frozen"
     )
-    _special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
-        "_lazy_slots": None,
-        "_is_frozen": None
-    }
+
+    #_special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
+    #    "_lazy_slots": None,
+    #    "_is_frozen": None
+    #}
 
     _lazy_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
-    _slot_copiers: ClassVar[dict[str, Callable]] = {}
+    #_slot_copiers: ClassVar[dict[str, Callable]] = {}
 
     def __init_subclass__(cls) -> None:
+
+        def extract_tuple_annotation(
+            annotation: Any
+        ) -> Any:
+            assert annotation.__origin__ is tuple
+            element_annotation, ellipsis = annotation.__args__
+            assert ellipsis is ...
+            return element_annotation
 
         def get_descriptor_chain(
             name_chain: tuple[str, ...],
@@ -41,11 +54,18 @@ class LazyObject(ABC):
                 element_type = descriptor._element_type
                 if descriptor._is_multiple:
                     collection_level += 1
-            expected_annotation = descriptor_chain[-1]._element_type_annotation
+            assert descriptor_chain[-1]._freeze
+
+            assert parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+            assert parameter.default is inspect.Parameter.empty
+            expected_element_annotation = descriptor_chain[-1]._element_type_annotation
+            element_annotation = parameter.annotation
             for _ in range(collection_level):
-                expected_annotation = tuple[expected_annotation, ...]
-            assert parameter.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-            assert parameter.annotation == expected_annotation or isinstance(expected_annotation, TypeVar)
+                element_annotation = extract_tuple_annotation(element_annotation)
+            assert (
+                element_annotation == expected_element_annotation
+                or isinstance(expected_element_annotation, TypeVar)
+            )
             return tuple(descriptor_chain)
 
         super().__init_subclass__()
@@ -58,22 +78,20 @@ class LazyObject(ABC):
         }
         cls._lazy_descriptors = base_cls._lazy_descriptors | new_descriptors
 
-        cls._slot_copiers = {
-            slot_name: slot_copier
-            for base_cls in reversed(cls.__mro__)
-            if issubclass(base_cls, LazyObject)
-            for slot_name in base_cls.__slots__
-            if (slot_copier := base_cls._special_slot_copiers.get(slot_name, copy.copy)) is not None
-        }
+        #cls._slot_copiers = {
+        #    slot_name: slot_copier
+        #    for base_cls in reversed(cls.__mro__)
+        #    if issubclass(base_cls, LazyObject)
+        #    for slot_name in base_cls.__slots__
+        #    if (slot_copier := base_cls._special_slot_copiers.get(slot_name, copy.copy)) is not None
+        #}
 
         for name, descriptor in new_descriptors.items():
             signature = inspect.signature(descriptor._method, locals={cls.__name__: cls}, eval_str=True)
 
             return_annotation = signature.return_annotation
             if descriptor._is_multiple:
-                assert return_annotation.__origin__ is tuple
-                element_type_annotation, ellipsis = return_annotation.__args__
-                assert ellipsis is ...
+                element_type_annotation = extract_tuple_annotation(return_annotation)
             else:
                 element_type_annotation = return_annotation
             descriptor._element_type_annotation = element_type_annotation
@@ -110,18 +128,23 @@ class LazyObject(ABC):
         for descriptor in type(self)._lazy_descriptors.values():
             descriptor._init(self)
 
-    def _copy(self):
-        cls = type(self)
-        result = cls.__new__(cls)
-        result._lazy_slots = {}
-        result._is_frozen = False
+    @classmethod
+    def _copy_lazy_content(
+        cls,
+        dst_object: _LazyObjectT,
+        src_object: _LazyObjectT
+    ) -> None:
+        #cls = type(self)
+        #result = cls.__new__(cls)
+        #result._lazy_slots = {}
+        #result._is_frozen = False
         for descriptor in cls._lazy_descriptors.values():
-            descriptor._init(result)
+            #descriptor._init(result)
             if descriptor._is_variable:
-                descriptor._set_elements(result, descriptor._get_elements(self))
-        for slot_name, slot_copier in cls._slot_copiers.items():
-            result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
-        return result
+                descriptor._set_elements(dst_object, descriptor._get_elements(src_object))
+        #for slot_name, slot_copier in cls._slot_copiers.items():
+        #    result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
+        #return result
 
     def _freeze(self) -> None:
         if self._is_frozen:

@@ -10,6 +10,7 @@ from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
+from ..utils.path_utils import PathUtils
 from .mobject.mobject import Mobject
 from .renderable_mobject import RenderableMobject
 
@@ -37,7 +38,7 @@ class SceneRootMobject(Mobject):
         oit_framebuffer__revealage_texture: moderngl.Texture
     ) -> VertexArray:
         return VertexArray(
-            shader_filename="oit_compose",
+            shader_path=PathUtils.shaders_dir.joinpath("oit_compose.glsl"),
             texture_buffers=[
                 TextureBuffer(
                     field="sampler2D t_accum_map",

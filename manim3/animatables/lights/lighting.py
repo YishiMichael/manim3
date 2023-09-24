@@ -1,14 +1,15 @@
 import numpy as np
 
-
+from ...animatables.animatable import Animatable
+from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
+#from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
 from .ambient_light import AmbientLight
 from .point_light import PointLight
 
 
-class Lighting(MobjectAttribute):
+class Lighting(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -39,8 +40,9 @@ class Lighting(MobjectAttribute):
     @Lazy.property()
     @staticmethod
     def _lighting_uniform_block_buffer_(
-        ambient_lights: tuple[AmbientLight, ...],
-        point_lights: tuple[PointLight, ...]
+        ambient_lights__color__array: tuple[NP_3f8, ...],
+        point_lights__color__array: tuple[NP_3f8, ...],
+        point_lights__position: tuple[NP_3f8, ...]
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_lighting",
@@ -58,21 +60,21 @@ class Lighting(MobjectAttribute):
                 ]
             },
             array_lens={
-                "NUM_U_AMBIENT_LIGHTS": len(ambient_lights),
-                "NUM_U_POINT_LIGHTS": len(point_lights)
+                "NUM_U_AMBIENT_LIGHTS": len(ambient_lights__color__array),
+                "NUM_U_POINT_LIGHTS": len(point_lights__color__array)
             },
             data={
-                "u_ambient_lights.color": np.fromiter((
-                    ambient_light._color_._array_
-                    for ambient_light in ambient_lights
-                ), dtype=np.dtype((np.float64, (3,)))),
-                "u_point_lights.position": np.fromiter((
-                    point_light._position_
-                    for point_light in point_lights
-                ), dtype=np.dtype((np.float64, (3,)))),
-                "u_point_lights.color": np.fromiter((
-                    point_light._color_._array_
-                    for point_light in point_lights
-                ), dtype=np.dtype((np.float64, (3,))))
+                "u_ambient_lights.color": np.fromiter(
+                    ambient_lights__color__array,
+                    dtype=np.dtype((np.float64, (3,)))
+                ),
+                "u_point_lights.position": np.fromiter(
+                    point_lights__position,
+                    dtype=np.dtype((np.float64, (3,)))
+                ),
+                "u_point_lights.color": np.fromiter(
+                    point_lights__color__array,
+                    dtype=np.dtype((np.float64, (3,)))
+                )
             }
         )

@@ -15,6 +15,7 @@ from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
+from ...utils.path_utils import PathUtils
 from ..mobject.mobject_attributes.array_attribute import ArrayAttribute
 from ..renderable_mobject import RenderableMobject
 from .graphs.graph import Graph
@@ -119,7 +120,7 @@ class GraphMobject(RenderableMobject):
         graph_indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
         return VertexArray(
-            shader_filename="graph",
+            shader_path=PathUtils.shaders_dir.joinpath("graph.glsl"),
             uniform_block_buffers=[
                 camera__camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,

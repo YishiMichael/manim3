@@ -139,7 +139,7 @@ class Animation(ABC):
         )
         self._progress_condition = Always()
         self._children = []
-        self.updater(0.0)
+        self.update(0.0)
 
     def _terminate(self) -> None:
         assert self._animation_state == AnimationState.ON_ANIMATION
@@ -153,7 +153,7 @@ class Animation(ABC):
         self._progress_condition = None
         self._children = None
         if (run_alpha := self._run_alpha) != float("inf"):
-            self.updater(run_alpha)
+            self.update(run_alpha)
 
     def _progress(self) -> None:
         if self._animation_state in (AnimationState.UNBOUND, AnimationState.AFTER_ANIMATION):
@@ -168,7 +168,7 @@ class Animation(ABC):
         assert (absolute_rate := self._absolute_rate) is not None
         assert (children := self._children) is not None
         assert (timeline_coroutine := self._timeline_coroutine) is not None
-        self.updater(absolute_rate.at(Toplevel.scene._timestamp))
+        self.update(absolute_rate.at(Toplevel.scene._timestamp))
         while not terminate_condition.judge():
             for child in children[:]:
                 child._progress()
@@ -183,7 +183,7 @@ class Animation(ABC):
                 break
         self._terminate()
 
-    def updater(
+    def update(
         self,
         alpha: float
     ) -> None:
@@ -269,5 +269,5 @@ class Animation(ABC):
     ) -> None:
         await self.wait_until(ProgressDuration(self, delta_alpha))
 
-    async def wait_forever(self) -> None:
-        await self.wait_until(Never())
+    #async def wait_forever(self) -> None:
+    #    await self.wait_until(Never())

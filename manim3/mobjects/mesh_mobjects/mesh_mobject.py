@@ -4,10 +4,11 @@ import numpy as np
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
-    NP_x3i4,
-    NP_x3f8
+    NP_x3f8,
+    NP_x3i4
 )
 from ...lazy.lazy import Lazy
+from ...utils.path_utils import PathUtils
 from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
@@ -72,10 +73,10 @@ class MeshMobject(RenderableMobject):
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting
 
-    @Lazy.variable()
+    @Lazy.variable_collection()
     @staticmethod
-    def _color_maps_() -> list[moderngl.Texture]:
-        return []
+    def _color_maps_() -> tuple[moderngl.Texture, ...]:
+        return ()
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
@@ -118,16 +119,15 @@ class MeshMobject(RenderableMobject):
     @Lazy.property()
     @staticmethod
     def _mesh_vertex_array_(
-        color_maps: list[moderngl.Texture],
+        color_maps: tuple[moderngl.Texture, ...],
         camera__camera__camera_uniform_block_buffer: UniformBlockBuffer,
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
         mesh__indexed_attributes_buffer: IndexedAttributesBuffer
     ) -> VertexArray:
-        #print(lighting__lighting_uniform_block_buffer._buffer_format_._read(lighting__lighting_uniform_block_buffer._buffer_.read()))
         return VertexArray(
-            shader_filename="mesh",
+            shader_path=PathUtils.shaders_dir.joinpath("mesh.glsl"),
             texture_buffers=[
                 TextureBuffer(
                     field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",

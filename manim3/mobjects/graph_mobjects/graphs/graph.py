@@ -57,50 +57,17 @@ class Graph(MobjectAttribute):
         graph_0: "Graph",
         graph_1: "Graph"
     ) -> "GraphInterpolateHandler":
-        positions_0 = graph_0._positions_
-        positions_1 = graph_1._positions_
-        edges_0 = graph_0._edges_
-        edges_1 = graph_1._edges_
-        # TODO: support empty graphs
-        assert len(edges_0)
-        assert len(edges_1)
-
-        cumlengths_0 = graph_0._cumlengths_
-        cumlengths_1 = graph_1._cumlengths_
-        full_knots_0 = cumlengths_0 * cumlengths_1[-1]
-        full_knots_1 = cumlengths_1 * cumlengths_0[-1]
-        knots_0 = full_knots_0[1:-1]
-        knots_1 = full_knots_1[1:-1]
-
-        outline_edges_0, outline_positions_0, _ = cls._get_decomposed_edges(
-            positions=positions_0,
-            edges=edges_0,
-            insertions=np.arange(len(edges_1) - 1) + len(positions_0),
-            full_knots=full_knots_0,
-            values=knots_1,
-            side="right"
+        positions_0, positions_1, edges = cls._general_interpolate(
+            graph_0=graph_0,
+            graph_1=graph_1,
+            disjoints_0=np.zeros((0,), dtype=np.int32),
+            disjoints_1=np.zeros((0,), dtype=np.int32)
         )
-        outline_edges_1, outline_positions_1, _ = cls._get_decomposed_edges(
-            positions=positions_1,
-            edges=edges_1,
-            insertions=np.arange(len(edges_0) - 1) + len(positions_1),
-            full_knots=full_knots_1,
-            values=knots_0,
-            side="left"
+        return GraphInterpolateHandler(
+            positions_0=positions_0,
+            positions_1=positions_1,
+            edges=edges
         )
-        interpolated_positions_0, interpolated_positions_1, edges = cls._get_unique_positions(
-            positions_0=np.concatenate((
-                positions_0,
-                outline_positions_0
-            )),
-            positions_1=np.concatenate((
-                positions_1,
-                outline_positions_1
-            )),
-            edges_0=outline_edges_0,
-            edges_1=outline_edges_1
-        )
-        return GraphInterpolateHandler(interpolated_positions_0, interpolated_positions_1, edges)
 
     @classmethod
     def _split(
@@ -179,12 +146,109 @@ class Graph(MobjectAttribute):
     #    lengths = SpaceUtils.norm(positions[edges[:, 1]] - positions[edges[:, 0]])
     #    return np.insert(np.cumsum(lengths), 0, 0.0)
 
+    #@classmethod
+    #def _get_disjoints(
+    #    cls,
+    #    edges: NP_x2i4
+    #) -> NP_xi4:
+    #    return np.flatnonzero(edges[:-1, 1] - edges[1:, 0])
+
     @classmethod
-    def _get_disjoints(
+    def _general_interpolate(
         cls,
-        edges: NP_x2i4
-    ) -> NP_xi4:
-        return np.flatnonzero(edges[:-1, 1] - edges[1:, 0])
+        graph_0: "Graph",
+        graph_1: "Graph",
+        disjoints_0: NP_xi4,
+        disjoints_1: NP_xi4
+    ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
+        positions_0 = graph_0._positions_
+        positions_1 = graph_1._positions_
+        edges_0 = graph_0._edges_
+        edges_1 = graph_1._edges_
+        # TODO: support empty graphs
+        assert len(edges_0)
+        assert len(edges_1)
+
+        cumlengths_0 = graph_0._cumlengths_
+        cumlengths_1 = graph_1._cumlengths_
+        full_knots_0 = cumlengths_0 * cumlengths_1[-1]
+        full_knots_1 = cumlengths_1 * cumlengths_0[-1]
+        knots_0 = full_knots_0[1:-1]
+        knots_1 = full_knots_1[1:-1]
+
+        outline_edges_0, outline_positions_0, interpolated_indices_0 = cls._get_decomposed_edges(
+            positions=positions_0,
+            edges=edges_0,
+            insertions=np.arange(len(edges_1) - 1) + len(positions_0),
+            full_knots=full_knots_0,
+            values=knots_1,
+            side="right"
+        )
+        outline_edges_1, outline_positions_1, interpolated_indices_1 = cls._get_decomposed_edges(
+            positions=positions_1,
+            edges=edges_1,
+            insertions=np.arange(len(edges_0) - 1) + len(positions_1),
+            full_knots=full_knots_1,
+            values=knots_0,
+            side="left"
+        )
+
+        #disjoints_0 = Graph._get_disjoints(edges=edges_0)
+        #disjoints_1 = Graph._get_disjoints(edges=edges_1)
+        #print(np.flatnonzero(edges_0[:-1, 1] - edges_0[1:, 0]))
+        #print(disjoints_0)
+        #print(len(edges_0))
+        if len(disjoints_0) >= 2 and len(disjoints_1) >= 2:
+            inlay_edges_0 = Graph._reassemble_edges(
+                edges=edges_0,
+                transition_indices=disjoints_0[1:-1] - 1,
+                prepend=edges_0[disjoints_0[0], 0],
+                append=edges_0[disjoints_0[-1] - 1, 1],
+                insertion_indices=np.searchsorted(
+                    disjoints_0[1:-1] - 1,
+                    interpolated_indices_0[disjoints_1[1:-1] - 1],
+                    side="right"
+                ).astype(np.int32),
+                insertions=disjoints_1[1:-1] - 1 + len(positions_0)
+            )
+            inlay_edges_1 = Graph._reassemble_edges(
+                edges=edges_1,
+                transition_indices=disjoints_1[1:-1] - 1,
+                prepend=edges_1[disjoints_1[0], 0],
+                append=edges_1[disjoints_1[-1] - 1, 1],
+                insertion_indices=np.searchsorted(
+                    disjoints_1[1:-1] - 1,
+                    interpolated_indices_1[disjoints_0[1:-1] - 1],
+                    side="left"
+                ).astype(np.int32),
+                insertions=disjoints_0[1:-1] - 1 + len(positions_1)
+            )
+        else:
+            inlay_edges_0 = np.zeros((0, 2), dtype=np.int32)
+            inlay_edges_1 = np.zeros((0, 2), dtype=np.int32)
+        interpolated_positions_0, interpolated_positions_1, edges = Graph._get_unique_positions(
+            positions_0=np.concatenate((
+                positions_0,
+                outline_positions_0,
+                np.average(positions_0, axis=0, keepdims=True)
+            )),
+            positions_1=np.concatenate((
+                positions_1,
+                outline_positions_1,
+                np.average(positions_1, axis=0, keepdims=True)
+            )),
+            edges_0=np.concatenate((
+                outline_edges_0,
+                inlay_edges_0,
+                np.ones_like(inlay_edges_1) * (len(positions_0) + len(edges_1) - 1)
+            )),
+            edges_1=np.concatenate((
+                outline_edges_1,
+                np.ones_like(inlay_edges_1) * (len(positions_1) + len(edges_0) - 1),
+                inlay_edges_1
+            ))
+        )
+        return interpolated_positions_0, interpolated_positions_1, edges
 
     @classmethod
     def _interpolate_positions(
@@ -272,36 +336,23 @@ class Graph(MobjectAttribute):
             edges_inverse.reshape((-1, 2))
         )
 
-    @classmethod
-    def _get_consecutive_edges(
-        cls,
-        n: int,
-        *,
-        is_ring: bool  # TODO
-    ) -> NP_x2i4:
-        arange = np.arange(n)
-        result = np.vstack((arange, np.roll(arange, -1))).T
-        if not is_ring:
-            result = result[:-1]
-        return result
-
 
 class GraphInterpolateHandler(InterpolateHandler[Graph]):
     __slots__ = (
-        "_interpolated_positions_0",
-        "_interpolated_positions_1",
+        "_positions_0",
+        "_positions_1",
         "_edges"
     )
 
     def __init__(
         self,
-        interpolated_positions_0: NP_x3f8,
-        interpolated_positions_1: NP_x3f8,
+        positions_0: NP_x3f8,
+        positions_1: NP_x3f8,
         edges: NP_x2i4
     ) -> None:
         super().__init__()
-        self._interpolated_positions_0: NP_x3f8 = interpolated_positions_0
-        self._interpolated_positions_1: NP_x3f8 = interpolated_positions_1
+        self._positions_0: NP_x3f8 = positions_0
+        self._positions_1: NP_x3f8 = positions_1
         self._edges: NP_x2i4 = edges
 
     def _interpolate(
@@ -309,6 +360,6 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
         alpha: float
     ) -> Graph:
         return Graph(
-            positions=SpaceUtils.lerp(self._interpolated_positions_0, self._interpolated_positions_1, alpha),
+            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
             edges=self._edges
         )

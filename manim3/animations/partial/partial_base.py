@@ -25,7 +25,7 @@ class PartialBase(Animation):
         self._original_mobject: Mobject = mobject.copy()
         self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
 
-    def updater(
+    def update(
         self,
         alpha: float
     ) -> None:
