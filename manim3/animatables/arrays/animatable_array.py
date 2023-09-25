@@ -5,18 +5,22 @@ from typing import (
 
 import numpy as np
 
-from ....lazy.lazy import Lazy
-from ....utils.space_utils import SpaceUtils
-from .mobject_attribute import (
-    InterpolateHandler,
-    MobjectAttribute
+from ...lazy.lazy import Lazy
+from ...utils.space_utils import SpaceUtils
+from ..animatable import (
+    Animatable,
+    Updater
 )
+#from .mobject_attribute import (
+#    InterpolateHandler,
+#    MobjectAttribute
+#)
 
 
 _NPT = TypeVar("_NPT", bound=np.ndarray)
 
 
-class ArrayAttribute(MobjectAttribute, Generic[_NPT]):
+class AnimatableArray(Animatable, Generic[_NPT]):
     __slots__ = ()
 
     def __init__(
@@ -35,35 +39,37 @@ class ArrayAttribute(MobjectAttribute, Generic[_NPT]):
     def _convert_input(
         cls,
         array_input: float | np.ndarray
-    ) -> "ArrayAttribute[_NPT]":
-        return ArrayAttribute(array_input)
+    ) -> "AnimatableArray[_NPT]":
+        return AnimatableArray(array_input)
 
-    @classmethod
-    def _interpolate(
-        cls,
-        array_0: "ArrayAttribute[_NPT]",
-        array_1: "ArrayAttribute[_NPT]"
-    ) -> "InterpolateHandler[ArrayAttribute[_NPT]]":
-        return ArrayAttributeInterpolateHandler(array_0._array_, array_1._array_)
+    def _get_interpolate_updater(
+        self,
+        array_0: "AnimatableArray[_NPT]",
+        array_1: "AnimatableArray[_NPT]"
+    ) -> "AnimatableArrayInterpolateUpdater":
+        return AnimatableArrayInterpolateUpdater(self, array_0, array_1)
 
 
-class ArrayAttributeInterpolateHandler(InterpolateHandler[ArrayAttribute[_NPT]]):
+class AnimatableArrayInterpolateUpdater(Updater[AnimatableArray[_NPT]]):
     __slots__ = (
+        "_array",
         "_array_0",
         "_array_1"
     )
 
     def __init__(
         self,
-        array_0: _NPT,
-        array_1: _NPT
+        animatable_array: AnimatableArray[_NPT],
+        animatable_array_0: AnimatableArray[_NPT],
+        animatable_array_1: AnimatableArray[_NPT]
     ) -> None:
-        super().__init__()
-        self._array_0: _NPT = array_0
-        self._array_1: _NPT = array_1
+        super().__init__(animatable_array)
+        self._array_0: _NPT = animatable_array_0._array_
+        self._array_1: _NPT = animatable_array_1._array_
 
-    def _interpolate(
+    def update(
         self,
         alpha: float
-    ) -> ArrayAttribute[_NPT]:
-        return ArrayAttribute(SpaceUtils.lerp(self._array_0, self._array_1, alpha))
+    ) -> None:
+        self._instance._array_ = SpaceUtils.lerp(self._array_0, self._array_1, alpha)
+        #return AnimatableArray(SpaceUtils.lerp(self._array_0, self._array_1, alpha))

@@ -15,7 +15,7 @@ from scipy.spatial.distance import cdist
 
 from ...constants.custom_typing import SelectorT
 from ...utils.color_utils import ColorUtils
-from ..mobject.mobject_io import MobjectIO
+from ..mobject_io import MobjectIO
 from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..svg_mobject import (
     SVGMobjectIO,

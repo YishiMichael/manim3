@@ -1,24 +1,29 @@
 import itertools as it
-from typing import Literal
+from typing import Callable, Literal
 
 import numpy as np
 
-from ....constants.custom_typing import (
+
+from ...constants.custom_typing import (
     NP_i4,
     NP_x2i4,
     NP_x3f8,
     NP_xi4,
     NP_xf8
 )
-from ....lazy.lazy import Lazy
-from ....utils.space_utils import SpaceUtils
-from ...mobject.mobject_attributes.mobject_attribute import (
-    InterpolateHandler,
-    MobjectAttribute
+from ...lazy.lazy import Lazy
+from ...utils.space_utils import SpaceUtils
+from ..animatable import (
+    Animatable,
+    Updater
 )
+#from ..mobject.mobject_attributes.mobject_attribute import (
+#    InterpolateHandler,
+#    MobjectAttribute
+#)
 
 
-class Graph(MobjectAttribute):
+class Graph(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -51,23 +56,23 @@ class Graph(MobjectAttribute):
         lengths = SpaceUtils.norm(positions[edges[:, 1]] - positions[edges[:, 0]])
         return np.insert(np.cumsum(lengths), 0, 0.0)
 
-    @classmethod
-    def _interpolate(
-        cls,
-        graph_0: "Graph",
-        graph_1: "Graph"
-    ) -> "GraphInterpolateHandler":
-        positions_0, positions_1, edges = cls._general_interpolate(
-            graph_0=graph_0,
-            graph_1=graph_1,
-            disjoints_0=np.zeros((0,), dtype=np.int32),
-            disjoints_1=np.zeros((0,), dtype=np.int32)
-        )
-        return GraphInterpolateHandler(
-            positions_0=positions_0,
-            positions_1=positions_1,
-            edges=edges
-        )
+    #@classmethod
+    #def _interpolate(
+    #    cls,
+    #    graph_0: "Graph",
+    #    graph_1: "Graph"
+    #) -> "GraphInterpolateHandler":
+    #    positions_0, positions_1, edges = cls._general_interpolate(
+    #        graph_0=graph_0,
+    #        graph_1=graph_1,
+    #        disjoints_0=np.zeros((0,), dtype=np.int32),
+    #        disjoints_1=np.zeros((0,), dtype=np.int32)
+    #    )
+    #    return GraphInterpolateHandler(
+    #        positions_0=positions_0,
+    #        positions_1=positions_1,
+    #        edges=edges
+    #    )
 
     @classmethod
     def _split(
@@ -336,9 +341,31 @@ class Graph(MobjectAttribute):
             edges_inverse.reshape((-1, 2))
         )
 
+    def _get_interpolate_updater(
+        self: "Graph",
+        graph_0: "Graph",
+        graph_1: "Graph"
+    ) -> "GraphInterpolateUpdater":
+        return GraphInterpolateUpdater(
+            graph=self,
+            graph_0=graph_0,
+            graph_1=graph_1
+        )
 
-class GraphInterpolateHandler(InterpolateHandler[Graph]):
+    def partial(
+        self,
+        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
+    ) -> "GraphPartialUpdater":
+        return GraphPartialUpdater(
+            graph=self,
+            original_graph=self._copy(),
+            alpha_to_segments=alpha_to_segments
+        )
+
+
+class GraphInterpolateUpdater(Updater[Graph]):
     __slots__ = (
+        "_graph",
         "_positions_0",
         "_positions_1",
         "_edges"
@@ -346,20 +373,89 @@ class GraphInterpolateHandler(InterpolateHandler[Graph]):
 
     def __init__(
         self,
-        positions_0: NP_x3f8,
-        positions_1: NP_x3f8,
-        edges: NP_x2i4
+        graph: Graph,
+        graph_0: Graph,
+        graph_1: Graph
     ) -> None:
-        super().__init__()
+        super().__init__(graph)
+        positions_0, positions_1, edges = Graph._general_interpolate(
+            graph_0=graph_0,
+            graph_1=graph_1,
+            disjoints_0=np.zeros((0,), dtype=np.int32),
+            disjoints_1=np.zeros((0,), dtype=np.int32)
+        )
         self._positions_0: NP_x3f8 = positions_0
         self._positions_1: NP_x3f8 = positions_1
         self._edges: NP_x2i4 = edges
 
-    def _interpolate(
+    def update(
         self,
         alpha: float
-    ) -> Graph:
-        return Graph(
-            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
-            edges=self._edges
-        )
+    ) -> None:
+        self._instance._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
+        self._instance._edges_ = self._edges
+
+
+class GraphPartialUpdater(Updater[Graph]):
+    __slots__ = (
+        "_graph",
+        "_original_graph",
+        "_alpha_to_segments"
+    )
+
+    def __init__(
+        self,
+        graph: Graph,
+        original_graph: Graph,
+        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
+    ) -> None:
+        super().__init__(graph)
+        self._original_graph: Graph = original_graph
+        self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
+
+    def update(
+        self,
+        alpha: float
+    ) -> None:
+        split_alphas, concatenate_indices = self._alpha_to_segments(alpha)
+        graphs = Graph._split(self._original_graph, split_alphas)
+        graph = Graph._concatenate([graphs[index] for index in concatenate_indices])
+        Graph._copy_lazy_content(self._instance, graph)
+        #mobjects = [equivalent_cls() for _ in range(len(split_alphas) + 1)]
+        #equivalent_cls._split_into(
+        #    dst_mobject_list=mobjects,
+        #    src_mobject=original_mobject,
+        #    alphas=split_alphas
+        #)
+        #equivalent_cls._concatenate_into(
+        #    dst_mobject=mobject,
+        #    src_mobject_list=[mobjects[index] for index in concatenate_indices]
+        #)
+
+
+#class GraphInterpolateHandler(InterpolateHandler[Graph]):
+#    __slots__ = (
+#        "_positions_0",
+#        "_positions_1",
+#        "_edges"
+#    )
+
+#    def __init__(
+#        self,
+#        positions_0: NP_x3f8,
+#        positions_1: NP_x3f8,
+#        edges: NP_x2i4
+#    ) -> None:
+#        super().__init__()
+#        self._positions_0: NP_x3f8 = positions_0
+#        self._positions_1: NP_x3f8 = positions_1
+#        self._edges: NP_x2i4 = edges
+
+#    def _interpolate(
+#        self,
+#        alpha: float
+#    ) -> Graph:
+#        return Graph(
+#            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+#            edges=self._edges
+#        )

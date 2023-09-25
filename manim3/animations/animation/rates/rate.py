@@ -12,5 +12,4 @@ class Rate(ABC):
         self,
         t: float
     ) -> float:
-        # Defined on `[0, 1] -> [0, 1]`, increasing.
         pass

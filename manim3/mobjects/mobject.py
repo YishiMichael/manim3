@@ -1,7 +1,6 @@
 import itertools as it
 import weakref
-from abc import abstractmethod
-from dataclasses import dataclass
+#from abc import abstractmethod
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -14,30 +13,35 @@ from typing import (
 
 import numpy as np
 
-from ...animatables.models.model import Model
+from ..animatables.cameras.camera import Camera
+from ..animatables.geometries.graph import Graph
+from ..animatables.geometries.mesh import Mesh
+from ..animatables.geometries.shape import Shape
+from ..animatables.lights.lighting import Lighting
+from ..animatables.models.model import Model
 #from ...constants.constants import (
 #    ORIGIN,
 #    PI
 #)
-from ...constants.custom_typing import (
+from ..constants.custom_typing import (
     ColorT,
-    NP_3f8,
+    #NP_3f8,
     NP_44f8,
-    NP_x3f8,
-    NP_xf8
+    NP_x3f8
+    #NP_xf8
 )
-from ...lazy.lazy import Lazy
-from ...lazy.lazy_descriptor import LazyDescriptor
+from ..lazy.lazy import Lazy
+from ..lazy.lazy_descriptor import LazyDescriptor
 #from ...lazy.lazy_object import LazyObject
-from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
-from ...toplevel.toplevel import Toplevel
-from ...utils.space_utils import SpaceUtils
-from ..cameras.camera import Camera
-from ..graph_mobjects.graphs.graph import Graph
-from ..lights.lighting import Lighting
-from ..mesh_mobjects.meshes.mesh import Mesh
-from ..shape_mobjects.shapes.shape import Shape
+from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ..toplevel.toplevel import Toplevel
+#from ...utils.space_utils import SpaceUtils
+#from ..cameras.camera import Camera
+#from ..graph_mobjects.graphs.graph import Graph
+#from ..lights.lighting import Lighting
+#from ..mesh_mobjects.meshes.mesh import Mesh
+#from ..shape_mobjects.shapes.shape import Shape
 #from .mobject_attributes.array_attribute import ArrayAttribute
 #from .mobject_attributes.mobject_attribute import (
 #    InterpolateHandler,
@@ -51,7 +55,6 @@ from ..shape_mobjects.shapes.shape import Shape
 if TYPE_CHECKING:
     from typing_extensions import Unpack
 
-    
     #from .abouts.about import About
     #from .aligns.align import Align
 
@@ -80,41 +83,20 @@ class StyleKwargs(TypedDict, total=False):
     width: float
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class BoundingBox:
-    maximum: NP_3f8
-    minimum: NP_3f8
-
-    #@property
-    #def center(self) -> NP_3f8:
-    #    return (self.maximum + self.minimum) / 2.0
-
-    #@property
-    #def radii(self) -> NP_3f8:
-    #    radii = (self.maximum - self.minimum) / 2.0
-    #    # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
-    #    radii[np.isclose(radii, 0.0)] = 1e-8
-    #    return radii
-
-
 class Mobject(Model):
     __slots__ = (
         "__weakref__",
         "_parents",
         "_real_ancestors"
     )
-    _special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
-        "__weakref__": None,
-        "_parents": weakref.WeakSet.copy,
-        "_real_ancestors": weakref.WeakSet.copy
-    }
+    #_special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
+    #    "__weakref__": None,
+    #    "_parents": weakref.WeakSet.copy,
+    #    "_real_ancestors": weakref.WeakSet.copy
+    #}
 
     _attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
-    _equivalent_cls_mro_index: ClassVar[int] = 0
+    #_equivalent_cls_mro_index: ClassVar[int] = 0
 
     def __init_subclass__(cls):
         super().__init_subclass__()
@@ -327,19 +309,19 @@ class Mobject(Model):
             }
         )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _local_sample_positions_() -> NP_x3f8:
-        # Implemented in subclasses.
-        return np.zeros((0, 3))
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _local_sample_positions_() -> NP_x3f8:
+    #    # Implemented in subclasses.
+    #    return np.zeros((0, 3))
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _world_sample_positions_(
-        model_matrix: NP_44f8,
-        local_sample_positions: NP_x3f8,
-    ) -> NP_x3f8:
-        return SpaceUtils.apply_affine(model_matrix, local_sample_positions)
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _world_sample_positions_(
+    #    model_matrix: NP_44f8,
+    #    local_sample_positions: NP_x3f8,
+    #) -> NP_x3f8:
+    #    return SpaceUtils.apply_affine(model_matrix, local_sample_positions)
 
     #@Lazy.property()
     #@staticmethod
@@ -376,42 +358,53 @@ class Mobject(Model):
     #        minimum=positions_array.min(axis=0)
     #    )
 
-    @Lazy.property()
+    @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
-    def _bounding_box_(
+    def _bounding_box_reference_points_(
         world_sample_positions: NP_x3f8,
         real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
-    ) -> BoundingBox:
-        positions_array = np.concatenate((
+    ) -> NP_x3f8:
+        return np.concatenate((
             world_sample_positions,
             *real_descendants__world_sample_positions
         ))
-        if not len(positions_array):
-            return BoundingBox(
-                maximum=np.zeros((1, 3)),
-                minimum=np.zeros((1, 3))
-            )
-        return BoundingBox(
-            maximum=positions_array.max(axis=0),
-            minimum=positions_array.min(axis=0)
-        )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _centroid_(
-        bounding_box: BoundingBox
-    ) -> NP_3f8:
-        return (bounding_box.maximum + bounding_box.minimum) / 2.0
+    #@Lazy.property()
+    #@staticmethod
+    #def _bounding_box_(
+    #    world_sample_positions: NP_x3f8,
+    #    real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
+    #) -> BoundingBox:
+    #    positions_array = np.concatenate((
+    #        world_sample_positions,
+    #        *real_descendants__world_sample_positions
+    #    ))
+    #    if not len(positions_array):
+    #        return BoundingBox(
+    #            maximum=np.zeros((1, 3)),
+    #            minimum=np.zeros((1, 3))
+    #        )
+    #    return BoundingBox(
+    #        maximum=positions_array.max(axis=0),
+    #        minimum=positions_array.min(axis=0)
+    #    )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _radii_(
-        bounding_box: BoundingBox
-    ) -> NP_3f8:
-        return (bounding_box.maximum - bounding_box.minimum) / 2.0
-        # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
-        #radii[np.isclose(radii, 0.0)] = 1e-8
-        #return radii
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _centroid_(
+    #    bounding_box: BoundingBox
+    #) -> NP_3f8:
+    #    return (bounding_box.maximum + bounding_box.minimum) / 2.0
+
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _radii_(
+    #    bounding_box: BoundingBox
+    #) -> NP_3f8:
+    #    return (bounding_box.maximum - bounding_box.minimum) / 2.0
+    #    # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
+    #    #radii[np.isclose(radii, 0.0)] = 1e-8
+    #    #return radii
 
     #def get_bounding_box(self) -> BoundingBox:
     #    if (result := self._bounding_box_) is None:
@@ -669,7 +662,6 @@ class Mobject(Model):
     def _camera_() -> Camera:
         return Toplevel.scene._camera
 
-    @abstractmethod
     def _render(
         self,
         target_framebuffer: OITFramebuffer

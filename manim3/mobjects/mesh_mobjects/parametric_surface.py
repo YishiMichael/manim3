@@ -2,14 +2,16 @@ from typing import Callable
 
 import numpy as np
 
-from ....constants.custom_typing import (
+from ...animatables.geometries.mesh import Mesh
+from ...constants.custom_typing import (
     NP_x2f8,
     NP_x3f8
 )
-from .mesh import Mesh
+from .mesh_mobject import MeshMobject
+#from .mesh import Mesh
 
 
-class ParametricSurfaceMesh(Mesh):
+class ParametricSurface(MeshMobject):
     __slots__ = ()
 
     def __init__(
@@ -48,9 +50,9 @@ class ParametricSurfaceMesh(Mesh):
         positions = func(samples)
         normals = normal_func(samples)
 
-        super().__init__(
+        super().__init__(Mesh(
             positions=positions,
             normals=normals,
             uvs=uvs,
             faces=faces
-        )
+        ))

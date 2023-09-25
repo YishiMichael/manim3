@@ -12,8 +12,8 @@ from ...constants.custom_typing import (
     NP_2f8,
     NP_3f8,
     NP_44f8,
-    NP_f8,
-    NP_x3f8
+    NP_f8
+    #NP_x3f8
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
@@ -56,10 +56,10 @@ class Camera(Model):
         # Implemented in subclasses.
         return np.identity(4)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _local_sample_positions_() -> NP_x3f8:
-        return np.array((OUT,))
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _local_sample_positions_() -> NP_x3f8:
+    #    return np.array((OUT,))
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod

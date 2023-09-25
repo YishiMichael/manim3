@@ -21,6 +21,8 @@ class LazyObject(ABC):
         "_is_frozen"
     )
 
+    _default_constructor_kwargs: ClassVar[dict] = {}
+
     #_special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
     #    "_lazy_slots": None,
     #    "_is_frozen": None
@@ -134,17 +136,23 @@ class LazyObject(ABC):
         dst_object: _LazyObjectT,
         src_object: _LazyObjectT
     ) -> None:
-        #cls = type(self)
-        #result = cls.__new__(cls)
-        #result._lazy_slots = {}
-        #result._is_frozen = False
         for descriptor in cls._lazy_descriptors.values():
-            #descriptor._init(result)
             if descriptor._is_variable:
                 descriptor._set_elements(dst_object, descriptor._get_elements(src_object))
+
+    def _copy(self):
+        cls = type(self)
+        result = cls(**cls._default_constructor_kwargs)
+        cls._copy_lazy_content(result, self)
+        #result._lazy_slots = {}
+        #result._is_frozen = False
+        #for descriptor in cls._lazy_descriptors.values():
+        #    #descriptor._init(result)
+        #    if descriptor._is_variable:
+        #        descriptor._set_elements(result, descriptor._get_elements(self))
         #for slot_name, slot_copier in cls._slot_copiers.items():
         #    result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
-        #return result
+        return result
 
     def _freeze(self) -> None:
         if self._is_frozen:

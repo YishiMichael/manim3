@@ -2,7 +2,7 @@ import weakref
 from typing import TYPE_CHECKING
 
 from ....toplevel.toplevel import Toplevel
-from ..animation_state import AnimationState
+from ..animating_states import OnAnimating
 from .condition import Condition
 
 if TYPE_CHECKING:
@@ -20,15 +20,15 @@ class ProgressDuration(Condition):
         animation: "Animation",
         delta_alpha: float
     ) -> None:
-        assert animation._animation_state == AnimationState.ON_ANIMATION
-        assert animation._absolute_rate is not None
+        assert isinstance(animating_state := animation._animating_state, OnAnimating)
+        #assert animation._absolute_rate is not None
         self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-        self._target_alpha: float = animation._absolute_rate.at(Toplevel.scene._timestamp) + delta_alpha
+        self._target_alpha: float = animating_state.absolute_rate.at(Toplevel.scene._timestamp) + delta_alpha
 
     def judge(self) -> bool:
         animation = self._animation_ref()
         return (
             animation is None
-            or animation._absolute_rate is None
-            or animation._absolute_rate.at(Toplevel.scene._timestamp) >= self._target_alpha
+            or not isinstance(animating_state := animation._animating_state, OnAnimating)
+            or animating_state.absolute_rate.at(Toplevel.scene._timestamp) >= self._target_alpha
         )

@@ -1,11 +1,11 @@
 import numpy as np
 
-from ....constants.constants import UP
-from ....utils.space_utils import SpaceUtils
-from .parametric_surface_mesh import ParametricSurfaceMesh
+from ...constants.constants import UP
+from ...utils.space_utils import SpaceUtils
+from .parametric_surface import ParametricSurface
 
 
-class PlaneMesh(ParametricSurfaceMesh):
+class Plane(ParametricSurface):
     __slots__ = ()
 
     def __init__(self) -> None:

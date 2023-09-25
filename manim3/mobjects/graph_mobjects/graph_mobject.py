@@ -16,12 +16,13 @@ from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
-from ..mobject.mobject_attributes.array_attribute import ArrayAttribute
-from ..renderable_mobject import RenderableMobject
-from .graphs.graph import Graph
+#from ..mobject.mobject_attributes.array_attribute import AnimatableArray
+from ...animatables.arrays.animatable_array import AnimatableArray
+from ...animatables.geometries.graph import Graph
+from ..mobject import Mobject
 
 
-class GraphMobject(RenderableMobject):
+class GraphMobject(Mobject):
     __slots__ = ()
 
     def __init__(
@@ -32,30 +33,30 @@ class GraphMobject(RenderableMobject):
         if graph is not None:
             self._graph_ = graph
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
     def _graph_() -> Graph:
         return Graph()
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _color_() -> ArrayAttribute[NP_3f8]:
-        return ArrayAttribute(np.ones((3,)))
+    def _color_() -> AnimatableArray[NP_3f8]:
+        return AnimatableArray(np.ones((3,)))
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _opacity_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(1.0)
+    def _opacity_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(1.0)
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _weight_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(1.0)
+    def _weight_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(1.0)
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _width_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(Toplevel.config.graph_width)
+    def _width_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(Toplevel.config.graph_width)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod

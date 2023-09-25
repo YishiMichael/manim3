@@ -1,8 +1,16 @@
+import numpy as np
+
+from ...animatables.geometries.mesh import Mesh
+from ...animatables.geometries.shape import Shape
+from ...constants.custom_typing import (
+    NP_x2f8,
+    NP_x3i4
+)
 from ...lazy.lazy import Lazy
+from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
-from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
-from .shapes.shape import Shape
+#from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
 
 
 class ShapeMobject(MeshMobject):
@@ -16,17 +24,25 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self._shape_ = shape
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
     def _shape_() -> Shape:
         return Shape()
 
-    @Lazy.property(hasher=Lazy.branch_hasher)
+    @Lazy.property()
     @staticmethod
     def _mesh_(
-        shape: Shape
-    ) -> ShapeMesh:
-        return ShapeMesh(shape)
+        shape__triangulation: tuple[NP_x3i4, NP_x2f8]
+    ) -> Mesh:
+        faces, positions_2d = shape__triangulation
+        positions = SpaceUtils.increase_dimension(positions_2d)
+        normals = SpaceUtils.increase_dimension(np.zeros_like(positions_2d), z_value=1.0)
+        return Mesh(
+            positions=positions,
+            normals=normals,
+            uvs=positions_2d,
+            faces=faces
+        )
 
     def build_stroke(self) -> GraphMobject:
         stroke = GraphMobject()

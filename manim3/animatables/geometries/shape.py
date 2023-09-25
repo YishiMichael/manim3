@@ -1,6 +1,7 @@
 import itertools as it
 from functools import reduce
 from typing import (
+    Callable,
     Iterable,
     Iterator
 )
@@ -10,7 +11,7 @@ import shapely.geometry
 import shapely.validation
 from mapbox_earcut import triangulate_float64
 
-from ....constants.custom_typing import (
+from ...constants.custom_typing import (
     NP_2f8,
     NP_x2f8,
     NP_x2i4,
@@ -18,16 +19,20 @@ from ....constants.custom_typing import (
     NP_xf8,
     NP_xi4
 )
-from ....lazy.lazy import Lazy
-from ....utils.space_utils import SpaceUtils
-from ...graph_mobjects.graphs.graph import Graph
-from ...mobject.mobject_attributes.mobject_attribute import (
-    InterpolateHandler,
-    MobjectAttribute
+from ...lazy.lazy import Lazy
+from ...utils.space_utils import SpaceUtils
+from ..animatable import (
+    Animatable,
+    Updater
 )
+from .graph import Graph
+#from ..mobject.mobject_attributes.mobject_attribute import (
+#    InterpolateHandler,
+#    MobjectAttribute
+#)
 
 
-class Shape(MobjectAttribute):
+class Shape(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -190,27 +195,27 @@ class Shape(MobjectAttribute):
             for polygon in get_shapely_polygons(shapely_obj)
         )
 
-    @classmethod
-    def _interpolate(
-        cls,
-        shape_0: "Shape",
-        shape_1: "Shape"
-    ) -> "ShapeInterpolateHandler":
-        #graph_interpolate_handler = Graph._interpolate(shape_0._graph_, shape_1._graph_)
-        #position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph_interpolate_handler._edges)
-        # TODO
-        positions_0, positions_1, edges = Graph._general_interpolate(
-            graph_0=shape_0._graph_,
-            graph_1=shape_1._graph_,
-            disjoints_0=shape_0._cumcounts_,
-            disjoints_1=shape_1._cumcounts_
-        )
-        position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
-        return ShapeInterpolateHandler(
-            positions_0=SpaceUtils.decrease_dimension(positions_0)[position_indices],
-            positions_1=SpaceUtils.decrease_dimension(positions_1)[position_indices],
-            counts=counts
-        )
+    #@classmethod
+    #def _interpolate(
+    #    cls,
+    #    shape_0: "Shape",
+    #    shape_1: "Shape"
+    #) -> "ShapeInterpolateHandler":
+    #    #graph_interpolate_handler = Graph._interpolate(shape_0._graph_, shape_1._graph_)
+    #    #position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph_interpolate_handler._edges)
+    #    # TODO
+    #    positions_0, positions_1, edges = Graph._general_interpolate(
+    #        graph_0=shape_0._graph_,
+    #        graph_1=shape_1._graph_,
+    #        disjoints_0=shape_0._cumcounts_,
+    #        disjoints_1=shape_1._cumcounts_
+    #    )
+    #    position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
+    #    return ShapeInterpolateHandler(
+    #        positions_0=SpaceUtils.decrease_dimension(positions_0)[position_indices],
+    #        positions_1=SpaceUtils.decrease_dimension(positions_1)[position_indices],
+    #        counts=counts
+    #    )
 
     #@classmethod
     #def to_graph(
@@ -415,8 +420,31 @@ class Shape(MobjectAttribute):
         return Shape.from_shapely_obj(self.shapely_obj.symmetric_difference(other.shapely_obj))
 
 
-class ShapeInterpolateHandler(InterpolateHandler[Shape]):
+    def _get_interpolate_updater(
+        self: "Shape",
+        shape_0: "Shape",
+        shape_1: "Shape"
+    ) -> "ShapeInterpolateUpdater":
+        return ShapeInterpolateUpdater(
+            shape=self,
+            shape_0=shape_0,
+            shape_1=shape_1
+        )
+
+    def partial(
+        self,
+        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
+    ) -> "ShapePartialUpdater":
+        return ShapePartialUpdater(
+            shape=self,
+            original_shape=self._copy(),
+            alpha_to_segments=alpha_to_segments
+        )
+
+
+class ShapeInterpolateUpdater(Updater[Shape]):
     __slots__ = (
+        "_shape",
         "_positions_0",
         "_positions_1",
         "_counts"
@@ -424,20 +452,101 @@ class ShapeInterpolateHandler(InterpolateHandler[Shape]):
 
     def __init__(
         self,
-        positions_0: NP_x2f8,
-        positions_1: NP_x2f8,
-        counts: NP_xi4
+        shape: Shape,
+        shape_0: Shape,
+        shape_1: Shape
     ) -> None:
-        super().__init__()
-        self._positions_0: NP_x2f8 = positions_0
-        self._positions_1: NP_x2f8 = positions_1
+        super().__init__(shape)
+        positions_0, positions_1, edges = Graph._general_interpolate(
+            graph_0=shape_0._graph_,
+            graph_1=shape_1._graph_,
+            disjoints_0=shape_0._cumcounts_,
+            disjoints_1=shape_1._cumcounts_
+        )
+        position_indices, counts = Shape._get_position_indices_and_counts_from_edges(edges)
+        #return ShapeInterpolateHandler(
+        #    positions_0=SpaceUtils.decrease_dimension(positions_0)[position_indices],
+        #    positions_1=SpaceUtils.decrease_dimension(positions_1)[position_indices],
+        #    counts=counts
+        #)
+        #positions_0, positions_1, edges = Graph._general_interpolate(
+        #    graph_0=graph_0,
+        #    graph_1=graph_1,
+        #    disjoints_0=np.zeros((0,), dtype=np.int32),
+        #    disjoints_1=np.zeros((0,), dtype=np.int32)
+        #)
+        self._positions_0: NP_x2f8 = SpaceUtils.decrease_dimension(positions_0)[position_indices]
+        self._positions_1: NP_x2f8 = SpaceUtils.decrease_dimension(positions_1)[position_indices]
         self._counts: NP_xi4 = counts
 
-    def _interpolate(
+    def update(
         self,
         alpha: float
-    ) -> Shape:
-        return Shape(
-            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
-            counts=self._counts
-        )
+    ) -> None:
+        self._instance._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
+        self._instance._counts_ = self._counts
+
+
+class ShapePartialUpdater(Updater[Shape]):
+    __slots__ = (
+        "_shape",
+        "_original_shape",
+        "_alpha_to_segments"
+    )
+
+    def __init__(
+        self,
+        shape: Shape,
+        original_shape: Shape,
+        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
+    ) -> None:
+        super().__init__(shape)
+        self._original_shape: Shape = original_shape
+        self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
+
+    def update(
+        self,
+        alpha: float
+    ) -> None:
+        split_alphas, concatenate_indices = self._alpha_to_segments(alpha)
+        shapes = Shape._split(self._original_shape, split_alphas)
+        shape = Shape._concatenate([shapes[index] for index in concatenate_indices])
+        Shape._copy_lazy_content(self._instance, shape)
+        #mobjects = [equivalent_cls() for _ in range(len(split_alphas) + 1)]
+        #equivalent_cls._split_into(
+        #    dst_mobject_list=mobjects,
+        #    src_mobject=original_mobject,
+        #    alphas=split_alphas
+        #)
+        #equivalent_cls._concatenate_into(
+        #    dst_mobject=mobject,
+        #    src_mobject_list=[mobjects[index] for index in concatenate_indices]
+        #)
+
+
+#class ShapeInterpolateHandler(InterpolateHandler[Shape]):
+#    __slots__ = (
+#        "_positions_0",
+#        "_positions_1",
+#        "_counts"
+#    )
+
+#    def __init__(
+#        self,
+#        positions_0: NP_x2f8,
+#        positions_1: NP_x2f8,
+#        counts: NP_xi4
+#    ) -> None:
+#        super().__init__()
+#        self._positions_0: NP_x2f8 = positions_0
+#        self._positions_1: NP_x2f8 = positions_1
+#        self._counts: NP_xi4 = counts
+
+#    def _interpolate(
+#        self,
+#        alpha: float
+#    ) -> Shape:
+#        return Shape(
+#            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+#            counts=self._counts
+#        )

@@ -1,15 +1,16 @@
 import numpy as np
 
-from ...animatables.models.model import Model
+from ...animatables.animatable import Animatable
 from ...lazy.lazy import Lazy
 #from ..mobject.mobject import Mobject
-from ..mobject.mobject_attributes.color_attribute import ColorAttribute
+#from ..mobject.mobject_attributes.color_attribute import ColorAttribute
+from ..arrays.animatable_color import AnimatableColor
 
 
-class AmbientLight(Model):
+class AmbientLight(Animatable):
     __slots__ = ()
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _color_() -> ColorAttribute:
-        return ColorAttribute(np.ones((3,)))
+    def _color_() -> AnimatableColor:
+        return AnimatableColor(np.ones((3,)))

@@ -10,14 +10,15 @@ from typing import (
 import moderngl
 from PIL import Image
 
+from ..animatables.cameras.camera import Camera
+from ..animatables.cameras.perspective_camera import PerspectiveCamera
+from ..animatables.lights.ambient_light import AmbientLight
+from ..animatables.lights.lighting import Lighting
 from ..animations.animation.animation import Animation
-from ..animations.animation.animation_state import AnimationState
-from ..mobjects.cameras.camera import Camera
-from ..mobjects.cameras.perspective_camera import PerspectiveCamera
-from ..mobjects.mobject.mobject import Mobject
-from ..mobjects.lights.ambient_light import AmbientLight
-from ..mobjects.lights.lighting import Lighting
+from ..animations.animation.animating_states import AfterAnimating
+#from ..animations.animation.animation_state import AnimationState
 from ..mobjects.scene_root_mobject import SceneRootMobject
+from ..mobjects.mobject import Mobject
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
 from ..utils.color_utils import ColorUtils
 from ..utils.path_utils import PathUtils
@@ -81,7 +82,7 @@ class Scene(Animation):
                     asyncio.sleep(sleep_time),
                     return_exceptions=False  #True
                 )
-                if self._animation_state == AnimationState.AFTER_ANIMATION:
+                if isinstance(self._animating_state, AfterAnimating):
                     break
 
             self._root_mobject._render_scene(color_framebuffer)

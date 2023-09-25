@@ -12,7 +12,7 @@ from typing import (
     TypeVar
 )
 
-from ...utils.path_utils import PathUtils
+from ..utils.path_utils import PathUtils
 
 
 _InputDataT = TypeVar("_InputDataT")

@@ -1,7 +1,10 @@
-from typing import TYPE_CHECKING
 import weakref
+from typing import TYPE_CHECKING
 
-from ..animation_state import AnimationState
+from ..animating_states import (
+    OnAnimating,
+    AfterAnimating
+)
 from .condition import Condition
 
 if TYPE_CHECKING:
@@ -22,5 +25,5 @@ class Launched(Condition):
         animation = self._animation_ref()
         return (
             animation is None
-            or animation._animation_state in (AnimationState.ON_ANIMATION, AnimationState.AFTER_ANIMATION)
+            or isinstance(animation._animating_state, OnAnimating | AfterAnimating)
         )

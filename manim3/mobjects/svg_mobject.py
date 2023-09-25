@@ -9,14 +9,14 @@ import numpy as np
 import svgelements as se
 from scipy.interpolate import BSpline
 
+from ..animatables.geometries.shape import Shape
 from ..constants.custom_typing import (
     NP_2f8,
     NP_x2f8
 )
 from ..utils.color_utils import ColorUtils
 from ..utils.space_utils import SpaceUtils
-from .mobject.mobject_io import MobjectIO
-from .shape_mobjects.shapes.shape import Shape
+from .mobject_io import MobjectIO
 from .shape_mobjects.shape_mobject import ShapeMobject
 
 

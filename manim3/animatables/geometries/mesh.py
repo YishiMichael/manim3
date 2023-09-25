@@ -1,20 +1,20 @@
 import numpy as np
 
-
-from ....constants.custom_typing import (
+from ...constants.custom_typing import (
     NP_x2f8,
     NP_x3f8,
     NP_x3i4
 )
-from ....lazy.lazy import Lazy
-from ....rendering.buffers.attributes_buffer import AttributesBuffer
-from ....rendering.buffers.index_buffer import IndexBuffer
-from ....rendering.indexed_attributes_buffer import IndexedAttributesBuffer
-from ....rendering.mgl_enums import PrimitiveMode
-from ...mobject.mobject_attributes.mobject_attribute import MobjectAttribute
+from ...lazy.lazy import Lazy
+from ...rendering.buffers.attributes_buffer import AttributesBuffer
+from ...rendering.buffers.index_buffer import IndexBuffer
+from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
+from ...rendering.mgl_enums import PrimitiveMode
+from ..animatable import Animatable
+#from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
 
 
-class Mesh(MobjectAttribute):
+class Mesh(Animatable):
     __slots__ = ()
 
     def __init__(

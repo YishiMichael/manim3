@@ -3,11 +3,11 @@ from PIL import Image
 
 from ..toplevel.toplevel import Toplevel
 from ..utils.space_utils import SpaceUtils
-from .mesh_mobjects.meshes.plane_mesh import PlaneMesh
-from .mesh_mobjects.mesh_mobject import MeshMobject
+#from .mesh_mobjects.meshes.plane_mesh import PlaneMesh
+from .mesh_mobjects.plane import Plane
 
 
-class ImageMobject(MeshMobject):
+class ImageMobject(Plane):
     __slots__ = ()
 
     def __init__(
@@ -18,9 +18,7 @@ class ImageMobject(MeshMobject):
         height: float | None = 4.0,
         frame_scale: float | None = None
     ) -> None:
-        super().__init__(
-            mesh=PlaneMesh()
-        )
+        super().__init__()
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         image_texture = Toplevel.context.texture(size=image.size, components=3, dtype="f1")
         image_texture.write(image.tobytes("raw", "RGB"))

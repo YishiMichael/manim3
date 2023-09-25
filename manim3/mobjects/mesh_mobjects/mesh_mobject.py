@@ -1,6 +1,10 @@
 import moderngl
 import numpy as np
 
+from ...animatables.lights.lighting import Lighting
+from ...animatables.arrays.animatable_array import AnimatableArray
+from ...animatables.arrays.animatable_color import AnimatableColor
+from ...animatables.geometries.mesh import Mesh
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -15,14 +19,10 @@ from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-from ..lights.lighting import Lighting
-from ..mobject.mobject_attributes.array_attribute import ArrayAttribute
-from ..mobject.mobject_attributes.color_attribute import ColorAttribute
-from ..renderable_mobject import RenderableMobject
-from .meshes.mesh import Mesh
+from ..mobject import Mobject
 
 
-class MeshMobject(RenderableMobject):
+class MeshMobject(Mobject):
     __slots__ = ()
 
     def __init__(
@@ -33,40 +33,40 @@ class MeshMobject(RenderableMobject):
         if mesh is not None:
             self._mesh_ = mesh
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _color_() -> ColorAttribute:
-        return ColorAttribute(np.ones((3,)))
+    def _color_() -> AnimatableColor:
+        return AnimatableColor(np.ones((3,)))
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _opacity_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(1.0)
+    def _opacity_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(1.0)
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _weight_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(1.0)
+    def _weight_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(1.0)
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _ambient_strength_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(1.0)
+    def _ambient_strength_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(1.0)
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _specular_strength_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(Toplevel.config.mesh_specular_strength)
+    def _specular_strength_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(Toplevel.config.mesh_specular_strength)
 
-    @Lazy.variable(hasher=Lazy.branch_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _shininess_() -> ArrayAttribute[NP_f8]:
-        return ArrayAttribute(Toplevel.config.mesh_shininess)
+    def _shininess_() -> AnimatableArray[NP_f8]:
+        return AnimatableArray(Toplevel.config.mesh_shininess)
 
     @Lazy.variable()
     @staticmethod

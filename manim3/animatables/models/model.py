@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 #from typing import TYPE_CHECKING
 
 import numpy as np
@@ -9,7 +10,8 @@ from ...constants.constants import (
 )
 from ...constants.custom_typing import (
     NP_3f8,
-    NP_44f8
+    NP_44f8,
+    NP_x3f8
 )
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
@@ -22,6 +24,27 @@ from ..animatable import (
 #    from ...models.model.model import model
 
 
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class BoundingBox:
+    maximum: NP_3f8
+    minimum: NP_3f8
+
+    #@property
+    #def center(self) -> NP_3f8:
+    #    return (self.maximum + self.minimum) / 2.0
+
+    #@property
+    #def radii(self) -> NP_3f8:
+    #    radii = (self.maximum - self.minimum) / 2.0
+    #    # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
+    #    radii[np.isclose(radii, 0.0)] = 1e-8
+    #    return radii
+
+
 class Model(Animatable):
     __slots__ = ()
 
@@ -30,15 +53,72 @@ class Model(Animatable):
     def _model_matrix_() -> NP_44f8:
         return np.identity(4)
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
-    def _centroid_() -> NP_3f8:
-        return np.zeros((3,))
+    def _local_sample_positions_() -> NP_x3f8:
+        #return np.array((ORIGIN,))
+        return np.zeros((0, 3))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
-    def _radii_() -> NP_3f8:
-        return np.zeros((3,))
+    def _world_sample_positions_(
+        model_matrix: NP_44f8,
+        local_sample_positions: NP_x3f8,
+    ) -> NP_x3f8:
+        return SpaceUtils.apply_affine(model_matrix, local_sample_positions)
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _bounding_box_reference_points_(
+        world_sample_positions: NP_x3f8,
+    ) -> NP_x3f8:
+        return world_sample_positions
+
+    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _centroid_() -> NP_3f8:
+    #    return np.zeros((3,))
+
+    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _radii_() -> NP_3f8:
+    #    return np.zeros((3,))
+
+    @Lazy.property()
+    @staticmethod
+    def _bounding_box_(
+        bounding_box_reference_points: NP_x3f8
+    ) -> BoundingBox:
+        #positions_array = np.concatenate((
+        #    world_sample_positions,
+        #    *real_descendants__world_sample_positions
+        #))
+        if not len(bounding_box_reference_points):
+            return BoundingBox(
+                maximum=np.zeros((1, 3)),
+                minimum=np.zeros((1, 3))
+            )
+        return BoundingBox(
+            maximum=bounding_box_reference_points.max(axis=0),
+            minimum=bounding_box_reference_points.min(axis=0)
+        )
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _centroid_(
+        bounding_box: BoundingBox
+    ) -> NP_3f8:
+        return (bounding_box.maximum + bounding_box.minimum) / 2.0
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _radii_(
+        bounding_box: BoundingBox
+    ) -> NP_3f8:
+        return (bounding_box.maximum - bounding_box.minimum) / 2.0
+        # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
+        #radii[np.isclose(radii, 0.0)] = 1e-8
+        #return radii
 
     def get_bounding_box_position(
         self,
@@ -57,7 +137,7 @@ class Model(Animatable):
         vector: NP_3f8,
         mask: float | NP_3f8 = 1.0
     ):
-        self._handle_updater(ModelShiftUpdater(
+        self._stack_updater(ModelShiftUpdater(
             model=self,
             vector=vector,
             mask=mask * np.ones((3,))
@@ -73,7 +153,7 @@ class Model(Animatable):
         mask: float | NP_3f8 = 1.0
     ):
         #signed_direction = buff_direction_sign * direction
-        self._handle_updater(ModelShiftToUpdater(
+        self._stack_updater(ModelShiftToUpdater(
             model=self,
             aligned_model=aligned_model,
             direction=direction,
@@ -126,7 +206,7 @@ class Model(Animatable):
     ):
         if about_model is None:
             about_model = self
-        self._handle_updater(ModelScaleUpdater(
+        self._stack_updater(ModelScaleUpdater(
             model=self,
             factor=factor * np.ones((3,)),
             about_model=about_model,
@@ -144,7 +224,7 @@ class Model(Animatable):
     ):
         if about_model is None:
             about_model = self
-        self._handle_updater(ModelScaleToUpdater(
+        self._stack_updater(ModelScaleToUpdater(
             model=self,
             aligned_model=aligned_model,
             #radii=self._radii_,
@@ -180,7 +260,7 @@ class Model(Animatable):
     ):
         if about_model is None:
             about_model = self
-        self._handle_updater(ModelRotateUpdater(
+        self._stack_updater(ModelRotateUpdater(
             model=self,
             rotvec=rotvec,
             about_model=about_model,
@@ -212,7 +292,7 @@ class Model(Animatable):
     ):
         if about_model is None:
             about_model = self
-        self._handle_updater(ModelTransformationUpdater(
+        self._stack_updater(ModelTransformationUpdater(
             model=self,
             transmat=transmat,
             about_model=about_model,
@@ -228,7 +308,7 @@ class Model(Animatable):
     ):
         if about_model is None:
             about_model = self
-        self._handle_updater(ModelPoseUpdater(
+        self._stack_updater(ModelPoseUpdater(
             model=self,
             aligned_model=aligned_model,
             #matrix=self._matrix_,
@@ -239,7 +319,7 @@ class Model(Animatable):
         return self
 
 
-class ModelUpdater(Updater):
+class ModelUpdater(Updater[Model]):
     __slots__ = ()
 
     def __init__(

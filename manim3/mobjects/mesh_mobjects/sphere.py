@@ -1,17 +1,17 @@
 import numpy as np
 
-from ....constants.constants import (
+from ...constants.constants import (
     PI,
     TAU
 )
-from ....constants.custom_typing import (
+from ...constants.custom_typing import (
     NP_x2f8,
     NP_x3f8
 )
-from .parametric_surface_mesh import ParametricSurfaceMesh
+from .parametric_surface import ParametricSurface
 
 
-class SphereMesh(ParametricSurfaceMesh):
+class Sphere(ParametricSurface):
     __slots__ = ()
 
     def __init__(self) -> None:
