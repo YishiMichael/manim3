@@ -1,19 +1,14 @@
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Coroutine
+#from dataclasses import dataclass
+#from typing import TYPE_CHECKING, Coroutine
 
-from .conditions.condition import Condition
-from .rates.rate import Rate
+#from .conditions.condition import Condition
+#from .rates.rate import Rate
 
-if TYPE_CHECKING:
-    from .animation import Animation
+#if TYPE_CHECKING:
+#    from .animation import Animation
 
 
-@dataclass(
-    kw_only=True,
-    slots=True
-)
-class AnimatingState:
-    pass
+
 
     #def __init__(
     #    self,
@@ -30,14 +25,6 @@ class AnimatingState:
     #) -> "AnimatingState | None":
     #    pass
 
-
-@dataclass(
-    kw_only=True,
-    slots=True
-)
-class BeforeAnimating(AnimatingState):
-    launch_condition: Condition
-
     #def _state_progress(
     #    self,
     #    animation: "Animation"
@@ -45,18 +32,6 @@ class BeforeAnimating(AnimatingState):
     #    if self._launch_condition.judge():
     #        return OnAnimating(self._schedule_info, animation)
     #    return None
-
-
-@dataclass(
-    kw_only=True,
-    slots=True
-)
-class OnAnimating(AnimatingState):
-    timeline_coroutine: Coroutine[None, None, None]
-    absolute_rate: Rate
-    terminate_condition: Condition
-    progress_condition: Condition
-    children: "list[Animation]"
     #__slots__ = (
     #    "_timeline_coroutine",
     #    "_absolute_rate",
@@ -102,14 +77,6 @@ class OnAnimating(AnimatingState):
     #        except StopIteration:
     #            break
     #    return AfterAnimating(self._schedule_info, animation, timestamp)
-
-
-@dataclass(
-    kw_only=True,
-    slots=True
-)
-class AfterAnimating(AnimatingState):
-    pass
     #__slots__ = ()
 
     #def _state_progress(

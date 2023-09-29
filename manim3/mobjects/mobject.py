@@ -3,15 +3,15 @@ import weakref
 #from abc import abstractmethod
 from typing import (
     TYPE_CHECKING,
-    Callable,
-    ClassVar,
+    #Callable,
+    #ClassVar,
     Iterable,
     Iterator,
     TypedDict,
     overload
 )
 
-import numpy as np
+#import numpy as np
 
 from ..animatables.cameras.camera import Camera
 from ..animatables.geometries.graph import Graph
@@ -23,17 +23,11 @@ from ..animatables.models.model import Model
 #    ORIGIN,
 #    PI
 #)
-from ..constants.custom_typing import (
-    ColorT,
-    #NP_3f8,
-    NP_44f8,
-    NP_x3f8
-    #NP_xf8
-)
+from ..constants.custom_typing import ColorT
 from ..lazy.lazy import Lazy
 from ..lazy.lazy_descriptor import LazyDescriptor
 #from ...lazy.lazy_object import LazyObject
-from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+#from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..toplevel.toplevel import Toplevel
 #from ...utils.space_utils import SpaceUtils
@@ -59,7 +53,7 @@ if TYPE_CHECKING:
     #from .aligns.align import Align
 
 
-class StyleKwargs(TypedDict, total=False):
+class MobjectSetKwargs(TypedDict, total=False):
     # polymorphism variables
     color: ColorT
     opacity: float
@@ -95,24 +89,24 @@ class Mobject(Model):
     #    "_real_ancestors": weakref.WeakSet.copy
     #}
 
-    _attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
+    #_attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
     #_equivalent_cls_mro_index: ClassVar[int] = 0
 
-    def __init_subclass__(cls):
-        super().__init_subclass__()
+    #def __init_subclass__(cls):
+    #    super().__init_subclass__()
 
-        cls._attribute_descriptors = {
-            name: descriptor
-            for name, descriptor in cls._lazy_descriptors.items()
-            if not descriptor._is_multiple
-            and descriptor._is_variable
-            and issubclass(descriptor._element_type, MobjectAttribute)
-        }
+    #    cls._attribute_descriptors = {
+    #        name: descriptor
+    #        for name, descriptor in cls._lazy_descriptors.items()
+    #        if not descriptor._is_multiple
+    #        and descriptor._is_variable
+    #        and issubclass(descriptor._element_type, MobjectAttribute)
+    #    }
 
-        base_cls = cls.__base__
-        assert issubclass(base_cls, Mobject)
-        if cls._attribute_descriptors == base_cls._attribute_descriptors:
-            cls._equivalent_cls_mro_index = base_cls._equivalent_cls_mro_index + 1
+    #    base_cls = cls.__base__
+    #    assert issubclass(base_cls, Mobject)
+    #    if cls._attribute_descriptors == base_cls._attribute_descriptors:
+    #        cls._equivalent_cls_mro_index = base_cls._equivalent_cls_mro_index + 1
 
     def __init__(self) -> None:
         super().__init__()
@@ -235,7 +229,7 @@ class Mobject(Model):
             children.append(mobject)
             mobject._parents.add(self)
         self._children_ = tuple(children)
-        self._refresh_families(self)
+        self._refresh_families(self)  # TODO
         return self
 
     def discard(
@@ -251,7 +245,7 @@ class Mobject(Model):
             children.remove(mobject)
             mobject._parents.remove(self)
         self._children_ = tuple(children)
-        self._refresh_families(self, *filtered_mobjects)
+        self._refresh_families(self, *filtered_mobjects)  # TODO
         return self
 
     def clear(self):
@@ -289,25 +283,17 @@ class Mobject(Model):
 
     # model matrix
 
+    @Lazy.property_collection()
+    @staticmethod
+    def _associated_models_(
+        real_descendants: "tuple[Mobject, ...]"
+    ) -> tuple[Model, ...]:
+        return real_descendants
+
     #@Lazy.variable(hasher=Lazy.branch_hasher)
     #@staticmethod
     #def _model_matrix_() -> ArrayAttribute[NP_44f8]:
     #    return ArrayAttribute(np.identity(4))
-
-    @Lazy.property()
-    @staticmethod
-    def _model_uniform_block_buffer_(
-        model_matrix: NP_44f8
-    ) -> UniformBlockBuffer:
-        return UniformBlockBuffer(
-            name="ub_model",
-            fields=[
-                "mat4 u_model_matrix"
-            ],
-            data={
-                "u_model_matrix": model_matrix.T
-            }
-        )
 
     #@Lazy.property(hasher=Lazy.array_hasher)
     #@staticmethod
@@ -358,16 +344,16 @@ class Mobject(Model):
     #        minimum=positions_array.min(axis=0)
     #    )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _bounding_box_reference_points_(
-        world_sample_positions: NP_x3f8,
-        real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
-    ) -> NP_x3f8:
-        return np.concatenate((
-            world_sample_positions,
-            *real_descendants__world_sample_positions
-        ))
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _bounding_box_reference_points_(
+    #    world_sample_positions: NP_x3f8,
+    #    real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
+    #) -> NP_x3f8:
+    #    return np.concatenate((
+    #        world_sample_positions,
+    #        *real_descendants__world_sample_positions
+    #    ))
 
     #@Lazy.property()
     #@staticmethod
@@ -549,30 +535,30 @@ class Mobject(Model):
 
     # attributes
 
-    @classmethod
-    @property
-    def _equivalent_cls(cls) -> "type[Mobject]":
-        return cls.__mro__[cls._equivalent_cls_mro_index]
+    #@classmethod
+    #@property
+    #def _equivalent_cls(cls) -> "type[Mobject]":
+    #    return cls.__mro__[cls._equivalent_cls_mro_index]
 
-    @classmethod
-    def _get_interpolate_bound_handler(
-        cls,
-        dst_mobject: "Mobject",
-        src_mobject_0: "Mobject",
-        src_mobject_1: "Mobject"
-    ) -> "InterpolateBoundHandler":
-        assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, src_mobject_0, src_mobject_1))
-        interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = {}
-        for descriptor in cls._attribute_descriptors.values():
-            data_0 = descriptor.__get__(src_mobject_0)
-            data_1 = descriptor.__get__(src_mobject_1)
-            if data_0 is data_1:
-                continue
-            if not descriptor._element_type._interpolate_implemented:
-                raise ValueError(f"Uninterpolable variables of `{descriptor._name}` don't match")
-            interpolate_handler = descriptor._element_type._interpolate(data_0, data_1)
-            interpolate_handler_dict[descriptor] = interpolate_handler
-        return InterpolateBoundHandler(dst_mobject, interpolate_handler_dict)
+    #@classmethod
+    #def _get_interpolate_bound_handler(
+    #    cls,
+    #    dst_mobject: "Mobject",
+    #    src_mobject_0: "Mobject",
+    #    src_mobject_1: "Mobject"
+    #) -> "InterpolateBoundHandler":
+    #    assert all(cls is type(mobject)._equivalent_cls for mobject in (dst_mobject, src_mobject_0, src_mobject_1))
+    #    interpolate_handler_dict: dict[LazyDescriptor, InterpolateHandler] = {}
+    #    for descriptor in cls._attribute_descriptors.values():
+    #        data_0 = descriptor.__get__(src_mobject_0)
+    #        data_1 = descriptor.__get__(src_mobject_1)
+    #        if data_0 is data_1:
+    #            continue
+    #        if not descriptor._element_type._interpolate_implemented:
+    #            raise ValueError(f"Uninterpolable variables of `{descriptor._name}` don't match")
+    #        interpolate_handler = descriptor._element_type._interpolate(data_0, data_1)
+    #        interpolate_handler_dict[descriptor] = interpolate_handler
+    #    return InterpolateBoundHandler(dst_mobject, interpolate_handler_dict)
 
     #@classmethod
     #def _split_into(
@@ -644,15 +630,17 @@ class Mobject(Model):
         *,
         broadcast: bool = True,
         type_filter: "type[Mobject] | None" = None,
-        **kwargs: "Unpack[StyleKwargs]"
+        **kwargs: "Unpack[MobjectSetKwargs]"
     ):
         for mobject in self.iter_descendants(broadcast=broadcast):
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
-            for key, value in kwargs.items():
-                if (descriptor := type(mobject)._attribute_descriptors.get(f"_{key}_")) is None:
-                    continue
-                descriptor.__set__(mobject, descriptor._element_type._convert_input(value))
+            super(Mobject, mobject).set(**kwargs)
+            #for key, value in kwargs.items():
+            #    super(Mobject, mobject).set()
+            #    if (descriptor := type(mobject)._animatable_descriptors.get(f"_{key}_")) is None:
+            #        continue
+            #    descriptor.__set__(mobject, descriptor._element_type._convert_input(value))
         return self
 
     # render

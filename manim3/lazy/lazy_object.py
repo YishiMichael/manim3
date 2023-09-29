@@ -12,7 +12,7 @@ from .lazy_descriptor import LazyDescriptor
 from .lazy_slot import LazySlot
 
 
-_LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
+#_LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 
 
 class LazyObject(ABC):
@@ -130,20 +130,22 @@ class LazyObject(ABC):
         for descriptor in type(self)._lazy_descriptors.values():
             descriptor._init(self)
 
-    @classmethod
-    def _copy_lazy_content(
-        cls,
-        dst_object: _LazyObjectT,
-        src_object: _LazyObjectT
-    ) -> None:
-        for descriptor in cls._lazy_descriptors.values():
-            if descriptor._is_variable:
-                descriptor._set_elements(dst_object, descriptor._get_elements(src_object))
+    #@classmethod
+    #def _copy_lazy_content(
+    #    cls,
+    #    dst_object: _LazyObjectT,
+    #    src_object: _LazyObjectT
+    #) -> None:
+    #    for descriptor in cls._lazy_descriptors.values():
+    #        if descriptor._is_variable:
+    #            descriptor._set_elements(dst_object, descriptor._get_elements(src_object))
 
     def _copy(self):
         cls = type(self)
         result = cls(**cls._default_constructor_kwargs)
-        cls._copy_lazy_content(result, self)
+        for descriptor in cls._lazy_descriptors.values():
+            if descriptor._is_variable:
+                descriptor._set_elements(result, descriptor._get_elements(self))
         #result._lazy_slots = {}
         #result._is_frozen = False
         #for descriptor in cls._lazy_descriptors.values():

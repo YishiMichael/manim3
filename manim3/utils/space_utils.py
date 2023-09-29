@@ -8,7 +8,6 @@ from scipy.spatial.transform import Rotation
 
 from ..constants.custom_typing import (
     NP_2f8,
-    NP_33f8,
     NP_3f8,
     NP_44f8,
     NP_4f8,
@@ -111,25 +110,9 @@ class SpaceUtils:
     @classmethod
     def apply_affine(
         cls,
-        matrix: NP_33f8,
-        vector: NP_2f8
-    ) -> NP_2f8: ...
-
-    @overload
-    @classmethod
-    def apply_affine(
-        cls,
         matrix: NP_44f8,
         vector: NP_3f8
     ) -> NP_3f8: ...
-
-    @overload
-    @classmethod
-    def apply_affine(
-        cls,
-        matrix: NP_33f8,
-        vector: NP_x2f8
-    ) -> NP_x2f8: ...
 
     @overload
     @classmethod
@@ -139,12 +122,13 @@ class SpaceUtils:
         vector: NP_x3f8
     ) -> NP_x3f8: ...
 
+    # TODO
     @classmethod
     def apply_affine(
         cls,
-        matrix: NP_33f8 | NP_44f8,
-        vector: NP_2f8 | NP_3f8 | NP_x2f8 | NP_x3f8
-    ) -> NP_2f8 | NP_3f8 | NP_x2f8 | NP_x3f8:
+        matrix: NP_44f8,
+        vector: NP_3f8 | NP_x3f8
+    ) -> NP_3f8 | NP_x3f8:
         if vector.ndim == 1:
             v = vector[:, None]
         else:

@@ -7,6 +7,7 @@ from .animatables.geometries.shape import Shape
 from .animatables.lights.ambient_light import AmbientLight
 from .animatables.lights.lighting import Lighting
 from .animatables.lights.point_light import PointLight
+from .animatables.models.point import Point
 
 from .animations.animation.conditions.always import Always
 from .animations.animation.conditions.condition import Condition

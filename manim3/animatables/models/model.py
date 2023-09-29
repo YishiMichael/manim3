@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import Callable, TypeVar
 #from typing import TYPE_CHECKING
 
 import numpy as np
@@ -11,10 +12,14 @@ from ...constants.constants import (
 from ...constants.custom_typing import (
     NP_3f8,
     NP_44f8,
-    NP_x3f8
+    NP_x3f8,
+    NP_xf8,
+    NP_xi4
 )
 from ...lazy.lazy import Lazy
+from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.space_utils import SpaceUtils
+from ..arrays.model_matrix import ModelMatrix
 from ..animatable import (
     Animatable,
     Updater
@@ -22,6 +27,9 @@ from ..animatable import (
 
 #if TYPE_CHECKING:
 #    from ...models.model.model import model
+
+
+_ModelT = TypeVar("_ModelT", bound="Model")
 
 
 @dataclass(
@@ -48,31 +56,50 @@ class BoundingBox:
 class Model(Animatable):
     __slots__ = ()
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _model_matrix_() -> NP_44f8:
-        return np.identity(4)
+    def _model_matrix_() -> ModelMatrix:
+        return ModelMatrix()
+
+    @Lazy.property_collection()
+    @staticmethod
+    def _associated_models_() -> "tuple[Model, ...]":
+        return ()
+
+    @Lazy.property()
+    @staticmethod
+    def _model_uniform_block_buffer_(
+        model_matrix__array: NP_44f8
+    ) -> UniformBlockBuffer:
+        return UniformBlockBuffer(
+            name="ub_model",
+            fields=[
+                "mat4 u_model_matrix"
+            ],
+            data={
+                "u_model_matrix": model_matrix__array.T
+            }
+        )
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _local_sample_positions_() -> NP_x3f8:
-        #return np.array((ORIGIN,))
         return np.zeros((0, 3))
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _world_sample_positions_(
-        model_matrix: NP_44f8,
+        model_matrix: ModelMatrix,
         local_sample_positions: NP_x3f8,
     ) -> NP_x3f8:
-        return SpaceUtils.apply_affine(model_matrix, local_sample_positions)
+        return model_matrix._apply_affine_multiple(local_sample_positions)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _bounding_box_reference_points_(
-        world_sample_positions: NP_x3f8,
-    ) -> NP_x3f8:
-        return world_sample_positions
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _bounding_box_reference_points_(
+    #    world_sample_positions: NP_x3f8,
+    #) -> NP_x3f8:
+    #    return world_sample_positions
 
     #@Lazy.variable(hasher=Lazy.array_hasher)
     #@staticmethod
@@ -87,12 +114,13 @@ class Model(Animatable):
     @Lazy.property()
     @staticmethod
     def _bounding_box_(
-        bounding_box_reference_points: NP_x3f8
+        world_sample_positions: NP_x3f8,
+        associated_models__world_sample_positions: tuple[NP_x3f8, ...]
     ) -> BoundingBox:
-        #positions_array = np.concatenate((
-        #    world_sample_positions,
-        #    *real_descendants__world_sample_positions
-        #))
+        bounding_box_reference_points = np.concatenate((
+            world_sample_positions,
+            *associated_models__world_sample_positions
+        ))
         if not len(bounding_box_reference_points):
             return BoundingBox(
                 maximum=np.zeros((1, 3)),
@@ -123,12 +151,74 @@ class Model(Animatable):
     def get_bounding_box_position(
         self,
         direction: NP_3f8,
-        buff: float | NP_3f8 = 0.0
+        buff: NP_3f8 = ORIGIN
     ) -> NP_3f8:
         return self._centroid_ + self._radii_ * direction + buff * direction
 
     def get_centroid(self) -> NP_3f8:
         return self._centroid_
+
+    @classmethod
+    def _get_interpolate_updater(
+        cls: type[_ModelT],
+        dst: _ModelT,
+        src_0: _ModelT,
+        src_1: _ModelT
+    ) -> Updater:
+        return super()._get_interpolate_updater(dst, src_0, src_1).add(*(
+            super()._get_interpolate_updater(dst_associated, src_0_assiciated, src_1_assiciated)
+            for dst_associated, src_0_assiciated, src_1_assiciated in zip(
+                dst._associated_models_, src_0._associated_models_, src_1._associated_models_, strict=True
+            )
+        ))
+
+    @classmethod
+    def _get_piecewise_updater(
+        cls: type[_ModelT],
+        dst: _ModelT,
+        src: _ModelT,
+        piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
+    ) -> Updater:
+        return super()._get_piecewise_updater(dst, src, piecewise_func).add(*(
+            super()._get_piecewise_updater(dst_associated, src_assiciated, piecewise_func)
+            for dst_associated, src_assiciated in zip(
+                dst._associated_models_, src._associated_models_, strict=True
+            )
+        ))
+
+    #@classmethod
+    #def _split(
+    #    cls: type[_ModelT],
+    #    dst_tuple: tuple[_ModelT, ...],
+    #    src: _ModelT,
+    #    alphas: NP_xf8
+    #) -> None:
+    #    super()._split(dst_tuple, src, alphas)
+    #    for dst_tuple_associated, src_assiciated in zip(
+    #        tuple(dst._associated_models_ for dst in dst_tuple), src._associated_models_, strict=True
+    #    ):
+    #        super()._split(dst_tuple_associated, src_assiciated, alphas)
+
+    #@classmethod
+    #def _concatenate(
+    #    cls: type[_ModelT],
+    #    dst: _ModelT,
+    #    src_tuple: tuple[_ModelT, ...]
+    #) -> None:
+    #    super()._concatenate(dst, src_tuple)
+    #    for dst_associated, src_tuple_assiciated in zip(
+    #        dst._associated_models_, tuple(src._associated_models_ for src in src_tuple), strict=True
+    #    ):
+    #        super()._concatenate(dst_associated, src_tuple_assiciated)
+
+    #def _apply_directly(
+    #    self,
+    #    matrix: NP_44f8
+    #):
+    #    self._model_matrix_._apply(matrix)
+    #    for associated_model in self._associated_models_:
+    #        associated_model._model_matrix_._apply(matrix)
+    #    return self
 
     # animations
 
@@ -149,18 +239,18 @@ class Model(Animatable):
         aligned_model: "Model",
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
-        buff_direction_sign: float = 0.0,
-        mask: float | NP_3f8 = 1.0
+        mask: float | NP_3f8 = 1.0,
+        align_direction_sign: float = 0.0
     ):
-        #signed_direction = buff_direction_sign * direction
+        #signed_direction = align_direction_sign * direction
         self._stack_updater(ModelShiftToUpdater(
             model=self,
             aligned_model=aligned_model,
             direction=direction,
             buff=buff * np.ones((3,)),
-            buff_direction_sign=buff_direction_sign,
+            mask=mask * np.ones((3,)),
+            align_direction_sign=align_direction_sign
             #buff_vector=self.get_bounding_box_position(signed_direction) + buff * signed_direction,
-            mask=mask * np.ones((3,))
             #initial_model=self
         ))
         return self
@@ -176,8 +266,8 @@ class Model(Animatable):
             aligned_model=aligned_model,
             direction=direction,
             buff=buff,
-            buff_direction_sign=1.0,
-            mask=mask
+            mask=mask,
+            align_direction_sign=1.0
         )
         return self
 
@@ -192,8 +282,8 @@ class Model(Animatable):
             aligned_model=aligned_model,
             direction=direction,
             buff=buff,
-            buff_direction_sign=-1.0,
-            mask=mask
+            mask=mask,
+            align_direction_sign=-1.0
         )
         return self
 
@@ -284,17 +374,17 @@ class Model(Animatable):
         )
         return self
 
-    def transformation(
+    def apply(
         self,
-        transmat: NP_44f8,
+        matrix: NP_44f8,
         about_model: "Model | None" = None,
         about_direction: NP_3f8 = ORIGIN
     ):
         if about_model is None:
             about_model = self
-        self._stack_updater(ModelTransformationUpdater(
+        self._stack_updater(ModelApplyUpdater(
             model=self,
-            transmat=transmat,
+            matrix=matrix,
             about_model=about_model,
             about_direction=about_direction
         ))
@@ -319,8 +409,8 @@ class Model(Animatable):
         return self
 
 
-class ModelUpdater(Updater[Model]):
-    __slots__ = ()
+class ModelUpdater(Updater):
+    __slots__ = ("_initial_matrices",)
 
     def __init__(
         self,
@@ -335,7 +425,12 @@ class ModelUpdater(Updater[Model]):
         #factor = np.maximum(factor, 1e-8)
         #super().__init__()
         #self._factor: NP_3f8 = factor
-        super().__init__(model)
+        super().__init__()
+        self._initial_matrices: dict[ModelMatrix, NP_44f8] = {
+            model_assiciated._model_matrix_: model_assiciated._model_matrix_._array_
+            for model_assiciated in (model, *model._associated_models_)
+        }
+        #self._model: Model = model
         self._about_model_ = about_model
         self._about_direction_ = about_direction
 
@@ -357,8 +452,22 @@ class ModelUpdater(Updater[Model]):
     ) -> NP_3f8:
         return about_model.get_bounding_box_position(about_direction)
 
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _pre_shift_matrix_(
+        about_point: NP_3f8
+    ) -> NP_44f8:
+        return SpaceUtils.matrix_from_shift(-about_point)
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _post_shift_matrix_(
+        about_point: NP_3f8
+    ) -> NP_44f8:
+        return SpaceUtils.matrix_from_shift(about_point)
+
     @abstractmethod
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
@@ -366,14 +475,20 @@ class ModelUpdater(Updater[Model]):
 
     def update(
         self,
-        model: Model,
         alpha: float
     ) -> None:
-        transformation = self._get_transformation_matrix(alpha)
-        about_point = self._about_point_
-        model._model_matrix_ = (
-            SpaceUtils.matrix_from_shift(about_point) @ transformation @ SpaceUtils.matrix_from_shift(-about_point) @ model._model_matrix_
-        )
+        #model = self._model
+        matrix = self._get_matrix(alpha)
+        for model_matrix, initial_matrix in self._initial_matrices.items():
+            model_matrix._array_ = (
+                self._post_shift_matrix_ @ matrix @ self._pre_shift_matrix_ @ initial_matrix
+            )
+
+    def initial_update(self) -> None:
+        self.update(0.0)
+
+    def final_update(self) -> None:
+        self.update(1.0)
 
 
 #class ModelAbstractShiftUpdater(ModelUpdater):
@@ -395,7 +510,7 @@ class ModelUpdater(Updater[Model]):
 #    def _vector_() -> NP_3f8:
 #        return NotImplemented
 
-#    def _get_transformation_matrix(
+#    def _get_matrix(
 #        self,
 #        alpha: float
 #    ) -> NP_44f8:
@@ -436,7 +551,7 @@ class ModelUpdater(Updater[Model]):
 #    def _factor_() -> NP_3f8:
 #        return NotImplemented
 
-#    def _get_transformation_matrix(
+#    def _get_matrix(
 #        self,
 #        alpha: float
 #    ) -> NP_44f8:
@@ -472,7 +587,7 @@ class ModelUpdater(Updater[Model]):
 #    def _rotvec_() -> NP_3f8:
 #        return NotImplemented
 
-#    def _get_transformation_matrix(
+#    def _get_matrix(
 #        self,
 #        alpha: float
 #    ) -> NP_44f8:
@@ -504,14 +619,14 @@ class ModelUpdater(Updater[Model]):
 
 #    @Lazy.property(hasher=Lazy.array_hasher)
 #    @staticmethod
-#    def _transmat_() -> NP_44f8:
+#    def _matrix_() -> NP_44f8:
 #        return NotImplemented
 
-#    def _get_transformation_matrix(
+#    def _get_matrix(
 #        self,
 #        alpha: float
 #    ) -> NP_44f8:
-#        return self._transmat_ * alpha
+#        return self._matrix_ * alpha
 
 
 class ModelShiftUpdater(ModelUpdater):
@@ -536,7 +651,7 @@ class ModelShiftUpdater(ModelUpdater):
     def _vector_() -> NP_3f8:
         return NotImplemented
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
@@ -565,9 +680,9 @@ class ModelShiftToUpdater(ModelUpdater):
         aligned_model: Model,
         direction: NP_3f8,
         buff: NP_3f8,
-        buff_direction_sign: float,
         #buff_vector: NP_3f8,
-        mask: NP_3f8
+        mask: NP_3f8,
+        align_direction_sign: float
         #initial_model: Model
     ) -> None:
         super().__init__(
@@ -578,7 +693,7 @@ class ModelShiftToUpdater(ModelUpdater):
         self._aligned_model_ = aligned_model
         self._direction_ = direction
         self._buff_vector_ = (
-            model.get_bounding_box_position(buff_direction_sign * direction, buff)
+            model.get_bounding_box_position(align_direction_sign * direction, buff)
         )
         self._mask: NP_3f8 = mask
 
@@ -611,7 +726,7 @@ class ModelShiftToUpdater(ModelUpdater):
     ) -> NP_3f8:
         return aligned_model.get_bounding_box_position(direction) - buff_vector
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
@@ -644,7 +759,7 @@ class ModelScaleUpdater(ModelUpdater):
     def _factor_() -> NP_3f8:
         return NotImplemented
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
@@ -708,7 +823,7 @@ class ModelScaleToUpdater(ModelUpdater):
     ) -> NP_3f8:
         return aligned_model__radii / np.maximum(initial_radii, 1e-8)
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
@@ -740,7 +855,7 @@ class ModelRotateUpdater(ModelUpdater):
     def _rotvec_() -> NP_3f8:
         return NotImplemented
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
@@ -760,13 +875,13 @@ class ModelRotateUpdater(ModelUpdater):
     #    return vector * mask
 
 
-class ModelTransformationUpdater(ModelUpdater):
+class ModelApplyUpdater(ModelUpdater):
     __slots__ = ()
 
     def __init__(
         self,
         model: Model,
-        transmat: NP_44f8,
+        matrix: NP_44f8,
         about_model: Model,
         about_direction: NP_3f8
     ) -> None:
@@ -775,18 +890,18 @@ class ModelTransformationUpdater(ModelUpdater):
             about_model=about_model,
             about_direction=about_direction
         )
-        self._transmat_ = transmat
+        self._matrix_ = matrix
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
-    def _transmat_() -> NP_44f8:
+    def _matrix_() -> NP_44f8:
         return NotImplemented
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
-        return self._transmat_ * alpha
+        return self._matrix_ * alpha
 
 
 class ModelPoseUpdater(ModelUpdater):
@@ -807,7 +922,7 @@ class ModelPoseUpdater(ModelUpdater):
             about_direction=about_direction
         )
         self._aligned_model_ = aligned_model
-        self._initial_model_matrix_inverse_ = np.linalg.inv(model._model_matrix_)
+        self._initial_model_matrix_inverse_ = np.linalg.inv(model._model_matrix_._array_)
 
     @Lazy.variable(freeze=False)
     @staticmethod
@@ -821,14 +936,14 @@ class ModelPoseUpdater(ModelUpdater):
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
-    def _transmat_(
+    def _matrix_(
         aligned_model__model_matrix: NP_44f8,
         initial_matrix_inverse: NP_44f8
     ) -> NP_44f8:
         return initial_matrix_inverse @ aligned_model__model_matrix
 
-    def _get_transformation_matrix(
+    def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
-        return self._transmat_ * alpha
+        return self._matrix_ * alpha

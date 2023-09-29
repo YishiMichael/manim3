@@ -1,7 +1,10 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from ...animatables.models.model import Model
+from ...animatables.models.model import (
+    Model,
+    ModelMatrix
+)
 from ...constants.constants import (
     ORIGIN,
     OUT,
@@ -64,26 +67,26 @@ class Camera(Model):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _target_(
-        model_matrix: NP_44f8
+        model_matrix: ModelMatrix
     ) -> NP_3f8:
-        return SpaceUtils.apply_affine(model_matrix, ORIGIN)
+        return model_matrix._apply_affine(ORIGIN)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _eye_(
-        model_matrix: NP_44f8
+        model_matrix: ModelMatrix
     ) -> NP_3f8:
-        return SpaceUtils.apply_affine(model_matrix, OUT)
+        return model_matrix._apply_affine(OUT)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _frame_radii_(
-        model_matrix: NP_44f8,
+        model_matrix: ModelMatrix,
         target: NP_3f8
     ) -> NP_2f8:
         return np.array((
-            SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, RIGHT) - target),
-            SpaceUtils.norm(SpaceUtils.apply_affine(model_matrix, UP) - target)
+            SpaceUtils.norm(model_matrix._apply_affine(RIGHT) - target),
+            SpaceUtils.norm(model_matrix._apply_affine(UP) - target)
         ))
 
     @Lazy.property(hasher=Lazy.array_hasher)
@@ -97,10 +100,10 @@ class Camera(Model):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _view_matrix_(
-        model_matrix: NP_44f8,
+        model_matrix__array: NP_44f8,
         eye: NP_3f8
     ) -> NP_44f8:
-        model_basis = model_matrix[:3, :3]
+        model_basis = model_matrix__array[:3, :3]
         model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
         return (
             SpaceUtils.matrix_from_rotate(-Rotation.from_matrix(model_basis_normalized).as_rotvec())

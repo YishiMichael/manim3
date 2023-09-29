@@ -1,17 +1,15 @@
 import numpy as np
 
 
+
 from ...constants.constants import ORIGIN
-from ...constants.custom_typing import (
-    NP_3f8,
-    NP_44f8
-    #NP_x3f8
-)
+from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
-from ...utils.space_utils import SpaceUtils
+#from ...utils.space_utils import SpaceUtils
 #from ..mobject.mobject import Mobject
 #from ..mobject.mobject_attributes.color_attribute import ColorAttribute
 from ..arrays.animatable_color import AnimatableColor
+from ..models.model import ModelMatrix
 from ..models.point import Point
 
 
@@ -26,6 +24,6 @@ class PointLight(Point):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _position_(
-        model_matrix: NP_44f8
+        model_matrix: ModelMatrix
     ) -> NP_3f8:
-        return SpaceUtils.apply_affine(model_matrix, ORIGIN)
+        return model_matrix._apply_affine(ORIGIN)

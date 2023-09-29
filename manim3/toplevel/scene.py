@@ -15,7 +15,7 @@ from ..animatables.cameras.perspective_camera import PerspectiveCamera
 from ..animatables.lights.ambient_light import AmbientLight
 from ..animatables.lights.lighting import Lighting
 from ..animations.animation.animation import Animation
-from ..animations.animation.animating_states import AfterAnimating
+#from ..animations.animation.animating_states import AfterAnimating
 #from ..animations.animation.animation_state import AnimationState
 from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..mobjects.mobject import Mobject
@@ -82,7 +82,7 @@ class Scene(Animation):
                     asyncio.sleep(sleep_time),
                     return_exceptions=False  #True
                 )
-                if isinstance(self._animating_state, AfterAnimating):
+                if self.is_after_animating():
                     break
 
             self._root_mobject._render_scene(color_framebuffer)

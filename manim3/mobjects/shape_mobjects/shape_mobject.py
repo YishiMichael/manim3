@@ -46,6 +46,6 @@ class ShapeMobject(MeshMobject):
 
     def build_stroke(self) -> GraphMobject:
         stroke = GraphMobject()
-        stroke._model_matrix_ = self._model_matrix_
-        stroke._graph_ = self._shape_._graph_
+        stroke._model_matrix_ = self._model_matrix_._copy()
+        stroke._graph_ = self._shape_._graph_._copy()
         return stroke

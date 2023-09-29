@@ -4,7 +4,6 @@ __all__ = (
     "NP_2f8",
     "NP_3f8",
     "NP_4f8",
-    "NP_33f8",
     "NP_44f8",
     "NP_xf8",
     "NP_x2f8",
@@ -41,7 +40,6 @@ NP_f8 = np.ndarray[tuple[()], np.dtype[np.float64]]
 NP_2f8 = np.ndarray[tuple[_2D], np.dtype[np.float64]]
 NP_3f8 = np.ndarray[tuple[_3D], np.dtype[np.float64]]
 NP_4f8 = np.ndarray[tuple[_4D], np.dtype[np.float64]]
-NP_33f8 = np.ndarray[tuple[_3D, _3D], np.dtype[np.float64]]
 NP_44f8 = np.ndarray[tuple[_4D, _4D], np.dtype[np.float64]]
 NP_xf8 = np.ndarray[tuple[_XD], np.dtype[np.float64]]
 NP_x2f8 = np.ndarray[tuple[_XD, _2D], np.dtype[np.float64]]
