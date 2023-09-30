@@ -25,67 +25,6 @@ if TYPE_CHECKING:
     from ...toplevel.scene import Scene
 
 
-class Launched(Condition):
-    __slots__ = ("_animation_ref",)
-
-    def __init__(
-        self,
-        animation: "Animation"
-    ) -> None:
-        super().__init__()
-        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-
-    def judge(self) -> bool:
-        animation = self._animation_ref()
-        return (
-            animation is None
-            or animation.get_on_animating_state() is not None
-            or animation.get_after_animating_state() is not None
-        )
-
-
-class Terminated(Condition):
-    __slots__ = ("_animation_ref",)
-
-    def __init__(
-        self,
-        animation: "Animation"
-    ) -> None:
-        super().__init__()
-        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-
-    def judge(self) -> bool:
-        animation = self._animation_ref()
-        return (
-            animation is None
-            or animation.get_after_animating_state() is not None
-        )
-
-
-class ProgressedDuration(Condition):
-    __slots__ = (
-        "_animation_ref",
-        "_target_alpha"
-    )
-
-    def __init__(
-        self,
-        animation: "Animation",
-        delta_alpha: float
-    ) -> None:
-        assert (animating_state := animation.get_on_animating_state()) is not None
-        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-        self._target_alpha: float = animating_state.absolute_rate.at() + delta_alpha
-
-    def judge(self) -> bool:
-        animation = self._animation_ref()
-        return (
-            animation is None
-            or (animating_state := animation.get_on_animating_state()) is None
-            or animating_state.absolute_rate.at() >= self._target_alpha
-        )
-
-
 class BaseAbsoluteRate:
     __slots__ = ()
 
@@ -285,7 +224,6 @@ class Animation(ABC):
             if not animating_state.launch_condition.judge():
                 return
             self.launch()
-            self._progress()
             #self._animating_state = animating_state = OnAnimating(
             #    timeline_coroutine=self.timeline(),
             #    absolute_rate=AbsoluteRate(
@@ -296,7 +234,7 @@ class Animation(ABC):
             #    progress_condition=Always(),
             #    children=[]
             #)
-        elif (animating_state := self.get_on_animating_state()) is not None:
+        if (animating_state := self.get_on_animating_state()) is not None:
             self._animate_instant(animating_state.absolute_rate.at())
             while not animating_state.terminate_condition.judge():
                 for child in animating_state.children[:]:
@@ -311,11 +249,9 @@ class Animation(ABC):
                 except StopIteration:
                     break
             self.terminate()
-            self._progress()
             #self._animating_state = animating_state = AfterAnimating()
-        elif (animating_state := self.get_after_animating_state()) is not None:
+        if (animating_state := self.get_after_animating_state()) is not None:
             return
-        raise TypeError
 
     #def _launch(self) -> None:
     #    assert self._animation_state == AnimationState.BEFORE_ANIMATION
@@ -505,17 +441,78 @@ class Animation(ABC):
 
     # conditions
 
-    def launched(self) -> Launched:
-        return Launched(self)
+    def launched(self) -> "AnimationLaunchedCondition":
+        return AnimationLaunchedCondition(self)
 
-    def terminated(self) -> Terminated:
-        return Terminated(self)
+    def terminated(self) -> "AnimationTerminatedCondition":
+        return AnimationTerminatedCondition(self)
 
     def progressed_duration(
         self,
         delta_alpha: float
-    ) -> ProgressedDuration:
-        return ProgressedDuration(self, delta_alpha)
+    ) -> "AnimationProgressedDurationCondition":
+        return AnimationProgressedDurationCondition(self, delta_alpha)
 
     #async def wait_forever(self) -> None:
     #    await self.wait_until(Never())
+
+
+class AnimationLaunchedCondition(Condition):
+    __slots__ = ("_animation_ref",)
+
+    def __init__(
+        self,
+        animation: Animation
+    ) -> None:
+        super().__init__()
+        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
+
+    def judge(self) -> bool:
+        animation = self._animation_ref()
+        return (
+            animation is None
+            or animation.get_on_animating_state() is not None
+            or animation.get_after_animating_state() is not None
+        )
+
+
+class AnimationTerminatedCondition(Condition):
+    __slots__ = ("_animation_ref",)
+
+    def __init__(
+        self,
+        animation: Animation
+    ) -> None:
+        super().__init__()
+        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
+
+    def judge(self) -> bool:
+        animation = self._animation_ref()
+        return (
+            animation is None
+            or animation.get_after_animating_state() is not None
+        )
+
+
+class AnimationProgressedDurationCondition(Condition):
+    __slots__ = (
+        "_animation_ref",
+        "_target_alpha"
+    )
+
+    def __init__(
+        self,
+        animation: Animation,
+        delta_alpha: float
+    ) -> None:
+        assert (animating_state := animation.get_on_animating_state()) is not None
+        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
+        self._target_alpha: float = animating_state.absolute_rate.at() + delta_alpha
+
+    def judge(self) -> bool:
+        animation = self._animation_ref()
+        return (
+            animation is None
+            or (animating_state := animation.get_on_animating_state()) is None
+            or animating_state.absolute_rate.at() >= self._target_alpha
+        )

@@ -8,18 +8,20 @@ from typing import (
     TypeVar
 )
 
-from ..animations.animation.rate import Rate
-from ..animations.animation.rates import Rates
-from ..animations.animation.animation import Animation
+from ...animations.animation.rate import Rate
+from ...animations.animation.rates import Rates
+from ...animations.animation.animation import Animation
 #from ..animations.animation.rates.linear import Linear
 #from ..animations.animation.rates.rate import Rate
-from ..constants.custom_typing import (
+from ...constants.custom_typing import (
     BoundaryT,
     NP_xf8,
     NP_xi4
 )
-from ..lazy.lazy_descriptor import LazyDescriptor
-from ..lazy.lazy_object import LazyObject
+from ...lazy.lazy_descriptor import LazyDescriptor
+from ...lazy.lazy_object import LazyObject
+from .piecewiser import Piecewiser
+from .piecewisers import Piecewisers
 
 
 _AnimatableT = TypeVar("_AnimatableT", bound="Animatable")
@@ -28,9 +30,14 @@ _AnimatableT = TypeVar("_AnimatableT", bound="Animatable")
 
 class Animatable(LazyObject):
     __slots__ = (
-        "_is_building_animation",
+        "_in_animating_mode",
         "_updater"
     )
+
+    _special_slot_copiers: ClassVar[dict[str, Callable]] = {
+        "_in_animating_mode": lambda o: False,
+        "_updater": lambda o: Updater()
+    }
 
     _animatable_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
 
@@ -42,13 +49,14 @@ class Animatable(LazyObject):
             name: descriptor
             for name, descriptor in cls._lazy_descriptors.items()
             if descriptor._is_variable
+            and descriptor._element_type is not None
             and issubclass(descriptor._element_type, Animatable)
             and descriptor._element_type is not cls
         }
 
     def __init__(self) -> None:
         super().__init__()
-        self._is_building_animation: bool = False
+        self._in_animating_mode: bool = False
         self._updater: Updater = Updater()
 
     #@classmethod
@@ -98,7 +106,7 @@ class Animatable(LazyObject):
     ) -> "Updater":
         updater = Updater()
         for descriptor in type(self)._animatable_descriptors.values():
-            assert issubclass(descriptor._element_type, Animatable)
+            #assert issubclass(descriptor._element_type, Animatable)
             dst_elements = descriptor._get_elements(self)
             src_0_elements = descriptor._get_elements(src_0)
             src_1_elements = descriptor._get_elements(src_1)
@@ -115,17 +123,17 @@ class Animatable(LazyObject):
     def _get_piecewise_updater(
         self: _AnimatableT,
         src: _AnimatableT,
-        piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
+        piecewiser: Piecewiser
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
     ) -> "Updater":
         updater = Updater()
         for descriptor in type(self)._animatable_descriptors.values():
-            assert issubclass(descriptor._element_type, Animatable)
+            #assert issubclass(descriptor._element_type, Animatable)
             dst_elements = descriptor._get_elements(self)
             src_elements = descriptor._get_elements(src)
             updater.add(*(
-                dst_element._get_piecewise_updater(src_element, piecewise_func)
+                dst_element._get_piecewise_updater(src_element, piecewiser)
                 for dst_element, src_element in zip(
                     dst_elements, src_elements, strict=True
                 )
@@ -143,7 +151,7 @@ class Animatable(LazyObject):
         for attribute_name, animatable_input in kwargs.items():
             if (descriptor := type(self)._animatable_descriptors.get(f"_{attribute_name}_")) is None:
                 continue
-            assert issubclass(element_type := descriptor._element_type, Animatable)
+            assert (element_type := descriptor._element_type) is not None and issubclass(element_type, Animatable)
             source_elements = descriptor._get_elements(self)
             if descriptor._is_multiple:
                 target_elements = tuple(
@@ -156,7 +164,7 @@ class Animatable(LazyObject):
             #if self._saved_state is not None:
             for source_element, target_element in zip(source_elements, target_elements, strict=True):
                 updater.add(source_element._get_interpolate_updater(
-                    source_element._copy(), target_element._copy()
+                    source_element.copy(), target_element.copy()
                 ))
         return updater
 
@@ -210,8 +218,8 @@ class Animatable(LazyObject):
 
     @property
     def animate(self):
-        assert not self._is_building_animation is None
-        self._is_building_animation = True
+        assert not self._in_animating_mode, "Already in animating mode"
+        self._in_animating_mode = True
         self._updater = Updater()
         return self
 
@@ -225,7 +233,7 @@ class Animatable(LazyObject):
         #assert not infinite or not rewind
         #assert (saved_state := self._saved_state) is not None
         #self._copy_lazy_content(self, saved_state)
-        assert self._is_building_animation
+        assert self._in_animating_mode, "Not in animating mode"
         animation = self._updater.build_animation(
             rate=rate,
             infinite=infinite
@@ -239,7 +247,7 @@ class Animatable(LazyObject):
         #    #run_alpha=float("inf") if infinite else 1.0,
         #    #rewind=rewind
         #)
-        self._is_building_animation = False
+        self._in_animating_mode = False
         self._updater = Updater()
         return animation
 
@@ -254,9 +262,9 @@ class Animatable(LazyObject):
     def piecewise(
         self: _AnimatableT,
         animatable: _AnimatableT,
-        piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
+        piecewiser: Piecewiser
     ):
-        self._stack_updater(self._get_piecewise_updater(animatable, piecewise_func))
+        self._stack_updater(self._get_piecewise_updater(animatable, piecewiser))
         return self
 
     def set(
@@ -270,7 +278,7 @@ class Animatable(LazyObject):
         self: _AnimatableT,
         animatable: _AnimatableT
     ):
-        self.interpolate(self._copy(), animatable)
+        self.interpolate(self.copy(), animatable)
         return self
 
     def static_interpolate(
@@ -288,7 +296,7 @@ class Animatable(LazyObject):
         split_alphas: NP_xf8,
         concatenate_indices: NP_xi4
     ):
-        self._get_piecewise_updater(animatable, lambda alpha: (split_alphas, concatenate_indices)).update(1.0)
+        self._get_piecewise_updater(animatable, Piecewisers.static(split_alphas, concatenate_indices)).update(1.0)
         return self
 
 
@@ -316,6 +324,7 @@ class LeafUpdaterAnimation(Animation):
         self,
         alpha: float
     ) -> None:
+        self._updater.restore()
         self._updater.update(self._rate.at(alpha))
 
     async def timeline(self) -> None:
@@ -427,3 +436,7 @@ class Updater(LazyObject):
     ) -> None:
         for updater in self._branch_updaters:
             updater.update_boundary(boundary)
+
+    def restore(self) -> None:
+        for updater in reversed(self._branch_updaters):
+            updater.restore()

@@ -1,7 +1,7 @@
-from ...animatables.animatable import Animatable
 from ...lazy.lazy import Lazy
 #from ..mobject.mobject import Mobject
 #from ..mobject.mobject_attributes.color_attribute import ColorAttribute
+from ..animatable.animatable import Animatable
 from ..arrays.animatable_color import AnimatableColor
 
 

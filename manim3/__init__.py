@@ -20,22 +20,23 @@ from .animations.composition.series import Series
 from .animations.fade.fade_in import FadeIn
 from .animations.fade.fade_out import FadeOut
 from .animations.fade.fade_transform import FadeTransform
-from .animations.partial.create import Create
-from .animations.partial.dashed import Dashed
-from .animations.partial.flash import Flash
-from .animations.partial.uncreate import Uncreate
-from .animations.remodel.rotate import Rotate
-from .animations.remodel.rotating import Rotating
-from .animations.remodel.scale import Scale
-from .animations.remodel.scaling import Scaling
-from .animations.remodel.shift import Shift
-from .animations.remodel.shifting import Shifting
-from .animations.transform.transform import Transform
-from .animations.transform.transform_from import TransformFrom
-from .animations.transform.transform_from_copy import TransformFromCopy
-from .animations.transform.transform_to import TransformTo
-from .animations.transform.transform_to_copy import TransformToCopy
+from .animations.piecewise.create import Create
+from .animations.piecewise.dashed import Dashed
+from .animations.piecewise.flash import Flash
+from .animations.piecewise.uncreate import Uncreate
+#from .animations.remodel.rotate import Rotate
+#from .animations.remodel.rotating import Rotating
+#from .animations.remodel.scale import Scale
+#from .animations.remodel.scaling import Scaling
+#from .animations.remodel.shift import Shift
+#from .animations.remodel.shifting import Shifting
+#from .animations.transform.transform import Transform
+#from .animations.transform.transform_from import TransformFrom
+#from .animations.transform.transform_from_copy import TransformFromCopy
+#from .animations.transform.transform_to import TransformTo
+#from .animations.transform.transform_to_copy import TransformToCopy
 from .animations.misc import TransformMatchingStrings
+from .animations.transform import Transform
 
 from .constants.constants import *
 from .constants.custom_typing import *
@@ -109,7 +110,6 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
-from .toplevel.event import Event
 from .toplevel.events import Events
 from .toplevel.config import Config
 from .toplevel.scene import Scene

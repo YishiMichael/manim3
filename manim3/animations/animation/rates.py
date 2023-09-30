@@ -37,7 +37,7 @@ class Compose(Rate):
         )
 
 
-class Linear(Rate):
+class LinearRate(Rate):
     __slots__ = ()
 
     def at(
@@ -56,7 +56,7 @@ class Linear(Rate):
         return True
 
 
-class RushFrom(Rate):
+class RushFromRate(Rate):
     __slots__ = ()
 
     def __init__(self) -> None:
@@ -78,7 +78,7 @@ class RushFrom(Rate):
         return True
 
 
-class RushInto(RushFrom):
+class RushIntoRate(RushFromRate):
     __slots__ = ()
 
     def at(
@@ -88,7 +88,7 @@ class RushInto(RushFrom):
         return super().at(t - 1.0) + 1.0
 
 
-class Smooth(RushFrom):
+class SmoothRate(RushFromRate):
     __slots__ = ()
 
     def at(
@@ -98,7 +98,7 @@ class Smooth(RushFrom):
         return (super().at(2.0 * t - 1.0) + 1.0) / 2.0
 
 
-class Rewind(Rate):
+class RewindRate(Rate):
     __slots__ = ()
 
     def at(
@@ -117,7 +117,7 @@ class Rewind(Rate):
         return False
 
 
-class Cycle(Rate):
+class CycleRate(Rate):
     __slots__ = ()
 
     def at(
@@ -137,7 +137,7 @@ class Cycle(Rate):
         return False
 
 
-class Repeat(Rate):
+class RepeatRate(Rate):
     __slots__ = ()
 
     def at(
@@ -170,29 +170,29 @@ class Rates:
         return Compose(*rates)
 
     @classmethod
-    def linear(cls) -> Linear:
-        return Linear()
+    def linear(cls) -> LinearRate:
+        return LinearRate()
 
     @classmethod
-    def rush_from(cls) -> RushFrom:
-        return RushFrom()
+    def rush_from(cls) -> RushFromRate:
+        return RushFromRate()
 
     @classmethod
-    def rush_into(cls) -> RushInto:
-        return RushInto()
+    def rush_into(cls) -> RushIntoRate:
+        return RushIntoRate()
 
     @classmethod
-    def smooth(cls) -> Smooth:
-        return Smooth()
+    def smooth(cls) -> SmoothRate:
+        return SmoothRate()
 
     @classmethod
-    def rewind(cls) -> Rewind:
-        return Rewind()
+    def rewind(cls) -> RewindRate:
+        return RewindRate()
 
     @classmethod
-    def cycle(cls) -> Cycle:
-        return Cycle()
+    def cycle(cls) -> CycleRate:
+        return CycleRate()
 
     @classmethod
-    def repeat(cls) -> Repeat:
-        return Repeat()
+    def repeat(cls) -> RepeatRate:
+        return RepeatRate()

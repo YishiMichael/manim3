@@ -7,7 +7,7 @@ from .event import Event
     frozen=True,
     slots=True
 )
-class KeyPress(Event):
+class KeyPressEvent(Event):
     symbol: int | None
     modifiers: int | None
 
@@ -16,7 +16,7 @@ class KeyPress(Event):
         event: Event
     ) -> bool:
         return (
-            isinstance(event, KeyPress)
+            isinstance(event, KeyPressEvent)
             and self._match(self.symbol, event.symbol, masked=False)
             and self._match(self.modifiers, event.modifiers, masked=True)
         )
@@ -26,7 +26,7 @@ class KeyPress(Event):
     frozen=True,
     slots=True
 )
-class KeyRelease(Event):
+class KeyReleaseEvent(Event):
     symbol: int | None
     modifiers: int | None
 
@@ -35,7 +35,7 @@ class KeyRelease(Event):
         event: Event
     ) -> bool:
         return (
-            isinstance(event, KeyRelease)
+            isinstance(event, KeyReleaseEvent)
             and self._match(self.symbol, event.symbol, masked=False)
             and self._match(self.modifiers, event.modifiers, masked=True)
         )
@@ -45,7 +45,7 @@ class KeyRelease(Event):
     frozen=True,
     slots=True
 )
-class MouseMotion(Event):
+class MouseMotionEvent(Event):
     x: int | None
     y: int | None
     dx: int | None
@@ -55,14 +55,14 @@ class MouseMotion(Event):
         self,
         event: Event
     ) -> bool:
-        return isinstance(event, MouseMotion)
+        return isinstance(event, MouseMotionEvent)
 
 
 @dataclass(
     frozen=True,
     slots=True
 )
-class MouseDrag(Event):
+class MouseDragEvent(Event):
     buttons: int | None
     modifiers: int | None
     x: int | None
@@ -75,7 +75,7 @@ class MouseDrag(Event):
         event: Event
     ) -> bool:
         return (
-            isinstance(event, MouseDrag)
+            isinstance(event, MouseDragEvent)
             and self._match(self.buttons, event.buttons, masked=True)
             and self._match(self.modifiers, event.modifiers, masked=True)
         )
@@ -85,7 +85,7 @@ class MouseDrag(Event):
     frozen=True,
     slots=True
 )
-class MousePress(Event):
+class MousePressEvent(Event):
     buttons: int | None
     modifiers: int | None
     x: int | None
@@ -96,7 +96,7 @@ class MousePress(Event):
         event: Event
     ) -> bool:
         return (
-            isinstance(event, MousePress)
+            isinstance(event, MousePressEvent)
             and self._match(self.buttons, event.buttons, masked=True)
             and self._match(self.modifiers, event.modifiers, masked=True)
         )
@@ -106,7 +106,7 @@ class MousePress(Event):
     frozen=True,
     slots=True
 )
-class MouseRelease(Event):
+class MouseReleaseEvent(Event):
     buttons: int | None
     modifiers: int | None
     x: int | None
@@ -117,7 +117,7 @@ class MouseRelease(Event):
         event: Event
     ) -> bool:
         return (
-            isinstance(event, MouseRelease)
+            isinstance(event, MouseReleaseEvent)
             and self._match(self.buttons, event.buttons, masked=True)
             and self._match(self.modifiers, event.modifiers, masked=True)
         )
@@ -127,7 +127,7 @@ class MouseRelease(Event):
     frozen=True,
     slots=True
 )
-class MouseScroll(Event):
+class MouseScrollEvent(Event):
     x: int | None
     y: int | None
     scroll_x: float | None
@@ -137,7 +137,7 @@ class MouseScroll(Event):
         self,
         event: Event
     ) -> bool:
-        return isinstance(event, MouseScroll)
+        return isinstance(event, MouseScrollEvent)
 
 
 class Events:
@@ -151,8 +151,8 @@ class Events:
         cls,
         symbol: int | None = None,
         modifiers: int | None = None
-    ) -> KeyPress:
-        return KeyPress(
+    ) -> KeyPressEvent:
+        return KeyPressEvent(
             symbol=symbol,
             modifiers=modifiers
         )
@@ -162,8 +162,8 @@ class Events:
         cls,
         symbol: int | None = None,
         modifiers: int | None = None
-    ) -> KeyRelease:
-        return KeyRelease(
+    ) -> KeyReleaseEvent:
+        return KeyReleaseEvent(
             symbol=symbol,
             modifiers=modifiers
         )
@@ -175,8 +175,8 @@ class Events:
         y: int | None = None,
         dx: int | None = None,
         dy: int | None = None
-    ) -> MouseMotion:
-        return MouseMotion(
+    ) -> MouseMotionEvent:
+        return MouseMotionEvent(
             x=x,
             y=y,
             dx=dx,
@@ -192,8 +192,8 @@ class Events:
         y: int | None = None,
         dx: int | None = None,
         dy: int | None = None
-    ) -> MouseDrag:
-        return MouseDrag(
+    ) -> MouseDragEvent:
+        return MouseDragEvent(
             buttons=buttons,
             modifiers=modifiers,
             x=x,
@@ -209,8 +209,8 @@ class Events:
         modifiers: int | None = None,
         x: int | None = None,
         y: int | None = None
-    ) -> MousePress:
-        return MousePress(
+    ) -> MousePressEvent:
+        return MousePressEvent(
             buttons=buttons,
             modifiers=modifiers,
             x=x,
@@ -224,8 +224,8 @@ class Events:
         modifiers: int | None = None,
         x: int | None = None,
         y: int | None = None
-    ) -> MouseRelease:
-        return MouseRelease(
+    ) -> MouseReleaseEvent:
+        return MouseReleaseEvent(
             buttons=buttons,
             modifiers=modifiers,
             x=x,
@@ -239,8 +239,8 @@ class Events:
         y: int | None = None,
         scroll_x: float | None = None,
         scroll_y: float | None = None
-    ) -> MouseScroll:
-        return MouseScroll(
+    ) -> MouseScrollEvent:
+        return MouseScrollEvent(
             x=x,
             y=y,
             scroll_x=scroll_x,

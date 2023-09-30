@@ -1,9 +1,5 @@
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import (
-    Callable,
-    TypeVar
-)
+from typing import TypeVar
 #from typing import TYPE_CHECKING
 
 import numpy as np
@@ -13,20 +9,24 @@ from ...constants.constants import (
     PI
 )
 from ...constants.custom_typing import (
+    BoundaryT,
     NP_3f8,
     NP_44f8,
-    NP_x3f8,
-    NP_xf8,
-    NP_xi4
+    NP_x3f8
 )
 from ...lazy.lazy import Lazy
+from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.space_utils import SpaceUtils
-from ..arrays.model_matrix import ModelMatrix
-from ..animatable import (
+from ..arrays.model_matrix import (
+    AffineApplier,
+    ModelMatrix
+)
+from ..animatable.animatable import (
     Animatable,
     Updater
 )
+from ..animatable.piecewiser import Piecewiser
 
 #if TYPE_CHECKING:
 #    from ...models.model.model import model
@@ -35,14 +35,53 @@ from ..animatable import (
 _ModelT = TypeVar("_ModelT", bound="Model")
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
-class BoundingBox:
-    maximum: NP_3f8
-    minimum: NP_3f8
+class Box(LazyObject):
+    __slots__ = ()
+
+    def __init__(
+        self,
+        maximum: NP_3f8,
+        minimum: NP_3f8
+    ) -> None:
+        super().__init__()
+        self._maximum_ = maximum
+        self._minimum_ = minimum
+
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _maximum_() -> NP_3f8:
+        return NotImplemented
+
+    @Lazy.variable(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _minimum_() -> NP_3f8:
+        return NotImplemented
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _centroid_(
+        maximum: NP_3f8,
+        minimum: NP_3f8
+    ) -> NP_3f8:
+        return (maximum + minimum) / 2.0
+
+    @Lazy.property(hasher=Lazy.array_hasher)
+    @staticmethod
+    def _radii_(
+        maximum: NP_3f8,
+        minimum: NP_3f8
+    ) -> NP_3f8:
+        return (maximum - minimum) / 2.0
+
+    def get_position(
+        self,
+        direction: NP_3f8,
+        buff: NP_3f8 = ORIGIN
+    ) -> NP_3f8:
+        return self._centroid_ + self._radii_ * direction + buff * direction
+
+    def get_centroid(self) -> NP_3f8:
+        return self._centroid_
 
     #@property
     #def center(self) -> NP_3f8:
@@ -64,7 +103,7 @@ class Model(Animatable):
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
-    @Lazy.property_collection()
+    @Lazy.variable_collection()
     @staticmethod
     def _associated_models_() -> "tuple[Model, ...]":
         return ()
@@ -92,14 +131,14 @@ class Model(Animatable):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _world_sample_positions_(
-        model_matrix: ModelMatrix,
+        model_matrix__applier: AffineApplier,
         local_sample_positions: NP_x3f8,
     ) -> NP_x3f8:
-        return model_matrix._apply_affine_multiple(local_sample_positions)
+        return model_matrix__applier.apply_multiple(local_sample_positions)
 
     #@Lazy.property(hasher=Lazy.array_hasher)
     #@staticmethod
-    #def _bounding_box_reference_points_(
+    #def _box_reference_points_(
     #    world_sample_positions: NP_x3f8,
     #) -> NP_x3f8:
     #    return world_sample_positions
@@ -116,50 +155,50 @@ class Model(Animatable):
 
     @Lazy.property()
     @staticmethod
-    def _bounding_box_(
+    def _box_(
         world_sample_positions: NP_x3f8,
         associated_models__world_sample_positions: tuple[NP_x3f8, ...]
-    ) -> BoundingBox:
-        bounding_box_reference_points = np.concatenate((
+    ) -> Box:
+        sample_positions = np.concatenate((
             world_sample_positions,
             *associated_models__world_sample_positions
         ))
-        if not len(bounding_box_reference_points):
-            return BoundingBox(
-                maximum=np.zeros((1, 3)),
-                minimum=np.zeros((1, 3))
+        if not len(sample_positions):
+            return Box(
+                maximum=np.zeros((3,)),
+                minimum=np.zeros((3,))
             )
-        return BoundingBox(
-            maximum=bounding_box_reference_points.max(axis=0),
-            minimum=bounding_box_reference_points.min(axis=0)
+        return Box(
+            maximum=sample_positions.max(axis=0),
+            minimum=sample_positions.min(axis=0)
         )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _centroid_(
-        bounding_box: BoundingBox
-    ) -> NP_3f8:
-        return (bounding_box.maximum + bounding_box.minimum) / 2.0
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _centroid_(
+    #    box: Box
+    #) -> NP_3f8:
+    #    return (box.maximum + box.minimum) / 2.0
 
-    @Lazy.property(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _radii_(
-        bounding_box: BoundingBox
-    ) -> NP_3f8:
-        return (bounding_box.maximum - bounding_box.minimum) / 2.0
-        # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
-        #radii[np.isclose(radii, 0.0)] = 1e-8
-        #return radii
+    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _radii_(
+    #    box: Box
+    #) -> NP_3f8:
+    #    return (box.maximum - box.minimum) / 2.0
+    #    # For zero-width dimensions of radii, thicken a little bit to avoid zero division.
+    #    #radii[np.isclose(radii, 0.0)] = 1e-8
+    #    #return radii
 
-    def get_bounding_box_position(
-        self,
-        direction: NP_3f8,
-        buff: NP_3f8 = ORIGIN
-    ) -> NP_3f8:
-        return self._centroid_ + self._radii_ * direction + buff * direction
+    #def get_box_position(
+    #    self,
+    #    direction: NP_3f8,
+    #    buff: NP_3f8 = ORIGIN
+    #) -> NP_3f8:
+    #    return self._box_.get_position(direction, buff)
 
-    def get_centroid(self) -> NP_3f8:
-        return self._centroid_
+    #def get_centroid(self) -> NP_3f8:
+    #    return self._box_._centroid_
 
     def _get_interpolate_updater(
         self: _ModelT,
@@ -176,14 +215,33 @@ class Model(Animatable):
     def _get_piecewise_updater(
         self: _ModelT,
         src: _ModelT,
-        piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
+        piecewiser: Piecewiser
     ) -> Updater:
-        return super()._get_piecewise_updater(src, piecewise_func).add(*(
-            super(Model, dst_associated)._get_piecewise_updater(src_assiciated, piecewise_func)
+        return super()._get_piecewise_updater(src, piecewiser).add(*(
+            super(Model, dst_associated)._get_piecewise_updater(src_assiciated, piecewiser)
             for dst_associated, src_assiciated in zip(
                 self._associated_models_, src._associated_models_, strict=True
             )
         ))
+
+    def copy(self):
+        result = super().copy()
+        associated_models = self._associated_models_
+        associated_models_copy = tuple(
+            super(Model, associated_model).copy()
+            for associated_model in associated_models
+        )
+        result._associated_models_ = associated_models_copy
+        for associated_model_copy in associated_models_copy:
+            associated_model_copy._associated_models_ = tuple(
+                associated_models_copy[associated_models.index(associated_model)]
+                for associated_model in associated_model_copy._associated_models_
+            )
+        return result
+
+    @property
+    def box(self) -> Box:
+        return self._box_
 
     #@classmethod
     #def _split(
@@ -249,7 +307,7 @@ class Model(Animatable):
             buff=buff * np.ones((3,)),
             mask=mask * np.ones((3,)),
             align_direction_sign=align_direction_sign
-            #buff_vector=self.get_bounding_box_position(signed_direction) + buff * signed_direction,
+            #buff_vector=self.get_box_position(signed_direction) + buff * signed_direction,
             #initial_model=self
         ))
         return self
@@ -322,7 +380,7 @@ class Model(Animatable):
             mask=mask * np.ones((3,))
             #initial_model=self
         ))
-        #factor = target / self.get_bounding_box_size()
+        #factor = target / self.get_box_size()
         #self.scale(
         #    vector=target_size / (2.0 * self_copy._radii_),
         #    about_model=about_model,
@@ -331,13 +389,13 @@ class Model(Animatable):
         #)
         return self
 
-    def match_bounding_box(
+    def match_box(
         self,
         model: "Model",
         mask: float | NP_3f8 = 1.0
     ):
         self.scale_to(model, mask=mask).shift_to(model, mask=mask)
-        #self.shift(-self.get_center()).scale_to(model.get_bounding_box_size()).shift(model.get_center())
+        #self.shift(-self.get_center()).scale_to(model.get_box_size()).shift(model.get_center())
         return self
 
     def rotate(
@@ -409,7 +467,10 @@ class Model(Animatable):
 
 
 class ModelUpdater(Updater):
-    __slots__ = ("_initial_matrices",)
+    __slots__ = (
+        "_model_matrices",
+        "_about_model"
+    )
 
     def __init__(
         self,
@@ -425,31 +486,31 @@ class ModelUpdater(Updater):
         #super().__init__()
         #self._factor: NP_3f8 = factor
         super().__init__()
-        self._initial_matrices: dict[ModelMatrix, NP_44f8] = {
+        self._model_matrices: dict[ModelMatrix, NP_44f8] = {
             model_assiciated._model_matrix_: model_assiciated._model_matrix_._array_
             for model_assiciated in (model, *model._associated_models_)
         }
         #self._model: Model = model
-        self._about_model_ = about_model
+        self._about_model: Model = about_model
         self._about_direction_ = about_direction
 
-    @Lazy.variable(freeze=False)
+    @Lazy.variable()
     @staticmethod
-    def _about_model_() -> Model:
+    def _about_box_() -> Box:
         return NotImplemented
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
     def _about_direction_() -> NP_3f8:
-        return NotImplemented
+        return np.zeros((3,))
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _about_point_(
-        about_model: Model,
+        about_box: Box,
         about_direction: NP_3f8
     ) -> NP_3f8:
-        return about_model.get_bounding_box_position(about_direction)
+        return about_box.get_position(about_direction)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
@@ -476,18 +537,30 @@ class ModelUpdater(Updater):
         self,
         alpha: float
     ) -> None:
+        super().update(alpha)
         #model = self._model
-        matrix = self._get_matrix(alpha)
-        for model_matrix, initial_matrix in self._initial_matrices.items():
-            model_matrix._array_ = (
-                self._post_shift_matrix_ @ matrix @ self._pre_shift_matrix_ @ initial_matrix
-            )
+        self._about_box_ = self._about_model.box
+        matrix = self._post_shift_matrix_ @ self._get_matrix(alpha) @ self._pre_shift_matrix_
+        for model_matrix in self._model_matrices:
+            model_matrix._array_ = matrix @ model_matrix._array_
 
-    def initial_update(self) -> None:
-        self.update(0.0)
+    def update_boundary(
+        self,
+        boundary: BoundaryT
+    ) -> None:
+        super().update_boundary(boundary)
+        self.update(float(boundary))
 
-    def final_update(self) -> None:
-        self.update(1.0)
+    def restore(self) -> None:
+        for model_matrix, initial_matrix in self._model_matrices.items():
+            model_matrix._array_ = initial_matrix
+        super().restore()  # TODO: order
+
+    #def initial_update(self) -> None:
+    #    self.update(0.0)
+
+    #def final_update(self) -> None:
+    #    self.update(1.0)
 
 
 #class ModelAbstractShiftUpdater(ModelUpdater):
@@ -671,7 +744,10 @@ class ModelShiftUpdater(ModelUpdater):
 
 
 class ModelShiftToUpdater(ModelUpdater):
-    __slots__ = ("_mask",)
+    __slots__ = (
+        "_aligned_model",
+        "_mask"
+    )
 
     def __init__(
         self,
@@ -689,16 +765,16 @@ class ModelShiftToUpdater(ModelUpdater):
             about_model=Model(),
             about_direction=ORIGIN
         )
-        self._aligned_model_ = aligned_model
         self._direction_ = direction
         self._buff_vector_ = (
-            model.get_bounding_box_position(align_direction_sign * direction, buff)
+            model.box.get_position(align_direction_sign * direction, buff)
         )
+        self._aligned_model: Model = aligned_model
         self._mask: NP_3f8 = mask
 
-    @Lazy.variable(freeze=False)
+    @Lazy.variable()
     @staticmethod
-    def _aligned_model_() -> Model:
+    def _aligned_box_() -> Box:
         return NotImplemented
 
     @Lazy.variable(hasher=Lazy.array_hasher)
@@ -719,16 +795,17 @@ class ModelShiftToUpdater(ModelUpdater):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _vector_(
-        aligned_model: Model,
+        aligned_box: Box,
         direction: NP_3f8,
         buff_vector: NP_3f8
     ) -> NP_3f8:
-        return aligned_model.get_bounding_box_position(direction) - buff_vector
+        return aligned_box.get_position(direction) - buff_vector
 
     def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
+        self._aligned_box_ = self._aligned_model.box
         return SpaceUtils.matrix_from_shift(self._vector_ * (self._mask * alpha))
 
 
@@ -779,7 +856,10 @@ class ModelScaleUpdater(ModelUpdater):
 
 
 class ModelScaleToUpdater(ModelUpdater):
-    __slots__ = ("_mask",)
+    __slots__ = (
+        "_aligned_model",
+        "_mask"
+    )
 
     def __init__(
         self,
@@ -798,15 +878,15 @@ class ModelScaleToUpdater(ModelUpdater):
             about_model=about_model,
             about_direction=about_direction
         )
-        self._aligned_model_ = aligned_model
-        self._initial_radii_ = model._radii_
+        self._initial_radii_ = model.box._radii_
+        self._aligned_model: Model = aligned_model
         self._mask: NP_3f8 = mask
         #self._target_size_ = target_size
         #self._mask_ = mask
 
-    @Lazy.variable(freeze=False)
+    @Lazy.variable()
     @staticmethod
-    def _aligned_model_() -> Model:
+    def _aligned_box_() -> Box:
         return NotImplemented
 
     @Lazy.variable(hasher=Lazy.array_hasher)
@@ -817,15 +897,16 @@ class ModelScaleToUpdater(ModelUpdater):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _factor_(
-        aligned_model__radii: NP_3f8,
+        aligned_box__radii: NP_3f8,
         initial_radii: NP_3f8
     ) -> NP_3f8:
-        return aligned_model__radii / np.maximum(initial_radii, 1e-8)
+        return aligned_box__radii / np.maximum(initial_radii, 1e-8)
 
     def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
+        self._aligned_box_ = self._aligned_model.box
         return SpaceUtils.matrix_from_scale(self._factor_ ** (self._mask * alpha))
 
 
@@ -904,7 +985,7 @@ class ModelApplyUpdater(ModelUpdater):
 
 
 class ModelPoseUpdater(ModelUpdater):
-    __slots__ = ()
+    __slots__ = ("_aligned_model",)
 
     def __init__(
         self,
@@ -920,12 +1001,12 @@ class ModelPoseUpdater(ModelUpdater):
             about_model=about_model,
             about_direction=about_direction
         )
-        self._aligned_model_ = aligned_model
         self._initial_model_matrix_inverse_ = np.linalg.inv(model._model_matrix_._array_)
+        self._aligned_model: Model = aligned_model
 
-    @Lazy.variable(freeze=False)
+    @Lazy.variable()
     @staticmethod
-    def _aligned_model_() -> Model:
+    def _aligned_model_matrix_() -> ModelMatrix:
         return NotImplemented
 
     @Lazy.property(hasher=Lazy.array_hasher)
@@ -936,13 +1017,14 @@ class ModelPoseUpdater(ModelUpdater):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _matrix_(
-        aligned_model__model_matrix: NP_44f8,
-        initial_matrix_inverse: NP_44f8
+        aligned_model_matrix__array: NP_44f8,
+        initial_model_matrix_inverse: NP_44f8
     ) -> NP_44f8:
-        return initial_matrix_inverse @ aligned_model__model_matrix
+        return aligned_model_matrix__array @ initial_model_matrix_inverse
 
     def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
+        self._aligned_model_matrix_ = self._aligned_model._model_matrix_
         return self._matrix_ * alpha

@@ -3,7 +3,7 @@ from typing import Iterable
 from .condition import Condition
 
 
-class All(Condition):
+class AllCondition(Condition):
     __slots__ = ("_conditions",)
 
     def __init__(
@@ -17,7 +17,7 @@ class All(Condition):
         return all(condition.judge() for condition in self._conditions)
 
 
-class Any(Condition):
+class AnyCondition(Condition):
     __slots__ = ("_conditions",)
 
     def __init__(
@@ -31,14 +31,14 @@ class Any(Condition):
         return any(condition.judge() for condition in self._conditions)
 
 
-class Always(Condition):
+class AlwaysCondition(Condition):
     __slots__ = ()
 
     def judge(self) -> bool:
         return True
 
 
-class Never(Condition):
+class NeverCondition(Condition):
     __slots__ = ()
 
     def judge(self) -> bool:
@@ -55,23 +55,23 @@ class Conditions:
     def all(
         cls,
         conditions: Iterable[Condition]
-    ) -> All:
-        return All(conditions)
+    ) -> AllCondition:
+        return AllCondition(conditions)
 
     @classmethod
     def any(
         cls,
         conditions: Iterable[Condition]
-    ) -> Any:
-        return Any(conditions)
+    ) -> AnyCondition:
+        return AnyCondition(conditions)
 
     @classmethod
-    def always(cls) -> Always:
-        return Always()
+    def always(cls) -> AlwaysCondition:
+        return AlwaysCondition()
 
     @classmethod
-    def never(cls) -> Never:
-        return Never()
+    def never(cls) -> NeverCondition:
+        return NeverCondition()
 
     #@classmethod
     #def launched(

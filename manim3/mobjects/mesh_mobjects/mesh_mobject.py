@@ -120,7 +120,7 @@ class MeshMobject(Mobject):
     @staticmethod
     def _mesh_vertex_array_(
         color_maps: tuple[moderngl.Texture, ...],
-        camera__camera__camera_uniform_block_buffer: UniformBlockBuffer,
+        camera__camera_uniform_block_buffer: UniformBlockBuffer,
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
@@ -138,7 +138,7 @@ class MeshMobject(Mobject):
                 )
             ],
             uniform_block_buffers=[
-                camera__camera__camera_uniform_block_buffer,
+                camera__camera_uniform_block_buffer,
                 lighting__lighting_uniform_block_buffer,
                 model_uniform_block_buffer,
                 material_uniform_block_buffer

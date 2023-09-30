@@ -13,8 +13,10 @@ from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.index_buffer import IndexBuffer
 from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
-from ..animatable import Updater
-from ..leaf_animatable import LeafAnimatable
+from ..animatable.leaf_animatable import (
+    LeafAnimatable,
+    LeafAnimatableInterpolateInfo
+)
 
 
 _MeshT = TypeVar("_MeshT", bound="Mesh")
@@ -88,11 +90,12 @@ class Mesh(LeafAnimatable):
             mode=PrimitiveMode.TRIANGLES
         )
 
+    @classmethod
     def _interpolate(
-        self: _MeshT,
+        cls: type[_MeshT],
         src_0: _MeshT,
         src_1: _MeshT
-    ) -> Updater:
+    ) -> LeafAnimatableInterpolateInfo[_MeshT]:
         raise NotImplementedError
 
     @classmethod

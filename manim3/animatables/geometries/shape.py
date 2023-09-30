@@ -12,7 +12,6 @@ import shapely.geometry
 import shapely.validation
 
 from ...constants.custom_typing import (
-    BoundaryT,
     NP_2f8,
     NP_x2f8,
     NP_x2i4,
@@ -22,8 +21,10 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
-from ..animatable import Updater
-from ..leaf_animatable import LeafAnimatable
+from ..animatable.leaf_animatable import (
+    LeafAnimatable,
+    LeafAnimatableInterpolateInfo
+)
 from .graph import Graph
 #from ..mobject.mobject_attributes.mobject_attribute import (
 #    InterpolateHandler,
@@ -253,21 +254,29 @@ class Shape(LeafAnimatable):
     #        for graph in Graph._split(shape._graph_, alphas)
     #    ]
 
+    @classmethod
     def _interpolate(
-        self: _ShapeT,
+        cls: type[_ShapeT],
         src_0: _ShapeT,
         src_1: _ShapeT
-    ) -> Updater:
-        #graph_positions_0, graph_positions_1, edges = Graph._general_interpolate(
-        #    graph_0=src_0._graph_,
-        #    graph_1=src_1._graph_,
-        #    disjoints_0=np.insert(np.cumsum(src_0._counts_), 0, 0),
-        #    disjoints_1=np.insert(np.cumsum(src_1._counts_), 0, 0)
-        #)
-        #position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
-        #positions_0 = SpaceUtils.decrease_dimension(graph_positions_0)[position_indices]
-        #positions_1 = SpaceUtils.decrease_dimension(graph_positions_1)[position_indices]
-        return ShapeInterpolateUpdater(self, src_0, src_1)
+    ) -> "ShapeInterpolateInfo[_ShapeT]":
+        return ShapeInterpolateInfo(src_0, src_1)
+
+    #def _interpolate(
+    #    self: _ShapeT,
+    #    src_0: _ShapeT,
+    #    src_1: _ShapeT
+    #) -> Updater:
+    #    #graph_positions_0, graph_positions_1, edges = Graph._general_interpolate(
+    #    #    graph_0=src_0._graph_,
+    #    #    graph_1=src_1._graph_,
+    #    #    disjoints_0=np.insert(np.cumsum(src_0._counts_), 0, 0),
+    #    #    disjoints_1=np.insert(np.cumsum(src_1._counts_), 0, 0)
+    #    #)
+    #    #position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
+    #    #positions_0 = SpaceUtils.decrease_dimension(graph_positions_0)[position_indices]
+    #    #positions_1 = SpaceUtils.decrease_dimension(graph_positions_1)[position_indices]
+    #    return ShapeInterpolateUpdater(self, src_0, src_1)
 
     @classmethod
     def _split(
@@ -496,7 +505,7 @@ class Shape(LeafAnimatable):
     #    )
 
 
-class ShapeInterpolateInfo:
+class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[_ShapeT]):
     __slots__ = (
         "_positions_0",
         "_positions_1",
@@ -505,15 +514,15 @@ class ShapeInterpolateInfo:
 
     def __init__(
         self,
-        shape_0: Shape,
-        shape_1: Shape
+        src_0: _ShapeT,
+        src_1: _ShapeT
     ) -> None:
-        super().__init__()
+        super().__init__(src_0, src_1)
         positions_0, positions_1, edges = Graph._general_interpolate(
-            graph_0=shape_0._graph_,
-            graph_1=shape_1._graph_,
-            disjoints_0=np.insert(np.cumsum(shape_0._counts_), 0, 0),
-            disjoints_1=np.insert(np.cumsum(shape_1._counts_), 0, 0)
+            graph_0=src_0._graph_,
+            graph_1=src_1._graph_,
+            disjoints_0=np.insert(np.cumsum(src_0._counts_), 0, 0),
+            disjoints_1=np.insert(np.cumsum(src_1._counts_), 0, 0)
         )
         position_indices, counts = Shape._get_position_indices_and_counts_from_edges(edges)
         self._positions_0: NP_x2f8 = SpaceUtils.decrease_dimension(positions_0)[position_indices]
@@ -522,141 +531,141 @@ class ShapeInterpolateInfo:
 
     def interpolate(
         self,
-        shape: Shape,
+        shape: _ShapeT,
         alpha: float
     ) -> None:
-        shape._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+        shape._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
         shape._counts_ = self._counts
 
 
-class ShapeInterpolateUpdater(Updater):
-    __slots__ = ("_shape",)
-
-    def __init__(
-        self,
-        shape: Shape,
-        shape_0: Shape,
-        shape_1: Shape
-    ) -> None:
-        super().__init__()
-        #positions_0, positions_1, edges = Graph._general_interpolate(
-        #    graph_0=shape_0._graph_,
-        #    graph_1=shape_1._graph_,
-        #    disjoints_0=shape_0._cumcounts_,
-        #    disjoints_1=shape_1._cumcounts_
-        #)
-        #position_indices, counts = Shape._get_position_indices_and_counts_from_edges(edges)
-        #return ShapeInterpolateHandler(
-        #    positions_0=SpaceUtils.decrease_dimension(positions_0)[position_indices],
-        #    positions_1=SpaceUtils.decrease_dimension(positions_1)[position_indices],
-        #    counts=counts
-        #)
-        #positions_0, positions_1, edges = Graph._general_interpolate(
-        #    graph_0=graph_0,
-        #    graph_1=graph_1,
-        #    disjoints_0=np.zeros((0,), dtype=np.int32),
-        #    disjoints_1=np.zeros((0,), dtype=np.int32)
-        #)
-        self._shape: Shape = shape
-        self._shape_0_ = shape_0._copy()
-        self._shape_1_ = shape_1._copy()
-        #self._positions_0_ = positions_0
-        #self._positions_1_ = positions_1
-        #self._counts_ = counts
-
-    @Lazy.variable()
-    @staticmethod
-    def _shape_0_() -> Shape:  # frozen, so requires copying
-        return NotImplemented
-
-    @Lazy.variable()
-    @staticmethod
-    def _shape_1_() -> Shape:
-        return NotImplemented
-
-    @Lazy.property()
-    @staticmethod
-    def _interpolate_info_(
-        shape_0: Shape,
-        shape_1: Shape
-    ) -> ShapeInterpolateInfo:
-        return ShapeInterpolateInfo(shape_0, shape_1)
-
-    def update(
-        self,
-        alpha: float
-    ) -> None:
-        super().update(alpha)
-        self._interpolate_info_.interpolate(self._shape, alpha)
-
-    def update_boundary(
-        self,
-        boundary: BoundaryT
-    ) -> None:
-        super().update_boundary(boundary)
-        self._shape._copy_lazy_content(self._shape_1_ if boundary else self._shape_0_)
-
-
-#class ShapePartialUpdater(Updater[Shape]):
-#    __slots__ = (
-#        "_shape",
-#        "_original_shape",
-#        "_alpha_to_segments"
-#    )
+#class ShapeInterpolateUpdater(Updater):
+#    __slots__ = ("_shape",)
 
 #    def __init__(
 #        self,
 #        shape: Shape,
-#        original_shape: Shape,
-#        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
+#        shape_0: Shape,
+#        shape_1: Shape
 #    ) -> None:
-#        super().__init__(shape)
-#        self._original_shape: Shape = original_shape
-#        self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
+#        super().__init__()
+#        #positions_0, positions_1, edges = Graph._general_interpolate(
+#        #    graph_0=shape_0._graph_,
+#        #    graph_1=shape_1._graph_,
+#        #    disjoints_0=shape_0._cumcounts_,
+#        #    disjoints_1=shape_1._cumcounts_
+#        #)
+#        #position_indices, counts = Shape._get_position_indices_and_counts_from_edges(edges)
+#        #return ShapeInterpolateHandler(
+#        #    positions_0=SpaceUtils.decrease_dimension(positions_0)[position_indices],
+#        #    positions_1=SpaceUtils.decrease_dimension(positions_1)[position_indices],
+#        #    counts=counts
+#        #)
+#        #positions_0, positions_1, edges = Graph._general_interpolate(
+#        #    graph_0=graph_0,
+#        #    graph_1=graph_1,
+#        #    disjoints_0=np.zeros((0,), dtype=np.int32),
+#        #    disjoints_1=np.zeros((0,), dtype=np.int32)
+#        #)
+#        self._shape: Shape = shape
+#        self._shape_0_ = shape_0._copy()
+#        self._shape_1_ = shape_1._copy()
+#        #self._positions_0_ = positions_0
+#        #self._positions_1_ = positions_1
+#        #self._counts_ = counts
+
+#    @Lazy.variable()
+#    @staticmethod
+#    def _shape_0_() -> Shape:  # frozen, so requires copying
+#        return NotImplemented
+
+#    @Lazy.variable()
+#    @staticmethod
+#    def _shape_1_() -> Shape:
+#        return NotImplemented
+
+#    @Lazy.property()
+#    @staticmethod
+#    def _interpolate_info_(
+#        shape_0: Shape,
+#        shape_1: Shape
+#    ) -> ShapeInterpolateInfo:
+#        return ShapeInterpolateInfo(shape_0, shape_1)
 
 #    def update(
 #        self,
 #        alpha: float
 #    ) -> None:
-#        split_alphas, concatenate_indices = self._alpha_to_segments(alpha)
-#        shapes = Shape._split(self._original_shape, split_alphas)
-#        shape = Shape._concatenate([shapes[index] for index in concatenate_indices])
-#        Shape._copy_lazy_content(self._instance, shape)
-#        #mobjects = [equivalent_cls() for _ in range(len(split_alphas) + 1)]
-#        #equivalent_cls._split_into(
-#        #    dst_mobject_list=mobjects,
-#        #    src_mobject=original_mobject,
-#        #    alphas=split_alphas
-#        #)
-#        #equivalent_cls._concatenate_into(
-#        #    dst_mobject=mobject,
-#        #    src_mobject_list=[mobjects[index] for index in concatenate_indices]
-#        #)
+#        super().update(alpha)
+#        self._interpolate_info_.interpolate(self._shape, alpha)
 
-
-#class ShapeInterpolateHandler(InterpolateHandler[Shape]):
-#    __slots__ = (
-#        "_positions_0",
-#        "_positions_1",
-#        "_counts"
-#    )
-
-#    def __init__(
+#    def update_boundary(
 #        self,
-#        positions_0: NP_x2f8,
-#        positions_1: NP_x2f8,
-#        counts: NP_xi4
+#        boundary: BoundaryT
 #    ) -> None:
-#        super().__init__()
-#        self._positions_0: NP_x2f8 = positions_0
-#        self._positions_1: NP_x2f8 = positions_1
-#        self._counts: NP_xi4 = counts
+#        super().update_boundary(boundary)
+#        self._shape._copy_lazy_content(self._shape_1_ if boundary else self._shape_0_)
 
-#    def _interpolate(
-#        self,
-#        alpha: float
-#    ) -> Shape:
-#        return Shape(
-#            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
-#            counts=self._counts
-#        )
+
+##class ShapePartialUpdater(Updater[Shape]):
+##    __slots__ = (
+##        "_shape",
+##        "_original_shape",
+##        "_alpha_to_segments"
+##    )
+
+##    def __init__(
+##        self,
+##        shape: Shape,
+##        original_shape: Shape,
+##        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
+##    ) -> None:
+##        super().__init__(shape)
+##        self._original_shape: Shape = original_shape
+##        self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
+
+##    def update(
+##        self,
+##        alpha: float
+##    ) -> None:
+##        split_alphas, concatenate_indices = self._alpha_to_segments(alpha)
+##        shapes = Shape._split(self._original_shape, split_alphas)
+##        shape = Shape._concatenate([shapes[index] for index in concatenate_indices])
+##        Shape._copy_lazy_content(self._instance, shape)
+##        #mobjects = [equivalent_cls() for _ in range(len(split_alphas) + 1)]
+##        #equivalent_cls._split_into(
+##        #    dst_mobject_list=mobjects,
+##        #    src_mobject=original_mobject,
+##        #    alphas=split_alphas
+##        #)
+##        #equivalent_cls._concatenate_into(
+##        #    dst_mobject=mobject,
+##        #    src_mobject_list=[mobjects[index] for index in concatenate_indices]
+##        #)
+
+
+##class ShapeInterpolateHandler(InterpolateHandler[Shape]):
+##    __slots__ = (
+##        "_positions_0",
+##        "_positions_1",
+##        "_counts"
+##    )
+
+##    def __init__(
+##        self,
+##        positions_0: NP_x2f8,
+##        positions_1: NP_x2f8,
+##        counts: NP_xi4
+##    ) -> None:
+##        super().__init__()
+##        self._positions_0: NP_x2f8 = positions_0
+##        self._positions_1: NP_x2f8 = positions_1
+##        self._counts: NP_xi4 = counts
+
+##    def _interpolate(
+##        self,
+##        alpha: float
+##    ) -> Shape:
+##        return Shape(
+##            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+##            counts=self._counts
+##        )

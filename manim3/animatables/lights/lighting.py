@@ -4,7 +4,7 @@ from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 #from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
-from ..animatable import Animatable
+from ..animatable.animatable import Animatable
 from .ambient_light import AmbientLight
 from .point_light import PointLight
 

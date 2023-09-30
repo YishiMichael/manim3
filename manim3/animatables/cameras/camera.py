@@ -1,10 +1,6 @@
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from ...animatables.models.model import (
-    Model,
-    ModelMatrix
-)
 from ...constants.constants import (
     ORIGIN,
     OUT,
@@ -22,6 +18,8 @@ from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...toplevel.toplevel import Toplevel
 from ...utils.space_utils import SpaceUtils
+from ..arrays.model_matrix import AffineApplier
+from ..models.model import Model
 #from ..mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 #from ..mobject.remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 #from ..mobject.mobject import Mobject
@@ -67,26 +65,26 @@ class Camera(Model):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _target_(
-        model_matrix: ModelMatrix
+        model_matrix__applier: AffineApplier
     ) -> NP_3f8:
-        return model_matrix._apply_affine(ORIGIN)
+        return model_matrix__applier.apply(ORIGIN)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _eye_(
-        model_matrix: ModelMatrix
+        model_matrix__applier: AffineApplier
     ) -> NP_3f8:
-        return model_matrix._apply_affine(OUT)
+        return model_matrix__applier.apply(OUT)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _frame_radii_(
-        model_matrix: ModelMatrix,
+        model_matrix__applier: AffineApplier,
         target: NP_3f8
     ) -> NP_2f8:
         return np.array((
-            SpaceUtils.norm(model_matrix._apply_affine(RIGHT) - target),
-            SpaceUtils.norm(model_matrix._apply_affine(UP) - target)
+            SpaceUtils.norm(model_matrix__applier.apply(RIGHT) - target),
+            SpaceUtils.norm(model_matrix__applier.apply(UP) - target)
         ))
 
     @Lazy.property(hasher=Lazy.array_hasher)

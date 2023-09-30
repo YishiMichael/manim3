@@ -92,13 +92,14 @@ class ThreeDExample(Scene):
             )
         )
         self.add(dodec)
-        self.prepare(Rotating(self.camera, 0.5 * DOWN))
+        self.prepare(self.camera.animate.rotate(0.5 * DOWN).build(infinite=True))
 
         text = Text("Dodecahedron")
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
-                Shift(char, UP, arrive=True)
+                char.animate.shift(DOWN).build(rate=Rates.rewind())
+                #Shift(char, UP, arrive=True)
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
@@ -128,7 +129,8 @@ class LaggedAnimationExample(Scene):
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
-                Shift(char, UP, arrive=True)
+                char.animate.shift(DOWN).build(rate=Rates.rewind())
+                #Shift(char, UP, arrive=True)
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
@@ -175,7 +177,7 @@ class InteractiveExample(Scene):
         text = Text("Press space to animate.").shift(1.5 * DOWN)
         self.add(squares, text)
         animations = [
-            Shift(square, UP)
+            square.animate.shift(UP).build()
             for square in squares
         ]
         for animation in animations:
@@ -255,7 +257,7 @@ class NoteAnimation(Animation):
         judge_condition = MobjectPositionInRange(note, y_min=-3.4, y_max=-2.6)
         self.scene.add(note)
         await self.play(
-            Shifting(note, 7.0 * DOWN),
+            note.animate.shift(7.0 * DOWN).build(infinite=True),
             terminate_condition=Conditions.any((
                 Conditions.all((
                     Events.key_press(self._key).captured(),
@@ -267,7 +269,7 @@ class NoteAnimation(Animation):
         if not judge_condition.judge():
             note.set(opacity=0.4)
             await self.play(
-                Shifting(note, 10.0 * DOWN),
+                note.animate.shift(10.0 * DOWN).build(infinite=True),
                 terminate_condition=MobjectPositionInRange(note, y_max=-5.0)
             )
             self.scene.discard(note)
@@ -275,7 +277,8 @@ class NoteAnimation(Animation):
 
         await self.play(Parallel(
             FadeOut(note),
-            Scale(note, 1.5, AboutCenter())
+            note.animate.scale(1.5).build()
+            #Scale(note, 1.5, AboutCenter())
         ), rate=Rates.rush_from())
 
 
@@ -341,7 +344,7 @@ def main() -> None:
         #write_last_frame=True,
         pixel_height=540
     )
-    ThreeDExample.render(config)
+    ShapeTransformExample.render(config)
 
 
 if __name__ == "__main__":

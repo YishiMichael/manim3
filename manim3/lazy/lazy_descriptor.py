@@ -158,7 +158,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         # Shared when overridden.
         self._element_registration: Registration[Hashable, _T] = Registration()
 
-        self._element_type: type[_T] = NotImplemented
+        self._element_type: type[_T] | None = None
         self._element_type_annotation: type = NotImplemented
         self._descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...] = NotImplemented
 
@@ -205,9 +205,11 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         return (
             self._is_multiple is descriptor._is_multiple
             and self._hasher is descriptor._hasher
-            and self._freeze is descriptor._freeze
+            and (self._freeze or not descriptor._freeze)
             and (
                 self._element_type_annotation == descriptor._element_type_annotation
+                or self._element_type is None
+                or descriptor._element_type is None
                 or issubclass(self._element_type, descriptor._element_type)
             )
         )
@@ -338,10 +340,12 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
     ) -> None:
         slot = self._get_slot(instance)
         assert slot._is_writable, "Attempting to write to a readonly slot"
+        registered_elements = self._register_elements(elements)
+        if registered_elements == slot._get():
+            return
         # `slot` is guaranteed to be a variable slot. Expire linked property slots.
         for expired_property_slot in slot._iter_linked_slots():
             expired_property_slot._expire()
-        registered_elements = self._register_elements(elements)
         slot._set(
             elements=registered_elements,
             parameter_key=None,

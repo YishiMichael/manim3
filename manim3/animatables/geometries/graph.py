@@ -7,7 +7,6 @@ from typing import (
 import numpy as np
 
 from ...constants.custom_typing import (
-    BoundaryT,
     NP_i4,
     NP_x2i4,
     NP_x3f8,
@@ -16,8 +15,10 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
-from ..animatable import Updater
-from ..leaf_animatable import LeafAnimatable
+from ..animatable.leaf_animatable import (
+    LeafAnimatable,
+    LeafAnimatableInterpolateInfo
+)
 #from ..mobject.mobject_attributes.mobject_attribute import (
 #    InterpolateHandler,
 #    MobjectAttribute
@@ -78,12 +79,20 @@ class Graph(LeafAnimatable):
     #        edges=edges
     #    )
 
+    @classmethod
     def _interpolate(
-        self: _GraphT,
+        cls: type[_GraphT],
         src_0: _GraphT,
         src_1: _GraphT
-    ) -> Updater:
-        return GraphInterpolateUpdater(self, src_0, src_1)
+    ) -> "GraphInterpolateInfo[_GraphT]":
+        return GraphInterpolateInfo(src_0, src_1)
+
+    #def _interpolate(
+    #    self: _GraphT,
+    #    src_0: _GraphT,
+    #    src_1: _GraphT
+    #) -> Updater:
+    #    return GraphInterpolateUpdater(self, src_0, src_1)
 
     @classmethod
     def _split(
@@ -400,7 +409,7 @@ class Graph(LeafAnimatable):
     #    )
 
 
-class GraphInterpolateInfo:
+class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[_GraphT]):
     __slots__ = (
         "_positions_0",
         "_positions_1",
@@ -409,13 +418,13 @@ class GraphInterpolateInfo:
 
     def __init__(
         self,
-        graph_0: Graph,
-        graph_1: Graph
+        src_0: _GraphT,
+        src_1: _GraphT
     ) -> None:
-        super().__init__()
+        super().__init__(src_0, src_1)
         positions_0, positions_1, edges = Graph._general_interpolate(
-            graph_0=graph_0,
-            graph_1=graph_1,
+            graph_0=src_0,
+            graph_1=src_1,
             disjoints_0=np.zeros((0,), dtype=np.int32),
             disjoints_1=np.zeros((0,), dtype=np.int32)
         )
@@ -425,61 +434,11 @@ class GraphInterpolateInfo:
 
     def interpolate(
         self,
-        graph: Graph,
+        graph: _GraphT,
         alpha: float
     ) -> None:
-        graph._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+        graph._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
         graph._edges_ = self._edges
-
-
-class GraphInterpolateUpdater(Updater):
-    __slots__ = ("_graph",)
-
-    def __init__(
-        self,
-        graph: Graph,
-        graph_0: Graph,
-        graph_1: Graph
-    ) -> None:
-        super().__init__()
-        self._graph: Graph = graph
-        self._graph_0_ = graph_0._copy()
-        self._graph_1_ = graph_1._copy()
-        #self._positions_0_ = positions_0
-        #self._positions_1_ = positions_1
-        #self._edges_ = edges
-
-    @Lazy.variable()
-    @staticmethod
-    def _graph_0_() -> Graph:
-        return NotImplemented
-
-    @Lazy.variable()
-    @staticmethod
-    def _graph_1_() -> Graph:
-        return NotImplemented
-
-    @Lazy.property()
-    @staticmethod
-    def _interpolate_info_(
-        graph_0: Graph,
-        graph_1: Graph
-    ) -> GraphInterpolateInfo:
-        return GraphInterpolateInfo(graph_0, graph_1)
-
-    def update(
-        self,
-        alpha: float
-    ) -> None:
-        super().update(alpha)
-        self._interpolate_info_.interpolate(self._graph, alpha)
-
-    def update_boundary(
-        self,
-        boundary: BoundaryT
-    ) -> None:
-        super().update_boundary(boundary)
-        self._graph._copy_lazy_content(self._graph_1_ if boundary else self._graph_0_)
 
 
 #class GraphPartialUpdater(Updater[Graph]):

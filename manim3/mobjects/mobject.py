@@ -3,6 +3,8 @@ import weakref
 #from abc import abstractmethod
 from typing import (
     TYPE_CHECKING,
+    Callable,
+    ClassVar,
     #Callable,
     #ClassVar,
     Iterable,
@@ -80,14 +82,17 @@ class MobjectSetKwargs(TypedDict, total=False):
 class Mobject(Model):
     __slots__ = (
         "__weakref__",
+        "_children",
         "_parents",
-        "_real_ancestors"
+        "_descendants",
+        "_ancestors"
     )
-    #_special_slot_copiers: ClassVar[dict[str, Callable | None]] = {
-    #    "__weakref__": None,
-    #    "_parents": weakref.WeakSet.copy,
-    #    "_real_ancestors": weakref.WeakSet.copy
-    #}
+
+    _special_slot_copiers: ClassVar[dict[str, Callable]] = {
+        "_parents": weakref.WeakSet.copy,
+        "_descendants": weakref.WeakSet.copy,
+        "_ancestors": weakref.WeakSet.copy
+    }
 
     #_attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
     #_equivalent_cls_mro_index: ClassVar[int] = 0
@@ -110,13 +115,13 @@ class Mobject(Model):
 
     def __init__(self) -> None:
         super().__init__()
-        # If `_parents` and `_real_ancestors` are implemented with `LazyDynamicContainer` also,
-        # loops will pop up in the DAG of the lazy system.
+        self._children: tuple[Mobject, ...] = ()
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
-        self._real_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._descendants: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
 
     def __iter__(self) -> "Iterator[Mobject]":
-        return iter(self._children_)
+        return iter(self._children)
 
     @overload
     def __getitem__(
@@ -134,20 +139,20 @@ class Mobject(Model):
         self,
         index: int | slice
     ) -> "Mobject | tuple[Mobject, ...]":
-        return self._children_.__getitem__(index)
+        return self._children.__getitem__(index)
 
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    @Lazy.variable_collection(freeze=False)
-    @staticmethod
-    def _children_() -> "tuple[Mobject, ...]":
-        return ()
+    #@Lazy.variable_collection(freeze=False)
+    #@staticmethod
+    #def _children_() -> "tuple[Mobject, ...]":
+    #    return ()
 
-    @Lazy.variable_collection(freeze=False)
-    @staticmethod
-    def _real_descendants_() -> "tuple[Mobject, ...]":
-        return ()
+    #@Lazy.variable_collection(freeze=False)
+    #@staticmethod
+    #def _real_descendants_() -> "tuple[Mobject, ...]":
+    #    return ()
 
     @classmethod
     def _refresh_families(
@@ -159,7 +164,7 @@ class Mobject(Model):
             mobject: Mobject
         ) -> Iterator[Mobject]:
             yield mobject
-            for child in mobject._children_:
+            for child in mobject._children:
                 yield from iter_descendants_by_children(child)
 
         def iter_ancestors_by_parents(
@@ -173,43 +178,31 @@ class Mobject(Model):
             iter_ancestors_by_parents(mobject)
             for mobject in mobjects
         )):
-            ancestor._real_descendants_ = tuple(dict.fromkeys(itertools.chain.from_iterable(
-                iter_descendants_by_children(child)
-                for child in ancestor._children_
-            )))
+            descendants = tuple(dict.fromkeys(iter_descendants_by_children(ancestor)))
+            ancestor._descendants.clear()
+            ancestor._descendants.update(descendants)
+            assert descendants[0] is ancestor
+            ancestor._associated_models_ = descendants[1:]
+
         for descendant in dict.fromkeys(itertools.chain.from_iterable(
             iter_descendants_by_children(mobject)
             for mobject in mobjects
         )):
-            descendant._real_ancestors.clear()
-            descendant._real_ancestors.update(dict.fromkeys(itertools.chain.from_iterable(
-                iter_ancestors_by_parents(parent)
-                for parent in descendant._parents
-            )))
+            ancestors = tuple(dict.fromkeys(iter_ancestors_by_parents(descendant)))
+            descendant._ancestors.clear()
+            descendant._ancestors.update(ancestors)
 
     def iter_children(self) -> "Iterator[Mobject]":
-        yield from self._children_
+        yield from self._children
 
     def iter_parents(self) -> "Iterator[Mobject]":
         yield from self._parents
 
-    def iter_descendants(
-        self,
-        *,
-        broadcast: bool = True
-    ) -> "Iterator[Mobject]":
-        yield self
-        if broadcast:
-            yield from self._real_descendants_
+    def iter_descendants(self) -> "Iterator[Mobject]":
+        yield from self._descendants
 
-    def iter_ancestors(
-        self,
-        *,
-        broadcast: bool = True
-    ) -> "Iterator[Mobject]":
-        yield self
-        if broadcast:
-            yield from self._real_ancestors
+    def iter_ancestors(self) -> "Iterator[Mobject]":
+        yield from self._ancestors
 
     def add(
         self,
@@ -217,19 +210,19 @@ class Mobject(Model):
     ):
         filtered_mobjects = [
             mobject for mobject in dict.fromkeys(mobjects)
-            if mobject not in self._children_
+            if mobject not in self._children
         ]
         if (invalid_mobjects := [
             mobject for mobject in filtered_mobjects
             if mobject in self.iter_ancestors()
         ]):
             raise ValueError(f"Circular relationship occurred when adding {invalid_mobjects} to {self}")
-        children = list(self._children_)
+        children = list(self._children)
         for mobject in filtered_mobjects:
             children.append(mobject)
             mobject._parents.add(self)
-        self._children_ = tuple(children)
-        self._refresh_families(self)  # TODO
+        self._children = tuple(children)
+        type(self)._refresh_families(self)
         return self
 
     def discard(
@@ -238,14 +231,14 @@ class Mobject(Model):
     ):
         filtered_mobjects = [
             mobject for mobject in dict.fromkeys(mobjects)
-            if mobject in self._children_
+            if mobject in self._children
         ]
-        children = list(self._children_)
+        children = list(self._children)
         for mobject in filtered_mobjects:
             children.remove(mobject)
             mobject._parents.remove(self)
-        self._children_ = tuple(children)
-        self._refresh_families(self, *filtered_mobjects)  # TODO
+        self._children = tuple(children)
+        type(self)._refresh_families(self, *filtered_mobjects)
         return self
 
     def clear(self):
@@ -254,41 +247,60 @@ class Mobject(Model):
 
     def copy(self):
         # Copy all descendants. The result is not bound to any mobject.
-        result = self._copy()
-        real_descendants = list(self._real_descendants_)
-        real_descendants_copy = [
-            descendant._copy()
-            for descendant in real_descendants
-        ]
-        descendants = [self, *real_descendants]
-        descendants_copy = [result, *real_descendants_copy]
-
-        def match_copies(
-            mobjects: Iterable[Mobject]
-        ) -> Iterator[Mobject]:
-            return (
-                descendants_copy[descendants.index(mobject)] if mobject in descendants else mobject
-                for mobject in mobjects
+        result = super().copy()
+        #result = self._copy()
+        #real_descendants = list(self._real_descendants_)
+        #real_descendants_copy = [
+        #    descendant._copy()
+        #    for descendant in real_descendants
+        #]
+        descendants: tuple[Mobject, ...] = (self, *(
+            real_descendant for real_descendant in self._associated_models_
+            if isinstance(real_descendant, Mobject)
+        ))
+        descendants_copy: tuple[Mobject, ...] = (result, *(
+            real_descendant_copy for real_descendant_copy in result._associated_models_
+            if isinstance(real_descendant_copy, Mobject)
+        ))
+        for descendant_copy in descendants_copy:
+            descendant_copy._children = tuple(
+                descendants_copy[descendants.index(child)]
+                for child in descendant_copy._children
             )
+            parents = tuple(
+                descendants_copy[descendants.index(parent)]
+                for parent in descendant_copy._parents
+                if parent in descendants
+            )
+            descendant_copy._parents.clear()
+            descendant_copy._parents.update(parents)
 
-        result._children_ = tuple(match_copies(self._children_))
-        result._parents.clear()
-        for real_descendant, real_descendant_copy in zip(real_descendants, real_descendants_copy, strict=True):
-            real_descendant_copy._children_ = tuple(match_copies(real_descendant._children_))
-            real_descendant_copy._parents.clear()
-            real_descendant_copy._parents.update(match_copies(real_descendant._parents))
+        #def match_copies(
+        #    mobjects: Iterable[Mobject]
+        #) -> Iterator[Mobject]:
+        #    return (
+        #        descendants_copy[descendants.index(mobject)] if mobject in descendants else mobject
+        #        for mobject in mobjects
+        #    )
 
-        self._refresh_families(*descendants_copy)
+        #result._children = tuple(match_copies(self._children))
+        #result._parents.clear()
+        #for real_descendant, real_descendant_copy in zip(real_descendants, real_descendants_copy, strict=True):
+        #    real_descendant_copy._children_ = tuple(match_copies(real_descendant._children_))
+        #    real_descendant_copy._parents.clear()
+        #    real_descendant_copy._parents.update(match_copies(real_descendant._parents))
+
+        type(self)._refresh_families(*descendants_copy)
         return result
 
     # model matrix
 
-    @Lazy.property_collection()
-    @staticmethod
-    def _associated_models_(
-        real_descendants: "tuple[Mobject, ...]"
-    ) -> tuple[Model, ...]:
-        return real_descendants
+    #@Lazy.property_collection()
+    #@staticmethod
+    #def _associated_models_(
+    #    real_descendants: "tuple[Mobject, ...]"
+    #) -> tuple[Model, ...]:
+    #    return real_descendants
 
     #@Lazy.variable(hasher=Lazy.branch_hasher)
     #@staticmethod
@@ -632,7 +644,8 @@ class Mobject(Model):
         type_filter: "type[Mobject] | None" = None,
         **kwargs: "Unpack[MobjectSetKwargs]"
     ):
-        for mobject in self.iter_descendants(broadcast=broadcast):
+        mobjects = tuple(self._descendants) if broadcast else (self,)
+        for mobject in mobjects:
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
             super(Mobject, mobject).set(**kwargs)

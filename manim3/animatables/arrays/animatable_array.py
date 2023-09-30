@@ -5,14 +5,13 @@ from typing import (
 
 import numpy as np
 
-from ...constants.custom_typing import (
-    BoundaryT,
-    NP_xf8
-)
+from ...constants.custom_typing import NP_xf8
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
-from ..animatable import Updater
-from ..leaf_animatable import LeafAnimatable
+from ..animatable.leaf_animatable import (
+    LeafAnimatable,
+    LeafAnimatableInterpolateInfo
+)
 #from .mobject_attribute import (
 #    InterpolateHandler,
 #    MobjectAttribute
@@ -49,11 +48,19 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
     @classmethod
     def _interpolate(
         cls: type[_AnimatableArrayT],
-        dst: _AnimatableArrayT,
         src_0: _AnimatableArrayT,
         src_1: _AnimatableArrayT
-    ) -> Updater:
-        return AnimatableArrayInterpolateUpdater(dst, src_0, src_1)
+    ) -> "AnimatableArrayInterpolateInfo[_AnimatableArrayT]":
+        return AnimatableArrayInterpolateInfo(src_0, src_1)
+
+    #@classmethod
+    #def _interpolate(
+    #    cls: type[_AnimatableArrayT],
+    #    dst: _AnimatableArrayT,
+    #    src_0: _AnimatableArrayT,
+    #    src_1: _AnimatableArrayT
+    #) -> Updater:
+    #    return AnimatableArrayInterpolateUpdater(dst, src_0, src_1)
 
     @classmethod
     def _split(
@@ -81,41 +88,64 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
         return cls(unique_array)
 
 
-class AnimatableArrayInterpolateUpdater(Updater, Generic[_NPT]):
-    __slots__ = ("_animatable_array",)
+class AnimatableArrayInterpolateInfo(LeafAnimatableInterpolateInfo[_AnimatableArrayT]):
+    __slots__ = (
+        "_array_0",
+        "_array_1"
+    )
 
     def __init__(
         self,
-        animatable_array: AnimatableArray[_NPT],
-        animatable_array_0: AnimatableArray[_NPT],
-        animatable_array_1: AnimatableArray[_NPT]
+        src_0: _AnimatableArrayT,
+        src_1: _AnimatableArrayT
     ) -> None:
-        super().__init__()
-        self._animatable_array: AnimatableArray[_NPT] = animatable_array
-        self._array_0_ = animatable_array_0._array_
-        self._array_1_ = animatable_array_1._array_
+        super().__init__(src_0, src_1)
+        self._array_0: np.ndarray = src_0._array_
+        self._array_1: np.ndarray = src_1._array_
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _array_0_() -> _NPT:
-        return NotImplemented
-
-    @Lazy.variable(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _array_1_() -> _NPT:
-        return NotImplemented
-
-    def update(
+    def interpolate(
         self,
+        src: _AnimatableArrayT,
         alpha: float
     ) -> None:
-        super().update(alpha)
-        self._animatable_array._array_ = SpaceUtils.lerp(self._array_0_, self._array_1_, alpha)
-        #return AnimatableArray(SpaceUtils.lerp(self._array_0, self._array_1, alpha))
+        src._array_ = SpaceUtils.lerp(self._array_0, self._array_1, alpha)
 
-    def update_boundary(
-        self,
-        boundary: BoundaryT
-    ) -> None:
-        super().update_boundary(boundary)
-        self.update(boundary)
+
+#class AnimatableArrayInterpolateUpdater(Updater, Generic[_NPT]):
+#    __slots__ = ("_animatable_array",)
+
+#    def __init__(
+#        self,
+#        animatable_array: AnimatableArray[_NPT],
+#        animatable_array_0: AnimatableArray[_NPT],
+#        animatable_array_1: AnimatableArray[_NPT]
+#    ) -> None:
+#        super().__init__()
+#        self._animatable_array: AnimatableArray[_NPT] = animatable_array
+#        self._array_0_ = animatable_array_0._array_
+#        self._array_1_ = animatable_array_1._array_
+
+#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @staticmethod
+#    def _array_0_() -> _NPT:
+#        return NotImplemented
+
+#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @staticmethod
+#    def _array_1_() -> _NPT:
+#        return NotImplemented
+
+#    def update(
+#        self,
+#        alpha: float
+#    ) -> None:
+#        super().update(alpha)
+#        self._animatable_array._array_ = SpaceUtils.lerp(self._array_0_, self._array_1_, alpha)
+#        #return AnimatableArray(SpaceUtils.lerp(self._array_0, self._array_1, alpha))
+
+#    def update_boundary(
+#        self,
+#        boundary: BoundaryT
+#    ) -> None:
+#        super().update_boundary(boundary)
+#        self.update(float(boundary))

@@ -1,11 +1,8 @@
 from ...constants.constants import ORIGIN
 from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
-#from ...utils.space_utils import SpaceUtils
-#from ..mobject.mobject import Mobject
-#from ..mobject.mobject_attributes.color_attribute import ColorAttribute
 from ..arrays.animatable_color import AnimatableColor
-from ..models.model import ModelMatrix
+from ..arrays.model_matrix import AffineApplier
 from ..models.point import Point
 
 
@@ -20,6 +17,6 @@ class PointLight(Point):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _position_(
-        model_matrix: ModelMatrix
+        model_matrix__applier: AffineApplier
     ) -> NP_3f8:
-        return model_matrix._apply_affine(ORIGIN)
+        return model_matrix__applier.apply(ORIGIN)

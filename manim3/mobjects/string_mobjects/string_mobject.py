@@ -265,12 +265,12 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
         labelled_shapes = cls._get_shape_mobjects(labelled_content, input_data, temp_path)
         assert len(unlabelled_shapes) == len(labelled_shapes)
 
-        ShapeMobject().add(*labelled_shapes).match_bounding_box(
+        ShapeMobject().add(*labelled_shapes).match_box(
             ShapeMobject().add(*unlabelled_shapes)
         )
         distance_matrix = scipy.spatial.distance.cdist(
-            [shape.get_centroid() for shape in unlabelled_shapes],
-            [shape.get_centroid() for shape in labelled_shapes]
+            [shape.box.get_centroid() for shape in unlabelled_shapes],
+            [shape.box.get_centroid() for shape in labelled_shapes]
         )
         unlabelled_indices, labelled_indices = scipy.optimize.linear_sum_assignment(distance_matrix)
         return [
