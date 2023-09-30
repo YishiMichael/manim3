@@ -1,6 +1,9 @@
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Callable, TypeVar
+from typing import (
+    Callable,
+    TypeVar
+)
 #from typing import TYPE_CHECKING
 
 import numpy as np
@@ -158,31 +161,27 @@ class Model(Animatable):
     def get_centroid(self) -> NP_3f8:
         return self._centroid_
 
-    @classmethod
     def _get_interpolate_updater(
-        cls: type[_ModelT],
-        dst: _ModelT,
+        self: _ModelT,
         src_0: _ModelT,
         src_1: _ModelT
     ) -> Updater:
-        return super()._get_interpolate_updater(dst, src_0, src_1).add(*(
-            super()._get_interpolate_updater(dst_associated, src_0_assiciated, src_1_assiciated)
+        return super()._get_interpolate_updater(src_0, src_1).add(*(
+            super(Model, dst_associated)._get_interpolate_updater(src_0_assiciated, src_1_assiciated)
             for dst_associated, src_0_assiciated, src_1_assiciated in zip(
-                dst._associated_models_, src_0._associated_models_, src_1._associated_models_, strict=True
+                self._associated_models_, src_0._associated_models_, src_1._associated_models_, strict=True
             )
         ))
 
-    @classmethod
     def _get_piecewise_updater(
-        cls: type[_ModelT],
-        dst: _ModelT,
+        self: _ModelT,
         src: _ModelT,
         piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
     ) -> Updater:
-        return super()._get_piecewise_updater(dst, src, piecewise_func).add(*(
-            super()._get_piecewise_updater(dst_associated, src_assiciated, piecewise_func)
+        return super()._get_piecewise_updater(src, piecewise_func).add(*(
+            super(Model, dst_associated)._get_piecewise_updater(src_assiciated, piecewise_func)
             for dst_associated, src_assiciated in zip(
-                dst._associated_models_, src._associated_models_, strict=True
+                self._associated_models_, src._associated_models_, strict=True
             )
         ))
 

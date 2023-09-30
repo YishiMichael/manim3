@@ -4,6 +4,23 @@ from abc import (
 )
 from dataclasses import dataclass
 
+from ..animations.animation.condition import Condition
+from .toplevel import Toplevel
+
+
+class Captured(Condition):
+    __slots__ = ("_event",)
+
+    def __init__(
+        self,
+        event: "Event"
+    ) -> None:
+        super().__init__()
+        self._event: Event = event
+
+    def judge(self) -> bool:
+        return Toplevel.window.capture_event_by(self._event)
+
 
 @dataclass(
     frozen=True,
@@ -30,3 +47,6 @@ class Event(ABC):
             or value is None
             or required_value == (value & required_value if masked else value)
         )
+
+    def captured(self) -> Captured:
+        return Captured(self)

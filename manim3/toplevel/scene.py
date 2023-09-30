@@ -1,6 +1,6 @@
 import asyncio
-import itertools as it
-import subprocess as sp
+import itertools
+import subprocess
 from contextlib import contextmanager
 from typing import (
     IO,
@@ -56,9 +56,9 @@ class Scene(Animation):
         ) -> None:
             await asyncio.sleep(0.0)
             if preview:
-                Toplevel.window.dispatch_events()
+                Toplevel.window.pyglet_window.dispatch_events()
             self._progress()
-            Toplevel.event_queue.clear()
+            Toplevel.window.event_queue.clear()
             self._root_mobject._render_scene(color_framebuffer)
             if preview:
                 self._render_to_window(color_framebuffer._framebuffer_)
@@ -69,10 +69,10 @@ class Scene(Animation):
             color_framebuffer: ColorFramebuffer,
             video_stdin: IO[bytes] | None
         ) -> None:
-            self._schedule()
+            self._root_schedule()
             spf = 1.0 / fps
             sleep_time = spf if preview else 0.0
-            for frame_index in it.count():
+            for frame_index in itertools.count():
                 self._timestamp = frame_index * spf
                 await asyncio.gather(
                     run_frame(
@@ -82,7 +82,7 @@ class Scene(Animation):
                     asyncio.sleep(sleep_time),
                     return_exceptions=False  #True
                 )
-                if self.is_after_animating():
+                if self.get_after_animating_state() is not None:
                     break
 
             self._root_mobject._render_scene(color_framebuffer)
@@ -102,7 +102,7 @@ class Scene(Animation):
         if not write_video:
             yield None
             return
-        writing_process = sp.Popen((
+        writing_process = subprocess.Popen((
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
@@ -116,7 +116,7 @@ class Scene(Animation):
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
             PathUtils.get_output_subdir("videos").joinpath(f"{cls.__name__}.mp4")
-        ), stdin=sp.PIPE)
+        ), stdin=subprocess.PIPE)
         assert (video_stdin := writing_process.stdin) is not None
         yield video_stdin
         video_stdin.close()
@@ -130,7 +130,7 @@ class Scene(Animation):
     ) -> None:
         window_framebuffer = Toplevel.context._window_framebuffer
         Toplevel.context.blit(framebuffer, window_framebuffer)
-        Toplevel.window.flip()
+        Toplevel.window.pyglet_window.flip()
 
     @classmethod
     def _write_frame_to_video(

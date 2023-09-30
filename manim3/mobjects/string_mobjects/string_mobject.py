@@ -1,4 +1,4 @@
-import itertools as it
+import itertools
 import pathlib
 import re
 from abc import abstractmethod
@@ -10,8 +10,8 @@ from typing import (
     TypedDict
 )
 
-from scipy.optimize import linear_sum_assignment
-from scipy.spatial.distance import cdist
+import scipy.optimize
+import scipy.spatial.distance
 
 from ...constants.custom_typing import SelectorT
 from ...utils.color_utils import ColorUtils
@@ -268,11 +268,11 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
         ShapeMobject().add(*labelled_shapes).match_bounding_box(
             ShapeMobject().add(*unlabelled_shapes)
         )
-        distance_matrix = cdist(
+        distance_matrix = scipy.spatial.distance.cdist(
             [shape.get_centroid() for shape in unlabelled_shapes],
             [shape.get_centroid() for shape in labelled_shapes]
         )
-        unlabelled_indices, labelled_indices = linear_sum_assignment(distance_matrix)
+        unlabelled_indices, labelled_indices = scipy.optimize.linear_sum_assignment(distance_matrix)
         return [
             int(ColorUtils.color_to_hex(labelled_shapes[labelled_index]._color_)[1:], 16)
             for labelled_index in labelled_indices
@@ -417,8 +417,8 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
         label_to_span_dict: dict[int, Span] = {}
         replaced_items: list[CommandItem | LabelledInsertionItem] = []
-        label_counter: it.count[int] = it.count(start=1)
-        bracket_counter: it.count[int] = it.count()
+        label_counter: itertools.count[int] = itertools.count(start=1)
+        bracket_counter: itertools.count[int] = itertools.count()
         protect_level: int = 0
         bracket_stack: list[int] = []
         open_command_stack: list[tuple[int, CommandItem]] = []
@@ -514,7 +514,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
         start_index: int,
         stop_index: int
     ) -> str:
-        return "".join(it.chain.from_iterable(zip(
+        return "".join(itertools.chain.from_iterable(zip(
             ("", *original_pieces[start_index:stop_index - 1]),
             replaced_pieces[start_index:stop_index],
             strict=True
@@ -596,7 +596,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
             stop_item = (prev_label, EdgeFlag.STOP)
             yield (start_item, stop_item)
 
-        label_groupers = list(it.groupby(
+        label_groupers = list(itertools.groupby(
             enumerate(labels),
             key=lambda label_item: label_item[1]
         ))
@@ -779,7 +779,7 @@ class StringMobject(ShapeMobject):
         selectors: Iterable[SelectorT],
         string: str
     ) -> list[Span]:
-        return list(it.chain.from_iterable(
+        return list(itertools.chain.from_iterable(
             cls._iter_spans_by_selector(selector, string)
             for selector in selectors
         ))

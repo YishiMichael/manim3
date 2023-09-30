@@ -1,14 +1,17 @@
-from ...mobjects.mobject.mobject import Mobject
+from ...mobjects.mobject import Mobject
+from ..animation.animation import Animation
+from ..animation.rates import Rates
 from ..composition.parallel import Parallel
 from .fade_in import FadeIn
 from .fade_out import FadeOut
 
 
-class FadeTransform(Parallel):
+class FadeTransform(Animation):
     __slots__ = (
         "_start_mobject",
         "_stop_mobject",
-        "_intermediate_mobject"
+        "_intermediate_start_mobject",
+        "_intermediate_stop_mobject"
     )
 
     def __init__(
@@ -16,28 +19,41 @@ class FadeTransform(Parallel):
         start_mobject: Mobject,
         stop_mobject: Mobject
     ) -> None:
-        intermediate_start_mobject = start_mobject.copy()
-        intermediate_stop_mobject = stop_mobject.copy()
-        super().__init__(
-            FadeOut(
-                mobject=intermediate_start_mobject,
-                func=lambda mob: mob.match_bounding_box(stop_mobject)
-            ),
-            FadeIn(
-                mobject=intermediate_stop_mobject,
-                func=lambda mob: mob.match_bounding_box(start_mobject)
-            )
-        )
+        #intermediate_start_mobject = start_mobject.copy()
+        #intermediate_stop_mobject = stop_mobject.copy()
+        #super().__init__(
+        #    FadeOut(
+        #        mobject=intermediate_start_mobject,
+        #        func=lambda mob: mob.match_bounding_box(stop_mobject)
+        #    ),
+        #    FadeIn(
+        #        mobject=intermediate_stop_mobject,
+        #        func=lambda mob: mob.match_bounding_box(start_mobject)
+        #    )
+        #)
+        super().__init__(run_alpha=1.0)
         self._start_mobject: Mobject = start_mobject
         self._stop_mobject: Mobject = stop_mobject
-        self._intermediate_mobject: Mobject = Mobject().add(
-            intermediate_start_mobject,
-            intermediate_stop_mobject
-        )
+        self._intermediate_start_mobject: Mobject = start_mobject.copy()
+        self._intermediate_stop_mobject: Mobject = stop_mobject.copy()
+        #self._intermediate_mobject: Mobject = Mobject().add(
+        #    intermediate_start_mobject,
+        #    intermediate_stop_mobject
+        #)
 
     async def timeline(self) -> None:
-        self.scene.discard(self._start_mobject)
-        self.scene.add(self._intermediate_mobject)
-        await super().timeline()
-        self.scene.discard(self._intermediate_mobject)
-        self.scene.add(self._stop_mobject)
+        start_mobject = self._start_mobject
+        stop_mobject = self._stop_mobject
+        intermediate_start_mobject = self._intermediate_start_mobject
+        intermediate_stop_mobject = self._intermediate_stop_mobject
+
+        self.scene.discard(start_mobject)
+        self.scene.add(intermediate_start_mobject, intermediate_stop_mobject)
+        await self.play(Parallel(
+            FadeOut(intermediate_start_mobject),
+            intermediate_start_mobject.animate.match_bounding_box(stop_mobject).build(),
+            FadeIn(intermediate_stop_mobject),
+            intermediate_stop_mobject.animate.match_bounding_box(start_mobject).build(rate=Rates.rewind())
+        ))
+        self.scene.discard(intermediate_start_mobject, intermediate_stop_mobject)
+        self.scene.add(stop_mobject)

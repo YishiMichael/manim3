@@ -25,7 +25,7 @@ class ShapeTransformExample(Scene):
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle), run_time=2, rate=Smooth())
+        await self.play(Transform(square, circle), run_time=2, rate=Rates.smooth())
         await self.wait()
 
 
@@ -54,7 +54,7 @@ class TexTransformExample(Scene):
         )
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2, rate=Smooth())
+        await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
         await self.wait(3)
 
 
@@ -71,9 +71,9 @@ class CreateTexExample(Scene):
             .set(color=BLUE, weight=10)
         )
         await self.wait()
-        await self.play(Create(text), run_time=2, rate=Smooth())
+        await self.play(Create(text), run_time=2, rate=Rates.smooth())
         await self.wait()
-        await self.play(Uncreate(text, backwards=True), rate=Smooth(), run_time=2)
+        await self.play(Uncreate(text, backwards=True), rate=Rates.smooth(), run_time=2)
         await self.wait()
 
 
@@ -101,7 +101,7 @@ class ThreeDExample(Scene):
                 Shift(char, UP, arrive=True)
             )
             for char in text
-        ), lag_time=0.5), rate=Smooth())
+        ), lag_time=0.5), rate=Rates.smooth())
         await self.wait(3)
 
 
@@ -131,7 +131,7 @@ class LaggedAnimationExample(Scene):
                 Shift(char, UP, arrive=True)
             )
             for char in text
-        ), lag_time=0.5), rate=Smooth())
+        ), lag_time=0.5), rate=Rates.smooth())
         await self.wait(20)
 
 
@@ -154,7 +154,7 @@ class FormulaExample(Scene):
         ).scale(0.7)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Smooth(), run_time=2)
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2)
         await self.wait()
 
 
@@ -181,10 +181,10 @@ class InteractiveExample(Scene):
         for animation in animations:
             self.prepare(
                 animation,
-                rate=Smooth(),
-                launch_condition=EventCaptured(KeyPress(KEY.SPACE))
+                rate=Rates.smooth(),
+                launch_condition=Events.key_press(KEY.SPACE).captured()
             )
-        await self.wait_until(ConditionAll(Terminated(animation) for animation in animations))
+        await self.wait_until(Conditions.all(animation.terminated() for animation in animations))
         await self.wait()
 
 
@@ -256,9 +256,9 @@ class NoteAnimation(Animation):
         self.scene.add(note)
         await self.play(
             Shifting(note, 7.0 * DOWN),
-            terminate_condition=ConditionAny((
-                ConditionAll((
-                    EventCaptured(KeyPress(self._key)),
+            terminate_condition=Conditions.any((
+                Conditions.all((
+                    Events.key_press(self._key).captured(),
                     judge_condition
                 )),
                 MobjectPositionInRange(note, y_max=-3.4)
@@ -276,7 +276,7 @@ class NoteAnimation(Animation):
         await self.play(Parallel(
             FadeOut(note),
             Scale(note, 1.5, AboutCenter())
-        ), rate=RushFrom())
+        ), rate=Rates.rush_from())
 
 
 class GameExample(Scene):

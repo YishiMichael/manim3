@@ -8,10 +8,13 @@ from typing import (
     TypeVar
 )
 
+from ..animations.animation.rate import Rate
+from ..animations.animation.rates import Rates
 from ..animations.animation.animation import Animation
-from ..animations.animation.rates.linear import Linear
-from ..animations.animation.rates.rate import Rate
+#from ..animations.animation.rates.linear import Linear
+#from ..animations.animation.rates.rate import Rate
 from ..constants.custom_typing import (
+    BoundaryT,
     NP_xf8,
     NP_xi4
 )
@@ -84,49 +87,45 @@ class Animatable(LazyObject):
         self,
         updater: "Updater"
     ) -> None:
-        updater.final_update()
+        updater.update_boundary(1)
         #if self._saved_state is not None:
         self._updater.add(updater)
 
-    @classmethod
     def _get_interpolate_updater(
-        cls: type[_AnimatableT],
-        dst: _AnimatableT,
+        self: _AnimatableT,
         src_0: _AnimatableT,
         src_1: _AnimatableT
     ) -> "Updater":
-        updater: Updater = Updater()
-        for descriptor in cls._animatable_descriptors.values():
-            assert issubclass(element_type := descriptor._element_type, Animatable)
-            dst_elements = descriptor._get_elements(dst)
+        updater = Updater()
+        for descriptor in type(self)._animatable_descriptors.values():
+            assert issubclass(descriptor._element_type, Animatable)
+            dst_elements = descriptor._get_elements(self)
             src_0_elements = descriptor._get_elements(src_0)
             src_1_elements = descriptor._get_elements(src_1)
             #if not issubclass(element_type, Animatable) and src_0_elements != src_1_elements:
             #    raise ValueError(f"Uninterpolable variables of `{descriptor._name}` don't match")
             updater.add(*(
-                element_type._get_interpolate_updater(dst_element, src_0_element, src_1_element)
+                dst_element._get_interpolate_updater(src_0_element, src_1_element)
                 for dst_element, src_0_element, src_1_element in zip(
                     dst_elements, src_0_elements, src_1_elements, strict=True
                 )
             ))
         return updater
 
-    @classmethod
     def _get_piecewise_updater(
-        cls: type[_AnimatableT],
-        dst: _AnimatableT,
+        self: _AnimatableT,
         src: _AnimatableT,
         piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
     ) -> "Updater":
-        updater: Updater = Updater()
-        for descriptor in cls._animatable_descriptors.values():
-            assert issubclass(element_type := descriptor._element_type, Animatable)
-            dst_elements = descriptor._get_elements(dst)
+        updater = Updater()
+        for descriptor in type(self)._animatable_descriptors.values():
+            assert issubclass(descriptor._element_type, Animatable)
+            dst_elements = descriptor._get_elements(self)
             src_elements = descriptor._get_elements(src)
             updater.add(*(
-                element_type._get_piecewise_updater(dst_element, src_element, piecewise_func)
+                dst_element._get_piecewise_updater(src_element, piecewise_func)
                 for dst_element, src_element in zip(
                     dst_elements, src_elements, strict=True
                 )
@@ -135,6 +134,31 @@ class Animatable(LazyObject):
         #pieces = tuple(cls() for _ in range(len(split_alphas) + 1))
         #cls._split(pieces, src, split_alphas)
         #cls._concatenate(dst, tuple(pieces[index] for index in concatenate_indices))
+
+    def _get_set_updater(
+        self,
+        **kwargs
+    ) -> "Updater":
+        updater = Updater()
+        for attribute_name, animatable_input in kwargs.items():
+            if (descriptor := type(self)._animatable_descriptors.get(f"_{attribute_name}_")) is None:
+                continue
+            assert issubclass(element_type := descriptor._element_type, Animatable)
+            source_elements = descriptor._get_elements(self)
+            if descriptor._is_multiple:
+                target_elements = tuple(
+                    element_type._convert_input(animatable_input_element)
+                    for animatable_input_element in animatable_input
+                )
+            else:
+                target_elements = (element_type._convert_input(animatable_input),)
+            #descriptor.__set__(self, target_animatable)
+            #if self._saved_state is not None:
+            for source_element, target_element in zip(source_elements, target_elements, strict=True):
+                updater.add(source_element._get_interpolate_updater(
+                    source_element._copy(), target_element._copy()
+                ))
+        return updater
 
     #@classmethod
     #def _split(
@@ -193,65 +217,38 @@ class Animatable(LazyObject):
 
     def build(
         self,
-        rate: Rate = Linear(),
+        rate: Rate = Rates.linear(),
         #run_alpha: float = 1.0,
-        infinite: bool = False,
+        infinite: bool = False
         #rewind: bool = False
     ) -> "UpdaterAnimation":
         #assert not infinite or not rewind
         #assert (saved_state := self._saved_state) is not None
         #self._copy_lazy_content(self, saved_state)
         assert self._is_building_animation
-        animation = UpdaterAnimation(
-            #instance=self,
-            updater=self._updater,
+        animation = self._updater.build_animation(
             rate=rate,
-            run_alpha=float("inf") if infinite else 1.0
-            #infinite=infinite,
-            #run_alpha=float("inf") if infinite else 1.0,
-            #rewind=rewind
+            infinite=infinite
         )
+        #animation = UpdaterAnimation(
+        #    #instance=self,
+        #    updater=self._updater,
+        #    rate=rate,
+        #    run_alpha=float("inf") if infinite else 1.0
+        #    #infinite=infinite,
+        #    #run_alpha=float("inf") if infinite else 1.0,
+        #    #rewind=rewind
+        #)
         self._is_building_animation = False
         self._updater = Updater()
         return animation
-
-    def set(
-        self,
-        **kwargs
-    ):
-        for attribute_name, animatable_input in kwargs.items():
-            if (descriptor := self._animatable_descriptors.get(f"_{attribute_name}_")) is None:
-                continue
-            assert issubclass(element_type := descriptor._element_type, Animatable)
-            source_elements = descriptor._get_elements(self)
-            if descriptor._is_multiple:
-                target_elements = tuple(
-                    element_type._convert_input(animatable_input_element)
-                    for animatable_input_element in animatable_input
-                )
-            else:
-                target_elements = (element_type._convert_input(animatable_input),)
-            #descriptor.__set__(self, target_animatable)
-            #if self._saved_state is not None:
-            for source_element, target_element in zip(source_elements, target_elements, strict=True):
-                self._stack_updater(element_type._get_interpolate_updater(
-                    source_element, source_element._copy(), target_element._copy()
-                ))
-        return self
 
     def interpolate(
         self: _AnimatableT,
         animatable_0: _AnimatableT,
         animatable_1: _AnimatableT
     ):
-        self._stack_updater(type(self)._get_interpolate_updater(self, animatable_0._copy(), animatable_1._copy()))
-        return self
-
-    def transform(
-        self: _AnimatableT,
-        animatable: _AnimatableT
-    ):
-        self.interpolate(self, animatable)
+        self._stack_updater(self._get_interpolate_updater(animatable_0, animatable_1))
         return self
 
     def piecewise(
@@ -259,7 +256,21 @@ class Animatable(LazyObject):
         animatable: _AnimatableT,
         piecewise_func: Callable[[float], tuple[NP_xf8, NP_xi4]]
     ):
-        self._stack_updater(type(self)._get_piecewise_updater(self, animatable._copy(), piecewise_func))
+        self._stack_updater(self._get_piecewise_updater(animatable, piecewise_func))
+        return self
+
+    def set(
+        self,
+        **kwargs
+    ):
+        self._stack_updater(self._get_set_updater(**kwargs))
+        return self
+
+    def transform(
+        self: _AnimatableT,
+        animatable: _AnimatableT
+    ):
+        self.interpolate(self._copy(), animatable)
         return self
 
     def static_interpolate(
@@ -268,8 +279,47 @@ class Animatable(LazyObject):
         animatable_1: _AnimatableT,
         alpha: float
     ):
-        self.animate.interpolate(animatable_0, animatable_1).build().update(alpha)
+        self._get_interpolate_updater(animatable_0, animatable_1).update(alpha)
         return self
+
+    def static_piecewise(
+        self: _AnimatableT,
+        animatable: _AnimatableT,
+        split_alphas: NP_xf8,
+        concatenate_indices: NP_xi4
+    ):
+        self._get_piecewise_updater(animatable, lambda alpha: (split_alphas, concatenate_indices)).update(1.0)
+        return self
+
+
+class LeafUpdaterAnimation(Animation):
+    __slots__ = (
+        #"_instance",
+        "_updater",
+        "_rate"
+    )
+
+    def __init__(
+        self,
+        #instance: _T,
+        #updaters: "tuple[Updater, ...]",
+        updater: "Updater",
+        rate: Rate,
+        run_alpha: float
+    ) -> None:
+        super().__init__(run_alpha=run_alpha)
+        #self._instance: _T = instance
+        self._updater: Updater = updater
+        self._rate: Rate = rate
+
+    def _animate_instant(
+        self,
+        alpha: float
+    ) -> None:
+        self._updater.update(self._rate.at(alpha))
+
+    async def timeline(self) -> None:
+        await self.wait(self._run_alpha)
 
 
 class UpdaterAnimation(Animation):
@@ -292,22 +342,23 @@ class UpdaterAnimation(Animation):
         self._updater: Updater = updater
         self._rate: Rate = rate
 
-    def update(
-        self,
-        alpha: float
-    ) -> None:
-        self._updater.update(self._rate.at(alpha))
-        #sub_alpha = self._rate.at(alpha)
-        #instance = self._instance
-        #for updater in self._updaters:
-        #    updater.update(sub_alpha)
+    #def update(
+    #    self,
+    #    alpha: float
+    #) -> None:
+    #    self._updater.update(self._rate.at(alpha))
+    #    #sub_alpha = self._rate.at(alpha)
+    #    #instance = self._instance
+    #    #for updater in self._updaters:
+    #    #    updater.update(sub_alpha)
 
     async def timeline(self) -> None:
         #for updater in reversed(self._updaters):
         #    updater.initial_update()
-        self._updater.initial_update()
-        await self.wait(self._run_alpha)
-        self._updater.final_update()
+        self._updater.update_boundary(self._rate.at_boundary(0))
+        await self.play(LeafUpdaterAnimation(self._updater, self._rate, self._run_alpha))
+        #await self.wait(self._run_alpha)
+        self._updater.update_boundary(self._rate.at_boundary(1))
         #for updater in self._updaters:
         #    updater.final_update()
 
@@ -352,6 +403,17 @@ class Updater(LazyObject):
         self._branch_updaters.extend(updaters)
         return self
 
+    def build_animation(
+        self,
+        rate: Rate = Rates.linear(),
+        infinite: bool = False
+    ) -> UpdaterAnimation:
+        return UpdaterAnimation(
+            updater=self,
+            rate=rate,
+            run_alpha=float("inf") if infinite else 1.0
+        )
+
     def update(
         self,
         alpha: float
@@ -359,10 +421,9 @@ class Updater(LazyObject):
         for updater in self._branch_updaters:
             updater.update(alpha)
 
-    def initial_update(self) -> None:
-        for updater in reversed(self._branch_updaters):
-            updater.initial_update()
-
-    def final_update(self) -> None:
+    def update_boundary(
+        self,
+        boundary: BoundaryT
+    ) -> None:
         for updater in self._branch_updaters:
-            updater.final_update()
+            updater.update_boundary(boundary)

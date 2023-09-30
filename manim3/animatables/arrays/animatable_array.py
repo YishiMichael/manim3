@@ -5,8 +5,11 @@ from typing import (
 
 import numpy as np
 
+from ...constants.custom_typing import (
+    BoundaryT,
+    NP_xf8
+)
 from ...lazy.lazy import Lazy
-from ...constants.custom_typing import NP_xf8
 from ...utils.space_utils import SpaceUtils
 from ..animatable import Updater
 from ..leaf_animatable import LeafAnimatable
@@ -25,11 +28,11 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
 
     def __init__(
         self,
-        value: float | np.ndarray | None = None
+        array: _NPT | None = None
     ) -> None:
         super().__init__()
-        if value is not None:
-            self._array_ = np.asarray(value, dtype=np.float64)
+        if array is not None:
+            self._array_ = array
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
@@ -39,13 +42,13 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
     @classmethod
     def _convert_input(
         cls: type[_AnimatableArrayT],
-        array_input: float | np.ndarray
+        array_input: np.ndarray
     ) -> _AnimatableArrayT:
         return cls(array_input)
 
     @classmethod
     def _interpolate(
-        cls,
+        cls: type[_AnimatableArrayT],
         dst: _AnimatableArrayT,
         src_0: _AnimatableArrayT,
         src_1: _AnimatableArrayT
@@ -54,26 +57,28 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
 
     @classmethod
     def _split(
-        cls,
-        dst_tuple: tuple[_AnimatableArrayT, ...],
+        cls: type[_AnimatableArrayT],
+        #dst_tuple: tuple[_AnimatableArrayT, ...],
         src: _AnimatableArrayT,
         alphas: NP_xf8
-    ) -> None:
-        assert len(dst_tuple) == len(alphas) + 1
-        for dst in dst_tuple:
-            dst._array_ = src._array_
+    ) -> tuple[_AnimatableArrayT, ...]:
+        return tuple(cls(src._array_) for _ in range(len(alphas) + 1))
+        #assert len(dst_tuple) == len(alphas) + 1
+        #for dst in dst_tuple:
+        #    dst._array_ = src._array_
 
     @classmethod
     def _concatenate(
-        cls,
-        dst: _AnimatableArrayT,
+        cls: type[_AnimatableArrayT],
+        #dst: _AnimatableArrayT,
         src_tuple: tuple[_AnimatableArrayT, ...]
-    ) -> None:
+    ) -> _AnimatableArrayT:
         unique_arrays = {id(src._array_): src._array_ for src in src_tuple}
         if not unique_arrays:
-            return
-        _, dst._array_ = unique_arrays.popitem()
+            return cls()
+        _, unique_array = unique_arrays.popitem()
         assert not unique_arrays
+        return cls(unique_array)
 
 
 class AnimatableArrayInterpolateUpdater(Updater, Generic[_NPT]):
@@ -108,10 +113,9 @@ class AnimatableArrayInterpolateUpdater(Updater, Generic[_NPT]):
         self._animatable_array._array_ = SpaceUtils.lerp(self._array_0_, self._array_1_, alpha)
         #return AnimatableArray(SpaceUtils.lerp(self._array_0, self._array_1, alpha))
 
-    def initial_update(self) -> None:
-        super().initial_update()
-        self.update(0.0)
-
-    def final_update(self) -> None:
-        super().final_update()
-        self.update(1.0)
+    def update_boundary(
+        self,
+        boundary: BoundaryT
+    ) -> None:
+        super().update_boundary(boundary)
+        self.update(boundary)

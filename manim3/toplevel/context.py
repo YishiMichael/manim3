@@ -1,4 +1,4 @@
-import operator as op
+import operator
 from dataclasses import dataclass
 from functools import reduce
 
@@ -32,17 +32,33 @@ class Context:
 
     def __init__(
         self,
-        mgl_context: moderngl.Context
+        gl_version_code: int,
+        preview: bool
     ) -> None:
         super().__init__()
+        mgl_context = moderngl.create_context(
+            require=gl_version_code,
+            standalone=not preview
+        )
+        mgl_context.gc_mode = "auto"
         self._mgl_context: moderngl.Context = mgl_context
         self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(
+        self,
+        *args,
+        **kwargs
+    ) -> None:
+        self._mgl_context.release()
 
     def set_state(
         self,
         context_state: ContextState
     ) -> None:
-        self._mgl_context.enable_only(reduce(op.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
+        self._mgl_context.enable_only(reduce(operator.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
         for index, ((src_blend_func, dst_blend_func), blend_equation) in enumerate(
             zip(context_state.blend_funcs, context_state.blend_equations, strict=True)
         ):

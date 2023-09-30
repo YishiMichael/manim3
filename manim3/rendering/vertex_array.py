@@ -1,4 +1,4 @@
-import itertools as it
+import itertools
 import pathlib
 import re
 from dataclasses import dataclass
@@ -176,9 +176,9 @@ class VertexArray(LazyObject):
     ) -> tuple[tuple[str, int], ...]:
         return tuple(
             (array_len_name, array_len)
-            for array_len_name, array_len in it.chain(
-                it.chain.from_iterable(texture_buffers__array_len_items),
-                it.chain.from_iterable(uniform_block_buffers__array_len_items),
+            for array_len_name, array_len in itertools.chain(
+                itertools.chain.from_iterable(texture_buffers__array_len_items),
+                itertools.chain.from_iterable(uniform_block_buffers__array_len_items),
                 indexed_attributes_buffer__attributes_buffer__array_len_items,
                 transform_feedback_buffer__array_len_items
             )
@@ -293,7 +293,7 @@ class VertexArray(LazyObject):
                 binding=texture_binding
             )
 
-            for multi_index in it.product(*(range(n) for n in shape)):
+            for multi_index in itertools.product(*(range(n) for n in shape)):
                 uniform = uniform_dict[multi_index]
                 # Used as a `sampler2D`.
                 assert uniform.dimension == 1

@@ -1,28 +1,19 @@
-from typing import (
-    Callable,
-    TypeVar
-)
-
-from ...mobjects.mobject.mobject import Mobject
-from ..transform.transform_to_copy import TransformToCopy
+from ...mobjects.mobject import Mobject
+from ..animation.animation import Animation
 
 
-_MobjectT = TypeVar("_MobjectT", bound=Mobject)
-
-
-class FadeOut(TransformToCopy):
-    __slots__ = ()
+class FadeOut(Animation):
+    __slots__ = ("_mobject",)
 
     def __init__(
         self,
-        mobject: _MobjectT,
-        func: Callable[[_MobjectT], _MobjectT] = lambda mob: mob
+        mobject: Mobject
     ) -> None:
-        super().__init__(
-            mobject=mobject,
-            func=lambda mob: func(mob.set(opacity=0.0))
-        )
+        super().__init__()
+        self._mobject: Mobject = mobject
 
     async def timeline(self) -> None:
-        await super().timeline()
-        self.scene.discard(self._start_mobject)
+        mobject = self._mobject
+
+        await self.play(mobject.animate.set(opacity=0.0).build())
+        self.scene.discard(mobject)

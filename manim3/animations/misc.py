@@ -1,4 +1,4 @@
-import itertools as it
+import itertools
 from typing import (
     Hashable,
     Iterable,
@@ -6,7 +6,7 @@ from typing import (
     TypeVar
 )
 
-from ..mobjects.mobject.mobject import Mobject
+from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobjects.shape_mobject import ShapeMobject
 from ..mobjects.string_mobjects.string_mobject import StringMobject
 from .composition.parallel import Parallel
@@ -144,15 +144,15 @@ class TransformMatchingStrings(Parallel):
                     return
                 assert len_0 and len_1
                 q, r = divmod(len_1, len_0)
-                for i_0, (start_1, stop_1) in it.chain(
+                for i_0, (start_1, stop_1) in itertools.chain(
                     zip(
                         range(r),
-                        it.pairwise(it.count(0, q + 1)),
+                        itertools.pairwise(itertools.count(0, q + 1)),
                         strict=False
                     ),
                     zip(
                         range(r, len_0),
-                        it.pairwise(it.count(r * (q + 1), q)),
+                        itertools.pairwise(itertools.count(r * (q + 1), q)),
                         strict=False
                     )
                 ):
@@ -169,7 +169,7 @@ class TransformMatchingStrings(Parallel):
                     for mobject_list in stop_mobject_list_list
                 ]
             ):
-                for start_mobject, stop_mobject in it.product(start_mobject_list, stop_mobject_list):
+                for start_mobject, stop_mobject in itertools.product(start_mobject_list, stop_mobject_list):
                     start_mobject_copy = start_mobject.copy()
                     stop_mobject_copy = stop_mobject.copy()
                     if shape_match:
@@ -205,7 +205,7 @@ class TransformMatchingStrings(Parallel):
                 parser_1.iter_group_part_items()
             ))
         )
-        animations = list(it.chain.from_iterable(
+        animations = list(itertools.chain.from_iterable(
             get_animations(shape_match, mobject_list_list_tuple)
             for shape_match, mobject_list_list_tuple in get_animation_items(
                 animation_items=(

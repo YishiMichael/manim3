@@ -1,17 +1,18 @@
-import itertools as it
-from functools import reduce
+import functools
+import itertools
 from typing import (
     Iterable,
     Iterator,
     TypeVar
 )
 
+import mapbox_earcut
 import numpy as np
 import shapely.geometry
 import shapely.validation
-from mapbox_earcut import triangulate_float64
 
 from ...constants.custom_typing import (
+    BoundaryT,
     NP_2f8,
     NP_x2f8,
     NP_x2i4,
@@ -49,27 +50,27 @@ class Shape(LeafAnimatable):
             self._counts_ = counts
 
     def __and__(
-        self,
-        other: "Shape"
-    ) -> "Shape":
+        self: _ShapeT,
+        other: _ShapeT
+    ):
         return self.intersection(other)
 
     def __or__(
-        self,
-        other: "Shape"
-    ) -> "Shape":
+        self: _ShapeT,
+        other: _ShapeT
+    ):
         return self.union(other)
 
     def __sub__(
-        self,
-        other: "Shape"
-    ) -> "Shape":
+        self: _ShapeT,
+        other: _ShapeT
+    ):
         return self.difference(other)
 
     def __xor__(
-        self,
-        other: "Shape"
-    ) -> "Shape":
+        self: _ShapeT,
+        other: _ShapeT
+    ):
         return self.symmetric_difference(other)
 
     @Lazy.variable(hasher=Lazy.array_hasher)
@@ -127,9 +128,9 @@ class Shape(LeafAnimatable):
         #            indices = np.append(indices, tail_index)
         #        yield positions[indices]
 
-        return reduce(shapely.geometry.base.BaseGeometry.__xor__, (
+        return functools.reduce(shapely.geometry.base.BaseGeometry.__xor__, (
             shapely.validation.make_valid(shapely.geometry.Polygon(positions[start:stop]))
-            for start, stop in it.pairwise(cumcounts)
+            for start, stop in itertools.pairwise(cumcounts)
             if stop - start >= 3
             #for polygon_positions in get_polygon_positions(positions, cumcounts)
             #if len(polygon_positions) >= 3
@@ -169,7 +170,7 @@ class Shape(LeafAnimatable):
             ring_ends = np.cumsum([
                 len(ring_positions) for ring_positions in ring_positions_list
             ], dtype=np.uint32)
-            return triangulate_float64(positions, ring_ends).reshape((-1, 3)).astype(np.int32), positions
+            return mapbox_earcut.triangulate_float64(positions, ring_ends).reshape((-1, 3)).astype(np.int32), positions
 
         def concatenate_triangulations(
             triangulations: Iterable[tuple[NP_x3i4, NP_x2f8]]
@@ -199,8 +200,8 @@ class Shape(LeafAnimatable):
     #@classmethod
     #def _interpolate(
     #    cls,
-    #    shape_0: "Shape",
-    #    shape_1: "Shape"
+    #    shape_0: _ShapeT,
+    #    shape_1: _ShapeT
     #) -> "ShapeInterpolateHandler":
     #    #graph_interpolate_handler = Graph._interpolate(shape_0._graph_, shape_1._graph_)
     #    #position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph_interpolate_handler._edges)
@@ -221,7 +222,7 @@ class Shape(LeafAnimatable):
     #@classmethod
     #def to_graph(
     #    cls,
-    #    shape: "Shape"
+    #    shape: _ShapeT
     #) -> Graph:
     #    disjoints = shape._disjoints_
     #    rings = shape._rings_
@@ -236,7 +237,7 @@ class Shape(LeafAnimatable):
     #def _concatenate(
     #    cls,
     #    shapes: "list[Shape]"
-    #) -> "Shape":
+    #):
     #    return cls.set_from_graph(Graph._concatenate([
     #        shape._graph_ for shape in shapes
     #    ]))
@@ -244,7 +245,7 @@ class Shape(LeafAnimatable):
     #@classmethod
     #def _split(
     #    cls,
-    #    shape: "Shape",
+    #    shape: _ShapeT,
     #    alphas: NP_xf8
     #) -> "list[Shape]":
     #    return [
@@ -252,10 +253,8 @@ class Shape(LeafAnimatable):
     #        for graph in Graph._split(shape._graph_, alphas)
     #    ]
 
-    @classmethod
     def _interpolate(
-        cls: type[_ShapeT],
-        dst: _ShapeT,
+        self: _ShapeT,
         src_0: _ShapeT,
         src_1: _ShapeT
     ) -> Updater:
@@ -268,29 +267,24 @@ class Shape(LeafAnimatable):
         #position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
         #positions_0 = SpaceUtils.decrease_dimension(graph_positions_0)[position_indices]
         #positions_1 = SpaceUtils.decrease_dimension(graph_positions_1)[position_indices]
-        return ShapeInterpolateUpdater(dst, src_0, src_1)
+        return ShapeInterpolateUpdater(self, src_0, src_1)
 
     @classmethod
     def _split(
         cls: type[_ShapeT],
-        dst_tuple: tuple[_ShapeT, ...],
+        #dst_tuple: tuple[_ShapeT, ...],
         src: _ShapeT,
         alphas: NP_xf8
-    ) -> None:
-        dst_graph_tuple = tuple(Graph() for _ in dst_tuple)
-        Graph._split(dst_graph_tuple, src._graph_, alphas)
-        for dst, dst_graph in zip(dst_tuple, dst_graph_tuple, strict=True):
-            dst.set_from_graph(dst_graph)
+    ) -> tuple[_ShapeT, ...]:
+        return tuple(cls.from_graph(graph) for graph in Graph._split(src._graph_, alphas))
 
     @classmethod
     def _concatenate(
         cls: type[_ShapeT],
-        dst: _ShapeT,
+        #dst: _ShapeT,
         src_tuple: tuple[_ShapeT, ...]
-    ) -> None:
-        dst_graph = Graph()
-        Graph._concatenate(dst_graph, tuple(src._graph_ for src in src_tuple))
-        dst.set_from_graph(dst_graph)
+    ) -> _ShapeT:
+        return cls.from_graph(Graph._concatenate(tuple(src._graph_ for src in src_tuple)))
 
     @classmethod
     def _get_position_indices_and_counts_from_edges(
@@ -307,38 +301,39 @@ class Shape(LeafAnimatable):
         counts[not_ring_indices] += 1
         return position_indices, counts
 
-    def set_from_parameters(
-        self,
-        positions: NP_x2f8,
-        counts: NP_xi4
-    ):
-        self._positions_ = positions
-        self._counts_ = counts
-        return self
+    #def set_from_parameters(
+    #    self,
+    #    positions: NP_x2f8,
+    #    counts: NP_xi4
+    #):
+    #    self._positions_ = positions
+    #    self._counts_ = counts
+    #    return self
 
-    def set_from_shape(
-        self,
-        shape: "Shape"
-    ):
-        self.set_from_parameters(
-            positions=shape._positions_,
-            counts=shape._counts_
-        )
-        return self
+    #def set_from_shape(
+    #    self,
+    #    shape: _ShapeT
+    #):
+    #    self.set_from_parameters(
+    #        positions=shape._positions_,
+    #        counts=shape._counts_
+    #    )
+    #    return self
 
-    def set_from_graph(
-        self,
+    @classmethod
+    def from_graph(
+        cls,
         graph: Graph
     ):
-        position_indices, counts = type(self)._get_position_indices_and_counts_from_edges(graph._edges_)
-        self.set_from_parameters(
+        position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph._edges_)
+        return cls(
             positions=SpaceUtils.decrease_dimension(graph._positions_)[position_indices],
             counts=counts
         )
-        return self
 
-    def set_from_paths(
-        self,
+    @classmethod
+    def from_paths(
+        cls,
         paths: Iterable[NP_x2f8]
     ):
         #path_list = [
@@ -368,14 +363,14 @@ class Shape(LeafAnimatable):
         #    Graph._get_consecutive_edges(len(positions), is_ring=is_ring) + offset
         #    for (positions, is_ring), offset in zip(path_list, offsets, strict=True)
         #])
-        self.set_from_parameters(
+        return cls(
             positions=np.concatenate(path_list),
             counts=np.fromiter((len(path) for path in path_list), dtype=np.int32)
         )
-        return self
 
-    def set_from_shapely_obj(
-        self,
+    @classmethod
+    def from_shapely_obj(
+        cls,
         shapely_obj: shapely.geometry.base.BaseGeometry
     ):
 
@@ -396,8 +391,7 @@ class Shape(LeafAnimatable):
                 case _:
                     raise TypeError
 
-        self.set_from_paths(iter_paths_from_shapely_obj(shapely_obj))
-        return self
+        return cls.from_paths(iter_paths_from_shapely_obj(shapely_obj))
 
     # operations ported from shapely
 
@@ -410,14 +404,14 @@ class Shape(LeafAnimatable):
         return self.shapely_obj.area
 
     def distance(
-        self,
-        other: "Shape"
+        self: _ShapeT,
+        other: _ShapeT
     ) -> float:
         return self.shapely_obj.distance(other.shapely_obj)
 
     def hausdorff_distance(
-        self,
-        other: "Shape"
+        self: _ShapeT,
+        other: _ShapeT
     ) -> float:
         return self.shapely_obj.hausdorff_distance(other.shapely_obj)
 
@@ -430,12 +424,12 @@ class Shape(LeafAnimatable):
         return np.array(self.shapely_obj.centroid)
 
     @property
-    def convex_hull(self) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.convex_hull)
+    def convex_hull(self):
+        return type(self).from_shapely_obj(self.shapely_obj.convex_hull)
 
     @property
-    def envelope(self) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.envelope)
+    def envelope(self):
+        return type(self).from_shapely_obj(self.shapely_obj.envelope)
 
     def buffer(
         self,
@@ -445,8 +439,8 @@ class Shape(LeafAnimatable):
         join_style: str = "round",
         mitre_limit: float = 5.0,
         single_sided: bool = False
-    ) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.buffer(
+    ):
+        return type(self).from_shapely_obj(self.shapely_obj.buffer(
             distance=distance,
             quad_segs=quad_segs,
             cap_style=cap_style,
@@ -456,34 +450,34 @@ class Shape(LeafAnimatable):
         ))
 
     def intersection(
-        self,
-        other: "Shape"
-    ) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.intersection(other.shapely_obj))
+        self: _ShapeT,
+        other: _ShapeT
+    ):
+        return type(self).from_shapely_obj(self.shapely_obj.intersection(other.shapely_obj))
 
     def union(
-        self,
-        other: "Shape"
-    ) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.union(other.shapely_obj))
+        self: _ShapeT,
+        other: _ShapeT
+    ):
+        return type(self).from_shapely_obj(self.shapely_obj.union(other.shapely_obj))
 
     def difference(
-        self,
-        other: "Shape"
-    ) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.difference(other.shapely_obj))
+        self: _ShapeT,
+        other: _ShapeT
+    ):
+        return type(self).from_shapely_obj(self.shapely_obj.difference(other.shapely_obj))
 
     def symmetric_difference(
-        self,
-        other: "Shape"
-    ) -> "Shape":
-        return Shape().set_from_shapely_obj(self.shapely_obj.symmetric_difference(other.shapely_obj))
+        self: _ShapeT,
+        other: _ShapeT
+    ):
+        return type(self).from_shapely_obj(self.shapely_obj.symmetric_difference(other.shapely_obj))
 
 
     #def _get_interpolate_updater(
-    #    self: "Shape",
-    #    shape_0: "Shape",
-    #    shape_1: "Shape"
+    #    self: _ShapeT,
+    #    shape_0: _ShapeT,
+    #    shape_1: _ShapeT
     #) -> "ShapeInterpolateUpdater":
     #    return ShapeInterpolateUpdater(
     #        shape=self,
@@ -531,10 +525,8 @@ class ShapeInterpolateInfo:
         shape: Shape,
         alpha: float
     ) -> None:
-        shape.set_from_parameters(
-            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
-            counts=self._counts
-        )
+        shape._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
+        shape._counts_ = self._counts
 
 
 class ShapeInterpolateUpdater(Updater):
@@ -597,13 +589,12 @@ class ShapeInterpolateUpdater(Updater):
         super().update(alpha)
         self._interpolate_info_.interpolate(self._shape, alpha)
 
-    def initial_update(self) -> None:
-        super().initial_update()
-        self._shape.set_from_shape(self._shape_0_)
-
-    def final_update(self) -> None:
-        super().final_update()
-        self._shape.set_from_shape(self._shape_1_)
+    def update_boundary(
+        self,
+        boundary: BoundaryT
+    ) -> None:
+        super().update_boundary(boundary)
+        self._shape._copy_lazy_content(self._shape_1_ if boundary else self._shape_0_)
 
 
 #class ShapePartialUpdater(Updater[Shape]):

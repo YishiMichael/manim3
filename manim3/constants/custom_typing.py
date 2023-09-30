@@ -17,6 +17,7 @@ __all__ = (
     "NP_x2i4",
     "NP_x3i4",
     "NP_xxi4",
+    "BoundaryT",
     "ColorT",
     "AlignmentT",
     "SelectorT"
@@ -55,6 +56,7 @@ NP_x2i4 = np.ndarray[tuple[_XD, _2D], np.dtype[np.int32]]
 NP_x3i4 = np.ndarray[tuple[_XD, _3D], np.dtype[np.int32]]
 NP_xxi4 = np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
 
+BoundaryT = Literal[0, 1]
 ColorT = Color | str | NP_3f8
 AlignmentT = Literal["left", "center", "right"]
 SelectorT = str | re.Pattern[str] | tuple[int, int]  # Slice is hashable in future versions.

@@ -9,22 +9,10 @@ from .animatables.lights.lighting import Lighting
 from .animatables.lights.point_light import PointLight
 from .animatables.models.point import Point
 
-from .animations.animation.conditions.always import Always
-from .animations.animation.conditions.condition import Condition
-from .animations.animation.conditions.condition_all import ConditionAll
-from .animations.animation.conditions.condition_any import ConditionAny
-from .animations.animation.conditions.event_captured import EventCaptured
-from .animations.animation.conditions.launched import Launched
-from .animations.animation.conditions.never import Never
-from .animations.animation.conditions.terminated import Terminated
-from .animations.animation.rates.cycle import Cycle
-from .animations.animation.rates.linear import Linear
-from .animations.animation.rates.rate import Rate
-from .animations.animation.rates.repeat import Repeat
-from .animations.animation.rates.rewind import Rewind
-from .animations.animation.rates.rush_from import RushFrom
-from .animations.animation.rates.rush_into import RushInto
-from .animations.animation.rates.smooth import Smooth
+from .animations.animation.condition import Condition
+from .animations.animation.conditions import Conditions
+from .animations.animation.rate import Rate
+from .animations.animation.rates import Rates
 from .animations.animation.animation import Animation
 from .animations.composition.lagged import Lagged
 from .animations.composition.parallel import Parallel
@@ -121,14 +109,8 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
-from .toplevel.events.event import Event
-from .toplevel.events.key_press import KeyPress
-from .toplevel.events.key_release import KeyRelease
-from .toplevel.events.mouse_drag import MouseDrag
-from .toplevel.events.mouse_motion import MouseMotion
-from .toplevel.events.mouse_press import MousePress
-from .toplevel.events.mouse_release import MouseRelease
-from .toplevel.events.mouse_scroll import MouseScroll
+from .toplevel.event import Event
+from .toplevel.events import Events
 from .toplevel.config import Config
 from .toplevel.scene import Scene
 

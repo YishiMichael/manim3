@@ -1,5 +1,3 @@
-import numpy as np
-
 from ...animatables.animatable import Animatable
 from ...lazy.lazy import Lazy
 #from ..mobject.mobject import Mobject
@@ -13,4 +11,4 @@ class AmbientLight(Animatable):
     @Lazy.variable(freeze=False)
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor(np.ones((3,)))
+        return AnimatableColor()

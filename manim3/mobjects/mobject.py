@@ -1,4 +1,4 @@
-import itertools as it
+import itertools
 import weakref
 #from abc import abstractmethod
 from typing import (
@@ -25,7 +25,7 @@ from ..animatables.models.model import Model
 #)
 from ..constants.custom_typing import ColorT
 from ..lazy.lazy import Lazy
-from ..lazy.lazy_descriptor import LazyDescriptor
+#from ..lazy.lazy_descriptor import LazyDescriptor
 #from ...lazy.lazy_object import LazyObject
 #from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
@@ -169,20 +169,20 @@ class Mobject(Model):
             for parent in mobject._parents:
                 yield from iter_ancestors_by_parents(parent)
 
-        for ancestor in dict.fromkeys(it.chain.from_iterable(
+        for ancestor in dict.fromkeys(itertools.chain.from_iterable(
             iter_ancestors_by_parents(mobject)
             for mobject in mobjects
         )):
-            ancestor._real_descendants_ = tuple(dict.fromkeys(it.chain.from_iterable(
+            ancestor._real_descendants_ = tuple(dict.fromkeys(itertools.chain.from_iterable(
                 iter_descendants_by_children(child)
                 for child in ancestor._children_
             )))
-        for descendant in dict.fromkeys(it.chain.from_iterable(
+        for descendant in dict.fromkeys(itertools.chain.from_iterable(
             iter_descendants_by_children(mobject)
             for mobject in mobjects
         )):
             descendant._real_ancestors.clear()
-            descendant._real_ancestors.update(dict.fromkeys(it.chain.from_iterable(
+            descendant._real_ancestors.update(dict.fromkeys(itertools.chain.from_iterable(
                 iter_ancestors_by_parents(parent)
                 for parent in descendant._parents
             )))
@@ -329,7 +329,7 @@ class Mobject(Model):
     #    bounding_box_without_descendants: BoundingBox | None,
     #    real_descendants__bounding_box_without_descendants: tuple[BoundingBox | None, ...]
     #) -> BoundingBox | None:
-    #    positions_array = np.fromiter((it.chain.from_iterable(
+    #    positions_array = np.fromiter((itertools.chain.from_iterable(
     #        (bounding_box.maximum, bounding_box.minimum)
     #        for bounding_box in (
     #            bounding_box_without_descendants,

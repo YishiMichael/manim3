@@ -1,10 +1,10 @@
 import moderngl
 import numpy as np
 
-from ...animatables.lights.lighting import Lighting
-from ...animatables.arrays.animatable_array import AnimatableArray
 from ...animatables.arrays.animatable_color import AnimatableColor
+from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.geometries.mesh import Mesh
+from ...animatables.lights.lighting import Lighting
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -41,32 +41,32 @@ class MeshMobject(Mobject):
     @Lazy.variable(freeze=False)
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor(np.ones((3,)))
+        return AnimatableColor()
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _opacity_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(1.0)
+    def _opacity_() -> AnimatableFloat:
+        return AnimatableFloat(1.0)
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _weight_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(1.0)
+    def _weight_() -> AnimatableFloat:
+        return AnimatableFloat(1.0)
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _ambient_strength_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(1.0)
+    def _ambient_strength_() -> AnimatableFloat:
+        return AnimatableFloat(1.0)
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _specular_strength_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(Toplevel.config.mesh_specular_strength)
+    def _specular_strength_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel.config.mesh_specular_strength)
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _shininess_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(Toplevel.config.mesh_shininess)
+    def _shininess_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel.config.mesh_shininess)
 
     @Lazy.variable()
     @staticmethod

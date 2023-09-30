@@ -1,5 +1,6 @@
-import numpy as np
-
+from ...animatables.arrays.animatable_color import AnimatableColor
+from ...animatables.arrays.animatable_float import AnimatableFloat
+from ...animatables.geometries.graph import Graph
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -16,9 +17,6 @@ from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
-#from ..mobject.mobject_attributes.array_attribute import AnimatableArray
-from ...animatables.arrays.animatable_array import AnimatableArray
-from ...animatables.geometries.graph import Graph
 from ..mobject import Mobject
 
 
@@ -40,23 +38,23 @@ class GraphMobject(Mobject):
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _color_() -> AnimatableArray[NP_3f8]:
-        return AnimatableArray(np.ones((3,)))
+    def _color_() -> AnimatableColor:
+        return AnimatableColor()
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _opacity_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(1.0)
+    def _opacity_() -> AnimatableFloat:
+        return AnimatableFloat(1.0)
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _weight_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(1.0)
+    def _weight_() -> AnimatableFloat:
+        return AnimatableFloat(1.0)
 
     @Lazy.variable(freeze=False)
     @staticmethod
-    def _width_() -> AnimatableArray[NP_f8]:
-        return AnimatableArray(Toplevel.config.graph_width)
+    def _width_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel.config.graph_width)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod

@@ -1,5 +1,5 @@
-from ..animation.rates.rate import Rate
 from ..animation.animation import Animation
+from ..animation.rate import Rate
 from .parallel import Parallel
 
 

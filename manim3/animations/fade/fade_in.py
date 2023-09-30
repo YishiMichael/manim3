@@ -1,28 +1,29 @@
-from typing import (
-    Callable,
-    TypeVar
-)
+from ...mobjects.mobject import Mobject
+from ..animation.animation import Animation
+from ..animation.rates import Rates
 
-from ...mobjects.mobject.mobject import Mobject
-from ..transform.transform_from_copy import TransformFromCopy
+#from ..transform.transform_from_copy import TransformFromCopy
 
 
-_MobjectT = TypeVar("_MobjectT", bound=Mobject)
+#_MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
-class FadeIn(TransformFromCopy):
-    __slots__ = ()
+class FadeIn(Animation):
+    __slots__ = ("_mobject",)
 
     def __init__(
         self,
-        mobject: _MobjectT,
-        func: Callable[[_MobjectT], _MobjectT] = lambda mob: mob
+        mobject: Mobject
     ) -> None:
-        super().__init__(
-            mobject=mobject,
-            func=lambda mob: func(mob.set(opacity=0.0))
-        )
+        super().__init__()
+        self._mobject: Mobject = mobject
+        #super().__init__(
+        #    mobject=mobject,
+        #    func=lambda mob: func(mob.set(opacity=0.0))
+        #)
 
     async def timeline(self) -> None:
-        self.scene.add(self._stop_mobject)
-        await super().timeline()
+        mobject = self._mobject
+
+        self.scene.add(mobject)
+        await self.play(mobject.animate.set(opacity=0.0).build(rate=Rates.rewind()))

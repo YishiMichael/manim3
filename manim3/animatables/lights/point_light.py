@@ -1,7 +1,3 @@
-import numpy as np
-
-
-
 from ...constants.constants import ORIGIN
 from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
@@ -19,7 +15,7 @@ class PointLight(Point):
     @Lazy.variable(freeze=False)
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor(np.ones((3,)))
+        return AnimatableColor()
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
