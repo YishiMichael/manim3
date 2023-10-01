@@ -211,7 +211,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
         for se_shape in svg.elements():
             if not isinstance(se_shape, se.Shape):
                 continue
-            shape = Shape().set_from_paths(iter_paths_from_se_shape(se_shape * transform))
+            shape = Shape.from_paths(iter_paths_from_se_shape(se_shape * transform))
             if not len(shape._positions_):
                 # Filter out empty shapes.
                 continue

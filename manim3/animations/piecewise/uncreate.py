@@ -1,7 +1,6 @@
 from ...animatables.animatable.piecewisers import Piecewisers
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
-from ..animation.rates import Rates
 
 
 class Uncreate(Animation):
@@ -21,7 +20,7 @@ class Uncreate(Animation):
         self._animation: Animation = mobject.animate.piecewise(mobject.copy(), Piecewisers.partial(
             n_segments=n_segments,
             backwards=backwards
-        )).build(rate=Rates.rewind())
+        )).build(rewind=True)
         self._mobject: Mobject = mobject
 
     async def timeline(self) -> None:

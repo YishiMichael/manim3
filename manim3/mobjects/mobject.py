@@ -7,7 +7,7 @@ from typing import (
     ClassVar,
     #Callable,
     #ClassVar,
-    Iterable,
+    #Iterable,
     Iterator,
     TypedDict,
     overload
@@ -83,15 +83,14 @@ class Mobject(Model):
     __slots__ = (
         "__weakref__",
         "_children",
+        "_real_descendants",
         "_parents",
-        "_descendants",
-        "_ancestors"
+        "_real_ancestors"
     )
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
         "_parents": weakref.WeakSet.copy,
-        "_descendants": weakref.WeakSet.copy,
-        "_ancestors": weakref.WeakSet.copy
+        "_real_ancestors": weakref.WeakSet.copy
     }
 
     #_attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
@@ -116,9 +115,9 @@ class Mobject(Model):
     def __init__(self) -> None:
         super().__init__()
         self._children: tuple[Mobject, ...] = ()
+        self._real_descendants: tuple[Mobject, ...] = ()
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
-        self._descendants: weakref.WeakSet[Mobject] = weakref.WeakSet()
-        self._ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._real_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
 
     def __iter__(self) -> "Iterator[Mobject]":
         return iter(self._children)
@@ -178,19 +177,23 @@ class Mobject(Model):
             iter_ancestors_by_parents(mobject)
             for mobject in mobjects
         )):
-            descendants = tuple(dict.fromkeys(iter_descendants_by_children(ancestor)))
-            ancestor._descendants.clear()
-            ancestor._descendants.update(descendants)
-            assert descendants[0] is ancestor
-            ancestor._associated_models_ = descendants[1:]
+            real_descendants = tuple(dict.fromkeys(itertools.chain.from_iterable(
+                iter_descendants_by_children(child)
+                for child in ancestor._children
+            )))
+            ancestor._real_descendants = real_descendants
+            ancestor._associated_models_ = real_descendants
 
         for descendant in dict.fromkeys(itertools.chain.from_iterable(
             iter_descendants_by_children(mobject)
             for mobject in mobjects
         )):
-            ancestors = tuple(dict.fromkeys(iter_ancestors_by_parents(descendant)))
-            descendant._ancestors.clear()
-            descendant._ancestors.update(ancestors)
+            real_ancestors = tuple(dict.fromkeys(itertools.chain.from_iterable(
+                iter_descendants_by_children(parent)
+                for parent in descendant._parents
+            )))
+            descendant._real_ancestors.clear()
+            descendant._real_ancestors.update(real_ancestors)
 
     def iter_children(self) -> "Iterator[Mobject]":
         yield from self._children
@@ -198,11 +201,23 @@ class Mobject(Model):
     def iter_parents(self) -> "Iterator[Mobject]":
         yield from self._parents
 
-    def iter_descendants(self) -> "Iterator[Mobject]":
-        yield from self._descendants
+    def iter_descendants(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> "Iterator[Mobject]":
+        yield self
+        if broadcast:
+            yield from self._real_descendants
 
-    def iter_ancestors(self) -> "Iterator[Mobject]":
-        yield from self._ancestors
+    def iter_ancestors(
+        self,
+        *,
+        broadcast: bool = True
+    ) -> "Iterator[Mobject]":
+        yield self
+        if broadcast:
+            yield from self._real_ancestors
 
     def add(
         self,
@@ -644,8 +659,7 @@ class Mobject(Model):
         type_filter: "type[Mobject] | None" = None,
         **kwargs: "Unpack[MobjectSetKwargs]"
     ):
-        mobjects = tuple(self._descendants) if broadcast else (self,)
-        for mobject in mobjects:
+        for mobject in self.iter_descendants(broadcast=broadcast):
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
             super(Mobject, mobject).set(**kwargs)

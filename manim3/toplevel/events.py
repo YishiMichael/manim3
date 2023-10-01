@@ -5,6 +5,7 @@ from .event import Event
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class KeyPressEvent(Event):
@@ -24,6 +25,7 @@ class KeyPressEvent(Event):
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class KeyReleaseEvent(Event):
@@ -43,6 +45,7 @@ class KeyReleaseEvent(Event):
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class MouseMotionEvent(Event):
@@ -60,6 +63,7 @@ class MouseMotionEvent(Event):
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class MouseDragEvent(Event):
@@ -83,6 +87,7 @@ class MouseDragEvent(Event):
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class MousePressEvent(Event):
@@ -104,6 +109,7 @@ class MousePressEvent(Event):
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class MouseReleaseEvent(Event):
@@ -125,6 +131,7 @@ class MouseReleaseEvent(Event):
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class MouseScrollEvent(Event):

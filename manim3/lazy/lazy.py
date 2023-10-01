@@ -71,7 +71,8 @@ parameters:
 - `cache_capacity: int`
   Determines the capacity of the lru cache of parameters-data pairs generated
   from `method`. Forced to be 1 when `is_variable` is true (the parameter list
-  is always empty). Defaults to be 128 when `is_variable` is false.
+  is always empty). Defaults to be 128 when `is_variable` is false. However,
+  the cache is only used when `freeze` is true.
 
 Descriptor overriding is allowed. The overriding descriptor should match the
 overridden one in `is_multiple` and `hasher`. Furthermore, the type of element

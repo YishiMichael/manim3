@@ -121,9 +121,7 @@ class Window:
         preview: bool
     ) -> None:
         super().__init__()
-        if not preview:
-            pyglet_window = None
-        else:
+        if preview:
             width, height = window_pixel_size
             major_version, minor_version = gl_version
             pyglet_window = PygletWindow(
@@ -139,23 +137,22 @@ class Window:
             # `https://pyglet.readthedocs.io/en/latest/programming_guide/events.html#stacking-event-handlers`.
             handlers = WindowHandlers()
             pyglet_window.push_handlers(handlers)
+        else:
+            pyglet_window = None
+
         self._pyglet_window: PygletWindow | None = pyglet_window
         self._event_queue: list[Event] = []
         self._recent_event: Event | None = None
 
-    def __enter__(self):
-        return self
+    #def __enter__(self):
+    #    return self
 
-    def __exit__(
-        self,
-        *args,
-        **kwargs
-    ) -> None:
-        self.close()
-
-    def close(self) -> None:
-        if (pyglet_window := self._pyglet_window) is not None:
-            pyglet_window.close()
+    #def __exit__(
+    #    self,
+    #    *args,
+    #    **kwargs
+    #) -> None:
+    #    self.close()
 
     @property
     def pyglet_window(self) -> PygletWindow:
@@ -171,7 +168,7 @@ class Window:
         assert (recent_event := self._recent_event) is not None
         return recent_event
 
-    def capture_event_by(
+    def capture_event(
         self,
         targeting_event: Event
     ) -> bool:
@@ -182,3 +179,7 @@ class Window:
                 self._recent_event = event
                 return True
         return False
+
+    def close(self) -> None:
+        if (pyglet_window := self._pyglet_window) is not None:
+            pyglet_window.close()

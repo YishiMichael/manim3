@@ -1,13 +1,24 @@
 import numpy as np
 
 from ...constants.constants import ORIGIN
-from ...constants.custom_typing import NP_x3f8
+from ...constants.custom_typing import (
+    NP_3f8,
+    NP_x3f8
+)
 from ...lazy.lazy import Lazy
 from .model import Model
 
 
 class Point(Model):
     __slots__ = ()
+
+    def __init__(
+        self,
+        position: NP_3f8 | None = None
+    ) -> None:
+        super().__init__()
+        if position is not None:
+            self.shift(position)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod

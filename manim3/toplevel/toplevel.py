@@ -74,30 +74,46 @@ class Toplevel:
         config: Config,
         scene_cls: "type[Scene]"
     ) -> "Iterator[Scene]":
-        from .context import Context
-        from .window import Window
-
         cls._config = config
-        #cls._event_queue = []
-        with Window(
-            window_pixel_size=config.window_pixel_size,
-            gl_version=config.gl_version,
-            preview=config.preview
-        ) as window:
+        with cls.setup_window(config) as window:
             cls._window = window
-            with Context(
-                gl_version_code=config.gl_version_code,
-                preview=config.preview
-            ) as context:
+            with cls.setup_context(config) as context:
                 cls._context = context
                 cls._scene = scene = scene_cls()
                 yield scene
                 cls._scene = None
                 cls._context = None
             cls._window = None
-        #cls._event = None
-        #cls._event_queue = None
         cls._config = None
+
+    @classmethod
+    @contextmanager
+    def setup_window(
+        cls,
+        config: Config
+    ) -> "Iterator[Window | None]":
+        from .window import Window
+        window = Window(
+            window_pixel_size=config.window_pixel_size,
+            gl_version=config.gl_version,
+            preview=config.preview
+        )
+        yield window
+        window.close()
+
+    @classmethod
+    @contextmanager
+    def setup_context(
+        cls,
+        config: Config
+    ) -> "Iterator[Context | None]":
+        from .context import Context
+        context = Context(
+            gl_version_code=config.gl_version_code,
+            preview=config.preview
+        )
+        yield context
+        context.release()
 
     #@classmethod
     #@contextmanager

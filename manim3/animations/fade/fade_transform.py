@@ -1,6 +1,5 @@
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
-from ..animation.rates import Rates
 from ..composition.parallel import Parallel
 from .fade_in import FadeIn
 from .fade_out import FadeOut
@@ -38,7 +37,7 @@ class FadeTransform(Animation):
             FadeOut(intermediate_start_mobject),
             intermediate_start_mobject.animate.match_box(stop_mobject).build(),
             FadeIn(intermediate_stop_mobject),
-            intermediate_stop_mobject.animate.match_box(start_mobject).build(rate=Rates.rewind())
+            intermediate_stop_mobject.animate.match_box(start_mobject).build(rewind=True)
         )
         self._start_mobject: Mobject = start_mobject
         self._stop_mobject: Mobject = stop_mobject

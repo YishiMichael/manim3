@@ -364,6 +364,8 @@ class Shape(LeafAnimatable):
         #    ), dtype=np.bool_)
         #)
         path_list = list(paths)
+        if not path_list:
+            return cls()
         #positions = SpaceUtils.increase_dimension(np.concatenate(path_list))
         #offsets = np.insert(np.cumsum([
         #    len(positions) for positions, _ in path_list[:-1]

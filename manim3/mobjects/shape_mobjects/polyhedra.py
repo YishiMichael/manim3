@@ -44,7 +44,7 @@ class Polyhedron(ShapeMobject):
         transformed = (np.linalg.inv(rotation_matrix) @ (positions - origin).T).T
         transformed_xy, transformed_z = SpaceUtils.decrease_dimension(transformed, extract_z=True)
         assert np.isclose(transformed_z, 0.0).all(), "Positions are not coplanar"
-        return Polygon(transformed_xy).rotate(rotation_vector).shift(origin)
+        return Polygon(transformed_xy).rotate_about_origin(rotation_vector).shift(origin)
 
 
 # The five platonic solids are ported from manim community.

@@ -44,16 +44,6 @@ class Context:
         self._mgl_context: moderngl.Context = mgl_context
         self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
 
-    def __enter__(self):
-        return self
-
-    def __exit__(
-        self,
-        *args,
-        **kwargs
-    ) -> None:
-        self._mgl_context.release()
-
     def set_state(
         self,
         context_state: ContextState
@@ -190,3 +180,6 @@ class Context:
             textures=textures,
             uniform_buffers=uniform_buffers
         )
+
+    def release(self) -> None:
+        self._mgl_context.release()

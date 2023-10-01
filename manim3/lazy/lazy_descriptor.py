@@ -325,7 +325,8 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
                     pseudo_tree.tree()[0]
                     for pseudo_tree in pseudo_trees
                 ))))
-                self._cache.set(registered_parameter_key, registered_elements)
+                if self._freeze:
+                    self._cache.set(registered_parameter_key, registered_elements)
             slot._set(
                 elements=registered_elements,
                 parameter_key=registered_parameter_key,

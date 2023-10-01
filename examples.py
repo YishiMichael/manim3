@@ -85,10 +85,10 @@ class ThreeDExample(Scene):
             .set(
                 color="#00FFAA",
                 opacity=0.25,
-                lighting=Lighting(
-                    AmbientLight().set(color=WHITE * 0.3),
-                    PointLight().shift(RIGHT * 5)
-                )
+                #lighting=Lighting(
+                #    AmbientLight().set(color=WHITE * 0.3),
+                #    PointLight().shift(RIGHT * 5)
+                #)  # TODO
             )
         )
         self.add(dodec)
@@ -98,7 +98,7 @@ class ThreeDExample(Scene):
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
-                char.animate.shift(DOWN).build(rate=Rates.rewind())
+                char.animate.shift(DOWN).build(rewind=True)
                 #Shift(char, UP, arrive=True)
             )
             for char in text
@@ -129,7 +129,7 @@ class LaggedAnimationExample(Scene):
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
-                char.animate.shift(DOWN).build(rate=Rates.rewind())
+                char.animate.shift(DOWN).build(rewind=True)
                 #Shift(char, UP, arrive=True)
             )
             for char in text
@@ -225,7 +225,7 @@ class MobjectPositionInRange(Condition):
         self._z_max: float | None = z_max
 
     def judge(self) -> bool:
-        position = self._mobject.get_bounding_box_position(self._direction)
+        position = self._mobject.box.get_position(self._direction)
         x_val, y_val, z_val = position
         return all((
             (x_min := self._x_min) is None or x_val >= x_min,
@@ -336,15 +336,28 @@ class GameExample(Scene):
         await self.wait(3.0)
 
 
+class UpdatingExample(Scene):
+    async def timeline(self) -> None:
+        square = Square().shift(4 * LEFT)
+        self.add(square)
+
+        await self.play(square.animate.shift(RIGHT).rotate(OUT).build(infinite=True))
+        #await self.play(Parallel(
+        #    square.animate.rotate(OUT).build(infinite=True),
+        #    square.animate.shift(RIGHT).build(infinite=True)
+        #))
+        await self.wait(5)
+
+
 def main() -> None:
     config = Config(
         fps=30,
         #preview=False,
-        write_video=True,
+        #write_video=True,
         #write_last_frame=True,
-        pixel_height=540
+        #pixel_height=540,
     )
-    ShapeTransformExample.render(config)
+    UpdatingExample.render(config)
 
 
 if __name__ == "__main__":

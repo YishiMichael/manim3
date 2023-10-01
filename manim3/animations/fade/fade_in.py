@@ -1,6 +1,5 @@
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
-from ..animation.rates import Rates
 
 #from ..transform.transform_from_copy import TransformFromCopy
 
@@ -19,7 +18,7 @@ class FadeIn(Animation):
         mobject: Mobject
     ) -> None:
         super().__init__(run_alpha=1.0)
-        self._animation: Animation = mobject.animate.set(opacity=0.0).build(rate=Rates.rewind())
+        self._animation: Animation = mobject.animate.set(opacity=0.0).build(rewind=True)
         self._mobject: Mobject = mobject
         #super().__init__(
         #    mobject=mobject,

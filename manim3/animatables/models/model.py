@@ -293,20 +293,20 @@ class Model(Animatable):
 
     def shift_to(
         self,
-        aligned_model: "Model",
+        target: "Model",
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0,
-        align_direction_sign: float = 0.0
+        direction_sign: float = 0.0
     ):
-        #signed_direction = align_direction_sign * direction
+        #signed_direction = direction_sign * direction
         self._stack_updater(ModelShiftToUpdater(
             model=self,
-            aligned_model=aligned_model,
+            target=target,
             direction=direction,
             buff=buff * np.ones((3,)),
             mask=mask * np.ones((3,)),
-            align_direction_sign=align_direction_sign
+            direction_sign=direction_sign
             #buff_vector=self.get_box_position(signed_direction) + buff * signed_direction,
             #initial_model=self
         ))
@@ -314,77 +314,89 @@ class Model(Animatable):
 
     def move_to(
         self,
-        aligned_model: "Model",
+        target: "Model",
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0
     ):
         self.shift_to(
-            aligned_model=aligned_model,
+            target=target,
             direction=direction,
             buff=buff,
             mask=mask,
-            align_direction_sign=1.0
+            direction_sign=1.0
         )
         return self
 
     def next_to(
         self,
-        aligned_model: "Model",
+        target: "Model",
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0
     ):
         self.shift_to(
-            aligned_model=aligned_model,
+            target=target,
             direction=direction,
             buff=buff,
             mask=mask,
-            align_direction_sign=-1.0
+            direction_sign=-1.0
         )
         return self
 
     def scale(
         self,
         factor: float | NP_3f8,
-        about_model: "Model | None" = None,
-        about_direction: NP_3f8 = ORIGIN,
+        about: "Model | None" = None,
+        direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
     ):
-        if about_model is None:
-            about_model = self
+        if about is None:
+            about = self
         self._stack_updater(ModelScaleUpdater(
             model=self,
             factor=factor * np.ones((3,)),
-            about_model=about_model,
-            about_direction=about_direction,
+            about=about,
+            direction=direction,
             mask=mask * np.ones((3,))
         ))
         return self
 
-    def scale_to(
+    def scale_about_origin(
         self,
-        aligned_model: "Model",
-        about_model: "Model | None" = None,
-        about_direction: NP_3f8 = ORIGIN,
+        factor: float | NP_3f8,
         mask: float | NP_3f8 = 1.0
     ):
-        if about_model is None:
-            about_model = self
+        self.scale(
+            factor=factor,
+            about=Model(),
+            mask=mask
+        )
+        return self
+
+    def scale_to(
+        self,
+        target: "Model",
+        about: "Model | None" = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ):
+        if about is None:
+            about = self
         self._stack_updater(ModelScaleToUpdater(
             model=self,
-            aligned_model=aligned_model,
+            target=target,
             #radii=self._radii_,
-            about_model=about_model,
-            about_direction=about_direction,
+            about=about,
+            direction=direction,
             mask=mask * np.ones((3,))
             #initial_model=self
         ))
         #factor = target / self.get_box_size()
         #self.scale(
         #    vector=target_size / (2.0 * self_copy._radii_),
-        #    about_model=about_model,
-        #    about_direction=about_direction,
+        #    about=about,
+        #    direction=direction,
         #    mask=mask
         #)
         return self
@@ -401,32 +413,44 @@ class Model(Animatable):
     def rotate(
         self,
         rotvec: NP_3f8,
-        about_model: "Model | None" = None,
-        about_direction: NP_3f8 = ORIGIN,
+        about: "Model | None" = None,
+        direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
     ):
-        if about_model is None:
-            about_model = self
+        if about is None:
+            about = self
         self._stack_updater(ModelRotateUpdater(
             model=self,
             rotvec=rotvec,
-            about_model=about_model,
-            about_direction=about_direction,
+            about=about,
+            direction=direction,
             mask=mask * np.ones((3,))
         ))
+        return self
+
+    def rotate_about_origin(
+        self,
+        rotvec: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ):
+        self.rotate(
+            rotvec=rotvec,
+            about=Model(),
+            mask=mask
+        )
         return self
 
     def flip(
         self,
         axis: NP_3f8,
-        about_model: "Model | None" = None,
-        about_direction: NP_3f8 = ORIGIN,
+        about: "Model | None" = None,
+        direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
     ):
         self.rotate(
             rotvec=SpaceUtils.normalize(axis) * PI,
-            about_model=about_model,
-            about_direction=about_direction,
+            about=about,
+            direction=direction,
             mask=mask
         )
         return self
@@ -434,50 +458,47 @@ class Model(Animatable):
     def apply(
         self,
         matrix: NP_44f8,
-        about_model: "Model | None" = None,
-        about_direction: NP_3f8 = ORIGIN
+        about: "Model | None" = None,
+        direction: NP_3f8 = ORIGIN
     ):
-        if about_model is None:
-            about_model = self
+        if about is None:
+            about = self
         self._stack_updater(ModelApplyUpdater(
             model=self,
             matrix=matrix,
-            about_model=about_model,
-            about_direction=about_direction
+            about=about,
+            direction=direction
         ))
         return self
 
     def pose(
         self,
-        aligned_model: "Model",
-        about_model: "Model | None" = None,
-        about_direction: NP_3f8 = ORIGIN
+        target: "Model"
+        #about: "Model | None" = None,
+        #direction: NP_3f8 = ORIGIN
     ):
-        if about_model is None:
-            about_model = self
+        #if about is None:
+        #    about = self
         self._stack_updater(ModelPoseUpdater(
             model=self,
-            aligned_model=aligned_model,
+            target=target,
             #matrix=self._matrix_,
-            about_model=about_model,
-            about_direction=about_direction
+            #about=about,
+            #direction=direction
             #initial_model=self
         ))
         return self
 
 
 class ModelUpdater(Updater):
-    __slots__ = (
-        "_model_matrices",
-        "_about_model"
-    )
+    __slots__ = ("_model_matrices",)
 
     def __init__(
         self,
         model: Model,
         #factor: float | NP_3f8,
-        about_model: Model,
-        about_direction: NP_3f8
+        about: Model,
+        direction: NP_3f8
     ) -> None:
         #if not isinstance(factor, np.ndarray):
         #    factor *= np.ones((3,))
@@ -486,31 +507,31 @@ class ModelUpdater(Updater):
         #super().__init__()
         #self._factor: NP_3f8 = factor
         super().__init__()
+        #self._model: Model = model
+        self._about_ = about
+        self._direction_ = direction
         self._model_matrices: dict[ModelMatrix, NP_44f8] = {
             model_assiciated._model_matrix_: model_assiciated._model_matrix_._array_
             for model_assiciated in (model, *model._associated_models_)
         }
-        #self._model: Model = model
-        self._about_model: Model = about_model
-        self._about_direction_ = about_direction
 
-    @Lazy.variable()
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _about_box_() -> Box:
+    def _about_() -> Model:
         return NotImplemented
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
-    def _about_direction_() -> NP_3f8:
-        return np.zeros((3,))
+    def _direction_() -> NP_3f8:
+        return NotImplemented
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _about_point_(
-        about_box: Box,
-        about_direction: NP_3f8
+        about__box: Box,
+        direction: NP_3f8
     ) -> NP_3f8:
-        return about_box.get_position(about_direction)
+        return about__box.get_position(direction)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
@@ -538,8 +559,6 @@ class ModelUpdater(Updater):
         alpha: float
     ) -> None:
         super().update(alpha)
-        #model = self._model
-        self._about_box_ = self._about_model.box
         matrix = self._post_shift_matrix_ @ self._get_matrix(alpha) @ self._pre_shift_matrix_
         for model_matrix in self._model_matrices:
             model_matrix._array_ = matrix @ model_matrix._array_
@@ -571,8 +590,8 @@ class ModelUpdater(Updater):
 #        mask: NP_3f8
 #    ) -> None:
 #        super().__init__(
-#            about_model=Model(),
-#            about_direction=ORIGIN
+#            about=Model(),
+#            direction=ORIGIN
 #        )
 #        #self._vector: NP_3f8 = vector
 #        self._mask: NP_3f8 = mask
@@ -595,8 +614,8 @@ class ModelUpdater(Updater):
 #    def __init__(
 #        self,
 #        #factor: float | NP_3f8,
-#        about_model: Model,
-#        about_direction: NP_3f8,
+#        about: Model,
+#        direction: NP_3f8,
 #        mask: NP_3f8
 #    ) -> None:
 #        #if not isinstance(factor, np.ndarray):
@@ -605,11 +624,11 @@ class ModelUpdater(Updater):
 #        #factor = np.maximum(factor, 1e-8)
 #        #super().__init__()
 #        #self._factor: NP_3f8 = factor
-#        #self._about_model_ = about_model
-#        #self._about_direction_ = about_direction
+#        #self._about_ = about
+#        #self._direction_ = direction
 #        super().__init__(
-#            about_model=about_model,
-#            about_direction=about_direction
+#            about=about,
+#            direction=direction
 #        )
 #        self._mask: NP_3f8 = mask
 
@@ -636,15 +655,15 @@ class ModelUpdater(Updater):
 #    def __init__(
 #        self,
 #        #vector: NP_3f8,
-#        about_model: Model,
-#        about_direction: NP_3f8,
+#        about: Model,
+#        direction: NP_3f8,
 #        mask: NP_3f8
 #    ) -> None:
 #        #super().__init__()
 #        #self._vector: NP_3f8 = vector
 #        super().__init__(
-#            about_model=about_model,
-#            about_direction=about_direction
+#            about=about,
+#            direction=direction
 #        )
 #        self._mask: NP_3f8 = mask
 #        #self._mask_ = mask
@@ -672,14 +691,14 @@ class ModelUpdater(Updater):
 #    def __init__(
 #        self,
 #        #vector: NP_3f8,
-#        about_model: Model,
-#        about_direction: NP_3f8
+#        about: Model,
+#        direction: NP_3f8
 #    ) -> None:
 #        #super().__init__()
 #        #self._vector: NP_3f8 = vector
 #        super().__init__(
-#            about_model=about_model,
-#            about_direction=about_direction
+#            about=about,
+#            direction=direction
 #        )
 #        #self._mask: NP_3f8 = mask
 #        #self._mask_ = mask
@@ -712,8 +731,8 @@ class ModelShiftUpdater(ModelUpdater):
     ) -> None:
         super().__init__(
             model=model,
-            about_model=Model(),
-            about_direction=ORIGIN
+            about=Model(),
+            direction=ORIGIN
         )
         self._vector_ = vector
         self._mask: NP_3f8 = mask
@@ -744,37 +763,34 @@ class ModelShiftUpdater(ModelUpdater):
 
 
 class ModelShiftToUpdater(ModelUpdater):
-    __slots__ = (
-        "_aligned_model",
-        "_mask"
-    )
+    __slots__ = ("_mask",)
 
     def __init__(
         self,
         model: Model,
-        aligned_model: Model,
+        target: Model,
         direction: NP_3f8,
         buff: NP_3f8,
         #buff_vector: NP_3f8,
         mask: NP_3f8,
-        align_direction_sign: float
+        direction_sign: float
         #initial_model: Model
     ) -> None:
         super().__init__(
             model=model,
-            about_model=Model(),
-            about_direction=ORIGIN
+            about=Model(),
+            direction=ORIGIN
         )
+        self._target_ = target
         self._direction_ = direction
         self._buff_vector_ = (
-            model.box.get_position(align_direction_sign * direction, buff)
+            model.box.get_position(direction_sign * direction, buff)
         )
-        self._aligned_model: Model = aligned_model
         self._mask: NP_3f8 = mask
 
-    @Lazy.variable()
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _aligned_box_() -> Box:
+    def _target_() -> Model:
         return NotImplemented
 
     @Lazy.variable(hasher=Lazy.array_hasher)
@@ -795,17 +811,16 @@ class ModelShiftToUpdater(ModelUpdater):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _vector_(
-        aligned_box: Box,
+        target__box: Box,
         direction: NP_3f8,
         buff_vector: NP_3f8
     ) -> NP_3f8:
-        return aligned_box.get_position(direction) - buff_vector
+        return target__box.get_position(direction) - buff_vector
 
     def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
-        self._aligned_box_ = self._aligned_model.box
         return SpaceUtils.matrix_from_shift(self._vector_ * (self._mask * alpha))
 
 
@@ -816,16 +831,16 @@ class ModelScaleUpdater(ModelUpdater):
         self,
         model: Model,
         factor: NP_3f8,
-        about_model: Model,
-        about_direction: NP_3f8,
+        about: Model,
+        direction: NP_3f8,
         mask: NP_3f8
     ) -> None:
         assert (factor >= 0.0).all(), "Scale vector must be positive"
         factor = np.maximum(factor, 1e-8)
         super().__init__(
             model=model,
-            about_model=about_model,
-            about_direction=about_direction
+            about=about,
+            direction=direction
         )
         self._factor_ = factor
         self._mask: NP_3f8 = mask
@@ -856,18 +871,15 @@ class ModelScaleUpdater(ModelUpdater):
 
 
 class ModelScaleToUpdater(ModelUpdater):
-    __slots__ = (
-        "_aligned_model",
-        "_mask"
-    )
+    __slots__ = ("_mask",)
 
     def __init__(
         self,
         model: Model,
-        aligned_model: Model,
+        target: Model,
         #radii: NP_3f8,
-        about_model: Model,
-        about_direction: NP_3f8,
+        about: Model,
+        direction: NP_3f8,
         mask: NP_3f8
         #initial_model: Model
     ) -> None:
@@ -875,18 +887,19 @@ class ModelScaleToUpdater(ModelUpdater):
         #target_size = np.maximum(target_size, 1e-8)
         super().__init__(
             model=model,
-            about_model=about_model,
-            about_direction=about_direction
+            about=about,
+            direction=direction
         )
+        self._target_ = target
         self._initial_radii_ = model.box._radii_
-        self._aligned_model: Model = aligned_model
+        #self._target: Model = target
         self._mask: NP_3f8 = mask
         #self._target_size_ = target_size
         #self._mask_ = mask
 
-    @Lazy.variable()
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _aligned_box_() -> Box:
+    def _target_() -> Model:
         return NotImplemented
 
     @Lazy.variable(hasher=Lazy.array_hasher)
@@ -897,16 +910,16 @@ class ModelScaleToUpdater(ModelUpdater):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _factor_(
-        aligned_box__radii: NP_3f8,
+        target__box__radii: NP_3f8,
         initial_radii: NP_3f8
     ) -> NP_3f8:
-        return aligned_box__radii / np.maximum(initial_radii, 1e-8)
+        return target__box__radii / np.maximum(initial_radii, 1e-8)
 
     def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
-        self._aligned_box_ = self._aligned_model.box
+        #self._targeted_box_ = self._target.box
         return SpaceUtils.matrix_from_scale(self._factor_ ** (self._mask * alpha))
 
 
@@ -917,14 +930,14 @@ class ModelRotateUpdater(ModelUpdater):
         self,
         model: Model,
         rotvec: NP_3f8,
-        about_model: Model,
-        about_direction: NP_3f8,
+        about: Model,
+        direction: NP_3f8,
         mask: NP_3f8
     ) -> None:
         super().__init__(
             model=model,
-            about_model=about_model,
-            about_direction=about_direction
+            about=about,
+            direction=direction
         )
         self._rotvec_ = rotvec
         self._mask: NP_3f8 = mask
@@ -962,13 +975,13 @@ class ModelApplyUpdater(ModelUpdater):
         self,
         model: Model,
         matrix: NP_44f8,
-        about_model: Model,
-        about_direction: NP_3f8
+        about: Model,
+        direction: NP_3f8
     ) -> None:
         super().__init__(
             model=model,
-            about_model=about_model,
-            about_direction=about_direction
+            about=about,
+            direction=direction
         )
         self._matrix_ = matrix
 
@@ -985,28 +998,28 @@ class ModelApplyUpdater(ModelUpdater):
 
 
 class ModelPoseUpdater(ModelUpdater):
-    __slots__ = ("_aligned_model",)
+    __slots__ = ()
 
     def __init__(
         self,
         model: Model,
-        aligned_model: Model,
+        target: Model
         #matrix: NP_44f8,
-        about_model: Model,
-        about_direction: NP_3f8
+        #about: Model,
+        #direction: NP_3f8
         #initial_model: Model
     ) -> None:
         super().__init__(
             model=model,
-            about_model=about_model,
-            about_direction=about_direction
+            about=Model(),
+            direction=ORIGIN
         )
+        self._target_ = target
         self._initial_model_matrix_inverse_ = np.linalg.inv(model._model_matrix_._array_)
-        self._aligned_model: Model = aligned_model
 
-    @Lazy.variable()
+    @Lazy.variable(freeze=False)
     @staticmethod
-    def _aligned_model_matrix_() -> ModelMatrix:
+    def _target_() -> Model:
         return NotImplemented
 
     @Lazy.property(hasher=Lazy.array_hasher)
@@ -1017,14 +1030,13 @@ class ModelPoseUpdater(ModelUpdater):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _matrix_(
-        aligned_model_matrix__array: NP_44f8,
+        target__model_matrix__array: NP_44f8,
         initial_model_matrix_inverse: NP_44f8
     ) -> NP_44f8:
-        return aligned_model_matrix__array @ initial_model_matrix_inverse
+        return target__model_matrix__array @ initial_model_matrix_inverse
 
     def _get_matrix(
         self,
         alpha: float
     ) -> NP_44f8:
-        self._aligned_model_matrix_ = self._aligned_model._model_matrix_
         return self._matrix_ * alpha

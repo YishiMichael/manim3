@@ -226,6 +226,7 @@ class Animatable(LazyObject):
     def build(
         self,
         rate: Rate = Rates.linear(),
+        rewind: bool = False,
         #run_alpha: float = 1.0,
         infinite: bool = False
         #rewind: bool = False
@@ -234,6 +235,8 @@ class Animatable(LazyObject):
         #assert (saved_state := self._saved_state) is not None
         #self._copy_lazy_content(self, saved_state)
         assert self._in_animating_mode, "Not in animating mode"
+        if rewind:
+            rate = Rates.compose(rate, Rates.rewind())
         animation = self._updater.build_animation(
             rate=rate,
             infinite=infinite
@@ -364,10 +367,15 @@ class UpdaterAnimation(Animation):
     async def timeline(self) -> None:
         #for updater in reversed(self._updaters):
         #    updater.initial_update()
-        self._updater.update_boundary(self._rate.at_boundary(0))
-        await self.play(LeafUpdaterAnimation(self._updater, self._rate, self._run_alpha))
+        updater = self._updater
+        rate = self._rate
+
+        updater.restore()
+        updater.update_boundary(rate.at_boundary(0))
+        await self.play(LeafUpdaterAnimation(updater, rate, self._run_alpha))
         #await self.wait(self._run_alpha)
-        self._updater.update_boundary(self._rate.at_boundary(1))
+        updater.restore()
+        updater.update_boundary(rate.at_boundary(1))
         #for updater in self._updaters:
         #    updater.final_update()
 

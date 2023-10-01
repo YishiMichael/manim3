@@ -10,6 +10,7 @@ from .toplevel import Toplevel
 
 @dataclass(
     frozen=True,
+    kw_only=True,
     slots=True
 )
 class Event(ABC):
@@ -34,11 +35,11 @@ class Event(ABC):
             or required_value == (value & required_value if masked else value)
         )
 
-    def captured(self) -> "CapturedCondition":
-        return CapturedCondition(self)
+    def captured(self) -> "EventCapturedCondition":
+        return EventCapturedCondition(self)
 
 
-class CapturedCondition(Condition):
+class EventCapturedCondition(Condition):
     __slots__ = ("_event",)
 
     def __init__(
@@ -49,4 +50,4 @@ class CapturedCondition(Condition):
         self._event: Event = event
 
     def judge(self) -> bool:
-        return Toplevel.window.capture_event_by(self._event)
+        return Toplevel.window.capture_event(self._event)
