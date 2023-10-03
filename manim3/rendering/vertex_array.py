@@ -40,7 +40,7 @@ class ProgramAttributeInfo:
         assert isinstance(buffer_format, AtomicBufferFormat)
         assert not buffer_format._is_empty_
         assert buffer_format._size_ == self.array_length
-        assert buffer_format._n_col_ * buffer_format._n_row_ == self.dimension
+        assert buffer_format._col_len_ * buffer_format._row_len_ == self.dimension
         assert buffer_format._base_char_.replace("u", "I") == self.shape
         return True
 
@@ -333,33 +333,30 @@ class VertexArray(LazyObject):
         if attributes_buffer_format._is_empty_ or use_index_buffer and index_buffer._buffer_format_._is_empty_:
             return None
 
-        attribute_items = [
+        attribute_items = tuple(
             (child, offset)
             for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_, strict=True)
             if (attribute_info := program_info.attribute_info_dict.get(child._name_)) is not None
             and isinstance(child, AtomicBufferFormat)
             and attribute_info.verify_buffer_format(child)
-        ]
+        )
 
         components: list[str] = []
-        current_stop = 0
+        current_offset = 0
         for child, offset in attribute_items:
-            if current_stop != offset:
-                components.append(f"{offset - current_stop}x")
-            element_components = [f"{child._n_col_}{child._base_char_}{child._base_itemsize_}"]
-            if n_col_padding := child._n_col_pseudo_ - child._n_col_:
-                element_components.append(f"{n_col_padding}x{child._base_itemsize_}")
-            components.extend(element_components * (child._n_row_ * child._size_))
-            current_stop = offset + child._nbytes_
-        if current_stop != attributes_buffer_format._itemsize_:
-            components.append(f"{attributes_buffer_format._itemsize_ - current_stop}x")
+            if (padding := offset - current_offset):
+                components.append(f"{padding}x")
+            components.append(child._format_str_)
+            current_offset = offset + child._nbytes_
+        if (padding := attributes_buffer_format._itemsize_ - current_offset):
+            components.append(f"{padding}x")
         components.append("/v")
 
         return Toplevel.context.vertex_array(
             program=program_info.program,
             attributes_buffer=attributes_buffer._buffer_,
             buffer_format_str=" ".join(components),
-            attribute_names=[child._name_ for child, _ in attribute_items],
+            attribute_names=tuple(child._name_ for child, _ in attribute_items),
             index_buffer=index_buffer._buffer_ if use_index_buffer else None,
             mode=mode
         )

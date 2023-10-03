@@ -1,7 +1,6 @@
 import numpy as np
 
 from ...lazy.lazy import Lazy
-from .atomic_buffer_format import AtomicBufferFormat
 from .buffer_format import BufferFormat
 from .buffer_layout import BufferLayout
 
@@ -17,22 +16,18 @@ class StructuredBufferFormat(BufferFormat):
         children: list[BufferFormat],
         layout: BufferLayout
     ) -> None:
-        structured_base_alignment = 16
+        if layout == BufferLayout.STD140:
+            base_alignment = 16
+        else:
+            base_alignment = 1
+
         offsets: list[int] = []
         offset: int = 0
         for child in children:
-            if layout == BufferLayout.STD140:
-                if isinstance(child, AtomicBufferFormat):
-                    base_alignment = child._base_alignment_
-                elif isinstance(child, StructuredBufferFormat):
-                    base_alignment = structured_base_alignment
-                else:
-                    raise TypeError
-                offset += (-offset) % base_alignment
+            offset += (-offset) % child._base_alignment_
             offsets.append(offset)
             offset += child._nbytes_
-        if layout == BufferLayout.STD140:
-            offset += (-offset) % structured_base_alignment
+        offset += (-offset) % base_alignment
 
         super().__init__(
             name=name,
@@ -41,6 +36,7 @@ class StructuredBufferFormat(BufferFormat):
         self._children_ = tuple(children)
         self._offsets_ = tuple(offsets)
         self._itemsize_ = offset
+        self._base_alignment_ = base_alignment
 
     @Lazy.variable_collection()
     @staticmethod

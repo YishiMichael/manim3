@@ -154,7 +154,7 @@ class Context:
         program: moderngl.Program,
         attributes_buffer: moderngl.Buffer,
         buffer_format_str: str,
-        attribute_names: list[str],
+        attribute_names: tuple[str, ...],
         index_buffer: moderngl.Buffer | None,
         mode: PrimitiveMode
     ) -> moderngl.VertexArray:

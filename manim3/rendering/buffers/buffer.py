@@ -45,7 +45,7 @@ class Buffer(LazyObject):
     @Lazy.property(hasher=Lazy.naive_hasher)
     @staticmethod
     def _layout_() -> BufferLayout:
-        return BufferLayout.PACKED
+        return BufferLayout.DENSE
 
     @Lazy.property()
     @staticmethod

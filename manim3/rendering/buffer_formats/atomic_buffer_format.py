@@ -58,14 +58,14 @@ class AtomicBufferFormat(BufferFormat):
         base_char, base_itemsize, base_shape = type(self)._GL_DTYPES[gl_dtype_str]
         assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
         shape_dict = dict(enumerate(base_shape))
-        n_col = shape_dict.get(0, 1)
-        n_row = shape_dict.get(1, 1)
+        col_len = shape_dict.get(0, 1)
+        row_len = shape_dict.get(1, 1)
         if layout == BufferLayout.STD140:
-            n_col_pseudo = n_col if not shape and n_row == 1 else 4
-            n_col_alignment = n_col if not shape and n_col <= 2 and n_row == 1 else 4
+            col_padding = 0 if not shape and row_len == 1 else 4 - col_len
+            base_alignment = (col_len if not shape and col_len <= 2 and row_len == 1 else 4) * base_itemsize
         else:
-            n_col_pseudo = n_col
-            n_col_alignment = n_col
+            col_padding = 0
+            base_alignment = 1
 
         super().__init__(
             name=name,
@@ -74,10 +74,11 @@ class AtomicBufferFormat(BufferFormat):
         self._base_char_ = base_char
         self._base_itemsize_ = base_itemsize
         self._base_ndim_ = len(base_shape)
-        self._n_row_ = n_row
-        self._n_col_ = n_col
-        self._n_col_pseudo_ = n_col_pseudo
-        self._base_alignment_ = n_col_alignment * base_itemsize
+        self._row_len_ = row_len
+        self._col_len_ = col_len
+        self._col_padding_ = col_padding
+        self._itemsize_ = row_len * (col_len + col_padding) * base_itemsize
+        self._base_alignment_ = base_alignment
 
     @Lazy.variable(hasher=Lazy.naive_hasher)
     @staticmethod
@@ -96,54 +97,33 @@ class AtomicBufferFormat(BufferFormat):
 
     @Lazy.variable(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _n_row_() -> int:
+    def _row_len_() -> int:
         return 0
 
     @Lazy.variable(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _n_col_() -> int:
+    def _col_len_() -> int:
         return 0
 
     @Lazy.variable(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _n_col_pseudo_() -> int:
+    def _col_padding_() -> int:
         return 0
-
-    @Lazy.variable(hasher=Lazy.naive_hasher)
-    @staticmethod
-    def _base_alignment_() -> int:
-        return 0
-
-    @Lazy.property(hasher=Lazy.naive_hasher)
-    @staticmethod
-    def _row_itemsize_(
-        n_col_pseudo: int,
-        base_itemsize: int
-    ) -> int:
-        return n_col_pseudo * base_itemsize
-
-    @Lazy.property(hasher=Lazy.naive_hasher)
-    @staticmethod
-    def _itemsize_(
-        n_row: int,
-        row_itemsize: int
-    ) -> int:
-        return n_row * row_itemsize
 
     @Lazy.property(hasher=Lazy.naive_hasher)
     @staticmethod
     def _dtype_(
         base_char: str,
         base_itemsize: int,
-        n_col: int,
-        row_itemsize: int,
-        n_row: int
+        col_len: int,
+        col_padding: int,
+        row_len: int
     ) -> np.dtype:
         return np.dtype((np.dtype({
             "names": ["_"],
-            "formats": [(np.dtype(f"{base_char}{base_itemsize}"), (n_col,))],
-            "itemsize": row_itemsize
-        }), (n_row,)))
+            "formats": [(np.dtype(f"{base_char}{base_itemsize}"), (col_len,))],
+            "itemsize": (col_len + col_padding) * base_itemsize
+        }), (row_len,)))
 
     @Lazy.property_collection(hasher=Lazy.naive_hasher)
     @staticmethod
@@ -151,3 +131,18 @@ class AtomicBufferFormat(BufferFormat):
         base_ndim: int
     ) -> tuple[tuple[tuple[str, ...], int], ...]:
         return (((), base_ndim),)
+
+    @Lazy.property(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _format_str_(
+        col_len: int,
+        base_char: str,
+        base_itemsize: int,
+        col_padding: int,
+        row_len: int,
+        size: int
+    ) -> str:
+        row_components = [f"{col_len}{base_char}{base_itemsize}"]
+        if col_padding:
+            row_components.append(f"{col_padding}x{base_itemsize}")
+        return " ".join(row_components * (row_len * size))

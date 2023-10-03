@@ -33,6 +33,12 @@ class BufferFormat(LazyObject):
         # Implemented in subclasses.
         return 0
 
+    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @staticmethod
+    def _base_alignment_() -> int:
+        # Implemented in subclasses.
+        return 1
+
     @Lazy.property(hasher=Lazy.naive_hasher)
     @staticmethod
     def _size_(
