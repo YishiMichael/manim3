@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ...animatables.animatable.piecewisers import Piecewisers
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
@@ -10,7 +15,7 @@ class Flash(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         mobject: Mobject,
         *,
         proportion: float = 1.0 / 16,
@@ -25,7 +30,9 @@ class Flash(Animation):
         )).build()
         self._mobject: Mobject = mobject
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         self.scene.add(self._mobject)
         await self.play(self._animation)
         self.scene.discard(self._mobject)

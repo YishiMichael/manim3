@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 """
 This module implements lazy evaluation based on weak reference. Meanwhile,
 this also introduces functional programming into the project paradigm.
@@ -84,7 +87,8 @@ descriptors.
 from typing import (
     Callable,
     Hashable,
-    TypeVar
+    Never,
+    Self
 )
 
 import numpy as np
@@ -93,38 +97,37 @@ from .lazy_descriptor import LazyDescriptor
 #from .lazy_object import LazyObject
 
 
-_T = TypeVar("_T")
-
-
 class Lazy:
     __slots__ = ()
 
-    def __new__(cls):
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
         raise TypeError
 
     @classmethod
-    def _descriptor_singular(
-        cls,
+    def _descriptor_singular[T](
+        cls: type[Self],
         is_variable: bool,
         freeze: bool,
         cache_capacity: int,
         hasher: Callable[..., Hashable]
-    ) -> Callable[[Callable[..., _T]], LazyDescriptor[_T, _T]]:
+    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
 
         def singular_decomposer(
-            data: _T
-        ) -> tuple[_T, ...]:
+            data: T
+        ) -> tuple[T, ...]:
             return (data,)
 
         def singular_composer(
-            elements: tuple[_T, ...]
-        ) -> _T:
+            elements: tuple[T, ...]
+        ) -> T:
             (element,) = elements
             return element
 
         def result(
-            method: Callable[[], _T]
-        ) -> LazyDescriptor[_T, _T]:
+            method: Callable[[], T]
+        ) -> LazyDescriptor[T, T]:
             return LazyDescriptor(
                 method=method,
                 is_multiple=False,
@@ -139,27 +142,27 @@ class Lazy:
         return result
 
     @classmethod
-    def _descriptor_multiple(
-        cls,
+    def _descriptor_multiple[T](
+        cls: type[Self],
         is_variable: bool,
         hasher: Callable[..., Hashable],
         freeze: bool,
         cache_capacity: int
-    ) -> Callable[[Callable[..., tuple[_T, ...]]], LazyDescriptor[tuple[_T, ...], _T]]:
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[tuple[T, ...], T]]:
 
         def multiple_decomposer(
-            data: tuple[_T, ...]
-        ) -> tuple[_T, ...]:
+            data: tuple[T, ...]
+        ) -> tuple[T, ...]:
             return data
 
         def multiple_composer(
-            elements: tuple[_T, ...]
-        ) -> tuple[_T, ...]:
+            elements: tuple[T, ...]
+        ) -> tuple[T, ...]:
             return elements
 
         def result(
-            method: Callable[[], tuple[_T, ...]]
-        ) -> LazyDescriptor[tuple[_T, ...], _T]:
+            method: Callable[[], tuple[T, ...]]
+        ) -> LazyDescriptor[tuple[T, ...], T]:
             return LazyDescriptor(
                 method=method,
                 is_multiple=True,
@@ -174,11 +177,11 @@ class Lazy:
         return result
 
     @classmethod
-    def variable(
-        cls,
+    def variable[T](
+        cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         freeze: bool = True
-    ) -> Callable[[Callable[[], _T]], LazyDescriptor[_T, _T]]:
+    ) -> Callable[[Callable[[], T]], LazyDescriptor[T, T]]:
         return cls._descriptor_singular(
             is_variable=True,
             hasher=hasher,
@@ -187,11 +190,11 @@ class Lazy:
         )
 
     @classmethod
-    def variable_collection(
-        cls,
+    def variable_collection[T](
+        cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         freeze: bool = True
-    ) -> Callable[[Callable[[], tuple[_T, ...]]], LazyDescriptor[tuple[_T, ...], _T]]:
+    ) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[tuple[T, ...], T]]:
         return cls._descriptor_multiple(
             is_variable=True,
             hasher=hasher,
@@ -200,11 +203,11 @@ class Lazy:
         )
 
     @classmethod
-    def property(
-        cls,
+    def property[T](
+        cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         cache_capacity: int = 128
-    ) -> Callable[[Callable[..., _T]], LazyDescriptor[_T, _T]]:
+    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
         return cls._descriptor_singular(
             is_variable=False,
             hasher=hasher,
@@ -213,11 +216,11 @@ class Lazy:
         )
 
     @classmethod
-    def property_collection(
-        cls,
+    def property_collection[T](
+        cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         cache_capacity: int = 128
-    ) -> Callable[[Callable[..., tuple[_T, ...]]], LazyDescriptor[tuple[_T, ...], _T]]:
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[tuple[T, ...], T]]:
         return cls._descriptor_multiple(
             is_variable=False,
             hasher=hasher,

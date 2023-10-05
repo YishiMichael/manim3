@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...animatables.geometries.mesh import Mesh
@@ -17,7 +22,7 @@ class ShapeMobject(MeshMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         shape: Shape | None = None
     ) -> None:
         super().__init__()
@@ -44,7 +49,9 @@ class ShapeMobject(MeshMobject):
             faces=faces
         )
 
-    def build_stroke(self) -> GraphMobject:
+    def build_stroke(
+        self: Self
+    ) -> GraphMobject:
         stroke = GraphMobject()
         stroke._model_matrix_ = self._model_matrix_.copy()
         stroke._graph_ = self._shape_._graph_.copy()

@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+
 import re
+from typing import (
+    Never,
+    Self
+)
 
 import numpy as np
 from colour import Color
@@ -12,12 +19,14 @@ from ..constants.custom_typing import (
 class ColorUtils:
     __slots__ = ()
 
-    def __new__(cls):
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
         raise TypeError
 
     @classmethod
     def standardize_color(
-        cls,
+        cls: type[Self],
         color: ColorT
     ) -> NP_3f8:
         match color:
@@ -38,7 +47,7 @@ class ColorUtils:
 
     @classmethod
     def color_to_hex(
-        cls,
+        cls: type[Self],
         color: ColorT
     ) -> str:
         components = (cls.standardize_color(color) * 255.0).astype(np.int32)

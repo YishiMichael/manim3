@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import numpy as np
 
 from ...constants.custom_typing import (

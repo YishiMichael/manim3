@@ -1,11 +1,11 @@
+from __future__ import annotations
+
+
 from abc import (
     ABC,
     abstractmethod
 )
-from typing import (
-    Generic,
-    TypeVar
-)
+from typing import Self
 
 from ...constants.custom_typing import (
     BoundaryT,
@@ -19,56 +19,54 @@ from .animatable import (
 from .piecewiser import Piecewiser
 
 
-_LeafAnimatableT = TypeVar("_LeafAnimatableT", bound="LeafAnimatable")
-
-
 class LeafAnimatable(Animatable):
     __slots__ = ()
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(
+        cls: type[Self]
+    ) -> None:
         super().__init_subclass__()
         assert not cls._animatable_descriptors
 
     @classmethod
     @abstractmethod
     def _interpolate(
-        cls: type[_LeafAnimatableT],
-        src_0: _LeafAnimatableT,
-        src_1: _LeafAnimatableT
-    ) -> "LeafAnimatableInterpolateInfo[_LeafAnimatableT]":
+        cls: type[Self],
+        src_0: Self,
+        src_1: Self
+    ) -> LeafAnimatableInterpolateInfo[Self]:
         pass
 
     @classmethod
     @abstractmethod
     def _split(
-        cls: type[_LeafAnimatableT],
-        #dst_tuple: tuple[_LeafAnimatableT, ...],
-        src: _LeafAnimatableT,
+        cls: type[Self],
+        src: Self,
         alphas: NP_xf8
-    ) -> tuple[_LeafAnimatableT, ...]:
+    ) -> tuple[Self, ...]:
         pass
 
     @classmethod
     @abstractmethod
     def _concatenate(
-        cls: type[_LeafAnimatableT],
-        #dst: _LeafAnimatableT,
-        src_tuple: tuple[_LeafAnimatableT, ...]
-    ) -> _LeafAnimatableT:
+        cls: type[Self],
+        #dst: Self,
+        src_tuple: tuple[Self, ...]
+    ) -> Self:
         pass
 
     def _get_interpolate_updater(
-        self: _LeafAnimatableT,
-        src_0: _LeafAnimatableT,
-        src_1: _LeafAnimatableT
+        self: Self,
+        src_0: Self,
+        src_1: Self
     ) -> Updater:
         return super()._get_interpolate_updater(src_0, src_1).add(
             LeafAnimatableInterpolateUpdater(self, src_0, src_1)
         )
 
     def _get_piecewise_updater(
-        self: _LeafAnimatableT,
-        src: _LeafAnimatableT,
+        self: Self,
+        src: Self,
         piecewiser: Piecewiser
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
@@ -78,36 +76,36 @@ class LeafAnimatable(Animatable):
         )
 
 
-class LeafAnimatableInterpolateInfo(ABC, Generic[_LeafAnimatableT]):
+class LeafAnimatableInterpolateInfo[LeafAnimatableT: LeafAnimatable](ABC):
     __slots__ = ()
 
     def __init__(
-        self,
-        src_0: _LeafAnimatableT,
-        src_1: _LeafAnimatableT
+        self: Self,
+        src_0: LeafAnimatableT,
+        src_1: LeafAnimatableT
     ) -> None:
         super().__init__()
 
     @abstractmethod
     def interpolate(
-        self,
-        src: _LeafAnimatableT,
+        self: Self,
+        src: LeafAnimatableT,
         alpha: float
     ) -> None:
         pass
 
 
-class LeafAnimatableInterpolateUpdater(Generic[_LeafAnimatableT], Updater):
+class LeafAnimatableInterpolateUpdater[LeafAnimatableT: LeafAnimatable](Updater):
     __slots__ = ("_dst",)
 
     def __init__(
-        self,
-        dst: _LeafAnimatableT,
-        src_0: _LeafAnimatableT,
-        src_1: _LeafAnimatableT
+        self: Self,
+        dst: LeafAnimatableT,
+        src_0: LeafAnimatableT,
+        src_1: LeafAnimatableT
     ) -> None:
         super().__init__()
-        self._dst: _LeafAnimatableT = dst
+        self._dst: LeafAnimatableT = dst
         self._src_0_ = src_0.copy()
         self._src_1_ = src_1.copy()
         #self._positions_0_ = positions_0
@@ -116,38 +114,38 @@ class LeafAnimatableInterpolateUpdater(Generic[_LeafAnimatableT], Updater):
 
     @Lazy.variable()
     @staticmethod
-    def _src_0_() -> _LeafAnimatableT:
+    def _src_0_() -> LeafAnimatableT:
         return NotImplemented
 
     @Lazy.variable()
     @staticmethod
-    def _src_1_() -> _LeafAnimatableT:
+    def _src_1_() -> LeafAnimatableT:
         return NotImplemented
 
     @Lazy.property()
     @staticmethod
     def _interpolate_info_(
-        src_0: _LeafAnimatableT,
-        src_1: _LeafAnimatableT
-    ) -> LeafAnimatableInterpolateInfo[_LeafAnimatableT]:
+        src_0: LeafAnimatableT,
+        src_1: LeafAnimatableT
+    ) -> LeafAnimatableInterpolateInfo[LeafAnimatableT]:
         return type(src_0)._interpolate(src_0, src_1)
 
     def update(
-        self,
+        self: Self,
         alpha: float
     ) -> None:
         super().update(alpha)
         self._interpolate_info_.interpolate(self._dst, alpha)
 
     def update_boundary(
-        self,
+        self: Self,
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)
         self._dst._copy_lazy_content(self._src_1_ if boundary else self._src_0_)
 
 
-class LeafAnimatablePiecewiseUpdater(Generic[_LeafAnimatableT], Updater):
+class LeafAnimatablePiecewiseUpdater[LeafAnimatableT: LeafAnimatable](Updater):
     __slots__ = (
         "_dst",
         "_src",
@@ -155,18 +153,18 @@ class LeafAnimatablePiecewiseUpdater(Generic[_LeafAnimatableT], Updater):
     )
 
     def __init__(
-        self,
-        dst: _LeafAnimatableT,
-        src: _LeafAnimatableT,
+        self: Self,
+        dst: LeafAnimatableT,
+        src: LeafAnimatableT,
         piecewise_func: Piecewiser
     ) -> None:
         super().__init__()
-        self._dst: _LeafAnimatableT = dst
-        self._src: _LeafAnimatableT = src
+        self._dst: LeafAnimatableT = dst
+        self._src: LeafAnimatableT = src
         self._piecewiser: Piecewiser = piecewise_func
 
     def update(
-        self,
+        self: Self,
         alpha: float
     ) -> None:
         super().update(alpha)
@@ -178,7 +176,7 @@ class LeafAnimatablePiecewiseUpdater(Generic[_LeafAnimatableT], Updater):
         self._dst._copy_lazy_content(new_dst)
 
     def update_boundary(
-        self,
+        self: Self,
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)

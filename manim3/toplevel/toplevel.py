@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     ClassVar,
-    Iterator
+    Iterator,
+    Self
 )
 
 #from .events.key_press import KeyPress
@@ -27,13 +31,15 @@ class Toplevel:
     _config: ClassVar[Config | None] = None
     #_event_queue: "ClassVar[list[Event] | None]" = None
     #_event: "ClassVar[Event | None]" = None
-    _window: "ClassVar[Window | None]" = None
-    _context: "ClassVar[Context | None]" = None
-    _scene: "ClassVar[Scene | None]" = None
+    _window: ClassVar[Window | None] = None
+    _context: ClassVar[Context | None] = None
+    _scene: ClassVar[Scene | None] = None
 
     @classmethod
     @property
-    def config(cls) -> Config:
+    def config(
+        cls: type[Self]
+    ) -> Config:
         assert (config := cls._config) is not None
         return config
 
@@ -51,29 +57,35 @@ class Toplevel:
 
     @classmethod
     @property
-    def window(cls) -> "Window":
+    def window(
+        cls: type[Self]
+    ) -> Window:
         assert (window := cls._window) is not None
         return window
 
     @classmethod
     @property
-    def context(cls) -> "Context":
+    def context(
+        cls: type[Self]
+    ) -> Context:
         assert (context := cls._context) is not None
         return context
 
     @classmethod
     @property
-    def scene(cls) -> "Scene":
+    def scene(
+        cls: type[Self]
+    ) -> Scene:
         assert (scene := cls._scene) is not None
         return scene
 
     @classmethod
     @contextmanager
     def configure(
-        cls,
+        cls: type[Self],
         config: Config,
-        scene_cls: "type[Scene]"
-    ) -> "Iterator[Scene]":
+        scene_cls: type[Scene]
+    ) -> Iterator[Scene]:
         cls._config = config
         with cls.setup_window(config) as window:
             cls._window = window
@@ -89,9 +101,9 @@ class Toplevel:
     @classmethod
     @contextmanager
     def setup_window(
-        cls,
+        cls: type[Self],
         config: Config
-    ) -> "Iterator[Window | None]":
+    ) -> Iterator[Window | None]:
         from .window import Window
         window = Window(
             window_pixel_size=config.window_pixel_size,
@@ -104,9 +116,9 @@ class Toplevel:
     @classmethod
     @contextmanager
     def setup_context(
-        cls,
+        cls: type[Self],
         config: Config
-    ) -> "Iterator[Context | None]":
+    ) -> Iterator[Context | None]:
         from .context import Context
         context = Context(
             gl_version_code=config.gl_version_code,

@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...constants.constants import (
@@ -14,7 +19,9 @@ from .parametric_surface import ParametricSurface
 class Sphere(ParametricSurface):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
 
         def func(
             samples: NP_x2f8

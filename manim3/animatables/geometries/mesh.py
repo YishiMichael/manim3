@@ -1,4 +1,10 @@
-from typing import TypeVar
+from __future__ import annotations
+
+
+from typing import (
+    Never,
+    Self
+)
 
 import numpy as np
 
@@ -13,20 +19,14 @@ from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.index_buffer import IndexBuffer
 from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
-from ..animatable.leaf_animatable import (
-    LeafAnimatable,
-    LeafAnimatableInterpolateInfo
-)
-
-
-_MeshT = TypeVar("_MeshT", bound="Mesh")
+from ..animatable.leaf_animatable import LeafAnimatable
 
 
 class Mesh(LeafAnimatable):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         positions: NP_x3f8 | None = None,
         normals: NP_x3f8 | None = None,
         uvs: NP_x2f8 | None = None,
@@ -92,23 +92,23 @@ class Mesh(LeafAnimatable):
 
     @classmethod
     def _interpolate(
-        cls: type[_MeshT],
-        src_0: _MeshT,
-        src_1: _MeshT
-    ) -> LeafAnimatableInterpolateInfo[_MeshT]:
+        cls: type[Self],
+        src_0: Self,
+        src_1: Self
+    ) -> Never:
         raise NotImplementedError
 
     @classmethod
     def _split(
-        cls: type[_MeshT],
-        src: _MeshT,
+        cls: type[Self],
+        src: Self,
         alphas: NP_xf8
-    ) -> tuple[_MeshT, ...]:
+    ) -> Never:
         raise NotImplementedError
 
     @classmethod
     def _concatenate(
-        cls: type[_MeshT],
-        src_tuple: tuple[_MeshT, ...]
-    ) -> _MeshT:
+        cls: type[Self],
+        src_tuple: tuple[Self, ...]
+    ) -> Never:
         raise NotImplementedError

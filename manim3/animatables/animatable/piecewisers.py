@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+
 from abc import abstractmethod
+from typing import (
+    Never,
+    Self
+)
 
 import numpy as np
 
@@ -19,7 +26,7 @@ class StaticPiecewiser(Piecewiser):
     )
 
     def __init__(
-        self,
+        self: Self,
         split_alphas: NP_xf8,
         concatenate_indices: NP_xi4
     ) -> None:
@@ -28,7 +35,7 @@ class StaticPiecewiser(Piecewiser):
         self._concatenate_indices: NP_xi4 = concatenate_indices
 
     def piecewise(
-        self,
+        self: Self,
         alpha: float
     ) -> PiecewiseData:
         return PiecewiseData(
@@ -44,7 +51,7 @@ class EvenPiecewiser(Piecewiser):
     )
 
     def __init__(
-        self,
+        self: Self,
         n_segments: int,
         backwards: bool
     ) -> None:
@@ -53,7 +60,7 @@ class EvenPiecewiser(Piecewiser):
         self._backwards: bool = backwards
 
     def piecewise(
-        self,
+        self: Self,
         alpha: float
     ) -> PiecewiseData:
         n_segments = self._n_segments
@@ -79,14 +86,14 @@ class EvenPiecewiser(Piecewiser):
 
     @abstractmethod
     def get_segment_center(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         pass
 
     @abstractmethod
     def get_segment_length(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         pass
@@ -96,13 +103,13 @@ class PartialPiecewiser(EvenPiecewiser):
     __slots__ = ()
 
     def get_segment_center(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         return alpha / 2.0
 
     def get_segment_length(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         return alpha
@@ -112,7 +119,7 @@ class FlashPiecewiser(EvenPiecewiser):
     __slots__ = ("_proportion",)
 
     def __init__(
-        self,
+        self: Self,
         proportion: float,
         n_segments: int,
         backwards: bool
@@ -125,14 +132,14 @@ class FlashPiecewiser(EvenPiecewiser):
         self._proportion: float = proportion
 
     def get_segment_center(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         proportion = self._proportion
         return (min(alpha * (1.0 + proportion), 1.0) + max(alpha * (1.0 + proportion) - proportion, 0.0)) / 2.0
 
     def get_segment_length(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         proportion = self._proportion
@@ -143,7 +150,7 @@ class DashedPiecewiser(EvenPiecewiser):
     __slots__ = ("_proportion",)
 
     def __init__(
-        self,
+        self: Self,
         proportion: float,
         n_segments: int,
         backwards: bool
@@ -156,13 +163,13 @@ class DashedPiecewiser(EvenPiecewiser):
         self._proportion: float = proportion
 
     def get_segment_center(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         return alpha
 
     def get_segment_length(
-        self,
+        self: Self,
         alpha: float
     ) -> float:
         return self._proportion
@@ -171,12 +178,14 @@ class DashedPiecewiser(EvenPiecewiser):
 class Piecewisers:
     __slots__ = ()
 
-    def __new__(cls):
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
         raise TypeError
 
     @classmethod
     def static(
-        cls,
+        cls: type[Self],
         split_alphas: NP_xf8,
         concatenate_indices: NP_xi4
     ) -> StaticPiecewiser:
@@ -187,7 +196,7 @@ class Piecewisers:
 
     @classmethod
     def partial(
-        cls,
+        cls: type[Self],
         n_segments: int = 1,
         backwards: bool = False
     ) -> PartialPiecewiser:
@@ -198,7 +207,7 @@ class Piecewisers:
 
     @classmethod
     def flash(
-        cls,
+        cls: type[Self],
         proportion: float = 1.0 / 16,
         n_segments: int = 1,
         backwards: bool = False
@@ -211,7 +220,7 @@ class Piecewisers:
 
     @classmethod
     def dashed(
-        cls,
+        cls: type[Self],
         proportion: float = 1.0 / 2,
         n_segments: int = 16,
         backwards: bool = False

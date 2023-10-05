@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -14,7 +19,7 @@ class Polyhedron(ShapeMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         positions: NP_x3f8,
         faces: NP_xxi4
     ) -> None:
@@ -26,7 +31,7 @@ class Polyhedron(ShapeMobject):
 
     @classmethod
     def _get_transformed_face(
-        cls,
+        cls: type[Self],
         positions: NP_x3f8
     ) -> Polygon:
         assert len(positions) >= 3
@@ -53,7 +58,9 @@ class Polyhedron(ShapeMobject):
 class Tetrahedron(Polyhedron):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__(
             positions=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
@@ -73,7 +80,9 @@ class Tetrahedron(Polyhedron):
 class Cube(Polyhedron):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__(
             positions=(1.0 / np.sqrt(3.0)) * np.array((
                 (1.0, 1.0, 1.0),
@@ -99,7 +108,9 @@ class Cube(Polyhedron):
 class Octahedron(Polyhedron):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__(
             positions=np.array((
                 (1.0, 0.0, 0.0),
@@ -125,7 +136,9 @@ class Octahedron(Polyhedron):
 class Dodecahedron(Polyhedron):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         unit_a = (1.0 + np.sqrt(5.0)) / 2.0
         unit_b = -(1.0 - np.sqrt(5.0)) / 2.0
         super().__init__(
@@ -171,7 +184,9 @@ class Dodecahedron(Polyhedron):
 class Icosahedron(Polyhedron):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         unit_a = np.sqrt(50.0 + 10.0 * np.sqrt(5.0)) / 10.0
         unit_b = np.sqrt(50.0 - 10.0 * np.sqrt(5.0)) / 10.0
         super().__init__(

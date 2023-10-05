@@ -1,10 +1,14 @@
+from __future__ import annotations
+
+
 import asyncio
 import itertools
 import subprocess
 from contextlib import contextmanager
 from typing import (
     IO,
-    Iterator
+    Iterator,
+    Self
 )
 
 import moderngl
@@ -34,7 +38,9 @@ class Scene(Animation):
         "_timestamp"
     )
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__()
         self._camera: Camera = PerspectiveCamera()
         self._lighting: Lighting = Lighting(AmbientLight())
@@ -43,7 +49,9 @@ class Scene(Animation):
         )
         self._timestamp: float = 0.0
 
-    async def _render(self) -> None:
+    async def _render(
+        self: Self
+    ) -> None:
         config = Toplevel.config
         fps = config.fps
         write_video = config.write_video
@@ -95,7 +103,7 @@ class Scene(Animation):
     @classmethod
     @contextmanager
     def _video_writer(
-        cls,
+        cls: type[Self],
         write_video: bool,
         fps: int
     ) -> Iterator[IO[bytes] | None]:
@@ -125,7 +133,7 @@ class Scene(Animation):
 
     @classmethod
     def _render_to_window(
-        cls,
+        cls: type[Self],
         framebuffer: moderngl.Framebuffer
     ) -> None:
         window_framebuffer = Toplevel.context._window_framebuffer
@@ -134,7 +142,7 @@ class Scene(Animation):
 
     @classmethod
     def _write_frame_to_video(
-        cls,
+        cls: type[Self],
         color_texture: moderngl.Texture,
         video_stdin: IO[bytes]
     ) -> None:
@@ -142,7 +150,7 @@ class Scene(Animation):
 
     @classmethod
     def _write_frame_to_image(
-        cls,
+        cls: type[Self],
         color_texture: moderngl.Texture
     ) -> None:
         image = Image.frombytes(
@@ -155,7 +163,7 @@ class Scene(Animation):
 
     @classmethod
     def render(
-        cls,
+        cls: type[Self],
         config: Config | None = None
     ) -> None:
         if config is None:
@@ -172,31 +180,39 @@ class Scene(Animation):
     # Shortcut access to root mobject.
 
     @property
-    def root_mobject(self) -> SceneRootMobject:
+    def root_mobject(
+        self: Self
+    ) -> SceneRootMobject:
         return self._root_mobject
 
     def add(
-        self,
-        *mobjects: "Mobject"
-    ):
+        self: Self,
+        *mobjects: Mobject
+    ) -> Self:
         self.root_mobject.add(*mobjects)
         return self
 
     def discard(
-        self,
-        *mobjects: "Mobject"
-    ):
+        self: Self,
+        *mobjects: Mobject
+    ) -> Self:
         self.root_mobject.discard(*mobjects)
         return self
 
-    def clear(self):
+    def clear(
+        self: Self
+    ) -> Self:
         self.root_mobject.clear()
         return self
 
     @property
-    def camera(self) -> Camera:
+    def camera(
+        self: Self
+    ) -> Camera:
         return self._camera
 
     @property
-    def lighting(self) -> Lighting:
+    def lighting(
+        self: Self
+    ) -> Lighting:
         return self._lighting

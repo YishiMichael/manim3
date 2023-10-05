@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 from PIL import Image
 
@@ -11,7 +16,7 @@ class ImageMobject(Plane):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         image_path: str,
         *,
         width: float | None = None,

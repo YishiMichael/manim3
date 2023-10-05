@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+
 import itertools
 from typing import (
     Literal,
-    TypeVar
+    Self
 )
 
 import numpy as np
@@ -25,14 +28,11 @@ from ..animatable.leaf_animatable import (
 #)
 
 
-_GraphT = TypeVar("_GraphT", bound="Graph")
-
-
 class Graph(LeafAnimatable):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         positions: NP_x3f8 | None = None,
         edges: NP_x2i4 | None = None
     ) -> None:
@@ -81,26 +81,26 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _interpolate(
-        cls: type[_GraphT],
-        src_0: _GraphT,
-        src_1: _GraphT
-    ) -> "GraphInterpolateInfo[_GraphT]":
+        cls: type[Self],
+        src_0: Self,
+        src_1: Self
+    ) -> GraphInterpolateInfo:
         return GraphInterpolateInfo(src_0, src_1)
 
     #def _interpolate(
-    #    self: _GraphT,
-    #    src_0: _GraphT,
-    #    src_1: _GraphT
+    #    self: Self,
+    #    src_0: Self,
+    #    src_1: Self
     #) -> Updater:
     #    return GraphInterpolateUpdater(self, src_0, src_1)
 
     @classmethod
     def _split(
-        cls: type[_GraphT],
-        #dst_tuple: tuple[_GraphT, ...],
-        src: _GraphT,
+        cls: type[Self],
+        #dst_tuple: tuple[Self, ...],
+        src: Self,
         alphas: NP_xf8
-    ) -> tuple[_GraphT, ...]:
+    ) -> tuple[Self, ...]:
         edges = src._edges_
         if not len(edges):
             return tuple(cls() for _ in range(len(alphas) + 1))
@@ -140,10 +140,10 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _concatenate(
-        cls: type[_GraphT],
-        #dst: _GraphT,
-        src_tuple: tuple[_GraphT, ...]
-    ) -> _GraphT:
+        cls: type[Self],
+        #dst: Self,
+        src_tuple: tuple[Self, ...]
+    ) -> Self:
         if not src_tuple:
             return cls()
 
@@ -182,9 +182,9 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _general_interpolate(
-        cls,
-        graph_0: "Graph",
-        graph_1: "Graph",
+        cls: type[Self],
+        graph_0: Graph,
+        graph_1: Graph,
         disjoints_0: NP_xi4,
         disjoints_1: NP_xi4
     ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
@@ -279,7 +279,7 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _interpolate_positions(
-        cls,
+        cls: type[Self],
         positions: NP_x3f8,
         edges: NP_x2i4,
         full_knots: NP_xf8,
@@ -295,7 +295,7 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _reassemble_edges(
-        cls,
+        cls: type[Self],
         edges: NP_x2i4,
         transition_indices: NP_xi4,
         prepend: NP_i4,
@@ -318,7 +318,7 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _get_decomposed_edges(
-        cls,
+        cls: type[Self],
         positions: NP_x3f8,
         edges: NP_x2i4,
         insertions: NP_xi4,
@@ -346,7 +346,7 @@ class Graph(LeafAnimatable):
 
     @classmethod
     def _get_unique_positions(
-        cls,
+        cls: type[Self],
         positions_0: NP_x3f8,
         positions_1: NP_x3f8,
         edges_0: NP_x2i4,
@@ -409,7 +409,7 @@ class Graph(LeafAnimatable):
     #    )
 
 
-class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[_GraphT]):
+class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[Graph]):
     __slots__ = (
         "_positions_0",
         "_positions_1",
@@ -417,9 +417,9 @@ class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[_GraphT]):
     )
 
     def __init__(
-        self,
-        src_0: _GraphT,
-        src_1: _GraphT
+        self: Self,
+        src_0: Graph,
+        src_1: Graph
     ) -> None:
         super().__init__(src_0, src_1)
         positions_0, positions_1, edges = Graph._general_interpolate(
@@ -433,8 +433,8 @@ class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[_GraphT]):
         self._edges: NP_x2i4 = edges
 
     def interpolate(
-        self,
-        graph: _GraphT,
+        self: Self,
+        graph: Graph,
         alpha: float
     ) -> None:
         graph._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)

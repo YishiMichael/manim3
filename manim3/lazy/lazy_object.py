@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import copy
 import inspect
 from abc import ABC
@@ -6,14 +9,13 @@ from typing import (
     Callable,
     #Callable,
     ClassVar,
+    Self,
+    TypeAliasType,
     TypeVar
 )
 
 from .lazy_descriptor import LazyDescriptor
 from .lazy_slot import LazySlot
-
-
-_LazyObjectT = TypeVar("_LazyObjectT", bound="LazyObject")
 
 
 class LazyObject(ABC):
@@ -32,7 +34,9 @@ class LazyObject(ABC):
     _lazy_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
     _slot_copiers: ClassVar[dict[str, Callable]] = {}
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(
+        cls: type[Self]
+    ) -> None:
 
         def extract_tuple_annotation(
             annotation: Any
@@ -90,7 +94,17 @@ class LazyObject(ABC):
         }
 
         for name, descriptor in new_descriptors.items():
-            signature = inspect.signature(descriptor._method, locals={cls.__name__: cls}, eval_str=True)
+            signature = inspect.signature(
+                descriptor._method,
+                locals={
+                    cls.__name__: cls,
+                    **{
+                        str(type_param): type_param
+                        for type_param in cls.__type_params__
+                    }
+                },
+                eval_str=True
+            )
 
             return_annotation = signature.return_annotation
             if descriptor._is_multiple:
@@ -99,7 +113,7 @@ class LazyObject(ABC):
                 element_type_annotation = return_annotation
             descriptor._element_type_annotation = element_type_annotation
 
-            if isinstance(element_type_annotation, TypeVar):
+            if isinstance(element_type_annotation, TypeVar | TypeAliasType):
                 element_type = None
             elif hasattr(element_type_annotation, "__origin__"):
                 element_type = element_type_annotation.__origin__
@@ -126,14 +140,18 @@ class LazyObject(ABC):
             if isinstance(element_type, LazyObject):
                 descriptor._freezer = LazyObject._freeze
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__()
         self._lazy_slots: dict[str, LazySlot] = {}
         self._is_frozen: bool = False
         for descriptor in type(self)._lazy_descriptors.values():
             descriptor._init(self)
 
-    def _freeze(self) -> None:
+    def _freeze(
+        self: Self
+    ) -> None:
         if self._is_frozen:
             return
         self._is_frozen = True
@@ -144,14 +162,16 @@ class LazyObject(ABC):
                     element._freeze()
 
     def _copy_lazy_content(
-        self: _LazyObjectT,
-        src_object: _LazyObjectT
+        self: Self,
+        src_object: Self
     ) -> None:
         for descriptor in type(self)._lazy_descriptors.values():
             if descriptor._is_variable:
                 descriptor._set_elements(self, descriptor._get_elements(src_object))
 
-    def copy(self):
+    def copy(
+        self: Self
+    ) -> Self:
         cls = type(self)
         result = cls.__new__(cls)
         for slot_name, slot_copier in cls._slot_copiers.items():

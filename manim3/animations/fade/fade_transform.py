@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
 from ..composition.parallel import Parallel
@@ -14,7 +19,7 @@ class FadeTransform(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         start_mobject: Mobject,
         stop_mobject: Mobject
     ) -> None:
@@ -50,7 +55,9 @@ class FadeTransform(Animation):
         #    intermediate_stop_mobject
         #)
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         #start_mobject = self._start_mobject
         #stop_mobject = self._stop_mobject
         #intermediate_start_mobject = self._intermediate_start_mobject

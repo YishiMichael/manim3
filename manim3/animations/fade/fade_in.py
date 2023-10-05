@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
 
@@ -14,7 +19,7 @@ class FadeIn(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         mobject: Mobject
     ) -> None:
         super().__init__(run_alpha=1.0)
@@ -25,6 +30,8 @@ class FadeIn(Animation):
         #    func=lambda mob: func(mob.set(opacity=0.0))
         #)
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         self.scene.add(self._mobject)
         await self.play(self._animation)

@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...lazy.lazy import Lazy
@@ -9,7 +14,7 @@ class UniformBlockBuffer(WriteOnlyBuffer):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         name: str,
         fields: list[str],

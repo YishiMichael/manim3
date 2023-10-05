@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+
 from dataclasses import dataclass
+from typing import (
+    Never,
+    Self
+)
 
 from .event import Event
 
@@ -13,7 +20,7 @@ class KeyPressEvent(Event):
     modifiers: int | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return (
@@ -33,7 +40,7 @@ class KeyReleaseEvent(Event):
     modifiers: int | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return (
@@ -55,7 +62,7 @@ class MouseMotionEvent(Event):
     dy: int | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return isinstance(event, MouseMotionEvent)
@@ -75,7 +82,7 @@ class MouseDragEvent(Event):
     dy: int | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return (
@@ -97,7 +104,7 @@ class MousePressEvent(Event):
     y: int | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return (
@@ -119,7 +126,7 @@ class MouseReleaseEvent(Event):
     y: int | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return (
@@ -141,7 +148,7 @@ class MouseScrollEvent(Event):
     scroll_y: float | None
 
     def _capture(
-        self,
+        self: Self,
         event: Event
     ) -> bool:
         return isinstance(event, MouseScrollEvent)
@@ -150,12 +157,14 @@ class MouseScrollEvent(Event):
 class Events:
     __slots__ = ()
 
-    def __new__(cls):
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
         raise TypeError
 
     @classmethod
     def key_press(
-        cls,
+        cls: type[Self],
         symbol: int | None = None,
         modifiers: int | None = None
     ) -> KeyPressEvent:
@@ -166,7 +175,7 @@ class Events:
 
     @classmethod
     def key_release(
-        cls,
+        cls: type[Self],
         symbol: int | None = None,
         modifiers: int | None = None
     ) -> KeyReleaseEvent:
@@ -177,7 +186,7 @@ class Events:
 
     @classmethod
     def mouse_motion(
-        cls,
+        cls: type[Self],
         x: int | None = None,
         y: int | None = None,
         dx: int | None = None,
@@ -192,7 +201,7 @@ class Events:
 
     @classmethod
     def mouse_drag(
-        cls,
+        cls: type[Self],
         buttons: int | None = None,
         modifiers: int | None = None,
         x: int | None = None,
@@ -211,7 +220,7 @@ class Events:
 
     @classmethod
     def mouse_press(
-        cls,
+        cls: type[Self],
         buttons: int | None = None,
         modifiers: int | None = None,
         x: int | None = None,
@@ -226,7 +235,7 @@ class Events:
 
     @classmethod
     def mouse_release(
-        cls,
+        cls: type[Self],
         buttons: int | None = None,
         modifiers: int | None = None,
         x: int | None = None,
@@ -241,7 +250,7 @@ class Events:
 
     @classmethod
     def mouse_scroll(
-        cls,
+        cls: type[Self],
         x: int | None = None,
         y: int | None = None,
         scroll_x: float | None = None,

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import hashlib
 import json
 import pathlib
@@ -7,30 +10,27 @@ from abc import (
 )
 from contextlib import contextmanager
 from typing import (
-    Generic,
     Iterator,
-    TypeVar
+    Never,
+    Self
 )
 
 from ..utils.path_utils import PathUtils
 
 
-_InputDataT = TypeVar("_InputDataT")
-_JSONDataT = TypeVar("_JSONDataT")
-_OutputDataT = TypeVar("_OutputDataT")
-
-
-class MobjectIO(ABC, Generic[_InputDataT, _OutputDataT, _JSONDataT]):
+class MobjectIO[InputDataT, OutputDataT, JSONDataT](ABC):
     __slots__ = ()
 
-    def __new__(cls):
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
         raise TypeError
 
     @classmethod
     def get(
-        cls,
-        input_data: _InputDataT
-    ) -> _OutputDataT:
+        cls: type[Self],
+        input_data: InputDataT
+    ) -> OutputDataT:
         # Notice that as we are using `str(input_data)` as key,
         # each item shall have an explicit string representation of data,
         # which shall not contain any information varying in each run, like addresses.
@@ -52,37 +52,41 @@ class MobjectIO(ABC, Generic[_InputDataT, _OutputDataT, _JSONDataT]):
     @classmethod
     @property
     @abstractmethod
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         pass
 
     @classmethod
     @abstractmethod
     def generate(
-        cls,
-        input_data: _InputDataT,
+        cls: type[Self],
+        input_data: InputDataT,
         temp_path: pathlib.Path
-    ) -> _OutputDataT:
+    ) -> OutputDataT:
         pass
 
     @classmethod
     @abstractmethod
     def dump_json(
-        cls,
-        output_data: _OutputDataT
-    ) -> _JSONDataT:
+        cls: type[Self],
+        output_data: OutputDataT
+    ) -> JSONDataT:
         pass
 
     @classmethod
     @abstractmethod
     def load_json(
-        cls,
-        json_data: _JSONDataT
-    ) -> _OutputDataT:
+        cls: type[Self],
+        json_data: JSONDataT
+    ) -> OutputDataT:
         pass
 
     @classmethod
     @contextmanager
-    def display_during_execution(cls) -> Iterator[None]:  # TODO: needed?
+    def display_during_execution(
+        cls: type[Self]
+    ) -> Iterator[None]:  # TODO: needed?
         message = "Generating intermediate files..."
         try:
             print(message, end="\r")

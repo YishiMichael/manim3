@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+
 import re
+from typing import Self
 
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
@@ -12,7 +16,7 @@ class Buffer(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         field: str,
         child_structs: dict[str, list[str]] | None,
         array_lens: dict[str, int] | None

@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 #from .shapes.regular_polygon_shape import RegularPolygonShape
 #from .shape_mobject import ShapeMobject
 
@@ -25,7 +30,7 @@ class RegularPolygon(Polygon):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         n: int
     ) -> None:
         # By default, one of positions is at (1, 0).

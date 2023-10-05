@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+
 import os
 import pathlib
 import re
 from dataclasses import dataclass
-from typing import Iterable
+from typing import (
+    Iterable,
+    Self
+)
 
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
@@ -28,12 +34,14 @@ class MathJaxIO(LatexStringMobjectIO):
 
     @classmethod
     @property
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         return "mathjax"
 
     @classmethod
     def _create_svg(
-        cls,
+        cls: type[Self],
         content: str,
         input_data: MathJaxInputData,
         svg_path: pathlib.Path
@@ -57,7 +65,9 @@ class MathJaxIO(LatexStringMobjectIO):
 
     @classmethod
     @property
-    def _scale_factor_per_font_point(cls) -> float:
+    def _scale_factor_per_font_point(
+        cls: type[Self]
+    ) -> float:
         return 0.009758
 
 
@@ -65,7 +75,7 @@ class MathJax(LatexStringMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         string: str,
         *,
         extensions: Iterable[str] | None = None,
@@ -87,10 +97,14 @@ class MathJax(LatexStringMobject):
 
     @classmethod
     @property
-    def _io_cls(cls) -> type[MathJaxIO]:
+    def _io_cls(
+        cls: type[Self]
+    ) -> type[MathJaxIO]:
         return MathJaxIO
 
     @classmethod
     @property
-    def _input_data_cls(cls) -> type[MathJaxInputData]:
+    def _input_data_cls(
+        cls: type[Self]
+    ) -> type[MathJaxInputData]:
         return MathJaxInputData

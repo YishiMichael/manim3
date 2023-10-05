@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...constants.constants import ORIGIN
@@ -13,7 +18,7 @@ class Point(Model):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         position: NP_3f8 | None = None
     ) -> None:
         super().__init__()

@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ...animatables.animatable.piecewisers import Piecewisers
 from ...mobjects.mobject import Mobject
 from ..animation.animation import Animation
@@ -10,7 +15,7 @@ class Create(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         mobject: Mobject,
         *,
         n_segments: int = 1,
@@ -23,6 +28,8 @@ class Create(Animation):
         )).build()
         self._mobject: Mobject = mobject
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         self.scene.add(self._mobject)
         await self.play(self._animation)

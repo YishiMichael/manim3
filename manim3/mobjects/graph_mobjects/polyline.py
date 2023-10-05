@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...animatables.geometries.graph import Graph
@@ -9,7 +14,7 @@ class Polyline(GraphMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         positions: NP_x3f8
     ) -> None:
         #assert len(positions)

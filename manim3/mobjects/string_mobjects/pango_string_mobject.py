@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import pathlib
 import re
 from dataclasses import dataclass
@@ -5,7 +8,8 @@ from enum import Enum
 from typing import (
     ClassVar,
     Iterable,
-    Iterator
+    Iterator,
+    Self
 )
 
 try:
@@ -85,7 +89,7 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_global_attrs(
-        cls,
+        cls: type[Self],
         input_data: PangoStringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[str, str]:
@@ -99,7 +103,7 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_local_attrs(
-        cls,
+        cls: type[Self],
         input_data: PangoStringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[Span, dict[str, str]]:
@@ -115,7 +119,7 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _create_svg(
-        cls,
+        cls: type[Self],
         content: str,
         input_data: PangoStringMobjectInputData,
         svg_path: pathlib.Path
@@ -160,14 +164,14 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_svg_frame_scale(
-        cls,
+        cls: type[Self],
         input_data: PangoStringMobjectInputData
     ) -> float:
         return 0.01147
 
     @classmethod
     def _iter_command_matches(
-        cls,
+        cls: type[Self],
         string: str
     ) -> Iterator[re.Match[str]]:
         pattern = re.compile(r"""[<>&"']""")
@@ -175,28 +179,28 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_command_flag(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> CommandFlag:
         return CommandFlag.OTHER
 
     @classmethod
     def _replace_for_content(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         return cls._markup_escape(match_obj.group())
 
     @classmethod
     def _replace_for_matching(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         return match_obj.group()
 
     @classmethod
     def _get_attrs_from_command_pair(
-        cls,
+        cls: type[Self],
         open_command: re.Match[str],
         close_command: re.Match[str]
     ) -> dict[str, str] | None:
@@ -217,7 +221,7 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_command_string(
-        cls,
+        cls: type[Self],
         label: int | None,
         edge_flag: EdgeFlag,
         attrs: dict[str, str]
@@ -247,14 +251,14 @@ class PangoStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _markup_escape(
-        cls,
+        cls: type[Self],
         substr: str
     ) -> str:
         return cls._MARKUP_ESCAPE_DICT.get(substr, substr)
 
     @classmethod
     def _markup_unescape(
-        cls,
+        cls: type[Self],
         substr: str
     ) -> str:
         return cls._MARKUP_UNESCAPE_DICT.get(substr, substr)
@@ -264,7 +268,7 @@ class PangoStringMobject(StringMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         string: str,
         *,
         isolate: Iterable[SelectorT] = (),

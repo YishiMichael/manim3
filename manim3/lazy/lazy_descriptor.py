@@ -1,13 +1,16 @@
+from __future__ import annotations
+
+
 import re
 import weakref
 from abc import ABC
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Generic,
     Hashable,
     Iterator,
-    TypeVar,
+    Never,
+    Self,
     overload
 )
 
@@ -17,54 +20,48 @@ if TYPE_CHECKING:
     from .lazy_object import LazyObject
 
 
-_T = TypeVar("_T")
-_KT = TypeVar("_KT", bound=Hashable)
-_VT = TypeVar("_VT")
-_DataT = TypeVar("_DataT")
-
-
-class Registered(Generic[_T]):
+class Registered[T]:
     __slots__ = (
         "__weakref__",
         "_value"
     )
 
     def __init__(
-        self,
-        value: _T
+        self: Self,
+        value: T
     ) -> None:
         super().__init__()
-        self._value: _T = value
+        self._value: T = value
 
 
-class Registration(weakref.WeakValueDictionary[_KT, Registered[_VT]]):
+class Registration[KT: Hashable, VT](weakref.WeakValueDictionary[KT, Registered[VT]]):
     __slots__ = ()
 
     def register(
-        self,
-        key: _KT,
-        value: _VT
-    ) -> Registered[_VT]:
+        self: Self,
+        key: KT,
+        value: VT
+    ) -> Registered[VT]:
         if (registered_value := self.get(key)) is None:
             registered_value = Registered(value)
             self[key] = registered_value
         return registered_value
 
 
-class Cache(weakref.WeakKeyDictionary[_KT, _VT]):
+class Cache[KT: Hashable, VT](weakref.WeakKeyDictionary[KT, VT]):
     __slots__ = ("_capacity",)
 
     def __init__(
-        self,
+        self: Self,
         capacity: int
     ) -> None:
         super().__init__()
         self._capacity: int = capacity
 
     def set(
-        self,
-        key: _KT,
-        value: _VT
+        self: Self,
+        key: KT,
+        value: VT
     ) -> None:
         assert key not in self
         if len(self) == self._capacity:
@@ -79,7 +76,7 @@ class PseudoTree:
     )
 
     def __init__(
-        self,
+        self: Self,
         leaf_tuple: tuple,
         branch_structure: tuple[tuple[int, ...], ...]
     ) -> None:
@@ -87,13 +84,17 @@ class PseudoTree:
         self._leaf_tuple: tuple = leaf_tuple
         self._branch_structure: tuple[tuple[int, ...], ...] = branch_structure
 
-    def key(self) -> Hashable:
+    def key(
+        self: Self
+    ) -> Hashable:
         return (
             tuple(id(leaf) for leaf in self._leaf_tuple),
             self._branch_structure
         )
 
-    def tree(self) -> tuple:
+    def tree(
+        self: Self
+    ) -> tuple:
 
         def iter_chunks(
             leaf_tuple: tuple,
@@ -111,7 +112,7 @@ class PseudoTree:
         return result
 
 
-class LazyDescriptor(ABC, Generic[_DataT, _T]):
+class LazyDescriptor[DataT, T](ABC):
     __slots__ = (
         "_method",
         "_name",
@@ -131,76 +132,76 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
     )
 
     def __init__(
-        self,
-        method: Callable[..., _DataT],
+        self: Self,
+        method: Callable[..., DataT],
         is_multiple: bool,
-        decomposer: Callable[[_DataT], tuple[_T, ...]],
-        composer: Callable[[tuple[_T, ...]], _DataT],
+        decomposer: Callable[[DataT], tuple[T, ...]],
+        composer: Callable[[tuple[T, ...]], DataT],
         is_variable: bool,
-        hasher: Callable[[_T], Hashable],
+        hasher: Callable[[T], Hashable],
         freeze: bool,
         cache_capacity: int
     ) -> None:
         assert re.fullmatch(r"_([^_]+_)+", method.__name__)
         assert hasher is id or freeze
         super().__init__()
-        self._method: Callable[..., _DataT] = method
+        self._method: Callable[..., DataT] = method
         self._name: str = method.__name__
         self._is_multiple: bool = is_multiple
-        self._decomposer: Callable[[_DataT], tuple[_T, ...]] = decomposer
-        self._composer: Callable[[tuple[_T, ...]], _DataT] = composer
+        self._decomposer: Callable[[DataT], tuple[T, ...]] = decomposer
+        self._composer: Callable[[tuple[T, ...]], DataT] = composer
         self._is_variable: bool = is_variable
-        self._hasher: Callable[[_T], Hashable] = hasher
+        self._hasher: Callable[[T], Hashable] = hasher
         self._freeze: bool = freeze
-        self._freezer: Callable[[_T], None] = type(self)._empty_freezer
-        self._cache: Cache[Registered[Hashable], tuple[Registered[_T], ...]] = Cache(capacity=cache_capacity)
+        self._freezer: Callable[[T], None] = type(self)._empty_freezer
+        self._cache: Cache[Registered[Hashable], tuple[Registered[T], ...]] = Cache(capacity=cache_capacity)
         self._parameter_key_registration: Registration[Hashable, Hashable] = Registration()
         # Shared when overridden.
-        self._element_registration: Registration[Hashable, _T] = Registration()
+        self._element_registration: Registration[Hashable, T] = Registration()
 
-        self._element_type: type[_T] | None = None
+        self._element_type: type[T] | None = None
         self._element_type_annotation: type = NotImplemented
         self._descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...] = NotImplemented
 
     @overload
     def __get__(
-        self,
+        self: Self,
         instance: None,
-        owner: "type[LazyObject] | None" = None
-    ) -> "LazyDescriptor": ...  # TODO: type Self
+        owner: type[LazyObject] | None = None
+    ) -> Self: ...
 
     @overload
     def __get__(
-        self,
-        instance: "LazyObject",
-        owner: "type[LazyObject] | None" = None
-    ) -> _DataT: ...
+        self: Self,
+        instance: LazyObject,
+        owner: type[LazyObject] | None = None
+    ) -> DataT: ...
 
     def __get__(
-        self,
-        instance: "LazyObject | None",
-        owner: "type[LazyObject] | None" = None
-    ) -> "LazyDescriptor | _DataT":
+        self: Self,
+        instance: LazyObject | None,
+        owner: type[LazyObject] | None = None
+    ) -> Self | DataT:
         if instance is None:
             return self
         return self._composer(self._get_elements(instance))
 
     def __set__(
-        self,
-        instance: "LazyObject",
-        data: _DataT
+        self: Self,
+        instance: LazyObject,
+        data: DataT
     ) -> None:
         return self._set_elements(instance, self._decomposer(data))
 
     def __delete__(
-        self,
-        instance: "LazyObject"
-    ) -> None:
+        self: Self,
+        instance: LazyObject
+    ) -> Never:
         raise TypeError("Cannot delete attributes of a lazy object")
 
     def _can_override(
-        self,
-        descriptor: "LazyDescriptor"
+        self: Self,
+        descriptor: LazyDescriptor
     ) -> bool:
         return (
             self._is_multiple is descriptor._is_multiple
@@ -215,33 +216,33 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         )
 
     def _get_slot(
-        self,
-        instance: "LazyObject"
-    ) -> LazySlot[_T]:
+        self: Self,
+        instance: LazyObject
+    ) -> LazySlot[T]:
         return instance._lazy_slots[self._name]
 
     def _set_slot(
-        self,
-        instance: "LazyObject",
-        slot: LazySlot[_T]
+        self: Self,
+        instance: LazyObject,
+        slot: LazySlot[T]
     ) -> None:
         instance._lazy_slots[self._name] = slot
 
     def _init(
-        self,
-        instance: "LazyObject"
+        self: Self,
+        instance: LazyObject
     ) -> None:
         slot = LazySlot()
         slot._is_writable = self._is_variable
         self._set_slot(instance, slot)
 
     def _get_elements(
-        self,
-        instance: "LazyObject"
-    ) -> tuple[_T, ...]:
+        self: Self,
+        instance: LazyObject
+    ) -> tuple[T, ...]:
 
         def get_leaf_items(
-            leaf: "LazyObject",
+            leaf: LazyObject,
             descriptor_name: str
         ) -> tuple[tuple, set[LazySlot]]:
             descriptor = type(leaf)._lazy_descriptors[descriptor_name]
@@ -252,7 +253,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
 
         def iter_descriptor_items(
             descriptor_chain: tuple[LazyDescriptor, ...],
-            instance: "LazyObject"
+            instance: LazyObject
         ) -> Iterator[tuple[tuple, tuple[int, ...] | None, set[LazySlot]]]:
             leaf_tuple: tuple = (instance,)
             for descriptor in descriptor_chain:
@@ -277,7 +278,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
 
         def get_parameter_items(
             descriptor_chain: tuple[LazyDescriptor, ...],
-            instance: "LazyObject"
+            instance: LazyObject
         ) -> tuple[PseudoTree, set[LazySlot]]:
             descriptor_items = tuple(iter_descriptor_items(descriptor_chain, instance))
             leaf_tuple, _, _ = descriptor_items[-1]
@@ -297,7 +298,7 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
 
         def get_pseudo_trees_and_linked_variable_slots(
             descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...],
-            instance: "LazyObject"
+            instance: LazyObject
         ) -> tuple[tuple[PseudoTree, ...], set[LazySlot]]:
             parameter_items = tuple(
                 get_parameter_items(descriptor_chain, instance)
@@ -335,9 +336,9 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         return tuple(registered_element._value for registered_element in registered_elements)
 
     def _set_elements(
-        self,
-        instance: "LazyObject",
-        elements: tuple[_T, ...]
+        self: Self,
+        instance: LazyObject,
+        elements: tuple[T, ...]
     ) -> None:
         slot = self._get_slot(instance)
         assert slot._is_writable, "Attempting to write to a readonly slot"
@@ -354,15 +355,15 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
         )
 
     def _register_parameter_key(
-        self,
+        self: Self,
         parameter_key: Hashable
     ) -> Registered[Hashable]:
         return self._parameter_key_registration.register(parameter_key, parameter_key)
 
     def _register_elements(
-        self,
-        elements: tuple[_T, ...]
-    ) -> tuple[Registered[_T], ...]:
+        self: Self,
+        elements: tuple[T, ...]
+    ) -> tuple[Registered[T], ...]:
         if self._freeze:
             freezer = self._freezer
             for element in elements:
@@ -376,6 +377,6 @@ class LazyDescriptor(ABC, Generic[_DataT, _T]):
 
     @staticmethod
     def _empty_freezer(
-        element: _T
+        element: T
     ) -> None:
         return

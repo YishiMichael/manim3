@@ -1,3 +1,7 @@
+from __future__ import annotations
+from typing import Self
+
+
 from pyglet.gl import Config as PygletWindowConfig
 from pyglet.window import Window as PygletWindow
 
@@ -10,7 +14,7 @@ class WindowHandlers:
     __slots__ = ("__weakref__",)
 
     def on_key_press(
-        self,
+        self: Self,
         symbol: int,
         modifiers: int
     ) -> None:
@@ -20,7 +24,7 @@ class WindowHandlers:
         ))
 
     def on_key_release(
-        self,
+        self: Self,
         symbol: int,
         modifiers: int
     ) -> None:
@@ -30,7 +34,7 @@ class WindowHandlers:
         ))
 
     def on_mouse_motion(
-        self,
+        self: Self,
         x: int,
         y: int,
         dx: int,
@@ -44,7 +48,7 @@ class WindowHandlers:
         ))
 
     def on_mouse_drag(
-        self,
+        self: Self,
         x: int,
         y: int,
         dx: int,
@@ -62,7 +66,7 @@ class WindowHandlers:
         ))
 
     def on_mouse_press(
-        self,
+        self: Self,
         x: int,
         y: int,
         buttons: int,
@@ -76,7 +80,7 @@ class WindowHandlers:
         ))
 
     def on_mouse_release(
-        self,
+        self: Self,
         x: int,
         y: int,
         buttons: int,
@@ -90,7 +94,7 @@ class WindowHandlers:
         ))
 
     def on_mouse_scroll(
-        self,
+        self: Self,
         x: int,
         y: int,
         scroll_x: float,
@@ -103,7 +107,9 @@ class WindowHandlers:
             scroll_y=scroll_y
         ))
 
-    def on_close(self) -> None:
+    def on_close(
+        self: Self
+    ) -> None:
         Toplevel.window.close()
 
 
@@ -115,7 +121,7 @@ class Window:
     )
 
     def __init__(
-        self,
+        self: Self,
         window_pixel_size: tuple[int, int],
         gl_version: tuple[int, int],
         preview: bool
@@ -155,21 +161,27 @@ class Window:
     #    self.close()
 
     @property
-    def pyglet_window(self) -> PygletWindow:
+    def pyglet_window(
+        self: Self
+    ) -> PygletWindow:
         assert (pyglet_window := self._pyglet_window) is not None
         return pyglet_window
 
     @property
-    def event_queue(self) -> list[Event]:
+    def event_queue(
+        self: Self
+    ) -> list[Event]:
         return self._event_queue
 
     @property
-    def recent_event(self) -> Event:
+    def recent_event(
+        self: Self
+    ) -> Event:
         assert (recent_event := self._recent_event) is not None
         return recent_event
 
     def capture_event(
-        self,
+        self: Self,
         targeting_event: Event
     ) -> bool:
         event_queue = self.event_queue
@@ -180,6 +192,8 @@ class Window:
                 return True
         return False
 
-    def close(self) -> None:
+    def close(
+        self: Self
+    ) -> None:
         if (pyglet_window := self._pyglet_window) is not None:
             pyglet_window.close()

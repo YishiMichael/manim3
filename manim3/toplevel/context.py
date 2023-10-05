@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+
 import operator
 from dataclasses import dataclass
 from functools import reduce
+from typing import Self
 
 import moderngl
 import OpenGL.GL as gl
@@ -31,7 +35,7 @@ class Context:
     )
 
     def __init__(
-        self,
+        self: Self,
         gl_version_code: int,
         preview: bool
     ) -> None:
@@ -45,7 +49,7 @@ class Context:
         self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
 
     def set_state(
-        self,
+        self: Self,
         context_state: ContextState
     ) -> None:
         self._mgl_context.enable_only(reduce(operator.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
@@ -63,7 +67,7 @@ class Context:
             )
 
     def blit(
-        self,
+        self: Self,
         src: moderngl.Framebuffer,
         dst: moderngl.Framebuffer
     ) -> None:
@@ -75,15 +79,19 @@ class Context:
         )
 
     @property
-    def version_code(self) -> int:
+    def version_code(
+        self: Self
+    ) -> int:
         return self._mgl_context.version_code
 
     @property
-    def screen_framebuffer(self) -> moderngl.Framebuffer:
+    def screen_framebuffer(
+        self: Self
+    ) -> moderngl.Framebuffer:
         return self._mgl_context.screen
 
     def texture(
-        self,
+        self: Self,
         *,
         size: tuple[int, int],
         components: int,
@@ -96,7 +104,7 @@ class Context:
         )
 
     def depth_texture(
-        self,
+        self: Self,
         *,
         size: tuple[int, int]
     ) -> moderngl.Texture:
@@ -105,7 +113,7 @@ class Context:
         )
 
     def framebuffer(
-        self,
+        self: Self,
         *,
         color_attachments: tuple[moderngl.Texture, ...],
         depth_attachment: moderngl.Texture | None
@@ -116,7 +124,7 @@ class Context:
         )
 
     def buffer(
-        self,
+        self: Self,
         data: bytes | None = None,
         reserve: int = 0
     ) -> moderngl.Buffer:
@@ -130,7 +138,7 @@ class Context:
         #return buffer
 
     def program(
-        self,
+        self: Self,
         *,
         vertex_shader: str,
         fragment_shader: str | None = None,
@@ -149,7 +157,7 @@ class Context:
         )
 
     def vertex_array(
-        self,
+        self: Self,
         *,
         program: moderngl.Program,
         attributes_buffer: moderngl.Buffer,
@@ -169,7 +177,7 @@ class Context:
         )
 
     def scope(
-        self,
+        self: Self,
         *,
         framebuffer: moderngl.Framebuffer | None = None,
         textures: tuple[tuple[moderngl.Texture, int], ...] = (),
@@ -181,5 +189,7 @@ class Context:
             uniform_buffers=uniform_buffers
         )
 
-    def release(self) -> None:
+    def release(
+        self: Self
+    ) -> None:
         self._mgl_context.release()

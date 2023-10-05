@@ -1,4 +1,10 @@
-from typing import ClassVar
+from __future__ import annotations
+
+
+from typing import (
+    ClassVar,
+    Self
+)
 
 import numpy as np
 
@@ -48,7 +54,7 @@ class AtomicBufferFormat(BufferFormat):
     }
 
     def __init__(
-        self,
+        self: Self,
         *,
         name: str,
         shape: tuple[int, ...],

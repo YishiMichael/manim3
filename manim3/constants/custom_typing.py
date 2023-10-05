@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __all__ = (
     "NPE_f8",
     "NP_f8",

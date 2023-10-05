@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ..lazy.lazy import Lazy
 from ..lazy.lazy_object import LazyObject
 from .buffers.attributes_buffer import AttributesBuffer
 from .buffers.index_buffer import IndexBuffer
-from .buffers.omitted_index_buffer import OmittedIndexBuffer
 from .mgl_enums import PrimitiveMode
 
 
@@ -10,7 +14,7 @@ class IndexedAttributesBuffer(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         attributes_buffer: AttributesBuffer,
         index_buffer: IndexBuffer | None = None,
@@ -34,7 +38,7 @@ class IndexedAttributesBuffer(LazyObject):
     @Lazy.variable()
     @staticmethod
     def _index_buffer_() -> IndexBuffer:
-        return OmittedIndexBuffer()
+        return IndexBuffer()
 
     @Lazy.variable(hasher=Lazy.naive_hasher)
     @staticmethod

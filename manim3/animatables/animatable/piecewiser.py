@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+
 from abc import (
     ABC,
     abstractmethod
 )
 from dataclasses import dataclass
+from typing import Self
 
 from ...constants.custom_typing import (
     NP_xf8,
@@ -25,7 +29,7 @@ class Piecewiser(ABC):
 
     @abstractmethod
     def piecewise(
-        self,
+        self: Self,
         alpha: float
     ) -> PiecewiseData:
         pass

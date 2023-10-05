@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ..animation.animation import Animation
 from ..animation.rate import Rate
 
@@ -10,7 +15,7 @@ class Lagged(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         animation: Animation,
         *,
         rate: Rate | None = None,
@@ -23,6 +28,8 @@ class Lagged(Animation):
         self._rate: Rate | None = rate
         self._lag_time: float = lag_time
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         await self.wait(self._lag_time)
         await self.play(self._animation, rate=self._rate)

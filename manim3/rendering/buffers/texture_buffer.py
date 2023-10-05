@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+
 import re
+from typing import Self
 
 import moderngl
 import numpy as np
@@ -11,7 +15,7 @@ class TextureBuffer(Buffer):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         field: str,
         array_lens: dict[str, int] | None = None,

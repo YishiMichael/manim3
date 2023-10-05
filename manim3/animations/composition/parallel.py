@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ..animation.animation import Animation
 from ..animation.conditions import Conditions
 from ..animation.rate import Rate
@@ -11,7 +16,7 @@ class Parallel(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         *animations: Animation,
         rate: Rate | None = None,
         lag_time: float = 0.0,
@@ -31,7 +36,9 @@ class Parallel(Animation):
         self._animation_items: list[tuple[Animation, float]] = animation_items
         self._rate: Rate | None = rate
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         animation_items = self._animation_items
         rate = self._rate
         for animation, animation_lag_time in animation_items:

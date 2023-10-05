@@ -1,9 +1,12 @@
+from __future__ import annotations
+
+
 #import functools
 import itertools
 from typing import (
     Iterable,
     Iterator,
-    TypeVar
+    Self
 )
 
 import mapbox_earcut
@@ -31,14 +34,11 @@ from .graph import Graph
 #)
 
 
-_ShapeT = TypeVar("_ShapeT", bound="Shape")
-
-
 class Shape(LeafAnimatable):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         # Should satisfy `all(counts > 0)` and `len(positions) == sum(counts)`.
         positions: NP_x2f8 | None = None,
         counts: NP_xi4 | None = None
@@ -50,27 +50,27 @@ class Shape(LeafAnimatable):
             self._counts_ = counts
 
     def __and__(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return self.intersection(other)
 
     def __or__(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return self.union(other)
 
     def __sub__(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return self.difference(other)
 
     def __xor__(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return self.xor(other)
 
     @Lazy.variable(hasher=Lazy.array_hasher)
@@ -289,10 +289,10 @@ class Shape(LeafAnimatable):
 
     @classmethod
     def _interpolate(
-        cls: type[_ShapeT],
-        src_0: _ShapeT,
-        src_1: _ShapeT
-    ) -> "ShapeInterpolateInfo[_ShapeT]":
+        cls: type[Self],
+        src_0: Self,
+        src_1: Self
+    ) -> ShapeInterpolateInfo:
         return ShapeInterpolateInfo(src_0, src_1)
 
     #def _interpolate(
@@ -313,24 +313,24 @@ class Shape(LeafAnimatable):
 
     @classmethod
     def _split(
-        cls: type[_ShapeT],
-        #dst_tuple: tuple[_ShapeT, ...],
-        src: _ShapeT,
+        cls: type[Self],
+        #dst_tuple: tuple[Self, ...],
+        src: Self,
         alphas: NP_xf8
-    ) -> tuple[_ShapeT, ...]:
+    ) -> tuple[Self, ...]:
         return tuple(cls.from_graph(graph) for graph in Graph._split(src._graph_, alphas))
 
     @classmethod
     def _concatenate(
-        cls: type[_ShapeT],
-        #dst: _ShapeT,
-        src_tuple: tuple[_ShapeT, ...]
-    ) -> _ShapeT:
+        cls: type[Self],
+        #dst: Self,
+        src_tuple: tuple[Self, ...]
+    ) -> Self:
         return cls.from_graph(Graph._concatenate(tuple(src._graph_ for src in src_tuple)))
 
     @classmethod
     def _get_position_indices_and_counts_from_edges(
-        cls,
+        cls: type[Self],
         edges: NP_x2i4
     ) -> tuple[NP_xi4, NP_xi4]:
         if not len(edges):
@@ -364,9 +364,9 @@ class Shape(LeafAnimatable):
 
     @classmethod
     def from_graph(
-        cls,
+        cls: type[Self],
         graph: Graph
-    ):
+    ) -> Self:
         position_indices, counts = cls._get_position_indices_and_counts_from_edges(graph._edges_)
         return cls(
             positions=SpaceUtils.decrease_dimension(graph._positions_)[position_indices],
@@ -375,9 +375,9 @@ class Shape(LeafAnimatable):
 
     @classmethod
     def from_paths(
-        cls,
+        cls: type[Self],
         paths: Iterable[NP_x2f8]
-    ):
+    ) -> Self:
         #path_list = [
         #    (positions, ring)
         #    for positions, ring in paths
@@ -414,13 +414,13 @@ class Shape(LeafAnimatable):
 
     @classmethod
     def from_clipping(
-        cls,
-        *shape_path_type_pairs: "tuple[Shape, pyclipr.PathType]",
+        cls: type[Self],
+        *shape_path_type_pairs: tuple[Self, pyclipr.PathType],
         # http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/ClipType.htm
         clip_type: pyclipr.ClipType,
         # http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm
         fill_type: pyclipr.FillType
-    ):
+    ) -> Self:
         clipper = pyclipr.Clipper()
         for shape, path_type in shape_path_type_pairs:
             clipper.addPaths([
@@ -512,9 +512,9 @@ class Shape(LeafAnimatable):
     #    ))
 
     def intersection(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return type(self).from_clipping(
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
@@ -523,9 +523,9 @@ class Shape(LeafAnimatable):
         )
 
     def union(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return type(self).from_clipping(
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
@@ -534,9 +534,9 @@ class Shape(LeafAnimatable):
         )
 
     def difference(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return type(self).from_clipping(
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
@@ -545,9 +545,9 @@ class Shape(LeafAnimatable):
         )
 
     def xor(
-        self: _ShapeT,
-        other: _ShapeT
-    ):
+        self: Self,
+        other: Self
+    ) -> Self:
         return type(self).from_clipping(
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
@@ -577,7 +577,7 @@ class Shape(LeafAnimatable):
     #    )
 
 
-class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[_ShapeT]):
+class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[Shape]):
     __slots__ = (
         "_positions_0",
         "_positions_1",
@@ -585,9 +585,9 @@ class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[_ShapeT]):
     )
 
     def __init__(
-        self,
-        src_0: _ShapeT,
-        src_1: _ShapeT
+        self: Self,
+        src_0: Shape,
+        src_1: Shape
     ) -> None:
         super().__init__(src_0, src_1)
         positions_0, positions_1, edges = Graph._general_interpolate(
@@ -602,8 +602,8 @@ class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[_ShapeT]):
         self._counts: NP_xi4 = counts
 
     def interpolate(
-        self,
-        shape: _ShapeT,
+        self: Self,
+        shape: Shape,
         alpha: float
     ) -> None:
         shape._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)

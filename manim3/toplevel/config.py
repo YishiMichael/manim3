@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+
 from dataclasses import (
     dataclass,
     field
 )
+from typing import Self
 
 from colour import Color
 
@@ -69,38 +73,56 @@ class Config:
     code_language_suffix: str = ".py"
 
     @property
-    def gl_version_code(self) -> int:
+    def gl_version_code(
+        self: Self
+    ) -> int:
         major_version, minor_version = self.gl_version
         return major_version * 100 + minor_version * 10
 
     @property
-    def frame_width(self) -> float:
+    def frame_width(
+        self: Self
+    ) -> float:
         return self.aspect_ratio * self.frame_height
 
     @property
-    def frame_size(self) -> tuple[float, float]:
+    def frame_size(
+        self: Self
+    ) -> tuple[float, float]:
         return (self.frame_width, self.frame_height)
 
     @property
-    def frame_radii(self) -> tuple[float, float]:
+    def frame_radii(
+        self: Self
+    ) -> tuple[float, float]:
         return (self.frame_width / 2.0, self.frame_height / 2.0)
 
     @property
-    def pixel_width(self) -> float:
+    def pixel_width(
+        self: Self
+    ) -> float:
         return self.aspect_ratio * self.pixel_height
 
     @property
-    def pixel_size(self) -> tuple[int, int]:
+    def pixel_size(
+        self: Self
+    ) -> tuple[int, int]:
         return (int(self.pixel_width), int(self.pixel_height))
 
     @property
-    def pixel_per_unit(self) -> float:
+    def pixel_per_unit(
+        self: Self
+    ) -> float:
         return self.pixel_height / self.frame_height
 
     @property
-    def window_pixel_width(self) -> float:
+    def window_pixel_width(
+        self: Self
+    ) -> float:
         return self.aspect_ratio * self.window_pixel_height
 
     @property
-    def window_pixel_size(self) -> tuple[int, int]:
+    def window_pixel_size(
+        self: Self
+    ) -> tuple[int, int]:
         return (int(self.window_pixel_width), int(self.window_pixel_height))

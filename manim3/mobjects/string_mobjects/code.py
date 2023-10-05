@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+
 import json
 import os
 import pathlib
 from dataclasses import dataclass
-from typing import TypedDict
+from typing import (
+    Self,
+    TypedDict
+)
 
 from ...toplevel.toplevel import Toplevel
 from .pango_string_mobject import (
@@ -44,12 +50,14 @@ class CodeIO(PangoStringMobjectIO):
 
     @classmethod
     @property
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         return "code"
 
     @classmethod
     def _get_local_attrs(
-        cls,
+        cls: type[Self],
         input_data: CodeInputData,
         temp_path: pathlib.Path
     ) -> dict[Span, dict[str, str]]:
@@ -109,7 +117,7 @@ class Code(PangoStringMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         string: str,
         *,
         font: str | None = None,
@@ -131,10 +139,14 @@ class Code(PangoStringMobject):
 
     @classmethod
     @property
-    def _io_cls(cls) -> type[CodeIO]:
+    def _io_cls(
+        cls: type[Self]
+    ) -> type[CodeIO]:
         return CodeIO
 
     @classmethod
     @property
-    def _input_data_cls(cls) -> type[CodeInputData]:
+    def _input_data_cls(
+        cls: type[Self]
+    ) -> type[CodeInputData]:
         return CodeInputData

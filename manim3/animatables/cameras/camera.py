@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 from scipy.spatial.transform import Rotation
 
@@ -28,7 +33,9 @@ from ..models.model import Model
 class Camera(Model):
     __slots__ = ()
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__()
         # Positions bound to `model_matrix`:
         # `target`: ORIGIN

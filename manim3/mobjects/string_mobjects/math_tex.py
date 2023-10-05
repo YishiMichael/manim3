@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+
 import pathlib
 from dataclasses import dataclass
+from typing import Self
 
 from ...toplevel.toplevel import Toplevel
 from .tex import (
@@ -23,12 +27,14 @@ class MathTexIO(TexIO):
 
     @classmethod
     @property
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         return "math_tex"
 
     @classmethod
     def _create_svg(
-        cls,
+        cls: type[Self],
         content: str,
         input_data: MathTexInputData,
         svg_path: pathlib.Path
@@ -44,7 +50,7 @@ class MathTex(Tex):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         string: str,
         *,
         inline: bool | None = None,
@@ -62,10 +68,14 @@ class MathTex(Tex):
 
     @classmethod
     @property
-    def _io_cls(cls) -> type[MathTexIO]:
+    def _io_cls(
+        cls: type[Self]
+    ) -> type[MathTexIO]:
         return MathTexIO
 
     @classmethod
     @property
-    def _input_data_cls(cls) -> type[MathTexInputData]:
+    def _input_data_cls(
+        cls: type[Self]
+    ) -> type[MathTexInputData]:
         return MathTexInputData

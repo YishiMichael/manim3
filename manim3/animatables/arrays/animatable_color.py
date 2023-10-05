@@ -1,4 +1,7 @@
-from typing import TypeVar
+from __future__ import annotations
+
+
+from typing import Self
 
 import numpy as np
 
@@ -11,9 +14,6 @@ from ...utils.color_utils import ColorUtils
 from .animatable_array import AnimatableArray
 
 
-_AnimatableColorT = TypeVar("_AnimatableColorT", bound="AnimatableColor")
-
-
 class AnimatableColor(AnimatableArray[NP_3f8]):
     __slots__ = ()
 
@@ -24,7 +24,7 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
 
     @classmethod
     def _convert_input(
-        cls: type[_AnimatableColorT],
+        cls: type[Self],
         color_input: ColorT
-    ) -> _AnimatableColorT:
+    ) -> Self:
         return super()._convert_input(ColorUtils.standardize_color(color_input))

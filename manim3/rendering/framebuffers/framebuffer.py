@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import moderngl
 
 from ...lazy.lazy import Lazy
@@ -10,7 +15,7 @@ class Framebuffer(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         color_attachments: tuple[moderngl.Texture, ...] = (),
         depth_attachment: moderngl.Texture | None = None

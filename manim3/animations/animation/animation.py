@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import asyncio
 import weakref
 from abc import (
@@ -7,7 +10,8 @@ from abc import (
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
-    Coroutine
+    Coroutine,
+    Self
 )
 
 from ...toplevel.toplevel import Toplevel
@@ -28,7 +32,9 @@ if TYPE_CHECKING:
 class BaseAbsoluteRate:
     __slots__ = ()
 
-    def at(self) -> float:
+    def at(
+        self: Self
+    ) -> float:
         return Toplevel.scene._timestamp
 
 
@@ -42,7 +48,7 @@ class AbsoluteRate(BaseAbsoluteRate):
     )
 
     def __init__(
-        self,
+        self: Self,
         parent_absolute_rate: BaseAbsoluteRate,
         rate: Rate,
         run_time_scale: float,
@@ -55,7 +61,9 @@ class AbsoluteRate(BaseAbsoluteRate):
         self._run_alpha_scale: float = run_alpha_scale
         self._initial_alpha: float = parent_absolute_rate.at()
 
-    def at(self) -> float:
+    def at(
+        self: Self
+    ) -> float:
         return self._rate.at((self._parent_absolute_rate.at() - self._initial_alpha) / self._run_time_scale) * self._run_alpha_scale
 
 
@@ -124,7 +132,7 @@ class OnAnimating(AnimatingState):
     absolute_rate: AbsoluteRate
     terminate_condition: Condition
     progress_condition: Condition
-    children: "list[Animation]"
+    children: list[Animation]
 
 
 @dataclass(
@@ -133,6 +141,73 @@ class OnAnimating(AnimatingState):
 )
 class AfterAnimating(AnimatingState):
     pass
+
+
+class AnimationLaunchedCondition(Condition):
+    __slots__ = ("_animation_ref",)
+
+    def __init__(
+        self: Self,
+        animation: Animation
+    ) -> None:
+        super().__init__()
+        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
+
+    def judge(
+        self: Self
+    ) -> bool:
+        animation = self._animation_ref()
+        return (
+            animation is None
+            or animation.get_on_animating_state() is not None
+            or animation.get_after_animating_state() is not None
+        )
+
+
+class AnimationTerminatedCondition(Condition):
+    __slots__ = ("_animation_ref",)
+
+    def __init__(
+        self: Self,
+        animation: Animation
+    ) -> None:
+        super().__init__()
+        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
+
+    def judge(
+        self: Self
+    ) -> bool:
+        animation = self._animation_ref()
+        return (
+            animation is None
+            or animation.get_after_animating_state() is not None
+        )
+
+
+class AnimationProgressedDurationCondition(Condition):
+    __slots__ = (
+        "_animation_ref",
+        "_target_alpha"
+    )
+
+    def __init__(
+        self: Self,
+        animation: Animation,
+        delta_alpha: float
+    ) -> None:
+        assert (animating_state := animation.get_on_animating_state()) is not None
+        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
+        self._target_alpha: float = animating_state.absolute_rate.at() + delta_alpha
+
+    def judge(
+        self: Self
+    ) -> bool:
+        animation = self._animation_ref()
+        return (
+            animation is None
+            or (animating_state := animation.get_on_animating_state()) is None
+            or animating_state.absolute_rate.at() >= self._target_alpha
+        )
 
 
 class Animation(ABC):
@@ -153,7 +228,7 @@ class Animation(ABC):
     )
 
     def __init__(
-        self,
+        self: Self,
         # The accumulated alpha value of `timeline`.
         # Left as `inf` if infinite or indefinite.
         # This parameter is required mostly for the program to know
@@ -180,7 +255,7 @@ class Animation(ABC):
         #self._timeline_coroutine: Coroutine[None, None, None] | None = None
 
     def _schedule(
-        self,
+        self: Self,
         schedule_info: ScheduleInfo
         #parent_absolute_rate: Rate,
         #relative_rate: Rate,
@@ -206,7 +281,9 @@ class Animation(ABC):
         #self._launch_condition = launch_condition
         #self._terminate_condition = terminate_condition
 
-    def _root_schedule(self) -> None:
+    def _root_schedule(
+        self: Self
+    ) -> None:
         self._schedule(ScheduleInfo(
             parent_absolute_rate=BaseAbsoluteRate(),
             rate=Rates.linear(),
@@ -216,7 +293,9 @@ class Animation(ABC):
             terminate_condition=Conditions.never()
         ))
 
-    def _progress(self) -> None:
+    def _progress(
+        self: Self
+    ) -> None:
         #assert (schedule_info := self._schedule_info) is not None
         #assert (animating_state := self._animating_state) is not None
         #animating_state = self._animating_state
@@ -310,31 +389,41 @@ class Animation(ABC):
         #self._terminate()
 
     def _animate_instant(
-        self,
+        self: Self,
         alpha: float
     ) -> None:
         pass
 
     @abstractmethod
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         pass
 
-    def get_before_animating_state(self) -> BeforeAnimating | None:
+    def get_before_animating_state(
+        self: Self
+    ) -> BeforeAnimating | None:
         if isinstance(animating_state := self._animating_state, BeforeAnimating):
             return animating_state
         return None
 
-    def get_on_animating_state(self) -> OnAnimating | None:
+    def get_on_animating_state(
+        self: Self
+    ) -> OnAnimating | None:
         if isinstance(animating_state := self._animating_state, OnAnimating):
             return animating_state
         return None
 
-    def get_after_animating_state(self) -> AfterAnimating | None:
+    def get_after_animating_state(
+        self: Self
+    ) -> AfterAnimating | None:
         if isinstance(animating_state := self._animating_state, AfterAnimating):
             return animating_state
         return None
 
-    def launch(self) -> None:
+    def launch(
+        self: Self
+    ) -> None:
         assert self.get_before_animating_state() is not None
         assert (schedule_info := self._schedule_info) is not None
         self._animating_state = OnAnimating(
@@ -351,14 +440,16 @@ class Animation(ABC):
             children=[]
         )
 
-    def terminate(self) -> None:
+    def terminate(
+        self: Self
+    ) -> None:
         assert self.get_on_animating_state() is not None
         assert self._schedule_info is not None
         self._animating_state = AfterAnimating()
 
     def prepare(
-        self,
-        animation: "Animation",
+        self: Self,
+        animation: Animation,
         *,
         # `[0.0, +infty) -> [0.0, +infty), time |-> alpha`
         # Must be an increasing function.
@@ -401,7 +492,7 @@ class Animation(ABC):
         animating_state.children.append(animation)
 
     async def wait_until(
-        self,
+        self: Self,
         progress_condition: Condition
     ) -> None:
         #assert self._animation_state == AnimationState.ON_ANIMATION
@@ -413,12 +504,14 @@ class Animation(ABC):
     # shortcuts
 
     @property
-    def scene(self) -> "Scene":
+    def scene(
+        self: Self
+    ) -> Scene:
         return Toplevel.scene
 
     async def play(
-        self,
-        animation: "Animation",
+        self: Self,
+        animation: Animation,
         rate: Rate | None = None,
         run_time: float | None = None,
         launch_condition: Condition = Conditions.always(),
@@ -434,85 +527,28 @@ class Animation(ABC):
         await self.wait_until(animation.terminated())
 
     async def wait(
-        self,
+        self: Self,
         delta_alpha: float = 1.0
     ) -> None:
         await self.wait_until(self.progressed_duration(delta_alpha))
 
     # conditions
 
-    def launched(self) -> "AnimationLaunchedCondition":
+    def launched(
+        self: Self
+    ) -> AnimationLaunchedCondition:
         return AnimationLaunchedCondition(self)
 
-    def terminated(self) -> "AnimationTerminatedCondition":
+    def terminated(
+        self: Self
+    ) -> AnimationTerminatedCondition:
         return AnimationTerminatedCondition(self)
 
     def progressed_duration(
-        self,
+        self: Self,
         delta_alpha: float
-    ) -> "AnimationProgressedDurationCondition":
+    ) -> AnimationProgressedDurationCondition:
         return AnimationProgressedDurationCondition(self, delta_alpha)
 
     #async def wait_forever(self) -> None:
     #    await self.wait_until(Never())
-
-
-class AnimationLaunchedCondition(Condition):
-    __slots__ = ("_animation_ref",)
-
-    def __init__(
-        self,
-        animation: Animation
-    ) -> None:
-        super().__init__()
-        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-
-    def judge(self) -> bool:
-        animation = self._animation_ref()
-        return (
-            animation is None
-            or animation.get_on_animating_state() is not None
-            or animation.get_after_animating_state() is not None
-        )
-
-
-class AnimationTerminatedCondition(Condition):
-    __slots__ = ("_animation_ref",)
-
-    def __init__(
-        self,
-        animation: Animation
-    ) -> None:
-        super().__init__()
-        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-
-    def judge(self) -> bool:
-        animation = self._animation_ref()
-        return (
-            animation is None
-            or animation.get_after_animating_state() is not None
-        )
-
-
-class AnimationProgressedDurationCondition(Condition):
-    __slots__ = (
-        "_animation_ref",
-        "_target_alpha"
-    )
-
-    def __init__(
-        self,
-        animation: Animation,
-        delta_alpha: float
-    ) -> None:
-        assert (animating_state := animation.get_on_animating_state()) is not None
-        self._animation_ref: weakref.ref[Animation] = weakref.ref(animation)
-        self._target_alpha: float = animating_state.absolute_rate.at() + delta_alpha
-
-    def judge(self) -> bool:
-        animation = self._animation_ref()
-        return (
-            animation is None
-            or (animating_state := animation.get_on_animating_state()) is None
-            or animating_state.absolute_rate.at() >= self._target_alpha
-        )

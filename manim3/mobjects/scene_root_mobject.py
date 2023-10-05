@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import moderngl
 import numpy as np
 
@@ -19,7 +24,7 @@ class SceneRootMobject(Mobject):
     __slots__ = ("_background_color",)
 
     def __init__(
-        self,
+        self: Self,
         background_color: NP_3f8
     ) -> None:
         super().__init__()
@@ -76,7 +81,7 @@ class SceneRootMobject(Mobject):
         )
 
     def _render_scene(
-        self,
+        self: Self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
         target_framebuffer._framebuffer_.clear(

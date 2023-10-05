@@ -8,7 +8,7 @@ Note: This project is still in its primary stage and not stable.
 
 
 ## Installation
-Manim3 runs on Python 3.10+ and OpenGL 4.3+.
+Manim3 runs on Python 3.12+ and OpenGL 4.3+.
 
 You may install manim3 directly via
 ```sh

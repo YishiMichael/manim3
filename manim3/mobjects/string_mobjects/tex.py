@@ -1,8 +1,14 @@
+from __future__ import annotations
+
+
 import os
 import pathlib
 import re
 from dataclasses import dataclass
-from typing import Iterable
+from typing import (
+    Iterable,
+    Self
+)
 
 from ...constants.custom_typing import AlignmentT
 from ...toplevel.toplevel import Toplevel
@@ -29,12 +35,14 @@ class TexIO(LatexStringMobjectIO):
 
     @classmethod
     @property
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         return "tex"
 
     @classmethod
     def _create_svg(
-        cls,
+        cls: type[Self],
         content: str,
         input_data: TexInputData,
         svg_path: pathlib.Path
@@ -96,7 +104,9 @@ class TexIO(LatexStringMobjectIO):
 
     @classmethod
     @property
-    def _scale_factor_per_font_point(cls) -> float:
+    def _scale_factor_per_font_point(
+        cls: type[Self]
+    ) -> float:
         return 0.001577
 
 
@@ -104,7 +114,7 @@ class Tex(LatexStringMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         string: str,
         *,
         alignment: AlignmentT | None = None,
@@ -130,10 +140,14 @@ class Tex(LatexStringMobject):
 
     @classmethod
     @property
-    def _io_cls(cls) -> type[TexIO]:
+    def _io_cls(
+        cls: type[Self]
+    ) -> type[TexIO]:
         return TexIO
 
     @classmethod
     @property
-    def _input_data_cls(cls) -> type[TexInputData]:
+    def _input_data_cls(
+        cls: type[Self]
+    ) -> type[TexInputData]:
         return TexInputData

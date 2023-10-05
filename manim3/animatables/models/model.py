@@ -1,5 +1,8 @@
+from __future__ import annotations
+
+
 from abc import abstractmethod
-from typing import TypeVar
+from typing import Self
 #from typing import TYPE_CHECKING
 
 import numpy as np
@@ -32,14 +35,11 @@ from ..animatable.piecewiser import Piecewiser
 #    from ...models.model.model import model
 
 
-_ModelT = TypeVar("_ModelT", bound="Model")
-
-
 class Box(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         maximum: NP_3f8,
         minimum: NP_3f8
     ) -> None:
@@ -73,15 +73,17 @@ class Box(LazyObject):
     ) -> NP_3f8:
         return (maximum - minimum) / 2.0
 
-    def get_position(
-        self,
-        direction: NP_3f8,
+    def get(
+        self: Self,
+        direction: NP_3f8 = ORIGIN,
         buff: NP_3f8 = ORIGIN
     ) -> NP_3f8:
         return self._centroid_ + self._radii_ * direction + buff * direction
 
-    def get_centroid(self) -> NP_3f8:
-        return self._centroid_
+    #def get_centroid(
+    #    self: Self
+    #) -> NP_3f8:
+    #    return self._centroid_
 
     #@property
     #def center(self) -> NP_3f8:
@@ -105,7 +107,7 @@ class Model(Animatable):
 
     @Lazy.variable_collection()
     @staticmethod
-    def _associated_models_() -> "tuple[Model, ...]":
+    def _associated_models_() -> tuple[Model, ...]:
         return ()
 
     @Lazy.property()
@@ -195,15 +197,15 @@ class Model(Animatable):
     #    direction: NP_3f8,
     #    buff: NP_3f8 = ORIGIN
     #) -> NP_3f8:
-    #    return self._box_.get_position(direction, buff)
+    #    return self._box_.get(direction, buff)
 
     #def get_centroid(self) -> NP_3f8:
     #    return self._box_._centroid_
 
     def _get_interpolate_updater(
-        self: _ModelT,
-        src_0: _ModelT,
-        src_1: _ModelT
+        self: Self,
+        src_0: Self,
+        src_1: Self
     ) -> Updater:
         return super()._get_interpolate_updater(src_0, src_1).add(*(
             super(Model, dst_associated)._get_interpolate_updater(src_0_assiciated, src_1_assiciated)
@@ -213,8 +215,8 @@ class Model(Animatable):
         ))
 
     def _get_piecewise_updater(
-        self: _ModelT,
-        src: _ModelT,
+        self: Self,
+        src: Self,
         piecewiser: Piecewiser
     ) -> Updater:
         return super()._get_piecewise_updater(src, piecewiser).add(*(
@@ -224,7 +226,9 @@ class Model(Animatable):
             )
         ))
 
-    def copy(self):
+    def copy(
+        self: Self
+    ) -> Self:
         result = super().copy()
         associated_models = self._associated_models_
         associated_models_copy = tuple(
@@ -240,7 +244,9 @@ class Model(Animatable):
         return result
 
     @property
-    def box(self) -> Box:
+    def box(
+        self: Self
+    ) -> Box:
         return self._box_
 
     #@classmethod
@@ -280,10 +286,10 @@ class Model(Animatable):
     # animations
 
     def shift(
-        self,
+        self: Self,
         vector: NP_3f8,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self._stack_updater(ModelShiftUpdater(
             model=self,
             vector=vector,
@@ -292,13 +298,13 @@ class Model(Animatable):
         return self
 
     def shift_to(
-        self,
-        target: "Model",
+        self: Self,
+        target: Model,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0,
         direction_sign: float = 0.0
-    ):
+    ) -> Self:
         #signed_direction = direction_sign * direction
         self._stack_updater(ModelShiftToUpdater(
             model=self,
@@ -313,12 +319,12 @@ class Model(Animatable):
         return self
 
     def move_to(
-        self,
-        target: "Model",
+        self: Self,
+        target: Model,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self.shift_to(
             target=target,
             direction=direction,
@@ -329,12 +335,12 @@ class Model(Animatable):
         return self
 
     def next_to(
-        self,
-        target: "Model",
+        self: Self,
+        target: Model,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self.shift_to(
             target=target,
             direction=direction,
@@ -345,12 +351,12 @@ class Model(Animatable):
         return self
 
     def scale(
-        self,
+        self: Self,
         factor: float | NP_3f8,
-        about: "Model | None" = None,
+        about: Model | None = None,
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         if about is None:
             about = self
         self._stack_updater(ModelScaleUpdater(
@@ -363,10 +369,10 @@ class Model(Animatable):
         return self
 
     def scale_about_origin(
-        self,
+        self: Self,
         factor: float | NP_3f8,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self.scale(
             factor=factor,
             about=Model(),
@@ -375,12 +381,12 @@ class Model(Animatable):
         return self
 
     def scale_to(
-        self,
-        target: "Model",
-        about: "Model | None" = None,
+        self: Self,
+        target: Model,
+        about: Model | None = None,
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         if about is None:
             about = self
         self._stack_updater(ModelScaleToUpdater(
@@ -402,21 +408,21 @@ class Model(Animatable):
         return self
 
     def match_box(
-        self,
-        model: "Model",
+        self: Self,
+        model: Model,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self.scale_to(model, mask=mask).shift_to(model, mask=mask)
         #self.shift(-self.get_center()).scale_to(model.get_box_size()).shift(model.get_center())
         return self
 
     def rotate(
-        self,
+        self: Self,
         rotvec: NP_3f8,
-        about: "Model | None" = None,
+        about: Model | None = None,
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         if about is None:
             about = self
         self._stack_updater(ModelRotateUpdater(
@@ -429,10 +435,10 @@ class Model(Animatable):
         return self
 
     def rotate_about_origin(
-        self,
+        self: Self,
         rotvec: NP_3f8,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self.rotate(
             rotvec=rotvec,
             about=Model(),
@@ -441,12 +447,12 @@ class Model(Animatable):
         return self
 
     def flip(
-        self,
+        self: Self,
         axis: NP_3f8,
-        about: "Model | None" = None,
+        about: Model | None = None,
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
-    ):
+    ) -> Self:
         self.rotate(
             rotvec=SpaceUtils.normalize(axis) * PI,
             about=about,
@@ -456,11 +462,11 @@ class Model(Animatable):
         return self
 
     def apply(
-        self,
+        self: Self,
         matrix: NP_44f8,
-        about: "Model | None" = None,
+        about: Model | None = None,
         direction: NP_3f8 = ORIGIN
-    ):
+    ) -> Self:
         if about is None:
             about = self
         self._stack_updater(ModelApplyUpdater(
@@ -472,11 +478,11 @@ class Model(Animatable):
         return self
 
     def pose(
-        self,
-        target: "Model"
+        self: Self,
+        target: Model
         #about: "Model | None" = None,
         #direction: NP_3f8 = ORIGIN
-    ):
+    ) -> Self:
         #if about is None:
         #    about = self
         self._stack_updater(ModelPoseUpdater(
@@ -494,7 +500,7 @@ class ModelUpdater(Updater):
     __slots__ = ("_model_matrices",)
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         #factor: float | NP_3f8,
         about: Model,
@@ -531,7 +537,7 @@ class ModelUpdater(Updater):
         about__box: Box,
         direction: NP_3f8
     ) -> NP_3f8:
-        return about__box.get_position(direction)
+        return about__box.get(direction)
 
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
@@ -549,13 +555,13 @@ class ModelUpdater(Updater):
 
     @abstractmethod
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         pass
 
     def update(
-        self,
+        self: Self,
         alpha: float
     ) -> None:
         super().update(alpha)
@@ -564,13 +570,15 @@ class ModelUpdater(Updater):
             model_matrix._array_ = matrix @ model_matrix._array_
 
     def update_boundary(
-        self,
+        self: Self,
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)
         self.update(float(boundary))
 
-    def restore(self) -> None:
+    def restore(
+        self: Self
+    ) -> None:
         for model_matrix, initial_matrix in self._model_matrices.items():
             model_matrix._array_ = initial_matrix
         super().restore()  # TODO: order
@@ -724,7 +732,7 @@ class ModelShiftUpdater(ModelUpdater):
     __slots__ = ("_mask",)
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         vector: NP_3f8,
         mask: NP_3f8
@@ -743,7 +751,7 @@ class ModelShiftUpdater(ModelUpdater):
         return NotImplemented
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_shift(self._vector_ * (self._mask * alpha))
@@ -766,7 +774,7 @@ class ModelShiftToUpdater(ModelUpdater):
     __slots__ = ("_mask",)
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         target: Model,
         direction: NP_3f8,
@@ -784,7 +792,7 @@ class ModelShiftToUpdater(ModelUpdater):
         self._target_ = target
         self._direction_ = direction
         self._buff_vector_ = (
-            model.box.get_position(direction_sign * direction, buff)
+            model.box.get(direction_sign * direction, buff)
         )
         self._mask: NP_3f8 = mask
 
@@ -815,10 +823,10 @@ class ModelShiftToUpdater(ModelUpdater):
         direction: NP_3f8,
         buff_vector: NP_3f8
     ) -> NP_3f8:
-        return target__box.get_position(direction) - buff_vector
+        return target__box.get(direction) - buff_vector
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_shift(self._vector_ * (self._mask * alpha))
@@ -828,7 +836,7 @@ class ModelScaleUpdater(ModelUpdater):
     __slots__ = ("_mask",)
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         factor: NP_3f8,
         about: Model,
@@ -851,7 +859,7 @@ class ModelScaleUpdater(ModelUpdater):
         return NotImplemented
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_scale(self._factor_ ** (self._mask * alpha))
@@ -874,7 +882,7 @@ class ModelScaleToUpdater(ModelUpdater):
     __slots__ = ("_mask",)
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         target: Model,
         #radii: NP_3f8,
@@ -916,7 +924,7 @@ class ModelScaleToUpdater(ModelUpdater):
         return target__box__radii / np.maximum(initial_radii, 1e-8)
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         #self._targeted_box_ = self._target.box
@@ -927,7 +935,7 @@ class ModelRotateUpdater(ModelUpdater):
     __slots__ = ("_mask",)
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         rotvec: NP_3f8,
         about: Model,
@@ -949,7 +957,7 @@ class ModelRotateUpdater(ModelUpdater):
         return NotImplemented
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_rotate(self._rotvec_ * (self._mask * alpha))
@@ -972,7 +980,7 @@ class ModelApplyUpdater(ModelUpdater):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         matrix: NP_44f8,
         about: Model,
@@ -991,7 +999,7 @@ class ModelApplyUpdater(ModelUpdater):
         return NotImplemented
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         return self._matrix_ * alpha
@@ -1001,7 +1009,7 @@ class ModelPoseUpdater(ModelUpdater):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         model: Model,
         target: Model
         #matrix: NP_44f8,
@@ -1036,7 +1044,7 @@ class ModelPoseUpdater(ModelUpdater):
         return target__model_matrix__array @ initial_model_matrix_inverse
 
     def _get_matrix(
-        self,
+        self: Self,
         alpha: float
     ) -> NP_44f8:
         return self._matrix_ * alpha

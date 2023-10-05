@@ -1,10 +1,14 @@
+from __future__ import annotations
+
+
 import pathlib
 import re
 from abc import abstractmethod
 from dataclasses import dataclass
 from typing import (
     Iterable,
-    Iterator
+    Iterator,
+    Self
 )
 
 from ...constants.custom_typing import (
@@ -37,7 +41,7 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_global_attrs(
-        cls,
+        cls: type[Self],
         input_data: LatexStringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[str, str]:
@@ -45,7 +49,7 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_local_attrs(
-        cls,
+        cls: type[Self],
         input_data: LatexStringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[Span, dict[str, str]]:
@@ -54,7 +58,7 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_svg_frame_scale(
-        cls,
+        cls: type[Self],
         input_data: LatexStringMobjectInputData
     ) -> float:
         return cls._scale_factor_per_font_point * input_data.font_size
@@ -62,12 +66,14 @@ class LatexStringMobjectIO(StringMobjectIO):
     @classmethod
     @property
     @abstractmethod
-    def _scale_factor_per_font_point(cls) -> float:
+    def _scale_factor_per_font_point(
+        cls: type[Self]
+    ) -> float:
         pass
 
     @classmethod
     def _iter_command_matches(
-        cls,
+        cls: type[Self],
         string: str
     ) -> Iterator[re.Match[str]]:
         # Lump together adjacent brace pairs.
@@ -110,7 +116,7 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_command_flag(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> CommandFlag:
         if match_obj.group("open"):
@@ -121,14 +127,14 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _replace_for_content(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         return match_obj.group()
 
     @classmethod
     def _replace_for_matching(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         if match_obj.group("command"):
@@ -137,7 +143,7 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_attrs_from_command_pair(
-        cls,
+        cls: type[Self],
         open_command: re.Match[str],
         close_command: re.Match[str]
     ) -> dict[str, str] | None:
@@ -147,7 +153,7 @@ class LatexStringMobjectIO(StringMobjectIO):
 
     @classmethod
     def _get_command_string(
-        cls,
+        cls: type[Self],
         label: int | None,
         edge_flag: EdgeFlag,
         attrs: dict[str, str]
@@ -166,7 +172,7 @@ class LatexStringMobject(StringMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         string: str,
         *,
         isolate: Iterable[SelectorT] = (),

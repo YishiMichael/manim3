@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 from ...constants.constants import ORIGIN
 from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy

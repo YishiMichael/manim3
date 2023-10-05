@@ -1,6 +1,12 @@
+from __future__ import annotations
+
+
 import re
 from dataclasses import dataclass
-from typing import Iterator
+from typing import (
+    Iterator,
+    Self
+)
 
 from .pango_string_mobject import (
     PangoStringMobject,
@@ -24,12 +30,14 @@ class MarkupIO(PangoStringMobjectIO):
 
     @classmethod
     @property
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         return "markup"
 
     @classmethod
     def _iter_command_matches(
-        cls,
+        cls: type[Self],
         string: str
     ) -> Iterator[re.Match[str]]:
         pattern = re.compile(r"""
@@ -51,7 +59,7 @@ class MarkupIO(PangoStringMobjectIO):
 
     @classmethod
     def _get_command_flag(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> CommandFlag:
         if match_obj.group("tag"):
@@ -63,7 +71,7 @@ class MarkupIO(PangoStringMobjectIO):
 
     @classmethod
     def _replace_for_content(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         if match_obj.group("tag"):
@@ -74,7 +82,7 @@ class MarkupIO(PangoStringMobjectIO):
 
     @classmethod
     def _replace_for_matching(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         if match_obj.group("tag") or match_obj.group("passthrough"):
@@ -94,10 +102,14 @@ class Markup(PangoStringMobject):
 
     @classmethod
     @property
-    def _io_cls(cls) -> type[MarkupIO]:
+    def _io_cls(
+        cls: type[Self]
+    ) -> type[MarkupIO]:
         return MarkupIO
 
     @classmethod
     @property
-    def _input_data_cls(cls) -> type[MarkupInputData]:
+    def _input_data_cls(
+        cls: type[Self]
+    ) -> type[MarkupInputData]:
         return MarkupInputData

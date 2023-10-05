@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import moderngl
 import numpy as np
 
@@ -24,7 +29,7 @@ class WriteOnlyBuffer(Buffer):
         return Toplevel.context.buffer(data=buffer_format._write(data_dict))
 
     def write(
-        self,
+        self: Self,
         data_dict: dict[str, np.ndarray]
     ) -> None:
         self._data_dict_ = data_dict

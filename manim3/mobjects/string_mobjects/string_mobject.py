@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 import itertools
 import pathlib
 import re
@@ -7,6 +10,7 @@ from enum import Enum
 from typing import (
     Iterable,
     Iterator,
+    Self,
     TypedDict
 )
 
@@ -33,7 +37,9 @@ class EdgeFlag(Enum):
     START = 1
     STOP = -1
 
-    def negate(self) -> "EdgeFlag":
+    def negate(
+        self: Self
+    ) -> EdgeFlag:
         return EdgeFlag(-self.value)
 
 
@@ -47,16 +53,18 @@ class Span:
     stop: int
 
     def contains(
-        self,
-        span: "Span"
+        self: Self,
+        span: Span
     ) -> bool:
         return self.start <= span.start and self.stop >= span.stop
 
-    def as_slice(self) -> slice:
+    def as_slice(
+        self: Self
+    ) -> slice:
         return slice(self.start, self.stop)
 
     def get_edge_index(
-        self,
+        self: Self,
         edge_flag: EdgeFlag
     ) -> int:
         return self.start if edge_flag == EdgeFlag.START else self.stop
@@ -99,7 +107,9 @@ class CommandItem:
     match_obj: re.Match[str]
 
     @property
-    def span(self) -> Span:
+    def span(
+        self: Self
+    ) -> Span:
         return Span(*self.match_obj.span())
 
 
@@ -115,7 +125,9 @@ class LabelledInsertionItem:
     index: int
 
     @property
-    def span(self) -> Span:
+    def span(
+        self: Self
+    ) -> Span:
         index = self.index
         return Span(index, index)
 
@@ -157,7 +169,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def generate(
-        cls,
+        cls: type[Self],
         input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> StringMobjectOutputData:
@@ -211,7 +223,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def dump_json(
-        cls,
+        cls: type[Self],
         output_data: StringMobjectOutputData
     ) -> StringMobjectJSON:
         return StringMobjectJSON(
@@ -228,7 +240,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def load_json(
-        cls,
+        cls: type[Self],
         json_data: StringMobjectJSON
     ) -> StringMobjectOutputData:
         return StringMobjectOutputData(
@@ -251,7 +263,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_labels_and_shape_mobjects(
-        cls,
+        cls: type[Self],
         unlabelled_content: str,
         labelled_content: str,
         requires_labelling: bool,
@@ -269,8 +281,8 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
             ShapeMobject().add(*unlabelled_shapes)
         )
         distance_matrix = scipy.spatial.distance.cdist(
-            [shape.box.get_centroid() for shape in unlabelled_shapes],
-            [shape.box.get_centroid() for shape in labelled_shapes]
+            [shape.box.get() for shape in unlabelled_shapes],
+            [shape.box.get() for shape in labelled_shapes]
         )
         unlabelled_indices, labelled_indices = scipy.optimize.linear_sum_assignment(distance_matrix)
         return [
@@ -284,7 +296,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_shape_mobjects(
-        cls,
+        cls: type[Self],
         content: str,
         input_data: StringMobjectInputData,
         temp_path: pathlib.Path
@@ -308,7 +320,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_global_attrs(
-        cls,
+        cls: type[Self],
         input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[str, str]:
@@ -317,7 +329,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_local_attrs(
-        cls,
+        cls: type[Self],
         input_data: StringMobjectInputData,
         temp_path: pathlib.Path
     ) -> dict[Span, dict[str, str]]:
@@ -326,7 +338,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _create_svg(
-        cls,
+        cls: type[Self],
         content: str,
         input_data: StringMobjectInputData,
         svg_path: pathlib.Path
@@ -336,7 +348,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_svg_frame_scale(
-        cls,
+        cls: type[Self],
         input_data: StringMobjectInputData
     ) -> float:
         # `font_size=30` shall make the height of "x" become roughly 0.30.
@@ -346,7 +358,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_label_to_span_dict_and_replaced_items(
-        cls,
+        cls: type[Self],
         string: str,
         isolate: list[Span],
         protect: list[Span],
@@ -492,7 +504,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_original_pieces(
-        cls,
+        cls: type[Self],
         replaced_items: list[CommandItem | LabelledInsertionItem],
         string: str
     ) -> list[str]:
@@ -508,7 +520,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _replace_string(
-        cls,
+        cls: type[Self],
         original_pieces: list[str],
         replaced_pieces: list[str],
         start_index: int,
@@ -522,7 +534,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_content(
-        cls,
+        cls: type[Self],
         original_pieces: list[str],
         replaced_items: list[CommandItem | LabelledInsertionItem],
         is_labelled: bool
@@ -546,7 +558,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_indices_by_span(
-        cls,
+        cls: type[Self],
         specified_span: Span,
         spans: list[Span]
     ) -> list[int]:
@@ -558,7 +570,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_labelled_part_items(
-        cls,
+        cls: type[Self],
         string: str,
         spans: list[Span],
         label_to_span_dict: dict[int, Span]
@@ -570,7 +582,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
 
     @classmethod
     def _get_group_part_items(
-        cls,
+        cls: type[Self],
         labels: list[int],
         label_to_span_dict: dict[int, Span],
         original_pieces: list[str],
@@ -639,7 +651,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _iter_command_matches(
-        cls,
+        cls: type[Self],
         string: str
     ) -> Iterator[re.Match[str]]:
         pass
@@ -647,7 +659,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_command_flag(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> CommandFlag:
         pass
@@ -655,7 +667,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _replace_for_content(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         pass
@@ -663,7 +675,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _replace_for_matching(
-        cls,
+        cls: type[Self],
         match_obj: re.Match[str]
     ) -> str:
         pass
@@ -671,7 +683,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_attrs_from_command_pair(
-        cls,
+        cls: type[Self],
         open_command: re.Match[str],
         close_command: re.Match[str]
     ) -> dict[str, str] | None:
@@ -680,7 +692,7 @@ class StringMobjectIO(MobjectIO[StringMobjectInputData, StringMobjectOutputData,
     @classmethod
     @abstractmethod
     def _get_command_string(
-        cls,
+        cls: type[Self],
         label: int | None,
         edge_flag: EdgeFlag,
         attrs: dict[str, str]
@@ -716,7 +728,7 @@ class StringMobject(ShapeMobject):
     )
 
     def __init__(
-        self,
+        self: Self,
         **kwargs
     ) -> None:
         super().__init__()
@@ -739,18 +751,22 @@ class StringMobject(ShapeMobject):
     @classmethod
     @property
     @abstractmethod
-    def _io_cls(cls) -> type[StringMobjectIO]:
+    def _io_cls(
+        cls: type[Self]
+    ) -> type[StringMobjectIO]:
         pass
 
     @classmethod
     @property
     @abstractmethod
-    def _input_data_cls(cls) -> type[StringMobjectInputData]:
+    def _input_data_cls(
+        cls: type[Self]
+    ) -> type[StringMobjectInputData]:
         pass
 
     @classmethod
     def _iter_spans_by_selector(
-        cls,
+        cls: type[Self],
         selector: SelectorT,
         string: str
     ) -> Iterator[Span]:
@@ -775,7 +791,7 @@ class StringMobject(ShapeMobject):
 
     @classmethod
     def _get_spans_by_selectors(
-        cls,
+        cls: type[Self],
         selectors: Iterable[SelectorT],
         string: str
     ) -> list[Span]:
@@ -785,7 +801,7 @@ class StringMobject(ShapeMobject):
         ))
 
     def _build_from_indices(
-        self,
+        self: Self,
         indices: list[int]
     ) -> ShapeMobject:
         return ShapeMobject().add(*(
@@ -794,7 +810,7 @@ class StringMobject(ShapeMobject):
         ))
 
     def _build_from_indices_list(
-        self,
+        self: Self,
         indices_list: list[list[int]]
     ) -> ShapeMobject:
         return ShapeMobject().add(*(
@@ -803,7 +819,7 @@ class StringMobject(ShapeMobject):
         ))
 
     def select_part(
-        self,
+        self: Self,
         selector: SelectorT,
         index: int = 0
     ) -> ShapeMobject:
@@ -814,7 +830,7 @@ class StringMobject(ShapeMobject):
         ][index])
 
     def select_parts(
-        self,
+        self: Self,
         selector: SelectorT
     ) -> ShapeMobject:
         cls = type(self)

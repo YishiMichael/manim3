@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 from .animatables.cameras.camera import Camera
 from .animatables.cameras.orthographic_camera import OrthographicCamera
 from .animatables.cameras.perspective_camera import PerspectiveCamera

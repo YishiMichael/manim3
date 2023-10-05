@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+
 import itertools
 from typing import (
     Hashable,
     Iterable,
     Iterator,
+    Self,
     TypeVar
 )
 
@@ -29,7 +33,7 @@ class TransformMatchingStrings(Parallel):
     )
 
     def __init__(
-        self,
+        self: Self,
         start_mobject: StringMobject,
         stop_mobject: StringMobject
     ) -> None:
@@ -228,7 +232,9 @@ class TransformMatchingStrings(Parallel):
             for animation in animations
         ]
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         self.scene.discard(self._start_mobject)
         await super().timeline()
         self.scene.add(self._stop_mobject)

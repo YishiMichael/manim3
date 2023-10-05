@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.geometries.graph import Graph
@@ -24,7 +29,7 @@ class GraphMobject(Mobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         graph: Graph | None = None
     ) -> None:
         super().__init__()
@@ -129,7 +134,7 @@ class GraphMobject(Mobject):
         )
 
     def _render(
-        self,
+        self: Self,
         target_framebuffer: OITFramebuffer
     ) -> None:
         self._graph_vertex_array_.render(target_framebuffer)

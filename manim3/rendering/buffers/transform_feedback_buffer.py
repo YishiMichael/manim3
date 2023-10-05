@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from .read_only_buffer import ReadOnlyBuffer
 
 
@@ -5,7 +10,7 @@ class TransformFeedbackBuffer(ReadOnlyBuffer):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         fields: list[str],
         child_structs: dict[str, list[str]] | None = None,

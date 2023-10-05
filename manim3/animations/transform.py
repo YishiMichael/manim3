@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ..mobjects.mobject import Mobject
 from .animation.animation import Animation
 
@@ -11,7 +16,7 @@ class Transform(Animation):
     )
 
     def __init__(
-        self,
+        self: Self,
         start_mobject: Mobject,
         stop_mobject: Mobject
     ) -> None:
@@ -22,7 +27,9 @@ class Transform(Animation):
         self._stop_mobject: Mobject = stop_mobject
         self._intermediate_mobject: Mobject = intermediate_mobject
 
-    async def timeline(self) -> None:
+    async def timeline(
+        self: Self
+    ) -> None:
         self.scene.discard(self._start_mobject)
         self.scene.add(self._intermediate_mobject)
         await self.play(self._animation)

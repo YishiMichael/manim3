@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 from ..animation.animation import Animation
 from ..animation.rate import Rate
 from .parallel import Parallel
@@ -7,7 +12,7 @@ class Series(Parallel):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *animations: Animation,
         rate: Rate | None = None,
         lag_time: float = 0.0,

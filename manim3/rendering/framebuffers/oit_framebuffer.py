@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import moderngl
 
 from ...lazy.lazy import Lazy
@@ -15,7 +20,7 @@ class OITFramebuffer(Framebuffer):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         size: tuple[int, int] | None = None
     ) -> None:
         if size is None:

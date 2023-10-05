@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+
 from abc import (
     ABC,
     abstractmethod
 )
+from typing import Self
 
 from ...constants.custom_typing import BoundaryT
 
@@ -11,18 +15,20 @@ class Rate(ABC):
 
     @abstractmethod
     def at(
-        self,
+        self: Self,
         t: float
     ) -> float:
         pass
 
     @abstractmethod
     def at_boundary(
-        self,
+        self: Self,
         boundary: BoundaryT
     ) -> BoundaryT:
         pass
 
     @abstractmethod
-    def is_increasing(self) -> bool:
+    def is_increasing(
+        self: Self
+    ) -> bool:
         pass

@@ -1,7 +1,7 @@
-from typing import (
-    Generic,
-    TypeVar
-)
+from __future__ import annotations
+
+
+from typing import Self
 
 import numpy as np
 
@@ -12,22 +12,14 @@ from ..animatable.leaf_animatable import (
     LeafAnimatable,
     LeafAnimatableInterpolateInfo
 )
-#from .mobject_attribute import (
-#    InterpolateHandler,
-#    MobjectAttribute
-#)
 
 
-_NPT = TypeVar("_NPT", bound=np.ndarray)
-_AnimatableArrayT = TypeVar("_AnimatableArrayT", bound="AnimatableArray")
-
-
-class AnimatableArray(LeafAnimatable, Generic[_NPT]):
+class AnimatableArray[NPT: np.ndarray](LeafAnimatable):
     __slots__ = ()
 
     def __init__(
-        self,
-        array: _NPT | None = None
+        self: Self,
+        array: NPT | None = None
     ) -> None:
         super().__init__()
         if array is not None:
@@ -35,40 +27,40 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
-    def _array_() -> _NPT:
+    def _array_() -> NPT:
         return NotImplemented
 
     @classmethod
     def _convert_input(
-        cls: type[_AnimatableArrayT],
+        cls: type[Self],
         array_input: np.ndarray
-    ) -> _AnimatableArrayT:
+    ) -> Self:
         return cls(array_input)
 
     @classmethod
     def _interpolate(
-        cls: type[_AnimatableArrayT],
-        src_0: _AnimatableArrayT,
-        src_1: _AnimatableArrayT
-    ) -> "AnimatableArrayInterpolateInfo[_AnimatableArrayT]":
+        cls: type[Self],
+        src_0: Self,
+        src_1: Self
+    ) -> AnimatableArrayInterpolateInfo[Self]:
         return AnimatableArrayInterpolateInfo(src_0, src_1)
 
     #@classmethod
     #def _interpolate(
-    #    cls: type[_AnimatableArrayT],
-    #    dst: _AnimatableArrayT,
-    #    src_0: _AnimatableArrayT,
-    #    src_1: _AnimatableArrayT
+    #    cls: type[Self],
+    #    dst: Self,
+    #    src_0: Self,
+    #    src_1: Self
     #) -> Updater:
     #    return AnimatableArrayInterpolateUpdater(dst, src_0, src_1)
 
     @classmethod
     def _split(
-        cls: type[_AnimatableArrayT],
-        #dst_tuple: tuple[_AnimatableArrayT, ...],
-        src: _AnimatableArrayT,
+        cls: type[Self],
+        #dst_tuple: tuple[Self, ...],
+        src: Self,
         alphas: NP_xf8
-    ) -> tuple[_AnimatableArrayT, ...]:
+    ) -> tuple[Self, ...]:
         return tuple(cls(src._array_) for _ in range(len(alphas) + 1))
         #assert len(dst_tuple) == len(alphas) + 1
         #for dst in dst_tuple:
@@ -76,10 +68,10 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
 
     @classmethod
     def _concatenate(
-        cls: type[_AnimatableArrayT],
-        #dst: _AnimatableArrayT,
-        src_tuple: tuple[_AnimatableArrayT, ...]
-    ) -> _AnimatableArrayT:
+        cls: type[Self],
+        #dst: Self,
+        src_tuple: tuple[Self, ...]
+    ) -> Self:
         unique_arrays = {id(src._array_): src._array_ for src in src_tuple}
         if not unique_arrays:
             return cls()
@@ -88,24 +80,24 @@ class AnimatableArray(LeafAnimatable, Generic[_NPT]):
         return cls(unique_array)
 
 
-class AnimatableArrayInterpolateInfo(LeafAnimatableInterpolateInfo[_AnimatableArrayT]):
+class AnimatableArrayInterpolateInfo[AnimatableArrayT: AnimatableArray](LeafAnimatableInterpolateInfo[AnimatableArrayT]):
     __slots__ = (
         "_array_0",
         "_array_1"
     )
 
     def __init__(
-        self,
-        src_0: _AnimatableArrayT,
-        src_1: _AnimatableArrayT
+        self: Self,
+        src_0: AnimatableArrayT,
+        src_1: AnimatableArrayT
     ) -> None:
         super().__init__(src_0, src_1)
         self._array_0: np.ndarray = src_0._array_
         self._array_1: np.ndarray = src_1._array_
 
     def interpolate(
-        self,
-        src: _AnimatableArrayT,
+        self: Self,
+        src: AnimatableArrayT,
         alpha: float
     ) -> None:
         src._array_ = SpaceUtils.lerp(self._array_0, self._array_1, alpha)
@@ -115,7 +107,7 @@ class AnimatableArrayInterpolateInfo(LeafAnimatableInterpolateInfo[_AnimatableAr
 #    __slots__ = ("_animatable_array",)
 
 #    def __init__(
-#        self,
+#        self: Self,
 #        animatable_array: AnimatableArray[_NPT],
 #        animatable_array_0: AnimatableArray[_NPT],
 #        animatable_array_1: AnimatableArray[_NPT]
@@ -136,7 +128,7 @@ class AnimatableArrayInterpolateInfo(LeafAnimatableInterpolateInfo[_AnimatableAr
 #        return NotImplemented
 
 #    def update(
-#        self,
+#        self: Self,
 #        alpha: float
 #    ) -> None:
 #        super().update(alpha)
@@ -144,7 +136,7 @@ class AnimatableArrayInterpolateInfo(LeafAnimatableInterpolateInfo[_AnimatableAr
 #        #return AnimatableArray(SpaceUtils.lerp(self._array_0, self._array_1, alpha))
 
 #    def update_boundary(
-#        self,
+#        self: Self,
 #        boundary: BoundaryT
 #    ) -> None:
 #        super().update_boundary(boundary)

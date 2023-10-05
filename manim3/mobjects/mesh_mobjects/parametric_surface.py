@@ -1,4 +1,10 @@
-from typing import Callable
+from __future__ import annotations
+
+
+from typing import (
+    Callable,
+    Self
+)
 
 import numpy as np
 
@@ -15,7 +21,7 @@ class ParametricSurface(MeshMobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         func: Callable[[NP_x2f8], NP_x3f8],
         normal_func: Callable[[NP_x2f8], NP_x3f8],

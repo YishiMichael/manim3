@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+
 import itertools
 import pathlib
 import re
 from dataclasses import dataclass
+from typing import Self
 
 import moderngl
 import numpy as np
@@ -14,7 +18,6 @@ from .buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from .buffer_formats.buffer_format import BufferFormat
 from .buffer_formats.structured_buffer_format import StructuredBufferFormat
 from .buffers.attributes_buffer import AttributesBuffer
-from .buffers.omitted_index_buffer import OmittedIndexBuffer
 from .buffers.texture_buffer import TextureBuffer
 from .buffers.transform_feedback_buffer import TransformFeedbackBuffer
 from .buffers.uniform_block_buffer import UniformBlockBuffer
@@ -34,7 +37,7 @@ class ProgramAttributeInfo:
     shape: str
 
     def verify_buffer_format(
-        self,
+        self: Self,
         buffer_format: BufferFormat
     ) -> bool:
         assert isinstance(buffer_format, AtomicBufferFormat)
@@ -56,7 +59,7 @@ class ProgramUniformInfo:
     binding: int
 
     def verify_buffer_format(
-        self,
+        self: Self,
         buffer_format: BufferFormat
     ) -> bool:
         assert not buffer_format._is_empty_
@@ -80,7 +83,7 @@ class ProgramUniformBlockInfo:
     binding: int
 
     def verify_buffer_format(
-        self,
+        self: Self,
         buffer_format: BufferFormat
     ) -> bool:
         assert not buffer_format._is_empty_
@@ -104,7 +107,7 @@ class VertexArray(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         shader_path: pathlib.Path,
         custom_macros: list[str] | None = None,
@@ -328,7 +331,7 @@ class VertexArray(LazyObject):
         index_buffer = indexed_attributes_buffer._index_buffer_
         mode = indexed_attributes_buffer._mode_
         assert isinstance(attributes_buffer_format := attributes_buffer._buffer_format_, StructuredBufferFormat)
-        use_index_buffer = not isinstance(index_buffer, OmittedIndexBuffer)
+        use_index_buffer = not index_buffer._omitted
 
         if attributes_buffer_format._is_empty_ or use_index_buffer and index_buffer._buffer_format_._is_empty_:
             return None
@@ -389,7 +392,7 @@ class VertexArray(LazyObject):
         )
 
     def render(
-        self,
+        self: Self,
         framebuffer: Framebuffer
     ) -> None:
         if (vertex_array := self._vertex_array_) is None:
@@ -403,7 +406,9 @@ class VertexArray(LazyObject):
             Toplevel.context.set_state(framebuffer._context_state_)
             vertex_array.render()
 
-    def transform(self) -> dict[str, np.ndarray]:
+    def transform(
+        self: Self
+    ) -> dict[str, np.ndarray]:
         transform_feedback_buffer = self._transform_feedback_buffer_
         with transform_feedback_buffer.buffer() as buffer:
             if (vertex_array := self._vertex_array_) is not None:

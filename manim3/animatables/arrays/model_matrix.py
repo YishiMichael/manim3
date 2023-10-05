@@ -1,3 +1,11 @@
+from __future__ import annotations
+
+
+from typing import (
+    Never,
+    Self
+)
+
 import numpy as np
 
 from ...constants.custom_typing import (
@@ -14,7 +22,7 @@ class AffineApplier(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         matrix: NP_44f8
     ) -> None:
         super().__init__()
@@ -26,7 +34,7 @@ class AffineApplier(LazyObject):
         return NotImplemented
 
     def apply(
-        self,
+        self: Self,
         vector: NP_3f8
     ) -> NP_3f8:
         v = self._matrix_ @ np.append(vector, 1.0)
@@ -37,7 +45,7 @@ class AffineApplier(LazyObject):
         return result
 
     def apply_multiple(
-        self,
+        self: Self,
         vectors: NP_x3f8
     ) -> NP_x3f8:
         v = self._matrix_ @ np.append(vectors.T, np.ones((1, len(vectors))), axis=0)
@@ -65,7 +73,7 @@ class ModelMatrix(AnimatableArray[NP_44f8]):
 
     @classmethod
     def _convert_input(
-        cls,
+        cls: type[Self],
         model_matrix_input: object
-    ):
+    ) -> Never:
         raise ValueError("Cannot manually set the model matrix")

@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+
 import pathlib
 from dataclasses import dataclass
 from typing import (
     Iterator,
+    Self,
     TypedDict
 )
 
@@ -58,12 +62,14 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
     @property
     @classmethod
-    def _dir_name(cls) -> str:
+    def _dir_name(
+        cls: type[Self]
+    ) -> str:
         return "svg_mobject"
 
     @classmethod
     def generate(
-        cls,
+        cls: type[Self],
         input_data: SVGMobjectInputData,
         temp_path: pathlib.Path
     ) -> SVGMobjectOutputData:
@@ -78,7 +84,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
     @classmethod
     def dump_json(
-        cls,
+        cls: type[Self],
         output_data: SVGMobjectOutputData
     ) -> SVGMobjectJSON:
         return SVGMobjectJSON(
@@ -90,7 +96,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
     @classmethod
     def load_json(
-        cls,
+        cls: type[Self],
         json_data: SVGMobjectJSON
     ) -> SVGMobjectOutputData:
         return SVGMobjectOutputData(
@@ -102,7 +108,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
     @classmethod
     def _iter_shape_mobject_from_svg(
-        cls,
+        cls: type[Self],
         svg_path: str | pathlib.Path,
         *,
         width: float | None = None,
@@ -225,7 +231,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
     @classmethod
     def _shape_mobject_to_json(
-        cls,
+        cls: type[Self],
         shape_mobject: ShapeMobject
     ) -> ShapeMobjectJSON:
         shape = shape_mobject._shape_
@@ -238,7 +244,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInputData, SVGMobjectOutputData, SVGMobje
 
     @classmethod
     def _json_to_shape_mobject(
-        cls,
+        cls: type[Self],
         shape_mobject_json: ShapeMobjectJSON
     ) -> ShapeMobject:
         positions = shape_mobject_json["positions"]
@@ -259,7 +265,7 @@ class SVGMobject(ShapeMobject):
     __slots__ = ("_shape_mobjects",)
 
     def __init__(
-        self,
+        self: Self,
         svg_path: str | pathlib.Path,
         *,
         width: float | None = None,

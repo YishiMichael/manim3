@@ -1,15 +1,19 @@
+from __future__ import annotations
+
+
 import itertools
 import weakref
 #from abc import abstractmethod
 from typing import (
-    TYPE_CHECKING,
     Callable,
     ClassVar,
     #Callable,
     #ClassVar,
     #Iterable,
     Iterator,
+    Self,
     TypedDict,
+    Unpack,
     overload
 )
 
@@ -47,12 +51,6 @@ from ..toplevel.toplevel import Toplevel
 #from .remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 #from .remodel_handlers.scale_remodel_handler import ScaleRemodelHandler
 #from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
-
-if TYPE_CHECKING:
-    from typing_extensions import Unpack
-
-    #from .abouts.about import About
-    #from .aligns.align import Align
 
 
 class MobjectSetKwargs(TypedDict, total=False):
@@ -112,32 +110,36 @@ class Mobject(Model):
     #    if cls._attribute_descriptors == base_cls._attribute_descriptors:
     #        cls._equivalent_cls_mro_index = base_cls._equivalent_cls_mro_index + 1
 
-    def __init__(self) -> None:
+    def __init__(
+        self: Self
+    ) -> None:
         super().__init__()
         self._children: tuple[Mobject, ...] = ()
         self._real_descendants: tuple[Mobject, ...] = ()
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
         self._real_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
 
-    def __iter__(self) -> "Iterator[Mobject]":
+    def __iter__(
+        self: Self
+    ) -> Iterator[Mobject]:
         return iter(self._children)
 
     @overload
     def __getitem__(
-        self,
+        self: Self,
         index: int
-    ) -> "Mobject": ...
+    ) -> Mobject: ...
 
     @overload
     def __getitem__(
-        self,
+        self: Self,
         index: slice
-    ) -> "tuple[Mobject, ...]": ...
+    ) -> tuple[Mobject, ...]: ...
 
     def __getitem__(
-        self,
+        self: Self,
         index: int | slice
-    ) -> "Mobject | tuple[Mobject, ...]":
+    ) -> Mobject | tuple[Mobject, ...]:
         return self._children.__getitem__(index)
 
     # family matters
@@ -155,8 +157,8 @@ class Mobject(Model):
 
     @classmethod
     def _refresh_families(
-        cls,
-        *mobjects: "Mobject"
+        cls: type[Self],
+        *mobjects: Mobject
     ) -> None:
 
         def iter_descendants_by_children(
@@ -195,34 +197,38 @@ class Mobject(Model):
             descendant._real_ancestors.clear()
             descendant._real_ancestors.update(real_ancestors)
 
-    def iter_children(self) -> "Iterator[Mobject]":
+    def iter_children(
+        self: Self
+    ) -> Iterator[Mobject]:
         yield from self._children
 
-    def iter_parents(self) -> "Iterator[Mobject]":
+    def iter_parents(
+        self: Self
+    ) -> Iterator[Mobject]:
         yield from self._parents
 
     def iter_descendants(
-        self,
+        self: Self,
         *,
         broadcast: bool = True
-    ) -> "Iterator[Mobject]":
+    ) -> Iterator[Mobject]:
         yield self
         if broadcast:
             yield from self._real_descendants
 
     def iter_ancestors(
-        self,
+        self: Self,
         *,
         broadcast: bool = True
-    ) -> "Iterator[Mobject]":
+    ) -> Iterator[Mobject]:
         yield self
         if broadcast:
             yield from self._real_ancestors
 
     def add(
-        self,
-        *mobjects: "Mobject"
-    ):
+        self: Self,
+        *mobjects: Mobject
+    ) -> Self:
         filtered_mobjects = [
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject not in self._children
@@ -241,9 +247,9 @@ class Mobject(Model):
         return self
 
     def discard(
-        self,
-        *mobjects: "Mobject"
-    ):
+        self: Self,
+        *mobjects: Mobject
+    ) -> Self:
         filtered_mobjects = [
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject in self._children
@@ -256,11 +262,15 @@ class Mobject(Model):
         type(self)._refresh_families(self, *filtered_mobjects)
         return self
 
-    def clear(self):
+    def clear(
+        self: Self
+    ) -> Self:
         self.discard(*self.iter_children())
         return self
 
-    def copy(self):
+    def copy(
+        self: Self
+    ) -> Self:
         # Copy all descendants. The result is not bound to any mobject.
         result = super().copy()
         #result = self._copy()
@@ -653,12 +663,12 @@ class Mobject(Model):
     #    return self
 
     def set(
-        self,
+        self: Self,
         *,
         broadcast: bool = True,
-        type_filter: "type[Mobject] | None" = None,
-        **kwargs: "Unpack[MobjectSetKwargs]"
-    ):
+        type_filter: type[Mobject] | None = None,
+        **kwargs: Unpack[MobjectSetKwargs]
+    ) -> Self:
         for mobject in self.iter_descendants(broadcast=broadcast):
             if type_filter is not None and not isinstance(mobject, type_filter):
                 continue
@@ -678,7 +688,7 @@ class Mobject(Model):
         return Toplevel.scene._camera
 
     def _render(
-        self,
+        self: Self,
         target_framebuffer: OITFramebuffer
     ) -> None:
         pass

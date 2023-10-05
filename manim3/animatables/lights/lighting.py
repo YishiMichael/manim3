@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...constants.custom_typing import NP_3f8
@@ -13,7 +18,7 @@ class Lighting(Animatable):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *lights: AmbientLight | PointLight
     ) -> None:
         super().__init__()

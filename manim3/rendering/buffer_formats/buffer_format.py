@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import numpy as np
 
 from ...lazy.lazy import Lazy
@@ -8,7 +13,7 @@ class BufferFormat(LazyObject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         *,
         name: str,
         shape: tuple[int, ...]
@@ -73,7 +78,9 @@ class BufferFormat(LazyObject):
         # Implemented in subclasses.
         return ()
 
-    def _get_np_buffer_and_pointers(self) -> tuple[np.ndarray, dict[str, tuple[np.ndarray, int]]]:
+    def _get_np_buffer_and_pointers(
+        self: Self
+    ) -> tuple[np.ndarray, dict[str, tuple[np.ndarray, int]]]:
 
         def get_np_buffer_pointer(
             np_buffer: np.ndarray,
@@ -92,7 +99,7 @@ class BufferFormat(LazyObject):
         return np_buffer, np_buffer_pointers
 
     def _write(
-        self,
+        self: Self,
         data_dict: dict[str, np.ndarray]
     ) -> bytes:
         np_buffer, np_buffer_pointers = self._get_np_buffer_and_pointers()
@@ -107,7 +114,7 @@ class BufferFormat(LazyObject):
         return np_buffer.tobytes()
 
     def _read(
-        self,
+        self: Self,
         data_bytes: bytes
     ) -> dict[str, np.ndarray]:
         data_dict: dict[str, np.ndarray] = {}

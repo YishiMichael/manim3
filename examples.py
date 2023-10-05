@@ -225,7 +225,7 @@ class MobjectPositionInRange(Condition):
         self._z_max: float | None = z_max
 
     def judge(self) -> bool:
-        position = self._mobject.box.get_position(self._direction)
+        position = self._mobject.box.get(self._direction)
         x_val, y_val, z_val = position
         return all((
             (x_min := self._x_min) is None or x_val >= x_min,

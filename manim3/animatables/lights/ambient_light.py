@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 from ...lazy.lazy import Lazy
 #from ..mobject.mobject import Mobject
 #from ..mobject.mobject_attributes.color_attribute import ColorAttribute

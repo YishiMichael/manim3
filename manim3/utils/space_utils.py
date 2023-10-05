@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+
 from typing import (
     Literal,
+    Never,
+    Self,
     overload
 )
 
@@ -22,26 +27,28 @@ from ..constants.custom_typing import (
 class SpaceUtils:
     __slots__ = ()
 
-    def __new__(cls):
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
         raise TypeError
 
     @overload
     @classmethod
     def norm(
-        cls,
+        cls: type[Self],
         vector: NP_2f8 | NP_3f8 | NP_4f8
     ) -> NPE_f8: ...
 
     @overload
     @classmethod
     def norm(
-        cls,
+        cls: type[Self],
         vector: NP_x2f8 | NP_x3f8 | NP_x4f8
     ) -> NP_xf8: ...
 
     @classmethod
     def norm(
-        cls,
+        cls: type[Self],
         vector: NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8
     ) -> NPE_f8 | NP_xf8:
         return np.linalg.norm(vector, axis=-1)
@@ -49,48 +56,48 @@ class SpaceUtils:
     @overload
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_2f8
     ) -> NP_2f8: ...
 
     @overload
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_3f8
     ) -> NP_3f8: ...
 
     @overload
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_4f8
     ) -> NP_4f8: ...
 
     @overload
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_x2f8
     ) -> NP_x2f8: ...
 
     @overload
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_x3f8
     ) -> NP_x3f8: ...
 
     @overload
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_x4f8
     ) -> NP_x4f8: ...
 
     @classmethod
     def normalize(
-        cls,
+        cls: type[Self],
         vector: NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8
     ) -> NP_2f8 | NP_3f8 | NP_4f8 | NP_x2f8 | NP_x3f8 | NP_x4f8:
         if vector.ndim == 1:
@@ -99,7 +106,7 @@ class SpaceUtils:
 
     @classmethod
     def lerp(
-        cls,
+        cls: type[Self],
         tensor_0: np.ndarray,
         tensor_1: np.ndarray,
         alpha: float | np.ndarray
@@ -109,7 +116,7 @@ class SpaceUtils:
     #@overload
     #@classmethod
     #def apply_affine(
-    #    cls,
+    #    cls: type[Self],
     #    matrix: NP_44f8,
     #    vector: NP_3f8
     #) -> NP_3f8: ...
@@ -117,7 +124,7 @@ class SpaceUtils:
     #@overload
     #@classmethod
     #def apply_affine(
-    #    cls,
+    #    cls: type[Self],
     #    matrix: NP_44f8,
     #    vector: NP_x3f8
     #) -> NP_x3f8: ...
@@ -125,7 +132,7 @@ class SpaceUtils:
     ## TODO: split
     #@classmethod
     #def apply_affine(
-    #    cls,
+    #    cls: type[Self],
     #    matrix: NP_44f8,
     #    vector: NP_3f8 | NP_x3f8
     #) -> NP_3f8 | NP_x3f8:
@@ -146,7 +153,7 @@ class SpaceUtils:
 
     @classmethod
     def increase_dimension(
-        cls,
+        cls: type[Self],
         vectors: NP_x2f8,
         *,
         z_value: float = 0.0
@@ -159,7 +166,7 @@ class SpaceUtils:
     @overload
     @classmethod
     def decrease_dimension(
-        cls,
+        cls: type[Self],
         vectors: NP_x3f8,
         *,
         extract_z: Literal[True]
@@ -168,7 +175,7 @@ class SpaceUtils:
     @overload
     @classmethod
     def decrease_dimension(
-        cls,
+        cls: type[Self],
         vectors: NP_x3f8,
         *,
         extract_z: Literal[False] = False
@@ -176,7 +183,7 @@ class SpaceUtils:
 
     @classmethod
     def decrease_dimension(
-        cls,
+        cls: type[Self],
         vectors: NP_x3f8,
         *,
         extract_z: bool = False
@@ -189,7 +196,7 @@ class SpaceUtils:
 
     @classmethod
     def get_frame_scale_vector(
-        cls,
+        cls: type[Self],
         *,
         original_width: float,
         original_height: float,
@@ -212,7 +219,7 @@ class SpaceUtils:
 
     @classmethod
     def matrix_from_shift(
-        cls,
+        cls: type[Self],
         vector: NP_3f8
     ) -> NP_44f8:
         matrix = np.identity(4)
@@ -221,7 +228,7 @@ class SpaceUtils:
 
     @classmethod
     def matrix_from_scale(
-        cls,
+        cls: type[Self],
         factor: NP_3f8
     ) -> NP_44f8:
         matrix = np.identity(4)
@@ -230,7 +237,7 @@ class SpaceUtils:
 
     @classmethod
     def matrix_from_rotate(
-        cls,
+        cls: type[Self],
         rotvec: NP_3f8
     ) -> NP_44f8:
         matrix = np.identity(4)

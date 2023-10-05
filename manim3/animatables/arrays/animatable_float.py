@@ -1,4 +1,7 @@
-from typing import TypeVar
+from __future__ import annotations
+
+
+from typing import Self
 
 import numpy as np
 
@@ -7,14 +10,11 @@ from ...lazy.lazy import Lazy
 from .animatable_array import AnimatableArray
 
 
-_AnimatableFloatT = TypeVar("_AnimatableFloatT", bound="AnimatableFloat")
-
-
 class AnimatableFloat(AnimatableArray[NP_f8]):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         value: float | NP_f8 | None = None
     ) -> None:
         super().__init__(value if isinstance(value, np.ndarray | None) else np.asarray(value))
@@ -26,8 +26,8 @@ class AnimatableFloat(AnimatableArray[NP_f8]):
 
     @classmethod
     def _convert_input(
-        cls: type[_AnimatableFloatT],
+        cls: type[Self],
         float_input: float | np.ndarray
-    ) -> _AnimatableFloatT:
+    ) -> Self:
         array = float_input if isinstance(float_input, np.ndarray) else np.asarray(float_input)
         return super()._convert_input(array.reshape(()).astype(np.float64))

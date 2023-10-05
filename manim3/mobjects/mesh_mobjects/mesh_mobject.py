@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+
+from typing import Self
+
 import moderngl
 import numpy as np
 
@@ -26,7 +31,7 @@ class MeshMobject(Mobject):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         mesh: Mesh | None = None
     ) -> None:
         super().__init__()
@@ -147,7 +152,7 @@ class MeshMobject(Mobject):
         )
 
     def _render(
-        self,
+        self: Self,
         target_framebuffer: OITFramebuffer
     ) -> None:
         self._mesh_vertex_array_.render(target_framebuffer)
