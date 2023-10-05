@@ -357,7 +357,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    UpdatingExample.render(config)
+    ThreeDExample.render(config)
 
 
 if __name__ == "__main__":

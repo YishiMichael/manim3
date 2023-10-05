@@ -1,4 +1,4 @@
-import functools
+#import functools
 import itertools
 from typing import (
     Iterable,
@@ -8,11 +8,10 @@ from typing import (
 
 import mapbox_earcut
 import numpy as np
-import shapely.geometry
-import shapely.validation
+import pyclipr
 
 from ...constants.custom_typing import (
-    NP_2f8,
+    #NP_2f8,
     NP_x2f8,
     NP_x2i4,
     NP_x3i4,
@@ -72,7 +71,7 @@ class Shape(LeafAnimatable):
         self: _ShapeT,
         other: _ShapeT
     ):
-        return self.symmetric_difference(other)
+        return self.xor(other)
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
@@ -106,72 +105,98 @@ class Shape(LeafAnimatable):
             edges=np.column_stack((edges_0, edges_1))
         )
 
-    @Lazy.property()
-    @staticmethod
-    def _shapely_obj_(
-        #graph: Graph
-        positions: NP_x2f8,
-        cumcounts: NP_xi4
-    ) -> shapely.geometry.base.BaseGeometry:
+    #@Lazy.property()
+    #@staticmethod
+    #def _shapely_obj_(
+    #    #graph: Graph
+    #    positions: NP_x2f8,
+    #    cumcounts: NP_xi4
+    #) -> shapely.geometry.base.BaseGeometry:
 
-        #def get_polygon_positions(
-        #    positions: NP_x2f8,
-        #    cumcounts: NP_xi4
-        #) -> Iterator[NP_x2f8]:
-        #    positions = SpaceUtils.decrease_dimension(graph._positions_)
-        #    edges = graph._edges_
-        #    if not len(edges):
-        #        return
-        #    disjoints = Graph._get_disjoints(edges=edges)
-        #    for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
-        #        indices = edges[start:stop, 0]
-        #        if indices[0] != (tail_index := edges[stop - 1, 1]):
-        #            indices = np.append(indices, tail_index)
-        #        yield positions[indices]
+    #    #def get_polygon_positions(
+    #    #    positions: NP_x2f8,
+    #    #    cumcounts: NP_xi4
+    #    #) -> Iterator[NP_x2f8]:
+    #    #    positions = SpaceUtils.decrease_dimension(graph._positions_)
+    #    #    edges = graph._edges_
+    #    #    if not len(edges):
+    #    #        return
+    #    #    disjoints = Graph._get_disjoints(edges=edges)
+    #    #    for start, stop in it.pairwise((0, *(disjoints + 1), len(edges))):
+    #    #        indices = edges[start:stop, 0]
+    #    #        if indices[0] != (tail_index := edges[stop - 1, 1]):
+    #    #            indices = np.append(indices, tail_index)
+    #    #        yield positions[indices]
 
-        return functools.reduce(shapely.geometry.base.BaseGeometry.__xor__, (
-            shapely.validation.make_valid(shapely.geometry.Polygon(positions[start:stop]))
-            for start, stop in itertools.pairwise(cumcounts)
-            if stop - start >= 3
-            #for polygon_positions in get_polygon_positions(positions, cumcounts)
-            #if len(polygon_positions) >= 3
-        ), shapely.geometry.GeometryCollection())
+    #    return functools.reduce(shapely.geometry.base.BaseGeometry.__xor__, (
+    #        shapely.validation.make_valid(shapely.geometry.Polygon(positions[start:stop]))
+    #        for start, stop in itertools.pairwise(cumcounts)
+    #        if stop - start >= 3
+    #        #for polygon_positions in get_polygon_positions(positions, cumcounts)
+    #        #if len(polygon_positions) >= 3
+    #    ), shapely.geometry.GeometryCollection())
 
     @Lazy.property()
     @staticmethod
     def _triangulation_(
-        shapely_obj: shapely.geometry.base.BaseGeometry
+        positions: NP_x2f8,
+        cumcounts: NP_xi4
+        #shapely_obj: shapely.geometry.base.BaseGeometry
     ) -> tuple[NP_x3i4, NP_x2f8]:
 
-        def get_shapely_polygons(
-            shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Iterator[shapely.geometry.Polygon]:
-            match shapely_obj:
-                case shapely.geometry.Point() | shapely.geometry.LineString():
-                    pass
-                case shapely.geometry.Polygon():
-                    yield shapely_obj
-                case shapely.geometry.base.BaseMultipartGeometry():
-                    for child in shapely_obj.geoms:
-                        yield from get_shapely_polygons(child)
-                case _:
-                    raise TypeError
+        def iter_contour_nodes(
+            poly_trees: list[pyclipr.PolyTreeD]
+        ) -> Iterator[pyclipr.PolyTreeD]:
+            # http://www.angusj.com/clipper2/Docs/Units/Clipper.Engine/Classes/PolyTreeD/_Body.htm
+            for poly_tree in poly_trees:
+                yield poly_tree
+                for hole in poly_tree.children:
+                    yield from iter_contour_nodes(hole.children)
 
-        def get_polygon_triangulation(
-            polygon: shapely.geometry.Polygon
+        def get_contour_triangulation(
+            contour: pyclipr.PolyTreeD
         ) -> tuple[NP_x3i4, NP_x2f8]:
             ring_positions_list: list[NP_x2f8] = [
-                np.fromiter(boundary.coords, dtype=np.dtype((np.float64, (2,))))
-                for boundary in (polygon.exterior, *polygon.interiors)
+                contour.polygon,
+                *(hole.polygon for hole in contour.children)
             ]
             positions = np.concatenate(ring_positions_list)
-            if not len(positions):
-                return np.arange(0, dtype=np.uint32), np.zeros((0, 2))
-
+            #if not len(positions):
+            #    return np.arange(0, dtype=np.uint32), np.zeros((0, 2))
             ring_ends = np.cumsum([
                 len(ring_positions) for ring_positions in ring_positions_list
             ], dtype=np.uint32)
             return mapbox_earcut.triangulate_float64(positions, ring_ends).reshape((-1, 3)).astype(np.int32), positions
+
+        #def get_shapely_polygons(
+        #    shapely_obj: shapely.geometry.base.BaseGeometry
+        #) -> Iterator[shapely.geometry.Polygon]:
+        #    match shapely_obj:
+        #        case shapely.geometry.Point() | shapely.geometry.LineString():
+        #            pass
+        #        case shapely.geometry.Polygon():
+        #            yield shapely_obj
+        #        case shapely.geometry.base.BaseMultipartGeometry():
+        #            for child in shapely_obj.geoms:
+        #                yield from get_shapely_polygons(child)
+        #        case _:
+        #            raise TypeError
+
+        #def get_polygon_triangulation(
+        #    polygon: shapely.geometry.Polygon
+        #) -> tuple[NP_x3i4, NP_x2f8]:
+        #    ring_positions_list: list[NP_x2f8] = [
+        #        np.fromiter(boundary.coords, dtype=np.dtype((np.float64, (2,))))
+        #        for boundary in (polygon.exterior, *polygon.interiors)
+        #    ]
+        #    positions = np.concatenate(ring_positions_list)
+        #    if not len(positions):
+        #        return np.arange(0, dtype=np.uint32), np.zeros((0, 2))
+
+        #    ring_ends = np.cumsum([
+        #        len(ring_positions) for ring_positions in ring_positions_list
+        #    ], dtype=np.uint32)
+        #    return mapbox_earcut.triangulate_float64(positions, ring_ends).reshape((-1, 3)).astype(np.int32), positions
 
         def concatenate_triangulations(
             triangulations: Iterable[tuple[NP_x3i4, NP_x2f8]]
@@ -193,9 +218,17 @@ class Shape(LeafAnimatable):
             all_positions = np.concatenate(positions_list)
             return all_faces, all_positions
 
+        clipper = pyclipr.Clipper()
+        clipper.addPaths([
+            positions[start:stop]
+            for start, stop in itertools.pairwise(cumcounts)
+        ], pyclipr.Subject)
+        poly_tree_root = clipper.execute2(pyclipr.Union, pyclipr.EvenOdd)
         return concatenate_triangulations(
-            get_polygon_triangulation(polygon)
-            for polygon in get_shapely_polygons(shapely_obj)
+            get_contour_triangulation(contour)
+            for contour in iter_contour_nodes(poly_tree_root.children)
+            #get_polygon_triangulation(polygon)
+            #for polygon in get_shapely_polygons(shapely_obj)
         )
 
     #@classmethod
@@ -380,110 +413,147 @@ class Shape(LeafAnimatable):
         )
 
     @classmethod
-    def from_shapely_obj(
+    def from_clipping(
         cls,
-        shapely_obj: shapely.geometry.base.BaseGeometry
+        *shape_path_type_pairs: "tuple[Shape, pyclipr.PathType]",
+        # http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/ClipType.htm
+        clip_type: pyclipr.ClipType,
+        # http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm
+        fill_type: pyclipr.FillType
     ):
+        clipper = pyclipr.Clipper()
+        for shape, path_type in shape_path_type_pairs:
+            clipper.addPaths([
+                shape._positions_[start:stop]
+                for start, stop in itertools.pairwise(shape._cumcounts_)
+            ], path_type)
+        path_list: list[NP_x2f8] = clipper.execute(clip_type, fill_type)
+        return cls.from_paths(path_list)
 
-        def iter_paths_from_shapely_obj(
-            shapely_obj: shapely.geometry.base.BaseGeometry
-        ) -> Iterator[NP_x2f8]:
-            positions_dtype = np.dtype((np.float64, (2,)))
-            match shapely_obj:
-                case shapely.geometry.Point() | shapely.geometry.LineString():
-                    yield np.fromiter(shapely_obj.coords, dtype=positions_dtype)
-                case shapely.geometry.Polygon():
-                    yield np.fromiter(shapely_obj.exterior.coords[:-1], dtype=positions_dtype)
-                    for interior in shapely_obj.interiors:
-                        yield np.fromiter(interior.coords[:-1], dtype=positions_dtype)
-                case shapely.geometry.base.BaseMultipartGeometry():
-                    for shapely_obj_component in shapely_obj.geoms:
-                        yield from iter_paths_from_shapely_obj(shapely_obj_component)
-                case _:
-                    raise TypeError
+    #@classmethod
+    #def from_shapely_obj(
+    #    cls,
+    #    shapely_obj: shapely.geometry.base.BaseGeometry
+    #):
 
-        return cls.from_paths(iter_paths_from_shapely_obj(shapely_obj))
+    #    def iter_paths_from_shapely_obj(
+    #        shapely_obj: shapely.geometry.base.BaseGeometry
+    #    ) -> Iterator[NP_x2f8]:
+    #        positions_dtype = np.dtype((np.float64, (2,)))
+    #        match shapely_obj:
+    #            case shapely.geometry.Point() | shapely.geometry.LineString():
+    #                yield np.fromiter(shapely_obj.coords, dtype=positions_dtype)
+    #            case shapely.geometry.Polygon():
+    #                yield np.fromiter(shapely_obj.exterior.coords[:-1], dtype=positions_dtype)
+    #                for interior in shapely_obj.interiors:
+    #                    yield np.fromiter(interior.coords[:-1], dtype=positions_dtype)
+    #            case shapely.geometry.base.BaseMultipartGeometry():
+    #                for shapely_obj_component in shapely_obj.geoms:
+    #                    yield from iter_paths_from_shapely_obj(shapely_obj_component)
+    #            case _:
+    #                raise TypeError
+
+    #    return cls.from_paths(iter_paths_from_shapely_obj(shapely_obj))
 
     # operations ported from shapely
 
-    @property
-    def shapely_obj(self) -> shapely.geometry.base.BaseGeometry:
-        return self._shapely_obj_
+    #@property
+    #def shapely_obj(self) -> shapely.geometry.base.BaseGeometry:
+    #    return self._shapely_obj_
 
-    @property
-    def area(self) -> float:
-        return self.shapely_obj.area
+    #@property
+    #def area(self) -> float:
+    #    return self.shapely_obj.area
 
-    def distance(
-        self: _ShapeT,
-        other: _ShapeT
-    ) -> float:
-        return self.shapely_obj.distance(other.shapely_obj)
+    #def distance(
+    #    self: _ShapeT,
+    #    other: _ShapeT
+    #) -> float:
+    #    return self.shapely_obj.distance(other.shapely_obj)
 
-    def hausdorff_distance(
-        self: _ShapeT,
-        other: _ShapeT
-    ) -> float:
-        return self.shapely_obj.hausdorff_distance(other.shapely_obj)
+    #def hausdorff_distance(
+    #    self: _ShapeT,
+    #    other: _ShapeT
+    #) -> float:
+    #    return self.shapely_obj.hausdorff_distance(other.shapely_obj)
 
-    @property
-    def length(self) -> float:
-        return self.shapely_obj.length
+    #@property
+    #def length(self) -> float:
+    #    return self.shapely_obj.length
 
-    @property
-    def centroid(self) -> NP_2f8:
-        return np.array(self.shapely_obj.centroid)
+    #@property
+    #def centroid(self) -> NP_2f8:
+    #    return np.array(self.shapely_obj.centroid)
 
-    @property
-    def convex_hull(self):
-        return type(self).from_shapely_obj(self.shapely_obj.convex_hull)
+    #@property
+    #def convex_hull(self):
+    #    return type(self).from_shapely_obj(self.shapely_obj.convex_hull)
 
-    @property
-    def envelope(self):
-        return type(self).from_shapely_obj(self.shapely_obj.envelope)
+    #@property
+    #def envelope(self):
+    #    return type(self).from_shapely_obj(self.shapely_obj.envelope)
 
-    def buffer(
-        self,
-        distance: float,
-        quad_segs: int = 16,
-        cap_style: str = "round",
-        join_style: str = "round",
-        mitre_limit: float = 5.0,
-        single_sided: bool = False
-    ):
-        return type(self).from_shapely_obj(self.shapely_obj.buffer(
-            distance=distance,
-            quad_segs=quad_segs,
-            cap_style=cap_style,
-            join_style=join_style,
-            mitre_limit=mitre_limit,
-            single_sided=single_sided
-        ))
+    #def buffer(
+    #    self,
+    #    distance: float,
+    #    quad_segs: int = 16,
+    #    cap_style: str = "round",
+    #    join_style: str = "round",
+    #    mitre_limit: float = 5.0,
+    #    single_sided: bool = False
+    #):
+    #    return type(self).from_shapely_obj(self.shapely_obj.buffer(
+    #        distance=distance,
+    #        quad_segs=quad_segs,
+    #        cap_style=cap_style,
+    #        join_style=join_style,
+    #        mitre_limit=mitre_limit,
+    #        single_sided=single_sided
+    #    ))
 
     def intersection(
         self: _ShapeT,
         other: _ShapeT
     ):
-        return type(self).from_shapely_obj(self.shapely_obj.intersection(other.shapely_obj))
+        return type(self).from_clipping(
+            (self, pyclipr.Subject),
+            (other, pyclipr.Clip),
+            clip_type=pyclipr.Intersection,
+            fill_rule=pyclipr.NonZero
+        )
 
     def union(
         self: _ShapeT,
         other: _ShapeT
     ):
-        return type(self).from_shapely_obj(self.shapely_obj.union(other.shapely_obj))
+        return type(self).from_clipping(
+            (self, pyclipr.Subject),
+            (other, pyclipr.Clip),
+            clip_type=pyclipr.Union,
+            fill_rule=pyclipr.NonZero
+        )
 
     def difference(
         self: _ShapeT,
         other: _ShapeT
     ):
-        return type(self).from_shapely_obj(self.shapely_obj.difference(other.shapely_obj))
+        return type(self).from_clipping(
+            (self, pyclipr.Subject),
+            (other, pyclipr.Clip),
+            clip_type=pyclipr.Difference,
+            fill_rule=pyclipr.NonZero
+        )
 
-    def symmetric_difference(
+    def xor(
         self: _ShapeT,
         other: _ShapeT
     ):
-        return type(self).from_shapely_obj(self.shapely_obj.symmetric_difference(other.shapely_obj))
-
+        return type(self).from_clipping(
+            (self, pyclipr.Subject),
+            (other, pyclipr.Clip),
+            clip_type=pyclipr.Xor,
+            fill_rule=pyclipr.NonZero
+        )
 
     #def _get_interpolate_updater(
     #    self: _ShapeT,

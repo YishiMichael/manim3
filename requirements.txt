@@ -3,8 +3,8 @@ mapbox-earcut
 moderngl
 numpy
 pillow
+pyclipr
 pyglet
 pyopengl
 scipy
-shapely
 svgelements
