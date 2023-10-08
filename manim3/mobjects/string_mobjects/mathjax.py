@@ -4,19 +4,23 @@ from __future__ import annotations
 import os
 import pathlib
 import re
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field
+)
 from typing import (
-    Iterable,
-    Self
+    Self,
+    Unpack
 )
 
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
 from .latex_string_mobject import (
-    LatexStringMobject,
     LatexStringMobjectIO,
-    LatexStringMobjectInputData
+    LatexStringMobjectKwargs,
+    LatexStringMobjectInput
 )
+from .string_mobject import StringMobject
 
 
 @dataclass(
@@ -24,12 +28,17 @@ from .latex_string_mobject import (
     kw_only=True,
     slots=True
 )
-class MathJaxInputData(LatexStringMobjectInputData):
-    extensions: list[str]
+class MathJaxInput(LatexStringMobjectInput):
+    extensions: tuple[str, ...] = field(default_factory=lambda: Toplevel.config.mathjax_extensions)
+    inline: bool = field(default_factory=lambda: Toplevel.config.mathjax_inline)
+
+
+class MathJaxKwargs(LatexStringMobjectKwargs, total=False):
+    extensions: tuple[str, ...]
     inline: bool
 
 
-class MathJaxIO(LatexStringMobjectIO):
+class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]):
     __slots__ = ()
 
     @classmethod
@@ -43,7 +52,7 @@ class MathJaxIO(LatexStringMobjectIO):
     def _create_svg(
         cls: type[Self],
         content: str,
-        input_data: MathJaxInputData,
+        input_data: MathJaxInputT,
         svg_path: pathlib.Path
     ) -> None:
         mathjax_program_path = PathUtils.plugins_dir.joinpath("mathjax/index.js")
@@ -71,40 +80,38 @@ class MathJaxIO(LatexStringMobjectIO):
         return 0.009758
 
 
-class MathJax(LatexStringMobject):
+class MathJax(StringMobject):
     __slots__ = ()
+
+    #_settings_dataclass: ClassVar[type[MathJaxInputSettings]] = MathJaxInputSettings
+    #_io_cls: ClassVar[type[MathJaxIO]] = MathJaxIO
 
     def __init__(
         self: Self,
         string: str,
-        *,
-        extensions: Iterable[str] | None = None,
-        inline: bool | None = None,
-        **kwargs
+        #*,
+        #extensions: list[str] | None = None,
+        #inline: bool | None = None,
+        **kwargs: Unpack[MathJaxKwargs]
     ) -> None:
-        config = Toplevel.config
-        if extensions is None:
-            extensions = config.mathjax_extensions
-        if inline is None:
-            inline = config.mathjax_inline
+        #config = Toplevel.config
+        #if extensions is None:
+        #    extensions = config.mathjax_extensions
+        #if inline is None:
+        #    inline = config.mathjax_inline
 
-        super().__init__(
-            string=string,
-            extensions=list(extensions),
-            inline=inline,
-            **kwargs
-        )
+        super().__init__(MathJaxIO.get(MathJaxInput(string=string, **kwargs)))
 
-    @classmethod
-    @property
-    def _io_cls(
-        cls: type[Self]
-    ) -> type[MathJaxIO]:
-        return MathJaxIO
+    #@classmethod
+    #@property
+    #def _io_cls(
+    #    cls: type[Self]
+    #) -> type[MathJaxIO]:
+    #    return MathJaxIO
 
-    @classmethod
-    @property
-    def _input_data_cls(
-        cls: type[Self]
-    ) -> type[MathJaxInputData]:
-        return MathJaxInputData
+    #@classmethod
+    #@property
+    #def _input_data_cls(
+    #    cls: type[Self]
+    #) -> type[MathJaxInputData]:
+    #    return MathJaxInputData

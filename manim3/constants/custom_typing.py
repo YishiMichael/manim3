@@ -62,4 +62,4 @@ NP_xxi4 = np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
 BoundaryT = Literal[0, 1]
 ColorT = Color | str | NP_3f8
 AlignmentT = Literal["left", "center", "right"]
-SelectorT = str | re.Pattern[str] | tuple[int, int]  # Slice is hashable in future versions.
+SelectorT = str | re.Pattern[str] | slice

@@ -4,19 +4,23 @@ from __future__ import annotations
 import os
 import pathlib
 import re
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field
+)
 from typing import (
-    Iterable,
-    Self
+    Self,
+    Unpack
 )
 
 from ...constants.custom_typing import AlignmentT
 from ...toplevel.toplevel import Toplevel
 from .latex_string_mobject import (
-    LatexStringMobject,
     LatexStringMobjectIO,
-    LatexStringMobjectInputData
+    LatexStringMobjectInput,
+    LatexStringMobjectKwargs
 )
+from .string_mobject import StringMobject
 
 
 @dataclass(
@@ -24,13 +28,19 @@ from .latex_string_mobject import (
     kw_only=True,
     slots=True
 )
-class TexInputData(LatexStringMobjectInputData):
-    compiler: str
-    preambles: list[str]
+class TexInput(LatexStringMobjectInput):
+    alignment: AlignmentT = field(default_factory=lambda: Toplevel.config.tex_alignment)
+    compiler: str = field(default_factory=lambda: Toplevel.config.tex_compiler)
+    preambles: tuple[str, ...] = field(default_factory=lambda: Toplevel.config.tex_preambles)
+
+
+class TexKwargs(LatexStringMobjectKwargs, total=False):
     alignment: AlignmentT
+    compiler: str
+    preambles: tuple[str, ...]
 
 
-class TexIO(LatexStringMobjectIO):
+class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
     __slots__ = ()
 
     @classmethod
@@ -44,7 +54,7 @@ class TexIO(LatexStringMobjectIO):
     def _create_svg(
         cls: type[Self],
         content: str,
-        input_data: TexInputData,
+        input_data: TexInputT,
         svg_path: pathlib.Path
     ) -> None:
         match input_data.compiler:
@@ -110,44 +120,30 @@ class TexIO(LatexStringMobjectIO):
         return 0.001577
 
 
-class Tex(LatexStringMobject):
+class Tex(StringMobject):
     __slots__ = ()
 
     def __init__(
         self: Self,
         string: str,
-        *,
-        alignment: AlignmentT | None = None,
-        compiler: str | None = None,
-        preambles: Iterable[str] | None = None,
-        **kwargs
+        #*,
+        #alignment: AlignmentT | None = None,
+        #compiler: str | None = None,
+        #preambles: Iterable[str] | None = None,
+        **kwargs: Unpack[TexKwargs]
     ) -> None:
-        config = Toplevel.config
-        if alignment is None:
-            alignment = config.tex_alignment
-        if compiler is None:
-            compiler = config.tex_compiler
-        if preambles is None:
-            preambles = config.tex_preambles
+        super().__init__(TexIO.get(TexInput(string=string, **kwargs)))
 
-        super().__init__(
-            string=string,
-            alignment=alignment,
-            compiler=compiler,
-            preambles=list(preambles),
-            **kwargs
-        )
+    #@classmethod
+    #@property
+    #def _io_cls(
+    #    cls: type[Self]
+    #) -> type[TexIO]:
+    #    return TexIO
 
-    @classmethod
-    @property
-    def _io_cls(
-        cls: type[Self]
-    ) -> type[TexIO]:
-        return TexIO
-
-    @classmethod
-    @property
-    def _input_data_cls(
-        cls: type[Self]
-    ) -> type[TexInputData]:
-        return TexInputData
+    #@classmethod
+    #@property
+    #def _input_data_cls(
+    #    cls: type[Self]
+    #) -> type[TexInputData]:
+    #    return TexInputData

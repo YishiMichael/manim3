@@ -192,9 +192,22 @@ class Graph(LeafAnimatable):
         positions_1 = graph_1._positions_
         edges_0 = graph_0._edges_
         edges_1 = graph_1._edges_
-        # TODO: support empty graphs
-        assert len(edges_0)
-        assert len(edges_1)
+
+        centroid_0: NP_x3f8 | None = None
+        centroid_1: NP_x3f8 | None = None
+        if len(edges_0):
+            samples_0 = positions_0[edges_0.flatten()]
+            centroid_0 = (np.max(samples_0, axis=0, keepdims=True) + np.min(samples_0, axis=0, keepdims=True)) / 2.0
+        if len(edges_1):
+            samples_1 = positions_1[edges_1.flatten()]
+            centroid_1 = (np.max(samples_1, axis=0, keepdims=True) + np.min(samples_1, axis=0, keepdims=True)) / 2.0
+
+        if centroid_0 is None or centroid_1 is None:
+            if centroid_0 is not None:
+                return positions_0, np.repeat(centroid_0, len(positions_0), axis=0), edges_0
+            if centroid_1 is not None:
+                return positions_1, np.repeat(centroid_1, len(positions_1), axis=0), edges_1
+            return np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0,), dtype=np.int32)
 
         cumlengths_0 = graph_0._cumlengths_
         cumlengths_1 = graph_1._cumlengths_
@@ -257,12 +270,12 @@ class Graph(LeafAnimatable):
             positions_0=np.concatenate((
                 positions_0,
                 outline_positions_0,
-                np.average(positions_0, axis=0, keepdims=True)
+                centroid_0
             )),
             positions_1=np.concatenate((
                 positions_1,
                 outline_positions_1,
-                np.average(positions_1, axis=0, keepdims=True)
+                centroid_1
             )),
             edges_0=np.concatenate((
                 outline_edges_0,

@@ -9,18 +9,12 @@ class ShapeTransformExample(Scene):
         square = (
             Square()
             .set(color=WHITE, opacity=1.0)
-        )
-        square.add(
-            square.build_stroke()
-            .set(color=YELLOW, width=0.0)
+            .add_strokes(color=YELLOW, width=0.0)
         )
         circle = (
             Circle()
             .set(color=PINK, opacity=0.9)
-        )
-        circle.add(
-            circle.build_stroke()
-            .set(color=YELLOW, weight=10)
+            .add_strokes(color=YELLOW, weight=10)
         )
 
         self.add(square)
@@ -32,25 +26,19 @@ class ShapeTransformExample(Scene):
 class TexTransformExample(Scene):
     async def timeline(self) -> None:
         text = (
-            Text("Text")
+            Text("Text", concatenate=True)
             .scale(3)
             .set(color=ORANGE, opacity=0.5)
-            .concatenate()
-        )
-        text.add(
-            text.build_stroke()
-            .set(color=BLUE, weight=10)
+            .add_strokes(color=BLUE, weight=10)
+            #.concatenate()
         )
         tex = (
-            Tex("Tex")
+            Tex("Tex", concatenate=True)
             .scale(3)
             .set(color=BLUE, opacity=0.5)
-            .concatenate()
+            #.concatenate()
             .shift(RIGHT * 2)
-        )
-        tex.add(
-            tex.build_stroke()
-            .set(color=PINK, weight=10)
+            .add_strokes(color=PINK, weight=10)
         )
         self.add(text)
         await self.wait()
@@ -61,14 +49,11 @@ class TexTransformExample(Scene):
 class CreateTexExample(Scene):
     async def timeline(self) -> None:
         text = (
-            Text("Text")
+            Text("Text", concatenate=True)
             .scale(3)
             .set(color=ORANGE, opacity=0.5)
-            .concatenate()
-        )
-        text.add(
-            text.build_stroke()
-            .set(color=BLUE, weight=10)
+            .add_strokes(color=BLUE, weight=10)
+            #.concatenate()
         )
         await self.wait()
         await self.play(Create(text), run_time=2, rate=Rates.smooth())
@@ -141,7 +126,7 @@ class FormulaExample(Scene):
     async def timeline(self) -> None:
         factored_formula = Tex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
-            local_colors={
+            local_color={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
@@ -149,7 +134,7 @@ class FormulaExample(Scene):
         expanded_formula = Tex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
-            local_colors={
+            local_color={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
@@ -292,27 +277,28 @@ class GameExample(Scene):
         ]
         keys = [KEY.D, KEY.F, KEY.J, KEY.K]
         x_coords = np.linspace(-3.0, 3.0, 4)
-        note_template = Mobject().add(
-            body := Polygon(np.array((
+        note_template = (
+            Polygon(np.array((
                 (0.5, 0.0),
                 (0.46, 0.04),
                 (-0.46, 0.04),
                 (-0.5, 0.0),
                 (-0.46, -0.04),
                 (0.46, -0.04)
-            ))).set(
+            )))
+            .set(
                 width=0.25,
                 color=BLUE_B,
                 opacity=0.95
-            ),
-            body.build_stroke()
+            )
+            .add_strokes()
         )
         judge_line = Line(8.0 * LEFT, 8.0 * RIGHT).shift(3.0 * DOWN).set(
             width=0.03,
             color=GOLD_A
         )
         key_texts = [
-            Text(char).concatenate().build_stroke().shift(x_coord * RIGHT + 2.0 * DOWN)
+            Text(char, concatenate=True).add_strokes().shift(x_coord * RIGHT + 2.0 * DOWN)
             for char, x_coord in zip("DFJK", x_coords, strict=True)
         ]
 

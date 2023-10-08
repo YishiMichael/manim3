@@ -4,19 +4,26 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field
+)
 from typing import (
     Self,
-    TypedDict
+    TypedDict,
+    Unpack
 )
 
 from ...toplevel.toplevel import Toplevel
 from .pango_string_mobject import (
-    PangoStringMobject,
     PangoStringMobjectIO,
-    PangoStringMobjectInputData
+    PangoStringMobjectInput,
+    PangoStringMobjectKwargs
 )
-from .string_mobject import Span
+from .string_mobject import (
+    Span,
+    StringMobject
+)
 
 
 # From `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
@@ -41,11 +48,16 @@ class _Token(TypedDict):
     kw_only=True,
     slots=True
 )
-class CodeInputData(PangoStringMobjectInputData):
+class CodeInput(PangoStringMobjectInput):
+    font: str = field(default_factory=lambda: Toplevel.config.code_font)
+    language_suffix: str = field(default_factory=lambda: Toplevel.config.code_language_suffix)
+
+
+class CodeKwargs(PangoStringMobjectKwargs, total=False):
     language_suffix: str
 
 
-class CodeIO(PangoStringMobjectIO):
+class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
     __slots__ = ()
 
     @classmethod
@@ -56,9 +68,9 @@ class CodeIO(PangoStringMobjectIO):
         return "code"
 
     @classmethod
-    def _get_local_attrs(
+    def _get_local_span_attrs(
         cls: type[Self],
-        input_data: CodeInputData,
+        input_data: CodeInputT,
         temp_path: pathlib.Path
     ) -> dict[Span, dict[str, str]]:
 
@@ -99,7 +111,7 @@ class CodeIO(PangoStringMobjectIO):
                 raise IOError("CodeIO: Failed to execute subl command")
 
             json_str = temp_path.with_suffix(".json").read_text(encoding="utf-8")
-            local_attrs = dict(
+            local_span_attrs = dict(
                 local_config_from_token(token)
                 for token in json.loads(json_str)
             )
@@ -107,46 +119,57 @@ class CodeIO(PangoStringMobjectIO):
             for suffix in (language_suffix, ".json"):
                 temp_path.with_suffix(suffix).unlink(missing_ok=True)
 
-        override_local_attrs = super()._get_local_attrs(input_data, temp_path)
-        for span, local_config in override_local_attrs.items():
-            local_attrs.setdefault(span, {}).update(local_config)
-        return local_attrs
+        #local_span_attrs = super()._get_local_span_attrs(input_data, temp_path)
+        for span, local_config in super()._get_local_span_attrs(input_data, temp_path).items():
+            local_span_attrs.setdefault(span, {}).update(local_config)
+        return local_span_attrs
+        #override_local_attrs = super()._get_local_attrs(input_data, temp_path)
+        #for span, local_config in override_local_attrs.items():
+        #    local_attrs.setdefault(span, {}).update(local_config)
+        #return local_attrs
 
 
-class Code(PangoStringMobject):
+class Code(StringMobject):
     __slots__ = ()
 
     def __init__(
         self: Self,
         string: str,
-        *,
-        font: str | None = None,
-        language_suffix: str | None = None,
-        **kwargs
+        **kwargs: Unpack[CodeKwargs]
     ) -> None:
-        config = Toplevel.config
-        if font is None:
-            font = config.code_font
-        if language_suffix is None:
-            language_suffix = config.code_language_suffix
+        super().__init__(CodeIO.get(CodeInput(string=string, **kwargs)))
 
-        super().__init__(
-            string=string,
-            font=font,
-            language_suffix=language_suffix,
-            **kwargs
-        )
+    #def __init__(
+    #    self: Self,
+    #    string: str,
+    #    *,
+    #    font: str | None = None,
+    #    language_suffix: str | None = None,
+    #    **kwargs
+    #) -> None:
+    #    config = Toplevel.config
+    #    if font is None:
+    #        font = config.code_font
+    #    if language_suffix is None:
+    #        language_suffix = config.code_language_suffix
 
-    @classmethod
-    @property
-    def _io_cls(
-        cls: type[Self]
-    ) -> type[CodeIO]:
-        return CodeIO
+    #    super().__init__(
+    #        string=string,
+    #        font=font,
+    #        language_suffix=language_suffix,
+    #        **kwargs
+    #    )
 
-    @classmethod
-    @property
-    def _input_data_cls(
-        cls: type[Self]
-    ) -> type[CodeInputData]:
-        return CodeInputData
+    #@classmethod
+    #@property
+    #def _io_cls(
+    #    cls: type[Self]
+    #) -> type[CodeIO]:
+    #    return CodeIO
+
+    #@classmethod
+    #@property
+    #def _input_data_cls(
+    #    cls: type[Self]
+    #) -> type[CodeInput]:
+    #    return CodeInput

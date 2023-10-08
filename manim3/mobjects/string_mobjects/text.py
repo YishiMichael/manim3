@@ -2,13 +2,17 @@ from __future__ import annotations
 
 
 from dataclasses import dataclass
-from typing import Self
+from typing import (
+    Self,
+    Unpack
+)
 
 from .pango_string_mobject import (
-    PangoStringMobject,
     PangoStringMobjectIO,
-    PangoStringMobjectInputData
+    PangoStringMobjectInput,
+    PangoStringMobjectKwargs
 )
+from .string_mobject import StringMobject
 
 
 @dataclass(
@@ -16,11 +20,15 @@ from .pango_string_mobject import (
     kw_only=True,
     slots=True
 )
-class TextInputData(PangoStringMobjectInputData):
+class TextInput(PangoStringMobjectInput):
     pass
 
 
-class TextIO(PangoStringMobjectIO):
+class TextKwargs(PangoStringMobjectKwargs, total=False):
+    pass
+
+
+class TextIO[TextInputT: TextInput](PangoStringMobjectIO[TextInputT]):
     __slots__ = ()
 
     @classmethod
@@ -31,19 +39,26 @@ class TextIO(PangoStringMobjectIO):
         return "text"
 
 
-class Text(PangoStringMobject):
+class Text(StringMobject):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _io_cls(
-        cls: type[Self]
-    ) -> type[TextIO]:
-        return TextIO
+    def __init__(
+        self: Self,
+        string: str,
+        **kwargs: Unpack[TextKwargs]
+    ) -> None:
+        super().__init__(TextIO.get(TextInput(string=string, **kwargs)))
 
-    @classmethod
-    @property
-    def _input_data_cls(
-        cls: type[Self]
-    ) -> type[TextInputData]:
-        return TextInputData
+    #@classmethod
+    #@property
+    #def _io_cls(
+    #    cls: type[Self]
+    #) -> type[TextIO]:
+    #    return TextIO
+
+    #@classmethod
+    #@property
+    #def _input_data_cls(
+    #    cls: type[Self]
+    #) -> type[TextInputData]:
+    #    return TextInputData

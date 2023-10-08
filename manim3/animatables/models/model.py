@@ -80,6 +80,11 @@ class Box(LazyObject):
     ) -> NP_3f8:
         return self._centroid_ + self._radii_ * direction + buff * direction
 
+    def get_radii(
+        self: Self
+    ) -> NP_3f8:
+        return self._radii_
+
     #def get_centroid(
     #    self: Self
     #) -> NP_3f8:

@@ -1,28 +1,25 @@
 from __future__ import annotations
 
 
-import pathlib
 import re
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    field
+)
 from typing import (
-    Iterable,
     Iterator,
     Self
 )
 
-from ...constants.custom_typing import (
-    ColorT,
-    SelectorT
-)
 from ...toplevel.toplevel import Toplevel
 from .string_mobject import (
+    BoundaryFlag,
     CommandFlag,
-    EdgeFlag,
-    Span,
-    StringMobject,
+    #StringMobject,
     StringMobjectIO,
-    StringMobjectInputData
+    StringMobjectInput,
+    StringMobjectKwargs
 )
 
 
@@ -31,35 +28,39 @@ from .string_mobject import (
     kw_only=True,
     slots=True
 )
-class LatexStringMobjectInputData(StringMobjectInputData):
+class LatexStringMobjectInput(StringMobjectInput):
+    font_size: float = field(default_factory=lambda: Toplevel.config.latex_font_size)
+    #local_spans: list[Span]
+
+
+class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
     font_size: float
-    local_spans: list[Span]
 
 
-class LatexStringMobjectIO(StringMobjectIO):
+class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT]):
     __slots__ = ()
 
-    @classmethod
-    def _get_global_attrs(
-        cls: type[Self],
-        input_data: LatexStringMobjectInputData,
-        temp_path: pathlib.Path
-    ) -> dict[str, str]:
-        return {}
+    #@classmethod
+    #def _get_global_attrs(
+    #    cls: type[Self],
+    #    input_data: LatexStringMobjectInputT,
+    #    temp_path: pathlib.Path
+    #) -> dict[str, str]:
+    #    return {}
 
-    @classmethod
-    def _get_local_attrs(
-        cls: type[Self],
-        input_data: LatexStringMobjectInputData,
-        temp_path: pathlib.Path
-    ) -> dict[Span, dict[str, str]]:
-        local_spans = input_data.local_spans
-        return {span: {} for span in local_spans}
+    #@classmethod
+    #def _get_local_attrs(
+    #    cls: type[Self],
+    #    input_data: LatexStringMobjectInputT,
+    #    temp_path: pathlib.Path
+    #) -> dict[Span, dict[str, str]]:
+    #    local_spans = input_data.local_spans
+    #    return {span: {} for span in local_spans}
 
     @classmethod
     def _get_svg_frame_scale(
         cls: type[Self],
-        input_data: LatexStringMobjectInputData
+        input_data: LatexStringMobjectInput
     ) -> float:
         return cls._scale_factor_per_font_point * input_data.font_size
 
@@ -155,12 +156,12 @@ class LatexStringMobjectIO(StringMobjectIO):
     def _get_command_string(
         cls: type[Self],
         label: int | None,
-        edge_flag: EdgeFlag,
+        boundary_flag: BoundaryFlag,
         attrs: dict[str, str]
     ) -> str:
         if label is None:
             return ""
-        if edge_flag == EdgeFlag.STOP:
+        if boundary_flag == BoundaryFlag.STOP:
             return "}}"
         rg, b = divmod(label, 256)
         r, g = divmod(rg, 256)
@@ -168,38 +169,49 @@ class LatexStringMobjectIO(StringMobjectIO):
         return "{{" + color_command
 
 
-class LatexStringMobject(StringMobject):
-    __slots__ = ()
+#class LatexStringMobject(StringMobject):
+#    __slots__ = ()
 
-    def __init__(
-        self: Self,
-        string: str,
-        *,
-        isolate: Iterable[SelectorT] = (),
-        protect: Iterable[SelectorT] = (),
-        color: ColorT | None = None,
-        font_size: float | None = None,
-        local_colors: dict[SelectorT, ColorT] | None = None,
-        **kwargs
-    ) -> None:
-        config = Toplevel.config
-        if color is None:
-            color = config.latex_color
-        if font_size is None:
-            font_size = config.latex_font_size
-        if local_colors is None:
-            local_colors = {}
+#    def __init__(
+#        self: Self,
+#        string: str,
+#        **kwargs: Unpack[LatexStringMobjectKwargs]
+#    ) -> None:
+#        super().__init__(string, **kwargs)
 
-        cls = type(self)
-        super().__init__(
-            string=string,
-            isolate=cls._get_spans_by_selectors(isolate, string),
-            protect=cls._get_spans_by_selectors(protect, string),
-            font_size=font_size,
-            local_spans=cls._get_spans_by_selectors(local_colors, string),
-            **kwargs
-        )
 
-        self.set(color=color)
-        for selector, local_color in local_colors.items():
-            self.select_parts(selector).set(color=local_color)
+#class LatexStringMobject(StringMobject):
+#    __slots__ = ()
+
+#    def __init__(
+#        self: Self,
+#        string: str,
+#        *,
+#        isolate: Iterable[SelectorT] = (),
+#        protect: Iterable[SelectorT] = (),
+#        color: ColorT | None = None,
+#        font_size: float | None = None,
+#        local_colors: dict[SelectorT, ColorT] | None = None,
+#        **kwargs
+#    ) -> None:
+#        config = Toplevel.config
+#        if color is None:
+#            color = config.latex_color
+#        if font_size is None:
+#            font_size = config.latex_font_size
+#        if local_colors is None:
+#            local_colors = {}
+
+#        cls = type(self)
+#        super().__init__(
+#            string=string,
+#            isolate=cls._get_spans_by_selectors(isolate, string),
+#            protect=cls._get_spans_by_selectors(protect, string),
+#            font_size=font_size,
+#            local_spans=cls._get_spans_by_selectors(local_colors, string),
+#            **kwargs
+#        )
+
+#        self.set(color=color)
+#        for selector, local_color in local_colors.items():
+#            self.select_parts(selector).set(color=local_color)

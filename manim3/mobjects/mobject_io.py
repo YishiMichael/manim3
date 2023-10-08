@@ -9,16 +9,40 @@ from abc import (
     abstractmethod
 )
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import (
     Iterator,
     Never,
-    Self
+    Self,
+    TypedDict
 )
 
 from ..utils.path_utils import PathUtils
 
 
-class MobjectIO[InputDataT, OutputDataT, JSONDataT](ABC):
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class MobjectInput:
+    pass
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class MobjectOutput:
+    pass
+
+
+class MobjectJSON(TypedDict):
+    pass
+
+
+class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, MobjectJSONT: MobjectJSON](ABC):
     __slots__ = ()
 
     def __new__(
@@ -29,8 +53,8 @@ class MobjectIO[InputDataT, OutputDataT, JSONDataT](ABC):
     @classmethod
     def get(
         cls: type[Self],
-        input_data: InputDataT
-    ) -> OutputDataT:
+        input_data: MobjectInputT
+    ) -> MobjectOutputT:
         # Notice that as we are using `str(input_data)` as key,
         # each item shall have an explicit string representation of data,
         # which shall not contain any information varying in each run, like addresses.
@@ -61,25 +85,25 @@ class MobjectIO[InputDataT, OutputDataT, JSONDataT](ABC):
     @abstractmethod
     def generate(
         cls: type[Self],
-        input_data: InputDataT,
+        input_data: MobjectInputT,
         temp_path: pathlib.Path
-    ) -> OutputDataT:
+    ) -> MobjectOutputT:
         pass
 
     @classmethod
     @abstractmethod
     def dump_json(
         cls: type[Self],
-        output_data: OutputDataT
-    ) -> JSONDataT:
+        output_data: MobjectOutputT
+    ) -> MobjectJSONT:
         pass
 
     @classmethod
     @abstractmethod
     def load_json(
         cls: type[Self],
-        json_data: JSONDataT
-    ) -> OutputDataT:
+        json_data: MobjectJSONT
+    ) -> MobjectOutputT:
         pass
 
     @classmethod

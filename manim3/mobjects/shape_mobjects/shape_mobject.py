@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 
-from typing import Self
+from typing import (
+    Self,
+    Unpack
+)
 
 import numpy as np
 
@@ -15,6 +18,7 @@ from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
+from ..mobject import MobjectSetKwargs
 #from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
 
 
@@ -50,9 +54,20 @@ class ShapeMobject(MeshMobject):
         )
 
     def build_stroke(
-        self: Self
+        self: Self,
+        **kwargs: Unpack[MobjectSetKwargs]
     ) -> GraphMobject:
         stroke = GraphMobject()
         stroke._model_matrix_ = self._model_matrix_.copy()
         stroke._graph_ = self._shape_._graph_.copy()
+        stroke.set(**kwargs)
         return stroke
+
+    def add_strokes(
+        self: Self,
+        **kwargs: Unpack[MobjectSetKwargs]
+    ) -> Self:
+        for mobject in self.iter_descendants():
+            if isinstance(mobject, ShapeMobject):
+                mobject.add(mobject.build_stroke(**kwargs))
+        return self

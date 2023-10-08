@@ -36,12 +36,12 @@ class Config:
     camera_near: float = 0.1
     camera_far: float = 100.0
 
+    default_color: ColorT = field(default_factory=lambda: Color("white"))
     background_color: ColorT = field(default_factory=lambda: Color("black"))
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
 
-    latex_color: ColorT = field(default_factory=lambda: Color("white"))
     latex_font_size: float = 30
     tex_alignment: AlignmentT = "left"
     tex_compiler: str = "xelatex"
@@ -62,7 +62,6 @@ class Config:
     )
     mathjax_inline: bool = False
 
-    pango_color: ColorT = field(default_factory=lambda: Color("white"))
     pango_font_size: float = 30
     pango_alignment: AlignmentT = "left"
     pango_font: str = "Consolas"

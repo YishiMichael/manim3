@@ -5,15 +5,19 @@ import re
 from dataclasses import dataclass
 from typing import (
     Iterator,
-    Self
+    Self,
+    Unpack
 )
 
 from .pango_string_mobject import (
-    PangoStringMobject,
     PangoStringMobjectIO,
-    PangoStringMobjectInputData
+    PangoStringMobjectInput,
+    PangoStringMobjectKwargs
 )
-from .string_mobject import CommandFlag
+from .string_mobject import (
+    CommandFlag,
+    StringMobject
+)
 
 
 @dataclass(
@@ -21,11 +25,15 @@ from .string_mobject import CommandFlag
     kw_only=True,
     slots=True
 )
-class MarkupInputData(PangoStringMobjectInputData):
+class MarkupInput(PangoStringMobjectInput):
     pass
 
 
-class MarkupIO(PangoStringMobjectIO):
+class MarkupKwargs(PangoStringMobjectKwargs, total=False):
+    pass
+
+
+class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
     __slots__ = ()
 
     @classmethod
@@ -97,19 +105,26 @@ class MarkupIO(PangoStringMobjectIO):
         return match_obj.group()
 
 
-class Markup(PangoStringMobject):
+class Markup(StringMobject):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _io_cls(
-        cls: type[Self]
-    ) -> type[MarkupIO]:
-        return MarkupIO
+    def __init__(
+        self: Self,
+        string: str,
+        **kwargs: Unpack[MarkupKwargs]
+    ) -> None:
+        super().__init__(MarkupIO.get(MarkupInput(string=string, **kwargs)))
 
-    @classmethod
-    @property
-    def _input_data_cls(
-        cls: type[Self]
-    ) -> type[MarkupInputData]:
-        return MarkupInputData
+    #@classmethod
+    #@property
+    #def _io_cls(
+    #    cls: type[Self]
+    #) -> type[MarkupIO]:
+    #    return MarkupIO
+
+    #@classmethod
+    #@property
+    #def _input_data_cls(
+    #    cls: type[Self]
+    #) -> type[MarkupInput]:
+    #    return MarkupInput

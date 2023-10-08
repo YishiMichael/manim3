@@ -2,14 +2,21 @@ from __future__ import annotations
 
 
 import pathlib
-from dataclasses import dataclass
-from typing import Self
+from dataclasses import (
+    dataclass,
+    field
+)
+from typing import (
+    Self,
+    Unpack
+)
 
 from ...toplevel.toplevel import Toplevel
+from .string_mobject import StringMobject
 from .tex import (
-    Tex,
     TexIO,
-    TexInputData
+    TexInput,
+    TexKwargs
 )
 
 
@@ -18,11 +25,15 @@ from .tex import (
     kw_only=True,
     slots=True
 )
-class MathTexInputData(TexInputData):
+class MathTexInput(TexInput):
+    inline: bool = field(default_factory=lambda: Toplevel.config.math_tex_inline)
+
+
+class MathTexKwargs(TexKwargs, total=False):
     inline: bool
 
 
-class MathTexIO(TexIO):
+class MathTexIO[MathTexInputT: MathTexInput](TexIO[MathTexInputT]):
     __slots__ = ()
 
     @classmethod
@@ -36,7 +47,7 @@ class MathTexIO(TexIO):
     def _create_svg(
         cls: type[Self],
         content: str,
-        input_data: MathTexInputData,
+        input_data: MathTexInputT,
         svg_path: pathlib.Path
     ) -> None:
         if input_data.inline:
@@ -46,36 +57,26 @@ class MathTexIO(TexIO):
         super()._create_svg(content, input_data, svg_path)
 
 
-class MathTex(Tex):
+class MathTex(StringMobject):
     __slots__ = ()
 
     def __init__(
         self: Self,
         string: str,
-        *,
-        inline: bool | None = None,
-        **kwargs
+        **kwargs: Unpack[MathTexKwargs]
     ) -> None:
-        config = Toplevel.config
-        if inline is None:
-            inline = config.math_tex_inline
+        super().__init__(MathTexIO.get(MathTexInput(string=string, **kwargs)))
 
-        super().__init__(
-            string=string,
-            inline=inline,
-            **kwargs
-        )
+    #@classmethod
+    #@property
+    #def _io_cls(
+    #    cls: type[Self]
+    #) -> type[MathTexIO]:
+    #    return MathTexIO
 
-    @classmethod
-    @property
-    def _io_cls(
-        cls: type[Self]
-    ) -> type[MathTexIO]:
-        return MathTexIO
-
-    @classmethod
-    @property
-    def _input_data_cls(
-        cls: type[Self]
-    ) -> type[MathTexInputData]:
-        return MathTexInputData
+    #@classmethod
+    #@property
+    #def _input_data_cls(
+    #    cls: type[Self]
+    #) -> type[MathTexInput]:
+    #    return MathTexInput
