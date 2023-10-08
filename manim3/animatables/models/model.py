@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 
-import itertools
-from abc import (
-    ABC,
-    abstractmethod
-)
+from abc import abstractmethod
 from typing import (
-    Callable,
-    ClassVar,
+    #Callable,
+    #ClassVar,
+    Iterator,
     Self
 )
 #from typing import TYPE_CHECKING
@@ -28,17 +25,16 @@ from ...constants.custom_typing import (
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...timelines.timeline.timeline import Timeline
 from ...utils.space_utils import SpaceUtils
-from ..arrays.model_matrix import (
-    AffineApplier,
-    ModelMatrix
-)
 from ..animatable.animatable import (
     Animatable,
     Animation
 )
 from ..animatable.piecewiser import Piecewiser
+from ..arrays.model_matrix import (
+    AffineApplier,
+    ModelMatrix
+)
 
 #if TYPE_CHECKING:
 #    from ...models.model.model import model
@@ -112,18 +108,14 @@ class Box(LazyObject):
 
 
 class Model(Animatable):
-    __slots__ = ("_model_actions",)
+    __slots__ = ()
 
-    _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_model_actions": lambda o: []
-    }
-
-    def __init__(
-        self: Self
-    ) -> None:
-        super().__init__()
-        self._model_actions: list[ModelAction] = []
-        #self._reset_animations()
+    #def __init__(
+    #    self: Self
+    #) -> None:
+    #    super().__init__()
+    #    self._model_actions: list[ModelAnimation] = []
+    #    #self._reset_animations()
 
     @Lazy.variable(freeze=False)
     @staticmethod
@@ -284,11 +276,11 @@ class Model(Animatable):
     #        associated_model._model_matrix_._apply(matrix)
     #    return self
 
-    def _reset_animations(
-        self: Self
-    ) -> None:
-        super()._reset_animations()
-        self._model_actions.clear()
+    #def _reset_animations(
+    #    self: Self
+    #) -> None:
+    #    super()._reset_animations()
+    #    self._model_actions.clear()
         #model_animation = ModelAnimation(model_matrices={
         #    model_assiciated._model_matrix_: model_assiciated._model_matrix_._array_
         #    for model_assiciated in (self, *self._associated_models_)
@@ -296,57 +288,51 @@ class Model(Animatable):
         #self._model_animation = model_animation
         #self._animations.append(model_animation)
 
-    def _submit_timeline(
-        self: Self
-    ) -> Timeline:
-        self._animations.append(ModelAnimation(tuple(self._model_actions)))
-        return super()._submit_timeline()
+    #def _submit_timeline(
+    #    self: Self
+    #) -> Timeline:
+    #    self._animations.append(ModelAnimation(tuple(self._model_actions)))
+    #    return super()._submit_timeline()
 
-    def _get_interpolate_animations(
+    def _iter_interpolate_animations(
         self: Self,
         src_0: Self,
         src_1: Self
-    ) -> list[Animation]:
-        animations = super()._get_interpolate_animations(src_0, src_1)
-        animations.extend(itertools.chain.from_iterable(
-            super(Model, dst_associated)._get_interpolate_animations(src_0_assiciated, src_1_assiciated)
-            for dst_associated, src_0_assiciated, src_1_assiciated in zip(
-                self._associated_models_, src_0._associated_models_, src_1._associated_models_, strict=True
-            )
-        ))
-        return animations
+    ) -> Iterator[Animation]:
+        yield from super()._iter_interpolate_animations(src_0, src_1)
+        for dst_associated, src_0_assiciated, src_1_assiciated in zip(
+            self._associated_models_, src_0._associated_models_, src_1._associated_models_, strict=True
+        ):
+            yield from super(Model, dst_associated)._iter_interpolate_animations(src_0_assiciated, src_1_assiciated)
 
-    def _get_piecewise_animations(
+    def _iter_piecewise_animations(
         self: Self,
         src: Self,
         piecewiser: Piecewiser
-    ) -> list[Animation]:
-        animations = super()._get_piecewise_animations(src, piecewiser)
-        animations.extend(itertools.chain.from_iterable(
-            super(Model, dst_associated)._get_piecewise_animations(src_assiciated, piecewiser)
-            for dst_associated, src_assiciated in zip(
-                self._associated_models_, src._associated_models_, strict=True
-            )
-        ))
-        return animations
+    ) -> Iterator[Animation]:
+        yield from super()._iter_piecewise_animations(src, piecewiser)
+        for dst_associated, src_assiciated in zip(
+            self._associated_models_, src._associated_models_, strict=True
+        ):
+            yield from super(Model, dst_associated)._iter_piecewise_animations(src_assiciated, piecewiser)
 
-    def _stack_model_action(
-        self: Self,
-        model_action: ModelAction
-    ) -> None:
-        #for animation in animations:
-        #    animation.update_boundary(1)
-        ##if self._saved_state is not None:
-        #self._animations.extend(animations)
-        model_action._act(1.0)
-        self._model_actions.append(model_action)
+    #def _stack_model_action(
+    #    self: Self,
+    #    model_action: ModelAction
+    #) -> None:
+    #    #for animation in animations:
+    #    #    animation.update_boundary(1)
+    #    ##if self._saved_state is not None:
+    #    #self._animations.extend(animations)
+    #    model_action._act(1.0)
+    #    self._model_actions.append(model_action)
 
     def shift(
         self: Self,
         vector: NP_3f8,
         mask: float | NP_3f8 = 1.0
     ) -> Self:
-        self._stack_model_action(ModelShiftAction(
+        self._stack_animation(ModelShiftAnimation(
             model=self,
             vector=vector,
             mask=mask * np.ones((3,))
@@ -366,7 +352,7 @@ class Model(Animatable):
             mask=mask
         )
         #signed_direction = direction_sign * direction
-        #self._stack_model_action(ModelShiftToAction(
+        #self._stack_animation(ModelShiftToAnimation(
         #    model=self,
         #    target=target,
         #    direction=direction,
@@ -420,7 +406,7 @@ class Model(Animatable):
     ) -> Self:
         if about is None:
             about = self
-        self._stack_model_action(ModelScaleAction(
+        self._stack_animation(ModelScaleAnimation(
             model=self,
             factor=factor * np.ones((3,)),
             about=about,
@@ -457,7 +443,7 @@ class Model(Animatable):
         #if about is None:
         #    about = self
         
-        #self._stack_model_action(ModelScaleToAction(
+        #self._stack_animation(ModelScaleToAnimation(
         #    model=self,
         #    target=target,
         #    #radii=self._radii_,
@@ -493,7 +479,7 @@ class Model(Animatable):
     ) -> Self:
         if about is None:
             about = self
-        self._stack_model_action(ModelRotateAction(
+        self._stack_animation(ModelRotateAnimation(
             model=self,
             rotvec=rotvec,
             about=about,
@@ -537,7 +523,7 @@ class Model(Animatable):
     ) -> Self:
         if about is None:
             about = self
-        self._stack_model_action(ModelApplyAction(
+        self._stack_animation(ModelApplyAnimation(
             model=self,
             matrix=matrix,
             about=about,
@@ -553,7 +539,7 @@ class Model(Animatable):
     #) -> Self:
     #    #if about is None:
     #    #    about = self
-    #    self._stack_model_action(ModelPoseAction(
+    #    self._stack_animation(ModelPoseAnimation(
     #        model=self,
     #        target=target,
     #        #matrix=self._matrix_,
@@ -564,37 +550,37 @@ class Model(Animatable):
     #    return self
 
 
+#class ModelAnimation(Animation):
+#    __slots__ = ()
+
+#    def __init__(
+#        self: Self,
+#        model_actions: tuple[ModelAnimation, ...]
+#    ) -> None:
+#        super().__init__()
+#        self._model_actions: tuple[ModelAnimation, ...] = model_actions
+#        #self._model: Model = model
+#        #self._model_matrices: dict[ModelMatrix, NP_44f8] = model_matrices
+
+#    def update(
+#        self: Self,
+#        alpha: float
+#    ) -> None:
+#        super().update(alpha)
+#        for model_action in reversed(self._model_actions):
+#            model_action._restore()
+#        for model_action in self._model_actions:
+#            model_action._act(alpha)
+
+#    def update_boundary(
+#        self: Self,
+#        boundary: BoundaryT
+#    ) -> None:
+#        super().update_boundary(boundary)
+#        self.update(float(boundary))
+
+
 class ModelAnimation(Animation):
-    __slots__ = ("_model_actions",)
-
-    def __init__(
-        self: Self,
-        model_actions: tuple[ModelAction, ...]
-    ) -> None:
-        super().__init__()
-        self._model_actions: tuple[ModelAction, ...] = model_actions
-        #self._model: Model = model
-        #self._model_matrices: dict[ModelMatrix, NP_44f8] = model_matrices
-
-    def update(
-        self: Self,
-        alpha: float
-    ) -> None:
-        super().update(alpha)
-        for model_action in reversed(self._model_actions):
-            model_action._restore()
-        for model_action in self._model_actions:
-            model_action._act(alpha)
-
-    def update_boundary(
-        self: Self,
-        boundary: BoundaryT
-    ) -> None:
-        super().update_boundary(boundary)
-        self.update(float(boundary))
-
-
-class ModelAction(ABC):
     __slots__ = (
         "_pre_shift_matrix",
         "_post_shift_matrix",
@@ -665,19 +651,36 @@ class ModelAction(ABC):
     ) -> NP_44f8:
         pass
 
-    def _restore(
-        self: Self
-    ) -> None:
-        for model_matrix, initial_model_matrix_array in self._model_matrices.items():
-            model_matrix._array_ = initial_model_matrix_array
+    #def _act(
+    #    self: Self,
+    #    alpha: float
+    #) -> None:
+    #    matrix = self._post_shift_matrix @ self._get_matrix(alpha) @ self._pre_shift_matrix
+    #    for model_matrix in self._model_matrices:
+    #        model_matrix._array_ = matrix @ model_matrix._array_
 
-    def _act(
+    def update(
         self: Self,
         alpha: float
     ) -> None:
+        super().update(alpha)
         matrix = self._post_shift_matrix @ self._get_matrix(alpha) @ self._pre_shift_matrix
         for model_matrix in self._model_matrices:
             model_matrix._array_ = matrix @ model_matrix._array_
+
+    def update_boundary(
+        self: Self,
+        boundary: BoundaryT
+    ) -> None:
+        super().update_boundary(boundary)
+        self.update(float(boundary))
+
+    def restore(
+        self: Self
+    ) -> None:
+        super().restore()
+        for model_matrix, initial_model_matrix_array in self._model_matrices.items():
+            model_matrix._array_ = initial_model_matrix_array
 
     #def restore(
     #    self: Self
@@ -831,7 +834,7 @@ class ModelAction(ABC):
 #        return self._matrix_ * alpha
 
 
-class ModelShiftAction(ModelAction):
+class ModelShiftAnimation(ModelAnimation):
     __slots__ = (
         "_vector",
         "_mask"
@@ -871,7 +874,7 @@ class ModelShiftAction(ModelAction):
     #    return vector * mask
 
 
-#class ModelShiftToAction(ModelAction):
+#class ModelShiftToAnimation(ModelAnimation):
 #    __slots__ = ("_mask",)
 
 #    def __init__(
@@ -933,7 +936,7 @@ class ModelShiftAction(ModelAction):
 #        return SpaceUtils.matrix_from_shift(self._vector_ * (self._mask * alpha))
 
 
-class ModelScaleAction(ModelAction):
+class ModelScaleAnimation(ModelAnimation):
     __slots__ = (
         "_factor",
         "_mask"
@@ -977,7 +980,7 @@ class ModelScaleAction(ModelAction):
     #    return np.maximum(vector * mask, 1e-8)
 
 
-#class ModelScaleToAction(ModelAction):
+#class ModelScaleToAnimation(ModelAnimation):
 #    __slots__ = ("_mask",)
 
 #    def __init__(
@@ -1030,7 +1033,7 @@ class ModelScaleAction(ModelAction):
 #        return SpaceUtils.matrix_from_scale(self._factor_ ** (self._mask * alpha))
 
 
-class ModelRotateAction(ModelAction):
+class ModelRotateAnimation(ModelAnimation):
     __slots__ = (
         "_rotvec",
         "_mask"
@@ -1073,7 +1076,7 @@ class ModelRotateAction(ModelAction):
     #    return vector * mask
 
 
-class ModelApplyAction(ModelAction):
+class ModelApplyAnimation(ModelAnimation):
     __slots__ = ("_matrix",)
 
     def __init__(
@@ -1097,7 +1100,7 @@ class ModelApplyAction(ModelAction):
         return SpaceUtils.lerp(np.identity(4), self._matrix, alpha)
 
 
-#class ModelPoseAction(ModelAction):
+#class ModelPoseAnimation(ModelAnimation):
 #    __slots__ = ()
 
 #    def __init__(

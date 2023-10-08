@@ -328,10 +328,6 @@ class AnimateChainExample(Scene):
         self.add(square)
 
         await self.play(square.animate(infinite=True).rotate(OUT).shift(RIGHT))
-        #await self.play(Parallel(
-        #    square.animate.rotate(OUT).build(infinite=True),
-        #    square.animate.shift(RIGHT).build(infinite=True)
-        #))
         await self.wait(5)
 
 

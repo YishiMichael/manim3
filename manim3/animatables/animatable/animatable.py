@@ -3,15 +3,14 @@ from __future__ import annotations
 
 #from abc import abstractmethod
 from dataclasses import dataclass
-import itertools
 from typing import (
     Any,
     Callable,
     ClassVar,
+    Iterable,
+    Iterator,
     Self
 )
-
-from manim3.timelines.composition.parallel import Parallel
 
 from ...timelines.timeline.rate import Rate
 from ...timelines.timeline.rates import Rates
@@ -96,27 +95,35 @@ class Animatable(LazyObject):
     #        if descriptor._is_variable and descriptor._element_type is not cls:
     #            yield descriptor
 
-    def _reset_animations(
-        self: Self
+    #def _reset_animations(
+    #    self: Self
+    #) -> None:
+    #    self._animations.clear()
+
+    def _stack_animation(
+        self: Self,
+        animation: Animation
     ) -> None:
-        self._animations.clear()
+        animation.update_boundary(1)
+        self._animations.append(animation)
 
     def _stack_animations(
         self: Self,
-        animations: list[Animation]
+        animations: Iterable[Animation]
     ) -> None:
         for animation in animations:
-            animation.update_boundary(1)
+            self._stack_animation(animation)
+            #animation.update_boundary(1)
         #if self._saved_state is not None:
-        self._animations.extend(animations)
+        #self._animations.extend(animations)
 
     def _set_animate_info(
         self: Self,
         animate_info: AnimateInfo
     ) -> None:
-        assert self._animate_info is None, "Already in animating mode"
+        assert self._animate_info is None, "Existing timeline has not been submitted"
         self._animate_info = animate_info
-        self._reset_animations()
+        self._animations.clear()
 
     def _submit_timeline(
         self: Self
@@ -124,19 +131,16 @@ class Animatable(LazyObject):
         #assert not infinite or not rewind
         #assert (saved_state := self._saved_state) is not None
         #self._copy_lazy_content(self, saved_state)
-        assert (animate_info := self._animate_info) is not None, "Not in animating mode"
+        assert (animate_info := self._animate_info) is not None, "Cannot submit simeline"
         rate = animate_info.rate
         if animate_info.rewind:
             rate = Rates.compose(rate, Rates.rewind())
         run_alpha = float("inf") if animate_info.infinite else 1.0
-        timeline = Parallel(*(
-            AnimationTimeline(
-                animation=animation,
-                rate=rate,
-                run_alpha=run_alpha
-            )
-            for animation in self._animations
-        ))
+        timeline = AnimationsTimeline(
+            animations=tuple(self._animations),
+            rate=rate,
+            run_alpha=run_alpha
+        )
         #timeline = AnimationTimeline(
         #    #instance=self,
         #    animation=self._animation,
@@ -148,7 +152,7 @@ class Animatable(LazyObject):
         #)
         self._animate_info = None
         #self._animation = Animation()
-        self._reset_animations()
+        self._animations.clear()
         return timeline
 
     @classmethod
@@ -158,12 +162,11 @@ class Animatable(LazyObject):
     ) -> Self:
         return animatable_input
 
-    def _get_interpolate_animations(
+    def _iter_interpolate_animations(
         self: Self,
         src_0: Self,
         src_1: Self
-    ) -> list[Animation]:
-        animations: list[Animation] = []
+    ) -> Iterator[Animation]:
         for descriptor in type(self)._animatable_descriptors.values():
             #assert issubclass(descriptor._element_type, Animatable)
             dst_elements = descriptor._get_elements(self)
@@ -171,42 +174,34 @@ class Animatable(LazyObject):
             src_1_elements = descriptor._get_elements(src_1)
             #if not issubclass(element_type, Animatable) and src_0_elements != src_1_elements:
             #    raise ValueError(f"Uninterpolable variables of `{descriptor._name}` don't match")
-            animations.extend(itertools.chain.from_iterable(
-                dst_element._get_interpolate_animations(src_0_element, src_1_element)
-                for dst_element, src_0_element, src_1_element in zip(
-                    dst_elements, src_0_elements, src_1_elements, strict=True
-                )
-            ))
-        return animations
+            for dst_element, src_0_element, src_1_element in zip(
+                dst_elements, src_0_elements, src_1_elements, strict=True
+            ):
+                yield from dst_element._iter_interpolate_animations(src_0_element, src_1_element)
 
-    def _get_piecewise_animations(
+    def _iter_piecewise_animations(
         self: Self,
         src: Self,
         piecewiser: Piecewiser
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
-    ) -> list[Animation]:
-        animations: list[Animation] = []
+    ) -> Iterator[Animation]:
         for descriptor in type(self)._animatable_descriptors.values():
             #assert issubclass(descriptor._element_type, Animatable)
             dst_elements = descriptor._get_elements(self)
             src_elements = descriptor._get_elements(src)
-            animations.extend(itertools.chain.from_iterable(
-                dst_element._get_piecewise_animations(src_element, piecewiser)
-                for dst_element, src_element in zip(
-                    dst_elements, src_elements, strict=True
-                )
-            ))
-        return animations
+            for dst_element, src_element in zip(
+                dst_elements, src_elements, strict=True
+            ):
+                yield from dst_element._iter_piecewise_animations(src_element, piecewiser)
         #pieces = tuple(cls() for _ in range(len(split_alphas) + 1))
         #cls._split(pieces, src, split_alphas)
         #cls._concatenate(dst, tuple(pieces[index] for index in concatenate_indices))
 
-    def _get_set_animations(
+    def _iter_set_animations(
         self: Self,
         **kwargs: Any
-    ) -> list[Animation]:
-        animations: list[Animation] = []
+    ) -> Iterator[Animation]:
         for attribute_name, animatable_input in kwargs.items():
             if (descriptor := type(self)._animatable_descriptors.get(f"_{attribute_name}_")) is None:
                 continue
@@ -222,10 +217,7 @@ class Animatable(LazyObject):
             #descriptor.__set__(self, target_animatable)
             #if self._saved_state is not None:
             for source_element, target_element in zip(source_elements, target_elements, strict=True):
-                animations.extend(source_element._get_interpolate_animations(
-                    source_element.copy(), target_element.copy()
-                ))
-        return animations
+                yield from source_element._iter_interpolate_animations(source_element.copy(), target_element.copy())
 
     #@classmethod
     #def _split(
@@ -294,7 +286,7 @@ class Animatable(LazyObject):
         animatable_0: Self,
         animatable_1: Self
     ) -> Self:
-        self._stack_animations(self._get_interpolate_animations(animatable_0, animatable_1))
+        self._stack_animations(self._iter_interpolate_animations(animatable_0, animatable_1))
         return self
 
     def piecewise(
@@ -302,14 +294,14 @@ class Animatable(LazyObject):
         animatable: Self,
         piecewiser: Piecewiser
     ) -> Self:
-        self._stack_animations(self._get_piecewise_animations(animatable, piecewiser))
+        self._stack_animations(self._iter_piecewise_animations(animatable, piecewiser))
         return self
 
     def set(
         self: Self,
         **kwargs: Any
     ) -> Self:
-        self._stack_animations(self._get_set_animations(**kwargs))
+        self._stack_animations(self._iter_set_animations(**kwargs))
         return self
 
     def transform(
@@ -325,7 +317,7 @@ class Animatable(LazyObject):
         animatable_1: Self,
         alpha: float
     ) -> Self:
-        for animation in self._get_interpolate_animations(animatable_0, animatable_1):
+        for animation in self._iter_interpolate_animations(animatable_0, animatable_1):
             animation.update(alpha)
         return self
 
@@ -335,29 +327,29 @@ class Animatable(LazyObject):
         piecewiser: Piecewiser,
         alpha: float
     ) -> Self:
-        for animation in self._get_piecewise_animations(animatable, piecewiser):
+        for animation in self._iter_piecewise_animations(animatable, piecewiser):
             animation.update(alpha)
         return self
 
 
-class LeafAnimationTimeline(Timeline):
+class LeafAnimationsTimeline(Timeline):
     __slots__ = (
         #"_instance",
-        "_animation",
+        "_animations",
         "_rate"
     )
 
     def __init__(
         self: Self,
         #instance: _T,
-        #animations: "tuple[Animation, ...]",
-        animation: Animation,
+        animations: tuple[Animation, ...],
+        #animation: Animation,
         rate: Rate,
         run_alpha: float
     ) -> None:
         super().__init__(run_alpha=run_alpha)
         #self._instance: _T = instance
-        self._animation: Animation = animation
+        self._animations: tuple[Animation, ...] = animations
         self._rate: Rate = rate
 
     def _update(
@@ -365,7 +357,13 @@ class LeafAnimationTimeline(Timeline):
         alpha: float
     ) -> None:
         #self._animation.restore()
-        self._animation.update(self._rate.at(alpha))
+        animations = self._animations
+        rated_alpha = self._rate.at(alpha)
+
+        for animation in reversed(animations):
+            animation.restore()
+        for animation in animations:
+            animation.update(rated_alpha)
 
     async def construct(
         self: Self
@@ -373,24 +371,24 @@ class LeafAnimationTimeline(Timeline):
         await self.wait(self._run_alpha)
 
 
-class AnimationTimeline(Timeline):
+class AnimationsTimeline(Timeline):
     __slots__ = (
         #"_instance",
-        "_animation",
+        "_animations",
         "_rate"
     )
 
     def __init__(
         self: Self,
         #instance: _T,
-        #animations: "tuple[Animation, ...]",
-        animation: Animation,
+        animations: tuple[Animation, ...],
+        #animation: Animation,
         rate: Rate,
         run_alpha: float
     ) -> None:
         super().__init__(run_alpha=run_alpha)
         #self._instance: _T = instance
-        self._animation: Animation = animation
+        self._animations: tuple[Animation, ...] = animations
         self._rate: Rate = rate
 
     #def update(
@@ -408,15 +406,24 @@ class AnimationTimeline(Timeline):
     ) -> None:
         #for animation in reversed(self._animations):
         #    animation.initial_update()
-        animation = self._animation
+        animations = self._animations
         rate = self._rate
 
+        for animation in reversed(animations):
+            animation.restore()
+        for animation in animations:
+            animation.update_boundary(rate.at_boundary(0))
         #animation.restore()
-        animation.update_boundary(rate.at_boundary(0))
-        await self.play(LeafAnimationTimeline(animation, rate, self._run_alpha))
+        #animation.update_boundary(rate.at_boundary(0))
+        await self.play(LeafAnimationsTimeline(animations, rate, self._run_alpha))
         #await self.wait(self._run_alpha)
         #animation.restore()
-        animation.update_boundary(rate.at_boundary(1))
+
+        for animation in reversed(animations):
+            animation.restore()
+        for animation in animations:
+            animation.update_boundary(rate.at_boundary(1))
+        #animation.update_boundary(rate.at_boundary(1))
         #for animation in self._animations:
         #    animation.final_update()
 
@@ -496,8 +503,9 @@ class Animation(LazyObject):
         #for animation in self._branch_animations:
         #    animation.update_boundary(boundary)
 
-    #def restore(
-    #    self: Self
-    #) -> None:
-    #    for animation in reversed(self._branch_animations):
-    #        animation.restore()
+    def restore(
+        self: Self
+    ) -> None:
+        pass
+        #for animation in reversed(self._branch_animations):
+        #    animation.restore()

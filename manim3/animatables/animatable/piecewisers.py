@@ -10,8 +10,8 @@ from typing import (
 import numpy as np
 
 from .piecewiser import (
-    Piecewiser,
-    PiecewiseData
+    PiecewiseData,
+    Piecewiser
 )
 
 
