@@ -4,10 +4,10 @@
 #    Mobject,
 #    RemodelBoundHandler
 #)
-#from ..animation.animation import Animation
+#from ..timeline.timeline import Timeline
 
 
-#class RemodelBase(Animation):
+#class RemodelBase(Timeline):
 #    __slots__ = ("_remodel_bound_handlers",)
 
 #    def __init__(

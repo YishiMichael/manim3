@@ -5,10 +5,10 @@
 #    NP_xi4
 #)
 #from ...mobjects.mobject import Mobject
-#from ..animation.animation import Animation
+#from ..timeline.timeline import Timeline
 
 
-#class PiecewiseBase(Animation):
+#class PiecewiseBase(Timeline):
 #    __slots__ = (
 #        "_mobject",
 #        #"_original_mobject",

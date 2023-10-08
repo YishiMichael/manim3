@@ -14,12 +14,12 @@ from ..animatable.leaf_animatable import (
 )
 
 
-class AnimatableArray[NPT: np.ndarray](LeafAnimatable):
+class AnimatableArray[NDArrayT: np.ndarray](LeafAnimatable):
     __slots__ = ()
 
     def __init__(
         self: Self,
-        array: NPT | None = None
+        array: NDArrayT | None = None
     ) -> None:
         super().__init__()
         if array is not None:
@@ -27,7 +27,7 @@ class AnimatableArray[NPT: np.ndarray](LeafAnimatable):
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
-    def _array_() -> NPT:
+    def _array_() -> NDArrayT:
         return NotImplemented
 
     @classmethod

@@ -97,24 +97,24 @@ class Conditions:
     #@classmethod
     #def launched(
     #    cls,
-    #    animation: "Animation"
+    #    timeline: "Timeline"
     #) -> Launched:
-    #    return Launched(animation)
+    #    return Launched(timeline)
 
     #@classmethod
     #def terminated(
     #    cls,
-    #    animation: "Animation"
+    #    timeline: "Timeline"
     #) -> Terminated:
-    #    return Terminated(animation)
+    #    return Terminated(timeline)
 
     #@classmethod
     #def progress_duration(
     #    cls,
-    #    animation: "Animation",
+    #    timeline: "Timeline",
     #    delta_alpha: float
     #) -> ProgressDuration:
-    #    return ProgressDuration(animation, delta_alpha)
+    #    return ProgressDuration(timeline, delta_alpha)
 
     #@classmethod
     #def event_captured(

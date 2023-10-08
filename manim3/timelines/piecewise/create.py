@@ -3,15 +3,16 @@ from __future__ import annotations
 
 from typing import Self
 
+from ...animatables.animatable.piecewiser import Piecewiser
 from ...animatables.animatable.piecewisers import Piecewisers
 from ...mobjects.mobject import Mobject
-from ..animation.animation import Animation
+from ..timeline.timeline import Timeline
 
 
-class Uncreate(Animation):
+class Create(Timeline):
     __slots__ = (
-        "_animation",
-        "_mobject"
+        "_mobject",
+        "_piecewiser"
     )
 
     def __init__(
@@ -22,14 +23,16 @@ class Uncreate(Animation):
         backwards: bool = False
     ) -> None:
         super().__init__(run_alpha=1.0)
-        self._animation: Animation = mobject.animate.piecewise(mobject.copy(), Piecewisers.partial(
+        self._mobject: Mobject = mobject
+        self._piecewiser: Piecewiser = Piecewisers.partial(
             n_segments=n_segments,
             backwards=backwards
-        )).build(rewind=True)
-        self._mobject: Mobject = mobject
+        )
 
-    async def timeline(
+    async def construct(
         self: Self
     ) -> None:
-        await self.play(self._animation)
-        self.scene.discard(self._mobject)
+        mobject = self._mobject
+
+        self.scene.add(mobject)
+        await self.play(mobject.animate().piecewise(mobject.copy(), self._piecewiser))

@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Self
 
 from ...mobjects.mobject import Mobject
-from ..animation.animation import Animation
+from ..timeline.timeline import Timeline
 
 #from ..transform.transform_from_copy import TransformFromCopy
 
@@ -12,26 +12,25 @@ from ..animation.animation import Animation
 #_MobjectT = TypeVar("_MobjectT", bound=Mobject)
 
 
-class FadeIn(Animation):
-    __slots__ = (
-        "_animation",
-        "_mobject"
-    )
+class FadeIn(Timeline):
+    __slots__ = ("_mobject",)
 
     def __init__(
         self: Self,
         mobject: Mobject
     ) -> None:
         super().__init__(run_alpha=1.0)
-        self._animation: Animation = mobject.animate.set(opacity=0.0).build(rewind=True)
+        #self._timeline: Timeline = mobject.animate(rewind=True).set(opacity=0.0).submit()
         self._mobject: Mobject = mobject
         #super().__init__(
         #    mobject=mobject,
         #    func=lambda mob: func(mob.set(opacity=0.0))
         #)
 
-    async def timeline(
+    async def construct(
         self: Self
     ) -> None:
-        self.scene.add(self._mobject)
-        await self.play(self._animation)
+        mobject = self._mobject
+
+        self.scene.add(mobject)
+        await self.play(mobject.animate(rewind=True).set(opacity=0.0))

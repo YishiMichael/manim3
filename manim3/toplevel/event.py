@@ -8,7 +8,7 @@ from abc import (
 from dataclasses import dataclass
 from typing import Self
 
-from ..animations.animation.condition import Condition
+from ..timelines.timeline.condition import Condition
 from .toplevel import Toplevel
 
 

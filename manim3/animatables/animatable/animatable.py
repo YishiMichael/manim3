@@ -2,6 +2,8 @@ from __future__ import annotations
 
 
 #from abc import abstractmethod
+from dataclasses import dataclass
+import itertools
 from typing import (
     Any,
     Callable,
@@ -9,31 +11,39 @@ from typing import (
     Self
 )
 
-from ...animations.animation.rate import Rate
-from ...animations.animation.rates import Rates
-from ...animations.animation.animation import Animation
-#from ..animations.animation.rates.linear import Linear
-#from ..animations.animation.rates.rate import Rate
-from ...constants.custom_typing import (
-    BoundaryT,
-    NP_xf8,
-    NP_xi4
-)
+from manim3.timelines.composition.parallel import Parallel
+
+from ...timelines.timeline.rate import Rate
+from ...timelines.timeline.rates import Rates
+from ...timelines.timeline.timeline import Timeline
+#from ..timelines.timeline.rates.linear import Linear
+#from ..timelines.timeline.rates.rate import Rate
+from ...constants.custom_typing import BoundaryT
 from ...lazy.lazy_descriptor import LazyDescriptor
 from ...lazy.lazy_object import LazyObject
 from .piecewiser import Piecewiser
-from .piecewisers import Piecewisers
+
+
+@dataclass(
+    frozen=True,
+    kw_only=True,
+    slots=True
+)
+class AnimateInfo:
+    rate: Rate
+    rewind: bool
+    infinite: bool
 
 
 class Animatable(LazyObject):
     __slots__ = (
-        "_in_animating_mode",
-        "_updater"
+        "_animate_info",
+        "_animations"
     )
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_in_animating_mode": lambda o: False,
-        "_updater": lambda o: Updater()
+        "_animate_info": lambda o: None,
+        "_animations": lambda o: []
     }
 
     _animatable_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
@@ -57,13 +67,14 @@ class Animatable(LazyObject):
         self: Self
     ) -> None:
         super().__init__()
-        self._in_animating_mode: bool = False
-        self._updater: Updater = Updater()
+        self._animate_info: AnimateInfo | None = None
+        self._animations: list[Animation] = []
+        #self._reset_animations()
 
     #@classmethod
-    #def _stack_updaters(
+    #def _stack_animations(
     #    cls,
-    #    method: "Callable[Concatenate[_T, _P], Iterator[Updater]]"
+    #    method: "Callable[Concatenate[_T, _P], Iterator[Animation]]"
     #) -> Callable[Concatenate[_T, _P], _T]:
 
     #    def result(
@@ -71,9 +82,9 @@ class Animatable(LazyObject):
     #        *args: _P.args,
     #        **kwargs: _P.kwargs
     #    ) -> _T:
-    #        for updater in method(self, *args, **kwargs):
-    #            self._updaters.append(updater)
-    #            updater.update(1.0)
+    #        for animation in method(self, *args, **kwargs):
+    #            self._animations.append(animation)
+    #            animation.update(1.0)
     #        return self
 
     #    return result
@@ -85,6 +96,61 @@ class Animatable(LazyObject):
     #        if descriptor._is_variable and descriptor._element_type is not cls:
     #            yield descriptor
 
+    def _reset_animations(
+        self: Self
+    ) -> None:
+        self._animations.clear()
+
+    def _stack_animations(
+        self: Self,
+        animations: list[Animation]
+    ) -> None:
+        for animation in animations:
+            animation.update_boundary(1)
+        #if self._saved_state is not None:
+        self._animations.extend(animations)
+
+    def _set_animate_info(
+        self: Self,
+        animate_info: AnimateInfo
+    ) -> None:
+        assert self._animate_info is None, "Already in animating mode"
+        self._animate_info = animate_info
+        self._reset_animations()
+
+    def _submit_timeline(
+        self: Self
+    ) -> Timeline:
+        #assert not infinite or not rewind
+        #assert (saved_state := self._saved_state) is not None
+        #self._copy_lazy_content(self, saved_state)
+        assert (animate_info := self._animate_info) is not None, "Not in animating mode"
+        rate = animate_info.rate
+        if animate_info.rewind:
+            rate = Rates.compose(rate, Rates.rewind())
+        run_alpha = float("inf") if animate_info.infinite else 1.0
+        timeline = Parallel(*(
+            AnimationTimeline(
+                animation=animation,
+                rate=rate,
+                run_alpha=run_alpha
+            )
+            for animation in self._animations
+        ))
+        #timeline = AnimationTimeline(
+        #    #instance=self,
+        #    animation=self._animation,
+        #    rate=rate,
+        #    run_alpha=float("inf") if infinite else 1.0
+        #    #infinite=infinite,
+        #    #run_alpha=float("inf") if infinite else 1.0,
+        #    #rewind=rewind
+        #)
+        self._animate_info = None
+        #self._animation = Animation()
+        self._reset_animations()
+        return timeline
+
     @classmethod
     def _convert_input(
         cls: type[Self],
@@ -92,20 +158,12 @@ class Animatable(LazyObject):
     ) -> Self:
         return animatable_input
 
-    def _stack_updater(
-        self: Self,
-        updater: Updater
-    ) -> None:
-        updater.update_boundary(1)
-        #if self._saved_state is not None:
-        self._updater.add(updater)
-
-    def _get_interpolate_updater(
+    def _get_interpolate_animations(
         self: Self,
         src_0: Self,
         src_1: Self
-    ) -> Updater:
-        updater = Updater()
+    ) -> list[Animation]:
+        animations: list[Animation] = []
         for descriptor in type(self)._animatable_descriptors.values():
             #assert issubclass(descriptor._element_type, Animatable)
             dst_elements = descriptor._get_elements(self)
@@ -113,42 +171,42 @@ class Animatable(LazyObject):
             src_1_elements = descriptor._get_elements(src_1)
             #if not issubclass(element_type, Animatable) and src_0_elements != src_1_elements:
             #    raise ValueError(f"Uninterpolable variables of `{descriptor._name}` don't match")
-            updater.add(*(
-                dst_element._get_interpolate_updater(src_0_element, src_1_element)
+            animations.extend(itertools.chain.from_iterable(
+                dst_element._get_interpolate_animations(src_0_element, src_1_element)
                 for dst_element, src_0_element, src_1_element in zip(
                     dst_elements, src_0_elements, src_1_elements, strict=True
                 )
             ))
-        return updater
+        return animations
 
-    def _get_piecewise_updater(
+    def _get_piecewise_animations(
         self: Self,
         src: Self,
         piecewiser: Piecewiser
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
-    ) -> Updater:
-        updater = Updater()
+    ) -> list[Animation]:
+        animations: list[Animation] = []
         for descriptor in type(self)._animatable_descriptors.values():
             #assert issubclass(descriptor._element_type, Animatable)
             dst_elements = descriptor._get_elements(self)
             src_elements = descriptor._get_elements(src)
-            updater.add(*(
-                dst_element._get_piecewise_updater(src_element, piecewiser)
+            animations.extend(itertools.chain.from_iterable(
+                dst_element._get_piecewise_animations(src_element, piecewiser)
                 for dst_element, src_element in zip(
                     dst_elements, src_elements, strict=True
                 )
             ))
-        return updater
+        return animations
         #pieces = tuple(cls() for _ in range(len(split_alphas) + 1))
         #cls._split(pieces, src, split_alphas)
         #cls._concatenate(dst, tuple(pieces[index] for index in concatenate_indices))
 
-    def _get_set_updater(
+    def _get_set_animations(
         self: Self,
         **kwargs: Any
-    ) -> Updater:
-        updater = Updater()
+    ) -> list[Animation]:
+        animations: list[Animation] = []
         for attribute_name, animatable_input in kwargs.items():
             if (descriptor := type(self)._animatable_descriptors.get(f"_{attribute_name}_")) is None:
                 continue
@@ -164,10 +222,10 @@ class Animatable(LazyObject):
             #descriptor.__set__(self, target_animatable)
             #if self._saved_state is not None:
             for source_element, target_element in zip(source_elements, target_elements, strict=True):
-                updater.add(source_element._get_interpolate_updater(
+                animations.extend(source_element._get_interpolate_animations(
                     source_element.copy(), target_element.copy()
                 ))
-        return updater
+        return animations
 
     #@classmethod
     #def _split(
@@ -200,11 +258,11 @@ class Animatable(LazyObject):
     #        ):
     #            element_type._concatenate(dst_element, src_element_tuple)
 
-    #def _get_interpolate_updater(
+    #def _get_interpolate_animation(
     #    self: _AnimatableT,
     #    animatable_0: _AnimatableT,
     #    animatable_1: _AnimatableT
-    #) -> Updater:
+    #) -> Animation:
     #    raise NotImplementedError
 
     #def interpolate(
@@ -212,57 +270,31 @@ class Animatable(LazyObject):
     #    animatable_0: _AnimatableT,
     #    animatable_1: _AnimatableT
     #):
-    #    self._stack_updater(type(self)._interpolate(
+    #    self._stack_animation(type(self)._interpolate(
     #        self, animatable_0, animatable_1
     #    ))
     #    return self
 
-    @property
     def animate(
-        self: Self
-    ) -> Self:
-        assert not self._in_animating_mode, "Already in animating mode"
-        self._in_animating_mode = True
-        self._updater = Updater()
-        return self
-
-    def build(
         self: Self,
         rate: Rate = Rates.linear(),
         rewind: bool = False,
         #run_alpha: float = 1.0,
         infinite: bool = False
-        #rewind: bool = False
-    ) -> UpdaterAnimation:
-        #assert not infinite or not rewind
-        #assert (saved_state := self._saved_state) is not None
-        #self._copy_lazy_content(self, saved_state)
-        assert self._in_animating_mode, "Not in animating mode"
-        if rewind:
-            rate = Rates.compose(rate, Rates.rewind())
-        animation = self._updater.build_animation(
+    ) -> Self:
+        self._set_animate_info(AnimateInfo(
             rate=rate,
+            rewind=rewind,
             infinite=infinite
-        )
-        #animation = UpdaterAnimation(
-        #    #instance=self,
-        #    updater=self._updater,
-        #    rate=rate,
-        #    run_alpha=float("inf") if infinite else 1.0
-        #    #infinite=infinite,
-        #    #run_alpha=float("inf") if infinite else 1.0,
-        #    #rewind=rewind
-        #)
-        self._in_animating_mode = False
-        self._updater = Updater()
-        return animation
+        ))
+        return self
 
     def interpolate(
         self: Self,
         animatable_0: Self,
         animatable_1: Self
     ) -> Self:
-        self._stack_updater(self._get_interpolate_updater(animatable_0, animatable_1))
+        self._stack_animations(self._get_interpolate_animations(animatable_0, animatable_1))
         return self
 
     def piecewise(
@@ -270,14 +302,14 @@ class Animatable(LazyObject):
         animatable: Self,
         piecewiser: Piecewiser
     ) -> Self:
-        self._stack_updater(self._get_piecewise_updater(animatable, piecewiser))
+        self._stack_animations(self._get_piecewise_animations(animatable, piecewiser))
         return self
 
     def set(
         self: Self,
-        **kwargs
+        **kwargs: Any
     ) -> Self:
-        self._stack_updater(self._get_set_updater(**kwargs))
+        self._stack_animations(self._get_set_animations(**kwargs))
         return self
 
     def transform(
@@ -293,101 +325,103 @@ class Animatable(LazyObject):
         animatable_1: Self,
         alpha: float
     ) -> Self:
-        self._get_interpolate_updater(animatable_0, animatable_1).update(alpha)
+        for animation in self._get_interpolate_animations(animatable_0, animatable_1):
+            animation.update(alpha)
         return self
 
     def static_piecewise(
         self: Self,
         animatable: Self,
-        split_alphas: NP_xf8,
-        concatenate_indices: NP_xi4
+        piecewiser: Piecewiser,
+        alpha: float
     ) -> Self:
-        self._get_piecewise_updater(animatable, Piecewisers.static(split_alphas, concatenate_indices)).update(1.0)
+        for animation in self._get_piecewise_animations(animatable, piecewiser):
+            animation.update(alpha)
         return self
 
 
-class LeafUpdaterAnimation(Animation):
+class LeafAnimationTimeline(Timeline):
     __slots__ = (
         #"_instance",
-        "_updater",
+        "_animation",
         "_rate"
     )
 
     def __init__(
         self: Self,
         #instance: _T,
-        #updaters: "tuple[Updater, ...]",
-        updater: Updater,
+        #animations: "tuple[Animation, ...]",
+        animation: Animation,
         rate: Rate,
         run_alpha: float
     ) -> None:
         super().__init__(run_alpha=run_alpha)
         #self._instance: _T = instance
-        self._updater: Updater = updater
+        self._animation: Animation = animation
         self._rate: Rate = rate
 
-    def _animate_instant(
+    def _update(
         self: Self,
         alpha: float
     ) -> None:
-        self._updater.restore()
-        self._updater.update(self._rate.at(alpha))
+        #self._animation.restore()
+        self._animation.update(self._rate.at(alpha))
 
-    async def timeline(
+    async def construct(
         self: Self
     ) -> None:
         await self.wait(self._run_alpha)
 
 
-class UpdaterAnimation(Animation):
+class AnimationTimeline(Timeline):
     __slots__ = (
         #"_instance",
-        "_updater",
+        "_animation",
         "_rate"
     )
 
     def __init__(
         self: Self,
         #instance: _T,
-        #updaters: "tuple[Updater, ...]",
-        updater: Updater,
+        #animations: "tuple[Animation, ...]",
+        animation: Animation,
         rate: Rate,
         run_alpha: float
     ) -> None:
         super().__init__(run_alpha=run_alpha)
         #self._instance: _T = instance
-        self._updater: Updater = updater
+        self._animation: Animation = animation
         self._rate: Rate = rate
 
     #def update(
     #    self,
     #    alpha: float
     #) -> None:
-    #    self._updater.update(self._rate.at(alpha))
+    #    self._animation.update(self._rate.at(alpha))
     #    #sub_alpha = self._rate.at(alpha)
     #    #instance = self._instance
-    #    #for updater in self._updaters:
-    #    #    updater.update(sub_alpha)
+    #    #for animation in self._animations:
+    #    #    animation.update(sub_alpha)
 
-    async def timeline(
+    async def construct(
         self: Self
     ) -> None:
-        #for updater in reversed(self._updaters):
-        #    updater.initial_update()
-        updater = self._updater
+        #for animation in reversed(self._animations):
+        #    animation.initial_update()
+        animation = self._animation
         rate = self._rate
 
-        updater.restore()
-        updater.update_boundary(rate.at_boundary(0))
-        await self.play(LeafUpdaterAnimation(updater, rate, self._run_alpha))
+        #animation.restore()
+        animation.update_boundary(rate.at_boundary(0))
+        await self.play(LeafAnimationTimeline(animation, rate, self._run_alpha))
         #await self.wait(self._run_alpha)
-        updater.restore()
-        updater.update_boundary(rate.at_boundary(1))
-        #for updater in self._updaters:
-        #    updater.final_update()
+        #animation.restore()
+        animation.update_boundary(rate.at_boundary(1))
+        #for animation in self._animations:
+        #    animation.final_update()
 
 
-#class Updater(LazyObject):
+#class Animation(LazyObject):
 #    __slots__ = ()
 
 #    #def __init__(
@@ -413,49 +447,57 @@ class UpdaterAnimation(Animation):
 #        pass
 
 
-class Updater(LazyObject):
-    __slots__ = ("_branch_updaters",)
+class Animation(LazyObject):
+    __slots__ = ()
 
-    def __init__(
-        self: Self
-    ) -> None:
-        super().__init__()
-        self._branch_updaters: list[Updater] = []
+    #def __init__(
+    #    self: Self
+    #) -> None:
+    #    super().__init__()
+    #    self._branch_animations: list[Animation] = []
 
-    def add(
-        self: Self,
-        *updaters: Updater
-    ) -> Self:
-        self._branch_updaters.extend(updaters)
-        return self
+    #def add(
+    #    self: Self,
+    #    *animations: Animation
+    #) -> Self:
+    #    self._branch_animations.extend(animations)
+    #    return self
 
-    def build_animation(
-        self: Self,
-        rate: Rate = Rates.linear(),
-        infinite: bool = False
-    ) -> UpdaterAnimation:
-        return UpdaterAnimation(
-            updater=self,
-            rate=rate,
-            run_alpha=float("inf") if infinite else 1.0
-        )
+    #def clear(
+    #    self: Self
+    #) -> Self:
+    #    self._branch_animations.clear()
+    #    return self
+
+    #def build_timeline(
+    #    self: Self,
+    #    rate: Rate = Rates.linear(),
+    #    infinite: bool = False
+    #) -> AnimationTimeline:
+    #    return AnimationTimeline(
+    #        animation=self,
+    #        rate=rate,
+    #        run_alpha=float("inf") if infinite else 1.0
+    #    )
 
     def update(
         self: Self,
         alpha: float
     ) -> None:
-        for updater in self._branch_updaters:
-            updater.update(alpha)
+        pass
+        #for animation in self._branch_animations:
+        #    animation.update(alpha)
 
     def update_boundary(
         self: Self,
         boundary: BoundaryT
     ) -> None:
-        for updater in self._branch_updaters:
-            updater.update_boundary(boundary)
+        pass
+        #for animation in self._branch_animations:
+        #    animation.update_boundary(boundary)
 
-    def restore(
-        self: Self
-    ) -> None:
-        for updater in reversed(self._branch_updaters):
-            updater.restore()
+    #def restore(
+    #    self: Self
+    #) -> None:
+    #    for animation in reversed(self._branch_animations):
+    #        animation.restore()

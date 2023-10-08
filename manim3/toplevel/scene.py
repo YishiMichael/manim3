@@ -18,9 +18,7 @@ from ..animatables.cameras.camera import Camera
 from ..animatables.cameras.perspective_camera import PerspectiveCamera
 from ..animatables.lights.ambient_light import AmbientLight
 from ..animatables.lights.lighting import Lighting
-from ..animations.animation.animation import Animation
-#from ..animations.animation.animating_states import AfterAnimating
-#from ..animations.animation.animation_state import AnimationState
+from ..timelines.timeline.timeline import Timeline
 from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
@@ -30,7 +28,7 @@ from .config import Config
 from .toplevel import Toplevel
 
 
-class Scene(Animation):
+class Scene(Timeline):
     __slots__ = (
         "_camera",
         "_lighting",
@@ -90,7 +88,7 @@ class Scene(Animation):
                     asyncio.sleep(sleep_time),
                     return_exceptions=False  #True
                 )
-                if self.get_after_animating_state() is not None:
+                if self.get_after_terminated_state() is not None:
                     break
 
             self._root_mobject._render_scene(color_framebuffer)

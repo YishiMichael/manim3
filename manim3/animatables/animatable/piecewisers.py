@@ -9,39 +9,10 @@ from typing import (
 
 import numpy as np
 
-from ...constants.custom_typing import (
-    NP_xf8,
-    NP_xi4
-)
 from .piecewiser import (
     Piecewiser,
     PiecewiseData
 )
-
-
-class StaticPiecewiser(Piecewiser):
-    __slots__ = (
-        "_split_alphas",
-        "_concatenate_indices"
-    )
-
-    def __init__(
-        self: Self,
-        split_alphas: NP_xf8,
-        concatenate_indices: NP_xi4
-    ) -> None:
-        super().__init__()
-        self._split_alphas: NP_xf8 = split_alphas
-        self._concatenate_indices: NP_xi4 = concatenate_indices
-
-    def piecewise(
-        self: Self,
-        alpha: float
-    ) -> PiecewiseData:
-        return PiecewiseData(
-            split_alphas=self._split_alphas,
-            concatenate_indices=self._concatenate_indices
-        )
 
 
 class EvenPiecewiser(Piecewiser):
@@ -182,17 +153,6 @@ class Piecewisers:
         cls: type[Self]
     ) -> Never:
         raise TypeError
-
-    @classmethod
-    def static(
-        cls: type[Self],
-        split_alphas: NP_xf8,
-        concatenate_indices: NP_xi4
-    ) -> StaticPiecewiser:
-        return StaticPiecewiser(
-            split_alphas=split_alphas,
-            concatenate_indices=concatenate_indices
-        )
 
     @classmethod
     def partial(

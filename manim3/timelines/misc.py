@@ -81,40 +81,40 @@ class TransformMatchingStrings(Parallel):
                     continue
                 yield result
 
-        def get_animation_items(
-            animation_items: Iterable[tuple[bool, tuple[Iterable[Iterable[ShapeMobject]], ...]]],
+        def get_timeline_items(
+            timeline_items: Iterable[tuple[bool, tuple[Iterable[Iterable[ShapeMobject]], ...]]],
             children_tuple: tuple[Iterable[ShapeMobject], ...]
         ) -> Iterator[tuple[bool, tuple[list[list[ShapeMobject]], ...]]]:
             used_mobject_set_tuple: tuple[set[ShapeMobject], ...] = tuple(set() for _ in children_tuple)
-            animation_mobject_list_list_tuple: tuple[list[list[ShapeMobject]], ...] = tuple([] for _ in children_tuple)
-            animation_used_mobject_set_tuple: tuple[set[ShapeMobject], ...] = tuple(set() for _ in children_tuple)
-            for shape_match, mobject_iter_iter_tuple in animation_items:
-                for mobject_iter_iter, used_mobject_set, animation_mobject_list_list, animation_used_mobject_set in zip(
+            timeline_mobject_list_list_tuple: tuple[list[list[ShapeMobject]], ...] = tuple([] for _ in children_tuple)
+            timeline_used_mobject_set_tuple: tuple[set[ShapeMobject], ...] = tuple(set() for _ in children_tuple)
+            for shape_match, mobject_iter_iter_tuple in timeline_items:
+                for mobject_iter_iter, used_mobject_set, timeline_mobject_list_list, timeline_used_mobject_set in zip(
                     mobject_iter_iter_tuple,
                     used_mobject_set_tuple,
-                    animation_mobject_list_list_tuple,
-                    animation_used_mobject_set_tuple,
+                    timeline_mobject_list_list_tuple,
+                    timeline_used_mobject_set_tuple,
                     strict=True
                 ):
-                    animation_mobject_list_list.clear()
-                    animation_used_mobject_set.clear()
+                    timeline_mobject_list_list.clear()
+                    timeline_used_mobject_set.clear()
                     for mobject_iter in mobject_iter_iter:
                         mobject_list = list(mobject_iter)
                         if not mobject_list:
                             continue
-                        if used_mobject_set.intersection(mobject_list) or animation_used_mobject_set.intersection(mobject_list):
+                        if used_mobject_set.intersection(mobject_list) or timeline_used_mobject_set.intersection(mobject_list):
                             continue
-                        animation_mobject_list_list.append(mobject_list)
-                        animation_used_mobject_set.update(mobject_list)
-                if not all(animation_mobject_list_list_tuple):
+                        timeline_mobject_list_list.append(mobject_list)
+                        timeline_used_mobject_set.update(mobject_list)
+                if not all(timeline_mobject_list_list_tuple):
                     continue
-                yield shape_match, animation_mobject_list_list_tuple
-                for used_mobject_set, animation_used_mobject_set in zip(
+                yield shape_match, timeline_mobject_list_list_tuple
+                for used_mobject_set, timeline_used_mobject_set in zip(
                     used_mobject_set_tuple,
-                    animation_used_mobject_set_tuple,
+                    timeline_used_mobject_set_tuple,
                     strict=True
                 ):
-                    used_mobject_set.update(animation_used_mobject_set)
+                    used_mobject_set.update(timeline_used_mobject_set)
 
             rest_mobject_list_tuple = tuple(list(children_iter) for children_iter in children_tuple)
             for rest_mobject_list, used_mobject_set in zip(
@@ -131,7 +131,7 @@ class TransformMatchingStrings(Parallel):
                 for rest_mobject_list in rest_mobject_list_tuple
             )
 
-        def get_animations(
+        def get_timelines(
             shape_match: bool,
             mobject_list_list_tuple: tuple[list[list[ShapeMobject]], ...]
         ) -> Iterator[FadeTransform | Transform]:
@@ -192,7 +192,7 @@ class TransformMatchingStrings(Parallel):
 
         parser_0 = start_mobject._parser
         parser_1 = stop_mobject._parser
-        animation_item_groups: tuple[tuple[bool, Iterable[tuple[Iterable[Iterable[ShapeMobject]], ...]]], ...] = (
+        timeline_item_groups: tuple[tuple[bool, Iterable[tuple[Iterable[Iterable[ShapeMobject]], ...]]], ...] = (
             #(False, (
             #    (
             #        parser_0.iter_iter_shape_mobjects_by_selector(selector_0),
@@ -209,12 +209,12 @@ class TransformMatchingStrings(Parallel):
                 parser_1.iter_group_part_items()
             ))
         )
-        animations = list(itertools.chain.from_iterable(
-            get_animations(shape_match, mobject_list_list_tuple)
-            for shape_match, mobject_list_list_tuple in get_animation_items(
-                animation_items=(
+        timelines = list(itertools.chain.from_iterable(
+            get_timelines(shape_match, mobject_list_list_tuple)
+            for shape_match, mobject_list_list_tuple in get_timeline_items(
+                timeline_items=(
                     (shape_match, mobject_iter_iter_tuple)
-                    for shape_match, mobject_iter_iter_tuple_iter in animation_item_groups
+                    for shape_match, mobject_iter_iter_tuple_iter in timeline_item_groups
                     for mobject_iter_iter_tuple in mobject_iter_iter_tuple_iter
                 ),
                 children_tuple=(
@@ -224,18 +224,18 @@ class TransformMatchingStrings(Parallel):
             )
         ))
 
-        super().__init__(*animations)
+        super().__init__(*timelines)
         self._start_mobject: StringMobject = start_mobject
         self._stop_mobject: StringMobject = stop_mobject
         self._to_discard: list[Mobject] = [
-            animation._stop_mobject
-            for animation in animations
+            timeline._stop_mobject
+            for timeline in timelines
         ]
 
-    async def timeline(
+    async def construct(
         self: Self
     ) -> None:
         self.scene.discard(self._start_mobject)
-        await super().timeline()
+        await super().construct()
         self.scene.add(self._stop_mobject)
         self.scene.discard(*self._to_discard)

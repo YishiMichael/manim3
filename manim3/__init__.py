@@ -12,35 +12,6 @@ from .animatables.lights.lighting import Lighting
 from .animatables.lights.point_light import PointLight
 from .animatables.models.point import Point
 
-from .animations.animation.condition import Condition
-from .animations.animation.conditions import Conditions
-from .animations.animation.rate import Rate
-from .animations.animation.rates import Rates
-from .animations.animation.animation import Animation
-from .animations.composition.lagged import Lagged
-from .animations.composition.parallel import Parallel
-from .animations.composition.series import Series
-from .animations.fade.fade_in import FadeIn
-from .animations.fade.fade_out import FadeOut
-from .animations.fade.fade_transform import FadeTransform
-from .animations.piecewise.create import Create
-from .animations.piecewise.dashed import Dashed
-from .animations.piecewise.flash import Flash
-from .animations.piecewise.uncreate import Uncreate
-#from .animations.remodel.rotate import Rotate
-#from .animations.remodel.rotating import Rotating
-#from .animations.remodel.scale import Scale
-#from .animations.remodel.scaling import Scaling
-#from .animations.remodel.shift import Shift
-#from .animations.remodel.shifting import Shifting
-#from .animations.transform.transform import Transform
-#from .animations.transform.transform_from import TransformFrom
-#from .animations.transform.transform_from_copy import TransformFromCopy
-#from .animations.transform.transform_to import TransformTo
-#from .animations.transform.transform_to_copy import TransformToCopy
-from .animations.misc import TransformMatchingStrings
-from .animations.transform import Transform
-
 from .constants.constants import *
 from .constants.custom_typing import *
 from .constants.palette import *
@@ -112,6 +83,35 @@ from .rendering.mgl_enums import (
     PrimitiveMode
 )
 from .rendering.vertex_array import VertexArray
+
+from .timelines.timeline.condition import Condition
+from .timelines.timeline.conditions import Conditions
+from .timelines.timeline.rate import Rate
+from .timelines.timeline.rates import Rates
+from .timelines.timeline.timeline import Timeline
+from .timelines.composition.lagged import Lagged
+from .timelines.composition.parallel import Parallel
+from .timelines.composition.series import Series
+from .timelines.fade.fade_in import FadeIn
+from .timelines.fade.fade_out import FadeOut
+from .timelines.fade.fade_transform import FadeTransform
+from .timelines.piecewise.create import Create
+from .timelines.piecewise.dashed import Dashed
+from .timelines.piecewise.flash import Flash
+from .timelines.piecewise.uncreate import Uncreate
+#from .timelines.remodel.rotate import Rotate
+#from .timelines.remodel.rotating import Rotating
+#from .timelines.remodel.scale import Scale
+#from .timelines.remodel.scaling import Scaling
+#from .timelines.remodel.shift import Shift
+#from .timelines.remodel.shifting import Shifting
+#from .timelines.transform.transform import Transform
+#from .timelines.transform.transform_from import TransformFrom
+#from .timelines.transform.transform_from_copy import TransformFromCopy
+#from .timelines.transform.transform_to import TransformTo
+#from .timelines.transform.transform_to_copy import TransformToCopy
+from .timelines.misc import TransformMatchingStrings
+from .timelines.transform import Transform
 
 from .toplevel.events import Events
 from .toplevel.config import Config

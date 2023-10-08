@@ -2,10 +2,10 @@
 #    InterpolateBoundHandler,
 #    Mobject
 #)
-#from ..animation.animation import Animation
+#from ..timeline.timeline import Timeline
 
 
-#class TransformBase(Animation):
+#class TransformBase(Timeline):
 #    __slots__ = (
 #        "_interpolate_bound_handlers",
 #        "_start_mobject",

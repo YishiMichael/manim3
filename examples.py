@@ -5,7 +5,7 @@ from manim3 import *
 
 
 class ShapeTransformExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         square = (
             Square()
             .set(color=WHITE, opacity=1.0)
@@ -24,7 +24,7 @@ class ShapeTransformExample(Scene):
 
 
 class TexTransformExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         text = (
             Text("Text", concatenate=True)
             .scale(3)
@@ -47,7 +47,7 @@ class TexTransformExample(Scene):
 
 
 class CreateTexExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         text = (
             Text("Text", concatenate=True)
             .scale(3)
@@ -63,7 +63,7 @@ class CreateTexExample(Scene):
 
 
 class ThreeDExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         dodec = (
             Dodecahedron()
             .scale(2.0)
@@ -77,22 +77,22 @@ class ThreeDExample(Scene):
             )
         )
         self.add(dodec)
-        self.prepare(self.camera.animate.rotate(0.5 * DOWN).build(infinite=True))
+        self.prepare(self.camera.animate(infinite=True).rotate(0.5 * DOWN))
 
-        text = Text("Dodecahedron")
-        await self.play(Parallel(*(
-            Parallel(
-                FadeIn(char),
-                char.animate.shift(DOWN).build(rewind=True)
-                #Shift(char, UP, arrive=True)
-            )
-            for char in text
-        ), lag_time=0.5), rate=Rates.smooth())
+        #text = Text("Dodecahedron")
+        #await self.play(Parallel(*(
+        #    Parallel(
+        #        FadeIn(char),
+        #        char.animate.shift(DOWN).build(rewind=True)
+        #        #Shift(char, UP, arrive=True)
+        #    )
+        #    for char in text
+        #), lag_time=0.5), rate=Rates.smooth())
         await self.wait(3)
 
 
 class OITExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         self.add(*(
             (Circle()
                 .set(color=color, opacity=opacity)
@@ -109,12 +109,12 @@ class OITExample(Scene):
 
 
 class LaggedAnimationExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         text = Text("Text").scale(3)
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
-                char.animate.shift(DOWN).build(rewind=True)
+                char.animate(rewind=True).shift(DOWN)
                 #Shift(char, UP, arrive=True)
             )
             for char in text
@@ -123,7 +123,7 @@ class LaggedAnimationExample(Scene):
 
 
 class FormulaExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         factored_formula = Tex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             local_color={
@@ -146,7 +146,7 @@ class FormulaExample(Scene):
 
 
 class InteractiveExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         squares = ShapeMobject().add(*(
             (
                 Circle()
@@ -161,17 +161,17 @@ class InteractiveExample(Scene):
         ))
         text = Text("Press space to animate.").shift(1.5 * DOWN)
         self.add(squares, text)
-        animations = [
-            square.animate.shift(UP).build()
+        timelines = [
+            square.animate().shift(UP)._submit_timeline()
             for square in squares
         ]
-        for animation in animations:
+        for timeline in timelines:
             self.prepare(
-                animation,
+                timeline,
                 rate=Rates.smooth(),
                 launch_condition=Events.key_press(KEY.SPACE).captured()
             )
-        await self.wait_until(Conditions.all(animation.terminated() for animation in animations))
+        await self.wait_until(Conditions.all(timeline.terminated() for timeline in timelines))
         await self.wait()
 
 
@@ -222,7 +222,7 @@ class MobjectPositionInRange(Condition):
         ))
 
 
-class NoteAnimation(Animation):
+class NoteTimeline(Timeline):
     __slots__ = (
         "_note",
         "_key"
@@ -237,12 +237,12 @@ class NoteAnimation(Animation):
         self._note: Mobject = note
         self._key: int = key
 
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         note = self._note
         judge_condition = MobjectPositionInRange(note, y_min=-3.4, y_max=-2.6)
         self.scene.add(note)
         await self.play(
-            note.animate.shift(7.0 * DOWN).build(infinite=True),
+            note.animate(infinite=True).shift(7.0 * DOWN),
             terminate_condition=Conditions.any((
                 Conditions.all((
                     Events.key_press(self._key).captured(),
@@ -254,7 +254,7 @@ class NoteAnimation(Animation):
         if not judge_condition.judge():
             note.set(opacity=0.4)
             await self.play(
-                note.animate.shift(10.0 * DOWN).build(infinite=True),
+                note.animate(infinite=True).shift(10.0 * DOWN),
                 terminate_condition=MobjectPositionInRange(note, y_max=-5.0)
             )
             self.scene.discard(note)
@@ -262,13 +262,13 @@ class NoteAnimation(Animation):
 
         await self.play(Parallel(
             FadeOut(note),
-            note.animate.scale(1.5).build()
+            note.animate().scale(1.5)
             #Scale(note, 1.5, AboutCenter())
         ), rate=Rates.rush_from())
 
 
 class GameExample(Scene):
-    async def timeline(self) -> None:
+    async def construct(self) -> None:
         score = [
             "|  | |    |      |     |   | |  ",
             " |  |    |     |   |  |   |  | |",
@@ -317,17 +317,17 @@ class GameExample(Scene):
                 if note_char == " ":
                     continue
                 note = note_template.copy().shift(x_coord * RIGHT + 5.0 * UP)
-                self.prepare(NoteAnimation(note, key))
+                self.prepare(NoteTimeline(note, key))
             await self.wait(0.25)
         await self.wait(3.0)
 
 
-class UpdatingExample(Scene):
-    async def timeline(self) -> None:
+class AnimateChainExample(Scene):
+    async def construct(self) -> None:
         square = Square().shift(4 * LEFT)
         self.add(square)
 
-        await self.play(square.animate.shift(RIGHT).rotate(OUT).build(infinite=True))
+        await self.play(square.animate(infinite=True).rotate(OUT).shift(RIGHT))
         #await self.play(Parallel(
         #    square.animate.rotate(OUT).build(infinite=True),
         #    square.animate.shift(RIGHT).build(infinite=True)
@@ -343,7 +343,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    ThreeDExample.render(config)
+    AnimateChainExample.render(config)
 
 
 if __name__ == "__main__":

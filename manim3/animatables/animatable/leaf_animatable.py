@@ -14,7 +14,7 @@ from ...constants.custom_typing import (
 from ...lazy.lazy import Lazy
 from .animatable import (
     Animatable,
-    Updater
+    Animation
 )
 from .piecewiser import Piecewiser
 
@@ -55,24 +55,24 @@ class LeafAnimatable(Animatable):
     ) -> Self:
         pass
 
-    def _get_interpolate_updater(
+    def _get_interpolate_animation(
         self: Self,
         src_0: Self,
         src_1: Self
-    ) -> Updater:
-        return super()._get_interpolate_updater(src_0, src_1).add(
-            LeafAnimatableInterpolateUpdater(self, src_0, src_1)
+    ) -> Animation:
+        return super()._get_interpolate_animation(src_0, src_1).add(
+            LeafAnimatableInterpolateAnimation(self, src_0, src_1)
         )
 
-    def _get_piecewise_updater(
+    def _get_piecewise_animation(
         self: Self,
         src: Self,
         piecewiser: Piecewiser
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
-    ) -> Updater:
-        return super()._get_piecewise_updater(src, piecewiser).add(
-            LeafAnimatablePiecewiseUpdater(self, src, piecewiser)
+    ) -> Animation:
+        return super()._get_piecewise_animation(src, piecewiser).add(
+            LeafAnimatablePiecewiseAnimation(self, src, piecewiser)
         )
 
 
@@ -95,7 +95,7 @@ class LeafAnimatableInterpolateInfo[LeafAnimatableT: LeafAnimatable](ABC):
         pass
 
 
-class LeafAnimatableInterpolateUpdater[LeafAnimatableT: LeafAnimatable](Updater):
+class LeafAnimatableInterpolateAnimation[LeafAnimatableT: LeafAnimatable](Animation):
     __slots__ = ("_dst",)
 
     def __init__(
@@ -145,7 +145,7 @@ class LeafAnimatableInterpolateUpdater[LeafAnimatableT: LeafAnimatable](Updater)
         self._dst._copy_lazy_content(self._src_1_ if boundary else self._src_0_)
 
 
-class LeafAnimatablePiecewiseUpdater[LeafAnimatableT: LeafAnimatable](Updater):
+class LeafAnimatablePiecewiseAnimation[LeafAnimatableT: LeafAnimatable](Animation):
     __slots__ = (
         "_dst",
         "_src",
