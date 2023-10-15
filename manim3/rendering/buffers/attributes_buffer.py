@@ -6,7 +6,8 @@ from typing import Self
 import numpy as np
 
 from ...lazy.lazy import Lazy
-from ..buffer_formats.buffer_layout import BufferLayout
+from ..buffer_layouts.buffer_layout import BufferLayout
+from ..buffer_layouts.std140_buffer_layout import Std140BufferLayout
 from .write_only_buffer import WriteOnlyBuffer
 
 
@@ -38,6 +39,6 @@ class AttributesBuffer(WriteOnlyBuffer):
 
     @Lazy.property(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _layout_() -> BufferLayout:
+    def _layout_() -> type[BufferLayout]:
         # Let's keep using std140 layout, hopefully giving a faster processing speed.
-        return BufferLayout.STD140
+        return Std140BufferLayout

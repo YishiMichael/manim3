@@ -7,7 +7,6 @@ import numpy as np
 
 from ...lazy.lazy import Lazy
 from .buffer_format import BufferFormat
-from .buffer_layout import BufferLayout
 
 
 class StructuredBufferFormat(BufferFormat):
@@ -18,29 +17,33 @@ class StructuredBufferFormat(BufferFormat):
         *,
         name: str,
         shape: tuple[int, ...],
-        children: list[BufferFormat],
-        layout: BufferLayout
+        children: tuple[BufferFormat, ...],
+        offsets: tuple[int, ...],
+        itemsize: int,
+        base_alignment: int
+        #children: list[BufferFormat],
+        #layout: BufferLayout
     ) -> None:
-        if layout == BufferLayout.STD140:
-            base_alignment = 16
-        else:
-            base_alignment = 1
+        #if layout == BufferLayout.STD140:
+        #    base_alignment = 16
+        #else:
+        #    base_alignment = 1
 
-        offsets: list[int] = []
-        offset: int = 0
-        for child in children:
-            offset += (-offset) % child._base_alignment_
-            offsets.append(offset)
-            offset += child._nbytes_
-        offset += (-offset) % base_alignment
+        #offsets: list[int] = []
+        #offset: int = 0
+        #for child in children:
+        #    offset += (-offset) % child._base_alignment_
+        #    offsets.append(offset)
+        #    offset += child._nbytes_
+        #offset += (-offset) % base_alignment
 
         super().__init__(
             name=name,
             shape=shape
         )
-        self._children_ = tuple(children)
-        self._offsets_ = tuple(offsets)
-        self._itemsize_ = offset
+        self._children_ = children
+        self._offsets_ = offsets
+        self._itemsize_ = itemsize
         self._base_alignment_ = base_alignment
 
     @Lazy.variable_collection()

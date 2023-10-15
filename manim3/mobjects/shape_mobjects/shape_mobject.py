@@ -8,6 +8,7 @@ from typing import (
 
 import numpy as np
 
+from ...animatables.animatable.animatable import SetKwargs
 from ...animatables.geometries.mesh import Mesh
 from ...animatables.geometries.shape import Shape
 from ...constants.custom_typing import (
@@ -18,7 +19,6 @@ from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
-from ..mobject import MobjectSetKwargs
 #from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
 
 
@@ -55,7 +55,7 @@ class ShapeMobject(MeshMobject):
 
     def build_stroke(
         self: Self,
-        **kwargs: Unpack[MobjectSetKwargs]
+        **kwargs: Unpack[SetKwargs]
     ) -> GraphMobject:
         stroke = GraphMobject()
         stroke._model_matrix_ = self._model_matrix_.copy()
@@ -65,7 +65,7 @@ class ShapeMobject(MeshMobject):
 
     def add_strokes(
         self: Self,
-        **kwargs: Unpack[MobjectSetKwargs]
+        **kwargs: Unpack[SetKwargs]
     ) -> Self:
         for mobject in self.iter_descendants():
             if isinstance(mobject, ShapeMobject):

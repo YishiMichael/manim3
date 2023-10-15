@@ -6,7 +6,8 @@ from typing import (
     #Callable,
     #ClassVar,
     Iterator,
-    Self
+    Self,
+    Unpack
 )
 #from typing import TYPE_CHECKING
 
@@ -28,9 +29,10 @@ from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.space_utils import SpaceUtils
 from ..animatable.animatable import (
     Animatable,
+    AnimatableAnimationBuilder,
+    AnimateKwargs,
     Animation
 )
-from ..animatable.piecewiser import Piecewiser
 from ..arrays.model_matrix import (
     AffineApplier,
     ModelMatrix
@@ -124,7 +126,7 @@ class Model(Animatable):
 
     @Lazy.variable_collection()
     @staticmethod
-    def _associated_models_() -> tuple[Model, ...]:
+    def _proper_siblings_() -> tuple[Model, ...]:
         return ()
 
     @Lazy.property()
@@ -176,11 +178,11 @@ class Model(Animatable):
     @staticmethod
     def _box_(
         world_sample_positions: NP_x3f8,
-        associated_models__world_sample_positions: tuple[NP_x3f8, ...]
+        proper_siblings__world_sample_positions: tuple[NP_x3f8, ...]
     ) -> Box:
         sample_positions = np.concatenate((
             world_sample_positions,
-            *associated_models__world_sample_positions
+            *proper_siblings__world_sample_positions
         ))
         if not len(sample_positions):
             return Box(
@@ -219,20 +221,29 @@ class Model(Animatable):
     #def get_centroid(self) -> NP_3f8:
     #    return self._box_._centroid_
 
+    def _iter_siblings(
+        self: Self,
+        *,
+        broadcast: bool = True
+    ) -> Iterator[Animatable]:
+        yield from super()._iter_siblings(broadcast=broadcast)
+        if broadcast:
+            yield from self._proper_siblings_
+
     def copy(
         self: Self
     ) -> Self:
         result = super().copy()
-        associated_models = self._associated_models_
-        associated_models_copy = tuple(
-            super(Model, associated_model).copy()
-            for associated_model in associated_models
+        proper_siblings = self._proper_siblings_
+        proper_siblings_copy = tuple(
+            super(Model, proper_sibling).copy()
+            for proper_sibling in proper_siblings
         )
-        result._associated_models_ = associated_models_copy
-        for associated_model_copy in associated_models_copy:
-            associated_model_copy._associated_models_ = tuple(
-                associated_models_copy[associated_models.index(associated_model)]
-                for associated_model in associated_model_copy._associated_models_
+        result._proper_siblings_ = proper_siblings_copy
+        for proper_sibling_copy in proper_siblings_copy:
+            proper_sibling_copy._proper_siblings_ = tuple(
+                proper_siblings_copy[proper_siblings.index(proper_sibling)]
+                for proper_sibling in proper_sibling_copy._proper_siblings_
             )
         return result
 
@@ -241,6 +252,186 @@ class Model(Animatable):
         self: Self
     ) -> Box:
         return self._box_
+
+    @property
+    def _animate_cls(
+        self: Self
+    ) -> type[ModelAnimationBuilder]:
+        return ModelAnimationBuilder
+
+    def animate(
+        self: Self,
+        **kwargs: Unpack[AnimateKwargs]
+        #rate: Rate = Rates.linear(),
+        #rewind: bool = False,
+        #run_alpha: float = 1.0,
+        #infinite: bool = False
+    ) -> ModelAnimationBuilder[Self]:
+        return ModelAnimationBuilder(self, **kwargs)
+
+    def shift(
+        self: Self,
+        vector: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().shift(
+            vector=vector,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def move_to(
+        self: Self,
+        target: Model,
+        direction: NP_3f8 = ORIGIN,
+        buff: float | NP_3f8 = 0.0,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().move_to(
+            target=target,
+            direction=direction,
+            buff=buff,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    #def move_to(
+    #    self: Self,
+    #    target: Model,
+    #    direction: NP_3f8 = ORIGIN,
+    #    buff: float | NP_3f8 = 0.0,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.shift_to(
+    #        target=target,
+    #        direction=direction,
+    #        buff=buff,
+    #        mask=mask,
+    #        direction_sign=1.0
+    #    )
+    #    return self
+
+    def next_to(
+        self: Self,
+        target: Model,
+        direction: NP_3f8 = ORIGIN,
+        buff: float | NP_3f8 = 0.0,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().next_to(
+            target=target,
+            direction=direction,
+            buff=buff,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def scale(
+        self: Self,
+        factor: float | NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().scale(
+            factor=factor,
+            about=about,
+            direction=direction,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def scale_about_origin(
+        self: Self,
+        factor: float | NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().scale_about_origin(
+            factor=factor,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def scale_to(
+        self: Self,
+        target: Model,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().scale_to(
+            target=target,
+            about=about,
+            direction=direction,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    #def match_box(
+    #    self: Self,
+    #    model: Model,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.scale_to(model, mask=mask).move_to(model, mask=mask)
+    #    return self
+
+    def rotate(
+        self: Self,
+        rotvec: NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().rotate(
+            rotvec=rotvec,
+            about=about,
+            direction=direction,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def rotate_about_origin(
+        self: Self,
+        rotvec: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().rotate_about_origin(
+            rotvec=rotvec,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def flip(
+        self: Self,
+        axis: NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Self:
+        self.animate().flip(
+            axis=axis,
+            about=about,
+            direction=direction,
+            mask=mask
+        ).update_boundary(1)
+        return self
+
+    def apply(
+        self: Self,
+        matrix: NP_44f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN
+    ) -> Self:
+        self.animate().apply(
+            matrix=matrix,
+            about=about,
+            direction=direction
+        ).update_boundary(1)
+        return self
+
+
+class ModelAnimationBuilder[ModelT: Model](AnimatableAnimationBuilder[ModelT]):
+    __slots__ = ()
 
     #@classmethod
     #def _split(
@@ -288,33 +479,49 @@ class Model(Animatable):
         #self._model_animation = model_animation
         #self._animations.append(model_animation)
 
-    #def _submit_timeline(
+    #def submit_timeline(
     #    self: Self
     #) -> Timeline:
     #    self._animations.append(ModelAnimation(tuple(self._model_actions)))
-    #    return super()._submit_timeline()
+    #    return super().submit_timeline()
 
-    def _iter_interpolate_animations(
-        self: Self,
-        src_0: Self,
-        src_1: Self
-    ) -> Iterator[Animation]:
-        yield from super()._iter_interpolate_animations(src_0, src_1)
-        for dst_associated, src_0_assiciated, src_1_assiciated in zip(
-            self._associated_models_, src_0._associated_models_, src_1._associated_models_, strict=True
-        ):
-            yield from super(Model, dst_associated)._iter_interpolate_animations(src_0_assiciated, src_1_assiciated)
+    #@classmethod
+    #def _iter_interpolate_animations(
+    #    cls: type[Self],
+    #    dst: ModelT,
+    #    src_0: ModelT,
+    #    src_1: ModelT
+    #) -> Iterator[Animation]:
+    #    yield from super()._iter_interpolate_animations(dst, src_0, src_1)
+    #    for dst_sibling, src_0_sibling, src_1_sibling in zip(
+    #        dst._siblings_, src_0._siblings_, src_1._siblings_, strict=True
+    #    ):
+    #        yield from cls._iter_interpolate_animations(dst_sibling, src_0_sibling, src_1_sibling)
 
-    def _iter_piecewise_animations(
-        self: Self,
-        src: Self,
-        piecewiser: Piecewiser
-    ) -> Iterator[Animation]:
-        yield from super()._iter_piecewise_animations(src, piecewiser)
-        for dst_associated, src_assiciated in zip(
-            self._associated_models_, src._associated_models_, strict=True
-        ):
-            yield from super(Model, dst_associated)._iter_piecewise_animations(src_assiciated, piecewiser)
+    #@classmethod
+    #def _iter_piecewise_animations(
+    #    cls: type[Self],
+    #    dst: ModelT,
+    #    src: ModelT,
+    #    piecewiser: Piecewiser
+    #) -> Iterator[Animation]:
+    #    yield from super()._iter_piecewise_animations(dst, src, piecewiser)
+    #    for dst_sibling, src_sibling in zip(
+    #        dst._siblings_, src._siblings_, strict=True
+    #    ):
+    #        yield from cls._iter_piecewise_animations(dst_sibling, src_sibling, piecewiser)
+
+    #@classmethod
+    #def _iter_set_animations(
+    #    cls: type[Self],
+    #    dst: ModelT,
+    #    **kwargs: Any
+    #) -> Iterator[Animation]:
+    #    yield from super()._iter_piecewise_animations(dst, src, piecewiser)
+    #    for dst_sibling, src_sibling in zip(
+    #        dst._siblings_, src._siblings_, strict=True
+    #    ):
+    #        yield from cls._iter_piecewise_animations(dst_sibling, src_sibling, piecewiser)
 
     #def _stack_model_action(
     #    self: Self,
@@ -333,7 +540,7 @@ class Model(Animatable):
         mask: float | NP_3f8 = 1.0
     ) -> Self:
         self._stack_animation(ModelShiftAnimation(
-            model=self,
+            model=self._animatable,
             vector=vector,
             mask=mask * np.ones((3,))
         ))
@@ -344,11 +551,10 @@ class Model(Animatable):
         target: Model,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0,
-        direction_sign: float = 1.0
+        mask: float | NP_3f8 = 1.0
     ) -> Self:
         self.shift(
-            vector=target.box.get(direction) - self.box.get(direction_sign * direction, buff),
+            vector=target.box.get(direction) - self._animatable.box.get(direction, buff),
             mask=mask
         )
         #signed_direction = direction_sign * direction
@@ -385,15 +591,11 @@ class Model(Animatable):
         target: Model,
         direction: NP_3f8 = ORIGIN,
         buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0,
-        direction_sign: float = -1.0
+        mask: float | NP_3f8 = 1.0
     ) -> Self:
-        self.move_to(
-            target=target,
-            direction=direction,
-            buff=buff,
-            mask=mask,
-            direction_sign=direction_sign
+        self.shift(
+            vector=target.box.get(direction) - self._animatable.box.get(-direction, buff),
+            mask=mask
         )
         return self
 
@@ -405,9 +607,9 @@ class Model(Animatable):
         mask: float | NP_3f8 = 1.0
     ) -> Self:
         if about is None:
-            about = self
+            about = self._animatable
         self._stack_animation(ModelScaleAnimation(
-            model=self,
+            model=self._animatable,
             factor=factor * np.ones((3,)),
             about=about,
             direction=direction,
@@ -435,7 +637,7 @@ class Model(Animatable):
         mask: float | NP_3f8 = 1.0
     ) -> Self:
         self.scale(
-            factor=target.box.get_radii() / np.maximum(self.box.get_radii(), 1e-8),
+            factor=target.box.get_radii() / np.maximum(self._animatable.box.get_radii(), 1e-8),
             about=about,
             direction=direction,
             mask=mask
@@ -461,14 +663,14 @@ class Model(Animatable):
         #)
         return self
 
-    def match_box(
-        self: Self,
-        model: Model,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.scale_to(model, mask=mask).move_to(model, mask=mask)
-        #self.shift(-self.get_center()).scale_to(model.get_box_size()).shift(model.get_center())
-        return self
+    #def match_box(
+    #    self: Self,
+    #    model: Model,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.scale_to(model, mask=mask).move_to(model, mask=mask)
+    #    #self.shift(-self.get_center()).scale_to(model.get_box_size()).shift(model.get_center())
+    #    return self
 
     def rotate(
         self: Self,
@@ -478,9 +680,9 @@ class Model(Animatable):
         mask: float | NP_3f8 = 1.0
     ) -> Self:
         if about is None:
-            about = self
+            about = self._animatable
         self._stack_animation(ModelRotateAnimation(
-            model=self,
+            model=self._animatable,
             rotvec=rotvec,
             about=about,
             direction=direction,
@@ -522,9 +724,9 @@ class Model(Animatable):
         direction: NP_3f8 = ORIGIN
     ) -> Self:
         if about is None:
-            about = self
+            about = self._animatable
         self._stack_animation(ModelApplyAnimation(
-            model=self,
+            model=self._animatable,
             matrix=matrix,
             about=about,
             direction=direction
@@ -603,11 +805,13 @@ class ModelAnimation(Animation):
         super().__init__()
         #self._model: Model = model
         about_point = about.box.get(direction)
+        #self._model: Model = model
         self._pre_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(-about_point)
         self._post_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(about_point)
+        #self._previous_alpha: float = 0.0
         self._model_matrices: dict[ModelMatrix, NP_44f8] = {
-            model_assiciated._model_matrix_: model_assiciated._model_matrix_._array_
-            for model_assiciated in (model, *model._associated_models_)
+            sibling._model_matrix_: sibling._model_matrix_._array_
+            for sibling in (model, *model._proper_siblings_)
         }
         #self._about_ = about
         #self._direction_ = direction
@@ -665,8 +869,8 @@ class ModelAnimation(Animation):
     ) -> None:
         super().update(alpha)
         matrix = self._post_shift_matrix @ self._get_matrix(alpha) @ self._pre_shift_matrix
-        for model_matrix in self._model_matrices:
-            model_matrix._array_ = matrix @ model_matrix._array_
+        for model_matrix, initial_model_matrix_array in self._model_matrices.items():
+            model_matrix._array_ = matrix @ initial_model_matrix_array
 
     def update_boundary(
         self: Self,
@@ -675,12 +879,12 @@ class ModelAnimation(Animation):
         super().update_boundary(boundary)
         self.update(float(boundary))
 
-    def restore(
-        self: Self
-    ) -> None:
-        super().restore()
-        for model_matrix, initial_model_matrix_array in self._model_matrices.items():
-            model_matrix._array_ = initial_model_matrix_array
+    #def restore(
+    #    self: Self
+    #) -> None:
+    #    super().restore()
+    #    for model_matrix, initial_model_matrix_array in self._model_matrices.items():
+    #        model_matrix._array_ = initial_model_matrix_array
 
     #def restore(
     #    self: Self

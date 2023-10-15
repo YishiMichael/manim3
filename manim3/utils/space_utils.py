@@ -9,6 +9,7 @@ from typing import (
 )
 
 import numpy as np
+from scipy.interpolate import BSpline
 from scipy.spatial.transform import Rotation
 
 from ..constants.custom_typing import (
@@ -243,3 +244,15 @@ class SpaceUtils:
         matrix = np.identity(4)
         matrix[:3, :3] = Rotation.from_rotvec(rotvec).as_matrix()
         return matrix
+
+    @classmethod
+    def bezier(
+        cls: type[Self],
+        array: np.ndarray
+    ) -> BSpline:
+        degree = len(array) - 1
+        return BSpline(
+            t=np.append(np.zeros(degree + 1), np.ones(degree + 1)),
+            c=array,
+            k=degree
+        )

@@ -1,89 +1,64 @@
 from __future__ import annotations
 
 
-from typing import (
-    ClassVar,
-    Self
-)
+from typing import Self
 
 import numpy as np
 
 from ...lazy.lazy import Lazy
 from .buffer_format import BufferFormat
-from .buffer_layout import BufferLayout
 
 
 class AtomicBufferFormat(BufferFormat):
     __slots__ = ()
-
-    _GL_DTYPES: ClassVar[dict[str, tuple[str, int, tuple[int, ...]]]] = {
-        "int":     ("i", 4, ()),
-        "ivec2":   ("i", 4, (2,)),
-        "ivec3":   ("i", 4, (3,)),
-        "ivec4":   ("i", 4, (4,)),
-        "uint":    ("u", 4, ()),
-        "uvec2":   ("u", 4, (2,)),
-        "uvec3":   ("u", 4, (3,)),
-        "uvec4":   ("u", 4, (4,)),
-        "float":   ("f", 4, ()),
-        "vec2":    ("f", 4, (2,)),
-        "vec3":    ("f", 4, (3,)),
-        "vec4":    ("f", 4, (4,)),
-        "mat2":    ("f", 4, (2, 2)),
-        "mat2x3":  ("f", 4, (2, 3)),  # TODO: check order
-        "mat2x4":  ("f", 4, (2, 4)),
-        "mat3x2":  ("f", 4, (3, 2)),
-        "mat3":    ("f", 4, (3, 3)),
-        "mat3x4":  ("f", 4, (3, 4)),
-        "mat4x2":  ("f", 4, (4, 2)),
-        "mat4x3":  ("f", 4, (4, 3)),
-        "mat4":    ("f", 4, (4, 4)),
-        "double":  ("f", 8, ()),
-        "dvec2":   ("f", 8, (2,)),
-        "dvec3":   ("f", 8, (3,)),
-        "dvec4":   ("f", 8, (4,)),
-        "dmat2":   ("f", 8, (2, 2)),
-        "dmat2x3": ("f", 8, (2, 3)),
-        "dmat2x4": ("f", 8, (2, 4)),
-        "dmat3x2": ("f", 8, (3, 2)),
-        "dmat3":   ("f", 8, (3, 3)),
-        "dmat3x4": ("f", 8, (3, 4)),
-        "dmat4x2": ("f", 8, (4, 2)),
-        "dmat4x3": ("f", 8, (4, 3)),
-        "dmat4":   ("f", 8, (4, 4))
-    }
 
     def __init__(
         self: Self,
         *,
         name: str,
         shape: tuple[int, ...],
-        gl_dtype_str: str,
-        layout: BufferLayout
+        base_char: str,
+        base_itemsize: int,
+        base_ndim: int,
+        row_len: int,
+        col_len: int,
+        col_padding: int,
+        itemsize: int,
+        base_alignment: int
+        #gl_dtype_str: str,
+        #layout: BufferLayout
     ) -> None:
-        base_char, base_itemsize, base_shape = type(self)._GL_DTYPES[gl_dtype_str]
-        assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
-        shape_dict = dict(enumerate(base_shape))
-        col_len = shape_dict.get(0, 1)
-        row_len = shape_dict.get(1, 1)
-        if layout == BufferLayout.STD140:
-            col_padding = 0 if not shape and row_len == 1 else 4 - col_len
-            base_alignment = (col_len if not shape and col_len <= 2 and row_len == 1 else 4) * base_itemsize
-        else:
-            col_padding = 0
-            base_alignment = 1
+        #base_char, base_itemsize, base_shape = type(self)._GL_DTYPES[gl_dtype_str]
+        #assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
+        #shape_dict = dict(enumerate(base_shape))
+        #col_len = shape_dict.get(0, 1)
+        #row_len = shape_dict.get(1, 1)
+        #if layout == BufferLayout.STD140:
+        #    col_padding = 0 if not shape and row_len == 1 else 4 - col_len
+        #    base_alignment = (col_len if not shape and col_len <= 2 and row_len == 1 else 4) * base_itemsize
+        #else:
+        #    col_padding = 0
+        #    base_alignment = 1
 
         super().__init__(
             name=name,
             shape=shape
         )
+        #self._base_char_ = base_char
+        #self._base_itemsize_ = base_itemsize
+        #self._base_ndim_ = len(base_shape)
+        #self._row_len_ = row_len
+        #self._col_len_ = col_len
+        #self._col_padding_ = col_padding
+        #self._itemsize_ = row_len * (col_len + col_padding) * base_itemsize
+        #self._base_alignment_ = base_alignment
         self._base_char_ = base_char
         self._base_itemsize_ = base_itemsize
-        self._base_ndim_ = len(base_shape)
+        self._base_ndim_ = base_ndim
         self._row_len_ = row_len
         self._col_len_ = col_len
         self._col_padding_ = col_padding
-        self._itemsize_ = row_len * (col_len + col_padding) * base_itemsize
+        self._itemsize_ = itemsize
         self._base_alignment_ = base_alignment
 
     @Lazy.variable(hasher=Lazy.naive_hasher)

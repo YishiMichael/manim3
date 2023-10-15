@@ -26,4 +26,4 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
         cls: type[Self],
         color_input: ColorT
     ) -> Self:
-        return super()._convert_input(ColorUtils.standardize_color(color_input))
+        return AnimatableColor(ColorUtils.standardize_color(color_input))

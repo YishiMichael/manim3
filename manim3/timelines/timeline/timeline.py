@@ -19,7 +19,6 @@ from .condition import Condition
 from .conditions import Conditions
 from .rate import Rate
 from .rates import Rates
-from .timeline_protocol import TimelineProtocol
 
 if TYPE_CHECKING:
     from ...toplevel.scene import Scene
@@ -250,10 +249,10 @@ class Timeline(ABC):
         #self._children: list[Timeline] | None = None
         #self._construct_coroutine: Coroutine[None, None, None] | None = None
 
-    def _submit_timeline(
-        self: Self
-    ) -> Timeline:
-        return self
+    #def submit_timeline(
+    #    self: Self
+    #) -> Timeline:
+    #    return self
 
     def _schedule(
         self: Self,
@@ -315,7 +314,7 @@ class Timeline(ABC):
             #    children=[]
             #)
         if (timeline_state := self.get_on_progressing_state()) is not None:
-            self._update(timeline_state.absolute_rate.at())
+            self._animation_update(timeline_state.absolute_rate.at())
             while not timeline_state.terminate_condition.judge():
                 for child in timeline_state.children[:]:
                     child._progress()
@@ -389,9 +388,9 @@ class Timeline(ABC):
         #        break
         #self._terminate()
 
-    def _update(
+    def _animation_update(
         self: Self,
-        alpha: float
+        time: float
     ) -> None:
         pass
 
@@ -432,7 +431,7 @@ class Timeline(ABC):
             absolute_rate=AbsoluteRate(
                 parent_absolute_rate=schedule_info.parent_absolute_rate,
                 rate=schedule_info.rate,
-                run_time_scale=schedule_info.run_alpha_scale,
+                run_time_scale=schedule_info.run_time_scale,
                 run_alpha_scale=schedule_info.run_alpha_scale
                 #relative_rate=schedule_info.relative_rate
             ),
@@ -450,7 +449,7 @@ class Timeline(ABC):
 
     def prepare(
         self: Self,
-        supports_timeline: TimelineProtocol,
+        timeline: Timeline,
         *,
         # `[0.0, +infty) -> [0.0, +infty), time |-> alpha`
         # Must be an increasing function.
@@ -464,7 +463,6 @@ class Timeline(ABC):
         #assert self._timeline_state == TimelineState.PROGRESSING
         #assert (absolute_rate := self._absolute_rate) is not None
         assert isinstance(timeline_state := self._timeline_state, OnProgressing)
-        timeline = supports_timeline._submit_timeline()
         if (run_alpha := timeline._run_alpha) == float("inf"):
             assert rate is None
             run_alpha_scale = 1.0
@@ -476,7 +474,7 @@ class Timeline(ABC):
             run_time_scale = run_time
         if rate is None:
             rate = Rates.linear()
-        assert rate.is_increasing()
+        assert rate._is_increasing_
         timeline._schedule(ScheduleInfo(
             parent_absolute_rate=timeline_state.absolute_rate,
             rate=rate,
@@ -513,13 +511,12 @@ class Timeline(ABC):
 
     async def play(
         self: Self,
-        supports_timeline: TimelineProtocol,
+        timeline: Timeline,
         rate: Rate | None = None,
         run_time: float | None = None,
         launch_condition: Condition = Conditions.always(),
         terminate_condition: Condition = Conditions.never()
     ) -> None:
-        timeline = supports_timeline._submit_timeline()
         self.prepare(
             timeline,
             rate=rate,

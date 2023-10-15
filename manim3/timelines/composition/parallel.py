@@ -6,7 +6,6 @@ from typing import Self
 from ..timeline.conditions import Conditions
 from ..timeline.rate import Rate
 from ..timeline.timeline import Timeline
-from ..timeline.timeline_protocol import TimelineProtocol
 from .lagged import Lagged
 
 
@@ -18,15 +17,14 @@ class Parallel(Timeline):
 
     def __init__(
         self: Self,
-        *supports_timelines: TimelineProtocol,
+        *timelines: Timeline,
         rate: Rate | None = None,
         lag_time: float = 0.0,
         lag_ratio: float = 0.0
     ) -> None:
         accumulated_lag_time = 0.0
         timeline_items: list[tuple[Timeline, float]] = []
-        for supports_timeline in supports_timelines:
-            timeline = supports_timeline._submit_timeline()
+        for timeline in timelines:
             timeline_items.append((timeline, accumulated_lag_time))
             accumulated_lag_time += lag_time + lag_ratio * timeline._run_alpha
         super().__init__(

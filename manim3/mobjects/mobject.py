@@ -13,7 +13,6 @@ from typing import (
     Iterator,
     Self,
     TypedDict,
-    Unpack,
     overload
 )
 
@@ -53,42 +52,18 @@ from ..toplevel.toplevel import Toplevel
 #from .remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
 
 
-class MobjectSetKwargs(TypedDict, total=False):
-    # polymorphism variables
-    color: ColorT
-    opacity: float
-    weight: float
-
-    # Mobject
-    camera: Camera
-
-    # MeshMobject
-    mesh: Mesh
-    ambient_strength: float
-    specular_strength: float
-    shininess: float
-    lighting: Lighting
-
-    # ShapeMobject
-    shape: Shape
-
-    # GraphMobject
-    graph: Graph
-    width: float
-
-
 class Mobject(Model):
     __slots__ = (
         "__weakref__",
         "_children",
-        "_real_descendants",
+        "_descendants",
         "_parents",
-        "_real_ancestors"
+        "_ancestors"
     )
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
         "_parents": weakref.WeakSet.copy,
-        "_real_ancestors": weakref.WeakSet.copy
+        "_ancestors": weakref.WeakSet.copy
     }
 
     #_attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
@@ -115,9 +90,9 @@ class Mobject(Model):
     ) -> None:
         super().__init__()
         self._children: tuple[Mobject, ...] = ()
-        self._real_descendants: tuple[Mobject, ...] = ()
+        self._descendants: tuple[Mobject, ...] = ()
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
-        self._real_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
 
     def __iter__(
         self: Self
@@ -152,7 +127,7 @@ class Mobject(Model):
 
     #@Lazy.variable_collection(freeze=False)
     #@staticmethod
-    #def _real_descendants_() -> "tuple[Mobject, ...]":
+    #def _descendants_() -> "tuple[Mobject, ...]":
     #    return ()
 
     @classmethod
@@ -179,23 +154,23 @@ class Mobject(Model):
             iter_ancestors_by_parents(mobject)
             for mobject in mobjects
         )):
-            real_descendants = tuple(dict.fromkeys(itertools.chain.from_iterable(
+            descendants = tuple(dict.fromkeys(itertools.chain.from_iterable(
                 iter_descendants_by_children(child)
                 for child in ancestor._children
             )))
-            ancestor._real_descendants = real_descendants
-            ancestor._associated_models_ = real_descendants
+            ancestor._descendants = descendants
+            ancestor._proper_siblings_ = descendants
 
         for descendant in dict.fromkeys(itertools.chain.from_iterable(
             iter_descendants_by_children(mobject)
             for mobject in mobjects
         )):
-            real_ancestors = tuple(dict.fromkeys(itertools.chain.from_iterable(
+            ancestors = tuple(dict.fromkeys(itertools.chain.from_iterable(
                 iter_descendants_by_children(parent)
                 for parent in descendant._parents
             )))
-            descendant._real_ancestors.clear()
-            descendant._real_ancestors.update(real_ancestors)
+            descendant._ancestors.clear()
+            descendant._ancestors.update(ancestors)
 
     def iter_children(
         self: Self
@@ -214,7 +189,7 @@ class Mobject(Model):
     ) -> Iterator[Mobject]:
         yield self
         if broadcast:
-            yield from self._real_descendants
+            yield from self._descendants
 
     def iter_ancestors(
         self: Self,
@@ -223,7 +198,7 @@ class Mobject(Model):
     ) -> Iterator[Mobject]:
         yield self
         if broadcast:
-            yield from self._real_ancestors
+            yield from self._ancestors
 
     def add(
         self: Self,
@@ -274,18 +249,18 @@ class Mobject(Model):
         # Copy all descendants. The result is not bound to any mobject.
         result = super().copy()
         #result = self._copy()
-        #real_descendants = list(self._real_descendants_)
-        #real_descendants_copy = [
+        #descendants = list(self._descendants_)
+        #descendants_copy = [
         #    descendant._copy()
-        #    for descendant in real_descendants
+        #    for descendant in descendants
         #]
         descendants: tuple[Mobject, ...] = (self, *(
-            real_descendant for real_descendant in self._associated_models_
-            if isinstance(real_descendant, Mobject)
+            descendant for descendant in self._proper_siblings_
+            if isinstance(descendant, Mobject)
         ))
         descendants_copy: tuple[Mobject, ...] = (result, *(
-            real_descendant_copy for real_descendant_copy in result._associated_models_
-            if isinstance(real_descendant_copy, Mobject)
+            descendant_copy for descendant_copy in result._proper_siblings_
+            if isinstance(descendant_copy, Mobject)
         ))
         for descendant_copy in descendants_copy:
             descendant_copy._children = tuple(
@@ -310,10 +285,10 @@ class Mobject(Model):
 
         #result._children = tuple(match_copies(self._children))
         #result._parents.clear()
-        #for real_descendant, real_descendant_copy in zip(real_descendants, real_descendants_copy, strict=True):
-        #    real_descendant_copy._children_ = tuple(match_copies(real_descendant._children_))
-        #    real_descendant_copy._parents.clear()
-        #    real_descendant_copy._parents.update(match_copies(real_descendant._parents))
+        #for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
+        #    descendant_copy._children_ = tuple(match_copies(descendant._children_))
+        #    descendant_copy._parents.clear()
+        #    descendant_copy._parents.update(match_copies(descendant._parents))
 
         type(self)._refresh_families(*descendants_copy)
         return result
@@ -322,10 +297,10 @@ class Mobject(Model):
 
     #@Lazy.property_collection()
     #@staticmethod
-    #def _associated_models_(
-    #    real_descendants: "tuple[Mobject, ...]"
+    #def _proper_siblings_(
+    #    descendants: "tuple[Mobject, ...]"
     #) -> tuple[Model, ...]:
-    #    return real_descendants
+    #    return descendants
 
     #@Lazy.variable(hasher=Lazy.branch_hasher)
     #@staticmethod
@@ -364,13 +339,13 @@ class Mobject(Model):
     #@staticmethod
     #def _bounding_box_with_descendants_(
     #    bounding_box_without_descendants: BoundingBox | None,
-    #    real_descendants__bounding_box_without_descendants: tuple[BoundingBox | None, ...]
+    #    descendants__bounding_box_without_descendants: tuple[BoundingBox | None, ...]
     #) -> BoundingBox | None:
     #    positions_array = np.fromiter((itertools.chain.from_iterable(
     #        (bounding_box.maximum, bounding_box.minimum)
     #        for bounding_box in (
     #            bounding_box_without_descendants,
-    #            *real_descendants__bounding_box_without_descendants
+    #            *descendants__bounding_box_without_descendants
     #        )
     #        if bounding_box is not None
     #    )), dtype=np.dtype((np.float64, (3,))))
@@ -385,22 +360,22 @@ class Mobject(Model):
     #@staticmethod
     #def _bounding_box_reference_points_(
     #    world_sample_positions: NP_x3f8,
-    #    real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
+    #    descendants__world_sample_positions: tuple[NP_x3f8, ...],
     #) -> NP_x3f8:
     #    return np.concatenate((
     #        world_sample_positions,
-    #        *real_descendants__world_sample_positions
+    #        *descendants__world_sample_positions
     #    ))
 
     #@Lazy.property()
     #@staticmethod
     #def _bounding_box_(
     #    world_sample_positions: NP_x3f8,
-    #    real_descendants__world_sample_positions: tuple[NP_x3f8, ...],
+    #    descendants__world_sample_positions: tuple[NP_x3f8, ...],
     #) -> BoundingBox:
     #    positions_array = np.concatenate((
     #        world_sample_positions,
-    #        *real_descendants__world_sample_positions
+    #        *descendants__world_sample_positions
     #    ))
     #    if not len(positions_array):
     #        return BoundingBox(
@@ -662,24 +637,6 @@ class Mobject(Model):
     #    self.clear()
     #    return self
 
-    def set(
-        self: Self,
-        *,
-        broadcast: bool = True,
-        type_filter: type[Mobject] | None = None,
-        **kwargs: Unpack[MobjectSetKwargs]
-    ) -> Self:
-        for mobject in self.iter_descendants(broadcast=broadcast):
-            if type_filter is not None and not isinstance(mobject, type_filter):
-                continue
-            super(Mobject, mobject).set(**kwargs)
-            #for key, value in kwargs.items():
-            #    super(Mobject, mobject).set()
-            #    if (descriptor := type(mobject)._animatable_descriptors.get(f"_{key}_")) is None:
-            #        continue
-            #    descriptor.__set__(mobject, descriptor._element_type._convert_input(value))
-        return self
-
     # render
 
     @Lazy.variable(freeze=False)
@@ -692,6 +649,38 @@ class Mobject(Model):
         target_framebuffer: OITFramebuffer
     ) -> None:
         pass
+
+#    def animate(
+#        self: Self,
+#        **kwargs: Unpack[AnimateKwargs]
+#        #rate: Rate = Rates.linear(),
+#        #rewind: bool = False,
+#        #run_alpha: float = 1.0,
+#        #infinite: bool = False
+#    ) -> MobjectAnimationBuilder[Self]:
+#        return MobjectAnimationBuilder(self, **kwargs)
+
+
+#class MobjectAnimationBuilder[MobjectT: Mobject](ModelAnimationBuilder[MobjectT]):
+#    __slots__ = ()
+
+#    def set(
+#        self: Self,
+#        *,
+#        broadcast: bool = True,
+#        type_filter: type[Mobject] | None = None,
+#        **kwargs: Unpack[MobjectSetKwargs]
+#    ) -> Self:
+#        for mobject in self._animatable.iter_descendants(broadcast=broadcast):
+#            if type_filter is not None and not isinstance(mobject, type_filter):
+#                continue
+#            super(Mobject, mobject).set(**kwargs)
+#            #for key, value in kwargs.items():
+#            #    super(Mobject, mobject).set()
+#            #    if (descriptor := type(mobject)._animatable_descriptors.get(f"_{key}_")) is None:
+#            #        continue
+#            #    descriptor.__set__(mobject, descriptor._element_type._convert_input(value))
+#        return self
 
 
 #class RemodelBoundHandler:

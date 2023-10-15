@@ -15,9 +15,9 @@ class AnimatableFloat(AnimatableArray[NP_f8]):
 
     def __init__(
         self: Self,
-        value: float | NP_f8 | None = None
+        value: float | None = None
     ) -> None:
-        super().__init__(value if isinstance(value, np.ndarray | None) else np.asarray(value))
+        super().__init__(np.asarray(value, dtype=np.float64) if value is not None else value)
 
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
@@ -27,7 +27,6 @@ class AnimatableFloat(AnimatableArray[NP_f8]):
     @classmethod
     def _convert_input(
         cls: type[Self],
-        float_input: float | np.ndarray
+        float_input: float
     ) -> Self:
-        array = float_input if isinstance(float_input, np.ndarray) else np.asarray(float_input)
-        return super()._convert_input(array.reshape(()).astype(np.float64))
+        return AnimatableFloat(float_input)

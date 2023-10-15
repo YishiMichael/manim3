@@ -589,7 +589,7 @@ class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[Shape]):
         src_0: Shape,
         src_1: Shape
     ) -> None:
-        super().__init__(src_0, src_1)
+        super().__init__()
         positions_0, positions_1, edges = Graph._general_interpolate(
             graph_0=src_0._graph_,
             graph_1=src_1._graph_,

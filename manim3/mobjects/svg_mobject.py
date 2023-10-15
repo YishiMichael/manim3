@@ -11,7 +11,6 @@ from typing import (
 
 import numpy as np
 import svgelements as se
-from scipy.interpolate import BSpline
 
 from ..animatables.geometries.shape import Shape
 from ..constants.custom_typing import (
@@ -192,13 +191,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                         positions_list.append(np.array(end))
                     case se.QuadraticBezier() | se.CubicBezier():
                         # Approximate the bezier curve with a polyline.
-                        control_positions = np.array(segment)
-                        degree = len(control_positions) - 1
-                        curve = BSpline(
-                            t=np.append(np.zeros(degree + 1), np.ones(degree + 1)),
-                            c=control_positions,
-                            k=degree
-                        )
+                        curve = SpaceUtils.bezier(np.array(segment))
                         positions_list.extend(curve(np.linspace(0.0, 1.0, 9)[1:]))
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")

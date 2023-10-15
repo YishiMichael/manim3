@@ -215,145 +215,6 @@ class LazyDescriptor[DataT, T](ABC):
             )
         )
 
-    def _get_slot(
-        self: Self,
-        instance: LazyObject
-    ) -> LazySlot[T]:
-        return instance._lazy_slots[self._name]
-
-    def _set_slot(
-        self: Self,
-        instance: LazyObject,
-        slot: LazySlot[T]
-    ) -> None:
-        instance._lazy_slots[self._name] = slot
-
-    def _init(
-        self: Self,
-        instance: LazyObject
-    ) -> None:
-        slot = LazySlot()
-        slot._is_writable = self._is_variable
-        self._set_slot(instance, slot)
-
-    def _get_elements(
-        self: Self,
-        instance: LazyObject
-    ) -> tuple[T, ...]:
-
-        def get_leaf_items(
-            leaf: LazyObject,
-            descriptor_name: str
-        ) -> tuple[tuple, set[LazySlot]]:
-            descriptor = type(leaf)._lazy_descriptors[descriptor_name]
-            slot = descriptor._get_slot(leaf)
-            elements = descriptor._get_elements(leaf)
-            leaf_linked_variable_slots = {slot} if descriptor._is_variable else set(slot._iter_linked_slots())
-            return elements, leaf_linked_variable_slots
-
-        def iter_descriptor_items(
-            descriptor_chain: tuple[LazyDescriptor, ...],
-            instance: LazyObject
-        ) -> Iterator[tuple[tuple, tuple[int, ...] | None, set[LazySlot]]]:
-            leaf_tuple: tuple = (instance,)
-            for descriptor in descriptor_chain:
-                leaf_items = tuple(
-                    get_leaf_items(leaf, descriptor._name)
-                    for leaf in leaf_tuple
-                )
-                leaf_tuple = tuple(
-                    element
-                    for elements, _ in leaf_items
-                    for element in elements
-                )
-                branch_sizes = tuple(
-                    len(elements)
-                    for elements, _ in leaf_items
-                ) if descriptor._is_multiple else None
-                descriptor_linked_variable_slots = set().union(*(
-                    leaf_linked_variable_slots
-                    for _, leaf_linked_variable_slots in leaf_items
-                ))
-                yield leaf_tuple, branch_sizes, descriptor_linked_variable_slots
-
-        def get_parameter_items(
-            descriptor_chain: tuple[LazyDescriptor, ...],
-            instance: LazyObject
-        ) -> tuple[PseudoTree, set[LazySlot]]:
-            descriptor_items = tuple(iter_descriptor_items(descriptor_chain, instance))
-            leaf_tuple, _, _ = descriptor_items[-1]
-            pseudo_tree = PseudoTree(
-                leaf_tuple=leaf_tuple,
-                branch_structure=tuple(
-                    branch_sizes
-                    for _, branch_sizes, _ in descriptor_items
-                    if branch_sizes is not None
-                )
-            )
-            parameter_linked_variable_slots = set().union(*(
-                descriptor_linked_variable_slots
-                for _, _, descriptor_linked_variable_slots in descriptor_items
-            ))
-            return pseudo_tree, parameter_linked_variable_slots
-
-        def get_pseudo_trees_and_linked_variable_slots(
-            descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...],
-            instance: LazyObject
-        ) -> tuple[tuple[PseudoTree, ...], set[LazySlot]]:
-            parameter_items = tuple(
-                get_parameter_items(descriptor_chain, instance)
-                for descriptor_chain in descriptor_chains
-            )
-            pseudo_trees = tuple(pseudo_tree for pseudo_tree, _ in parameter_items)
-            linked_variable_slots = set().union(*(
-                parameter_linked_variable_slots for _, parameter_linked_variable_slots in parameter_items
-            ))
-            return pseudo_trees, linked_variable_slots
-
-        slot = self._get_slot(instance)
-        if (registered_elements := slot._get()) is None:
-            # If there's at least a parameter, `slot` is guaranteed to be a property slot.
-            # Link it with variable slots.
-            pseudo_trees, linked_variable_slots = get_pseudo_trees_and_linked_variable_slots(
-                self._descriptor_chains, instance
-            )
-            registered_parameter_key = self._register_parameter_key(tuple(
-                pseudo_tree.key()
-                for pseudo_tree in pseudo_trees
-            ))
-            if (registered_elements := self._cache.get(registered_parameter_key)) is None:
-                registered_elements = self._register_elements(self._decomposer(self._method(*(
-                    pseudo_tree.tree()[0]
-                    for pseudo_tree in pseudo_trees
-                ))))
-                if self._freeze:
-                    self._cache.set(registered_parameter_key, registered_elements)
-            slot._set(
-                elements=registered_elements,
-                parameter_key=registered_parameter_key,
-                linked_slots=linked_variable_slots
-            )
-        return tuple(registered_element._value for registered_element in registered_elements)
-
-    def _set_elements(
-        self: Self,
-        instance: LazyObject,
-        elements: tuple[T, ...]
-    ) -> None:
-        slot = self._get_slot(instance)
-        assert slot._is_writable, "Attempting to write to a readonly slot"
-        registered_elements = self._register_elements(elements)
-        if registered_elements == slot._get():
-            return
-        # `slot` is guaranteed to be a variable slot. Expire linked property slots.
-        for expired_property_slot in slot._iter_linked_slots():
-            expired_property_slot._expire()
-        slot._set(
-            elements=registered_elements,
-            parameter_key=None,
-            linked_slots=set()
-        )
-
     def _register_parameter_key(
         self: Self,
         parameter_key: Hashable
@@ -380,3 +241,142 @@ class LazyDescriptor[DataT, T](ABC):
         element: T
     ) -> None:
         return
+
+    def _init(
+        self: Self,
+        instance: LazyObject
+    ) -> None:
+        slot = LazySlot()
+        slot._is_writable = self._is_variable
+        self._set_slot(instance, slot)
+
+    def _get_slot(
+        self: Self,
+        instance: LazyObject
+    ) -> LazySlot[T]:
+        return instance._lazy_slots[self._name]
+
+    def _set_slot(
+        self: Self,
+        instance: LazyObject,
+        slot: LazySlot[T]
+    ) -> None:
+        instance._lazy_slots[self._name] = slot
+
+    def _get_elements(
+        self: Self,
+        instance: LazyObject
+    ) -> tuple[T, ...]:
+
+        def get_leaf_items(
+            leaf: LazyObject,
+            descriptor_name: str
+        ) -> tuple[tuple, set[LazySlot]]:
+            descriptor = type(leaf)._lazy_descriptors[descriptor_name]
+            slot = descriptor._get_slot(leaf)
+            elements = descriptor._get_elements(leaf)
+            leaf_associated_variable_slots = {slot} if descriptor._is_variable else set(slot.iter_associated_slots())
+            return elements, leaf_associated_variable_slots
+
+        def iter_descriptor_items(
+            descriptor_chain: tuple[LazyDescriptor, ...],
+            instance: LazyObject
+        ) -> Iterator[tuple[tuple, tuple[int, ...] | None, set[LazySlot]]]:
+            leaf_tuple: tuple = (instance,)
+            for descriptor in descriptor_chain:
+                leaf_items = tuple(
+                    get_leaf_items(leaf, descriptor._name)
+                    for leaf in leaf_tuple
+                )
+                leaf_tuple = tuple(
+                    element
+                    for elements, _ in leaf_items
+                    for element in elements
+                )
+                branch_sizes = tuple(
+                    len(elements)
+                    for elements, _ in leaf_items
+                ) if descriptor._is_multiple else None
+                descriptor_associated_variable_slots = set().union(*(
+                    leaf_associated_variable_slots
+                    for _, leaf_associated_variable_slots in leaf_items
+                ))
+                yield leaf_tuple, branch_sizes, descriptor_associated_variable_slots
+
+        def get_parameter_items(
+            descriptor_chain: tuple[LazyDescriptor, ...],
+            instance: LazyObject
+        ) -> tuple[PseudoTree, set[LazySlot]]:
+            descriptor_items = tuple(iter_descriptor_items(descriptor_chain, instance))
+            leaf_tuple, _, _ = descriptor_items[-1]
+            pseudo_tree = PseudoTree(
+                leaf_tuple=leaf_tuple,
+                branch_structure=tuple(
+                    branch_sizes
+                    for _, branch_sizes, _ in descriptor_items
+                    if branch_sizes is not None
+                )
+            )
+            parameter_associated_variable_slots = set().union(*(
+                descriptor_associated_variable_slots
+                for _, _, descriptor_associated_variable_slots in descriptor_items
+            ))
+            return pseudo_tree, parameter_associated_variable_slots
+
+        def get_pseudo_trees_and_associated_variable_slots(
+            descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...],
+            instance: LazyObject
+        ) -> tuple[tuple[PseudoTree, ...], set[LazySlot]]:
+            parameter_items = tuple(
+                get_parameter_items(descriptor_chain, instance)
+                for descriptor_chain in descriptor_chains
+            )
+            pseudo_trees = tuple(pseudo_tree for pseudo_tree, _ in parameter_items)
+            associated_variable_slots = set().union(*(
+                parameter_associated_variable_slots for _, parameter_associated_variable_slots in parameter_items
+            ))
+            return pseudo_trees, associated_variable_slots
+
+        slot = self._get_slot(instance)
+        if (registered_elements := slot.get()) is None:
+            # If there's at least a parameter, `slot` is guaranteed to be a property slot.
+            # Associate it with variable slots.
+            pseudo_trees, associated_variable_slots = get_pseudo_trees_and_associated_variable_slots(
+                self._descriptor_chains, instance
+            )
+            registered_parameter_key = self._register_parameter_key(tuple(
+                pseudo_tree.key()
+                for pseudo_tree in pseudo_trees
+            ))
+            if (registered_elements := self._cache.get(registered_parameter_key)) is None:
+                registered_elements = self._register_elements(self._decomposer(self._method(*(
+                    pseudo_tree.tree()[0]
+                    for pseudo_tree in pseudo_trees
+                ))))
+                if self._freeze:
+                    self._cache.set(registered_parameter_key, registered_elements)
+            slot.set(
+                elements=registered_elements,
+                parameter_key=registered_parameter_key,
+                associated_slots=associated_variable_slots
+            )
+        return tuple(registered_element._value for registered_element in registered_elements)
+
+    def _set_elements(
+        self: Self,
+        instance: LazyObject,
+        elements: tuple[T, ...]
+    ) -> None:
+        slot = self._get_slot(instance)
+        assert slot._is_writable, "Attempting to write to a readonly slot"
+        registered_elements = self._register_elements(elements)
+        if registered_elements == slot.get():
+            return
+        # `slot` is guaranteed to be a variable slot. Expire associated property slots.
+        for expired_property_slot in slot.iter_associated_slots():
+            expired_property_slot.expire()
+        slot.set(
+            elements=registered_elements,
+            parameter_key=None,
+            associated_slots=set()
+        )

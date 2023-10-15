@@ -70,24 +70,24 @@ class ThreeDExample(Scene):
             .set(
                 color="#00FFAA",
                 opacity=0.25,
-                #lighting=Lighting(
-                #    AmbientLight().set(color=WHITE * 0.3),
-                #    PointLight().shift(RIGHT * 5)
-                #)  # TODO
+                lighting=Lighting(
+                    AmbientLight().set(color=WHITE * 0.3),
+                    PointLight().shift(RIGHT * 5)
+                )
             )
         )
         self.add(dodec)
         self.prepare(self.camera.animate(infinite=True).rotate(0.5 * DOWN))
 
-        #text = Text("Dodecahedron")
-        #await self.play(Parallel(*(
-        #    Parallel(
-        #        FadeIn(char),
-        #        char.animate.shift(DOWN).build(rewind=True)
-        #        #Shift(char, UP, arrive=True)
-        #    )
-        #    for char in text
-        #), lag_time=0.5), rate=Rates.smooth())
+        text = Text("Dodecahedron")
+        await self.play(Parallel(*(
+            Parallel(
+                FadeIn(char),
+                #char.animate(rewind=False).shift(DOWN)
+                #Shift(char, UP, arrive=True)
+            )
+            for char in text
+        ), lag_time=0.5), rate=Rates.smooth())
         await self.wait(3)
 
 
@@ -162,7 +162,7 @@ class InteractiveExample(Scene):
         text = Text("Press space to animate.").shift(1.5 * DOWN)
         self.add(squares, text)
         timelines = [
-            square.animate().shift(UP)._submit_timeline()
+            square.animate().shift(UP)
             for square in squares
         ]
         for timeline in timelines:
@@ -322,15 +322,6 @@ class GameExample(Scene):
         await self.wait(3.0)
 
 
-class AnimateChainExample(Scene):
-    async def construct(self) -> None:
-        square = Square().shift(4 * LEFT)
-        self.add(square)
-
-        await self.play(square.animate(infinite=True).rotate(OUT).shift(RIGHT))
-        await self.wait(5)
-
-
 def main() -> None:
     config = Config(
         fps=30,
@@ -339,7 +330,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    AnimateChainExample.render(config)
+    ThreeDExample.render(config)
 
 
 if __name__ == "__main__":

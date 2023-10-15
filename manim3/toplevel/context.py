@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
+import functools
 import operator
 from dataclasses import dataclass
-from functools import reduce
 from typing import Self
 
 import moderngl
@@ -52,7 +52,9 @@ class Context:
         self: Self,
         context_state: ContextState
     ) -> None:
-        self._mgl_context.enable_only(reduce(operator.or_, (flag.value for flag in context_state.flags), ContextFlag.NOTHING.value))
+        self._mgl_context.enable_only(functools.reduce(operator.or_, (
+            flag.value for flag in context_state.flags
+        ), ContextFlag.NOTHING.value))
         for index, ((src_blend_func, dst_blend_func), blend_equation) in enumerate(
             zip(context_state.blend_funcs, context_state.blend_equations, strict=True)
         ):

@@ -14,7 +14,7 @@ from ..mobjects.mobject import Mobject
 from ..mobjects.shape_mobjects.shape_mobject import ShapeMobject
 from ..mobjects.string_mobjects.string_mobject import StringMobject
 from .composition.parallel import Parallel
-from .fade.fade_transform import FadeTransform
+#from .fade.fade_transform import FadeTransform
 from .transform import Transform
 
 

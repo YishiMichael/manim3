@@ -115,15 +115,16 @@ class LazyObject(ABC):
 
             if isinstance(element_type_annotation, TypeVar | TypeAliasType):
                 element_type = None
-            elif hasattr(element_type_annotation, "__origin__"):
-                element_type = element_type_annotation.__origin__
             else:
-                element_type = element_type_annotation
+                try:
+                    element_type = element_type_annotation.__origin__
+                except AttributeError:
+                    element_type = element_type_annotation
             descriptor._element_type = element_type
 
             descriptor._descriptor_chains = tuple(
                 get_descriptor_chain(
-                    name_chain=tuple(f"_{name_segment}_" for name_segment in parameter_name.split("__")),
+                    name_chain=tuple(f"_{name_body}_" for name_body in parameter_name.split("__")),
                     root_class=cls,
                     parameter=parameter
                 )

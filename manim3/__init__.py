@@ -94,7 +94,6 @@ from .timelines.composition.parallel import Parallel
 from .timelines.composition.series import Series
 from .timelines.fade.fade_in import FadeIn
 from .timelines.fade.fade_out import FadeOut
-from .timelines.fade.fade_transform import FadeTransform
 from .timelines.piecewise.create import Create
 from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash

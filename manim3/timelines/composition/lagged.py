@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Self
 
 from ..timeline.timeline import Timeline
-from ..timeline.timeline_protocol import TimelineProtocol
 from ..timeline.rate import Rate
 
 
@@ -17,12 +16,11 @@ class Lagged(Timeline):
 
     def __init__(
         self: Self,
-        supports_timeline: TimelineProtocol,
+        timeline: Timeline,
         *,
         rate: Rate | None = None,
         lag_time: float = 0.0
     ) -> None:
-        timeline = supports_timeline._submit_timeline()
         super().__init__(
             run_alpha=lag_time + timeline._run_alpha
         )

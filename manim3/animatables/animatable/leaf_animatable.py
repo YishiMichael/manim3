@@ -5,15 +5,20 @@ from abc import (
     ABC,
     abstractmethod
 )
-from typing import Self
+from typing import (
+    Iterator,
+    Self,
+    Unpack
+)
 
 from ...constants.custom_typing import (
     BoundaryT,
     NP_xf8
 )
-from ...lazy.lazy import Lazy
 from .animatable import (
     Animatable,
+    AnimatableAnimationBuilder,
+    AnimateKwargs,
     Animation
 )
 from .piecewiser import Piecewiser
@@ -55,36 +60,51 @@ class LeafAnimatable(Animatable):
     ) -> Self:
         pass
 
-    def _get_interpolate_animation(
-        self: Self,
-        src_0: Self,
-        src_1: Self
-    ) -> Animation:
-        return super()._get_interpolate_animation(src_0, src_1).add(
-            LeafAnimatableInterpolateAnimation(self, src_0, src_1)
-        )
+    @property
+    def _animate_cls(
+        self: Self
+    ) -> type[LeafAnimatableAnimationBuilder]:
+        return LeafAnimatableAnimationBuilder
 
-    def _get_piecewise_animation(
+    def animate(
         self: Self,
-        src: Self,
+        **kwargs: Unpack[AnimateKwargs]
+        #rate: Rate = Rates.linear(),
+        #rewind: bool = False,
+        #run_alpha: float = 1.0,
+        #infinite: bool = False
+    ) -> LeafAnimatableAnimationBuilder[Self]:
+        return LeafAnimatableAnimationBuilder(self, **kwargs)
+
+
+class LeafAnimatableAnimationBuilder[LeafAnimatableT: LeafAnimatable](AnimatableAnimationBuilder[LeafAnimatableT]):
+    __slots__ = ()
+
+    @classmethod
+    def _iter_interpolate_animations(
+        cls: type[Self],
+        dst: LeafAnimatableT,
+        src_0: LeafAnimatableT,
+        src_1: LeafAnimatableT
+    ) -> Iterator[Animation]:
+        yield LeafAnimatableInterpolateAnimation(dst, src_0, src_1)
+        yield from super()._iter_interpolate_animations(dst, src_0, src_1)
+
+    @classmethod
+    def _iter_piecewise_animations(
+        cls: type[Self],
+        dst: LeafAnimatableT,
+        src: LeafAnimatableT,
         piecewiser: Piecewiser
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
-    ) -> Animation:
-        return super()._get_piecewise_animation(src, piecewiser).add(
-            LeafAnimatablePiecewiseAnimation(self, src, piecewiser)
-        )
+    ) -> Iterator[Animation]:
+        yield LeafAnimatablePiecewiseAnimation(dst, src, piecewiser)
+        yield from super()._iter_piecewise_animations(dst, src, piecewiser)
 
 
 class LeafAnimatableInterpolateInfo[LeafAnimatableT: LeafAnimatable](ABC):
     __slots__ = ()
-
-    def __init__(
-        self: Self,
-        src_0: LeafAnimatableT,
-        src_1: LeafAnimatableT
-    ) -> None:
-        super().__init__()
 
     @abstractmethod
     def interpolate(
@@ -96,7 +116,12 @@ class LeafAnimatableInterpolateInfo[LeafAnimatableT: LeafAnimatable](ABC):
 
 
 class LeafAnimatableInterpolateAnimation[LeafAnimatableT: LeafAnimatable](Animation):
-    __slots__ = ("_dst",)
+    __slots__ = (
+        "_dst",
+        "_src_0",
+        "_src_1",
+        "_interpolate_info"
+    )
 
     def __init__(
         self: Self,
@@ -106,43 +131,47 @@ class LeafAnimatableInterpolateAnimation[LeafAnimatableT: LeafAnimatable](Animat
     ) -> None:
         super().__init__()
         self._dst: LeafAnimatableT = dst
-        self._src_0_ = src_0.copy()
-        self._src_1_ = src_1.copy()
+        self._src_0: LeafAnimatableT = src_0#.copy()
+        self._src_1: LeafAnimatableT = src_1#.copy()
+        self._interpolate_info: LeafAnimatableInterpolateInfo[LeafAnimatableT] | None = None
         #self._positions_0_ = positions_0
         #self._positions_1_ = positions_1
         #self._edges_ = edges
 
-    @Lazy.variable()
-    @staticmethod
-    def _src_0_() -> LeafAnimatableT:
-        return NotImplemented
+    #@Lazy.variable()
+    #@staticmethod
+    #def _src_0_() -> LeafAnimatableT:
+    #    return NotImplemented
 
-    @Lazy.variable()
-    @staticmethod
-    def _src_1_() -> LeafAnimatableT:
-        return NotImplemented
+    #@Lazy.variable()
+    #@staticmethod
+    #def _src_1_() -> LeafAnimatableT:
+    #    return NotImplemented
 
-    @Lazy.property()
-    @staticmethod
-    def _interpolate_info_(
-        src_0: LeafAnimatableT,
-        src_1: LeafAnimatableT
-    ) -> LeafAnimatableInterpolateInfo[LeafAnimatableT]:
-        return type(src_0)._interpolate(src_0, src_1)
+    #@Lazy.property()
+    #@staticmethod
+    #def _interpolate_info_(
+    #    src_0: LeafAnimatableT,
+    #    src_1: LeafAnimatableT
+    #) -> LeafAnimatableInterpolateInfo[LeafAnimatableT]:
+    #    return type(src_0)._interpolate(src_0, src_1)
 
     def update(
         self: Self,
         alpha: float
     ) -> None:
         super().update(alpha)
-        self._interpolate_info_.interpolate(self._dst, alpha)
+        if (interpolate_info := self._interpolate_info) is None:
+            interpolate_info = type(self._dst)._interpolate(self._src_0, self._src_1)
+            self._interpolate_info = interpolate_info
+        interpolate_info.interpolate(self._dst, alpha)
 
     def update_boundary(
         self: Self,
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)
-        self._dst._copy_lazy_content(self._src_1_ if boundary else self._src_0_)
+        self._dst._copy_lazy_content(self._src_1 if boundary else self._src_0)
 
 
 class LeafAnimatablePiecewiseAnimation[LeafAnimatableT: LeafAnimatable](Animation):
@@ -180,4 +209,5 @@ class LeafAnimatablePiecewiseAnimation[LeafAnimatableT: LeafAnimatable](Animatio
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)
-        self._dst._copy_lazy_content(self._src)
+        self.update(float(boundary))
+        #self._dst._copy_lazy_content(self._src)

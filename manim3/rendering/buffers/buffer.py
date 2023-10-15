@@ -6,10 +6,9 @@ from typing import Self
 
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
-from ..buffer_formats.atomic_buffer_format import AtomicBufferFormat
 from ..buffer_formats.buffer_format import BufferFormat
-from ..buffer_formats.buffer_layout import BufferLayout
-from ..buffer_formats.structured_buffer_format import StructuredBufferFormat
+from ..buffer_layouts.buffer_layout import BufferLayout
+from ..buffer_layouts.dense_buffer_layout import DenseBufferLayout
 
 
 class Buffer(LazyObject):
@@ -48,8 +47,8 @@ class Buffer(LazyObject):
 
     @Lazy.property(hasher=Lazy.naive_hasher)
     @staticmethod
-    def _layout_() -> BufferLayout:
-        return BufferLayout.DENSE
+    def _layout_() -> type[BufferLayout]:
+        return DenseBufferLayout
 
     @Lazy.property()
     @staticmethod
@@ -57,7 +56,7 @@ class Buffer(LazyObject):
         field: str,
         child_struct_items: tuple[tuple[str, tuple[str, ...]], ...],
         array_len_items: tuple[tuple[str, int], ...],
-        layout: BufferLayout
+        layout: type[BufferLayout]
     ) -> BufferFormat:
 
         def parse_field_str(
@@ -87,24 +86,22 @@ class Buffer(LazyObject):
         ) -> BufferFormat:
             dtype_str, name, shape = parse_field_str(field, array_lens_dict)
             if (child_struct_fields := child_structs_dict.get(dtype_str)) is None:
-                return AtomicBufferFormat(
+                return layout.get_atomic_buffer_format(
                     name=name,
                     shape=shape,
-                    gl_dtype_str=dtype_str,
-                    layout=layout
+                    gl_dtype_str=dtype_str
                 )
-            return StructuredBufferFormat(
+            return layout.get_structured_buffer_format(
                 name=name,
                 shape=shape,
-                children=[
+                children=tuple(
                     get_buffer_format(
                         child_struct_field,
                         child_structs_dict,
                         array_lens_dict
                     )
                     for child_struct_field in child_struct_fields
-                ],
-                layout=layout
+                )
             )
 
         return get_buffer_format(

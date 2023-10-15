@@ -31,13 +31,6 @@ class AnimatableArray[NDArrayT: np.ndarray](LeafAnimatable):
         return NotImplemented
 
     @classmethod
-    def _convert_input(
-        cls: type[Self],
-        array_input: np.ndarray
-    ) -> Self:
-        return cls(array_input)
-
-    @classmethod
     def _interpolate(
         cls: type[Self],
         src_0: Self,
@@ -91,7 +84,7 @@ class AnimatableArrayInterpolateInfo[AnimatableArrayT: AnimatableArray](LeafAnim
         src_0: AnimatableArrayT,
         src_1: AnimatableArrayT
     ) -> None:
-        super().__init__(src_0, src_1)
+        super().__init__()
         self._array_0: np.ndarray = src_0._array_
         self._array_1: np.ndarray = src_1._array_
 

@@ -18,7 +18,7 @@ class LazySlot[T]:
         "__weakref__",
         "_elements",
         "_parameter_key",
-        "_linked_slots",
+        "_associated_slots",
         "_is_writable"
     )
 
@@ -28,36 +28,36 @@ class LazySlot[T]:
         super().__init__()
         self._elements: tuple[Registered[T], ...] | None = None
         self._parameter_key: Registered[Hashable] | None = None
-        self._linked_slots: weakref.WeakSet[LazySlot] = weakref.WeakSet()
+        self._associated_slots: weakref.WeakSet[LazySlot] = weakref.WeakSet()
         self._is_writable: bool = True
 
-    def _get(
+    def get(
         self: Self
     ) -> tuple[Registered[T], ...] | None:
         return self._elements
 
-    def _set(
+    def set(
         self: Self,
         elements: tuple[Registered[T], ...],
         parameter_key: Registered[Hashable] | None,
-        linked_slots: set[LazySlot]
+        associated_slots: set[LazySlot]
     ) -> None:
         self._elements = elements
         self._parameter_key = parameter_key
-        assert not self._linked_slots
-        self._linked_slots.update(linked_slots)
-        for slot in linked_slots:
-            slot._linked_slots.add(self)
+        assert not self._associated_slots
+        self._associated_slots.update(associated_slots)
+        for slot in associated_slots:
+            slot._associated_slots.add(self)
 
-    def _expire(
+    def expire(
         self: Self
     ) -> None:
         self._elements = None
-        for slot in self._linked_slots:
-            slot._linked_slots.remove(self)
-        self._linked_slots.clear()
+        for slot in self._associated_slots:
+            slot._associated_slots.remove(self)
+        self._associated_slots.clear()
 
-    def _iter_linked_slots(
+    def iter_associated_slots(
         self: Self
     ) -> Iterator[LazySlot]:
-        return iter(set(self._linked_slots))
+        return iter(set(self._associated_slots))
