@@ -124,7 +124,7 @@ class Model(Animatable):
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
-    @Lazy.variable_collection()
+    @Lazy.variable_collection(freeze=False)
     @staticmethod
     def _proper_siblings_() -> tuple[Model, ...]:
         return ()

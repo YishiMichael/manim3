@@ -73,7 +73,7 @@ class MeshMobject(Mobject):
     def _shininess_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_shininess)
 
-    @Lazy.variable()
+    @Lazy.variable(freeze=False)
     @staticmethod
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting

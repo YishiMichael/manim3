@@ -447,11 +447,11 @@ class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[Graph]):
 
     def interpolate(
         self: Self,
-        graph: Graph,
+        dst: Graph,
         alpha: float
     ) -> None:
-        graph._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
-        graph._edges_ = self._edges
+        dst._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
+        dst._edges_ = self._edges
 
 
 #class GraphPartialUpdater(Updater[Graph]):

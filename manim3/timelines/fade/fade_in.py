@@ -33,4 +33,4 @@ class FadeIn(Timeline):
         mobject = self._mobject
 
         self.scene.add(mobject)
-        await self.play(mobject.animate(rewind=False).set(opacity=0.0))
+        await self.play(mobject.animate(rewind=True).set(opacity=0.0))

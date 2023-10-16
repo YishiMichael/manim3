@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 
-import re
 import weakref
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -112,56 +111,57 @@ class PseudoTree:
         return result
 
 
-class LazyDescriptor[DataT, T](ABC):
+class LazyDescriptor[T, DataT](ABC):
     __slots__ = (
         "_method",
         "_name",
-        "_is_multiple",
-        "_decomposer",
-        "_composer",
+        "_descriptor_info_chains",
+        #"_is_plural",
+        #"_decomposer",
+        #"_composer",
         "_is_variable",
         "_hasher",
         "_freeze",
         "_freezer",
         "_cache",
         "_parameter_key_registration",
-        "_element_registration",
-        "_element_type",
-        "_element_type_annotation",
-        "_descriptor_chains"
+        "_element_registration"
+        #"_element_type",
+        #"_element_type_annotation",
+        #"_descriptor_chains"
     )
 
     def __init__(
         self: Self,
         method: Callable[..., DataT],
-        is_multiple: bool,
-        decomposer: Callable[[DataT], tuple[T, ...]],
-        composer: Callable[[tuple[T, ...]], DataT],
+        #is_plural: bool,
+        #decomposer: Callable[[DataT], tuple[T, ...]],
+        #composer: Callable[[tuple[T, ...]], DataT],
         is_variable: bool,
         hasher: Callable[[T], Hashable],
         freeze: bool,
         cache_capacity: int
     ) -> None:
-        assert re.fullmatch(r"_([^_]+_)+", method.__name__)
+        assert isinstance(method, staticmethod)
         assert hasher is id or freeze
         super().__init__()
-        self._method: Callable[..., DataT] = method
+        self._method: Callable[..., DataT] = method.__func__
         self._name: str = method.__name__
-        self._is_multiple: bool = is_multiple
-        self._decomposer: Callable[[DataT], tuple[T, ...]] = decomposer
-        self._composer: Callable[[tuple[T, ...]], DataT] = composer
+        self._descriptor_info_chains: tuple[tuple[tuple[str, bool], ...], ...] = NotImplemented
+        #self._is_plural: bool = is_plural
+        #self._decomposer: Callable[[DataT], tuple[T, ...]] = decomposer
+        #self._composer: Callable[[tuple[T, ...]], DataT] = composer
         self._is_variable: bool = is_variable
         self._hasher: Callable[[T], Hashable] = hasher
         self._freeze: bool = freeze
         self._freezer: Callable[[T], None] = type(self)._empty_freezer
         self._cache: Cache[Registered[Hashable], tuple[Registered[T], ...]] = Cache(capacity=cache_capacity)
         self._parameter_key_registration: Registration[Hashable, Hashable] = Registration()
-        # Shared when overridden.
         self._element_registration: Registration[Hashable, T] = Registration()
 
-        self._element_type: type[T] | None = None
-        self._element_type_annotation: type = NotImplemented
-        self._descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...] = NotImplemented
+        #self._element_type: type[T] | None = None
+        #self._element_type_annotation: type = NotImplemented
+        #self._descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...] = NotImplemented
 
     @overload
     def __get__(
@@ -199,21 +199,45 @@ class LazyDescriptor[DataT, T](ABC):
     ) -> Never:
         raise TypeError("Cannot delete attributes of a lazy object")
 
-    def _can_override(
-        self: Self,
-        descriptor: LazyDescriptor
+    @classmethod
+    @property
+    @abstractmethod
+    def _is_plural(
+        cls: type[Self]
     ) -> bool:
-        return (
-            self._is_multiple is descriptor._is_multiple
-            and self._hasher is descriptor._hasher
-            and (self._freeze or not descriptor._freeze)
-            and (
-                self._element_type_annotation == descriptor._element_type_annotation
-                or self._element_type is None
-                or descriptor._element_type is None
-                or issubclass(self._element_type, descriptor._element_type)
-            )
-        )
+        pass
+
+    @classmethod
+    @abstractmethod
+    def _decomposer(
+        cls: type[Self],
+        data: DataT
+    ) -> tuple[T, ...]:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def _composer(
+        cls: type[Self],
+        elements: tuple[T, ...]
+    ) -> DataT:
+        pass
+
+    #def _can_override(
+    #    self: Self,
+    #    descriptor: LazyDescriptor
+    #) -> bool:
+    #    return (
+    #        self._is_plural is descriptor._is_plural
+    #        #and self._hasher is descriptor._hasher
+    #        #and (self._freeze or not descriptor._freeze)
+    #        and (
+    #            self._element_type_annotation == descriptor._element_type_annotation
+    #            or self._element_type is None
+    #            or descriptor._element_type is None
+    #            or issubclass(self._element_type, descriptor._element_type)
+    #        )
+    #    )
 
     def _register_parameter_key(
         self: Self,
@@ -236,8 +260,9 @@ class LazyDescriptor[DataT, T](ABC):
             for element in elements
         )
 
-    @staticmethod
+    @classmethod
     def _empty_freezer(
+        cls: type[Self],
         element: T
     ) -> None:
         return
@@ -269,8 +294,8 @@ class LazyDescriptor[DataT, T](ABC):
     ) -> tuple[T, ...]:
 
         def get_leaf_items(
-            leaf: LazyObject,
-            descriptor_name: str
+            descriptor_name: str,
+            leaf: LazyObject
         ) -> tuple[tuple, set[LazySlot]]:
             descriptor = type(leaf)._lazy_descriptors[descriptor_name]
             slot = descriptor._get_slot(leaf)
@@ -279,13 +304,13 @@ class LazyDescriptor[DataT, T](ABC):
             return elements, leaf_associated_variable_slots
 
         def iter_descriptor_items(
-            descriptor_chain: tuple[LazyDescriptor, ...],
+            descriptor_info_chain: tuple[tuple[str, bool], ...],
             instance: LazyObject
         ) -> Iterator[tuple[tuple, tuple[int, ...] | None, set[LazySlot]]]:
             leaf_tuple: tuple = (instance,)
-            for descriptor in descriptor_chain:
+            for descriptor_name, is_plural in descriptor_info_chain:
                 leaf_items = tuple(
-                    get_leaf_items(leaf, descriptor._name)
+                    get_leaf_items(descriptor_name, leaf)
                     for leaf in leaf_tuple
                 )
                 leaf_tuple = tuple(
@@ -296,7 +321,7 @@ class LazyDescriptor[DataT, T](ABC):
                 branch_sizes = tuple(
                     len(elements)
                     for elements, _ in leaf_items
-                ) if descriptor._is_multiple else None
+                ) if is_plural else None
                 descriptor_associated_variable_slots = set().union(*(
                     leaf_associated_variable_slots
                     for _, leaf_associated_variable_slots in leaf_items
@@ -304,10 +329,10 @@ class LazyDescriptor[DataT, T](ABC):
                 yield leaf_tuple, branch_sizes, descriptor_associated_variable_slots
 
         def get_parameter_items(
-            descriptor_chain: tuple[LazyDescriptor, ...],
+            descriptor_info_chain: tuple[tuple[str, bool], ...],
             instance: LazyObject
         ) -> tuple[PseudoTree, set[LazySlot]]:
-            descriptor_items = tuple(iter_descriptor_items(descriptor_chain, instance))
+            descriptor_items = tuple(iter_descriptor_items(descriptor_info_chain, instance))
             leaf_tuple, _, _ = descriptor_items[-1]
             pseudo_tree = PseudoTree(
                 leaf_tuple=leaf_tuple,
@@ -324,12 +349,12 @@ class LazyDescriptor[DataT, T](ABC):
             return pseudo_tree, parameter_associated_variable_slots
 
         def get_pseudo_trees_and_associated_variable_slots(
-            descriptor_chains: tuple[tuple[LazyDescriptor, ...], ...],
+            descriptor_info_chains: tuple[tuple[tuple[str, bool], ...], ...],
             instance: LazyObject
         ) -> tuple[tuple[PseudoTree, ...], set[LazySlot]]:
             parameter_items = tuple(
-                get_parameter_items(descriptor_chain, instance)
-                for descriptor_chain in descriptor_chains
+                get_parameter_items(descriptor_info_chain, instance)
+                for descriptor_info_chain in descriptor_info_chains
             )
             pseudo_trees = tuple(pseudo_tree for pseudo_tree, _ in parameter_items)
             associated_variable_slots = set().union(*(
@@ -342,7 +367,7 @@ class LazyDescriptor[DataT, T](ABC):
             # If there's at least a parameter, `slot` is guaranteed to be a property slot.
             # Associate it with variable slots.
             pseudo_trees, associated_variable_slots = get_pseudo_trees_and_associated_variable_slots(
-                self._descriptor_chains, instance
+                self._descriptor_info_chains, instance
             )
             registered_parameter_key = self._register_parameter_key(tuple(
                 pseudo_tree.key()
@@ -380,3 +405,54 @@ class LazyDescriptor[DataT, T](ABC):
             parameter_key=None,
             associated_slots=set()
         )
+
+
+class LazySingularDescriptor[T](LazyDescriptor[T, T]):
+    __slots__ = ()
+
+    @classmethod
+    @property
+    def _is_plural(
+        cls: type[Self]
+    ) -> bool:
+        return False
+
+    @classmethod
+    def _decomposer(
+        cls: type[Self],
+        data: T
+    ) -> tuple[T, ...]:
+        return (data,)
+
+    @classmethod
+    def _composer(
+        cls: type[Self],
+        elements: tuple[T, ...]
+    ) -> T:
+        (element,) = elements
+        return element
+
+
+class LazyPluralDescriptor[T](LazyDescriptor[T, tuple[T, ...]]):
+    __slots__ = ()
+
+    @classmethod
+    @property
+    def _is_plural(
+        cls: type[Self]
+    ) -> bool:
+        return True
+
+    @classmethod
+    def _decomposer(
+        cls: type[Self],
+        data: tuple[T, ...]
+    ) -> tuple[T, ...]:
+        return data
+
+    @classmethod
+    def _composer(
+        cls: type[Self],
+        elements: tuple[T, ...]
+    ) -> tuple[T, ...]:
+        return elements

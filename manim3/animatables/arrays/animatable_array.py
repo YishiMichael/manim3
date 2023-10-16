@@ -90,10 +90,10 @@ class AnimatableArrayInterpolateInfo[AnimatableArrayT: AnimatableArray](LeafAnim
 
     def interpolate(
         self: Self,
-        src: AnimatableArrayT,
+        dst: AnimatableArrayT,
         alpha: float
     ) -> None:
-        src._array_ = SpaceUtils.lerp(self._array_0, self._array_1, alpha)
+        dst._array_ = SpaceUtils.lerp(self._array_0, self._array_1, alpha)
 
 
 #class AnimatableArrayInterpolateUpdater(Updater, Generic[_NPT]):

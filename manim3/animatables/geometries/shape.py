@@ -603,11 +603,11 @@ class ShapeInterpolateInfo(LeafAnimatableInterpolateInfo[Shape]):
 
     def interpolate(
         self: Self,
-        shape: Shape,
+        dst: Shape,
         alpha: float
     ) -> None:
-        shape._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
-        shape._counts_ = self._counts
+        dst._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
+        dst._counts_ = self._counts
 
 
 #class ShapeInterpolateUpdater(Updater):

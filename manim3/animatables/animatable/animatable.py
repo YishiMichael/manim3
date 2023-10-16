@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import itertools
 import weakref
 from abc import ABC
 from typing import (
@@ -87,20 +88,23 @@ class Animatable(LazyObject):
 
     _animatable_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
 
-    #_unanimatable_variable_names: ClassVar[tuple[str, ...]] = ()
-
     def __init_subclass__(
         cls: type[Self]
     ) -> None:
         super().__init_subclass__()
-        cls._animatable_descriptors = {
-            name: descriptor
-            for name, descriptor in cls._lazy_descriptors.items()
-            if descriptor._is_variable
-            and descriptor._element_type is not None
-            and issubclass(descriptor._element_type, Animatable)
-            and descriptor._element_type is not cls
-        }
+        #cls._animatable_descriptors = {
+        #    name: descriptor
+        #    for name, descriptor in cls._lazy_descriptors.items()
+        #    if descriptor._is_variable
+        #    and descriptor._name not in (
+        #        "_siblings_",
+        #        "_camera_",
+        #        "_lighting_"
+        #    )  # TODO
+        #    #and descriptor._element_type is not None
+        #    #and issubclass(descriptor._element_type, Animatable)
+        #    #and descriptor._element_type is not cls
+        #}
 
     #def __init__(
     #    self: Self
@@ -153,7 +157,7 @@ class Animatable(LazyObject):
     #    descriptor: LazyDescriptor,
     #    animatable_input: Any
     #) -> Iterator:
-    #    if descriptor._is_multiple:
+    #    if descriptor._is_plural:
     #        for animatable_input_element in animatable_input:
     #            yield cls._convert_input(animatable_input_element)
     #    else:
@@ -302,7 +306,7 @@ class Animatable(LazyObject):
         #            continue
         #        assert (element_type := descriptor._element_type) is not None and issubclass(element_type, Animatable)
         #        target_elements = tuple(element_type._iter_elements_from_input(descriptor, animatable_input))
-        #        #if descriptor._is_multiple:
+        #        #if descriptor._is_plural:
         #        #    target_elements = tuple(
         #        #        element_type._convert_input(animatable_input_element)
         #        #        for animatable_input_element in animatable_input
@@ -568,7 +572,7 @@ class AnimatableAnimationBuilder[AnimatableT: Animatable](AnimationsTimeline):
             #assert (element_type := descriptor._element_type) is not None and issubclass(element_type, Animatable)
             #source_elements = descriptor._get_elements(dst)
             #target_elements = tuple(element_type._iter_elements_from_input(descriptor, animatable_input))
-            ##if descriptor._is_multiple:
+            ##if descriptor._is_plural:
             ##    target_elements = tuple(
             ##        element_type._convert_input(animatable_input_element)
             ##        for animatable_input_element in animatable_input
@@ -594,16 +598,18 @@ class AnimatableAnimationBuilder[AnimatableT: Animatable](AnimationsTimeline):
         *,
         broadcast: bool = True
     ) -> Self:
-        for dst_sibling, src_0_sibling, src_1_sibling in zip(
-            self._animatable._iter_siblings(broadcast=broadcast),
-            animatable_0._iter_siblings(broadcast=broadcast),
-            animatable_1._iter_siblings(broadcast=broadcast)
-        ):
-            self._stack_animations(dst_sibling._animate_cls._iter_interpolate_animations(
+        self._stack_animations(itertools.chain.from_iterable(
+            dst_sibling._animate_cls._iter_interpolate_animations(
                 dst=dst_sibling,
                 src_0=src_0_sibling,
                 src_1=src_1_sibling
-            ))
+            )
+            for dst_sibling, src_0_sibling, src_1_sibling in zip(
+                self._animatable._iter_siblings(broadcast=broadcast),
+                animatable_0._iter_siblings(broadcast=broadcast),
+                animatable_1._iter_siblings(broadcast=broadcast)
+            )
+        ))
         return self
 
     def piecewise(
@@ -613,15 +619,17 @@ class AnimatableAnimationBuilder[AnimatableT: Animatable](AnimationsTimeline):
         *,
         broadcast: bool = True
     ) -> Self:
-        for dst_sibling, src_sibling in zip(
-            self._animatable._iter_siblings(broadcast=broadcast),
-            animatable._iter_siblings(broadcast=broadcast)
-        ):
-            self._stack_animations(dst_sibling._animate_cls._iter_piecewise_animations(
+        self._stack_animations(itertools.chain.from_iterable(
+            dst_sibling._animate_cls._iter_piecewise_animations(
                 dst=dst_sibling,
                 src=src_sibling,
                 piecewiser=piecewiser
-            ))
+            )
+            for dst_sibling, src_sibling in zip(
+                self._animatable._iter_siblings(broadcast=broadcast),
+                animatable._iter_siblings(broadcast=broadcast)
+            )
+        ))
         return self
 
     def set(
@@ -630,11 +638,13 @@ class AnimatableAnimationBuilder[AnimatableT: Animatable](AnimationsTimeline):
         broadcast: bool = True,
         **kwargs: Unpack[SetKwargs]
     ) -> Self:
-        for dst_sibling in self._animatable._iter_siblings(broadcast=broadcast):
-            self._stack_animations(dst_sibling._animate_cls._iter_set_animations(
+        self._stack_animations(itertools.chain.from_iterable(
+            dst_sibling._animate_cls._iter_set_animations(
                 dst=dst_sibling,
                 **kwargs
-            ))
+            )
+            for dst_sibling in self._animatable._iter_siblings(broadcast=broadcast)
+        ))
         return self
 
     def transform(
@@ -764,8 +774,8 @@ class AnimatableSetAnimation(Animation):
     __slots__ = (
         "_animatable",
         "_descriptor",
-        "_source_elements",
-        "_target_elements",
+        "_elements_0",
+        "_elements_1",
         "_animations"
     )
 
@@ -779,9 +789,9 @@ class AnimatableSetAnimation(Animation):
         def iter_elements_from_input(
             animatable_cls: type[Animatable],
             animatable_input: Any,
-            is_multiple: bool
+            is_plural: bool
         ) -> Iterator:
-            if is_multiple:
+            if is_plural:
                 for animatable_input_element in animatable_input:
                     yield animatable_cls._convert_input(animatable_input_element)
             else:
@@ -789,16 +799,16 @@ class AnimatableSetAnimation(Animation):
 
         super().__init__()
         assert (element_type := descriptor._element_type) is not None and issubclass(element_type, Animatable)
-        source_elements = descriptor._get_elements(animatable)
-        target_elements = tuple(iter_elements_from_input(
+        elements_0 = descriptor._get_elements(animatable)
+        elements_1 = tuple(iter_elements_from_input(
             animatable_cls=element_type,
             animatable_input=animatable_input,
-            is_multiple=descriptor._is_multiple
+            is_plural=descriptor._is_plural
         ))
         self._animatable: Animatable = animatable
         self._descriptor: LazyDescriptor = descriptor
-        self._source_elements: tuple = source_elements
-        self._target_elements: tuple = target_elements
+        self._elements_0: tuple = elements_0
+        self._elements_1: tuple = elements_1
         self._animations: tuple[Animation, ...] | None = None
         #self._positions_0_ = positions_0
         #self._positions_1_ = positions_1
@@ -810,15 +820,17 @@ class AnimatableSetAnimation(Animation):
     ) -> None:
         super().update(alpha)
         if (animations := self._animations) is None:
-            animations = tuple(
-                animation
-                for source_element, target_element in zip(self._source_elements, self._target_elements, strict=True)
-                for animation in source_element._animate_cls._iter_interpolate_animations(
-                    dst=source_element,
-                    src_0=source_element.copy(),
-                    src_1=target_element.copy()
+            dst_elements = self._descriptor._get_elements(self._animatable)
+            animations = tuple(itertools.chain.from_iterable(
+                dst_element._animate_cls._iter_interpolate_animations(
+                    dst=dst_element,
+                    src_0=element_0.copy(),
+                    src_1=element_1.copy()
                 )
-            )
+                for dst_element, element_0, element_1 in zip(
+                    dst_elements, self._elements_0, self._elements_1, strict=True
+                )
+            ))
             self._animations = animations
         for animation in animations:
             animation.update(alpha)
@@ -829,4 +841,4 @@ class AnimatableSetAnimation(Animation):
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)
-        self._descriptor._set_elements(self._animatable, self._target_elements if boundary else self._source_elements)
+        self._descriptor._set_elements(self._animatable, self._elements_1 if boundary else self._elements_0)

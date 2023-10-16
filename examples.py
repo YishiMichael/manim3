@@ -83,7 +83,7 @@ class ThreeDExample(Scene):
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
-                #char.animate(rewind=False).shift(DOWN)
+                char.animate(rewind=True).shift(DOWN)
                 #Shift(char, UP, arrive=True)
             )
             for char in text
@@ -97,7 +97,7 @@ class OITExample(Scene):
             (Circle()
                 .set(color=color, opacity=opacity)
                 .shift(RIGHT * 0.5)
-                .rotate(OUT * angle)
+                .rotate_about_origin(OUT * angle)
             )
             for color, opacity, angle in zip(
                 (RED, GREEN, BLUE),
@@ -330,7 +330,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    ThreeDExample.render(config)
+    LaggedAnimationExample.render(config)
 
 
 if __name__ == "__main__":

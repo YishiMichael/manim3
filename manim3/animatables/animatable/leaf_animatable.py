@@ -109,7 +109,7 @@ class LeafAnimatableInterpolateInfo[LeafAnimatableT: LeafAnimatable](ABC):
     @abstractmethod
     def interpolate(
         self: Self,
-        src: LeafAnimatableT,
+        dst: LeafAnimatableT,
         alpha: float
     ) -> None:
         pass

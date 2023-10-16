@@ -19,13 +19,13 @@ methods and be named with underscores appeared on both sides, i.e. `_data_`.
 Successive underscores shall not occur, due to the name convension handled by
 lazy properties.
 
-The constructor of `LazyDescriptor[_DataT, _T]` has the following notable
+The constructor of `LazyDescriptor[T, DataT]` has the following notable
 parameters:
 
-- `method: Callable[..., _DataT]`
+- `method: Callable[..., DataT]`
   Defines how the data is calculated through parameters. The returned data
   should be a single element, or a tuple of elements, determined by
-  the `is_multiple` flag.
+  the `_is_plural` flag.
 
   When `is_variable` is true, the method should not take any parameter, and
   returns the initial value for the variable slot.
@@ -34,12 +34,7 @@ parameters:
   chain started from the local class, with underscores stripped. For example,
   the name `a__b__c` under class `A` fetches data through the path
   `A._a_._b_._c_`. The fetched data will be an `n`-layer tuple tree, where `n`
-  is the number of descriptors with their `is_multiple` flags set to be true.
-
-- `is_multiple: bool`
-  Determines whether data contains a singular element or multiple elements.
-  When true, `_DataT` is specialized as `tuple[_T]`; when false, specialized
-  as `_T`.
+  is the number of descriptors with their `_is_plural` flags set to be true.
 
 - `is_variable: bool`
   Determines whether the descriptor behaves as a variable or a property.
@@ -48,7 +43,7 @@ parameters:
   - the `is_variable` is true;
   - the instance is not frozen.
 
-- `hasher: Callable[[_T], Hashable]`
+- `hasher: Callable[[T], Hashable]`
   Defines how elements are shared. Defaults to be `id`, meaning elements are
   never shared unless direct assignment is performed. Other options are also
   provided under `Lazy` namespace, named as `xxx_hasher`.
@@ -77,9 +72,14 @@ parameters:
   is always empty). Defaults to be 128 when `is_variable` is false. However,
   the cache is only used when `freeze` is true.
 
+- `_is_plural: bool` (readonly property)
+  Determines whether data contains exactly one or arbitrarily many elements.
+  When true, `DataT` is specialized as `tuple[T]`; when false, specialized
+  as `T`.
+
 Descriptor overriding is allowed. The overriding descriptor should match the
-overridden one in `is_multiple` and `hasher`. Furthermore, the type of element
-(the specialization of type variable `_T`) should be consistent between
+overridden one in `_is_plural` and `hasher`. Furthermore, the type of element
+(the specialization of type variable `T`) should be consistent between
 descriptors.
 """
 
@@ -93,8 +93,10 @@ from typing import (
 
 import numpy as np
 
-from .lazy_descriptor import LazyDescriptor
-#from .lazy_object import LazyObject
+from .lazy_descriptor import (
+    LazyPluralDescriptor,
+    LazySingularDescriptor
+)
 
 
 class Lazy:
@@ -106,68 +108,19 @@ class Lazy:
         raise TypeError
 
     @classmethod
-    def _descriptor_singular[T](
+    def _singular_descriptor[T](
         cls: type[Self],
         is_variable: bool,
         freeze: bool,
         cache_capacity: int,
         hasher: Callable[..., Hashable]
-    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
-
-        def singular_decomposer(
-            data: T
-        ) -> tuple[T, ...]:
-            return (data,)
-
-        def singular_composer(
-            elements: tuple[T, ...]
-        ) -> T:
-            (element,) = elements
-            return element
+    ) -> Callable[[Callable[..., T]], LazySingularDescriptor[T]]:
 
         def result(
             method: Callable[[], T]
-        ) -> LazyDescriptor[T, T]:
-            return LazyDescriptor(
+        ) -> LazySingularDescriptor[T]:
+            return LazySingularDescriptor(
                 method=method,
-                is_multiple=False,
-                decomposer=singular_decomposer,
-                composer=singular_composer,
-                is_variable=is_variable,
-                hasher=hasher,
-                freeze=freeze,
-                cache_capacity=cache_capacity
-            )
-
-        return result
-
-    @classmethod
-    def _descriptor_multiple[T](
-        cls: type[Self],
-        is_variable: bool,
-        hasher: Callable[..., Hashable],
-        freeze: bool,
-        cache_capacity: int
-    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[tuple[T, ...], T]]:
-
-        def multiple_decomposer(
-            data: tuple[T, ...]
-        ) -> tuple[T, ...]:
-            return data
-
-        def multiple_composer(
-            elements: tuple[T, ...]
-        ) -> tuple[T, ...]:
-            return elements
-
-        def result(
-            method: Callable[[], tuple[T, ...]]
-        ) -> LazyDescriptor[tuple[T, ...], T]:
-            return LazyDescriptor(
-                method=method,
-                is_multiple=True,
-                decomposer=multiple_decomposer,
-                composer=multiple_composer,
                 is_variable=is_variable,
                 hasher=hasher,
                 freeze=freeze,
@@ -181,21 +134,8 @@ class Lazy:
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         freeze: bool = True
-    ) -> Callable[[Callable[[], T]], LazyDescriptor[T, T]]:
-        return cls._descriptor_singular(
-            is_variable=True,
-            hasher=hasher,
-            freeze=freeze,
-            cache_capacity=1
-        )
-
-    @classmethod
-    def variable_collection[T](
-        cls: type[Self],
-        hasher: Callable[..., Hashable] = id,
-        freeze: bool = True
-    ) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[tuple[T, ...], T]]:
-        return cls._descriptor_multiple(
+    ) -> Callable[[Callable[[], T]], LazySingularDescriptor[T]]:
+        return cls._singular_descriptor(
             is_variable=True,
             hasher=hasher,
             freeze=freeze,
@@ -207,8 +147,8 @@ class Lazy:
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         cache_capacity: int = 128
-    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
-        return cls._descriptor_singular(
+    ) -> Callable[[Callable[..., T]], LazySingularDescriptor[T]]:
+        return cls._singular_descriptor(
             is_variable=False,
             hasher=hasher,
             freeze=True,
@@ -216,12 +156,47 @@ class Lazy:
         )
 
     @classmethod
+    def _plural_descriptor[T](
+        cls: type[Self],
+        is_variable: bool,
+        hasher: Callable[..., Hashable],
+        freeze: bool,
+        cache_capacity: int
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyPluralDescriptor[T]]:
+
+        def result(
+            method: Callable[[], tuple[T, ...]]
+        ) -> LazyPluralDescriptor[T]:
+            return LazyPluralDescriptor(
+                method=method,
+                is_variable=is_variable,
+                hasher=hasher,
+                freeze=freeze,
+                cache_capacity=cache_capacity
+            )
+
+        return result
+
+    @classmethod
+    def variable_collection[T](
+        cls: type[Self],
+        hasher: Callable[..., Hashable] = id,
+        freeze: bool = True
+    ) -> Callable[[Callable[[], tuple[T, ...]]], LazyPluralDescriptor[T]]:
+        return cls._plural_descriptor(
+            is_variable=True,
+            hasher=hasher,
+            freeze=freeze,
+            cache_capacity=1
+        )
+
+    @classmethod
     def property_collection[T](
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         cache_capacity: int = 128
-    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[tuple[T, ...], T]]:
-        return cls._descriptor_multiple(
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyPluralDescriptor[T]]:
+        return cls._plural_descriptor(
             is_variable=False,
             hasher=hasher,
             freeze=True,
