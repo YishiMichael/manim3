@@ -5,8 +5,9 @@ from abc import (
     ABC,
     abstractmethod
 )
-from dataclasses import dataclass
 from typing import Self
+
+import attrs
 
 from ...constants.custom_typing import (
     NP_xf8,
@@ -14,11 +15,7 @@ from ...constants.custom_typing import (
 )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class PiecewiseData:
     split_alphas: NP_xf8
     concatenate_indices: NP_xi4

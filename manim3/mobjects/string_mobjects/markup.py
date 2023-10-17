@@ -2,12 +2,13 @@ from __future__ import annotations
 
 
 import re
-from dataclasses import dataclass
 from typing import (
     Iterator,
     Self,
     Unpack
 )
+
+import attrs
 
 from .pango_string_mobject import (
     PangoStringMobjectIO,
@@ -20,11 +21,7 @@ from .string_mobject import (
 )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MarkupInput(PangoStringMobjectInput):
     pass
 

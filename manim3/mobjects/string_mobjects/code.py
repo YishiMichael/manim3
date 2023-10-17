@@ -4,15 +4,13 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import (
     Self,
     TypedDict,
     Unpack
 )
+
+import attrs
 
 from ...toplevel.toplevel import Toplevel
 from .pango_string_mobject import (
@@ -43,14 +41,10 @@ class _Token(TypedDict):
     style: _HighlightStyle
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class CodeInput(PangoStringMobjectInput):
-    font: str = field(default_factory=lambda: Toplevel.config.code_font)
-    language_suffix: str = field(default_factory=lambda: Toplevel.config.code_language_suffix)
+    font: str = attrs.field(factory=lambda: Toplevel.config.code_font)
+    language_suffix: str = attrs.field(factory=lambda: Toplevel.config.code_language_suffix)
 
 
 class CodeKwargs(PangoStringMobjectKwargs, total=False):

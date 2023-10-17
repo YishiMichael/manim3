@@ -3,16 +3,14 @@ from __future__ import annotations
 
 import pathlib
 import re
-from dataclasses import (
-    dataclass,
-    field
-)
 from enum import Enum
 from typing import (
     ClassVar,
     Iterator,
     Self
 )
+
+import attrs
 
 try:
     # Soft dependency.
@@ -38,19 +36,15 @@ class PangoAlignment(Enum):
     RIGHT = 2
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class PangoStringMobjectInput(StringMobjectInput):
     #color: str
-    font_size: float = field(default_factory=lambda: Toplevel.config.pango_font_size)
-    alignment: AlignmentT = field(default_factory=lambda: Toplevel.config.pango_alignment)
-    font: str = field(default_factory=lambda: Toplevel.config.pango_font)
-    justify: bool = field(default_factory=lambda: Toplevel.config.pango_justify)
-    indent: float = field(default_factory=lambda: Toplevel.config.pango_indent)
-    line_width: float = field(default_factory=lambda: Toplevel.config.pango_line_width)
+    font_size: float = attrs.field(factory=lambda: Toplevel.config.pango_font_size)
+    alignment: AlignmentT = attrs.field(factory=lambda: Toplevel.config.pango_alignment)
+    font: str = attrs.field(factory=lambda: Toplevel.config.pango_font)
+    justify: bool = attrs.field(factory=lambda: Toplevel.config.pango_justify)
+    indent: float = attrs.field(factory=lambda: Toplevel.config.pango_indent)
+    line_width: float = attrs.field(factory=lambda: Toplevel.config.pango_line_width)
     #global_config: dict[str, str]
     #local_colors: dict[Span, str]
     #local_configs: dict[Span, dict[str, str]]

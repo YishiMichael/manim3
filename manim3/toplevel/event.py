@@ -5,8 +5,9 @@ from abc import (
     ABC,
     abstractmethod
 )
-from dataclasses import dataclass
 from typing import Self
+
+import attrs
 
 from ..timelines.timeline.condition import Condition
 from .toplevel import Toplevel
@@ -28,11 +29,7 @@ class EventCapturedCondition(Condition):
         return Toplevel.window.capture_event(self._event)
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class Event(ABC):
     @abstractmethod
     def _capture(

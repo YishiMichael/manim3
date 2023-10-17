@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import Self
 
+import attrs
 from colour import Color
 
 from ..constants.custom_typing import (
@@ -15,11 +12,7 @@ from ..constants.custom_typing import (
 )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class Config:
     fps: int = 30
     write_video: bool = False
@@ -36,8 +29,8 @@ class Config:
     camera_near: float = 0.1
     camera_far: float = 100.0
 
-    default_color: ColorT = field(default_factory=lambda: Color("white"))
-    background_color: ColorT = field(default_factory=lambda: Color("black"))
+    default_color: ColorT = attrs.field(factory=lambda: Color("white"))
+    background_color: ColorT = attrs.field(factory=lambda: Color("black"))
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
     graph_width: float = 0.05

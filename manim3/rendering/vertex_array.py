@@ -4,8 +4,9 @@ from __future__ import annotations
 import itertools
 import pathlib
 import re
-from dataclasses import dataclass
 from typing import Self
+
+import attrs
 
 import moderngl
 import numpy as np
@@ -26,11 +27,7 @@ from .indexed_attributes_buffer import IndexedAttributesBuffer
 from .mgl_enums import PrimitiveMode
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class ProgramAttributeInfo:
     array_length: int
     dimension: int
@@ -48,11 +45,7 @@ class ProgramAttributeInfo:
         return True
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class ProgramUniformInfo:
     array_length: int
     shape: tuple[int, ...]
@@ -73,11 +66,7 @@ class ProgramUniformInfo:
         return True
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class ProgramUniformBlockInfo:
     size: int
     binding: int
@@ -91,11 +80,7 @@ class ProgramUniformBlockInfo:
         return True
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class ProgramInfo:
     program: moderngl.Program
     attribute_info_dict: dict[str, ProgramAttributeInfo]

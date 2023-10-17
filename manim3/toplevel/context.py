@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import functools
 import operator
-from dataclasses import dataclass
 from typing import Self
 
+import attrs
 import moderngl
 import OpenGL.GL as gl
 
@@ -17,11 +17,7 @@ from ..rendering.mgl_enums import (
 )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class ContextState:
     flags: tuple[ContextFlag, ...]
     blend_funcs: tuple[tuple[BlendFunc, BlendFunc], ...]

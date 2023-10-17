@@ -2,13 +2,13 @@ from __future__ import annotations
 
 
 import pathlib
-from dataclasses import dataclass
 from typing import (
     Iterator,
     Self,
     TypedDict
 )
 
+import attrs
 import numpy as np
 import svgelements as se
 
@@ -28,11 +28,7 @@ from .mobject_io import (
 from .shape_mobjects.shape_mobject import ShapeMobject
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class SVGMobjectInput(MobjectInput):
     svg_path: pathlib.Path
     svg_text: str
@@ -41,11 +37,7 @@ class SVGMobjectInput(MobjectInput):
     frame_scale: float | None
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class SVGMobjectOutput(MobjectOutput):
     shape_mobjects: tuple[ShapeMobject, ...]
 

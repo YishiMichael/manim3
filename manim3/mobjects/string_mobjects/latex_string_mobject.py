@@ -3,14 +3,12 @@ from __future__ import annotations
 
 import re
 from abc import abstractmethod
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import (
     Iterator,
     Self
 )
+
+import attrs
 
 from ...toplevel.toplevel import Toplevel
 from .string_mobject import (
@@ -23,13 +21,9 @@ from .string_mobject import (
 )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class LatexStringMobjectInput(StringMobjectInput):
-    font_size: float = field(default_factory=lambda: Toplevel.config.latex_font_size)
+    font_size: float = attrs.field(factory=lambda: Toplevel.config.latex_font_size)
     #local_spans: list[Span]
 
 

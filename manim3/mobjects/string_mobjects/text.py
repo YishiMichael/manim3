@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 
-from dataclasses import dataclass
 from typing import (
     Self,
     Unpack
 )
+
+import attrs
 
 from .pango_string_mobject import (
     PangoStringMobjectIO,
@@ -15,11 +16,7 @@ from .pango_string_mobject import (
 from .string_mobject import StringMobject
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class TextInput(PangoStringMobjectInput):
     pass
 

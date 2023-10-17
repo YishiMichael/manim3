@@ -2,7 +2,10 @@ from __future__ import annotations
 
 
 import weakref
-from abc import ABC, abstractmethod
+from abc import (
+    ABC,
+    abstractmethod
+)
 from typing import (
     TYPE_CHECKING,
     Callable,

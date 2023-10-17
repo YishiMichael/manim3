@@ -4,14 +4,12 @@ from __future__ import annotations
 import os
 import pathlib
 import re
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import (
     Self,
     Unpack
 )
+
+import attrs
 
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
@@ -23,14 +21,10 @@ from .latex_string_mobject import (
 from .string_mobject import StringMobject
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MathJaxInput(LatexStringMobjectInput):
-    extensions: tuple[str, ...] = field(default_factory=lambda: Toplevel.config.mathjax_extensions)
-    inline: bool = field(default_factory=lambda: Toplevel.config.mathjax_inline)
+    extensions: tuple[str, ...] = attrs.field(factory=lambda: Toplevel.config.mathjax_extensions)
+    inline: bool = attrs.field(factory=lambda: Toplevel.config.mathjax_inline)
 
 
 class MathJaxKwargs(LatexStringMobjectKwargs, total=False):

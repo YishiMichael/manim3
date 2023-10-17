@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 
-from dataclasses import dataclass
 from typing import (
     Never,
     Self
 )
 
+import attrs
+
 from .event import Event
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class KeyPressEvent(Event):
     symbol: int | None
     modifiers: int | None
@@ -30,11 +27,7 @@ class KeyPressEvent(Event):
         )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class KeyReleaseEvent(Event):
     symbol: int | None
     modifiers: int | None
@@ -50,11 +43,7 @@ class KeyReleaseEvent(Event):
         )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MouseMotionEvent(Event):
     x: int | None
     y: int | None
@@ -68,11 +57,7 @@ class MouseMotionEvent(Event):
         return isinstance(event, MouseMotionEvent)
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MouseDragEvent(Event):
     buttons: int | None
     modifiers: int | None
@@ -92,11 +77,7 @@ class MouseDragEvent(Event):
         )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MousePressEvent(Event):
     buttons: int | None
     modifiers: int | None
@@ -114,11 +95,7 @@ class MousePressEvent(Event):
         )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MouseReleaseEvent(Event):
     buttons: int | None
     modifiers: int | None
@@ -136,11 +113,7 @@ class MouseReleaseEvent(Event):
         )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MouseScrollEvent(Event):
     x: int | None
     y: int | None

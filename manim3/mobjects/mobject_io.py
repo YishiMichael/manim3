@@ -9,7 +9,6 @@ from abc import (
     abstractmethod
 )
 from contextlib import contextmanager
-from dataclasses import dataclass
 from typing import (
     Iterator,
     Never,
@@ -17,23 +16,17 @@ from typing import (
     TypedDict
 )
 
+import attrs
+
 from ..utils.path_utils import PathUtils
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MobjectInput:
     pass
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MobjectOutput:
     pass
 

@@ -5,16 +5,14 @@ import itertools
 import pathlib
 import re
 from abc import abstractmethod
-from dataclasses import (
-    dataclass,
-    field
-)
 from enum import Enum
 from typing import (
     Iterator,
     Self,
     TypedDict
 )
+
+import attrs
 
 import scipy.optimize
 import scipy.spatial.distance
@@ -253,30 +251,22 @@ class StringMobjectKwargs(TypedDict, total=False):
     concatenate: bool
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class StringMobjectInput(MobjectInput):
     string: str
     #isolate: list[Span]
     #protect: list[Span]
-    isolate: list[SelectorT] = field(default_factory=list)
-    protect: list[SelectorT] = field(default_factory=list)
-    global_color: ColorT = field(default_factory=lambda: Toplevel.config.default_color)
-    local_color: dict[SelectorT, ColorT] = field(default_factory=dict)
-    global_attrs: dict[str, str] = field(default_factory=dict)
-    local_attrs: dict[SelectorT, dict[str, str]] = field(default_factory=dict)
+    isolate: list[SelectorT] = attrs.field(factory=list)
+    protect: list[SelectorT] = attrs.field(factory=list)
+    global_color: ColorT = attrs.field(factory=lambda: Toplevel.config.default_color)
+    local_color: dict[SelectorT, ColorT] = attrs.field(factory=dict)
+    global_attrs: dict[str, str] = attrs.field(factory=dict)
+    local_attrs: dict[SelectorT, dict[str, str]] = attrs.field(factory=dict)
     concatenate: bool = False
     #settings: StringMobjectSettingsT
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class StringMobjectOutput(MobjectOutput):
     shape_mobjects: tuple[ShapeMobject, ...]
     string: str

@@ -4,14 +4,12 @@ from __future__ import annotations
 import os
 import pathlib
 import re
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import (
     Self,
     Unpack
 )
+
+import attrs
 
 from ...constants.custom_typing import AlignmentT
 from ...toplevel.toplevel import Toplevel
@@ -23,15 +21,11 @@ from .latex_string_mobject import (
 from .string_mobject import StringMobject
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class TexInput(LatexStringMobjectInput):
-    alignment: AlignmentT = field(default_factory=lambda: Toplevel.config.tex_alignment)
-    compiler: str = field(default_factory=lambda: Toplevel.config.tex_compiler)
-    preambles: tuple[str, ...] = field(default_factory=lambda: Toplevel.config.tex_preambles)
+    alignment: AlignmentT = attrs.field(factory=lambda: Toplevel.config.tex_alignment)
+    compiler: str = attrs.field(factory=lambda: Toplevel.config.tex_compiler)
+    preambles: tuple[str, ...] = attrs.field(factory=lambda: Toplevel.config.tex_preambles)
 
 
 class TexKwargs(LatexStringMobjectKwargs, total=False):

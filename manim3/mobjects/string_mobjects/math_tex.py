@@ -2,14 +2,12 @@ from __future__ import annotations
 
 
 import pathlib
-from dataclasses import (
-    dataclass,
-    field
-)
 from typing import (
     Self,
     Unpack
 )
+
+import attrs
 
 from ...toplevel.toplevel import Toplevel
 from .string_mobject import StringMobject
@@ -20,13 +18,9 @@ from .tex import (
 )
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class MathTexInput(TexInput):
-    inline: bool = field(default_factory=lambda: Toplevel.config.math_tex_inline)
+    inline: bool = attrs.field(factory=lambda: Toplevel.config.math_tex_inline)
 
 
 class MathTexKwargs(TexKwargs, total=False):

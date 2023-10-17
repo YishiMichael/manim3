@@ -7,12 +7,13 @@ from abc import (
     ABC,
     abstractmethod
 )
-from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Coroutine,
     Self
 )
+
+import attrs
 
 from ...toplevel.toplevel import Toplevel
 from .condition import Condition
@@ -88,11 +89,7 @@ class AbsoluteRate(BaseAbsoluteRate):
 #        return self._rate.at(t / self._run_time_scale) * self._run_alpha_scale
 
 
-@dataclass(
-    frozen=True,
-    kw_only=True,
-    slots=True
-)
+@attrs.frozen(kw_only=True)
 class ScheduleInfo:
     parent_absolute_rate: BaseAbsoluteRate
     rate: Rate
@@ -102,26 +99,17 @@ class ScheduleInfo:
     terminate_condition: Condition
 
 
-@dataclass(
-    kw_only=True,
-    slots=True
-)
+@attrs.define(kw_only=True)
 class TimelineState:
     pass
 
 
-@dataclass(
-    kw_only=True,
-    slots=True
-)
+@attrs.define(kw_only=True)
 class BeforeLaunched(TimelineState):
     launch_condition: Condition
 
 
-@dataclass(
-    kw_only=True,
-    slots=True
-)
+@attrs.define(kw_only=True)
 class OnProgressing(TimelineState):
     construct_coroutine: Coroutine[None, None, None]
     absolute_rate: AbsoluteRate
@@ -130,10 +118,7 @@ class OnProgressing(TimelineState):
     children: list[Timeline]
 
 
-@dataclass(
-    kw_only=True,
-    slots=True
-)
+@attrs.define(kw_only=True)
 class AfterTerminated(TimelineState):
     pass
 
