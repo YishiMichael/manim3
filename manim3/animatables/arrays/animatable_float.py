@@ -6,7 +6,6 @@ from typing import Self
 import numpy as np
 
 from ...constants.custom_typing import NP_f8
-from ...lazy.lazy import Lazy
 from .animatable_array import AnimatableArray
 
 
@@ -15,14 +14,14 @@ class AnimatableFloat(AnimatableArray[NP_f8]):
 
     def __init__(
         self: Self,
-        value: float | None = None
+        value: float
     ) -> None:
-        super().__init__(np.asarray(value, dtype=np.float64) if value is not None else value)
+        super().__init__(np.asarray(value, dtype=np.float64))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
-    @staticmethod
-    def _array_() -> NP_f8:
-        return np.zeros(())
+    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@staticmethod
+    #def _array_() -> NP_f8:
+    #    return np.zeros(())
 
     @classmethod
     def _convert_input(

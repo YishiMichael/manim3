@@ -85,6 +85,7 @@ descriptors.
 
 
 from typing import (
+    Any,
     Callable,
     Hashable,
     Never,
@@ -95,8 +96,10 @@ import numpy as np
 
 from .lazy_descriptor import (
     LazyDescriptor,
-    LazyDescriptorInfo
+    LazyPluralDescriptor,
+    LazySingularDescriptor
 )
+from .lazy_object import LazyObject
 
 
 class Lazy:
@@ -114,20 +117,19 @@ class Lazy:
         freeze: bool,
         cache_capacity: int,
         hasher: Callable[..., Hashable]
-    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
-        assert hasher is id or freeze
+    ) -> Callable[[Callable[..., T]], LazySingularDescriptor[T]]:
 
         def result(
             method: Callable[[], T]
-        ) -> LazyDescriptor[T, T]:
-            return LazyDescriptor(LazyDescriptorInfo(
-                method=method.__func__,
-                is_plural=False,
+        ) -> LazySingularDescriptor[T]:
+            return LazySingularDescriptor(
+                method=method,
                 is_variable=is_variable,
                 hasher=hasher,
+                freezer=cls.lazy_freezer,
                 freeze=freeze,
                 cache_capacity=cache_capacity
-            ))
+            )
 
         return result
 
@@ -138,21 +140,19 @@ class Lazy:
         hasher: Callable[..., Hashable],
         freeze: bool,
         cache_capacity: int
-    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]:
-        assert hasher is id or freeze
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyPluralDescriptor[T]]:
 
         def result(
             method: Callable[[], tuple[T, ...]]
-        ) -> LazyDescriptor[T, tuple[T, ...]]:
-            assert isinstance(method, staticmethod)
-            return LazyDescriptor(LazyDescriptorInfo(
-                method=method.__func__,
-                is_plural=True,
+        ) -> LazyPluralDescriptor[T]:
+            return LazyPluralDescriptor(
+                method=method,
                 is_variable=is_variable,
                 hasher=hasher,
+                freezer=cls.lazy_freezer,
                 freeze=freeze,
                 cache_capacity=cache_capacity
-            ))
+            )
 
         return result
 
@@ -223,15 +223,17 @@ class Lazy:
         # and at least `ndim - 1` fixed entries of `shape`.
         return element.tobytes()
 
-    #@staticmethod
-    #def branch_hasher(
-    #    element: LazyObject
-    #) -> Hashable:
-    #    return (type(element), tuple(
-    #        tuple(
-    #            id(variable_element)
-    #            for variable_element in descriptor._get_elements(element)
-    #        )
-    #        for descriptor in type(element)._lazy_descriptors.values()
-    #        if descriptor._is_variable
-    #    ))
+    @classmethod
+    def lazy_freezer(
+        cls: type[Self],
+        element: Any
+    ) -> None:
+        if not isinstance(element, LazyObject):
+            return
+        if element._is_frozen:
+            return
+        element._is_frozen = True
+        for descriptor in type(element)._lazy_descriptors:
+            descriptor.get_slot(element).disable_writability()
+            for child_element in descriptor.get_elements(element):
+                cls.lazy_freezer(child_element)

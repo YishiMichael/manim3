@@ -350,7 +350,7 @@ class Animatable(LazyObject):
 
 
 class BodyAnimationsTimeline(Timeline):
-    __slots__ = ("_animations_timeline_weakref",)
+    __slots__ = ("_animations_timeline_ref",)
 
     def __init__(
         self: Self,
@@ -361,7 +361,7 @@ class BodyAnimationsTimeline(Timeline):
         #run_alpha: float
     ) -> None:
         super().__init__(run_alpha=animations_timeline._run_alpha)
-        self._animations_timeline_weakref: weakref.ref[AnimationsTimeline] = weakref.ref(animations_timeline)
+        self._animations_timeline_ref: weakref.ref[AnimationsTimeline] = weakref.ref(animations_timeline)
         #self._instance: _T = instance
         #self._animations: list[Animation] = animations
         #self._rate: Rate = rate
@@ -370,7 +370,7 @@ class BodyAnimationsTimeline(Timeline):
         self: Self,
         time: float
     ) -> None:
-        assert (animations_timeline := self._animations_timeline_weakref()) is not None
+        assert (animations_timeline := self._animations_timeline_ref()) is not None
         animations_timeline.update(time)
         #self._animation.restore()
         #animations = self._animations

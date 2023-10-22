@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Self
 
 import numpy as np
+import numpy.typing as npt
 
 from ...constants.custom_typing import NP_xf8
 from ...lazy.lazy import Lazy
@@ -14,7 +15,7 @@ from ..animatable.leaf_animatable import (
 )
 
 
-class AnimatableArray[NDArrayT: np.ndarray](LeafAnimatable):
+class AnimatableArray[NDArrayT: npt.NDArray](LeafAnimatable):
     __slots__ = ()
 
     def __init__(
