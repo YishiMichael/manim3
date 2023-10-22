@@ -94,8 +94,8 @@ from typing import (
 import numpy as np
 
 from .lazy_descriptor import (
-    LazyPluralDescriptor,
-    LazySingularDescriptor
+    LazyDescriptor,
+    LazyDescriptorInfo
 )
 
 
@@ -114,18 +114,45 @@ class Lazy:
         freeze: bool,
         cache_capacity: int,
         hasher: Callable[..., Hashable]
-    ) -> Callable[[Callable[..., T]], LazySingularDescriptor[T]]:
+    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
+        assert hasher is id or freeze
 
         def result(
             method: Callable[[], T]
-        ) -> LazySingularDescriptor[T]:
-            return LazySingularDescriptor(
-                method=method,
+        ) -> LazyDescriptor[T, T]:
+            return LazyDescriptor(LazyDescriptorInfo(
+                method=method.__func__,
+                is_plural=False,
                 is_variable=is_variable,
                 hasher=hasher,
                 freeze=freeze,
                 cache_capacity=cache_capacity
-            )
+            ))
+
+        return result
+
+    @classmethod
+    def _plural_descriptor[T](
+        cls: type[Self],
+        is_variable: bool,
+        hasher: Callable[..., Hashable],
+        freeze: bool,
+        cache_capacity: int
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]:
+        assert hasher is id or freeze
+
+        def result(
+            method: Callable[[], tuple[T, ...]]
+        ) -> LazyDescriptor[T, tuple[T, ...]]:
+            assert isinstance(method, staticmethod)
+            return LazyDescriptor(LazyDescriptorInfo(
+                method=method.__func__,
+                is_plural=True,
+                is_variable=is_variable,
+                hasher=hasher,
+                freeze=freeze,
+                cache_capacity=cache_capacity
+            ))
 
         return result
 
@@ -134,7 +161,7 @@ class Lazy:
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         freeze: bool = True
-    ) -> Callable[[Callable[[], T]], LazySingularDescriptor[T]]:
+    ) -> Callable[[Callable[[], T]], LazyDescriptor[T, T]]:
         return cls._singular_descriptor(
             is_variable=True,
             hasher=hasher,
@@ -147,7 +174,7 @@ class Lazy:
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         cache_capacity: int = 128
-    ) -> Callable[[Callable[..., T]], LazySingularDescriptor[T]]:
+    ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
         return cls._singular_descriptor(
             is_variable=False,
             hasher=hasher,
@@ -156,33 +183,11 @@ class Lazy:
         )
 
     @classmethod
-    def _plural_descriptor[T](
-        cls: type[Self],
-        is_variable: bool,
-        hasher: Callable[..., Hashable],
-        freeze: bool,
-        cache_capacity: int
-    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyPluralDescriptor[T]]:
-
-        def result(
-            method: Callable[[], tuple[T, ...]]
-        ) -> LazyPluralDescriptor[T]:
-            return LazyPluralDescriptor(
-                method=method,
-                is_variable=is_variable,
-                hasher=hasher,
-                freeze=freeze,
-                cache_capacity=cache_capacity
-            )
-
-        return result
-
-    @classmethod
     def variable_collection[T](
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         freeze: bool = True
-    ) -> Callable[[Callable[[], tuple[T, ...]]], LazyPluralDescriptor[T]]:
+    ) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]:
         return cls._plural_descriptor(
             is_variable=True,
             hasher=hasher,
@@ -195,7 +200,7 @@ class Lazy:
         cls: type[Self],
         hasher: Callable[..., Hashable] = id,
         cache_capacity: int = 128
-    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyPluralDescriptor[T]]:
+    ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]:
         return cls._plural_descriptor(
             is_variable=False,
             hasher=hasher,

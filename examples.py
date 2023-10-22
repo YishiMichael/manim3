@@ -119,7 +119,7 @@ class LaggedAnimationExample(Scene):
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
-        await self.wait(20)
+        await self.wait(3)
 
 
 class FormulaExample(Scene):

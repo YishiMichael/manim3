@@ -10,7 +10,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from .lazy_descriptor import Registered
+    from .lazy_routine import Registered
 
 
 class LazySlot[T]:
@@ -61,3 +61,13 @@ class LazySlot[T]:
         self: Self
     ) -> Iterator[LazySlot]:
         return iter(set(self._associated_slots))
+
+
+class LazyFrozenSlot(LazySlot):
+    __slots__ = ()
+
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__()
+        self._is_writable = False

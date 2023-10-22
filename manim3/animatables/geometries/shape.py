@@ -519,7 +519,7 @@ class Shape(LeafAnimatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Intersection,
-            fill_rule=pyclipr.NonZero
+            fill_type=pyclipr.NonZero
         )
 
     def union(
@@ -530,7 +530,7 @@ class Shape(LeafAnimatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Union,
-            fill_rule=pyclipr.NonZero
+            fill_type=pyclipr.NonZero
         )
 
     def difference(
@@ -541,7 +541,7 @@ class Shape(LeafAnimatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Difference,
-            fill_rule=pyclipr.NonZero
+            fill_type=pyclipr.NonZero
         )
 
     def xor(
@@ -552,7 +552,7 @@ class Shape(LeafAnimatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Xor,
-            fill_rule=pyclipr.NonZero
+            fill_type=pyclipr.NonZero
         )
 
     #def _get_interpolate_updater(
