@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .lazy_slot import LazySlot
 
 
-class Registered[T]:
+class Memoized[T]:
     __slots__ = (
         "__weakref__",
         "_value"
@@ -36,18 +36,18 @@ class Registered[T]:
         self._value: T = value
 
 
-class Registration[KT: Hashable, VT](weakref.WeakValueDictionary[KT, Registered[VT]]):
+class Memoization[KT: Hashable, VT](weakref.WeakValueDictionary[KT, Memoized[VT]]):
     __slots__ = ()
 
-    def register(
+    def memoize(
         self: Self,
         key: KT,
         value: VT
-    ) -> Registered[VT]:
-        if (registered_value := self.get(key)) is None:
-            registered_value = Registered(value)
-            self[key] = registered_value
-        return registered_value
+    ) -> Memoized[VT]:
+        if (memoized_value := self.get(key)) is None:
+            memoized_value = Memoized(value)
+            self[key] = memoized_value
+        return memoized_value
 
 
 class Cache[KT: Hashable, VT](weakref.WeakKeyDictionary[KT, VT]):
@@ -58,6 +58,7 @@ class Cache[KT: Hashable, VT](weakref.WeakKeyDictionary[KT, VT]):
         capacity: int
     ) -> None:
         super().__init__()
+        assert capacity > 0
         self._capacity: int = capacity
 
     def set(
@@ -132,8 +133,8 @@ class LazyDescriptor[T, DataT](ABC):
         "_freezer",
         "_freeze",
         "_cache",
-        "_parameter_key_registration",
-        "_element_registration"
+        "_parameter_key_memoization",
+        "_element_memoization"
     )
 
     def __init__(
@@ -164,9 +165,9 @@ class LazyDescriptor[T, DataT](ABC):
         self._hasher: Callable[[T], Hashable] = hasher
         self._freezer: Callable[[T], None] = freezer
         self._freeze: bool = freeze
-        self._cache: Cache[Registered[Hashable], tuple[Registered[T], ...]] = Cache(capacity=cache_capacity)
-        self._parameter_key_registration: Registration[Hashable, Hashable] = Registration()
-        self._element_registration: Registration[Hashable, T] = Registration()
+        self._cache: Cache[Memoized[Hashable], tuple[Memoized[T], ...]] = Cache(capacity=cache_capacity)
+        self._parameter_key_memoization: Memoization[Hashable, Hashable] = Memoization()
+        self._element_memoization: Memoization[Hashable, T] = Memoization()
 
     @overload
     def __get__(
@@ -228,24 +229,24 @@ class LazyDescriptor[T, DataT](ABC):
     ) -> DataT:
         pass
 
-    def _register_parameter_key(
+    def _memoize_parameter_key(
         self: Self,
         parameter_key: Hashable
-    ) -> Registered[Hashable]:
-        return self._parameter_key_registration.register(parameter_key, parameter_key)
+    ) -> Memoized[Hashable]:
+        return self._parameter_key_memoization.memoize(parameter_key, parameter_key)
 
-    def _register_elements(
+    def _memoize_elements(
         self: Self,
         elements: tuple[T, ...]
-    ) -> tuple[Registered[T], ...]:
+    ) -> tuple[Memoized[T], ...]:
         if self._freeze:
             freezer = self._freezer
             for element in elements:
                 freezer(element)
-        element_registration = self._element_registration
+        element_memoization = self._element_memoization
         hasher = self._hasher
         return tuple(
-            element_registration.register(hasher(element), element)
+            element_memoization.memoize(hasher(element), element)
             for element in elements
         )
 
@@ -259,56 +260,44 @@ class LazyDescriptor[T, DataT](ABC):
         self: Self,
         instance: LazyObject
     ) -> tuple[T, ...]:
-
-        def get_parameter_trees_and_associated_variable_slots(
-            parameter_name_chains: tuple[tuple[str, ...], ...],
-            instance: LazyObject
-        ) -> tuple[tuple[Tree, ...], set[LazySlot]]:
-            trees: tuple[Tree, ...] = tuple(
-                Tree(instance)
-                for _ in parameter_name_chains
-            )
-            associated_variable_slots: set[LazySlot] = set()
-            for parameter_name_chain, tree in zip(parameter_name_chains, trees, strict=True):
+        slot = self.get_slot(instance)
+        if (memoized_elements := slot.get()) is None:
+            # If there's at least a parameter, `slot` is guaranteed to be a property slot.
+            # Associate it with variable slots.
+            trees = tuple(Tree(instance) for _ in self._parameter_name_chains)
+            associated_slots: set[LazySlot] = set()
+            for parameter_name_chain, tree in zip(self._parameter_name_chains, trees, strict=True):
                 for name in parameter_name_chain:
                     for leaf in tree.iter_leaves():
-                        leaf_content = leaf._content
-                        slot = leaf_content._get_slot(name)
-                        descriptor = slot.get_descriptor()
-                        elements = descriptor.get_elements(leaf_content)
+                        leaf_object = leaf._content
+                        leaf_slot = leaf_object._get_slot(name)
+                        descriptor = leaf_slot.get_descriptor()
+                        elements = descriptor.get_elements(leaf_object)
                         if descriptor._is_plural:
                             leaf._children = tuple(Tree(element) for element in elements)
                         else:
                             (element,) = elements
                             leaf._content = element
                         if descriptor._is_variable:
-                            associated_variable_slots.add(slot)
+                            associated_slots.add(leaf_slot)
                         else:
-                            associated_variable_slots.update(slot.iter_associated_slots())
-            return trees, associated_variable_slots
+                            associated_slots.update(leaf_slot.iter_associated_slots())
 
-        slot = self.get_slot(instance)
-        if (registered_elements := slot.get()) is None:
-            # If there's at least a parameter, `slot` is guaranteed to be a property slot.
-            # Associate it with variable slots.
-            trees, associated_variable_slots = get_parameter_trees_and_associated_variable_slots(
-                self._parameter_name_chains, instance
-            )
-            registered_parameter_key = self._register_parameter_key(tuple(
+            memoized_parameter_key = self._memoize_parameter_key(tuple(
                 tree.convert(id).as_tuple_tree() for tree in trees
             ))
-            if (registered_elements := self._cache.get(registered_parameter_key)) is None:
-                registered_elements = self._register_elements(self._decomposer(self._method(*(
+            if (memoized_elements := self._cache.get(memoized_parameter_key)) is None:
+                memoized_elements = self._memoize_elements(self._decomposer(self._method(*(
                     tree.as_tuple_tree() for tree in trees
                 ))))
                 if self._freeze:
-                    self._cache.set(registered_parameter_key, registered_elements)
+                    self._cache.set(memoized_parameter_key, memoized_elements)
             slot.set(
-                elements=registered_elements,
-                parameter_key=registered_parameter_key,
-                associated_slots=associated_variable_slots
+                elements=memoized_elements,
+                parameter_key=memoized_parameter_key,
+                associated_slots=associated_slots
             )
-        return tuple(registered_element._value for registered_element in registered_elements)
+        return tuple(memoized_element._value for memoized_element in memoized_elements)
 
     def set_elements(
         self: Self,
@@ -317,15 +306,15 @@ class LazyDescriptor[T, DataT](ABC):
     ) -> None:
         slot = self.get_slot(instance)
         slot.check_writability()
-        registered_elements = self._register_elements(elements)
-        if registered_elements == slot.get():
+        memoized_elements = self._memoize_elements(elements)
+        if memoized_elements == slot.get():
             return
         # `slot` passes the writability check, hence is guaranteed to be a variable slot.
         # Expire associated property slots.
         for expired_property_slot in slot.iter_associated_slots():
             expired_property_slot.expire()
         slot.set(
-            elements=registered_elements,
+            elements=memoized_elements,
             parameter_key=None,
             associated_slots=set()
         )

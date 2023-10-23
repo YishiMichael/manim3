@@ -12,7 +12,7 @@ from typing import (
 if TYPE_CHECKING:
     from .lazy_descriptor import (
         LazyDescriptor,
-        Registered
+        Memoized
     )
 
 
@@ -20,10 +20,10 @@ class LazySlot[T, DataT]:
     __slots__ = (
         "__weakref__",
         "_descriptor_ref",
+        "_is_writable",
         "_elements",
         "_parameter_key",
-        "_associated_slots",
-        "_is_writable"
+        "_associated_slots"
     )
 
     def __init__(
@@ -33,8 +33,8 @@ class LazySlot[T, DataT]:
         super().__init__()
         self._descriptor_ref: weakref.ref[LazyDescriptor[T, DataT]] = weakref.ref(descriptor)
         self._is_writable: bool = descriptor._is_variable
-        self._elements: tuple[Registered[T], ...] | None = None
-        self._parameter_key: Registered[Hashable] | None = None
+        self._elements: tuple[Memoized[T], ...] | None = None
+        self._parameter_key: Memoized[Hashable] | None = None
         self._associated_slots: weakref.WeakSet[LazySlot] = weakref.WeakSet()
 
     def get_descriptor(
@@ -51,17 +51,17 @@ class LazySlot[T, DataT]:
     def check_writability(
         self: Self
     ) -> None:
-        assert self._is_writable, "Attempting to write to a readonly slot"
+        assert self._is_writable, "Slot is not writable"
 
     def get(
         self: Self
-    ) -> tuple[Registered[T], ...] | None:
+    ) -> tuple[Memoized[T], ...] | None:
         return self._elements
 
     def set(
         self: Self,
-        elements: tuple[Registered[T], ...],
-        parameter_key: Registered[Hashable] | None,
+        elements: tuple[Memoized[T], ...],
+        parameter_key: Memoized[Hashable] | None,
         associated_slots: set[LazySlot]
     ) -> None:
         self._elements = elements

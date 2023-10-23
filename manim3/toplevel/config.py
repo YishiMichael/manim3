@@ -29,8 +29,8 @@ class Config:
     camera_near: float = 0.1
     camera_far: float = 100.0
 
-    default_color: ColorT = attrs.field(factory=lambda: Color("white"))
-    background_color: ColorT = attrs.field(factory=lambda: Color("black"))
+    default_color: ColorT = Color("white")
+    background_color: ColorT = Color("black")
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
