@@ -8,9 +8,9 @@ from typing import (
 
 import numpy as np
 
-from ...animatables.animatable.animatable import SetKwargs
 from ...animatables.geometries.mesh import Mesh
 from ...animatables.geometries.shape import Shape
+from ...animatables.models.model import SetKwargs
 from ...constants.custom_typing import (
     NP_x2f8,
     NP_x3i4

@@ -118,12 +118,11 @@ class LazyObject(ABC):
         cls: type[Self]
     ) -> None:
         super().__init_subclass__()
-        base = cls.__base__
-        assert issubclass(base, LazyObject)
 
-        override_type_hint = TypeHint.from_override(cls, base)
         hinted_lazy_descriptors = {
-            name: (type_hint.specialize(override_type_hint), descriptor)
+            name: (type_hint.specialize(TypeHint.from_override(cls, base)), descriptor)
+            for base in reversed(cls.__bases__)
+            if issubclass(base, LazyObject)
             for name, (type_hint, descriptor) in base._hinted_lazy_descriptors.items()
         }
         cls._hinted_lazy_descriptors = hinted_lazy_descriptors
@@ -196,7 +195,7 @@ class LazyObject(ABC):
         )
         cls._slot_copiers = {
             slot_name: base._special_slot_copiers.get(slot_name, copy.copy)
-            for base in reversed(cls.__mro__)
+            for base in reversed(cls.__bases__)
             if issubclass(base, LazyObject)
             for slot_name in base.__slots__
             if not slot_name.startswith("__")
@@ -215,13 +214,13 @@ class LazyObject(ABC):
     ) -> LazySlot:
         return self._lazy_slots.__getattribute__(name)
 
-    def _copy_lazy_content(
-        self: Self,
-        src_object: Self
-    ) -> None:
-        for descriptor in type(self)._lazy_descriptors:
-            if descriptor._is_variable:
-                descriptor.set_elements(self, descriptor.get_elements(src_object))
+    #def _copy_lazy_content(
+    #    self: Self,
+    #    src_object: Self
+    #) -> None:
+    #    for descriptor in type(self)._lazy_descriptors:
+    #        if descriptor._is_variable:
+    #            descriptor.set_elements(self, descriptor.get_elements(src_object))
 
     def copy(
         self: Self
@@ -230,5 +229,8 @@ class LazyObject(ABC):
         result = cls.__new__(cls)
         for slot_name, slot_copier in cls._slot_copiers.items():
             result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
-        result._copy_lazy_content(self)
+        #result._copy_lazy_content(self)
+        for descriptor in cls._lazy_descriptors:
+            if descriptor._is_variable:
+                descriptor.set_elements(result, descriptor.get_elements(self))
         return result

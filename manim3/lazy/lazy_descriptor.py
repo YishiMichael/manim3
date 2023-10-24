@@ -173,14 +173,14 @@ class LazyDescriptor[T, DataT](ABC):
     def __get__(
         self: Self,
         instance: None,
-        owner: type[LazyObject] | None = None
+        owner: type[LazyObject] | None
     ) -> Self: ...
 
     @overload
     def __get__(
         self: Self,
         instance: LazyObject,
-        owner: type[LazyObject] | None = None
+        owner: type[LazyObject] | None
     ) -> DataT: ...
 
     def __get__(

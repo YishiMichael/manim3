@@ -364,10 +364,10 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
 
         spans = tuple(label_to_span_dict[label] for label in labels)
         for shape_mobject in shape_mobjects:
-            shape_mobject._color_ = AnimatableColor._convert_input(global_span_color)
+            shape_mobject._color_ = AnimatableColor(global_span_color)
         for span, color in local_span_color.items():
             for index in cls._get_indices_by_span(span, spans):
-                shape_mobjects[index]._color_ = AnimatableColor._convert_input(color)
+                shape_mobjects[index]._color_ = AnimatableColor(color)
 
         return StringMobjectOutput(
             shape_mobjects=shape_mobjects,
@@ -441,7 +441,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
     ) -> tuple[tuple[int, ...], tuple[ShapeMobject, ...]]:
         unlabelled_shape_mobjects = cls._get_shape_mobjects(unlabelled_content, input_data, temp_path)
         if concatenate:
-            return (0,), (ShapeMobject(Shape._concatenate(tuple(
+            return (0,), (ShapeMobject(Shape().concatenate(tuple(
                 shape_mobject._shape_ for shape_mobject in unlabelled_shape_mobjects
             ))),)
 

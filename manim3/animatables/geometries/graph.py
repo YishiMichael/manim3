@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import itertools
 from typing import (
+    Iterator,
     Literal,
-    Self
+    Self,
+    Unpack,
+    override
 )
 
 import numpy as np
@@ -18,17 +21,56 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
-from ..animatable.leaf_animatable import (
-    LeafAnimatable,
-    LeafAnimatableInterpolateInfo
+from ..animatable.actions import ActionMeta
+from ..animatable.animatable import (
+    Animatable,
+    AnimatableActions,
+    AnimatableInterpolateAnimation,
+    AnimatablePiecewiseAnimation,
+    DynamicAnimatable
 )
+from ..animatable.animation import (
+    AnimateKwargs,
+    Animation
+)
+from ..animatable.piecewiser import Piecewiser
+#from .animatable.leaf_animatable import (
+#    LeafAnimatable,
+#    LeafAnimatableInterpolateInfo
+#)
 #from ..mobject.mobject_attributes.mobject_attribute import (
 #    InterpolateHandler,
 #    MobjectAttribute
 #)
 
 
-class Graph(LeafAnimatable):
+class GraphActions(AnimatableActions):
+    __slots__ = ()
+
+    @ActionMeta.register
+    @classmethod
+    @override
+    def interpolate(
+        cls: type[Self],
+        dst: Graph,
+        src_0: Graph,
+        src_1: Graph
+    ) -> Iterator[Animation]:
+        yield GraphInterpolateAnimation(dst, src_0, src_1)
+
+    @ActionMeta.register
+    @classmethod
+    @override
+    def piecewise(
+        cls: type[Self],
+        dst: Graph,
+        src: Graph,
+        piecewiser: Piecewiser
+    ) -> Iterator[Animation]:
+        yield GraphPiecewiseAnimation(dst, src, piecewiser)
+
+
+class Graph(GraphActions, Animatable):
     __slots__ = ()
 
     def __init__(
@@ -79,13 +121,13 @@ class Graph(LeafAnimatable):
     #        edges=edges
     #    )
 
-    @classmethod
-    def _interpolate(
-        cls: type[Self],
-        src_0: Self,
-        src_1: Self
-    ) -> GraphInterpolateInfo:
-        return GraphInterpolateInfo(src_0, src_1)
+    #@classmethod
+    #def _interpolate(
+    #    cls: type[Self],
+    #    src_0: Self,
+    #    src_1: Self
+    #) -> GraphInterpolateInfo:
+    #    return GraphInterpolateInfo(src_0, src_1)
 
     #def _interpolate(
     #    self: Self,
@@ -93,76 +135,6 @@ class Graph(LeafAnimatable):
     #    src_1: Self
     #) -> Updater:
     #    return GraphInterpolateUpdater(self, src_0, src_1)
-
-    @classmethod
-    def _split(
-        cls: type[Self],
-        #dst_tuple: tuple[Self, ...],
-        src: Self,
-        alphas: NP_xf8
-    ) -> tuple[Self, ...]:
-        edges = src._edges_
-        if not len(edges):
-            return tuple(cls() for _ in range(len(alphas) + 1))
-
-        positions = src._positions_
-        cumlengths = src._cumlengths_
-        values = alphas * cumlengths[-1]
-        interpolated_indices = np.searchsorted(cumlengths[1:-1], values)
-        all_positions = np.concatenate((
-            positions,
-            cls._interpolate_positions(
-                positions=positions,
-                edges=edges,
-                full_knots=cumlengths,
-                values=values,
-                indices=interpolated_indices
-            )
-        ))
-        return tuple(
-            cls(
-                positions=all_positions,
-                edges=cls._reassemble_edges(
-                    edges=edges,
-                    transition_indices=np.arange(interpolated_index_0, interpolate_index_1),
-                    prepend=prepend,
-                    append=append,
-                    insertion_indices=np.zeros((0,), dtype=np.int32),
-                    insertions=np.zeros((0,), dtype=np.int32)
-                )
-            )
-            for (prepend, append), (interpolated_index_0, interpolate_index_1) in zip(
-                itertools.pairwise(np.array((edges[0, 0], *(np.arange(len(alphas)) + len(positions)), edges[-1, 1]))),
-                itertools.pairwise(np.array((0, *interpolated_indices, len(edges) - 1))),
-                strict=True
-            )
-        )  # TODO: simplify: remove unused positions
-
-    @classmethod
-    def _concatenate(
-        cls: type[Self],
-        #dst: Self,
-        src_tuple: tuple[Self, ...]
-    ) -> Self:
-        if not src_tuple:
-            return cls()
-
-        positions = np.concatenate([
-            graph._positions_
-            for graph in src_tuple
-        ])
-        offsets = np.insert(np.cumsum([
-            len(graph._positions_)
-            for graph in src_tuple[:-1]
-        ], dtype=np.int32), 0, 0)
-        edges = np.concatenate([
-            graph._edges_ + offset
-            for graph, offset in zip(src_tuple, offsets, strict=True)
-        ])
-        return cls(
-            positions=positions,
-            edges=edges
-        )
 
     #@classmethod
     #def _get_cumlengths(
@@ -421,37 +393,234 @@ class Graph(LeafAnimatable):
     #        edges=graph._edges_
     #    )
 
+    def animate(
+        self: Self,
+        **kwargs: Unpack[AnimateKwargs]
+        #rate: Rate = Rates.linear(),
+        #rewind: bool = False,
+        #run_alpha: float = 1.0,
+        #infinite: bool = False
+    ) -> DynamicGraph[Self]:
+        return DynamicGraph(self, **kwargs)
 
-class GraphInterpolateInfo(LeafAnimatableInterpolateInfo[Graph]):
-    __slots__ = (
-        "_positions_0",
-        "_positions_1",
-        "_edges"
-    )
+    def as_parameters(
+        self: Self,
+        positions: NP_x3f8,
+        edges: NP_x2i4
+    ) -> Self:
+        self._positions_ = positions
+        self._edges_ = edges
+        return self
+
+    def as_empty(
+        self: Self
+    ) -> Self:
+        return self.as_parameters(
+            positions=np.zeros((0, 3)),
+            edges=np.zeros((0, 2), dtype=np.int32)
+        )
+
+    def split(
+        self: Self,
+        #dst_tuple: tuple[Self, ...],
+        dsts: tuple[Self, ...],
+        alphas: NP_xf8
+    ) -> Self:
+        edges = self._edges_
+        if not len(edges):
+            for dst in dsts:
+                dst.as_empty()
+            return self
+
+        cls = type(self)
+        positions = self._positions_
+        cumlengths = self._cumlengths_
+        values = alphas * cumlengths[-1]
+        interpolated_indices = np.searchsorted(cumlengths[1:-1], values)
+        all_positions = np.concatenate((
+            positions,
+            cls._interpolate_positions(
+                positions=positions,
+                edges=edges,
+                full_knots=cumlengths,
+                values=values,
+                indices=interpolated_indices
+            )
+        ))
+        for dst, (prepend, append), (interpolated_index_0, interpolate_index_1) in zip(
+            dsts,
+            itertools.pairwise(np.array((edges[0, 0], *(np.arange(len(alphas)) + len(positions)), edges[-1, 1]))),
+            itertools.pairwise(np.array((0, *interpolated_indices, len(edges) - 1))),
+            strict=True
+        ):
+            dst.as_parameters(
+                positions=all_positions,  # TODO: simplify: remove unused positions
+                edges=cls._reassemble_edges(
+                    edges=edges,
+                    transition_indices=np.arange(interpolated_index_0, interpolate_index_1),
+                    prepend=prepend,
+                    append=append,
+                    insertion_indices=np.zeros((0,), dtype=np.int32),
+                    insertions=np.zeros((0,), dtype=np.int32)
+                )
+            )
+        return self
+        #return tuple(
+        #    cls(
+        #        positions=all_positions,
+        #        edges=cls._reassemble_edges(
+        #            edges=edges,
+        #            transition_indices=np.arange(interpolated_index_0, interpolate_index_1),
+        #            prepend=prepend,
+        #            append=append,
+        #            insertion_indices=np.zeros((0,), dtype=np.int32),
+        #            insertions=np.zeros((0,), dtype=np.int32)
+        #        )
+        #    )
+        #    for (prepend, append), (interpolated_index_0, interpolate_index_1) in zip(
+        #        itertools.pairwise(np.array((edges[0, 0], *(np.arange(len(alphas)) + len(positions)), edges[-1, 1]))),
+        #        itertools.pairwise(np.array((0, *interpolated_indices, len(edges) - 1))),
+        #        strict=True
+        #    )
+        #)  # TODO: simplify: remove unused positions
+
+    def concatenate(
+        self: Self,
+        #dst: Self,
+        srcs: tuple[Self, ...]
+    ) -> Self:
+        if not srcs:
+            return self.as_empty()
+
+        offsets = np.insert(np.cumsum([
+            len(graph._positions_)
+            for graph in srcs[:-1]
+        ], dtype=np.int32), 0, 0)
+        return self.as_parameters(
+            positions=np.concatenate([
+                graph._positions_
+                for graph in srcs
+            ]),
+            edges=np.concatenate([
+                graph._edges_ + offset
+                for graph, offset in zip(srcs, offsets, strict=True)
+            ])
+        )
+
+
+class DynamicGraph[GraphT: Graph](GraphActions, DynamicAnimatable[GraphT]):
+    __slots__ = ()
+
+
+class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[GraphT]):
+    __slots__ = ()
 
     def __init__(
         self: Self,
-        src_0: Graph,
-        src_1: Graph
+        dst: GraphT,
+        src_0: GraphT,
+        src_1: GraphT
     ) -> None:
-        super().__init__()
-        positions_0, positions_1, edges = Graph._general_interpolate(
-            graph_0=src_0,
-            graph_1=src_1,
+        super().__init__(dst, src_0, src_1)
+        self._graph_0_ = src_0.copy()
+        self._graph_1_ = src_1.copy()
+
+    @Lazy.variable()
+    @staticmethod
+    def _graph_0_() -> GraphT:
+        return NotImplemented
+
+    @Lazy.variable()
+    @staticmethod
+    def _graph_1_() -> GraphT:
+        return NotImplemented
+
+    @Lazy.property()
+    @staticmethod
+    def _interpolate_info_(
+        graph_0: GraphT,
+        graph_1: GraphT
+    ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
+        return Graph._general_interpolate(
+            graph_0=graph_0,
+            graph_1=graph_1,
             disjoints_0=np.zeros((0,), dtype=np.int32),
             disjoints_1=np.zeros((0,), dtype=np.int32)
         )
-        self._positions_0: NP_x3f8 = positions_0
-        self._positions_1: NP_x3f8 = positions_1
-        self._edges: NP_x2i4 = edges
 
     def interpolate(
         self: Self,
-        dst: Graph,
+        dst: GraphT,
         alpha: float
     ) -> None:
-        dst._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
-        dst._edges_ = self._edges
+        positions_0, positions_1, edges = self._interpolate_info_
+        dst.as_parameters(
+            positions=SpaceUtils.lerp(positions_0, positions_1, alpha),
+            edges=edges
+        )
+
+    def becomes(
+        self: Self,
+        dst: GraphT,
+        src: GraphT
+    ) -> None:
+        dst.as_parameters(
+            positions=src._positions_,
+            edges=src._edges_
+        )
+
+
+class GraphPiecewiseAnimation[GraphT: Graph](AnimatablePiecewiseAnimation[GraphT]):
+    __slots__ = ()
+
+    @classmethod
+    def split(
+        cls: type[Self],
+        dsts: tuple[GraphT, ...],
+        src: GraphT,
+        alphas: NP_xf8
+    ) -> None:
+        src.split(dsts, alphas)
+
+    @classmethod
+    def concatenate(
+        cls: type[Self],
+        dst: GraphT,
+        srcs: tuple[GraphT, ...]
+    ) -> None:
+        dst.concatenate(srcs)
+
+
+#class GraphInterpolateInfo(AnimatableInterpolateInfo[Graph]):
+#    __slots__ = (
+#        "_positions_0",
+#        "_positions_1",
+#        "_edges"
+#    )
+#
+#    def __init__(
+#        self: Self,
+#        src_0: Graph,
+#        src_1: Graph
+#    ) -> None:
+#        super().__init__()
+#        positions_0, positions_1, edges = Graph._general_interpolate(
+#            graph_0=src_0,
+#            graph_1=src_1,
+#            disjoints_0=np.zeros((0,), dtype=np.int32),
+#            disjoints_1=np.zeros((0,), dtype=np.int32)
+#        )
+#        self._positions_0: NP_x3f8 = positions_0
+#        self._positions_1: NP_x3f8 = positions_1
+#        self._edges: NP_x2i4 = edges
+#
+#    def interpolate(
+#        self: Self,
+#        dst: Graph,
+#        alpha: float
+#    ) -> None:
+#        dst._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
+#        dst._edges_ = self._edges
 
 
 #class GraphPartialUpdater(Updater[Graph]):

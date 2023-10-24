@@ -219,6 +219,32 @@ class SpaceUtils:
         return scale_factor, scale_factor
 
     @classmethod
+    def apply(
+        cls: type[Self],
+        matrix: NP_44f8,
+        vector: NP_3f8
+    ) -> NP_3f8:
+        v = matrix @ np.append(vector, 1.0)
+        w_component = v[-1]
+        result = np.delete(v, -1)
+        if not np.allclose(w_component, 1.0):
+            result /= w_component
+        return result
+
+    @classmethod
+    def apply_multiple(
+        cls: type[Self],
+        matrix: NP_44f8,
+        vectors: NP_x3f8
+    ) -> NP_x3f8:
+        v = matrix @ np.append(vectors.T, np.ones((1, len(vectors))), axis=0)
+        w_component = v[-1]
+        result = np.delete(v, -1, axis=0)
+        if not np.allclose(w_component, 1.0):
+            result /= w_component
+        return result.T
+
+    @classmethod
     def matrix_from_shift(
         cls: type[Self],
         vector: NP_3f8

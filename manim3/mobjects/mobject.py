@@ -12,23 +12,23 @@ from typing import (
     #Iterable,
     Iterator,
     Self,
-    TypedDict,
+    #TypedDict,
     overload
 )
 
 #import numpy as np
 
 from ..animatables.cameras.camera import Camera
-from ..animatables.geometries.graph import Graph
-from ..animatables.geometries.mesh import Mesh
-from ..animatables.geometries.shape import Shape
-from ..animatables.lights.lighting import Lighting
+#from ..animatables.geometries.graph import Graph
+#from ..animatables.geometries.mesh import Mesh
+#from ..animatables.geometries.shape import Shape
+#from ..animatables.lights.lighting import Lighting
 from ..animatables.models.model import Model
 #from ...constants.constants import (
 #    ORIGIN,
 #    PI
 #)
-from ..constants.custom_typing import ColorT
+#from ..constants.custom_typing import ColorT
 from ..lazy.lazy import Lazy
 #from ..lazy.lazy_descriptor import LazyDescriptor
 #from ...lazy.lazy_object import LazyObject

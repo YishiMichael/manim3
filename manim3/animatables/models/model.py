@@ -5,8 +5,10 @@ from abc import abstractmethod
 from typing import (
     #Callable,
     #ClassVar,
+    TYPE_CHECKING,
     Iterator,
     Self,
+    TypedDict,
     Unpack
 )
 #from typing import TYPE_CHECKING
@@ -19,6 +21,7 @@ from ...constants.constants import (
 )
 from ...constants.custom_typing import (
     BoundaryT,
+    ColorT,
     NP_3f8,
     NP_44f8,
     NP_x3f8
@@ -27,19 +30,55 @@ from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...utils.space_utils import SpaceUtils
+from ..animatable.actions import ActionMeta
 from ..animatable.animatable import (
     Animatable,
-    AnimatableAnimationBuilder,
+    AnimatableActions,
+    DynamicAnimatable
+)
+from ..animatable.animation import (
     AnimateKwargs,
     Animation
 )
-from ..arrays.model_matrix import (
-    AffineApplier,
-    ModelMatrix
-)
+from ..arrays.model_matrix import ModelMatrix
+#from ..arrays.model_matrix import (
+#    AffineApplier,
+#    ModelMatrix
+#)
+
+if TYPE_CHECKING:
+    from ..cameras.camera import Camera
+    from ..lights.lighting import Lighting
+    from ..graph import Graph
+    from ..mesh import Mesh
+    from ..shape import Shape
 
 #if TYPE_CHECKING:
 #    from ...models.model.model import model
+
+
+class SetKwargs(TypedDict, total=False):
+    # polymorphism variables
+    color: ColorT
+    opacity: float
+    weight: float
+
+    # Mobject
+    camera: Camera
+
+    # MeshMobject
+    mesh: Mesh
+    ambient_strength: float
+    specular_strength: float
+    shininess: float
+    lighting: Lighting
+
+    # ShapeMobject
+    shape: Shape
+
+    # GraphMobject
+    graph: Graph
+    width: float
 
 
 class Box(LazyObject):
@@ -109,7 +148,314 @@ class Box(LazyObject):
     #    return radii
 
 
-class Model(Animatable):
+class ModelActions(AnimatableActions):
+    __slots__ = ()
+
+    @ActionMeta.register
+    @classmethod
+    def set(
+        cls: type[Self],
+        dst: Model,
+        broadcast: bool = True,
+        **kwargs: Unpack[SetKwargs]
+    ) -> Iterator[Animation]:
+        for name, animatable_input in kwargs.items():
+            if (descriptor := type(dst)._animatable_descriptors.get(f"_{name}_")) is not None:
+                yield AnimatableSetAnimation(dst, descriptor, animatable_input)
+            #assert (element_type := descriptor._element_type) is not None and issubclass(element_type, Animatable)
+            #source_elements = descriptor._get_elements(dst)
+            #target_elements = tuple(element_type._iter_elements_from_input(descriptor, animatable_input))
+            ##if descriptor._is_plural:
+            ##    target_elements = tuple(
+            ##        element_type._convert_input(animatable_input_element)
+            ##        for animatable_input_element in animatable_input
+            ##    )
+            ##else:
+            ##    target_elements = (element_type._convert_input(animatable_input),)
+            ##descriptor.__set__(self, target_animatable)
+            ##if self._saved_state is not None:
+            #for source_element, target_element in zip(source_elements, target_elements, strict=True):
+            #    yield from cls._iter_interpolate_animations(
+            #        dst=source_element,
+            #        src_0=source_element.copy(),
+            #        src_1=target_element.copy()
+            #    )
+
+    @ActionMeta.register
+    @classmethod
+    def shift(
+        cls: type[Self],
+        dst: Model,
+        vector: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield ModelShiftAnimation(
+            model=dst,
+            vector=vector,
+            mask=mask * np.ones((3,))
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def move_to(
+        cls: type[Self],
+        dst: Model,
+        target: Model,
+        direction: NP_3f8 = ORIGIN,
+        buff: float | NP_3f8 = 0.0,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.shift(
+            dst=dst,
+            vector=target.box.get(direction) - dst.box.get(direction, buff),
+            mask=mask
+        )
+        #signed_direction = direction_sign * direction
+        #self._stack_animation(ModelShiftToAnimation(
+        #    model=self,
+        #    target=target,
+        #    direction=direction,
+        #    buff=buff * np.ones((3,)),
+        #    mask=mask * np.ones((3,)),
+        #    direction_sign=direction_sign
+        #    #buff_vector=self.get_box_position(signed_direction) + buff * signed_direction,
+        #    #initial_model=self
+        #))
+
+    #def move_to(
+    #    self: Self,
+    #    target: Model,
+    #    direction: NP_3f8 = ORIGIN,
+    #    buff: float | NP_3f8 = 0.0,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.shift_to(
+    #        target=target,
+    #        direction=direction,
+    #        buff=buff,
+    #        mask=mask,
+    #        direction_sign=1.0
+    #    )
+    #    return self
+
+    @ActionMeta.register
+    @classmethod
+    def next_to(
+        cls: type[Self],
+        dst: Model,
+        target: Model,
+        direction: NP_3f8 = ORIGIN,
+        buff: float | NP_3f8 = 0.0,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.shift(
+            dst=dst,
+            vector=target.box.get(direction) - dst.box.get(-direction, buff),
+            mask=mask
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def scale(
+        cls: type[Self],
+        dst: Model,
+        factor: float | NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        if about is None:
+            about = dst
+        yield ModelScaleAnimation(
+            model=dst,
+            factor=factor * np.ones((3,)),
+            about=about,
+            direction=direction,
+            mask=mask * np.ones((3,))
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def scale_about_origin(
+        cls: type[Self],
+        dst: Model,
+        factor: float | NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.scale(
+            dst=dst,
+            factor=factor,
+            about=Model(),
+            mask=mask
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def scale_to(
+        cls: type[Self],
+        dst: Model,
+        target: Model,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.scale(
+            dst=dst,
+            factor=target.box.get_radii() / np.maximum(dst.box.get_radii(), 1e-8),
+            about=about,
+            direction=direction,
+            mask=mask
+        )
+        #if about is None:
+        #    about = self
+        
+        #self._stack_animation(ModelScaleToAnimation(
+        #    model=self,
+        #    target=target,
+        #    #radii=self._radii_,
+        #    about=about,
+        #    direction=direction,
+        #    mask=mask * np.ones((3,))
+        #    #initial_model=self
+        #))
+        #factor = target / self.get_box_size()
+        #self.scale(
+        #    vector=target_size / (2.0 * self_copy._radii_),
+        #    about=about,
+        #    direction=direction,
+        #    mask=mask
+        #)
+
+    #def match_box(
+    #    self: Self,
+    #    model: Model,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Iterator[Animation]:
+    #    self.scale_to(model, mask=mask).move_to(model, mask=mask)
+    #    #self.shift(-self.get_center()).scale_to(model.get_box_size()).shift(model.get_center())
+    #    return self
+
+    @ActionMeta.register
+    @classmethod
+    def rotate(
+        cls: type[Self],
+        dst: Model,
+        rotvec: NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        if about is None:
+            about = dst
+        yield ModelRotateAnimation(
+            model=dst,
+            rotvec=rotvec,
+            about=about,
+            direction=direction,
+            mask=mask * np.ones((3,))
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def rotate_about_origin(
+        cls: type[Self],
+        dst: Model,
+        rotvec: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.rotate(
+            dst=dst,
+            rotvec=rotvec,
+            about=Model(),
+            mask=mask
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def flip(
+        cls: type[Self],
+        dst: Model,
+        axis: NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.rotate(
+            dst=dst,
+            rotvec=SpaceUtils.normalize(axis) * PI,
+            about=about,
+            direction=direction,
+            mask=mask
+        )
+
+    @ActionMeta.register
+    @classmethod
+    def apply(
+        cls: type[Self],
+        dst: Model,
+        matrix: NP_44f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN
+    ) -> Iterator[Animation]:
+        if about is None:
+            about = dst
+        yield ModelApplyAnimation(
+            model=dst,
+            matrix=matrix,
+            about=about,
+            direction=direction
+        )
+
+    #def pose(
+    #    self: Self,
+    #    target: Model
+    #    #about: "Model | None" = None,
+    #    #direction: NP_3f8 = ORIGIN
+    #) -> Self:
+    #    #if about is None:
+    #    #    about = self
+    #    self._stack_animation(ModelPoseAnimation(
+    #        model=self,
+    #        target=target,
+    #        #matrix=self._matrix_,
+    #        #about=about,
+    #        #direction=direction
+    #        #initial_model=self
+    #    ))
+    #    return self
+
+
+#class ModelAnimation(Animation):
+#    __slots__ = ()
+
+#    def __init__(
+#        self: Self,
+#        model_actions: tuple[ModelAnimation, ...]
+#    ) -> None:
+#        super().__init__()
+#        self._model_actions: tuple[ModelAnimation, ...] = model_actions
+#        #self._model: Model = model
+#        #self._model_matrices: dict[ModelMatrix, NP_44f8] = model_matrices
+
+#    def update(
+#        self: Self,
+#        alpha: float
+#    ) -> None:
+#        super().update(alpha)
+#        for model_action in reversed(self._model_actions):
+#            model_action._restore()
+#        for model_action in self._model_actions:
+#            model_action._act(alpha)
+
+#    def update_boundary(
+#        self: Self,
+#        boundary: BoundaryT
+#    ) -> None:
+#        super().update_boundary(boundary)
+#        self.update(float(boundary))
+
+
+class Model(ModelActions, Animatable):
     __slots__ = ()
 
     #def __init__(
@@ -152,10 +498,10 @@ class Model(Animatable):
     @Lazy.property(hasher=Lazy.array_hasher)
     @staticmethod
     def _world_sample_positions_(
-        model_matrix__applier: AffineApplier,
+        model_matrix__array: NP_44f8,
         local_sample_positions: NP_x3f8,
     ) -> NP_x3f8:
-        return model_matrix__applier.apply_multiple(local_sample_positions)
+        return SpaceUtils.apply_multiple(model_matrix__array, local_sample_positions)
 
     #@Lazy.property(hasher=Lazy.array_hasher)
     #@staticmethod
@@ -226,7 +572,7 @@ class Model(Animatable):
         *,
         broadcast: bool = True
     ) -> Iterator[Animatable]:
-        yield from super()._iter_siblings(broadcast=broadcast)
+        yield self
         if broadcast:
             yield from self._proper_siblings_
 
@@ -253,11 +599,11 @@ class Model(Animatable):
     ) -> Box:
         return self._box_
 
-    @property
-    def _animate_cls(
-        self: Self
-    ) -> type[ModelAnimationBuilder]:
-        return ModelAnimationBuilder
+    #@property
+    #def _animate_cls(
+    #    self: Self
+    #) -> type[ModelAnimationBuilder]:
+    #    return ModelAnimationBuilder
 
     def animate(
         self: Self,
@@ -266,34 +612,34 @@ class Model(Animatable):
         #rewind: bool = False,
         #run_alpha: float = 1.0,
         #infinite: bool = False
-    ) -> ModelAnimationBuilder[Self]:
-        return ModelAnimationBuilder(self, **kwargs)
+    ) -> DynamicModel[Self]:
+        return DynamicModel(self, **kwargs)
 
-    def shift(
-        self: Self,
-        vector: NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().shift(
-            vector=vector,
-            mask=mask
-        ).update_boundary(1)
-        return self
+    #def shift(
+    #    self: Self,
+    #    vector: NP_3f8,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().shift(
+    #        vector=vector,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
 
-    def move_to(
-        self: Self,
-        target: Model,
-        direction: NP_3f8 = ORIGIN,
-        buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().move_to(
-            target=target,
-            direction=direction,
-            buff=buff,
-            mask=mask
-        ).update_boundary(1)
-        return self
+    #def move_to(
+    #    self: Self,
+    #    target: Model,
+    #    direction: NP_3f8 = ORIGIN,
+    #    buff: float | NP_3f8 = 0.0,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().move_to(
+    #        target=target,
+    #        direction=direction,
+    #        buff=buff,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
 
     #def move_to(
     #    self: Self,
@@ -311,126 +657,126 @@ class Model(Animatable):
     #    )
     #    return self
 
-    def next_to(
-        self: Self,
-        target: Model,
-        direction: NP_3f8 = ORIGIN,
-        buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().next_to(
-            target=target,
-            direction=direction,
-            buff=buff,
-            mask=mask
-        ).update_boundary(1)
-        return self
-
-    def scale(
-        self: Self,
-        factor: float | NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().scale(
-            factor=factor,
-            about=about,
-            direction=direction,
-            mask=mask
-        ).update_boundary(1)
-        return self
-
-    def scale_about_origin(
-        self: Self,
-        factor: float | NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().scale_about_origin(
-            factor=factor,
-            mask=mask
-        ).update_boundary(1)
-        return self
-
-    def scale_to(
-        self: Self,
-        target: Model,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().scale_to(
-            target=target,
-            about=about,
-            direction=direction,
-            mask=mask
-        ).update_boundary(1)
-        return self
-
-    #def match_box(
+    #def next_to(
     #    self: Self,
-    #    model: Model,
+    #    target: Model,
+    #    direction: NP_3f8 = ORIGIN,
+    #    buff: float | NP_3f8 = 0.0,
     #    mask: float | NP_3f8 = 1.0
     #) -> Self:
-    #    self.scale_to(model, mask=mask).move_to(model, mask=mask)
+    #    self.animate().next_to(
+    #        target=target,
+    #        direction=direction,
+    #        buff=buff,
+    #        mask=mask
+    #    ).update_boundary(1)
     #    return self
 
-    def rotate(
-        self: Self,
-        rotvec: NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().rotate(
-            rotvec=rotvec,
-            about=about,
-            direction=direction,
-            mask=mask
-        ).update_boundary(1)
-        return self
+    #def scale(
+    #    self: Self,
+    #    factor: float | NP_3f8,
+    #    about: Model | None = None,
+    #    direction: NP_3f8 = ORIGIN,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().scale(
+    #        factor=factor,
+    #        about=about,
+    #        direction=direction,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
 
-    def rotate_about_origin(
-        self: Self,
-        rotvec: NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().rotate_about_origin(
-            rotvec=rotvec,
-            mask=mask
-        ).update_boundary(1)
-        return self
+    #def scale_about_origin(
+    #    self: Self,
+    #    factor: float | NP_3f8,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().scale_about_origin(
+    #        factor=factor,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
 
-    def flip(
-        self: Self,
-        axis: NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.animate().flip(
-            axis=axis,
-            about=about,
-            direction=direction,
-            mask=mask
-        ).update_boundary(1)
-        return self
+    #def scale_to(
+    #    self: Self,
+    #    target: Model,
+    #    about: Model | None = None,
+    #    direction: NP_3f8 = ORIGIN,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().scale_to(
+    #        target=target,
+    #        about=about,
+    #        direction=direction,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
 
-    def apply(
-        self: Self,
-        matrix: NP_44f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN
-    ) -> Self:
-        self.animate().apply(
-            matrix=matrix,
-            about=about,
-            direction=direction
-        ).update_boundary(1)
-        return self
+    ##def match_box(
+    ##    self: Self,
+    ##    model: Model,
+    ##    mask: float | NP_3f8 = 1.0
+    ##) -> Self:
+    ##    self.scale_to(model, mask=mask).move_to(model, mask=mask)
+    ##    return self
+
+    #def rotate(
+    #    self: Self,
+    #    rotvec: NP_3f8,
+    #    about: Model | None = None,
+    #    direction: NP_3f8 = ORIGIN,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().rotate(
+    #        rotvec=rotvec,
+    #        about=about,
+    #        direction=direction,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
+
+    #def rotate_about_origin(
+    #    self: Self,
+    #    rotvec: NP_3f8,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().rotate_about_origin(
+    #        rotvec=rotvec,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
+
+    #def flip(
+    #    self: Self,
+    #    axis: NP_3f8,
+    #    about: Model | None = None,
+    #    direction: NP_3f8 = ORIGIN,
+    #    mask: float | NP_3f8 = 1.0
+    #) -> Self:
+    #    self.animate().flip(
+    #        axis=axis,
+    #        about=about,
+    #        direction=direction,
+    #        mask=mask
+    #    ).update_boundary(1)
+    #    return self
+
+    #def apply(
+    #    self: Self,
+    #    matrix: NP_44f8,
+    #    about: Model | None = None,
+    #    direction: NP_3f8 = ORIGIN
+    #) -> Self:
+    #    self.animate().apply(
+    #        matrix=matrix,
+    #        about=about,
+    #        direction=direction
+    #    ).update_boundary(1)
+    #    return self
 
 
-class ModelAnimationBuilder[ModelT: Model](AnimatableAnimationBuilder[ModelT]):
+class DynamicModel[ModelT: Model](ModelActions, DynamicAnimatable[ModelT]):
     __slots__ = ()
 
     #@classmethod
@@ -450,11 +796,11 @@ class ModelAnimationBuilder[ModelT: Model](AnimatableAnimationBuilder[ModelT]):
     #def _concatenate(
     #    cls: type[_ModelT],
     #    dst: _ModelT,
-    #    src_tuple: tuple[_ModelT, ...]
+    #    srcs: tuple[_ModelT, ...]
     #) -> None:
-    #    super()._concatenate(dst, src_tuple)
+    #    super()._concatenate(dst, srcs)
     #    for dst_associated, src_tuple_assiciated in zip(
-    #        dst._associated_models_, tuple(src._associated_models_ for src in src_tuple), strict=True
+    #        dst._associated_models_, tuple(src._associated_models_ for src in srcs), strict=True
     #    ):
     #        super()._concatenate(dst_associated, src_tuple_assiciated)
 
@@ -534,253 +880,6 @@ class ModelAnimationBuilder[ModelT: Model](AnimatableAnimationBuilder[ModelT]):
     #    model_action._act(1.0)
     #    self._model_actions.append(model_action)
 
-    def shift(
-        self: Self,
-        vector: NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self._stack_animation(ModelShiftAnimation(
-            model=self._animatable,
-            vector=vector,
-            mask=mask * np.ones((3,))
-        ))
-        return self
-
-    def move_to(
-        self: Self,
-        target: Model,
-        direction: NP_3f8 = ORIGIN,
-        buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.shift(
-            vector=target.box.get(direction) - self._animatable.box.get(direction, buff),
-            mask=mask
-        )
-        #signed_direction = direction_sign * direction
-        #self._stack_animation(ModelShiftToAnimation(
-        #    model=self,
-        #    target=target,
-        #    direction=direction,
-        #    buff=buff * np.ones((3,)),
-        #    mask=mask * np.ones((3,)),
-        #    direction_sign=direction_sign
-        #    #buff_vector=self.get_box_position(signed_direction) + buff * signed_direction,
-        #    #initial_model=self
-        #))
-        return self
-
-    #def move_to(
-    #    self: Self,
-    #    target: Model,
-    #    direction: NP_3f8 = ORIGIN,
-    #    buff: float | NP_3f8 = 0.0,
-    #    mask: float | NP_3f8 = 1.0
-    #) -> Self:
-    #    self.shift_to(
-    #        target=target,
-    #        direction=direction,
-    #        buff=buff,
-    #        mask=mask,
-    #        direction_sign=1.0
-    #    )
-    #    return self
-
-    def next_to(
-        self: Self,
-        target: Model,
-        direction: NP_3f8 = ORIGIN,
-        buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.shift(
-            vector=target.box.get(direction) - self._animatable.box.get(-direction, buff),
-            mask=mask
-        )
-        return self
-
-    def scale(
-        self: Self,
-        factor: float | NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        if about is None:
-            about = self._animatable
-        self._stack_animation(ModelScaleAnimation(
-            model=self._animatable,
-            factor=factor * np.ones((3,)),
-            about=about,
-            direction=direction,
-            mask=mask * np.ones((3,))
-        ))
-        return self
-
-    def scale_about_origin(
-        self: Self,
-        factor: float | NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.scale(
-            factor=factor,
-            about=Model(),
-            mask=mask
-        )
-        return self
-
-    def scale_to(
-        self: Self,
-        target: Model,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.scale(
-            factor=target.box.get_radii() / np.maximum(self._animatable.box.get_radii(), 1e-8),
-            about=about,
-            direction=direction,
-            mask=mask
-        )
-        #if about is None:
-        #    about = self
-        
-        #self._stack_animation(ModelScaleToAnimation(
-        #    model=self,
-        #    target=target,
-        #    #radii=self._radii_,
-        #    about=about,
-        #    direction=direction,
-        #    mask=mask * np.ones((3,))
-        #    #initial_model=self
-        #))
-        #factor = target / self.get_box_size()
-        #self.scale(
-        #    vector=target_size / (2.0 * self_copy._radii_),
-        #    about=about,
-        #    direction=direction,
-        #    mask=mask
-        #)
-        return self
-
-    #def match_box(
-    #    self: Self,
-    #    model: Model,
-    #    mask: float | NP_3f8 = 1.0
-    #) -> Self:
-    #    self.scale_to(model, mask=mask).move_to(model, mask=mask)
-    #    #self.shift(-self.get_center()).scale_to(model.get_box_size()).shift(model.get_center())
-    #    return self
-
-    def rotate(
-        self: Self,
-        rotvec: NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        if about is None:
-            about = self._animatable
-        self._stack_animation(ModelRotateAnimation(
-            model=self._animatable,
-            rotvec=rotvec,
-            about=about,
-            direction=direction,
-            mask=mask * np.ones((3,))
-        ))
-        return self
-
-    def rotate_about_origin(
-        self: Self,
-        rotvec: NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.rotate(
-            rotvec=rotvec,
-            about=Model(),
-            mask=mask
-        )
-        return self
-
-    def flip(
-        self: Self,
-        axis: NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Self:
-        self.rotate(
-            rotvec=SpaceUtils.normalize(axis) * PI,
-            about=about,
-            direction=direction,
-            mask=mask
-        )
-        return self
-
-    def apply(
-        self: Self,
-        matrix: NP_44f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN
-    ) -> Self:
-        if about is None:
-            about = self._animatable
-        self._stack_animation(ModelApplyAnimation(
-            model=self._animatable,
-            matrix=matrix,
-            about=about,
-            direction=direction
-        ))
-        return self
-
-    #def pose(
-    #    self: Self,
-    #    target: Model
-    #    #about: "Model | None" = None,
-    #    #direction: NP_3f8 = ORIGIN
-    #) -> Self:
-    #    #if about is None:
-    #    #    about = self
-    #    self._stack_animation(ModelPoseAnimation(
-    #        model=self,
-    #        target=target,
-    #        #matrix=self._matrix_,
-    #        #about=about,
-    #        #direction=direction
-    #        #initial_model=self
-    #    ))
-    #    return self
-
-
-#class ModelAnimation(Animation):
-#    __slots__ = ()
-
-#    def __init__(
-#        self: Self,
-#        model_actions: tuple[ModelAnimation, ...]
-#    ) -> None:
-#        super().__init__()
-#        self._model_actions: tuple[ModelAnimation, ...] = model_actions
-#        #self._model: Model = model
-#        #self._model_matrices: dict[ModelMatrix, NP_44f8] = model_matrices
-
-#    def update(
-#        self: Self,
-#        alpha: float
-#    ) -> None:
-#        super().update(alpha)
-#        for model_action in reversed(self._model_actions):
-#            model_action._restore()
-#        for model_action in self._model_actions:
-#            model_action._act(alpha)
-
-#    def update_boundary(
-#        self: Self,
-#        boundary: BoundaryT
-#    ) -> None:
-#        super().update_boundary(boundary)
-#        self.update(float(boundary))
-
 
 class ModelAnimation(Animation):
     __slots__ = (
@@ -809,7 +908,7 @@ class ModelAnimation(Animation):
         self._pre_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(-about_point)
         self._post_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(about_point)
         #self._previous_alpha: float = 0.0
-        self._model_matrices: dict[ModelMatrix, NP_44f8] = {
+        self._model_matrices: dict[Array, NP_44f8] = {
             sibling._model_matrix_: sibling._model_matrix_._array_
             for sibling in (model, *model._proper_siblings_)
         }

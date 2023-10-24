@@ -16,14 +16,20 @@ from .animatable_array import AnimatableArray
 class AnimatableColor(AnimatableArray[NP_3f8]):
     __slots__ = ()
 
+    def __init__(
+        self: Self,
+        color: ColorT | None = None
+    ) -> None:
+        super().__init__(ColorUtils.standardize_color(color) if color is not None else None)
+
     @Lazy.variable(hasher=Lazy.array_hasher)
     @staticmethod
     def _array_() -> NP_3f8:
         return ColorUtils.standardize_color(Toplevel.config.default_color)
 
-    @classmethod
-    def _convert_input(
-        cls: type[Self],
-        color_input: ColorT
-    ) -> Self:
-        return AnimatableColor(ColorUtils.standardize_color(color_input))
+    #@classmethod
+    #def _convert_input(
+    #    cls: type[Self],
+    #    color_input: ColorT
+    #) -> Self:
+    #    return AnimatableColor(ColorUtils.standardize_color(color_input))
