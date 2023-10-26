@@ -120,12 +120,12 @@ class Mobject(Model):
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    #@Lazy.variable_collection(freeze=False)
+    #@Lazy.mutable(plural=True)
     #@staticmethod
     #def _children_() -> "tuple[Mobject, ...]":
     #    return ()
 
-    #@Lazy.variable_collection(freeze=False)
+    #@Lazy.mutable(plural=True)
     #@staticmethod
     #def _descendants_() -> "tuple[Mobject, ...]":
     #    return ()
@@ -295,7 +295,7 @@ class Mobject(Model):
 
     # model matrix
 
-    #@Lazy.property_collection()
+    #@Lazy.property(plural=True)
     #@staticmethod
     #def _proper_siblings_(
     #    descendants: "tuple[Mobject, ...]"
@@ -307,13 +307,13 @@ class Mobject(Model):
     #def _model_matrix_() -> ArrayAttribute[NP_44f8]:
     #    return ArrayAttribute(np.identity(4))
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _local_sample_positions_() -> NP_x3f8:
     #    # Implemented in subclasses.
     #    return np.zeros((0, 3))
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _world_sample_positions_(
     #    model_matrix: NP_44f8,
@@ -356,7 +356,7 @@ class Mobject(Model):
     #        minimum=positions_array.min(axis=0)
     #    )
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _bounding_box_reference_points_(
     #    world_sample_positions: NP_x3f8,
@@ -387,14 +387,14 @@ class Mobject(Model):
     #        minimum=positions_array.min(axis=0)
     #    )
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _centroid_(
     #    bounding_box: BoundingBox
     #) -> NP_3f8:
     #    return (bounding_box.maximum + bounding_box.minimum) / 2.0
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _radii_(
     #    bounding_box: BoundingBox
@@ -639,7 +639,7 @@ class Mobject(Model):
 
     # render
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _camera_() -> Camera:
         return Toplevel.scene._camera

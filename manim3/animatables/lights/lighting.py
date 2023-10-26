@@ -32,12 +32,12 @@ class Lighting(Animatable):
         self._ambient_lights_ = tuple(ambient_lights)
         self._point_lights_ = tuple(point_lights)
 
-    @Lazy.variable_collection(freeze=False)
+    @Lazy.mutable(plural=True)
     @staticmethod
     def _ambient_lights_() -> tuple[AmbientLight, ...]:
         return ()
 
-    @Lazy.variable_collection(freeze=False)
+    @Lazy.mutable(plural=True)
     @staticmethod
     def _point_lights_() -> tuple[PointLight, ...]:
         return ()

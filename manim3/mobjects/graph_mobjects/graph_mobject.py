@@ -36,32 +36,32 @@ class GraphMobject(Mobject):
         if graph is not None:
             self._graph_ = graph
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _graph_() -> Graph:
         return Graph()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _width_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.graph_width)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _local_sample_positions_(
         graph__positions: NP_x3f8,

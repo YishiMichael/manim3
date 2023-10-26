@@ -31,19 +31,19 @@ class ComposeRate(Rate):
         super().__init__()
         self._reversed_rates_ = tuple(reversed(rates))
 
-    @Lazy.variable_collection()
+    @Lazy.variable(plural=True)
     @staticmethod
     def _reversed_rates_() -> tuple[Rate, ...]:
         return ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_(
         reversed_rates__is_increasing: tuple[bool, ...]
     ) -> bool:
         return all(reversed_rates__is_increasing)
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_(
         reversed_rates__boundaries: tuple[tuple[BoundaryT, BoundaryT], ...]
@@ -90,19 +90,19 @@ class ProductRate(Rate):
         super().__init__()
         self._rates_ = rates
 
-    @Lazy.variable_collection()
+    @Lazy.variable(plural=True)
     @staticmethod
     def _rates_() -> tuple[Rate, ...]:
         return ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_(
         rates__is_increasing: tuple[bool, ...]
     ) -> bool:
         return all(rates__is_increasing)
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_(
         rates__boundaries: tuple[tuple[BoundaryT, BoundaryT], ...]
@@ -189,7 +189,7 @@ class BezierRate(Rate):
         super().__init__()
         self._values_ = values
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _values_() -> NP_xf8:
         return np.zeros((0,))
@@ -201,14 +201,14 @@ class BezierRate(Rate):
     ) -> BSpline:
         return SpaceUtils.bezier(values)
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_(
         values: NP_xf8
     ) -> bool:
         return bool(np.all(np.diff(values) >= 0.0))
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_(
         values: NP_xf8
@@ -272,12 +272,12 @@ class BezierRate(Rate):
 class RewindRate(Rate):
     __slots__ = ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_() -> bool:
         return False
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
         return (1, 0)
@@ -303,12 +303,12 @@ class RewindRate(Rate):
 class ThereAndBackRate(Rate):
     __slots__ = ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_() -> bool:
         return False
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
         return (0, 0)
@@ -334,12 +334,12 @@ class ThereAndBackRate(Rate):
 class SinusoidalRate(Rate):
     __slots__ = ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_() -> bool:
         return False
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
         return (0, 0)
@@ -362,7 +362,7 @@ class RepeatRate(Rate):
         super().__init__()
         self._periods: int = periods
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_() -> bool:
         return False

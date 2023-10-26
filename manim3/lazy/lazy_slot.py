@@ -32,7 +32,7 @@ class LazySlot[T, DataT]:
     ) -> None:
         super().__init__()
         self._descriptor_ref: weakref.ref[LazyDescriptor[T, DataT]] = weakref.ref(descriptor)
-        self._is_writable: bool = descriptor._is_variable
+        self._is_writable: bool = not descriptor._is_property
         self._elements: tuple[Memoized[T], ...] | None = None
         self._parameter_key: Memoized[Hashable] | None = None
         self._associated_slots: weakref.WeakSet[LazySlot] = weakref.WeakSet()

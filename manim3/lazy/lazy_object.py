@@ -4,17 +4,22 @@ from __future__ import annotations
 import copy
 import functools
 import inspect
+import operator
 from abc import ABC
+from enum import Enum
 from typing import (
     Any,
     Callable,
     ClassVar,
+    Hashable,
+    Never,
     Self,
     TypeAliasType,
     TypeVar
 )
 
 import attrs
+import numpy as np
 
 from .lazy_descriptor import LazyDescriptor
 from .lazy_slot import LazySlot
@@ -82,15 +87,16 @@ class TypeHint:
             annotation = annotation.__bound__
         elif isinstance(annotation, TypeAliasType):
             annotation = annotation.__value__
-        return getattr(annotation, "__origin__", annotation)
+        annotation = getattr(annotation, "__origin__", annotation)
+        return annotation if isinstance(annotation, type) else object
 
     @classmethod
     def extract_element_annotation(
         cls: type[Self],
         annotation: Any,
-        is_plural: bool
+        plural: bool
     ) -> Any:
-        if not is_plural:
+        if not plural:
             return annotation
         assert annotation.__origin__ is tuple
         element_annotation, ellipsis = annotation.__args__
@@ -128,7 +134,7 @@ class LazyObject(ABC):
         cls._hinted_lazy_descriptors = hinted_lazy_descriptors
 
         root_type_hint = TypeHint.from_root(cls)
-        for descriptor_name, descriptor in cls.__dict__.items():
+        for name, descriptor in cls.__dict__.items():
             if not isinstance(descriptor, LazyDescriptor):
                 continue
 
@@ -145,38 +151,62 @@ class LazyObject(ABC):
             )
             element_annotation = TypeHint.extract_element_annotation(
                 annotation=signature.return_annotation,
-                is_plural=descriptor._is_plural
+                plural=descriptor._plural
             )
             element_annotation_cls = TypeHint.get_cls_from_annotation(element_annotation)
-            if (typed_overridden_descriptor := hinted_lazy_descriptors.get(descriptor_name)) is not None:
+
+            assert name.startswith("_") and name.endswith("_") and "__" not in name
+            descriptor._name = name
+            parameter_name_chains = tuple(
+                tuple(f"_{name_body}_" for name_body in parameter_name.split("__"))
+                for parameter_name in signature.parameters
+            )
+            descriptor._parameter_name_chains = parameter_name_chains
+            assert descriptor._is_property or not parameter_name_chains
+
+            descriptor._decomposer = Implementations.decomposers.fetch(descriptor._plural)
+            descriptor._composer = Implementations.composers.fetch(descriptor._plural)
+            descriptor._hasher = (
+                Implementations.hashers.fetch(element_annotation_cls if descriptor._freeze else object)
+            )
+            descriptor._freezer = (
+                Implementations.freezers.fetch(element_annotation_cls)
+                if descriptor._freeze else Implementations.empty_freezer
+            )
+            descriptor._copier = (
+                Implementations.copiers.fetch(element_annotation_cls)
+                if descriptor._deepcopy else Implementations.empty_copier
+            )
+
+            if (typed_overridden_descriptor := hinted_lazy_descriptors.get(name)) is not None:
                 type_hint, overridden_descriptor = typed_overridden_descriptor
-                assert overridden_descriptor._is_plural is descriptor._is_plural
-                assert overridden_descriptor._hasher is descriptor._hasher
+                assert overridden_descriptor._plural is descriptor._plural
+                #assert overridden_descriptor._hasher is descriptor._hasher
+                #assert overridden_descriptor._freeze is descriptor._freeze
                 assert not overridden_descriptor._freeze or descriptor._freeze
                 assert type_hint.annotation_cls is element_annotation_cls  # TODO: subclass check
                 assert type_hint.annotation == element_annotation
 
-            hinted_lazy_descriptors[descriptor_name] = (TypeHint(
+            hinted_lazy_descriptors[name] = (TypeHint(
                 type_params_cls=cls,
                 annotation_cls=element_annotation_cls,
                 annotation=element_annotation
             ), descriptor)
 
-            for parameter_name_chain, (parameter_name, parameter) in zip(
-                descriptor._parameter_name_chains, signature.parameters.items(), strict=True
+            for parameter_name_chain, parameter in zip(
+                parameter_name_chains, signature.parameters.values(), strict=True
             ):
-                assert "".join(parameter_name_chain) == f"_{parameter_name}_"
                 last_descriptor_freeze: bool = False
                 type_hint = root_type_hint
                 provided_annotation = parameter.annotation
-                for name in parameter_name_chain:
+                for name_segment in parameter_name_chain:
                     assert issubclass(element_cls := type_hint.annotation_cls, LazyObject)
-                    parameter_type_hint, parameter_descriptor = element_cls._hinted_lazy_descriptors[name]
+                    parameter_type_hint, parameter_descriptor = element_cls._hinted_lazy_descriptors[name_segment]
                     last_descriptor_freeze = parameter_descriptor._freeze
                     type_hint = parameter_type_hint.specialize(type_hint)
                     provided_annotation = TypeHint.extract_element_annotation(
                         annotation=provided_annotation,
-                        is_plural=parameter_descriptor._is_plural
+                        plural=parameter_descriptor._plural
                     )
                 assert last_descriptor_freeze
                 assert type_hint.annotation == provided_annotation
@@ -208,7 +238,7 @@ class LazyObject(ABC):
         self._lazy_slots: object = type(self)._lazy_slots_cls()
         self._is_frozen: bool = False
 
-    def _get_slot(
+    def _get_lazy_slot(
         self: Self,
         name: str
     ) -> LazySlot:
@@ -222,6 +252,18 @@ class LazyObject(ABC):
     #        if descriptor._is_variable:
     #            descriptor.set_elements(self, descriptor.get_elements(src_object))
 
+    def _freeze(
+        self: Self
+    ) -> None:
+        if self._is_frozen:
+            return
+        self._is_frozen = True
+        for descriptor in type(self)._lazy_descriptors:
+            descriptor.get_slot(self).disable_writability()
+            #if descriptor._freeze:
+            for element in descriptor.get_elements(self):
+                descriptor._freezer(element)
+
     def copy(
         self: Self
     ) -> Self:
@@ -231,6 +273,163 @@ class LazyObject(ABC):
             result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
         #result._copy_lazy_content(self)
         for descriptor in cls._lazy_descriptors:
-            if descriptor._is_variable:
-                descriptor.set_elements(result, descriptor.get_elements(self))
+            if descriptor._is_property:
+                continue
+            #elements = tuple(descriptor._copier(element) for element in descriptor.get_elements(self))
+            #if not descriptor._freeze and not descriptor._is_leaf and descriptor._deepcopy:
+            #if descriptor._deepcopy:
+            #    elements = tuple(element.copy() for element in elements)
+            descriptor.set_elements(result, tuple(
+                descriptor._copier(element)
+                for element in descriptor.get_elements(self)
+            ))
         return result
+
+
+class Registration[K: Hashable, V]:
+    __slots__ = (
+        "_registration",
+        "_match_key"
+    )
+
+    def __init__(
+        self,
+        match_key: Callable[[K, K], bool]
+    ) -> None:
+        super().__init__()
+        self._registration: dict[K, V] = {}
+        self._match_key: Callable[[K, K], bool] = match_key
+
+    def register(
+        self: Self,
+        key: K
+    ) -> Callable[[V], V]:
+
+        def result(
+            value: V
+        ) -> V:
+            self._registration[key] = value
+            return value
+
+        return result
+
+    def fetch(
+        self,
+        key: K
+    ) -> V:
+        for registered_key, value in self._registration.items():
+            if self._match_key(key, registered_key):
+                return value
+        raise KeyError(key)
+
+
+class Implementations:
+    __slots__ = ()
+
+    decomposers: ClassVar[Registration[bool, Callable[[Any], tuple[Any, ...]]]] = Registration(operator.is_)
+    composers: ClassVar[Registration[bool, Callable[[tuple[Any, ...]], Any]]] = Registration(operator.is_)
+    hashers: ClassVar[Registration[type, Callable[[Any], Hashable]]] = Registration(issubclass)
+    freezers: ClassVar[Registration[type, Callable[[Any], None]]] = Registration(issubclass)
+    copiers: ClassVar[Registration[type, Callable[[Any], Any]]] = Registration(issubclass)
+
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
+        raise TypeError
+
+    @decomposers.register(False)
+    @staticmethod
+    def _[T](
+        data: T
+    ) -> tuple[T, ...]:
+        return (data,)
+
+    @decomposers.register(True)
+    @staticmethod
+    def _[T](
+        data: tuple[T, ...]
+    ) -> tuple[T, ...]:
+        return data
+
+    @composers.register(False)
+    @staticmethod
+    def _[T](
+        elements: tuple[T, ...]
+    ) -> T:
+        (element,) = elements
+        return element
+
+    @composers.register(True)
+    @staticmethod
+    def _[T](
+        elements: tuple[T, ...]
+    ) -> tuple[T, ...]:
+        return elements
+
+    @hashers.register(int)
+    @hashers.register(str)
+    @hashers.register(tuple)
+    @hashers.register(Enum)
+    @staticmethod
+    def _(
+        element: Hashable
+    ) -> Hashable:
+        return element
+
+    @hashers.register(np.ndarray)
+    @staticmethod
+    def _(
+        element: np.ndarray
+    ) -> Hashable:
+        return (element.shape, element.dtype, element.tobytes())
+
+    @hashers.register(object)
+    @staticmethod
+    def _(
+        element: object
+    ) -> Hashable:
+        return id(element)
+
+    @freezers.register(LazyObject)
+    @staticmethod
+    def _(
+        element: LazyObject
+    ) -> None:
+        #if not isinstance(element, LazyObject):
+        #    return
+        #if element._is_frozen:
+        #    return
+        #element._is_frozen = True
+        #for descriptor in type(element)._lazy_descriptors:
+        #    descriptor.get_slot(element).disable_writability()
+        #    #if descriptor._freeze:
+        #    for child_element in descriptor.get_elements(element):
+        #        descriptor._freezer(child_element)
+        element._freeze()
+
+    @freezers.register(object)
+    @staticmethod
+    def empty_freezer(
+        element: object
+    ) -> None:
+        pass
+
+    @copiers.register(LazyObject)
+    @staticmethod
+    def _(
+        element: LazyObject
+    ) -> LazyObject:
+        return element.copy()
+
+    @copiers.register(object)
+    @staticmethod
+    def _(
+        element: object
+    ) -> object:
+        return copy.copy(element)
+
+    @staticmethod
+    def empty_copier(
+        element: object
+    ) -> object:
+        return element

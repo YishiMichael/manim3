@@ -33,7 +33,7 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self._shape_ = shape
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _shape_() -> Shape:
         return Shape()

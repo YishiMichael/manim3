@@ -22,36 +22,36 @@ class BufferFormat(LazyObject):
         self._name_ = name
         self._shape_ = shape
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _name_() -> str:
         return ""
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _shape_() -> tuple[int, ...]:
         return ()
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _itemsize_() -> int:
         # Implemented in subclasses.
         return 0
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _base_alignment_() -> int:
         # Implemented in subclasses.
         return 1
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _size_(
         shape: tuple[int, ...]
     ) -> int:
         return int(np.prod(shape, dtype=np.int32))
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _nbytes_(
         itemsize: int,
@@ -59,20 +59,20 @@ class BufferFormat(LazyObject):
     ) -> int:
         return itemsize * size
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_empty_(
         size: int
     ) -> bool:
         return not size
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _dtype_() -> np.dtype:
         # Implemented in subclasses.
         return np.dtype("f4")
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _pointers_() -> tuple[tuple[tuple[str, ...], int], ...]:
         # Implemented in subclasses.

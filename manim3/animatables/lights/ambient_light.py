@@ -11,7 +11,7 @@ from ..arrays.animatable_color import AnimatableColor
 class AmbientLight(Animatable):
     __slots__ = ()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()

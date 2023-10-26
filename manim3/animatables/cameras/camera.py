@@ -47,42 +47,42 @@ class Camera(Model):
             Toplevel.config.camera_distance
         ))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _near_() -> NP_f8:
         return Toplevel.config.camera_near * np.ones(())  # TODO
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _far_() -> NP_f8:
         return Toplevel.config.camera_far * np.ones(())  # TODO
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _projection_matrix_() -> NP_44f8:
         # Implemented in subclasses.
         return np.identity(4)
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _local_sample_positions_() -> NP_x3f8:
     #    return np.array((OUT,))
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _target_(
         model_matrix__array: NP_44f8
     ) -> NP_3f8:
         return SpaceUtils.apply(model_matrix__array, ORIGIN)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _eye_(
         model_matrix__array: NP_44f8
     ) -> NP_3f8:
         return SpaceUtils.apply(model_matrix__array, OUT)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _frame_radii_(
         model_matrix__array: NP_44f8,
@@ -93,7 +93,7 @@ class Camera(Model):
             SpaceUtils.norm(SpaceUtils.apply(model_matrix__array, UP) - target)
         ))
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _distance_(
         eye: NP_3f8,
@@ -101,7 +101,7 @@ class Camera(Model):
     ) -> NP_f8:
         return np.array(SpaceUtils.norm(eye - target))
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _view_matrix_(
         model_matrix__array: NP_44f8,
@@ -114,7 +114,7 @@ class Camera(Model):
             @ SpaceUtils.matrix_from_shift(-eye)
         )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _projection_view_matrix_(
         projection_matrix: NP_44f8,

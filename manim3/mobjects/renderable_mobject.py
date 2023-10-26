@@ -10,7 +10,7 @@
 #class RenderableMobject(Mobject):
 #    __slots__ = ()
 
-#    @Lazy.variable(freeze=False)
+#    @Lazy.mutable()
 #    @staticmethod
 #    def _camera_() -> CameraAttribute:
 #        return CameraAttribute(Toplevel.scene._camera)

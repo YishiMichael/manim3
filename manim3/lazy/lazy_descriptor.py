@@ -1,12 +1,7 @@
 from __future__ import annotations
 
 
-import inspect
 import weakref
-from abc import (
-    ABC,
-    abstractmethod
-)
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -58,7 +53,6 @@ class Cache[KT: Hashable, VT](weakref.WeakKeyDictionary[KT, VT]):
         capacity: int
     ) -> None:
         super().__init__()
-        assert capacity > 0
         self._capacity: int = capacity
 
     def set(
@@ -67,15 +61,15 @@ class Cache[KT: Hashable, VT](weakref.WeakKeyDictionary[KT, VT]):
         value: VT
     ) -> None:
         assert key not in self
-        if len(self) == self._capacity:
-            self.pop(next(iter(self)))
         self[key] = value
+        if len(self) > self._capacity:
+            self.pop(next(iter(self)))
 
 
 type TupleTree[T] = T | tuple[TupleTree[T], ...]
 
 
-class Tree[T](ABC):
+class Tree[T]:
     __slots__ = (
         "_content",
         "_children"
@@ -122,52 +116,65 @@ class Tree[T](ABC):
         )
 
 
-class LazyDescriptor[T, DataT](ABC):
+class LazyDescriptor[T, DataT]:
     __slots__ = (
         "__weakref__",
         "_method",
-        "_name",
-        "_parameter_name_chains",
-        "_is_variable",
-        "_hasher",
-        "_freezer",
+        "_is_property",
+        "_plural",
         "_freeze",
+        "_deepcopy",
         "_cache",
         "_parameter_key_memoization",
-        "_element_memoization"
+        "_element_memoization",
+        "_name",
+        "_parameter_name_chains",
+        #"_is_leaf",
+        "_decomposer",
+        "_composer",
+        "_hasher",
+        "_freezer",
+        "_copier"
     )
 
     def __init__(
         self: Self,
         method: Callable[..., DataT],
-        is_variable: bool,
-        hasher: Callable[[T], Hashable],
-        freezer: Callable[[T], None],
+        is_property: bool,
+        plural: bool,
+        #hasher: Callable[[T], Hashable],
+        #freezer: Callable[[T], None],
         freeze: bool,
+        deepcopy: bool,
         cache_capacity: int
     ) -> None:
-        assert isinstance(method, staticmethod)
-        assert hasher is id or freeze
-        method = method.__func__
-        name = method.__name__
-        assert name.startswith("_") and name.endswith("_") and "__" not in name
-        parameter_name_chains = tuple(
-            tuple(f"_{name_body}_" for name_body in parameter_name.split("__"))
-            for parameter_name in inspect.getargs(method.__code__).args
-        )
-        assert not is_variable or not parameter_name_chains
+        #assert hasher is id or freeze
+        #method = method.__func__
+        #name = method.__name__
+        #assert name.startswith("_") and name.endswith("_") and "__" not in name
+        #parameter_name_chains = tuple(
+        #    tuple(f"_{name_body}_" for name_body in parameter_name.split("__"))
+        #    for parameter_name in inspect.getargs(method.__code__).args
+        #)
+        #assert not is_property or not parameter_name_chains
 
         super().__init__()
         self._method: Callable[..., DataT] = method
-        self._name: str = name
-        self._parameter_name_chains: tuple[tuple[str, ...], ...] = parameter_name_chains
-        self._is_variable: bool = is_variable
-        self._hasher: Callable[[T], Hashable] = hasher
-        self._freezer: Callable[[T], None] = freezer
+        self._is_property: bool = is_property
+        self._plural: bool = plural
         self._freeze: bool = freeze
+        self._deepcopy: bool = deepcopy
         self._cache: Cache[Memoized[Hashable], tuple[Memoized[T], ...]] = Cache(capacity=cache_capacity)
         self._parameter_key_memoization: Memoization[Hashable, Hashable] = Memoization()
         self._element_memoization: Memoization[Hashable, T] = Memoization()
+        self._name: str = NotImplemented
+        self._parameter_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
+        #self._is_leaf: bool = NotImplemented
+        self._decomposer: Callable[[DataT], tuple[T, ...]] = NotImplemented
+        self._composer: Callable[[tuple[T, ...]], DataT] = NotImplemented
+        self._hasher: Callable[[T], Hashable] = NotImplemented
+        self._freezer: Callable[[T], None] = NotImplemented
+        self._copier: Callable[[T], T] = NotImplemented
 
     @overload
     def __get__(
@@ -205,29 +212,29 @@ class LazyDescriptor[T, DataT](ABC):
     ) -> Never:
         raise TypeError("Cannot delete attributes of a lazy object")
 
-    @classmethod
-    @property
-    @abstractmethod
-    def _is_plural(
-        cls: type[Self]
-    ) -> bool:
-        pass
+    #@classmethod
+    #@property
+    #@abstractmethod
+    #def _plural(
+    #    cls: type[Self]
+    #) -> bool:
+    #    pass
 
-    @classmethod
-    @abstractmethod
-    def _decomposer(
-        cls: type[Self],
-        data: DataT
-    ) -> tuple[T, ...]:
-        pass
+    #@classmethod
+    #@abstractmethod
+    #def _decomposer(
+    #    cls: type[Self],
+    #    data: DataT
+    #) -> tuple[T, ...]:
+    #    pass
 
-    @classmethod
-    @abstractmethod
-    def _composer(
-        cls: type[Self],
-        elements: tuple[T, ...]
-    ) -> DataT:
-        pass
+    #@classmethod
+    #@abstractmethod
+    #def _composer(
+    #    cls: type[Self],
+    #    elements: tuple[T, ...]
+    #) -> DataT:
+    #    pass
 
     def _memoize_parameter_key(
         self: Self,
@@ -239,10 +246,9 @@ class LazyDescriptor[T, DataT](ABC):
         self: Self,
         elements: tuple[T, ...]
     ) -> tuple[Memoized[T], ...]:
-        if self._freeze:
-            freezer = self._freezer
-            for element in elements:
-                freezer(element)
+        freezer = self._freezer
+        for element in elements:
+            freezer(element)
         element_memoization = self._element_memoization
         hasher = self._hasher
         return tuple(
@@ -254,7 +260,7 @@ class LazyDescriptor[T, DataT](ABC):
         self: Self,
         instance: LazyObject
     ) -> LazySlot:
-        return instance._get_slot(self._name)
+        return instance._get_lazy_slot(self._name)
 
     def get_elements(
         self: Self,
@@ -270,18 +276,18 @@ class LazyDescriptor[T, DataT](ABC):
                 for name in parameter_name_chain:
                     for leaf in tree.iter_leaves():
                         leaf_object = leaf._content
-                        leaf_slot = leaf_object._get_slot(name)
+                        leaf_slot = leaf_object._get_lazy_slot(name)
                         descriptor = leaf_slot.get_descriptor()
                         elements = descriptor.get_elements(leaf_object)
-                        if descriptor._is_plural:
+                        if descriptor._plural:
                             leaf._children = tuple(Tree(element) for element in elements)
                         else:
                             (element,) = elements
                             leaf._content = element
-                        if descriptor._is_variable:
-                            associated_slots.add(leaf_slot)
-                        else:
+                        if descriptor._is_property:
                             associated_slots.update(leaf_slot.iter_associated_slots())
+                        else:
+                            associated_slots.add(leaf_slot)
 
             memoized_parameter_key = self._memoize_parameter_key(tuple(
                 tree.convert(id).as_tuple_tree() for tree in trees
@@ -290,8 +296,8 @@ class LazyDescriptor[T, DataT](ABC):
                 memoized_elements = self._memoize_elements(self._decomposer(self._method(*(
                     tree.as_tuple_tree() for tree in trees
                 ))))
-                if self._freeze:
-                    self._cache.set(memoized_parameter_key, memoized_elements)
+                #if self._freeze:
+                self._cache.set(memoized_parameter_key, memoized_elements)
             slot.set(
                 elements=memoized_elements,
                 parameter_key=memoized_parameter_key,
@@ -320,52 +326,52 @@ class LazyDescriptor[T, DataT](ABC):
         )
 
 
-class LazySingularDescriptor[T](LazyDescriptor[T, T]):
-    __slots__ = ()
+#class LazySingularDescriptor[T](LazyDescriptor[T, T]):
+#    __slots__ = ()
 
-    @classmethod
-    @property
-    def _is_plural(
-        cls: type[Self]
-    ) -> bool:
-        return False
+#    @classmethod
+#    @property
+#    def _plural(
+#        cls: type[Self]
+#    ) -> bool:
+#        return False
 
-    @classmethod
-    def _decomposer(
-        cls: type[Self],
-        data: T
-    ) -> tuple[T, ...]:
-        return (data,)
+#    @classmethod
+#    def _decomposer(
+#        cls: type[Self],
+#        data: T
+#    ) -> tuple[T, ...]:
+#        return (data,)
 
-    @classmethod
-    def _composer(
-        cls: type[Self],
-        elements: tuple[T, ...]
-    ) -> T:
-        (element,) = elements
-        return element
+#    @classmethod
+#    def _composer(
+#        cls: type[Self],
+#        elements: tuple[T, ...]
+#    ) -> T:
+#        (element,) = elements
+#        return element
 
 
-class LazyPluralDescriptor[T](LazyDescriptor[T, tuple[T, ...]]):
-    __slots__ = ()
+#class LazyPluralDescriptor[T](LazyDescriptor[T, tuple[T, ...]]):
+#    __slots__ = ()
 
-    @classmethod
-    @property
-    def _is_plural(
-        cls: type[Self]
-    ) -> bool:
-        return True
+#    @classmethod
+#    @property
+#    def _plural(
+#        cls: type[Self]
+#    ) -> bool:
+#        return True
 
-    @classmethod
-    def _decomposer(
-        cls: type[Self],
-        data: tuple[T, ...]
-    ) -> tuple[T, ...]:
-        return data
+#    @classmethod
+#    def _decomposer(
+#        cls: type[Self],
+#        data: tuple[T, ...]
+#    ) -> tuple[T, ...]:
+#        return data
 
-    @classmethod
-    def _composer(
-        cls: type[Self],
-        elements: tuple[T, ...]
-    ) -> tuple[T, ...]:
-        return elements
+#    @classmethod
+#    def _composer(
+#        cls: type[Self],
+#        elements: tuple[T, ...]
+#    ) -> tuple[T, ...]:
+#        return elements

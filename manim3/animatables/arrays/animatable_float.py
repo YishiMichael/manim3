@@ -18,7 +18,7 @@ class AnimatableFloat(AnimatableArray[NP_f8]):
     ) -> None:
         super().__init__(np.asarray(value, dtype=np.float64))
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _array_() -> NP_f8:
     #    return np.zeros(())

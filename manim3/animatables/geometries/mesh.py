@@ -38,22 +38,22 @@ class Mesh(Animatable):
         if faces is not None:
             self._faces_ = faces
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _positions_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _normals_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _uvs_() -> NP_x2f8:
         return np.zeros((0, 2))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _faces_() -> NP_x3i4:
         return np.zeros((0, 3), dtype=np.int32)

@@ -38,52 +38,52 @@ class MeshMobject(Mobject):
         if mesh is not None:
             self._mesh_ = mesh
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _ambient_strength_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _specular_strength_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_specular_strength)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _shininess_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_shininess)
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting
 
-    @Lazy.variable_collection()
+    @Lazy.variable(plural=True)
     @staticmethod
     def _color_maps_() -> tuple[moderngl.Texture, ...]:
         return ()
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _local_sample_positions_(
         mesh__positions: NP_x3f8,

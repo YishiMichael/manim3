@@ -61,37 +61,37 @@ class AtomicBufferFormat(BufferFormat):
         self._itemsize_ = itemsize
         self._base_alignment_ = base_alignment
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _base_char_() -> str:
         return ""
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _base_itemsize_() -> int:
         return 0
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _base_ndim_() -> int:
         return 0
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _row_len_() -> int:
         return 0
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _col_len_() -> int:
         return 0
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _col_padding_() -> int:
         return 0
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _dtype_(
         base_char: str,
@@ -106,14 +106,14 @@ class AtomicBufferFormat(BufferFormat):
             "itemsize": (col_len + col_padding) * base_itemsize
         }), (row_len,)))
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _pointers_(
         base_ndim: int
     ) -> tuple[tuple[tuple[str, ...], int], ...]:
         return (((), base_ndim),)
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _format_str_(
         col_len: int,

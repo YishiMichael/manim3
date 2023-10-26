@@ -46,17 +46,17 @@ class StructuredBufferFormat(BufferFormat):
         self._itemsize_ = itemsize
         self._base_alignment_ = base_alignment
 
-    @Lazy.variable_collection()
+    @Lazy.variable(plural=True)
     @staticmethod
     def _children_() -> tuple[BufferFormat, ...]:
         return ()
 
-    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @Lazy.variable(plural=True)
     @staticmethod
     def _offsets_() -> tuple[int, ...]:
         return ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _dtype_(
         children__name: tuple[str, ...],
@@ -72,7 +72,7 @@ class StructuredBufferFormat(BufferFormat):
             "itemsize": itemsize
         })
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _pointers_(
         children__name: tuple[str, ...],

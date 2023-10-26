@@ -35,7 +35,7 @@ class UniformBlockBuffer(WriteOnlyBuffer):
         )
         self.write(data)
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _layout_() -> type[BufferLayout]:
         return Std140BufferLayout

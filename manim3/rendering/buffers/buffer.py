@@ -30,22 +30,22 @@ class Buffer(LazyObject):
         if array_lens is not None:
             self._array_len_items_ = tuple(array_lens.items())
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _field_() -> str:
         return ""
 
-    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @Lazy.variable(plural=True)
     @staticmethod
     def _child_struct_items_() -> tuple[tuple[str, tuple[str, ...]], ...]:
         return ()
 
-    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @Lazy.variable(plural=True)
     @staticmethod
     def _array_len_items_() -> tuple[tuple[str, int], ...]:
         return ()
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _layout_() -> type[BufferLayout]:
         return DenseBufferLayout
@@ -110,7 +110,7 @@ class Buffer(LazyObject):
             dict(array_len_items)
         )
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _buffer_pointer_keys_(
         buffer_format__pointers: tuple[tuple[tuple[str, ...], int], ...]

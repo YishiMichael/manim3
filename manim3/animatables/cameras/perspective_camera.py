@@ -15,7 +15,7 @@ from .camera import Camera
 class PerspectiveCamera(Camera):
     __slots__ = ()
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _projection_matrix_(
         frame_radii: NP_2f8,

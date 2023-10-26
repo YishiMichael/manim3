@@ -24,7 +24,7 @@ from .animatable_array import AnimatableArray
 #        super().__init__()
 #        self._matrix_ = matrix
 
-#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @Lazy.variable()
 #    @staticmethod
 #    def _matrix_() -> NP_44f8:
 #        return NotImplemented
@@ -55,7 +55,7 @@ from .animatable_array import AnimatableArray
 class ModelMatrix(AnimatableArray[NP_44f8]):
     __slots__ = ()
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _array_() -> NP_44f8:
         return np.identity(4)

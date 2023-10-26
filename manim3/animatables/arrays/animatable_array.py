@@ -57,7 +57,7 @@ class AnimatableArray[NDArrayT: npt.NDArray](AnimatableArrayActions, Animatable)
         if array is not None:
             self._array_ = array
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _array_() -> NDArrayT:
         return NotImplemented
@@ -132,12 +132,12 @@ class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](Ani
         self._array_0_ = src_0._array_
         self._array_1_ = src_1._array_
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _array_0_() -> npt.NDArray:
         return NotImplemented
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _array_1_() -> npt.NDArray:
         return NotImplemented
@@ -194,12 +194,12 @@ class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](Ani
 #        self._array_0_ = animatable_array_0._array_
 #        self._array_1_ = animatable_array_1._array_
 
-#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @Lazy.variable()
 #    @staticmethod
 #    def _array_0_() -> _NPT:
 #        return NotImplemented
 
-#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @Lazy.variable()
 #    @staticmethod
 #    def _array_1_() -> _NPT:
 #        return NotImplemented

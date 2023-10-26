@@ -15,12 +15,12 @@ from ..models.point import Point
 class PointLight(Point):
     __slots__ = ()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _position_(
         model_matrix__array: NP_44f8

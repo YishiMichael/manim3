@@ -40,7 +40,7 @@ class IndexedAttributesBuffer(LazyObject):
     def _index_buffer_() -> IndexBuffer:
         return IndexBuffer()
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _mode_() -> PrimitiveMode:
         return PrimitiveMode.TRIANGLES

@@ -37,7 +37,7 @@ class AttributesBuffer(WriteOnlyBuffer):
         )
         self.write(data)
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _layout_() -> type[BufferLayout]:
         # Let's keep using std140 layout, hopefully giving a faster processing speed.

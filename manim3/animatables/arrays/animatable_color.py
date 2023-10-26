@@ -22,7 +22,7 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
     ) -> None:
         super().__init__(ColorUtils.standardize_color(color) if color is not None else None)
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _array_() -> NP_3f8:
         return ColorUtils.standardize_color(Toplevel.config.default_color)

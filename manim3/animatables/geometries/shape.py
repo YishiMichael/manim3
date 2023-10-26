@@ -114,17 +114,17 @@ class Shape(Animatable):
     ) -> Self:
         return self.xor(other)
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _positions_() -> NP_x2f8:
         return np.zeros((0, 2))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _counts_() -> NP_xi4:
         return np.zeros((0,), dtype=np.int32)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _cumcounts_(
         counts: NP_xi4

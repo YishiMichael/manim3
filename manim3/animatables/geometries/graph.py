@@ -84,17 +84,17 @@ class Graph(GraphActions, Animatable):
         if edges is not None:
             self._edges_ = edges
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _positions_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _edges_() -> NP_x2i4:
         return np.zeros((0, 2), dtype=np.int32)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _cumlengths_(
         positions: NP_x3f8,

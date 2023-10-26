@@ -24,12 +24,12 @@ class Rate(LazyObject):
     #    self._boundary_1: BoundaryT = boundary_1
     #    self._is_increasing: bool = is_increasing
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _is_increasing_() -> bool:
         return True
 
-    @Lazy.property(hasher=Lazy.naive_hasher)
+    @Lazy.property()
     @staticmethod
     def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
         return (0, 1)

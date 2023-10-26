@@ -114,22 +114,22 @@ class VertexArray(LazyObject):
         if transform_feedback_buffer is not None:
             self._transform_feedback_buffer_ = transform_feedback_buffer
 
-    @Lazy.variable(hasher=Lazy.naive_hasher)
+    @Lazy.variable()
     @staticmethod
     def _shader_path_() -> pathlib.Path:
         return NotImplemented
 
-    @Lazy.variable_collection(hasher=Lazy.naive_hasher)
+    @Lazy.variable(plural=True)
     @staticmethod
     def _custom_macros_() -> tuple[str, ...]:
         return ()
 
-    @Lazy.variable_collection()
+    @Lazy.variable(plural=True)
     @staticmethod
     def _texture_buffers_() -> tuple[TextureBuffer, ...]:
         return ()
 
-    @Lazy.variable_collection()
+    @Lazy.variable(plural=True)
     @staticmethod
     def _uniform_block_buffers_() -> tuple[UniformBlockBuffer, ...]:
         return ()
@@ -154,7 +154,7 @@ class VertexArray(LazyObject):
             num_vertex=0
         )
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _array_len_items_(
         texture_buffers__array_len_items: tuple[tuple[tuple[str, int], ...], ...],
@@ -349,7 +349,7 @@ class VertexArray(LazyObject):
             mode=mode
         )
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _texture_bindings_(
         texture_buffers: tuple[TextureBuffer, ...],
@@ -363,7 +363,7 @@ class VertexArray(LazyObject):
             for binding, texture in enumerate(texture_buffer._texture_array_.flatten(), start=uniform_info.binding)
         )
 
-    @Lazy.property_collection(hasher=Lazy.naive_hasher)
+    @Lazy.property(plural=True)
     @staticmethod
     def _uniform_block_bindings_(
         uniform_block_buffers: tuple[UniformBlockBuffer, ...],

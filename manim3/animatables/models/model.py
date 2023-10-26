@@ -93,17 +93,17 @@ class Box(LazyObject):
         self._maximum_ = maximum
         self._minimum_ = minimum
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _maximum_() -> NP_3f8:
         return NotImplemented
 
-    @Lazy.variable(hasher=Lazy.array_hasher)
+    @Lazy.variable()
     @staticmethod
     def _minimum_() -> NP_3f8:
         return NotImplemented
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _centroid_(
         maximum: NP_3f8,
@@ -111,7 +111,7 @@ class Box(LazyObject):
     ) -> NP_3f8:
         return (maximum + minimum) / 2.0
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _radii_(
         maximum: NP_3f8,
@@ -465,12 +465,12 @@ class Model(ModelActions, Animatable):
     #    self._model_actions: list[ModelAnimation] = []
     #    #self._reset_animations()
 
-    @Lazy.variable(freeze=False)
+    @Lazy.mutable()
     @staticmethod
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
-    @Lazy.variable_collection(freeze=False)
+    @Lazy.mutable(plural=True)
     @staticmethod
     def _proper_siblings_() -> tuple[Model, ...]:
         return ()
@@ -490,12 +490,12 @@ class Model(ModelActions, Animatable):
             }
         )
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _local_sample_positions_() -> NP_x3f8:
         return np.zeros((0, 3))
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _world_sample_positions_(
         model_matrix__array: NP_44f8,
@@ -503,19 +503,19 @@ class Model(ModelActions, Animatable):
     ) -> NP_x3f8:
         return SpaceUtils.apply_multiple(model_matrix__array, local_sample_positions)
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _box_reference_points_(
     #    world_sample_positions: NP_x3f8,
     #) -> NP_x3f8:
     #    return world_sample_positions
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _centroid_() -> NP_3f8:
     #    return np.zeros((3,))
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _radii_() -> NP_3f8:
     #    return np.zeros((3,))
@@ -540,14 +540,14 @@ class Model(ModelActions, Animatable):
             minimum=sample_positions.min(axis=0)
         )
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _centroid_(
     #    box: Box
     #) -> NP_3f8:
     #    return (box.maximum + box.minimum) / 2.0
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _radii_(
     #    box: Box
@@ -915,17 +915,17 @@ class ModelAnimation(Animation):
         #self._about_ = about
         #self._direction_ = direction
 
-    #@Lazy.variable(freeze=False)
+    #@Lazy.mutable()
     #@staticmethod
     #def _about_() -> Model:
     #    return NotImplemented
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _direction_() -> NP_3f8:
     #    return NotImplemented
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _about_point_(
     #    about__box: Box,
@@ -933,14 +933,14 @@ class ModelAnimation(Animation):
     #) -> NP_3f8:
     #    return about__box.get(direction)
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _pre_shift_matrix_(
     #    about_point: NP_3f8
     #) -> NP_44f8:
     #    return SpaceUtils.matrix_from_shift(-about_point)
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _post_shift_matrix_(
     #    about_point: NP_3f8
@@ -1013,7 +1013,7 @@ class ModelAnimation(Animation):
 #        #self._vector: NP_3f8 = vector
 #        self._mask: NP_3f8 = mask
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _vector_() -> NP_3f8:
 #        return NotImplemented
@@ -1049,12 +1049,12 @@ class ModelAnimation(Animation):
 #        )
 #        self._mask: NP_3f8 = mask
 
-#    #@Lazy.variable(hasher=Lazy.array_hasher)
+#    #@Lazy.variable()
 #    #@staticmethod
 #    #def _mask_() -> NP_3f8:
 #    #    return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _factor_() -> NP_3f8:
 #        return NotImplemented
@@ -1085,12 +1085,12 @@ class ModelAnimation(Animation):
 #        self._mask: NP_3f8 = mask
 #        #self._mask_ = mask
 
-#    #@Lazy.variable(hasher=Lazy.array_hasher)
+#    #@Lazy.variable()
 #    #@staticmethod
 #    #def _mask_() -> NP_3f8:
 #    #    return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _rotvec_() -> NP_3f8:
 #        return NotImplemented
@@ -1120,12 +1120,12 @@ class ModelAnimation(Animation):
 #        #self._mask: NP_3f8 = mask
 #        #self._mask_ = mask
 
-#    #@Lazy.variable(hasher=Lazy.array_hasher)
+#    #@Lazy.variable()
 #    #@staticmethod
 #    #def _mask_() -> NP_3f8:
 #    #    return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _matrix_() -> NP_44f8:
 #        return NotImplemented
@@ -1163,12 +1163,12 @@ class ModelShiftAnimation(ModelAnimation):
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_shift(self._vector * (self._mask * alpha))
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _mask_() -> NP_3f8:
     #    return NotImplemented
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _shift_vector_(
     #    vector: NP_3f8,
@@ -1203,27 +1203,27 @@ class ModelShiftAnimation(ModelAnimation):
 #        )
 #        self._mask: NP_3f8 = mask
 
-#    @Lazy.variable(freeze=False)
+#    @Lazy.mutable()
 #    @staticmethod
 #    def _target_() -> Model:
 #        return NotImplemented
 
-#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @Lazy.variable()
 #    @staticmethod
 #    def _direction_() -> NP_3f8:
 #        return NotImplemented
 
-#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @Lazy.variable()
 #    @staticmethod
 #    def _buff_vector_() -> NP_3f8:
 #        return NotImplemented
 
-#    #@Lazy.variable(hasher=Lazy.array_hasher)
+#    #@Lazy.variable()
 #    #@staticmethod
 #    #def _mask_() -> NP_3f8:
 #    #    return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _vector_(
 #        target__box: Box,
@@ -1269,12 +1269,12 @@ class ModelScaleAnimation(ModelAnimation):
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_scale(self._factor ** (self._mask * alpha))
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _mask_() -> NP_3f8:
     #    return NotImplemented
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _scale_vector_(
     #    vector: NP_3f8,
@@ -1310,17 +1310,17 @@ class ModelScaleAnimation(ModelAnimation):
 #        #self._target_size_ = target_size
 #        #self._mask_ = mask
 
-#    @Lazy.variable(freeze=False)
+#    @Lazy.mutable()
 #    @staticmethod
 #    def _target_() -> Model:
 #        return NotImplemented
 
-#    @Lazy.variable(hasher=Lazy.array_hasher)
+#    @Lazy.variable()
 #    @staticmethod
 #    def _initial_radii_() -> NP_3f8:
 #        return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _factor_(
 #        target__box__radii: NP_3f8,
@@ -1365,12 +1365,12 @@ class ModelRotateAnimation(ModelAnimation):
     ) -> NP_44f8:
         return SpaceUtils.matrix_from_rotate(self._rotvec * (self._mask * alpha))
 
-    #@Lazy.variable(hasher=Lazy.array_hasher)
+    #@Lazy.variable()
     #@staticmethod
     #def _mask_() -> NP_3f8:
     #    return NotImplemented
 
-    #@Lazy.property(hasher=Lazy.array_hasher)
+    #@Lazy.property()
     #@staticmethod
     #def _rotate_vector_(
     #    vector: NP_3f8,
@@ -1423,17 +1423,17 @@ class ModelApplyAnimation(ModelAnimation):
 #        self._target_ = target
 #        self._initial_model_matrix_inverse_ = np.linalg.inv(model._model_matrix_._array_)
 
-#    @Lazy.variable(freeze=False)
+#    @Lazy.mutable()
 #    @staticmethod
 #    def _target_() -> Model:
 #        return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _initial_model_matrix_inverse_() -> NP_44f8:
 #        return NotImplemented
 
-#    @Lazy.property(hasher=Lazy.array_hasher)
+#    @Lazy.property()
 #    @staticmethod
 #    def _matrix_(
 #        target__model_matrix__array: NP_44f8,

@@ -25,7 +25,7 @@ class Point(Model):
         if position is not None:
             self.shift(position)
 
-    @Lazy.property(hasher=Lazy.array_hasher)
+    @Lazy.property()
     @staticmethod
     def _local_sample_positions_() -> NP_x3f8:
         return np.array((ORIGIN,))
