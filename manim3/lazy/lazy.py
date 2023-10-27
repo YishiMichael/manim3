@@ -37,29 +37,29 @@ parameters:
   is the number of descriptors with their `plural` flags set to be true.
 
 - `is_property: bool`
-  variable: false
-  mutable: false
-  property: true
+  Lazy.variable: false
+  Lazy.mutable: false
+  Lazy.property: true
 
   Determines whether the descriptor behaves as a variable or a property.
 
   One can call `__set__` of the descriptor on some instance only when:
-  - the `is_property` is false;
+  - `is_property` is false;
   - the instance is not frozen.
 
 - `plural: bool`
-  variable: =false
-  mutable: =false
-  property: =false
+  Lazy.variable: =false
+  Lazy.mutable: =false
+  Lazy.property: =false
 
   Determines whether data contains exactly one or arbitrarily many elements.
   When true, `DataT` is specialized as `tuple[T]`; when false, specialized
   as `T`.
 
 - `freeze: bool`
-  variable: true
-  mutable: false
-  property: true
+  Lazy.variable: true
+  Lazy.mutable: false
+  Lazy.property: true
 
   Determines whether data should be frozen when binding.
 
@@ -73,18 +73,18 @@ parameters:
   type `LazyObject`, e.g., `np.ndarray`.
 
 - `deepcopy: bool`
-  variable: false
-  mutable: =true
-  property: false
+  Lazy.variable: false
+  Lazy.mutable: =true
+  Lazy.property: false
 
   Determines how data in the descriptor is copied when calling
   `LazyObject.copy` from the parent object. Does not take effect when
   `is_property` is true, since only data in variable descriptors are copied.
 
 - `cache_capacity: int`
-  variable: 1
-  mutable: 0
-  property: =128
+  Lazy.variable: 1
+  Lazy.mutable: 0
+  Lazy.property: =128
 
   Determines the capacity of the lru cache of parameters-data pairs generated
   from `method`.
@@ -124,6 +124,7 @@ class Lazy:
     @classmethod
     def variable[T](
         cls: type[Self],
+        *,
         plural: Literal[False] = False
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -136,6 +137,7 @@ class Lazy:
     @classmethod
     def variable[T](
         cls: type[Self],
+        *,
         plural: Literal[True]
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -147,6 +149,7 @@ class Lazy:
     @classmethod
     def variable(
         cls: type[Self],
+        *,
         plural: bool = False
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -176,6 +179,7 @@ class Lazy:
     @classmethod
     def mutable[T](
         cls: type[Self],
+        *,
         plural: Literal[False] = False,
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -188,6 +192,7 @@ class Lazy:
     @classmethod
     def mutable[T](
         cls: type[Self],
+        *,
         plural: Literal[True],
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -199,6 +204,7 @@ class Lazy:
     @classmethod
     def mutable(
         cls: type[Self],
+        *,
         plural: bool = False,
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -228,6 +234,7 @@ class Lazy:
     @classmethod
     def property[T](
         cls: type[Self],
+        *,
         plural: Literal[False] = False,
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -240,6 +247,7 @@ class Lazy:
     @classmethod
     def property[T](
         cls: type[Self],
+        *,
         plural: Literal[True],
         #is_variable: bool,
         #hasher: Callable[..., Hashable],
@@ -251,6 +259,7 @@ class Lazy:
     @classmethod
     def property(
         cls: type[Self],
+        *,
         plural: bool = False,
         #is_variable: bool,
         #hasher: Callable[..., Hashable],

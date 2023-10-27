@@ -111,7 +111,7 @@ class LazyObject(ABC):
     )
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_lazy_slots": lambda o: type(o)._lazy_slots_cls(),
+        "_lazy_slots": lambda o: type(o)(),
         "_is_frozen": lambda o: False
     }
 
@@ -225,7 +225,7 @@ class LazyObject(ABC):
         )
         cls._slot_copiers = {
             slot_name: base._special_slot_copiers.get(slot_name, copy.copy)
-            for base in reversed(cls.__bases__)
+            for base in reversed(cls.__mro__)
             if issubclass(base, LazyObject)
             for slot_name in base.__slots__
             if not slot_name.startswith("__")
@@ -368,7 +368,6 @@ class Implementations:
 
     @hashers.register(int)
     @hashers.register(str)
-    @hashers.register(tuple)
     @hashers.register(Enum)
     @staticmethod
     def _(

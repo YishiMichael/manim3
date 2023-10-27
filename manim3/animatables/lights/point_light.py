@@ -8,6 +8,7 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
+from ..animatable.animatable import AnimatableMeta
 from ..arrays.animatable_color import AnimatableColor
 from ..models.point import Point
 
@@ -15,6 +16,8 @@ from ..models.point import Point
 class PointLight(Point):
     __slots__ = ()
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableColor)
     @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:

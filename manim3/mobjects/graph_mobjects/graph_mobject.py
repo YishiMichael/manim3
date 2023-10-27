@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Self
 
+from ...animatables.animatable.animatable import AnimatableMeta
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.geometries.graph import Graph
@@ -36,26 +37,36 @@ class GraphMobject(Mobject):
         if graph is not None:
             self._graph_ = graph
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter()
     @Lazy.mutable()
     @staticmethod
     def _graph_() -> Graph:
         return Graph()
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableColor)
     @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _width_() -> AnimatableFloat:

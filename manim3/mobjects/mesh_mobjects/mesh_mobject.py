@@ -6,6 +6,7 @@ from typing import Self
 import moderngl
 import numpy as np
 
+from ...animatables.animatable.animatable import AnimatableMeta
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.geometries.mesh import Mesh
@@ -38,42 +39,57 @@ class MeshMobject(Mobject):
         if mesh is not None:
             self._mesh_ = mesh
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter()
     @Lazy.mutable()
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableColor)
     @Lazy.mutable()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _ambient_strength_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _specular_strength_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_specular_strength)
 
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.mutable()
     @staticmethod
     def _shininess_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_shininess)
 
-    @Lazy.mutable()
+    @AnimatableMeta.register_converter()
+    @Lazy.mutable(deepcopy=False)
     @staticmethod
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting

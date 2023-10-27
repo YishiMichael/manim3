@@ -43,13 +43,17 @@ class EvenPiecewiser(Piecewiser):
 
         boundaries = np.array((segment_start, segment_stop))
         wrap_flag = int(segment_stop) - int(segment_start)
-        split_alphas = np.roll(
-            np.linspace(boundaries, boundaries + 1.0, n_segments, endpoint=False).flatten(),
-            2 * int(segment_start % n_segments) + wrap_flag
-        ) % 1.0
+        #if backwards:
+        #    wrap_flag = 1 - wrap_flag
+        wrap_shift = 2 * int(segment_start % n_segments) + wrap_flag
+        split_alphas = np.linspace(boundaries, boundaries + 1.0, n_segments, endpoint=False).flatten()
+        split_alphas = np.roll(split_alphas, wrap_shift)
+        split_alphas[:wrap_shift] -= np.floor(segment_stop)
+        split_alphas[wrap_shift:] -= np.floor(segment_start)
         concatenate_indices = np.arange(1 - wrap_flag, 2 * n_segments + 1, 2)
         #if backwards:
         #    split_alphas = 1.0 - split_alphas[::-1]
+        print(segment_center, segment_length, split_alphas, concatenate_indices)
         return PiecewiseData(
             split_alphas=split_alphas,
             concatenate_indices=concatenate_indices

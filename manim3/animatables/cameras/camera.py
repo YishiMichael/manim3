@@ -6,6 +6,7 @@ from typing import Self
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+
 from ...constants.constants import (
     ORIGIN,
     OUT,
@@ -23,6 +24,8 @@ from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...toplevel.toplevel import Toplevel
 from ...utils.space_utils import SpaceUtils
+from ..animatable.animatable import AnimatableMeta
+from ..arrays.animatable_float import AnimatableFloat
 from ..models.model import Model
 #from ..mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
 #from ..mobject.remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
@@ -47,15 +50,19 @@ class Camera(Model):
             Toplevel.config.camera_distance
         ))
 
-    @Lazy.variable()
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
+    @Lazy.mutable()
     @staticmethod
-    def _near_() -> NP_f8:
-        return Toplevel.config.camera_near * np.ones(())  # TODO
+    def _near_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel.config.camera_near)
 
-    @Lazy.variable()
+    @AnimatableMeta.register_descriptor()
+    @AnimatableMeta.register_converter(AnimatableFloat)
+    @Lazy.mutable()
     @staticmethod
-    def _far_() -> NP_f8:
-        return Toplevel.config.camera_far * np.ones(())  # TODO
+    def _far_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel.config.camera_far)
 
     @Lazy.property()
     @staticmethod

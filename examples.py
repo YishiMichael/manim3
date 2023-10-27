@@ -56,9 +56,9 @@ class CreateTexExample(Scene):
             #.concatenate()
         )
         await self.wait()
-        await self.play(Create(text), run_time=2, rate=Rates.smooth())
+        await self.play(Create(text, n_segments=2), rate=Rates.smooth(), run_time=2)
         await self.wait()
-        await self.play(Uncreate(text, backwards=True), rate=Rates.smooth(), run_time=2)
+        await self.play(Uncreate(text, backwards=True, n_segments=2), rate=Rates.smooth(), run_time=2)
         await self.wait()
 
 
@@ -330,7 +330,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    LaggedAnimationExample.render(config)
+    InteractiveExample.render(config)
 
 
 if __name__ == "__main__":

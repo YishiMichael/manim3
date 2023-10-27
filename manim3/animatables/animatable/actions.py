@@ -24,12 +24,10 @@ if TYPE_CHECKING:
 class Actions:
     __slots__ = ()
 
-    def __init__(
-        self: Self,
-        *args,
-        **kwargs
-    ) -> None:
-        super().__init__()
+    #def __new__(
+    #    cls: type[Self]
+    #) -> Never:
+    #    raise TypeError
 
     #_action_descriptor_cls_dict: ClassVar[dict[ActionDescriptor, type[Actions]]] = {}
 

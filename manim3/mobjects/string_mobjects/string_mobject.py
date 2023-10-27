@@ -616,7 +616,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         #    ))
 
         span_boundaries = sorted(itertools.chain.from_iterable(
-            itertools.islice(itertools.chain(
+            tuple(itertools.chain(
                 (
                     AttributedSpanBoundary(span=span, boundary_flag=boundary_flag, attrs=attrs)
                     for span, attrs in local_span_attrs.items()
@@ -633,7 +633,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     CommandSpanBoundary(match_obj=match_obj, boundary_flag=boundary_flag)
                     for match_obj in cls._iter_command_matches(string)
                 )
-            ), None, None, boundary_flag.value)
+            ))[::boundary_flag.value]
             for boundary_flag in (BoundaryFlag.STOP, BoundaryFlag.START)
         ), key=SpanBoundary.get_sorting_key)
         #index_items = sorted((

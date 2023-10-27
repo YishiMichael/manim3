@@ -19,9 +19,11 @@ class OrthographicCamera(Camera):
     @staticmethod
     def _projection_matrix_(
         frame_radii: NP_2f8,
-        near: NP_f8,
-        far: NP_f8
+        near__array: NP_f8,
+        far__array: NP_f8
     ) -> NP_44f8:
+        near = near__array
+        far = far__array
         sx, sy = 1.0 / frame_radii
         sz = -2.0 / (far - near)
         tz = -(far + near) / (far - near)

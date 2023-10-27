@@ -7,7 +7,11 @@ from typing import (
     #TYPE_CHECKING,
     #ClassVar,
     #Iterable,
+    Any,
+    Callable,
+    ClassVar,
     Iterator,
+    Never,
     Self,
     #TypedDict,
     Unpack
@@ -63,7 +67,7 @@ class AnimatableActions(Actions):
         src_0: Animatable,
         src_1: Animatable
     ) -> Iterator[Animation]:
-        for descriptor in type(dst)._lazy_descriptors:
+        for descriptor in type(dst)._animatable_descriptors:
             #assert issubclass(descriptor._element_type, Animatable)
             #dst_elements = descriptor._get_elements(dst)
             #src_0_elements = descriptor._get_elements(src_0)
@@ -76,8 +80,7 @@ class AnimatableActions(Actions):
                 descriptor.get_elements(src_1),
                 strict=True
             ):
-                if not isinstance(dst_element, Animatable):
-                    continue
+                assert isinstance(dst_element, Animatable)
                 yield from type(dst_element).interpolate(
                     dst=dst_element,
                     src_0=src_0_element,
@@ -94,7 +97,7 @@ class AnimatableActions(Actions):
         #split_alphas: NP_xf8,
         #concatenate_indices: NP_xi4
     ) -> Iterator[Animation]:
-        for descriptor in type(dst)._lazy_descriptors:
+        for descriptor in type(dst)._animatable_descriptors:
             #assert issubclass(descriptor._element_type, Animatable)
             #dst_elements = descriptor._get_elements(dst)
             #src_elements = descriptor._get_elements(src)
@@ -103,8 +106,9 @@ class AnimatableActions(Actions):
                 descriptor.get_elements(src),
                 strict=True
             ):
-                if not isinstance(dst_element, Animatable):
-                    continue
+                assert isinstance(dst_element, Animatable)
+                #if not isinstance(dst_element, Animatable):
+                #    continue
                 yield from type(dst_element).piecewise(
                     dst=dst_element,
                     src=src_element,
@@ -128,27 +132,47 @@ class AnimatableActions(Actions):
 class Animatable(AnimatableActions, LazyObject):
     __slots__ = ()
 
+    _actions_cls: type[AnimatableActions] = AnimatableActions
+    _animatable_descriptors: ClassVar[tuple[LazyDescriptor, ...]] = ()
+    _descriptor_converter_dict: ClassVar[dict[str, tuple[LazyDescriptor, Callable[[Any], Animatable]]]] = {}
+
     #_animatable_descriptors: ClassVar[dict[str, LazyDescriptor]] = {}
 
-    #def __init_subclass__(
-    #    cls: type[Self]
-    #) -> None:
-    #    super().__init_subclass__()
-    #    print(cls.__name__, [descriptor._name for descriptor in cls.__dict__.values() if isinstance(descriptor, LazyDescriptor)])
-    #    print()
-    #    cls._animatable_descriptors = {
-    #        name: descriptor
-    #        for name, descriptor in cls._lazy_descriptors.items()
-    #        if descriptor._is_variable
-    #        and descriptor._name not in (
-    #            "_siblings_",
-    #            "_camera_",
-    #            "_lighting_"
-    #        )  # TODO
-    #        #and descriptor._element_type is not None
-    #        #and issubclass(descriptor._element_type, Animatable)
-    #        #and descriptor._element_type is not cls
-    #    }
+    def __init_subclass__(
+        cls: type[Self]
+    ) -> None:
+        super().__init_subclass__()
+        actions_cls: type[AnimatableActions] | None = None
+        for base in cls.__mro__:
+            if issubclass(base, AnimatableActions) and not issubclass(base, Animatable):
+                actions_cls = base
+                break
+        assert actions_cls is not None
+
+        cls._actions_cls = actions_cls
+        cls._animatable_descriptors = tuple(
+            descriptor
+            for descriptor in cls._lazy_descriptors
+            if descriptor in AnimatableMeta._animatable_descriptors
+        )
+        cls._descriptor_converter_dict = {
+            descriptor._name: (descriptor, converter)
+            for descriptor in cls._lazy_descriptors
+            if (converter := AnimatableMeta._descriptor_converter_dict.get(descriptor)) is not None
+        }
+        #cls._animatable_descriptors = {
+        #    name: descriptor
+        #    for name, descriptor in cls._lazy_descriptors.items()
+        #    if descriptor._is_variable
+        #    and descriptor._name not in (
+        #        "_siblings_",
+        #        "_camera_",
+        #        "_lighting_"
+        #    )  # TODO
+        #    #and descriptor._element_type is not None
+        #    #and issubclass(descriptor._element_type, Animatable)
+        #    #and descriptor._element_type is not cls
+        #}
 
     #def __init__(
     #    self: Self
@@ -188,12 +212,12 @@ class Animatable(AnimatableActions, LazyObject):
     #) -> None:
     #    self._animations.clear()
 
-    @classmethod
-    def _convert_input(
-        cls: type[Self],
-        animatable_input: Self
-    ) -> Self:
-        return animatable_input
+    #@classmethod
+    #def _convert_input(
+    #    cls: type[Self],
+    #    animatable_input: Self
+    #) -> Self:
+    #    return animatable_input
 
     #@classmethod
     #def _iter_elements_from_input(
@@ -291,12 +315,6 @@ class Animatable(AnimatableActions, LazyObject):
     #    #self._animation = Animation()
     #    self._animations.clear()
     #    return timeline
-
-    #@property
-    #def _animate_cls(
-    #    self: Self
-    #) -> type[AnimatableAnimationBuilder]:
-    #    return AnimatableAnimationBuilder
 
     def animate(
         self: Self,
@@ -824,3 +842,56 @@ class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
         super().update_boundary(boundary)
         self.update(float(boundary))
         #self._dst._copy_lazy_content(self._src)
+
+
+class AnimatableMeta:
+    __slots__ = ()
+
+    _animatable_descriptors: list[LazyDescriptor] = []
+    _descriptor_converter_dict: dict[LazyDescriptor, Callable[[Any], Animatable]] = {}
+
+    def __new__(
+        cls: type[Self]
+    ) -> Never:
+        raise TypeError
+
+    @classmethod
+    def register_descriptor[AnimatableT: Animatable, DataT](
+        cls: type[Self]
+    ) -> Callable[[LazyDescriptor[AnimatableT, DataT]], LazyDescriptor[AnimatableT, DataT]]:
+
+        def result(
+            descriptor: LazyDescriptor[AnimatableT, DataT]
+        ) -> LazyDescriptor[AnimatableT, DataT]:
+            assert not descriptor._is_property
+            assert not descriptor._freeze
+            assert descriptor._deepcopy
+            cls._animatable_descriptors.append(descriptor)
+            return descriptor
+
+        return result
+
+    @classmethod
+    def register_converter[AnimatableT: Animatable](
+        cls: type[Self],
+        converter: Callable[[Any], AnimatableT] | None = None
+    ) -> Callable[[LazyDescriptor[AnimatableT, AnimatableT]], LazyDescriptor[AnimatableT, AnimatableT]]:
+
+        def identity(
+            element: AnimatableT
+        ) -> AnimatableT:
+            return element
+
+        if converter is None:
+            converter = identity
+
+        def result(
+            descriptor: LazyDescriptor[AnimatableT, AnimatableT]
+        ) -> LazyDescriptor[AnimatableT, AnimatableT]:
+            assert not descriptor._is_property
+            assert not descriptor._plural
+            assert not descriptor._freeze
+            cls._descriptor_converter_dict[descriptor] = converter
+            return descriptor
+
+        return result

@@ -75,7 +75,7 @@ class ShapeActions(AnimatableActions):
         yield ShapePiecewiseAnimation(dst, src, piecewiser)
 
 
-class Shape(Animatable):
+class Shape(ShapeActions, Animatable):
     __slots__ = ()
 
     def __init__(

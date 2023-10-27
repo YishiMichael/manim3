@@ -19,10 +19,12 @@ class PerspectiveCamera(Camera):
     @staticmethod
     def _projection_matrix_(
         frame_radii: NP_2f8,
-        near: NP_f8,
-        far: NP_f8,
+        near__array: NP_f8,
+        far__array: NP_f8,
         distance: NP_f8
     ) -> NP_44f8:
+        near = near__array
+        far = far__array
         sx, sy = distance / frame_radii
         sz = -(far + near) / (far - near)
         tz = -2.0 * far * near / (far - near)

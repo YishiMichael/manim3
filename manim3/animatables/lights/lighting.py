@@ -9,7 +9,10 @@ from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 #from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
-from ..animatable.animatable import Animatable
+from ..animatable.animatable import (
+    Animatable,
+    AnimatableMeta
+)
 from .ambient_light import AmbientLight
 from .point_light import PointLight
 
@@ -32,11 +35,13 @@ class Lighting(Animatable):
         self._ambient_lights_ = tuple(ambient_lights)
         self._point_lights_ = tuple(point_lights)
 
+    @AnimatableMeta.register_descriptor()
     @Lazy.mutable(plural=True)
     @staticmethod
     def _ambient_lights_() -> tuple[AmbientLight, ...]:
         return ()
 
+    @AnimatableMeta.register_descriptor()
     @Lazy.mutable(plural=True)
     @staticmethod
     def _point_lights_() -> tuple[PointLight, ...]:

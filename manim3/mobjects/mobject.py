@@ -18,6 +18,7 @@ from typing import (
 
 #import numpy as np
 
+from ..animatables.animatable.animatable import AnimatableMeta
 from ..animatables.cameras.camera import Camera
 #from ..animatables.geometries.graph import Graph
 #from ..animatables.geometries.mesh import Mesh
@@ -62,8 +63,8 @@ class Mobject(Model):
     )
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_parents": weakref.WeakSet.copy,
-        "_ancestors": weakref.WeakSet.copy
+        "_parents": lambda o: weakref.WeakSet(),
+        "_ancestors": lambda o: weakref.WeakSet()
     }
 
     #_attribute_descriptors: ClassVar[dict[str, LazyDescriptor[MobjectAttribute, MobjectAttribute]]] = {}
@@ -262,18 +263,16 @@ class Mobject(Model):
             descendant_copy for descendant_copy in result._proper_siblings_
             if isinstance(descendant_copy, Mobject)
         ))
-        for descendant_copy in descendants_copy:
+        for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
             descendant_copy._children = tuple(
                 descendants_copy[descendants.index(child)]
-                for child in descendant_copy._children
+                for child in descendant._children
             )
-            parents = tuple(
+            descendant_copy._parents.update(
                 descendants_copy[descendants.index(parent)]
-                for parent in descendant_copy._parents
+                for parent in descendant._parents
                 if parent in descendants
             )
-            descendant_copy._parents.clear()
-            descendant_copy._parents.update(parents)
 
         #def match_copies(
         #    mobjects: Iterable[Mobject]
@@ -639,7 +638,8 @@ class Mobject(Model):
 
     # render
 
-    @Lazy.mutable()
+    @AnimatableMeta.register_converter()
+    @Lazy.mutable(deepcopy=False)
     @staticmethod
     def _camera_() -> Camera:
         return Toplevel.scene._camera

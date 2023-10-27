@@ -34,6 +34,7 @@ from ..animatable.actions import ActionMeta
 from ..animatable.animatable import (
     Animatable,
     AnimatableActions,
+    AnimatableMeta,
     DynamicAnimatable
 )
 from ..animatable.animation import (
@@ -48,10 +49,10 @@ from ..arrays.model_matrix import ModelMatrix
 
 if TYPE_CHECKING:
     from ..cameras.camera import Camera
+    from ..geometries.graph import Graph
+    from ..geometries.mesh import Mesh
+    from ..geometries.shape import Shape
     from ..lights.lighting import Lighting
-    from ..graph import Graph
-    from ..mesh import Mesh
-    from ..shape import Shape
 
 #if TYPE_CHECKING:
 #    from ...models.model.model import model
@@ -159,9 +160,21 @@ class ModelActions(AnimatableActions):
         broadcast: bool = True,
         **kwargs: Unpack[SetKwargs]
     ) -> Iterator[Animation]:
-        for name, animatable_input in kwargs.items():
-            if (descriptor := type(dst)._animatable_descriptors.get(f"_{name}_")) is not None:
-                yield AnimatableSetAnimation(dst, descriptor, animatable_input)
+        for sibling in dst._iter_siblings(broadcast=broadcast):
+            for name, animatable_input in kwargs.items():
+                if (descriptor_item := type(sibling)._descriptor_converter_dict.get(f"_{name}_")) is None:
+                    continue
+                    #yield AnimatableSetAnimation(dst, descriptor, animatable_input)
+                descriptor, converter = descriptor_item
+                if descriptor not in type(sibling)._animatable_descriptors:
+                    continue
+                initial = descriptor.__get__(sibling)
+                target = converter(animatable_input)
+                yield from initial._actions_cls.interpolate(
+                    dst=initial,
+                    src_0=initial.copy(),
+                    src_1=target
+                )
             #assert (element_type := descriptor._element_type) is not None and issubclass(element_type, Animatable)
             #source_elements = descriptor._get_elements(dst)
             #target_elements = tuple(element_type._iter_elements_from_input(descriptor, animatable_input))
@@ -465,11 +478,13 @@ class Model(ModelActions, Animatable):
     #    self._model_actions: list[ModelAnimation] = []
     #    #self._reset_animations()
 
+    @AnimatableMeta.register_descriptor()
     @Lazy.mutable()
     @staticmethod
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
+    @AnimatableMeta.register_descriptor()
     @Lazy.mutable(plural=True)
     @staticmethod
     def _proper_siblings_() -> tuple[Model, ...]:
@@ -576,22 +591,22 @@ class Model(ModelActions, Animatable):
         if broadcast:
             yield from self._proper_siblings_
 
-    def copy(
-        self: Self
-    ) -> Self:
-        result = super().copy()
-        proper_siblings = self._proper_siblings_
-        proper_siblings_copy = tuple(
-            super(Model, proper_sibling).copy()
-            for proper_sibling in proper_siblings
-        )
-        result._proper_siblings_ = proper_siblings_copy
-        for proper_sibling_copy in proper_siblings_copy:
-            proper_sibling_copy._proper_siblings_ = tuple(
-                proper_siblings_copy[proper_siblings.index(proper_sibling)]
-                for proper_sibling in proper_sibling_copy._proper_siblings_
-            )
-        return result
+    #def copy(
+    #    self: Self
+    #) -> Self:
+    #    result = super().copy()
+    #    proper_siblings = self._proper_siblings_
+    #    proper_siblings_copy = tuple(
+    #        super(Model, proper_sibling).copy()
+    #        for proper_sibling in proper_siblings
+    #    )
+    #    result._proper_siblings_ = proper_siblings_copy
+    #    for proper_sibling_copy in proper_siblings_copy:
+    #        proper_sibling_copy._proper_siblings_ = tuple(
+    #            proper_siblings_copy[proper_siblings.index(proper_sibling)]
+    #            for proper_sibling in proper_sibling_copy._proper_siblings_
+    #        )
+    #    return result
 
     @property
     def box(
@@ -614,6 +629,22 @@ class Model(ModelActions, Animatable):
         #infinite: bool = False
     ) -> DynamicModel[Self]:
         return DynamicModel(self, **kwargs)
+
+    def set(
+        self: Self,
+        broadcast: bool = True,
+        **kwargs: Unpack[SetKwargs]
+    ) -> Self:
+        for sibling in self._iter_siblings(broadcast=broadcast):
+            for name, animatable_input in kwargs.items():
+                if (descriptor_item := type(sibling)._descriptor_converter_dict.get(f"_{name}_")) is None:
+                    continue
+                    #yield AnimatableSetAnimation(dst, descriptor, animatable_input)
+                descriptor, converter = descriptor_item
+                #if descriptor not in type(sibling)._animatable_descriptors:
+                #    continue
+                descriptor.__set__(sibling, converter(animatable_input))
+        return self
 
     #def shift(
     #    self: Self,
@@ -908,7 +939,7 @@ class ModelAnimation(Animation):
         self._pre_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(-about_point)
         self._post_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(about_point)
         #self._previous_alpha: float = 0.0
-        self._model_matrices: dict[Array, NP_44f8] = {
+        self._model_matrices: dict[ModelMatrix, NP_44f8] = {
             sibling._model_matrix_: sibling._model_matrix_._array_
             for sibling in (model, *model._proper_siblings_)
         }
