@@ -11,8 +11,9 @@ uniform sampler2D t_color_maps[NUM_T_COLOR_MAPS];
 #endif
 
 layout (std140) uniform ub_camera {
-    mat4 u_projection_view_matrix;
-    vec3 u_view_position;
+    mat4 u_projection_matrix;
+    mat4 u_view_matrix;
+    //vec3 u_view_position;
     vec2 u_frame_radii;
 };
 #if NUM_U_AMBIENT_LIGHTS || NUM_U_POINT_LIGHTS
@@ -48,17 +49,18 @@ in vec3 in_normal;
 in vec2 in_uv;
 
 out VS_FS {
-    vec3 world_position;
-    vec3 world_normal;
+    vec3 view_position;
+    vec3 view_normal;
     vec2 uv;
 } vs_out;
 
 
 void main() {
+    vec4 view_position = u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
     vs_out.uv = in_uv;
-    vs_out.world_position = vec3(u_model_matrix * vec4(in_position, 1.0));
-    vs_out.world_normal = mat3(transpose(inverse(u_model_matrix))) * in_normal;
-    gl_Position = u_projection_view_matrix * vec4(vs_out.world_position, 1.0);
+    vs_out.view_position = view_position.xyz / view_position.w;
+    vs_out.view_normal = mat3(transpose(inverse(u_view_matrix * u_model_matrix))) * in_normal;
+    gl_Position = u_projection_matrix * view_position;
 }
 
 
@@ -68,8 +70,8 @@ void main() {
 
 
 in VS_FS {
-    vec3 world_position;
-    vec3 world_normal;
+    vec3 view_position;
+    vec3 view_normal;
     vec2 uv;
 } fs_in;
 
@@ -79,7 +81,7 @@ out float frag_revealage;
 #include "includes/write_to_oit_frag.glsl"
 
 
-vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
+vec3 get_color_factor(vec3 view_position, vec3 view_normal) {
     // From `https://learnopengl.com/Lighting/Basic-Lighting`.
     vec3 ambient = vec3(0.0);
     #if NUM_U_AMBIENT_LIGHTS
@@ -93,10 +95,11 @@ vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
     #if NUM_U_POINT_LIGHTS
     for (int i = 0; i < NUM_U_POINT_LIGHTS; ++i) {
         PointLight point_light = u_point_lights[i];
-        vec3 light_direction = normalize(point_light.position - world_position);
-        diffuse += max(dot(world_normal, light_direction), 0.0) * point_light.color;
-        vec3 view_direction = normalize(u_view_position - world_position);
-        vec3 reflect_direction = reflect(-light_direction, world_normal);
+        vec4 point_light_position = u_view_matrix * vec4(point_light.position, 1.0);
+        vec3 light_direction = normalize(point_light_position.xyz / point_light_position.w - view_position);
+        diffuse += max(dot(view_normal, light_direction), 0.0) * point_light.color;
+        vec3 view_direction = normalize(-view_position);
+        vec3 reflect_direction = reflect(-light_direction, view_normal);
         specular += pow(max(dot(view_direction, reflect_direction), 0.0), u_shininess) * point_light.color;
     }
     #endif
@@ -105,7 +108,7 @@ vec3 get_color_factor(vec3 world_position, vec3 world_normal) {
 
 
 void main() {
-    vec3 color = get_color_factor(fs_in.world_position, normalize(fs_in.world_normal));
+    vec3 color = get_color_factor(fs_in.view_position, normalize(fs_in.view_normal));
     color *= u_color;
     #if NUM_T_COLOR_MAPS
     for (int i = 0; i < NUM_T_COLOR_MAPS; ++i) {

@@ -41,21 +41,20 @@ class EvenPiecewiser(Piecewiser):
         #start = center - length / 2.0
         #stop = center + length / 2.0
         start, stop = self.get_segment(alpha)
-        assert 0.0 <= stop - start <= 1.0
         if backwards:
             start, stop = -stop, -start
+        start, stop = start % 1.0, start % 1.0 + float(np.clip(stop - start, 0.0, 1.0))
 
-        start_offset = start % 1.0
-        stop_offset = start_offset + (stop - start)
-        if stop_offset > 1.0:
-            start_offset, stop_offset = stop_offset - 1.0, start_offset
+        if stop > 1.0:
+            offset_0, offset_1 = stop - 1.0, start
             first_index = 0
         else:
+            offset_0, offset_1 = start, stop
             first_index = 1
 
         split_alphas = np.column_stack(tuple(
             np.arange(n_segments, dtype=np.float64) + offset
-            for offset in (start_offset, stop_offset)
+            for offset in (offset_0, offset_1)
         )).flatten() / n_segments
         concatenate_indices = np.arange(first_index, 2 * n_segments + 1, 2)
         #start_floor = np.floor(start)
@@ -108,7 +107,6 @@ class FlashPiecewiser(EvenPiecewiser):
         n_segments: int,
         backwards: bool
     ) -> None:
-        assert proportion >= 0.0
         super().__init__(
             n_segments=n_segments,
             backwards=backwards
@@ -132,7 +130,6 @@ class DashedPiecewiser(EvenPiecewiser):
         n_segments: int,
         backwards: bool
     ) -> None:
-        assert proportion >= 0.0
         super().__init__(
             n_segments=n_segments,
             backwards=backwards

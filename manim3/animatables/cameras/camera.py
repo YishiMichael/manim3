@@ -123,29 +123,24 @@ class Camera(Model):
 
     @Lazy.property()
     @staticmethod
-    def _projection_view_matrix_(
-        projection_matrix: NP_44f8,
-        view_matrix: NP_44f8
-    ) -> NP_44f8:
-        return projection_matrix @ view_matrix
-
-    @Lazy.property()
-    @staticmethod
     def _camera_uniform_block_buffer_(
-        projection_view_matrix: NP_44f8,
-        eye: NP_3f8,
+        projection_matrix: NP_44f8,
+        view_matrix: NP_44f8,
+        #eye: NP_3f8,
         frame_radii: NP_2f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_camera",
             fields=[
-                "mat4 u_projection_view_matrix",
-                "vec3 u_view_position",
+                "mat4 u_projection_matrix",
+                "mat4 u_view_matrix",
+                #"vec3 u_view_position",
                 "vec2 u_frame_radii"
             ],
             data={
-                "u_projection_view_matrix": projection_view_matrix.T,
-                "u_view_position": eye,
+                "u_projection_matrix": projection_matrix.T,
+                "u_view_matrix": view_matrix.T,
+                #"u_view_position": eye,
                 "u_frame_radii": frame_radii
             }
         )
