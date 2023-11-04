@@ -41,7 +41,7 @@ class TexTransformExample(Scene):
         #    .add_strokes(color=PINK, weight=10)
         #)
         #self.add(text)
-        line = Polyline(np.array((3 * RIGHT, ORIGIN, UP, UL))).set(width=0.1)
+        line = Polyline(np.array((3 * RIGHT, ORIGIN, UP, UL)))
         self.add(line)
         await self.wait()
         #await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())

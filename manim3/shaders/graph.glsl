@@ -191,25 +191,23 @@ float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_r, float
     //float r1 = min(x1, s);
     //return (3.0 * s * s * (r0 + r1) - (r0 * r0 * r0 + r1 * r1 * r1)) / 4.0;
 
-    float q00 = dot(position_0, position_0);
-    float q11 = dot(position_1, position_1);
-    float qrr = dot(position_r, position_r);
-    float q01 = dot(position_0, position_1);
-    float q0r = dot(position_0, position_r);
-    float q1r = dot(position_1, position_r);
+    vec3 pc = (position_0 + position_1) / 2.0;
+    vec3 pd = (position_1 - position_0) / 2.0;
+    vec3 pr = position_r;
+    vec3 pc_cross_pd = cross(pc, pd);
+    vec3 pc_cross_pr = cross(pc, pr);
+    vec3 pd_cross_pr = cross(pd, pr);
 
-    float l = sqrt(q00 + q11 - 2.0 * q01);
-    float w = l * l * qrr - (q0r - q1r) * (q0r - q1r);
-    float delta = radius * radius * w - (
-        q00 * q11 * qrr - q01 * q01 * qrr - q00 * q1r * q1r - q11 * q0r * q0r + 2.0 * q01 * q0r * q1r
-    );
+    float v = dot(pc_cross_pr, pd_cross_pr);
+    float w = dot(pd_cross_pr, pd_cross_pr);
+    float det = dot(pc_cross_pd, pr);
+    float delta = radius * radius * w - det * det;
     if (delta <= 0.0) {
         discard;
     }
-    float s = inversesqrt(qrr * delta) / 2.0;
-    float v = q00 * qrr - q11 * qrr - q0r * q0r + q1r * q1r;
+    float s = inversesqrt(dot(pr, pr) * delta);
     float integral_result = integate(clamp((v + w) * s, -1.0, 1.0)) - integate(clamp((v - w) * s, -1.0, 1.0));
-    return 4.0 * integral_result * l * delta * delta / (w * w * sqrt(w) * radius * radius * radius);
+    return 4.0 * integral_result * length(pd) * delta * delta / (w * w * sqrt(w) * radius * radius * radius);
 }
 
 
