@@ -479,13 +479,13 @@ class Model(ModelActions, Animatable):
     #    #self._reset_animations()
 
     @AnimatableMeta.register_descriptor()
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
     @AnimatableMeta.register_descriptor()
-    @Lazy.mutable(plural=True)
+    @Lazy.volatile(plural=True)
     @staticmethod
     def _proper_siblings_() -> tuple[Model, ...]:
         return ()
@@ -946,7 +946,7 @@ class ModelAnimation(Animation):
         #self._about_ = about
         #self._direction_ = direction
 
-    #@Lazy.mutable()
+    #@Lazy.volatile()
     #@staticmethod
     #def _about_() -> Model:
     #    return NotImplemented
@@ -1234,7 +1234,7 @@ class ModelShiftAnimation(ModelAnimation):
 #        )
 #        self._mask: NP_3f8 = mask
 
-#    @Lazy.mutable()
+#    @Lazy.volatile()
 #    @staticmethod
 #    def _target_() -> Model:
 #        return NotImplemented
@@ -1341,7 +1341,7 @@ class ModelScaleAnimation(ModelAnimation):
 #        #self._target_size_ = target_size
 #        #self._mask_ = mask
 
-#    @Lazy.mutable()
+#    @Lazy.volatile()
 #    @staticmethod
 #    def _target_() -> Model:
 #        return NotImplemented
@@ -1454,7 +1454,7 @@ class ModelApplyAnimation(ModelAnimation):
 #        self._target_ = target
 #        self._initial_model_matrix_inverse_ = np.linalg.inv(model._model_matrix_._array_)
 
-#    @Lazy.mutable()
+#    @Lazy.volatile()
 #    @staticmethod
 #    def _target_() -> Model:
 #        return NotImplemented

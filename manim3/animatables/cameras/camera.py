@@ -52,14 +52,14 @@ class Camera(Model):
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _near_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.camera_near)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _far_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.camera_far)

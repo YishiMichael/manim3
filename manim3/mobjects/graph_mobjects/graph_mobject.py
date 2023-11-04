@@ -39,35 +39,35 @@ class GraphMobject(Mobject):
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter()
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _graph_() -> Graph:
         return Graph()
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableColor)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _width_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.graph_width)

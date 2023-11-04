@@ -25,24 +25,26 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     async def construct(self) -> None:
-        text = (
-            Text("Text", concatenate=True)
-            .scale(3)
-            .set(color=ORANGE, opacity=0.5)
-            .add_strokes(color=BLUE, weight=10)
-            #.concatenate()
-        )
-        tex = (
-            Tex("Tex", concatenate=True)
-            .scale(3)
-            .set(color=BLUE, opacity=0.5)
-            #.concatenate()
-            .shift(RIGHT * 2)
-            .add_strokes(color=PINK, weight=10)
-        )
-        self.add(text)
+        #text = (
+        #    Text("Text", concatenate=True)
+        #    .scale(3)
+        #    .set(color=ORANGE, opacity=0.5)
+        #    .add_strokes(color=BLUE, weight=10)
+        #    #.concatenate()
+        #)
+        #tex = (
+        #    Tex("Tex", concatenate=True)
+        #    .scale(3)
+        #    .set(color=BLUE, opacity=0.5)
+        #    #.concatenate()
+        #    .shift(RIGHT * 2)
+        #    .add_strokes(color=PINK, weight=10)
+        #)
+        #self.add(text)
+        line = Polyline(np.array((3 * RIGHT, ORIGIN, UP, UL))).set(width=0.1)
+        self.add(line)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
+        #await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
         await self.wait(3)
 
 
@@ -327,7 +329,7 @@ def main() -> None:
         fps=30,
         #preview=False,
         #write_video=True,
-        #write_last_frame=True,
+        write_last_frame=True,
         #pixel_height=540,
     )
     TexTransformExample.render(config)

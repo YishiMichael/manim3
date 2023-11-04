@@ -36,13 +36,13 @@ class Lighting(Animatable):
         self._point_lights_ = tuple(point_lights)
 
     @AnimatableMeta.register_descriptor()
-    @Lazy.mutable(plural=True)
+    @Lazy.volatile(plural=True)
     @staticmethod
     def _ambient_lights_() -> tuple[AmbientLight, ...]:
         return ()
 
     @AnimatableMeta.register_descriptor()
-    @Lazy.mutable(plural=True)
+    @Lazy.volatile(plural=True)
     @staticmethod
     def _point_lights_() -> tuple[PointLight, ...]:
         return ()

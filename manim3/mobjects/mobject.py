@@ -121,12 +121,12 @@ class Mobject(Model):
     # family matters
     # These methods implement a DAG (directed acyclic graph).
 
-    #@Lazy.mutable(plural=True)
+    #@Lazy.volatile(plural=True)
     #@staticmethod
     #def _children_() -> "tuple[Mobject, ...]":
     #    return ()
 
-    #@Lazy.mutable(plural=True)
+    #@Lazy.volatile(plural=True)
     #@staticmethod
     #def _descendants_() -> "tuple[Mobject, ...]":
     #    return ()
@@ -639,7 +639,7 @@ class Mobject(Model):
     # render
 
     @AnimatableMeta.register_converter()
-    @Lazy.mutable(deepcopy=False)
+    @Lazy.volatile(deepcopy=False)
     @staticmethod
     def _camera_() -> Camera:
         return Toplevel.scene._camera

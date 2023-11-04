@@ -36,7 +36,7 @@ class ShapeMobject(MeshMobject):
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter()
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _shape_() -> Shape:
         return Shape()

@@ -41,55 +41,55 @@ class MeshMobject(Mobject):
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter()
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableColor)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _ambient_strength_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _specular_strength_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_specular_strength)
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableFloat)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _shininess_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_shininess)
 
     @AnimatableMeta.register_converter()
-    @Lazy.mutable(deepcopy=False)
+    @Lazy.volatile(deepcopy=False)
     @staticmethod
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting

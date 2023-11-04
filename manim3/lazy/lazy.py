@@ -38,7 +38,7 @@ parameters:
 
 - `is_property: bool`
   Lazy.variable: false
-  Lazy.mutable: false
+  Lazy.volatile: false
   Lazy.property: true
 
   Determines whether the descriptor behaves as a variable or a property.
@@ -49,7 +49,7 @@ parameters:
 
 - `plural: bool`
   Lazy.variable: =false
-  Lazy.mutable: =false
+  Lazy.volatile: =false
   Lazy.property: =false
 
   Determines whether data contains exactly one or arbitrarily many elements.
@@ -58,7 +58,7 @@ parameters:
 
 - `freeze: bool`
   Lazy.variable: true
-  Lazy.mutable: false
+  Lazy.volatile: false
   Lazy.property: true
 
   Determines whether data should be frozen when binding.
@@ -74,7 +74,7 @@ parameters:
 
 - `deepcopy: bool`
   Lazy.variable: false
-  Lazy.mutable: =true
+  Lazy.volatile: =true
   Lazy.property: false
 
   Determines how data in the descriptor is copied when calling
@@ -83,7 +83,7 @@ parameters:
 
 - `cache_capacity: int`
   Lazy.variable: 1
-  Lazy.mutable: 0
+  Lazy.volatile: 0
   Lazy.property: =128
 
   Determines the capacity of the lru cache of parameters-data pairs generated
@@ -177,7 +177,7 @@ class Lazy:
 
     @overload
     @classmethod
-    def mutable[T](
+    def volatile[T](
         cls: type[Self],
         *,
         plural: Literal[False] = False,
@@ -190,7 +190,7 @@ class Lazy:
 
     @overload
     @classmethod
-    def mutable[T](
+    def volatile[T](
         cls: type[Self],
         *,
         plural: Literal[True],
@@ -202,7 +202,7 @@ class Lazy:
     ) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]: ...
 
     @classmethod
-    def mutable(
+    def volatile(
         cls: type[Self],
         *,
         plural: bool = False,
@@ -401,29 +401,29 @@ class Lazy:
     #        cache_capacity=cache_capacity
     #    )
 
-    @staticmethod
-    def naive_hasher(
-        element: Hashable
-    ) -> Hashable:
-        return element
+    #@staticmethod
+    #def naive_hasher(
+    #    element: Hashable
+    #) -> Hashable:
+    #    return element
 
-    @staticmethod
-    def array_hasher(
-        element: np.ndarray
-    ) -> Hashable:
-        return (element.shape, element.dtype, element.tobytes())
+    #@staticmethod
+    #def array_hasher(
+    #    element: np.ndarray
+    #) -> Hashable:
+    #    return (element.shape, element.dtype, element.tobytes())
 
-    @classmethod
-    def lazy_freezer(
-        cls: type[Self],
-        element: Any
-    ) -> None:
-        if not isinstance(element, LazyObject):
-            return
-        if element._is_frozen:
-            return
-        element._is_frozen = True
-        for descriptor in type(element)._lazy_descriptors:
-            descriptor.get_slot(element).disable_writability()
-            for child_element in descriptor.get_elements(element):
-                cls.lazy_freezer(child_element)
+    #@classmethod
+    #def lazy_freezer(
+    #    cls: type[Self],
+    #    element: Any
+    #) -> None:
+    #    if not isinstance(element, LazyObject):
+    #        return
+    #    if element._is_frozen:
+    #        return
+    #    element._is_frozen = True
+    #    for descriptor in type(element)._lazy_descriptors:
+    #        descriptor.get_slot(element).disable_writability()
+    #        for child_element in descriptor.get_elements(element):
+    #            cls.lazy_freezer(child_element)

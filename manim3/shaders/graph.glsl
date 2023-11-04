@@ -47,7 +47,7 @@ in VS_GS {
 out GS_FS {
     vec3 position_0;
     vec3 position_1;
-    vec3 position_t;
+    vec3 position_r;
 } gs_out;
 
 
@@ -55,9 +55,9 @@ layout (lines) in;
 layout (triangle_strip, max_vertices = 24) out;
 
 
-void emit_vertex(vec3 position_t) {
-    gs_out.position_t = position_t;
-    gl_Position = u_projection_matrix * vec4(position_t, 1.0);
+void emit_vertex(vec3 position_r) {
+    gs_out.position_r = position_r;
+    gl_Position = u_projection_matrix * vec4(position_r, 1.0);
     EmitVertex();
 }
 
@@ -168,7 +168,7 @@ void main() {
 in GS_FS {
     vec3 position_0;
     vec3 position_1;
-    vec3 position_t;
+    vec3 position_r;
 } fs_in;
 
 out vec4 frag_accum;
@@ -178,11 +178,11 @@ out float frag_revealage;
 
 
 float integate(float u) {
-    return asin(u) + u * sqrt(1.0 - u * u) * (5.0 - 2.0 * u * u) / 3.0;
+    return asin(u) + u * sqrt(1.0 - u * u) * (1.0 + (1.0 - u * u) * 2.0 / 3.0);
 }
 
 
-float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_t, float radius) {
+float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_r, float radius) {
     //float s = sqrt(1.0 - y * y);
     //if (x0 + s <= 0.0 || x1 + s <= 0.0) {
     //    return 0.0;
@@ -193,28 +193,28 @@ float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_t, float
 
     float q00 = dot(position_0, position_0);
     float q11 = dot(position_1, position_1);
-    float qtt = dot(position_t, position_t);
+    float qrr = dot(position_r, position_r);
     float q01 = dot(position_0, position_1);
-    float q0t = dot(position_0, position_t);
-    float q1t = dot(position_1, position_t);
+    float q0r = dot(position_0, position_r);
+    float q1r = dot(position_1, position_r);
 
-    float r = q00 + q11 - 2.0 * q01;
-    float s = r * qtt - (q0t - q1t) * (q0t - q1t);
-    float v = (q00 * qtt - q11 * qtt - q0t * q0t + q1t * q1t) / s;
-    float w2 = 4.0 * qtt * (radius * radius * s - (
-        q00 * q11 * qtt - q01 * q01 * qtt - q00 * q1t * q1t - q11 * q0t * q0t + 2.0 * q01 * q0t * q1t
-    )) / (s * s);
-    if (w2 < 0.0) {
+    float l = sqrt(q00 + q11 - 2.0 * q01);
+    float w = l * l * qrr - (q0r - q1r) * (q0r - q1r);
+    float delta = radius * radius * w - (
+        q00 * q11 * qrr - q01 * q01 * qrr - q00 * q1r * q1r - q11 * q0r * q0r + 2.0 * q01 * q0r * q1r
+    );
+    if (delta <= 0.0) {
         discard;
     }
-    float w = sqrt(w2);
-    float integral_result = integate(clamp(v + w, -1.0, 1.0)) - integate(clamp(v - w, -1.0, 1.0));
-    return integral_result * sqrt(r * s) * s * w2 * w2 / (0.00000000005 * qtt * qtt);
+    float s = inversesqrt(qrr * delta) / 2.0;
+    float v = q00 * qrr - q11 * qrr - q0r * q0r + q1r * q1r;
+    float integral_result = integate(clamp((v + w) * s, -1.0, 1.0)) - integate(clamp((v - w) * s, -1.0, 1.0));
+    return 4.0 * integral_result * l * delta * delta / (w * w * sqrt(w) * radius * radius * radius);
 }
 
 
 void main() {
-    float weight = get_weight_factor(fs_in.position_0, fs_in.position_1, fs_in.position_t, u_width / 2.0);
+    float weight = get_weight_factor(fs_in.position_0, fs_in.position_1, fs_in.position_r, u_width / 2.0);
     if (weight == 0.0) {
         discard;
     }

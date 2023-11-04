@@ -14,7 +14,7 @@ class AmbientLight(Point):
 
     @AnimatableMeta.register_descriptor()
     @AnimatableMeta.register_converter(AnimatableColor)
-    @Lazy.mutable()
+    @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
