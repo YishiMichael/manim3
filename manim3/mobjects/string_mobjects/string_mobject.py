@@ -18,7 +18,7 @@ import scipy.optimize
 import scipy.spatial.distance
 
 from ...animatables.arrays.animatable_color import AnimatableColor
-from ...animatables.geometries.shape import Shape
+from ...animatables.shape import Shape
 from ...constants.custom_typing import (
     ColorT,
     SelectorT
@@ -116,7 +116,6 @@ class SpanBoundary:
             index,
             flag_value,
             -paired_index
-            #flag_value * item_index
         )
 
 
@@ -177,7 +176,6 @@ class ReplacementRecord:
 
 class InsertionRecord(ReplacementRecord):
     __slots__ = (
-        #"_index",
         "_label",
         "_boundary_flag",
         "_activated"
@@ -188,7 +186,6 @@ class InsertionRecord(ReplacementRecord):
         index: int
     ) -> None:
         super().__init__(Span(index, index), "", "", "")
-        #self._index: int = index
         self._label: int = NotImplemented
         self._boundary_flag: BoundaryFlag = NotImplemented
         self._activated = False
@@ -210,38 +207,7 @@ class InsertionRecord(ReplacementRecord):
         self._activated = True
 
 
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class LabelledInsertionItem:
-#    label: int
-#    boundary_flag: BoundaryFlag
-#    attrs: dict[str, str]
-#    index: int
-
-#    @property
-#    def span(
-#        self: Self
-#    ) -> Span:
-#        index = self.index
-#        return Span(index, index)
-
-
-#@dataclass(
-#    frozen=True,
-#    kw_only=True,
-#    slots=True
-#)
-#class StringMobjectSettings:
-#    pass
-
-
 class StringMobjectKwargs(TypedDict, total=False):
-    #string: Required[str]
-    #isolate: list[Span]
-    #protect: list[Span]
     isolate: list[SelectorT]
     protect: list[SelectorT]
     global_color: ColorT
@@ -254,8 +220,6 @@ class StringMobjectKwargs(TypedDict, total=False):
 @attrs.frozen(kw_only=True)
 class StringMobjectInput(MobjectInput):
     string: str
-    #isolate: list[Span]
-    #protect: list[Span]
     isolate: list[SelectorT] = attrs.field(factory=list)
     protect: list[SelectorT] = attrs.field(factory=list)
     global_color: ColorT = attrs.field(factory=lambda: Toplevel.config.default_color)
@@ -263,7 +227,6 @@ class StringMobjectInput(MobjectInput):
     global_attrs: dict[str, str] = attrs.field(factory=dict)
     local_attrs: dict[SelectorT, dict[str, str]] = attrs.field(factory=dict)
     concatenate: bool = False
-    #settings: StringMobjectSettingsT
 
 
 @attrs.frozen(kw_only=True)
@@ -298,7 +261,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
     ) -> StringMobjectOutput:
         string = input_data.string
         global_span_attrs = cls._get_global_span_attrs(input_data, temp_path)
-        #global_span_attrs.update(input_data.global_attrs)
         local_span_attrs = cls._get_local_span_attrs(input_data, temp_path)
         global_span_color = input_data.global_color
         local_span_color = {
@@ -341,11 +303,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 start_index=0,
                 stop_index=len(replacement_records)
             ),
-            #labelled_content=cls._get_content(
-            #    original_pieces=original_pieces,
-            #    replacement_items=replacement_items,
-            #    is_labelled=True
-            #),
             labelled_content=cls._replace_string(
                 original_pieces=original_pieces,
                 replacement_pieces=tuple(
@@ -358,7 +315,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             concatenate=input_data.concatenate,
             requires_labelling=len(label_to_span_dict) > 1,
             input_data=input_data,
-            #input_data=input_data,
             temp_path=temp_path
         )
 
@@ -383,7 +339,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 label_to_span_dict=label_to_span_dict,
                 original_pieces=original_pieces,
                 replacement_records=replacement_records
-                #replaced_items=replaced_items
             )
         )
 
@@ -454,16 +409,15 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         unlabelled_radii = ShapeMobject().add(*unlabelled_shape_mobjects).box.get_radii()
         labelled_radii = ShapeMobject().add(*labelled_shape_mobjects).box.get_radii()
         scale_factor = labelled_radii / unlabelled_radii
-        #ShapeMobject().add(*labelled_shape_mobjects).match_box(
-        #    ShapeMobject().add(*unlabelled_shape_mobjects)
-        #)
         distance_matrix = scipy.spatial.distance.cdist(
             [shape.box.get() for shape in unlabelled_shape_mobjects],
             [shape.box.get() * scale_factor for shape in labelled_shape_mobjects]
         )
         unlabelled_indices, labelled_indices = scipy.optimize.linear_sum_assignment(distance_matrix)
+        unlabelled_indices = tuple(int(index) for index in unlabelled_indices)
+        labelled_indices = tuple(int(index) for index in labelled_indices)
         return tuple(
-            int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_)[1:], 16)
+            int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
             for labelled_index in labelled_indices
         ), tuple(
             unlabelled_shape_mobjects[unlabelled_index]
@@ -544,26 +498,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         protected_spans: Iterator[Span],
         global_span_attrs: dict[str, str],
         local_span_attrs: dict[Span, dict[str, str]]
-        #isolate: Iterable[SelectorT],
-        #protect: Iterable[SelectorT],
-        #global_attrs: dict[str, str],
-        #local_attrs: dict[Span, dict[str, str]]
     ) -> tuple[dict[int, Span], tuple[ReplacementRecord, ...]]:
-
-        #def get_key(
-        #    index_item: tuple[AttributedItem | IsolatedItem | ProtectedItem | CommandItem, BoundaryFlag]
-        #) -> tuple[int, int, int]:
-        #    span_item, boundary_flag = index_item
-        #    flag_value = boundary_flag.value
-        #    index = span_item.span.get_boundary_index(boundary_flag)
-        #    paired_index = span_item.span.get_boundary_index(boundary_flag.negate())
-        #    # All spans have nonzero widths.
-        #    return (
-        #        index,
-        #        flag_value,
-        #        -paired_index
-        #        #flag_value * item_index
-        #    )
 
         def write_labelled_item(
             start_insertion_record: InsertionRecord,
@@ -593,28 +528,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     matching_replacement=""
                 )
 
-        #def add_labelled_item(
-        #    label_to_span_dict: dict[int, Span],
-        #    replaced_items: list[CommandItem | LabelledInsertionItem],
-        #    label: int,
-        #    span: Span,
-        #    attrs: dict[str, str],
-        #    insert_index: int
-        #) -> None:
-        #    label_to_span_dict[label] = span
-        #    replaced_items.insert(insert_index, LabelledInsertionItem(
-        #        label=label,
-        #        boundary_flag=BoundaryFlag.START,
-        #        attrs=attrs,
-        #        index=span._start
-        #    ))
-        #    replaced_items.append(LabelledInsertionItem(
-        #        label=label,
-        #        boundary_flag=BoundaryFlag.STOP,
-        #        attrs=attrs,
-        #        index=span._stop
-        #    ))
-
         span_boundaries = sorted(itertools.chain.from_iterable(
             tuple(itertools.chain(
                 (
@@ -636,15 +549,9 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             ))[::boundary_flag.value]
             for boundary_flag in (BoundaryFlag.STOP, BoundaryFlag.START)
         ), key=SpanBoundary.get_sorting_key)
-        #index_items = sorted((
-        #    (span_item, boundary_flag)
-        #    for boundary_flag in (BoundaryFlag.STOP, BoundaryFlag.START)
-        #    for span_item in span_items[::boundary_flag.value]
-        #), key=get_key)
 
         label_to_span_dict: dict[int, Span] = {}
         replacement_records: list[ReplacementRecord] = []
-        #replaced_items: list[CommandItem | LabelledInsertionItem] = []
         label_counter = itertools.count(start=1)
         bracket_counter = itertools.count()
         protect_level = 0
@@ -654,8 +561,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
 
         global_start_insertion_record = InsertionRecord(0)
         replacement_records.append(global_start_insertion_record)
-        #global_label = next(label_counter)
-        #label_to_span_dict[global_label] = Span(global_start_insertion_record._index, global_stop_insertion_record._index)
 
         for span_boundary in span_boundaries:
             if isinstance(span_boundary, ProtectedSpanBoundary):
@@ -678,11 +583,8 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     open_insertion_record = InsertionRecord(span_boundary._span._stop)
                     replacement_records.append(command_replacement_record)
                     replacement_records.append(open_insertion_record)
-                    #open_command_stack.append((len(replaced_items), command_item))
                     open_command_stack.append((span_boundary, open_insertion_record))
                 elif command_flag == CommandFlag.CLOSE:
-                    #insert_index, open_command_item = open_command_stack.pop()
-                    #bracket_stack.pop()
                     close_insertion_record = InsertionRecord(span_boundary._span._start)
                     replacement_records.append(close_insertion_record)
                     replacement_records.append(command_replacement_record)
@@ -699,34 +601,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                             label=next(label_counter),
                             label_to_span_dict=label_to_span_dict
                         )
-                        #label = next(label_counter)
-                        #label_to_span_dict[label] = Span(open_insertion_record._index, close_insertion_record._index)
-                        #for insertion_record, boundary_flag in (
-                        #    (open_insertion_record, BoundaryFlag.START),
-                        #    (close_insertion_record, BoundaryFlag.STOP)
-                        #):
-                        #    insertion_record.write(
-                        #        unlabelled_replacement=cls._get_command_string(
-                        #            label=None,
-                        #            boundary_flag=boundary_flag,
-                        #            attrs=attrs
-                        #        ),
-                        #        labelled_replacement=cls._get_command_string(
-                        #            label=label,
-                        #            boundary_flag=boundary_flag,
-                        #            attrs=attrs
-                        #        ),
-                        #        matching_replacement=""
-                        #    )
-                        #add_labelled_item(
-                        #    label_to_span_dict=label_to_span_dict,
-                        #    replaced_items=replaced_items,
-                        #    label=next(label_counter),
-                        #    span=Span(open_command_item.span._stop, command_item.span._start),
-                        #    attrs=attrs,
-                        #    insert_index=insert_index
-                        #)
-                    #replacement_records.append(command_replacement_record)
                 else:
                     replacement_records.append(command_replacement_record)
                 continue
@@ -755,42 +629,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                         label=next(label_counter),
                         label_to_span_dict=label_to_span_dict
                     )
-                    #attrs = span_boundary._attrs if isinstance(span_boundary, AttributedSpanBoundary) else {}
-                    #label = next(label_counter)
-                    #label_to_span_dict[label] = Span(start_insertion_record._index, stop_insertion_record._index)
-                    #for insertion_record, boundary_flag in (
-                    #    (start_insertion_record, BoundaryFlag.START),
-                    #    (stop_insertion_record, BoundaryFlag.STOP)
-                    #):
-                    #    insertion_record.write(
-                    #        unlabelled_replacement=cls._get_command_string(
-                    #            label=None,
-                    #            boundary_flag=boundary_flag,
-                    #            attrs=attrs
-                    #        ),
-                    #        labelled_replacement=cls._get_command_string(
-                    #            label=label,
-                    #            boundary_flag=boundary_flag,
-                    #            attrs=attrs
-                    #        ),
-                    #        matching_replacement=""
-                    #    )
-            #add_labelled_item(
-            #    label_to_span_dict=label_to_span_dict,
-            #    replaced_items=replaced_items,
-            #    label=next(label_counter),
-            #    span=span,
-            #    attrs=span_item.attrs if isinstance(span_item, AttributedItem) else {},
-            #    insert_index=insert_index
-            #)
-        #add_labelled_item(
-        #    label_to_span_dict=label_to_span_dict,
-        #    replaced_items=replaced_items,
-        #    label=0,
-        #    span=Span(0, len(string)),
-        #    attrs=global_span_attrs,
-        #    insert_index=0
-        #)
         global_stop_insertion_record = InsertionRecord(len(string))
         replacement_records.append(global_stop_insertion_record)
         write_labelled_item(
@@ -840,31 +678,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 if start < stop:
                     yield Span(start, stop)
 
-    #@classmethod
-    #def _iter_spans_by_selectors(
-    #    cls: type[Self],
-    #    selectors: Iterable[SelectorT],
-    #    string: str
-    #) -> Iterator[Span]:
-    #    for selector in selectors:
-    #        yield from cls._iter_spans_by_selector(selector, string)
-
-    #@classmethod
-    #def _get_original_pieces(
-    #    cls: type[Self],
-    #    replaced_items: list[CommandItem | LabelledInsertionItem],
-    #    string: str
-    #) -> list[str]:
-    #    replaced_spans = [replaced_item.span for replaced_item in replaced_items]
-    #    return [
-    #        string[start:stop]
-    #        for start, stop in zip(
-    #            [interval_span._stop for interval_span in replaced_spans[:-1]],
-    #            [interval_span._start for interval_span in replaced_spans[1:]],
-    #            strict=True
-    #        )
-    #    ]
-
     @classmethod
     def _replace_string(
         cls: type[Self],
@@ -878,30 +691,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             replacement_pieces[start_index:stop_index],
             strict=True
         )))
-
-    #@classmethod
-    #def _get_content(
-    #    cls: type[Self],
-    #    original_pieces: list[str],
-    #    replaced_items: list[CommandItem | LabelledInsertionItem],
-    #    is_labelled: bool
-    #) -> str:
-    #    content_replaced_pieces = [
-    #        cls._replace_for_content(match_obj=replaced_item.match_obj)
-    #        if isinstance(replaced_item, CommandItem)
-    #        else cls._get_command_string(
-    #            label=replaced_item.label if is_labelled else None,
-    #            boundary_flag=replaced_item.boundary_flag,
-    #            attrs=replaced_item.attrs
-    #        )
-    #        for replaced_item in replaced_items
-    #    ]
-    #    return cls._replace_string(
-    #        original_pieces=original_pieces,
-    #        replaced_pieces=content_replaced_pieces,
-    #        start_index=0,
-    #        stop_index=len(content_replaced_pieces)
-    #    )
 
     @classmethod
     def _get_indices_by_span(
@@ -969,12 +758,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             for replacement_record in replacement_records
         )
 
-        #matching_replaced_pieces = [
-        #    cls._replace_for_matching(match_obj=replaced_item.match_obj)
-        #    if isinstance(replaced_item, CommandItem)
-        #    else ""
-        #    for replaced_item in replaced_items
-        #]
         return tuple(
             (
                 re.sub(r"\s+", "", cls._replace_string(
@@ -1078,29 +861,12 @@ class StringMobject(ShapeMobject):
         "_group_part_items"
     )
 
-    #_input_dataclass: ClassVar[type[StringMobjectInput]] = StringMobjectInput
-    #_io_cls: ClassVar[type[StringMobjectIO]] = StringMobjectIO
-
     def __init__(
         self: Self,
-        #string: str,
-        #**kwargs: Unpack[StringMobjectKwargs]
-        #string: str,
         output_data: StringMobjectOutput
     ) -> None:
         super().__init__()
 
-        #cls = type(self)
-        #input_data = StringMobjectInput(
-        #    string=string,
-        #    **{
-        #        key: value
-        #        for key in StringMobjectKwargs.__optional_keys__
-        #        if (value := kwargs.pop(key, None)) is not None
-        #    },
-        #    settings=cls._settings_dataclass(**kwargs)
-        #)
-        #output_data = cls._io_cls.get(input_data)
         shape_mobjects = output_data.shape_mobjects
         self._shape_mobjects: tuple[ShapeMobject, ...] = shape_mobjects
         self._string: str = output_data.string
@@ -1108,25 +874,6 @@ class StringMobject(ShapeMobject):
         self._labelled_part_items: tuple[tuple[str, tuple[int, ...]], ...] = output_data.labelled_part_items
         self._group_part_items: tuple[tuple[str, tuple[int, ...]], ...] = output_data.group_part_items
         self.add(*shape_mobjects)
-
-    #@classmethod
-    #@property
-    #@abstractmethod
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[StringMobjectIO[StringMobjectInputDataT]]:
-    #    pass
-
-    #@classmethod
-    ##@abstractmethod
-    #def _collect_input(
-    #    cls: type[Self],
-    #    **kwargs: StringMobjectUnpackedKwargsT
-    #) -> StringMobjectInputDataT:
-    #    StringMobjectInputData(
-
-    #    )
-    #    pass
 
     def _build_from_indices(
         self: Self,

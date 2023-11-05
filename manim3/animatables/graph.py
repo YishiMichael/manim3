@@ -12,36 +12,28 @@ from typing import (
 
 import numpy as np
 
-from ...constants.custom_typing import (
+from ..constants.custom_typing import (
     NP_i4,
     NP_x2i4,
     NP_x3f8,
     NP_xi4,
     NP_xf8
 )
-from ...lazy.lazy import Lazy
-from ...utils.space_utils import SpaceUtils
-from ..animatable.actions import ActionMeta
-from ..animatable.animatable import (
+from ..lazy.lazy import Lazy
+from ..utils.space_utils import SpaceUtils
+from .animatable.actions import ActionMeta
+from .animatable.animatable import (
     Animatable,
     AnimatableActions,
     AnimatableInterpolateAnimation,
     AnimatablePiecewiseAnimation,
     DynamicAnimatable
 )
-from ..animatable.animation import (
+from .animatable.animation import (
     AnimateKwargs,
     Animation
 )
-from ..animatable.piecewiser import Piecewiser
-#from .animatable.leaf_animatable import (
-#    LeafAnimatable,
-#    LeafAnimatableInterpolateInfo
-#)
-#from ..mobject.mobject_attributes.mobject_attribute import (
-#    InterpolateHandler,
-#    MobjectAttribute
-#)
+from .animatable.piecewiser import Piecewiser
 
 
 class GraphActions(AnimatableActions):
@@ -102,55 +94,6 @@ class Graph(GraphActions, Animatable):
     ) -> NP_xf8:
         lengths = SpaceUtils.norm(positions[edges[:, 1]] - positions[edges[:, 0]])
         return np.insert(np.cumsum(lengths), 0, 0.0)
-
-    #@classmethod
-    #def _interpolate(
-    #    cls,
-    #    graph_0: "Graph",
-    #    graph_1: "Graph"
-    #) -> "GraphInterpolateHandler":
-    #    positions_0, positions_1, edges = cls._general_interpolate(
-    #        graph_0=graph_0,
-    #        graph_1=graph_1,
-    #        disjoints_0=np.zeros((0,), dtype=np.int32),
-    #        disjoints_1=np.zeros((0,), dtype=np.int32)
-    #    )
-    #    return GraphInterpolateHandler(
-    #        positions_0=positions_0,
-    #        positions_1=positions_1,
-    #        edges=edges
-    #    )
-
-    #@classmethod
-    #def _interpolate(
-    #    cls: type[Self],
-    #    src_0: Self,
-    #    src_1: Self
-    #) -> GraphInterpolateInfo:
-    #    return GraphInterpolateInfo(src_0, src_1)
-
-    #def _interpolate(
-    #    self: Self,
-    #    src_0: Self,
-    #    src_1: Self
-    #) -> Updater:
-    #    return GraphInterpolateUpdater(self, src_0, src_1)
-
-    #@classmethod
-    #def _get_cumlengths(
-    #    cls,
-    #    positions: NP_x3f8,
-    #    edges: NP_x2i4
-    #) -> NP_xf8:
-    #    lengths = SpaceUtils.norm(positions[edges[:, 1]] - positions[edges[:, 0]])
-    #    return np.insert(np.cumsum(lengths), 0, 0.0)
-
-    #@classmethod
-    #def _get_disjoints(
-    #    cls,
-    #    edges: NP_x2i4
-    #) -> NP_xi4:
-    #    return np.flatnonzero(edges[:-1, 1] - edges[1:, 0])
 
     @classmethod
     def _general_interpolate(
@@ -348,58 +291,9 @@ class Graph(GraphActions, Animatable):
             edges_inverse.reshape((-1, 2))
         )
 
-    #def _get_interpolate_updater(
-    #    self: "Graph",
-    #    graph_0: "Graph",
-    #    graph_1: "Graph"
-    #) -> "GraphInterpolateUpdater":
-    #    return GraphInterpolateUpdater(
-    #        graph=self,
-    #        graph_0=graph_0,
-    #        graph_1=graph_1
-    #    )
-
-    #def partial(
-    #    self,
-    #    alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
-    #) -> "GraphPartialUpdater":
-    #    return GraphPartialUpdater(
-    #        graph=self,
-    #        original_graph=self._copy(),
-    #        alpha_to_segments=alpha_to_segments
-    #    )
-
-    #def set_from_parameters(
-    #    self,
-    #    positions: NP_x3f8,
-    #    edges: NP_x2i4
-    #):
-    #    self._positions_ = positions
-    #    self._edges_ = edges
-    #    return self
-
-    #def set_from_empty(self):
-    #    self.set_from_parameters(
-    #        positions=np.zeros((0, 3)),
-    #        edges=np.zeros((0, 2), dtype=np.int32)
-    #    )
-
-    #def set_from_graph(
-    #    self,
-    #    graph: "Graph"
-    #):
-    #    self.set_from_parameters(
-    #        positions=graph._positions_,
-    #        edges=graph._edges_
-    #    )
-
     def animate(
         self: Self,
         **kwargs: Unpack[AnimateKwargs]
-        #rate: Rate = Rates.linear(),
-        #rewind: bool = False,
-        #run_alpha: float = 1.0,
-        #infinite: bool = False
     ) -> DynamicGraph[Self]:
         return DynamicGraph(self, **kwargs)
 
@@ -422,7 +316,6 @@ class Graph(GraphActions, Animatable):
 
     def split(
         self: Self,
-        #dst_tuple: tuple[Self, ...],
         dsts: tuple[Self, ...],
         alphas: NP_xf8
     ) -> Self:
@@ -465,28 +358,9 @@ class Graph(GraphActions, Animatable):
                 )
             )
         return self
-        #return tuple(
-        #    cls(
-        #        positions=all_positions,
-        #        edges=cls._reassemble_edges(
-        #            edges=edges,
-        #            transition_indices=np.arange(interpolated_index_0, interpolate_index_1),
-        #            prepend=prepend,
-        #            append=append,
-        #            insertion_indices=np.zeros((0,), dtype=np.int32),
-        #            insertions=np.zeros((0,), dtype=np.int32)
-        #        )
-        #    )
-        #    for (prepend, append), (interpolated_index_0, interpolate_index_1) in zip(
-        #        itertools.pairwise(np.array((edges[0, 0], *(np.arange(len(alphas)) + len(positions)), edges[-1, 1]))),
-        #        itertools.pairwise(np.array((0, *interpolated_indices, len(edges) - 1))),
-        #        strict=True
-        #    )
-        #)  # TODO: simplify: remove unused positions
 
     def concatenate(
         self: Self,
-        #dst: Self,
         srcs: tuple[Self, ...]
     ) -> Self:
         if not srcs:
@@ -589,100 +463,3 @@ class GraphPiecewiseAnimation[GraphT: Graph](AnimatablePiecewiseAnimation[GraphT
         srcs: tuple[GraphT, ...]
     ) -> None:
         dst.concatenate(srcs)
-
-
-#class GraphInterpolateInfo(AnimatableInterpolateInfo[Graph]):
-#    __slots__ = (
-#        "_positions_0",
-#        "_positions_1",
-#        "_edges"
-#    )
-#
-#    def __init__(
-#        self: Self,
-#        src_0: Graph,
-#        src_1: Graph
-#    ) -> None:
-#        super().__init__()
-#        positions_0, positions_1, edges = Graph._general_interpolate(
-#            graph_0=src_0,
-#            graph_1=src_1,
-#            disjoints_0=np.zeros((0,), dtype=np.int32),
-#            disjoints_1=np.zeros((0,), dtype=np.int32)
-#        )
-#        self._positions_0: NP_x3f8 = positions_0
-#        self._positions_1: NP_x3f8 = positions_1
-#        self._edges: NP_x2i4 = edges
-#
-#    def interpolate(
-#        self: Self,
-#        dst: Graph,
-#        alpha: float
-#    ) -> None:
-#        dst._positions_ = SpaceUtils.lerp(self._positions_0, self._positions_1, alpha)
-#        dst._edges_ = self._edges
-
-
-#class GraphPartialUpdater(Updater[Graph]):
-#    __slots__ = (
-#        "_graph",
-#        "_original_graph",
-#        "_alpha_to_segments"
-#    )
-
-#    def __init__(
-#        self,
-#        graph: Graph,
-#        original_graph: Graph,
-#        alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]]
-#    ) -> None:
-#        super().__init__(graph)
-#        self._original_graph: Graph = original_graph
-#        self._alpha_to_segments: Callable[[float], tuple[NP_xf8, list[int]]] = alpha_to_segments
-
-#    def update(
-#        self,
-#        alpha: float
-#    ) -> None:
-#        split_alphas, concatenate_indices = self._alpha_to_segments(alpha)
-#        graphs = Graph._split(self._original_graph, split_alphas)
-#        graph = Graph._concatenate([graphs[index] for index in concatenate_indices])
-#        Graph._copy_lazy_content(self._instance, graph)
-#        #mobjects = [equivalent_cls() for _ in range(len(split_alphas) + 1)]
-#        #equivalent_cls._split_into(
-#        #    dst_mobject_list=mobjects,
-#        #    src_mobject=original_mobject,
-#        #    alphas=split_alphas
-#        #)
-#        #equivalent_cls._concatenate_into(
-#        #    dst_mobject=mobject,
-#        #    src_mobject_list=[mobjects[index] for index in concatenate_indices]
-#        #)
-
-
-##class GraphInterpolateHandler(InterpolateHandler[Graph]):
-##    __slots__ = (
-##        "_positions_0",
-##        "_positions_1",
-##        "_edges"
-##    )
-
-##    def __init__(
-##        self,
-##        positions_0: NP_x3f8,
-##        positions_1: NP_x3f8,
-##        edges: NP_x2i4
-##    ) -> None:
-##        super().__init__()
-##        self._positions_0: NP_x3f8 = positions_0
-##        self._positions_1: NP_x3f8 = positions_1
-##        self._edges: NP_x2i4 = edges
-
-##    def _interpolate(
-##        self,
-##        alpha: float
-##    ) -> Graph:
-##        return Graph(
-##            positions=SpaceUtils.lerp(self._positions_0, self._positions_1, alpha),
-##            edges=self._edges
-##        )

@@ -45,9 +45,9 @@ class MathTexIO[MathTexInputT: MathTexInput](TexIO[MathTexInputT]):
         svg_path: pathlib.Path
     ) -> None:
         if input_data.inline:
-            content = "".join(("$", content, "$"))
+            content = f"${content}$"
         else:
-            content = "\n".join(("\\begin{align*}", content, "\\end{align*}"))
+            content = f"\\begin{{align*}}\n{content}\n\\end{{align*}}"
         super()._create_svg(content, input_data, svg_path)
 
 
@@ -60,17 +60,3 @@ class MathTex(StringMobject):
         **kwargs: Unpack[MathTexKwargs]
     ) -> None:
         super().__init__(MathTexIO.get(MathTexInput(string=string, **kwargs)))
-
-    #@classmethod
-    #@property
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[MathTexIO]:
-    #    return MathTexIO
-
-    #@classmethod
-    #@property
-    #def _input_data_cls(
-    #    cls: type[Self]
-    #) -> type[MathTexInput]:
-    #    return MathTexInput

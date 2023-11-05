@@ -17,7 +17,6 @@ from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
 from ..utils.path_utils import PathUtils
 from .mobject import Mobject
-#from .renderable_mobject import RenderableMobject
 
 
 class SceneRootMobject(Mobject):
@@ -91,7 +90,6 @@ class SceneRootMobject(Mobject):
         oit_framebuffer = self._oit_framebuffer_
         oit_framebuffer._framebuffer_.clear()
         for mobject in self.iter_descendants():
-            #if isinstance(mobject, RenderableMobject):
             mobject._render(oit_framebuffer)
 
         self._oit_compose_vertex_array_.render(target_framebuffer)

@@ -5,16 +5,15 @@ from typing import Self
 
 import numpy as np
 
-from ...constants.custom_typing import NP_3f8
-from ...lazy.lazy import Lazy
-from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-#from ..mobject.mobject_attributes.mobject_attribute import MobjectAttribute
-from ..animatable.animatable import (
+from ..constants.custom_typing import NP_3f8
+from ..lazy.lazy import Lazy
+from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from .animatable.animatable import (
     Animatable,
     AnimatableMeta
 )
-from .ambient_light import AmbientLight
-from .point_light import PointLight
+from .lights.ambient_light import AmbientLight
+from .lights.point_light import PointLight
 
 
 class Lighting(Animatable):

@@ -14,10 +14,9 @@ from typing import (
 import moderngl
 from PIL import Image
 
-from ..animatables.cameras.camera import Camera
-from ..animatables.cameras.perspective_camera import PerspectiveCamera
 from ..animatables.lights.ambient_light import AmbientLight
-from ..animatables.lights.lighting import Lighting
+from ..animatables.camera import Camera
+from ..animatables.lighting import Lighting
 from ..timelines.timeline.timeline import Timeline
 from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..mobjects.mobject import Mobject
@@ -40,7 +39,7 @@ class Scene(Timeline):
         self: Self
     ) -> None:
         super().__init__()
-        self._camera: Camera = PerspectiveCamera()
+        self._camera: Camera = Camera()
         self._lighting: Lighting = Lighting(AmbientLight())
         self._root_mobject: SceneRootMobject = SceneRootMobject(
             background_color=ColorUtils.standardize_color(Toplevel.config.background_color)

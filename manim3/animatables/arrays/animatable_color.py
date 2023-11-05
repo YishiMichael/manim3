@@ -26,10 +26,3 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
     @staticmethod
     def _array_() -> NP_3f8:
         return ColorUtils.standardize_color(Toplevel.config.default_color)
-
-    #@classmethod
-    #def _convert_input(
-    #    cls: type[Self],
-    #    color_input: ColorT
-    #) -> Self:
-    #    return AnimatableColor(ColorUtils.standardize_color(color_input))

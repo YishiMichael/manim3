@@ -8,13 +8,12 @@ from typing import (
 
 import numpy as np
 
-from ...animatables.geometries.mesh import Mesh
+from ...animatables.mesh import Mesh
 from ...constants.custom_typing import (
     NP_x2f8,
     NP_x3f8
 )
 from .mesh_mobject import MeshMobject
-#from .mesh import Mesh
 
 
 class ParametricSurface(MeshMobject):

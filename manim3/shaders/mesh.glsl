@@ -13,7 +13,6 @@ uniform sampler2D t_color_maps[NUM_T_COLOR_MAPS];
 layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
     mat4 u_view_matrix;
-    //vec3 u_view_position;
     vec2 u_frame_radii;
 };
 #if NUM_U_AMBIENT_LIGHTS || NUM_U_POINT_LIGHTS

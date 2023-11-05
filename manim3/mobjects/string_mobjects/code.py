@@ -113,14 +113,9 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
             for suffix in (language_suffix, ".json"):
                 temp_path.with_suffix(suffix).unlink(missing_ok=True)
 
-        #local_span_attrs = super()._get_local_span_attrs(input_data, temp_path)
         for span, local_config in super()._get_local_span_attrs(input_data, temp_path).items():
             local_span_attrs.setdefault(span, {}).update(local_config)
         return local_span_attrs
-        #override_local_attrs = super()._get_local_attrs(input_data, temp_path)
-        #for span, local_config in override_local_attrs.items():
-        #    local_attrs.setdefault(span, {}).update(local_config)
-        #return local_attrs
 
 
 class Code(StringMobject):
@@ -132,38 +127,3 @@ class Code(StringMobject):
         **kwargs: Unpack[CodeKwargs]
     ) -> None:
         super().__init__(CodeIO.get(CodeInput(string=string, **kwargs)))
-
-    #def __init__(
-    #    self: Self,
-    #    string: str,
-    #    *,
-    #    font: str | None = None,
-    #    language_suffix: str | None = None,
-    #    **kwargs
-    #) -> None:
-    #    config = Toplevel.config
-    #    if font is None:
-    #        font = config.code_font
-    #    if language_suffix is None:
-    #        language_suffix = config.code_language_suffix
-
-    #    super().__init__(
-    #        string=string,
-    #        font=font,
-    #        language_suffix=language_suffix,
-    #        **kwargs
-    #    )
-
-    #@classmethod
-    #@property
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[CodeIO]:
-    #    return CodeIO
-
-    #@classmethod
-    #@property
-    #def _input_data_cls(
-    #    cls: type[Self]
-    #) -> type[CodeInput]:
-    #    return CodeInput

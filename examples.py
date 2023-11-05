@@ -25,26 +25,22 @@ class ShapeTransformExample(Scene):
 
 class TexTransformExample(Scene):
     async def construct(self) -> None:
-        #text = (
-        #    Text("Text", concatenate=True)
-        #    .scale(3)
-        #    .set(color=ORANGE, opacity=0.5)
-        #    .add_strokes(color=BLUE, weight=10)
-        #    #.concatenate()
-        #)
-        #tex = (
-        #    Tex("Tex", concatenate=True)
-        #    .scale(3)
-        #    .set(color=BLUE, opacity=0.5)
-        #    #.concatenate()
-        #    .shift(RIGHT * 2)
-        #    .add_strokes(color=PINK, weight=10)
-        #)
-        #self.add(text)
-        line = Polyline(np.array((3 * RIGHT, ORIGIN, UP, UL)))
-        self.add(line)
+        text = (
+            Text("Text", concatenate=True)
+            .scale(3)
+            .set(color=ORANGE, opacity=0.5)
+            .add_strokes(color=BLUE, weight=10)
+        )
+        tex = (
+            Tex("Tex", concatenate=True)
+            .scale(3)
+            .set(color=BLUE, opacity=0.5)
+            .shift(RIGHT * 2)
+            .add_strokes(color=PINK, weight=10)
+        )
+        self.add(text)
         await self.wait()
-        #await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
+        await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
         await self.wait(3)
 
 
@@ -55,7 +51,6 @@ class CreateTexExample(Scene):
             .scale(3)
             .set(color=ORANGE, opacity=0.5)
             .add_strokes(color=BLUE, weight=10)
-            #.concatenate()
         )
         await self.wait()
         await self.play(Create(text, n_segments=5), rate=Rates.smooth(), run_time=2)
@@ -86,7 +81,6 @@ class ThreeDExample(Scene):
             Parallel(
                 FadeIn(char),
                 char.animate(rewind=True).shift(DOWN)
-                #Shift(char, UP, arrive=True)
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
@@ -117,7 +111,6 @@ class LaggedAnimationExample(Scene):
             Parallel(
                 FadeIn(char),
                 char.animate(rewind=True).shift(DOWN)
-                #Shift(char, UP, arrive=True)
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
@@ -265,7 +258,6 @@ class NoteTimeline(Timeline):
         await self.play(Parallel(
             FadeOut(note),
             note.animate().scale(1.5)
-            #Scale(note, 1.5, AboutCenter())
         ), rate=Rates.rush_from())
 
 
@@ -329,7 +321,7 @@ def main() -> None:
         fps=30,
         #preview=False,
         #write_video=True,
-        write_last_frame=True,
+        #write_last_frame=True,
         #pixel_height=540,
     )
     TexTransformExample.render(config)

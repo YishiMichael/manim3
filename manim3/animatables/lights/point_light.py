@@ -10,7 +10,7 @@ from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
 from ..animatable.animatable import AnimatableMeta
 from ..arrays.animatable_color import AnimatableColor
-from ..models.point import Point
+from ..point import Point
 
 
 class PointLight(Point):

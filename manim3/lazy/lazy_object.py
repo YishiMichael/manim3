@@ -181,8 +181,6 @@ class LazyObject(ABC):
             if (typed_overridden_descriptor := hinted_lazy_descriptors.get(name)) is not None:
                 type_hint, overridden_descriptor = typed_overridden_descriptor
                 assert overridden_descriptor._plural is descriptor._plural
-                #assert overridden_descriptor._hasher is descriptor._hasher
-                #assert overridden_descriptor._freeze is descriptor._freeze
                 assert not overridden_descriptor._freeze or descriptor._freeze
                 assert type_hint.annotation_cls is element_annotation_cls  # TODO: subclass check
                 assert type_hint.annotation == element_annotation
@@ -244,14 +242,6 @@ class LazyObject(ABC):
     ) -> LazySlot:
         return self._lazy_slots.__getattribute__(name)
 
-    #def _copy_lazy_content(
-    #    self: Self,
-    #    src_object: Self
-    #) -> None:
-    #    for descriptor in type(self)._lazy_descriptors:
-    #        if descriptor._is_variable:
-    #            descriptor.set_elements(self, descriptor.get_elements(src_object))
-
     def _freeze(
         self: Self
     ) -> None:
@@ -260,7 +250,6 @@ class LazyObject(ABC):
         self._is_frozen = True
         for descriptor in type(self)._lazy_descriptors:
             descriptor.get_slot(self).disable_writability()
-            #if descriptor._freeze:
             for element in descriptor.get_elements(self):
                 descriptor._freezer(element)
 
@@ -271,14 +260,9 @@ class LazyObject(ABC):
         result = cls.__new__(cls)
         for slot_name, slot_copier in cls._slot_copiers.items():
             result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
-        #result._copy_lazy_content(self)
         for descriptor in cls._lazy_descriptors:
             if descriptor._is_property:
                 continue
-            #elements = tuple(descriptor._copier(element) for element in descriptor.get_elements(self))
-            #if not descriptor._freeze and not descriptor._is_leaf and descriptor._deepcopy:
-            #if descriptor._deepcopy:
-            #    elements = tuple(element.copy() for element in elements)
             descriptor.set_elements(result, tuple(
                 descriptor._copier(element)
                 for element in descriptor.get_elements(self)
@@ -394,16 +378,6 @@ class Implementations:
     def _(
         element: LazyObject
     ) -> None:
-        #if not isinstance(element, LazyObject):
-        #    return
-        #if element._is_frozen:
-        #    return
-        #element._is_frozen = True
-        #for descriptor in type(element)._lazy_descriptors:
-        #    descriptor.get_slot(element).disable_writability()
-        #    #if descriptor._freeze:
-        #    for child_element in descriptor.get_elements(element):
-        #        descriptor._freezer(child_element)
         element._freeze()
 
     @freezers.register(object)

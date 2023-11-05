@@ -111,17 +111,3 @@ class Markup(StringMobject):
         **kwargs: Unpack[MarkupKwargs]
     ) -> None:
         super().__init__(MarkupIO.get(MarkupInput(string=string, **kwargs)))
-
-    #@classmethod
-    #@property
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[MarkupIO]:
-    #    return MarkupIO
-
-    #@classmethod
-    #@property
-    #def _input_data_cls(
-    #    cls: type[Self]
-    #) -> type[MarkupInput]:
-    #    return MarkupInput

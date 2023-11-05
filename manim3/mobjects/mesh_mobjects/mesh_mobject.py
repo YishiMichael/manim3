@@ -9,8 +9,8 @@ import numpy as np
 from ...animatables.animatable.animatable import AnimatableMeta
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
-from ...animatables.geometries.mesh import Mesh
-from ...animatables.lights.lighting import Lighting
+from ...animatables.lighting import Lighting
+from ...animatables.mesh import Mesh
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -18,13 +18,13 @@ from ...constants.custom_typing import (
     NP_x3i4
 )
 from ...lazy.lazy import Lazy
-from ...utils.path_utils import PathUtils
 from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
+from ...utils.path_utils import PathUtils
 from ..mobject import Mobject
 
 

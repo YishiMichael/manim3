@@ -25,33 +25,11 @@ class AtomicBufferFormat(BufferFormat):
         col_padding: int,
         itemsize: int,
         base_alignment: int
-        #gl_dtype_str: str,
-        #layout: BufferLayout
     ) -> None:
-        #base_char, base_itemsize, base_shape = type(self)._GL_DTYPES[gl_dtype_str]
-        #assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
-        #shape_dict = dict(enumerate(base_shape))
-        #col_len = shape_dict.get(0, 1)
-        #row_len = shape_dict.get(1, 1)
-        #if layout == BufferLayout.STD140:
-        #    col_padding = 0 if not shape and row_len == 1 else 4 - col_len
-        #    base_alignment = (col_len if not shape and col_len <= 2 and row_len == 1 else 4) * base_itemsize
-        #else:
-        #    col_padding = 0
-        #    base_alignment = 1
-
         super().__init__(
             name=name,
             shape=shape
         )
-        #self._base_char_ = base_char
-        #self._base_itemsize_ = base_itemsize
-        #self._base_ndim_ = len(base_shape)
-        #self._row_len_ = row_len
-        #self._col_len_ = col_len
-        #self._col_padding_ = col_padding
-        #self._itemsize_ = row_len * (col_len + col_padding) * base_itemsize
-        #self._base_alignment_ = base_alignment
         self._base_char_ = base_char
         self._base_itemsize_ = base_itemsize
         self._base_ndim_ = base_ndim

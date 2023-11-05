@@ -6,11 +6,6 @@ from typing import Self
 from ...mobjects.mobject import Mobject
 from ..timeline.timeline import Timeline
 
-#from ..transform.transform_from_copy import TransformFromCopy
-
-
-#_MobjectT = TypeVar("_MobjectT", bound=Mobject)
-
 
 class FadeIn(Timeline):
     __slots__ = ("_mobject",)
@@ -20,12 +15,7 @@ class FadeIn(Timeline):
         mobject: Mobject
     ) -> None:
         super().__init__(run_alpha=1.0)
-        #self._timeline: Timeline = mobject.animate(rewind=True).set(opacity=0.0).submit()
         self._mobject: Mobject = mobject
-        #super().__init__(
-        #    mobject=mobject,
-        #    func=lambda mob: func(mob.set(opacity=0.0))
-        #)
 
     async def construct(
         self: Self

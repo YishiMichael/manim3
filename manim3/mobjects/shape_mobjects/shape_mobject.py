@@ -9,9 +9,9 @@ from typing import (
 import numpy as np
 
 from ...animatables.animatable.animatable import AnimatableMeta
-from ...animatables.geometries.mesh import Mesh
-from ...animatables.geometries.shape import Shape
-from ...animatables.models.model import SetKwargs
+from ...animatables.mesh import Mesh
+from ...animatables.shape import Shape
+from ...animatables.model import SetKwargs
 from ...constants.custom_typing import (
     NP_x2f8,
     NP_x3i4
@@ -20,7 +20,6 @@ from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
-#from ..mesh_mobjects.meshes.shape_mesh import ShapeMesh
 
 
 class ShapeMobject(MeshMobject):

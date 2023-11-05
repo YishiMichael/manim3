@@ -5,12 +5,12 @@ from typing import Self
 
 import numpy as np
 
-from ...constants.constants import ORIGIN
-from ...constants.custom_typing import (
+from ..constants.constants import ORIGIN
+from ..constants.custom_typing import (
     NP_3f8,
     NP_x3f8
 )
-from ...lazy.lazy import Lazy
+from ..lazy.lazy import Lazy
 from .model import Model
 
 

@@ -12,7 +12,7 @@ import attrs
 import numpy as np
 import svgelements as se
 
-from ..animatables.geometries.shape import Shape
+from ..animatables.shape import Shape
 from ..constants.custom_typing import (
     NP_2f8,
     NP_x2f8

@@ -114,44 +114,6 @@ class SpaceUtils:
     ) -> np.ndarray:
         return (1.0 - alpha) * tensor_0 + alpha * tensor_1
 
-    #@overload
-    #@classmethod
-    #def apply_affine(
-    #    cls: type[Self],
-    #    matrix: NP_44f8,
-    #    vector: NP_3f8
-    #) -> NP_3f8: ...
-
-    #@overload
-    #@classmethod
-    #def apply_affine(
-    #    cls: type[Self],
-    #    matrix: NP_44f8,
-    #    vector: NP_x3f8
-    #) -> NP_x3f8: ...
-
-    ## TODO: split
-    #@classmethod
-    #def apply_affine(
-    #    cls: type[Self],
-    #    matrix: NP_44f8,
-    #    vector: NP_3f8 | NP_x3f8
-    #) -> NP_3f8 | NP_x3f8:
-    #    if vector.ndim == 1:
-    #        v = vector[:, None]
-    #    else:
-    #        v = vector[:, :].T
-    #    v = np.concatenate((v, np.ones((1, v.shape[1]))))
-    #    v = matrix @ v
-    #    if not np.allclose(v[-1], 1.0):
-    #        v /= v[-1]
-    #    v = v[:-1]
-    #    if vector.ndim == 1:
-    #        result = v.squeeze(axis=1)
-    #    else:
-    #        result = v.T
-    #    return result
-
     @classmethod
     def increase_dimension(
         cls: type[Self],

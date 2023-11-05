@@ -5,17 +5,17 @@ from typing import Self
 
 import numpy as np
 
-from ...constants.custom_typing import (
+from ..constants.custom_typing import (
     NP_x2f8,
     NP_x3f8,
     NP_x3i4
 )
-from ...lazy.lazy import Lazy
-from ...rendering.buffers.attributes_buffer import AttributesBuffer
-from ...rendering.buffers.index_buffer import IndexBuffer
-from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
-from ...rendering.mgl_enums import PrimitiveMode
-from ..animatable.animatable import Animatable
+from ..lazy.lazy import Lazy
+from ..rendering.buffers.attributes_buffer import AttributesBuffer
+from ..rendering.buffers.index_buffer import IndexBuffer
+from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
+from ..rendering.mgl_enums import PrimitiveMode
+from .animatable.animatable import Animatable
 
 
 class Mesh(Animatable):
@@ -85,26 +85,3 @@ class Mesh(Animatable):
             ),
             mode=PrimitiveMode.TRIANGLES
         )
-
-    #@classmethod
-    #def _interpolate(
-    #    cls: type[Self],
-    #    src_0: Self,
-    #    src_1: Self
-    #) -> Never:
-    #    raise NotImplementedError
-
-    #@classmethod
-    #def _split(
-    #    cls: type[Self],
-    #    src: Self,
-    #    alphas: NP_xf8
-    #) -> Never:
-    #    raise NotImplementedError
-
-    #@classmethod
-    #def _concatenate(
-    #    cls: type[Self],
-    #    srcs: tuple[Self, ...]
-    #) -> Never:
-    #    raise NotImplementedError

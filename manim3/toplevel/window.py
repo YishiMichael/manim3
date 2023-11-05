@@ -142,23 +142,13 @@ class Window:
             # Keep a strong reference to the handler object, as per
             # `https://pyglet.readthedocs.io/en/latest/programming_guide/events.html#stacking-event-handlers`.
             handlers = WindowHandlers()
-            pyglet_window.push_handlers(handlers)
+            pyglet_window.push_handlers(handlers)  # TODO: not working
         else:
             pyglet_window = None
 
         self._pyglet_window: PygletWindow | None = pyglet_window
         self._event_queue: list[Event] = []
         self._recent_event: Event | None = None
-
-    #def __enter__(self):
-    #    return self
-
-    #def __exit__(
-    #    self,
-    #    *args,
-    #    **kwargs
-    #) -> None:
-    #    self.close()
 
     @property
     def pyglet_window(

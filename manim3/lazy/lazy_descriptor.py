@@ -129,7 +129,6 @@ class LazyDescriptor[T, DataT]:
         "_element_memoization",
         "_name",
         "_parameter_name_chains",
-        #"_is_leaf",
         "_decomposer",
         "_composer",
         "_hasher",
@@ -142,22 +141,10 @@ class LazyDescriptor[T, DataT]:
         method: Callable[..., DataT],
         is_property: bool,
         plural: bool,
-        #hasher: Callable[[T], Hashable],
-        #freezer: Callable[[T], None],
         freeze: bool,
         deepcopy: bool,
         cache_capacity: int
     ) -> None:
-        #assert hasher is id or freeze
-        #method = method.__func__
-        #name = method.__name__
-        #assert name.startswith("_") and name.endswith("_") and "__" not in name
-        #parameter_name_chains = tuple(
-        #    tuple(f"_{name_body}_" for name_body in parameter_name.split("__"))
-        #    for parameter_name in inspect.getargs(method.__code__).args
-        #)
-        #assert not is_property or not parameter_name_chains
-
         super().__init__()
         self._method: Callable[..., DataT] = method
         self._is_property: bool = is_property
@@ -169,7 +156,6 @@ class LazyDescriptor[T, DataT]:
         self._element_memoization: Memoization[Hashable, T] = Memoization()
         self._name: str = NotImplemented
         self._parameter_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
-        #self._is_leaf: bool = NotImplemented
         self._decomposer: Callable[[DataT], tuple[T, ...]] = NotImplemented
         self._composer: Callable[[tuple[T, ...]], DataT] = NotImplemented
         self._hasher: Callable[[T], Hashable] = NotImplemented
@@ -179,16 +165,16 @@ class LazyDescriptor[T, DataT]:
     @overload
     def __get__(
         self: Self,
-        instance: None,
+        instance: LazyObject,
         owner: type[LazyObject] | None = None
-    ) -> Self: ...
+    ) -> DataT: ...
 
     @overload
     def __get__(
         self: Self,
-        instance: LazyObject,
+        instance: None,
         owner: type[LazyObject] | None = None
-    ) -> DataT: ...
+    ) -> Self: ...
 
     def __get__(
         self: Self,
@@ -211,30 +197,6 @@ class LazyDescriptor[T, DataT]:
         instance: LazyObject
     ) -> Never:
         raise TypeError("Cannot delete attributes of a lazy object")
-
-    #@classmethod
-    #@property
-    #@abstractmethod
-    #def _plural(
-    #    cls: type[Self]
-    #) -> bool:
-    #    pass
-
-    #@classmethod
-    #@abstractmethod
-    #def _decomposer(
-    #    cls: type[Self],
-    #    data: DataT
-    #) -> tuple[T, ...]:
-    #    pass
-
-    #@classmethod
-    #@abstractmethod
-    #def _composer(
-    #    cls: type[Self],
-    #    elements: tuple[T, ...]
-    #) -> DataT:
-    #    pass
 
     def _memoize_parameter_key(
         self: Self,
@@ -296,7 +258,6 @@ class LazyDescriptor[T, DataT]:
                 memoized_elements = self._memoize_elements(self._decomposer(self._method(*(
                     tree.as_tuple_tree() for tree in trees
                 ))))
-                #if self._freeze:
                 self._cache.set(memoized_parameter_key, memoized_elements)
             slot.set(
                 elements=memoized_elements,
@@ -324,54 +285,3 @@ class LazyDescriptor[T, DataT]:
             parameter_key=None,
             associated_slots=set()
         )
-
-
-#class LazySingularDescriptor[T](LazyDescriptor[T, T]):
-#    __slots__ = ()
-
-#    @classmethod
-#    @property
-#    def _plural(
-#        cls: type[Self]
-#    ) -> bool:
-#        return False
-
-#    @classmethod
-#    def _decomposer(
-#        cls: type[Self],
-#        data: T
-#    ) -> tuple[T, ...]:
-#        return (data,)
-
-#    @classmethod
-#    def _composer(
-#        cls: type[Self],
-#        elements: tuple[T, ...]
-#    ) -> T:
-#        (element,) = elements
-#        return element
-
-
-#class LazyPluralDescriptor[T](LazyDescriptor[T, tuple[T, ...]]):
-#    __slots__ = ()
-
-#    @classmethod
-#    @property
-#    def _plural(
-#        cls: type[Self]
-#    ) -> bool:
-#        return True
-
-#    @classmethod
-#    def _decomposer(
-#        cls: type[Self],
-#        data: tuple[T, ...]
-#    ) -> tuple[T, ...]:
-#        return data
-
-#    @classmethod
-#    def _composer(
-#        cls: type[Self],
-#        elements: tuple[T, ...]
-#    ) -> tuple[T, ...]:
-#        return elements

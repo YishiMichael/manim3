@@ -6,7 +6,7 @@ from typing import Self
 from ...animatables.animatable.animatable import AnimatableMeta
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
-from ...animatables.geometries.graph import Graph
+from ...animatables.graph import Graph
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,

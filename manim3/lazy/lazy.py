@@ -97,19 +97,14 @@ variable `T`) should be consistent between descriptors.
 
 
 from typing import (
-    Any,
     Callable,
-    Hashable,
     Literal,
     Never,
     Self,
     overload
 )
 
-import numpy as np
-
 from .lazy_descriptor import LazyDescriptor
-from .lazy_object import LazyObject
 
 
 class Lazy:
@@ -126,11 +121,6 @@ class Lazy:
         cls: type[Self],
         *,
         plural: Literal[False] = False
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
-        #deepcopy: bool = True
-        #cache_capacity: int
     ) -> Callable[[Callable[[], T]], LazyDescriptor[T, T]]: ...
 
     @overload
@@ -139,11 +129,6 @@ class Lazy:
         cls: type[Self],
         *,
         plural: Literal[True]
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
-        #deepcopy: bool = True
-        #cache_capacity: int
     ) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]: ...
 
     @classmethod
@@ -151,11 +136,6 @@ class Lazy:
         cls: type[Self],
         *,
         plural: bool = False
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
-        #deepcopy: bool = True
-        #cache_capacity: int = 1
     ) -> Callable[[Callable], LazyDescriptor]:
 
         def result(
@@ -166,8 +146,6 @@ class Lazy:
                 method=method.__func__,
                 is_property=False,
                 plural=plural,
-                #hasher=hasher,
-                #freezer=cls.lazy_freezer,
                 freeze=True,
                 deepcopy=False,
                 cache_capacity=1
@@ -181,11 +159,7 @@ class Lazy:
         cls: type[Self],
         *,
         plural: Literal[False] = False,
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
         deepcopy: bool = True
-        #cache_capacity: int
     ) -> Callable[[Callable[[], T]], LazyDescriptor[T, T]]: ...
 
     @overload
@@ -194,11 +168,7 @@ class Lazy:
         cls: type[Self],
         *,
         plural: Literal[True],
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
         deepcopy: bool = True
-        #cache_capacity: int
     ) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]: ...
 
     @classmethod
@@ -206,11 +176,7 @@ class Lazy:
         cls: type[Self],
         *,
         plural: bool = False,
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
         deepcopy: bool = True
-        #cache_capacity: int = 1
     ) -> Callable[[Callable], LazyDescriptor]:
 
         def result(
@@ -221,8 +187,6 @@ class Lazy:
                 method=method.__func__,
                 is_property=False,
                 plural=plural,
-                #hasher=hasher,
-                #freezer=cls.lazy_freezer,
                 freeze=False,
                 deepcopy=deepcopy,
                 cache_capacity=0
@@ -236,10 +200,6 @@ class Lazy:
         cls: type[Self],
         *,
         plural: Literal[False] = False,
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool,
-        #deepcopy: bool,
         cache_capacity: int = 128
     ) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]: ...
 
@@ -249,10 +209,6 @@ class Lazy:
         cls: type[Self],
         *,
         plural: Literal[True],
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool,
-        #deepcopy: bool,
         cache_capacity: int = 128
     ) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]: ...
 
@@ -261,10 +217,6 @@ class Lazy:
         cls: type[Self],
         *,
         plural: bool = False,
-        #is_variable: bool,
-        #hasher: Callable[..., Hashable],
-        #freeze: bool = True,
-        #deepcopy: bool = False,
         cache_capacity: int = 128
     ) -> Callable[[Callable], LazyDescriptor]:
 
@@ -276,154 +228,9 @@ class Lazy:
                 method=method.__func__,
                 is_property=True,
                 plural=plural,
-                #hasher=hasher,
-                #freezer=cls.lazy_freezer,
                 freeze=True,
                 deepcopy=False,
                 cache_capacity=cache_capacity
             )
 
         return result
-
-    #@classmethod
-    #def _singular_descriptor[T](
-    #    cls: type[Self],
-    #    is_variable: bool,
-    #    #hasher: Callable[..., Hashable],
-    #    freeze: bool,
-    #    deepcopy: bool,
-    #    cache_capacity: int
-    #) -> Callable[[Callable[..., T]], LazySingularDescriptor[T]]:
-
-    #    def result(
-    #        method: Callable[[], T]
-    #    ) -> LazySingularDescriptor[T]:
-    #        assert isinstance(method, staticmethod)
-    #        return LazySingularDescriptor(
-    #            method=method.__func__,
-    #            is_variable=is_variable,
-    #            #hasher=hasher,
-    #            #freezer=cls.lazy_freezer,
-    #            freeze=freeze,
-    #            deepcopy=deepcopy,
-    #            cache_capacity=cache_capacity
-    #        )
-
-    #    return result
-
-    #@classmethod
-    #def _plural_descriptor[T](
-    #    cls: type[Self],
-    #    is_variable: bool,
-    #    #hasher: Callable[..., Hashable],
-    #    freeze: bool,
-    #    deepcopy: bool,
-    #    cache_capacity: int
-    #) -> Callable[[Callable[..., tuple[T, ...]]], LazyPluralDescriptor[T]]:
-
-    #    def result(
-    #        method: Callable[[], tuple[T, ...]]
-    #    ) -> LazyPluralDescriptor[T]:
-    #        assert isinstance(method, staticmethod)
-    #        return LazyPluralDescriptor(
-    #            method=method.__func__,
-    #            is_variable=is_variable,
-    #            #hasher=hasher,
-    #            #freezer=cls.lazy_freezer,
-    #            freeze=freeze,
-    #            deepcopy=deepcopy,
-    #            cache_capacity=cache_capacity
-    #        )
-
-    #    return result
-
-    #@classmethod
-    #def variable[T](
-    #    cls: type[Self],
-    #    #hasher: Callable[..., Hashable] = id,
-    #    freeze: bool = False,
-    #    deepcopy: bool = True,
-    #) -> Callable[[Callable[[], T]], LazyDescriptor[T, T]]:
-    #    return cls._descriptor(
-    #        plural=False,
-    #        is_variable=True,
-    #        #hasher=hasher,
-    #        freeze=freeze,
-    #        deepcopy=deepcopy,
-    #        cache_capacity=1
-    #    )
-
-    #@classmethod
-    #def variable_collection[T](
-    #    cls: type[Self],
-    #    #hasher: Callable[..., Hashable] = id,
-    #    freeze: bool = False,
-    #    deepcopy: bool = True
-    #) -> Callable[[Callable[[], tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]:
-    #    return cls._descriptor(
-    #        plural=True,
-    #        is_variable=True,
-    #        #hasher=hasher,
-    #        freeze=freeze,
-    #        deepcopy=deepcopy,
-    #        cache_capacity=1
-    #    )
-
-    #@classmethod
-    #def property[T](
-    #    cls: type[Self],
-    #    #hasher: Callable[..., Hashable] = id,
-    #    #deepcopy: bool = True,
-    #    cache_capacity: int = 128
-    #) -> Callable[[Callable[..., T]], LazyDescriptor[T, T]]:
-    #    return cls._descriptor(
-    #        plural=False,
-    #        is_variable=False,
-    #        #hasher=hasher,
-    #        freeze=True,
-    #        deepcopy=False,
-    #        cache_capacity=cache_capacity
-    #    )
-
-    #@classmethod
-    #def property_collection[T](
-    #    cls: type[Self],
-    #    #hasher: Callable[..., Hashable] = id,
-    #    #deepcopy: bool = True,
-    #    cache_capacity: int = 128
-    #) -> Callable[[Callable[..., tuple[T, ...]]], LazyDescriptor[T, tuple[T, ...]]]:
-    #    return cls._descriptor(
-    #        plural=True,
-    #        is_variable=False,
-    #        #hasher=hasher,
-    #        freeze=True,
-    #        deepcopy=False,
-    #        cache_capacity=cache_capacity
-    #    )
-
-    #@staticmethod
-    #def naive_hasher(
-    #    element: Hashable
-    #) -> Hashable:
-    #    return element
-
-    #@staticmethod
-    #def array_hasher(
-    #    element: np.ndarray
-    #) -> Hashable:
-    #    return (element.shape, element.dtype, element.tobytes())
-
-    #@classmethod
-    #def lazy_freezer(
-    #    cls: type[Self],
-    #    element: Any
-    #) -> None:
-    #    if not isinstance(element, LazyObject):
-    #        return
-    #    if element._is_frozen:
-    #        return
-    #    element._is_frozen = True
-    #    for descriptor in type(element)._lazy_descriptors:
-    #        descriptor.get_slot(element).disable_writability()
-    #        for child_element in descriptor.get_elements(element):
-    #            cls.lazy_freezer(child_element)

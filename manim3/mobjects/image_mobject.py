@@ -8,7 +8,6 @@ from PIL import Image
 
 from ..toplevel.toplevel import Toplevel
 from ..utils.space_utils import SpaceUtils
-#from .mesh_mobjects.meshes.plane_mesh import PlaneMesh
 from .mesh_mobjects.plane import Plane
 
 

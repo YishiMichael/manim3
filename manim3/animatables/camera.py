@@ -6,30 +6,25 @@ from typing import Self
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-
-from ...constants.constants import (
+from ..constants.constants import (
     ORIGIN,
     OUT,
     RIGHT,
     UP
 )
-from ...constants.custom_typing import (
+from ..constants.custom_typing import (
     NP_2f8,
     NP_3f8,
     NP_44f8,
     NP_f8
-    #NP_x3f8
 )
-from ...lazy.lazy import Lazy
-from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...toplevel.toplevel import Toplevel
-from ...utils.space_utils import SpaceUtils
-from ..animatable.animatable import AnimatableMeta
-from ..arrays.animatable_float import AnimatableFloat
-from ..models.model import Model
-#from ..mobject.remodel_handlers.rotate_remodel_handler import RotateRemodelHandler
-#from ..mobject.remodel_handlers.shift_remodel_handler import ShiftRemodelHandler
-#from ..mobject.mobject import Mobject
+from ..lazy.lazy import Lazy
+from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ..toplevel.toplevel import Toplevel
+from ..utils.space_utils import SpaceUtils
+from .animatable.animatable import AnimatableMeta
+from .arrays.animatable_float import AnimatableFloat
+from .model import Model
 
 
 class Camera(Model):
@@ -66,17 +61,6 @@ class Camera(Model):
 
     @Lazy.property()
     @staticmethod
-    def _projection_matrix_() -> NP_44f8:
-        # Implemented in subclasses.
-        return np.identity(4)
-
-    #@Lazy.property()
-    #@staticmethod
-    #def _local_sample_positions_() -> NP_x3f8:
-    #    return np.array((OUT,))
-
-    @Lazy.property()
-    @staticmethod
     def _target_(
         model_matrix__array: NP_44f8
     ) -> NP_3f8:
@@ -110,6 +94,26 @@ class Camera(Model):
 
     @Lazy.property()
     @staticmethod
+    def _projection_matrix_(
+        frame_radii: NP_2f8,
+        near__array: NP_f8,
+        far__array: NP_f8,
+        distance: NP_f8
+    ) -> NP_44f8:
+        near = near__array
+        far = far__array
+        sx, sy = distance / frame_radii
+        sz = -(far + near) / (far - near)
+        tz = -2.0 * far * near / (far - near)
+        return np.array((
+            ( sx, 0.0,  0.0, 0.0),
+            (0.0,  sy,  0.0, 0.0),
+            (0.0, 0.0,   sz,  tz),
+            (0.0, 0.0, -1.0, 0.0)
+        ))
+
+    @Lazy.property()
+    @staticmethod
     def _view_matrix_(
         model_matrix__array: NP_44f8,
         eye: NP_3f8
@@ -126,7 +130,6 @@ class Camera(Model):
     def _camera_uniform_block_buffer_(
         projection_matrix: NP_44f8,
         view_matrix: NP_44f8,
-        #eye: NP_3f8,
         frame_radii: NP_2f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
@@ -134,13 +137,11 @@ class Camera(Model):
             fields=[
                 "mat4 u_projection_matrix",
                 "mat4 u_view_matrix",
-                #"vec3 u_view_position",
                 "vec2 u_frame_radii"
             ],
             data={
                 "u_projection_matrix": projection_matrix.T,
                 "u_view_matrix": view_matrix.T,
-                #"u_view_position": eye,
                 "u_frame_radii": frame_radii
             }
         )

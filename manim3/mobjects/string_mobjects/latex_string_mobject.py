@@ -14,7 +14,6 @@ from ...toplevel.toplevel import Toplevel
 from .string_mobject import (
     BoundaryFlag,
     CommandFlag,
-    #StringMobject,
     StringMobjectIO,
     StringMobjectInput,
     StringMobjectKwargs
@@ -24,7 +23,6 @@ from .string_mobject import (
 @attrs.frozen(kw_only=True)
 class LatexStringMobjectInput(StringMobjectInput):
     font_size: float = attrs.field(factory=lambda: Toplevel.config.latex_font_size)
-    #local_spans: list[Span]
 
 
 class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
@@ -33,23 +31,6 @@ class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
 
 class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT]):
     __slots__ = ()
-
-    #@classmethod
-    #def _get_global_attrs(
-    #    cls: type[Self],
-    #    input_data: LatexStringMobjectInputT,
-    #    temp_path: pathlib.Path
-    #) -> dict[str, str]:
-    #    return {}
-
-    #@classmethod
-    #def _get_local_attrs(
-    #    cls: type[Self],
-    #    input_data: LatexStringMobjectInputT,
-    #    temp_path: pathlib.Path
-    #) -> dict[Span, dict[str, str]]:
-    #    local_spans = input_data.local_spans
-    #    return {span: {} for span in local_spans}
 
     @classmethod
     def _get_svg_frame_scale(
@@ -161,51 +142,3 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         r, g = divmod(rg, 256)
         color_command = f"\\color[RGB]{{{r}, {g}, {b}}}"
         return "{{" + color_command
-
-
-#class LatexStringMobject(StringMobject):
-#    __slots__ = ()
-
-#    def __init__(
-#        self: Self,
-#        string: str,
-#        **kwargs: Unpack[LatexStringMobjectKwargs]
-#    ) -> None:
-#        super().__init__(string, **kwargs)
-
-
-#class LatexStringMobject(StringMobject):
-#    __slots__ = ()
-
-#    def __init__(
-#        self: Self,
-#        string: str,
-#        *,
-#        isolate: Iterable[SelectorT] = (),
-#        protect: Iterable[SelectorT] = (),
-#        color: ColorT | None = None,
-#        font_size: float | None = None,
-#        local_colors: dict[SelectorT, ColorT] | None = None,
-#        **kwargs
-#    ) -> None:
-#        config = Toplevel.config
-#        if color is None:
-#            color = config.latex_color
-#        if font_size is None:
-#            font_size = config.latex_font_size
-#        if local_colors is None:
-#            local_colors = {}
-
-#        cls = type(self)
-#        super().__init__(
-#            string=string,
-#            isolate=cls._get_spans_by_selectors(isolate, string),
-#            protect=cls._get_spans_by_selectors(protect, string),
-#            font_size=font_size,
-#            local_spans=cls._get_spans_by_selectors(local_colors, string),
-#            **kwargs
-#        )
-
-#        self.set(color=color)
-#        for selector, local_color in local_colors.items():
-#            self.select_parts(selector).set(color=local_color)

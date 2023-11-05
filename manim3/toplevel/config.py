@@ -33,7 +33,7 @@ class Config:
     background_color: ColorT = Color("black")
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
-    graph_width: float = 0.1
+    graph_width: float = 0.05
 
     latex_font_size: float = 30
     tex_alignment: AlignmentT = "left"

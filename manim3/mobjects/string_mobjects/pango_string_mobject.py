@@ -38,16 +38,12 @@ class PangoAlignment(Enum):
 
 @attrs.frozen(kw_only=True)
 class PangoStringMobjectInput(StringMobjectInput):
-    #color: str
     font_size: float = attrs.field(factory=lambda: Toplevel.config.pango_font_size)
     alignment: AlignmentT = attrs.field(factory=lambda: Toplevel.config.pango_alignment)
     font: str = attrs.field(factory=lambda: Toplevel.config.pango_font)
     justify: bool = attrs.field(factory=lambda: Toplevel.config.pango_justify)
     indent: float = attrs.field(factory=lambda: Toplevel.config.pango_indent)
     line_width: float = attrs.field(factory=lambda: Toplevel.config.pango_line_width)
-    #global_config: dict[str, str]
-    #local_colors: dict[Span, str]
-    #local_configs: dict[Span, dict[str, str]]
 
 
 class PangoStringMobjectKwargs(StringMobjectKwargs, total=False):
@@ -93,31 +89,11 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         temp_path: pathlib.Path
     ) -> dict[str, str]:
         global_span_attrs = {
-            #"foreground": input_data.color,
             "font_size": str(round(input_data.font_size * 1024.0)),
             "font_family": input_data.font
         }
         global_span_attrs.update(super()._get_global_span_attrs(input_data, temp_path))
         return global_span_attrs
-        #global_attrs.update(input_data.global_config)
-        #return global_attrs
-
-    #@classmethod
-    #def _get_additional_local_span_attrs(
-    #    cls: type[Self],
-    #    input_data: PangoStringMobjectInputT,
-    #    temp_path: pathlib.Path
-    #) -> dict[Span, dict[str, str]]:
-    #    result = super()._get_additional_global_span_attrs(input_data, temp_path)
-    #    local_attrs = {
-    #        span: {
-    #            "foreground": local_color
-    #        }
-    #        for span, local_color in input_data.local_colors.items()
-    #    }
-    #    for span, local_config in input_data.local_configs.items():
-    #        local_attrs.setdefault(span, {}).update(local_config)
-    #    return local_attrs
 
     @classmethod
     def _create_svg(
@@ -264,73 +240,3 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         substr: str
     ) -> str:
         return cls._MARKUP_UNESCAPE_DICT.get(substr, substr)
-
-
-#class PangoStringMobject(StringMobject):
-#    __slots__ = ()
-
-#    def __init__(
-#        self: Self,
-#        string: str,
-#        *,
-#        isolate: Iterable[SelectorT] = (),
-#        protect: Iterable[SelectorT] = (),
-#        color: ColorT | None = None,
-#        font_size: float | None = None,
-#        alignment: AlignmentT | None = None,
-#        font: str | None = None,
-#        justify: bool | None = None,
-#        indent: float | None = None,
-#        line_width: float | None = None,
-#        global_config: dict[str, str] | None = None,
-#        local_colors: dict[SelectorT, ColorT] | None = None,
-#        local_configs: dict[SelectorT, dict[str, str]] | None = None,
-#        **kwargs
-#    ) -> None:
-#        config = Toplevel.config
-#        if color is None:
-#            color = config.pango_color
-#        if font_size is None:
-#            font_size = config.pango_font_size
-#        if alignment is None:
-#            alignment = config.pango_alignment
-#        if font is None:
-#            font = config.pango_font
-#        if justify is None:
-#            justify = config.pango_justify
-#        if indent is None:
-#            indent = config.pango_indent
-#        if line_width is None:
-#            line_width = config.pango_line_width
-#        if global_config is None:
-#            global_config = {}
-#        if local_colors is None:
-#            local_colors = {}
-#        if local_configs is None:
-#            local_configs = {}
-
-#        cls = type(self)
-#        super().__init__(
-#            string=string,
-#            isolate=cls._get_spans_by_selectors(isolate, string),
-#            protect=cls._get_spans_by_selectors(protect, string),
-#            color=ColorUtils.color_to_hex(color),
-#            font_size=font_size,
-#            alignment=alignment,
-#            font=font,
-#            justify=justify,
-#            indent=indent,
-#            line_width=line_width,
-#            global_config=global_config,
-#            local_colors={
-#                span: ColorUtils.color_to_hex(local_color)
-#                for selector, local_color in local_colors.items()
-#                for span in self._iter_spans_by_selector(selector, string)
-#            },
-#            local_configs={
-#                span: local_config
-#                for selector, local_config in local_configs.items()
-#                for span in self._iter_spans_by_selector(selector, string)
-#            },
-#            **kwargs
-#        )

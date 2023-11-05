@@ -45,17 +45,3 @@ class Text(StringMobject):
         **kwargs: Unpack[TextKwargs]
     ) -> None:
         super().__init__(TextIO.get(TextInput(string=string, **kwargs)))
-
-    #@classmethod
-    #@property
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[TextIO]:
-    #    return TextIO
-
-    #@classmethod
-    #@property
-    #def _input_data_cls(
-    #    cls: type[Self]
-    #) -> type[TextInputData]:
-    #    return TextInputData

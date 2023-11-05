@@ -21,22 +21,7 @@ class StructuredBufferFormat(BufferFormat):
         offsets: tuple[int, ...],
         itemsize: int,
         base_alignment: int
-        #children: list[BufferFormat],
-        #layout: BufferLayout
     ) -> None:
-        #if layout == BufferLayout.STD140:
-        #    base_alignment = 16
-        #else:
-        #    base_alignment = 1
-
-        #offsets: list[int] = []
-        #offset: int = 0
-        #for child in children:
-        #    offset += (-offset) % child._base_alignment_
-        #    offsets.append(offset)
-        #    offset += child._nbytes_
-        #offset += (-offset) % base_alignment
-
         super().__init__(
             name=name,
             shape=shape

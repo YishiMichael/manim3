@@ -2,11 +2,9 @@ from __future__ import annotations
 
 
 from ...lazy.lazy import Lazy
-#from ..mobject.mobject import Mobject
-#from ..mobject.mobject_attributes.color_attribute import ColorAttribute
 from ..animatable.animatable import AnimatableMeta
 from ..arrays.animatable_color import AnimatableColor
-from ..models.point import Point
+from ..point import Point
 
 
 class AmbientLight(Point):

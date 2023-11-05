@@ -120,24 +120,6 @@ class Tex(StringMobject):
     def __init__(
         self: Self,
         string: str,
-        #*,
-        #alignment: AlignmentT | None = None,
-        #compiler: str | None = None,
-        #preambles: Iterable[str] | None = None,
         **kwargs: Unpack[TexKwargs]
     ) -> None:
         super().__init__(TexIO.get(TexInput(string=string, **kwargs)))
-
-    #@classmethod
-    #@property
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[TexIO]:
-    #    return TexIO
-
-    #@classmethod
-    #@property
-    #def _input_data_cls(
-    #    cls: type[Self]
-    #) -> type[TexInputData]:
-    #    return TexInputData

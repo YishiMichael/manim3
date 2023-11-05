@@ -5,12 +5,12 @@ from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
-    #ClassVar,
     Iterator,
     Never,
     Protocol,
     Self,
-    overload
+    overload,
+    override
 )
 
 if TYPE_CHECKING:
@@ -24,27 +24,11 @@ if TYPE_CHECKING:
 class Actions:
     __slots__ = ()
 
-    #def __new__(
-    #    cls: type[Self]
-    #) -> Never:
-    #    raise TypeError
-
-    #_action_descriptor_cls_dict: ClassVar[dict[ActionDescriptor, type[Actions]]] = {}
-
-    #def __init_subclass__(
-    #    cls: type[Self]
-    #) -> None:
-    #    super().__init_subclass__()
-    #    cls._action_descriptor_cls_dict.update({
-    #        descriptor: cls
-    #        for descriptor in cls.__dict__.items()
-    #        if isinstance(descriptor, ActionDescriptor)
-    #    })
-
 
 class ActionMeta:
     __slots__ = ()
 
+    @override
     def __new__(
         cls: type[Self]
     ) -> Never:
@@ -65,39 +49,13 @@ class ActionDescriptor[ActionsT: Actions, StaticT: Animatable, **P]:
         "_method"
     )
 
+    @override
     def __init__(
         self: Self,
         method: ActionMethodProtocol[ActionsT, StaticT, P]
     ) -> None:
-
-        #def static_action_method(
-        #    dst: StaticT,
-        #    *args: P.args,
-        #    **kwargs: P.kwargs
-        #) -> StaticT:
-        #    for animation in method(type(dst), dst, *args, **kwargs):
-        #        animation.update_boundary(1)
-        #    return dst
-
-        #def dynamic_action_method(
-        #    dst: DynamicT,
-        #    *args: P.args,
-        #    **kwargs: P.kwargs
-        #) -> DynamicT:
-        #    dst._animations.extend(method(type(dst._animatable), dst, *args, **kwargs))
-        #    return dst
-
         super().__init__()
         self._method: ActionMethodProtocol[ActionsT, StaticT, P] = method
-        #self._static_action_method: StaticActionMethodProtocol[StaticT, P] = static_action_method
-        #self._dynamic_action_method: DynamicActionMethodProtocol[DynamicT, P] = dynamic_action_method
-
-    @overload
-    def __get__(
-        self: Self,
-        instance: None,
-        owner: type[ActionsT] | None
-    ) -> ActionBoundMethodProtocol[StaticT, P]: ...
 
     @overload
     def __get__[InstanceStaticT: Animatable](
@@ -112,6 +70,13 @@ class ActionDescriptor[ActionsT: Actions, StaticT: Animatable, **P]:
         instance: InstanceDynamicT,
         owner: type[ActionsT] | None
     ) -> DynamicActionBoundMethodProtocol[InstanceDynamicT, P]: ...
+
+    @overload
+    def __get__(
+        self: Self,
+        instance: None,
+        owner: type[ActionsT] | None
+    ) -> ActionBoundMethodProtocol[StaticT, P]: ...
 
     def __get__(
         self: Self,

@@ -17,15 +17,3 @@ class AnimatableFloat(AnimatableArray[NP_f8]):
         value: float
     ) -> None:
         super().__init__(np.asarray(value, dtype=np.float64))
-
-    #@Lazy.variable()
-    #@staticmethod
-    #def _array_() -> NP_f8:
-    #    return np.zeros(())
-
-    #@classmethod
-    #def _convert_input(
-    #    cls: type[Self],
-    #    float_input: float
-    #) -> Self:
-    #    return AnimatableFloat(float_input)

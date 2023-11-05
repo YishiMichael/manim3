@@ -1,7 +1,6 @@
 layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
     mat4 u_view_matrix;
-    //vec3 u_view_position;
     vec2 u_frame_radii;
 };
 layout (std140) uniform ub_model {
@@ -28,10 +27,8 @@ out VS_GS {
 
 
 void main() {
-    //vs_out.view_position = u_projection_matrix * u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
     vec4 view_position = u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
     vs_out.view_position = view_position.xyz / view_position.w;
-    //gl_Position = u_projection_matrix * view_position;
 }
 
 
@@ -106,20 +103,6 @@ void emit_parallelepiped(vec3 origin, vec3 radius_x, vec3 radius_y, vec3 radius_
 }
 
 
-//vec2 get_position_2d(vec4 view_position) {
-//    return view_position.xy / view_position.w * u_frame_radii;
-//}
-
-
-//void emit_position_2d(vec2 position, float x0, float x1, float y) {
-//    gs_out.x0 = x0;
-//    gs_out.x1 = x1;
-//    gs_out.y = y;
-//    gl_Position = vec4(position / u_frame_radii, 0.0, 1.0);
-//    EmitVertex();
-//}
-
-
 void main() {
     vec3 position_0 = gs_in[0].view_position;
     vec3 position_1 = gs_in[1].view_position;
@@ -145,18 +128,6 @@ void main() {
         u_width * j_hat / 2.0,
         (u_width + vector_length) * k_hat / 2.0
     );
-    //const float half_width = u_width / 2.0;
-    //mat2 offset_transform = half_width * mat2(
-    //    unit_vector.x, unit_vector.y,
-    //    -unit_vector.y, unit_vector.x
-    //);
-    //float x_min = -1.0;
-    //float x_max = vector_length / half_width + 1.0;
-    //emit_position_2d(position_0 + offset_transform * vec2(-1.0, +1.0), x_min, x_max, +1.0);
-    //emit_position_2d(position_0 + offset_transform * vec2(-1.0, -1.0), x_min, x_max, -1.0);
-    //emit_position_2d(position_1 + offset_transform * vec2(+1.0, +1.0), x_max, x_min, +1.0);
-    //emit_position_2d(position_1 + offset_transform * vec2(+1.0, -1.0), x_max, x_min, -1.0);
-    //EndPrimitive();
 }
 
 
@@ -183,14 +154,6 @@ float integate(float u) {
 
 
 float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_r, float radius) {
-    //float s = sqrt(1.0 - y * y);
-    //if (x0 + s <= 0.0 || x1 + s <= 0.0) {
-    //    return 0.0;
-    //}
-    //float r0 = min(x0, s);
-    //float r1 = min(x1, s);
-    //return (3.0 * s * s * (r0 + r1) - (r0 * r0 * r0 + r1 * r1 * r1)) / 4.0;
-
     vec3 pc = (position_0 + position_1) / 2.0;
     vec3 pd = (position_1 - position_0) / 2.0;
     vec3 pr = position_r;

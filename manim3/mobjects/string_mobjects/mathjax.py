@@ -56,7 +56,7 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
             "node",
             f"\"{mathjax_program_path}\"",
             f"--tex=\"{full_content}\"",
-            f"--extensions=\"{' '.join(input_data.extensions)}\"",
+            f"--extensions=\"{" ".join(input_data.extensions)}\"",
             f"--inline={input_data.inline}",
             f"--path=\"{svg_path}\"",
             ">", os.devnull
@@ -77,35 +77,9 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
 class MathJax(StringMobject):
     __slots__ = ()
 
-    #_settings_dataclass: ClassVar[type[MathJaxInputSettings]] = MathJaxInputSettings
-    #_io_cls: ClassVar[type[MathJaxIO]] = MathJaxIO
-
     def __init__(
         self: Self,
         string: str,
-        #*,
-        #extensions: list[str] | None = None,
-        #inline: bool | None = None,
         **kwargs: Unpack[MathJaxKwargs]
     ) -> None:
-        #config = Toplevel.config
-        #if extensions is None:
-        #    extensions = config.mathjax_extensions
-        #if inline is None:
-        #    inline = config.mathjax_inline
-
         super().__init__(MathJaxIO.get(MathJaxInput(string=string, **kwargs)))
-
-    #@classmethod
-    #@property
-    #def _io_cls(
-    #    cls: type[Self]
-    #) -> type[MathJaxIO]:
-    #    return MathJaxIO
-
-    #@classmethod
-    #@property
-    #def _input_data_cls(
-    #    cls: type[Self]
-    #) -> type[MathJaxInputData]:
-    #    return MathJaxInputData

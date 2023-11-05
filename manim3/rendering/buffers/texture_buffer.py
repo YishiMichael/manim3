@@ -19,7 +19,7 @@ class TextureBuffer(Buffer):
         *,
         field: str,
         array_lens: dict[str, int] | None = None,
-        # Note, redundant textures are currently not supported.
+        # Note, each texture should occur only once.
         texture_array: np.ndarray
     ) -> None:
         replaced_field = re.sub(r"^sampler2D\b", "uint", field)
