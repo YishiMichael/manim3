@@ -183,7 +183,7 @@ class BezierRate(Rate):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         values: NP_xf8
     ) -> None:
         super().__init__()

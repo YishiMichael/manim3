@@ -277,7 +277,7 @@ class Registration[K: Hashable, V]:
     )
 
     def __init__(
-        self,
+        self: Self,
         match_key: Callable[[K, K], bool]
     ) -> None:
         super().__init__()
@@ -298,7 +298,7 @@ class Registration[K: Hashable, V]:
         return result
 
     def fetch(
-        self,
+        self: Self,
         key: K
     ) -> V:
         for registered_key, value in self._registration.items():

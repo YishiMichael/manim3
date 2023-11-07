@@ -167,7 +167,7 @@ class ReplacementRecord:
     )
 
     def __init__(
-        self,
+        self: Self,
         span: Span
     ) -> None:
         super().__init__()
@@ -189,7 +189,7 @@ class InsertionRecord(ReplacementRecord):
     __slots__ = ()
 
     def __init__(
-        self,
+        self: Self,
         index: int
     ) -> None:
         super().__init__(Span(index, index))
@@ -322,7 +322,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     for replacement_record in replacement_records
                 )
             ),
-            concatenate=input_data.concatenate,
             requires_labelling=len(isolated_items) > 1,
             input_data=input_data,
             temp_path=temp_path
@@ -375,13 +374,12 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         cls: type[Self],
         unlabelled_content: str,
         labelled_content: str,
-        concatenate: bool,
         requires_labelling: bool,
         input_data: StringMobjectInputT,
         temp_path: pathlib.Path
     ) -> Iterator[tuple[ShapeMobject, int]]:
         unlabelled_shape_mobjects = cls._get_shape_mobjects(unlabelled_content, input_data, temp_path)
-        if concatenate:
+        if input_data.concatenate:
             yield ShapeMobject(Shape().concatenate(tuple(
                 shape_mobject._shape_ for shape_mobject in unlabelled_shape_mobjects
             ))), 0

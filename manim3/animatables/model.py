@@ -71,6 +71,10 @@ class SetKwargs(TypedDict, total=False):
     graph: Graph
     width: float
 
+    # Camera
+    near: float
+    far: float
+
 
 class Box(LazyObject):
     __slots__ = ()
@@ -108,7 +112,7 @@ class Box(LazyObject):
         maximum: NP_3f8,
         minimum: NP_3f8
     ) -> NP_3f8:
-        return np.maximum((maximum - minimum) / 2.0, 1e-8)  # Avoid 0-divisions.
+        return np.maximum((maximum - minimum) / 2.0, 1e-8)  # Avoid zero-divisions.
 
     def get(
         self: Self,

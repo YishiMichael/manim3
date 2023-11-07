@@ -87,7 +87,7 @@ class AnimationsTimeline(Timeline):
         self._animations: list[Animation] = []
 
     def update(
-        self,
+        self: Self,
         time: float
     ) -> None:
         alpha = self._rate.at(time)

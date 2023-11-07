@@ -156,14 +156,14 @@ class Mobject(Model):
         self: Self,
         *mobjects: Mobject
     ) -> Self:
-        filtered_mobjects = [
+        filtered_mobjects = tuple(
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject not in self._children
-        ]
-        if (invalid_mobjects := [
+        )
+        if (invalid_mobjects := tuple(
             mobject for mobject in filtered_mobjects
             if mobject in self.iter_ancestors()
-        ]):
+        )):
             raise ValueError(f"Circular relationship occurred when adding {invalid_mobjects} to {self}")
         children = list(self._children)
         for mobject in filtered_mobjects:
@@ -177,10 +177,10 @@ class Mobject(Model):
         self: Self,
         *mobjects: Mobject
     ) -> Self:
-        filtered_mobjects = [
+        filtered_mobjects = tuple(
             mobject for mobject in dict.fromkeys(mobjects)
             if mobject in self._children
-        ]
+        )
         children = list(self._children)
         for mobject in filtered_mobjects:
             children.remove(mobject)
