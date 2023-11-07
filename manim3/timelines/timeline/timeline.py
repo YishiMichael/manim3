@@ -63,32 +63,6 @@ class AbsoluteRate(BaseAbsoluteRate):
         return self._rate.at((self._parent_absolute_rate.at() - self._initial_alpha) / self._run_time_scale) * self._run_alpha_scale
 
 
-#class ScaledRate(Rate):
-#    __slots__ = (
-#        "_rate",
-#        "_run_time_scale",
-#        "_run_alpha_scale"
-#    )
-
-#    def __init__(
-#        self,
-#        rate: Rate,
-#        run_time_scale: float,
-#        run_alpha_scale: float
-#    ) -> None:
-#        assert run_time_scale > 0.0 and run_alpha_scale > 0.0
-#        super().__init__(is_increasing=rate._is_increasing)
-#        self._rate: Rate = rate
-#        self._run_time_scale: float = run_time_scale
-#        self._run_alpha_scale: float = run_alpha_scale
-
-#    def at(
-#        self,
-#        t: float
-#    ) -> float:
-#        return self._rate.at(t / self._run_time_scale) * self._run_alpha_scale
-
-
 @attrs.frozen(kw_only=True)
 class ScheduleInfo:
     parent_absolute_rate: BaseAbsoluteRate
@@ -196,15 +170,6 @@ class Timeline(ABC):
         "_run_alpha",
         "_schedule_info",
         "_timeline_state"
-        #"_timeline_state",
-        #"_parent_absolute_rate",
-        #"_relative_rate",
-        #"_launch_condition",
-        #"_terminate_condition",
-        #"_absolute_rate",
-        #"_progress_condition",
-        #"_children",
-        #"_construct_coroutine"
     )
 
     def __init__(
@@ -217,54 +182,19 @@ class Timeline(ABC):
     ) -> None:
         super().__init__()
         self._run_alpha: float = run_alpha
-
-        # To be initialized when scheduled.
         self._schedule_info: ScheduleInfo | None = None
         self._timeline_state: TimelineState | None = None
-
-        #self._timeline_state: TimelineState = TimelineState.UNSCHEDULED
-        ## Alive in `TimelineState.BEFORE_LAUNCHED`, `TimelineState.PROGRESSING`.
-        #self._parent_absolute_rate: Rate | None = None
-        #self._relative_rate: Rate | None = None
-        #self._launch_condition: Condition | None = None
-        #self._terminate_condition: Condition | None = None
-        ## Alive in `TimelineState.PROGRESSING`.
-        #self._absolute_rate: Rate | None = None
-        #self._progress_condition: Condition | None = None
-        #self._children: list[Timeline] | None = None
-        #self._construct_coroutine: Coroutine[None, None, None] | None = None
-
-    #def submit_timeline(
-    #    self: Self
-    #) -> Timeline:
-    #    return self
 
     def _schedule(
         self: Self,
         schedule_info: ScheduleInfo
-        #parent_absolute_rate: Rate,
-        #relative_rate: Rate,
-        #launch_condition: Condition,
-        #terminate_condition: Condition
     ) -> None:
         assert self._schedule_info is None
         assert self._timeline_state is None
-        #schedule_info = ScheduleInfo(
-        #    parent_absolute_rate=parent_absolute_rate,
-        #    relative_rate=relative_rate,
-        #    launch_condition=launch_condition,
-        #    terminate_condition=terminate_condition
-        #)
         self._schedule_info = schedule_info
         self._timeline_state = BeforeLaunched(
             launch_condition=schedule_info.launch_condition
         )
-        #assert self._timeline_state == TimelineState.UNSCHEDULED
-        #self._timeline_state = TimelineState.BEFORE_LAUNCHED
-        #self._parent_absolute_rate = parent_absolute_rate
-        #self._relative_rate = relative_rate
-        #self._launch_condition = launch_condition
-        #self._terminate_condition = terminate_condition
 
     def _root_schedule(
         self: Self
@@ -281,23 +211,10 @@ class Timeline(ABC):
     def _progress(
         self: Self
     ) -> None:
-        #assert (schedule_info := self._schedule_info) is not None
-        #assert (timeline_state := self._timeline_state) is not None
-        #timeline_state = self._timeline_state
         if (timeline_state := self.get_before_launched_state()) is not None:
             if not timeline_state.launch_condition.judge():
                 return
             self.launch()
-            #self._timeline_state = timeline_state = OnProgressing(
-            #    construct_coroutine=self.construct(),
-            #    absolute_rate=AbsoluteRate(
-            #        parent_absolute_rate=schedule_info.parent_absolute_rate,
-            #        relative_rate=schedule_info.relative_rate
-            #    ),
-            #    terminate_condition=schedule_info.terminate_condition,
-            #    progress_condition=Always(),
-            #    children=[]
-            #)
         if (timeline_state := self.get_on_progressing_state()) is not None:
             self._animation_update(timeline_state.absolute_rate.at())
             while not timeline_state.terminate_condition.judge():
@@ -305,7 +222,6 @@ class Timeline(ABC):
                     child._progress()
                     if child.get_after_terminated_state() is not None:
                         timeline_state.children.remove(child)
-                #assert (progress_condition := self._progress_condition) is not None
                 if not timeline_state.progress_condition.judge():
                     return
                 try:
@@ -313,65 +229,8 @@ class Timeline(ABC):
                 except StopIteration:
                     break
             self.terminate()
-            #self._timeline_state = timeline_state = AfterTerminated()
         if (timeline_state := self.get_after_terminated_state()) is not None:
             return
-
-    #def _launch(self) -> None:
-    #    assert self._timeline_state == TimelineState.BEFORE_LAUNCHED
-    #    assert (parent_absolute_rate := self._parent_absolute_rate) is not None
-    #    assert (relative_rate := self._relative_rate) is not None
-    #    self._timeline_state = TimelineState.PROGRESSING
-    #    self._construct_coroutine = self.construct()
-    #    self._absolute_rate = AbsoluteRate(
-    #        parent_absolute_rate=parent_absolute_rate,
-    #        relative_rate=relative_rate,
-    #        timestamp=Toplevel.scene._timestamp
-    #    )
-    #    self._progress_condition = Always()
-    #    self._children = []
-    #    self.update(0.0)
-
-    #def _terminate(self) -> None:
-    #    assert self._timeline_state == TimelineState.PROGRESSING
-    #    self._timeline_state = TimelineState.AFTER_TERMINATED
-    #    self._parent_absolute_rate = None
-    #    self._relative_rate = None
-    #    self._launch_condition = None
-    #    self._terminate_condition = None
-    #    self._construct_coroutine = None
-    #    self._absolute_rate = None
-    #    self._progress_condition = None
-    #    self._children = None
-    #    if (run_alpha := self._run_alpha) != float("inf"):
-    #        self.update(run_alpha)
-
-        #if self._timeline_state in (TimelineState.UNSCHEDULED, TimelineState.AFTER_TERMINATED):
-        #    raise TypeError
-        #assert (launch_condition := self._launch_condition) is not None
-        #assert (terminate_condition := self._terminate_condition) is not None
-        #if self._timeline_state == TimelineState.BEFORE_LAUNCHED:
-        #    if not launch_condition.judge():
-        #        return
-        #    self._launch()
-        #assert self._timeline_state == TimelineState.PROGRESSING
-        #assert (absolute_rate := self._absolute_rate) is not None
-        #assert (children := self._children) is not None
-        #assert (construct_coroutine := self._construct_coroutine) is not None
-        #self.update(absolute_rate.at(Toplevel.scene._timestamp))
-        #while not terminate_condition.judge():
-        #    for child in children[:]:
-        #        child._progress()
-        #        if child._timeline_state == TimelineState.AFTER_TERMINATED:
-        #            children.remove(child)
-        #    assert (progress_condition := self._progress_condition) is not None
-        #    if not progress_condition.judge():
-        #        return
-        #    try:
-        #        construct_coroutine.send(None)
-        #    except StopIteration:
-        #        break
-        #self._terminate()
 
     def _animation_update(
         self: Self,
@@ -418,7 +277,6 @@ class Timeline(ABC):
                 rate=schedule_info.rate,
                 run_time_scale=schedule_info.run_time_scale,
                 run_alpha_scale=schedule_info.run_alpha_scale
-                #relative_rate=schedule_info.relative_rate
             ),
             terminate_condition=schedule_info.terminate_condition,
             progress_condition=Conditions.always(),
@@ -445,8 +303,6 @@ class Timeline(ABC):
         launch_condition: Condition = Conditions.always(),
         terminate_condition: Condition = Conditions.never()
     ) -> None:
-        #assert self._timeline_state == TimelineState.PROGRESSING
-        #assert (absolute_rate := self._absolute_rate) is not None
         assert isinstance(timeline_state := self._timeline_state, OnProgressing)
         if (run_alpha := timeline._run_alpha) == float("inf"):
             assert rate is None
@@ -465,23 +321,15 @@ class Timeline(ABC):
             rate=rate,
             run_time_scale=run_time_scale,
             run_alpha_scale=run_alpha_scale,
-            #relative_rate=ScaledRate(
-            #    rate=rate,
-            #    run_time_scale=run_time_scale,
-            #    run_alpha_scale=run_alpha_scale
-            #),
             launch_condition=launch_condition,
             terminate_condition=terminate_condition
         ))
-        #assert (children := self._children) is not None
         timeline_state.children.append(timeline)
 
     async def wait_until(
         self: Self,
         progress_condition: Condition
     ) -> None:
-        #assert self._timeline_state == TimelineState.PROGRESSING
-        #assert self._progress_condition is not None
         assert isinstance(timeline_state := self._timeline_state, OnProgressing)
         timeline_state.progress_condition = progress_condition
         await asyncio.sleep(0.0)
@@ -534,6 +382,3 @@ class Timeline(ABC):
         delta_alpha: float
     ) -> TimelineProgressedDurationCondition:
         return TimelineProgressedDurationCondition(self, delta_alpha)
-
-    #async def wait_forever(self) -> None:
-    #    await self.wait_until(Never())

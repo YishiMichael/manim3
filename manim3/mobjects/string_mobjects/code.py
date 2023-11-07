@@ -24,23 +24,6 @@ from .string_mobject import (
 )
 
 
-# From `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
-#class _HighlightStyle(TypedDict, total=False):
-#    foreground: str
-#    background: str
-#    bold: bool
-#    italic: bool
-#    source_line: int
-#    source_column: int
-#    source_file: str
-
-
-#class _Token(TypedDict):
-#    begin: int
-#    end: int
-#    style: _HighlightStyle
-
-
 @attrs.frozen(kw_only=True)
 class CodeInput(PangoStringMobjectInput):
     font: str = attrs.field(factory=lambda: Toplevel.config.code_font)
@@ -67,21 +50,6 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
         input_data: CodeInputT,
         temp_path: pathlib.Path
     ) -> Iterator[tuple[Span, dict[str, str]]]:
-
-        #def local_span_attribs_from_token(
-        #    token: _Token
-        #) -> tuple[Span, dict[str, str]]:
-        #    style = token["style"]
-        #    attribs: dict[str, str] = {}
-        #    if (foreground := style.get("foreground")):
-        #        attribs["fgcolor"] = foreground
-        #    if (background := style.get("background")):
-        #        attribs["bgcolor"] = background
-        #    if style.get("bold"):
-        #        attribs["font_weight"] = "bold"
-        #    if style.get("italic"):
-        #        attribs["font_style"] = "italic"
-        #    return Span(token["begin"], token["end"]), attribs
 
         yield from super()._iter_local_span_attribs(input_data, temp_path)
         language_suffix = input_data.language_suffix

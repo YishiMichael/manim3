@@ -17,13 +17,11 @@ import attrs
 import scipy.optimize
 import scipy.spatial.distance
 
-#from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.shape import Shape
 from ...constants.custom_typing import (
     ColorT,
     SelectorT
 )
-#from ...toplevel.toplevel import Toplevel
 from ...utils.color_utils import ColorUtils
 from ..mobject import Mobject
 from ..mobject_io import (
@@ -98,9 +96,7 @@ class CommandInfo:
     def __init__(
         self: Self,
         match_obj_items: tuple[tuple[re.Match[str], str | None, CommandFlag], ...],
-        #command_flag: CommandFlag = CommandFlag.OTHER,
-        attribs_item: tuple[dict[str, str], bool] | None,
-        #attribs: dict[str, str] | None = None  # Only takes effect for open commands.
+        attribs_item: tuple[dict[str, str], bool] | None
     ) -> None:
         super().__init__()
         self._command_items: tuple[tuple[Span, str, CommandFlag], ...] = tuple(
@@ -112,24 +108,6 @@ class CommandInfo:
             for match_obj, replacement, command_flag in match_obj_items
         )
         self._attribs_item: tuple[dict[str, str], bool] | None = attribs_item
-
-    #@abstractmethod
-    #def _iter_match_obj_items(
-    #    self: Self
-    #) -> Iterator[tuple[re.Match[str], str | None]]:
-    #    pass
-
-    #@abstractmethod
-    #def _iter_attribs_items(
-    #    self: Self
-    #) -> Iterator[tuple[bool, dict[str, str]]]:
-    #    pass
-
-    #def _iter_span_items(
-    #    self: Self
-    #) -> Iterator[tuple[Span, str]]:
-    #    for match_obj, replacement in self._iter_match_obj_items():
-    #        yield Span(*match_obj.span()), replacement if replacement is not None else match_obj.group()
 
 
 class StandaloneCommandInfo(CommandInfo):
@@ -179,71 +157,6 @@ class SpanInfo:
     attribs: dict[str, str] | None = None
     local_color: ColorT | None = None
     command_item: tuple[CommandInfo, str, CommandFlag] | None = None
-    #(span, True, global_attribs, None)
-
-
-#class SpanBoundary:
-#    __slots__ = (
-#        "_span",
-#        "_boundary_flag"
-#    )
-
-#    def __init__(
-#        self,
-#        span: Span,
-#        boundary_flag: BoundaryFlag
-#    ) -> None:
-#        super().__init__()
-#        self._span: Span = span
-#        self._boundary_flag: BoundaryFlag = boundary_flag
-
-#    def get_sorting_key(
-#        self: Self
-#    ) -> tuple[int, int, int]:
-#        span = self._span
-#        boundary_flag = self._boundary_flag
-#        flag_value = boundary_flag.value
-#        index = span.get_boundary_index(boundary_flag)
-#        paired_index = span.get_boundary_index(boundary_flag.negate())
-#        # All spans have nonzero widths.
-#        return (
-#            index,
-#            flag_value,
-#            -paired_index
-#        )
-
-
-#class IsolatedSpanBoundary(SpanBoundary):
-#    __slots__ = ()
-
-
-#class AttributedSpanBoundary(IsolatedSpanBoundary):
-#    __slots__ = ("_attribs",)
-
-#    def __init__(
-#        self,
-#        span: Span,
-#        boundary_flag: BoundaryFlag,
-#        attribs: dict[str, str]
-#    ) -> None:
-#        super().__init__(span, boundary_flag)
-#        self._attribs: dict[str, str] = attribs
-
-
-#class ProtectedSpanBoundary(SpanBoundary):
-#    __slots__ = ()
-
-
-#class CommandSpanBoundary(ProtectedSpanBoundary):
-#    __slots__ = ("_command_info",)
-
-#    def __init__(
-#        self,
-#        command_info: CommandInfo,
-#        boundary_flag: BoundaryFlag
-#    ) -> None:
-#        super().__init__(Span(*command_info.span), boundary_flag)
-#        self._command_info: CommandInfo = command_info
 
 
 class ReplacementRecord:
@@ -256,8 +169,6 @@ class ReplacementRecord:
     def __init__(
         self,
         span: Span
-        #unlabelled_replacement: str,
-        #labelled_replacement: str
     ) -> None:
         super().__init__()
         self._span: Span = span
@@ -267,42 +178,27 @@ class ReplacementRecord:
     def write_replacements(
         self: Self,
         *,
-        #label: int,
-        #boundary_flag: BoundaryFlag,
         unlabelled_replacement: str,
         labelled_replacement: str
     ) -> None:
-        #self._label = label
-        #self._boundary_flag = boundary_flag
         self._unlabelled_replacement = unlabelled_replacement
         self._labelled_replacement = labelled_replacement
-        #self._activated = True
 
 
 class InsertionRecord(ReplacementRecord):
-    __slots__ = (
-        #"_label",
-        #"_boundary_flag",
-        #"_activated",
-    )
+    __slots__ = ()
 
     def __init__(
         self,
         index: int
     ) -> None:
         super().__init__(Span(index, index))
-        #self._label: int = NotImplemented
-        #self._boundary_flag: BoundaryFlag = NotImplemented
-        #self._activated = False
 
 
 class StringMobjectKwargs(TypedDict, total=False):
     local_colors: dict[SelectorT, ColorT]
     isolate: list[SelectorT]
     protect: list[SelectorT]
-    #color: ColorT
-    #global_attribs: dict[str, str]
-    #local_attribs: dict[SelectorT, dict[str, str]]
     concatenate: bool
 
 
@@ -312,9 +208,6 @@ class StringMobjectInput(MobjectInput):
     local_colors: dict[SelectorT, ColorT] = attrs.field(factory=dict)
     isolate: list[SelectorT] = attrs.field(factory=list)
     protect: list[SelectorT] = attrs.field(factory=list)
-    #color: ColorT = attrs.field(factory=lambda: Toplevel.config.default_color)
-    #global_attribs: dict[str, str] = attrs.field(factory=dict)
-    #local_attribs: dict[SelectorT, dict[str, str]] = attrs.field(factory=dict)
     concatenate: bool = False
 
 
@@ -356,65 +249,55 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             )))
 
         string = input_data.string
-        #global_span_attribs = cls._get_global_span_attribs(input_data, temp_path)
-        #local_span_attribs = cls._get_local_span_attribs(input_data, temp_path)
-        #global_span_color = input_data.global_color
-        #local_span_color = {
-        #    span: color
-        #    for selector, color in input_data.local_color.items()
-        #    for span in cls._iter_spans_by_selector(selector, string)
-        #}
-        #print(local_span_color)  # TODO
-
         isolated_items, replacement_records = cls._get_isolated_items_and_replacement_records(
             string=string,
             span_infos=(
-                SpanInfo(span=Span(0, len(string)), isolated=True, attribs=cls._get_global_span_attribs(input_data, temp_path)),
+                SpanInfo(
+                    span=Span(0, len(string)),
+                    isolated=True,
+                    attribs=cls._get_global_span_attribs(input_data, temp_path)
+                ),
                 *(
-                    SpanInfo(span=span, isolated=False, attribs=attribs)
+                    SpanInfo(
+                        span=span,
+                        isolated=False,
+                        attribs=attribs
+                    )
                     for span, attribs in cls._iter_local_span_attribs(input_data, temp_path)
                 ),
                 *(
-                    SpanInfo(span=span, isolated=True, local_color=local_color)
+                    SpanInfo(
+                        span=span,
+                        isolated=True,
+                        local_color=local_color
+                    )
                     for selector, local_color in input_data.local_colors.items()
                     for span in cls._iter_spans_by_selector(selector, string)
                 ),
                 *(
-                    SpanInfo(span=span, isolated=True)
+                    SpanInfo(
+                        span=span,
+                        isolated=True
+                    )
                     for selector in input_data.isolate
                     for span in cls._iter_spans_by_selector(selector, string)
                 ),
                 *(
-                    SpanInfo(span=span)
+                    SpanInfo(
+                        span=span
+                    )
                     for selector in input_data.protect
                     for span in cls._iter_spans_by_selector(selector, string)
                 ),
                 *(
-                    SpanInfo(span=span, command_item=(command_info, replacement, command_flag))
+                    SpanInfo(
+                        span=span,
+                        command_item=(command_info, replacement, command_flag)
+                    )
                     for command_info in cls._iter_command_infos(string)
                     for span, replacement, command_flag in command_info._command_items
                 )
             )
-            #isolate=input_data.isolate,
-            #protect=input_data.protect,
-            #local_colors=input_data.local_colors,
-            #colored_span_items=tuple(
-            #    (span, color)
-            #    for selector, color in input_data.local_colors.items()
-            #    for span in cls._iter_spans_by_selector(selector, string)
-            #),
-            #isolated_spans=tuple(itertools.chain.from_iterable(
-            #    cls._iter_spans_by_selector(selector, string)
-            #    for selector in input_data.isolate
-            #)),
-            #protected_spans=tuple(itertools.chain.from_iterable(
-            #    cls._iter_spans_by_selector(selector, string)
-            #    for selector in input_data.protect
-            #)),
-            #command_infos=tuple(cls._iter_command_infos(string)),
-            ##command_info_pairs=tuple(cls._iter_command_info_pairs(string)),
-            #global_span_attribs=cls._get_global_span_attribs(input_data, temp_path),
-            #local_span_attribs_items=tuple(cls._iter_local_span_attribs(input_data, temp_path))
         )
         original_pieces = tuple(
             string[start:stop]
@@ -445,11 +328,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             temp_path=temp_path
         ))
 
-        #for shape_mobject in shape_mobjects:
-        #    shape_mobject._color_ = AnimatableColor(global_span_color)
-        #for span, color in local_span_color.items():
-        #    for index in cls._get_indices_by_span(span, labels, isolated_spans):
-        #        shape_mobjects[index]._color_ = AnimatableColor(color)
         for shape_mobject, label in shape_mobject_items:
             _, local_color = isolated_items[label]
             if local_color is not None:
@@ -517,28 +395,18 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         labelled_shape_mobjects = cls._get_shape_mobjects(labelled_content, input_data, temp_path)
         assert len(unlabelled_shape_mobjects) == len(labelled_shape_mobjects)
 
-        unlabelled_radii = ShapeMobject().add(*unlabelled_shape_mobjects).box.get_radii()
-        labelled_radii = ShapeMobject().add(*labelled_shape_mobjects).box.get_radii()
-        scale_factor = labelled_radii / unlabelled_radii
+        unlabelled_radii = Mobject().add(*unlabelled_shape_mobjects).box.get_radii()
+        labelled_radii = Mobject().add(*labelled_shape_mobjects).box.get_radii()
+        scale_factor = unlabelled_radii / labelled_radii
         distance_matrix = scipy.spatial.distance.cdist(
             [shape.box.get() for shape in unlabelled_shape_mobjects],
             [shape.box.get() * scale_factor for shape in labelled_shape_mobjects]
         )
-        #unlabelled_indices, labelled_indices = scipy.optimize.linear_sum_assignment(distance_matrix)
-        #unlabelled_indices = tuple(int(index) for index in unlabelled_indices)
-        #labelled_indices = tuple(int(index) for index in labelled_indices)
         for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix)):
             yield (
                 unlabelled_shape_mobjects[unlabelled_index],
                 int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
             )
-        #return tuple(
-        #    int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
-        #    for labelled_index in labelled_indices
-        #), tuple(
-        #    unlabelled_shape_mobjects[unlabelled_index]
-        #    for unlabelled_index in unlabelled_indices
-        #)
 
     @classmethod
     def _get_shape_mobjects(
@@ -570,9 +438,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         temp_path: pathlib.Path
     ) -> dict[str, str]:
         return {}
-        #global_span_attribs: dict[str, str] = {}
-        #global_span_attribs.update(input_data.global_attribs)
-        #return global_span_attribs
 
     @classmethod
     def _iter_local_span_attribs(
@@ -581,11 +446,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         temp_path: pathlib.Path
     ) -> Iterator[tuple[Span, dict[str, str]]]:
         yield from ()
-        #local_span_attribs: dict[Span, dict[str, str]] = {}
-        #for selector, local_attribs in input_data.local_attribs.items():
-        #    for span in cls._iter_spans_by_selector(selector, input_data.string):
-        #        local_span_attribs.setdefault(span, {}).update(local_attribs)
-        #return local_span_attribs
 
     @classmethod
     @abstractmethod
@@ -613,23 +473,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         cls: type[Self],
         string: str,
         span_infos: tuple[SpanInfo, ...]
-        #isolate: list[SelectorT],
-        #protect: list[SelectorT],
-        #local_colors: dict[SelectorT, ColorT],
-        #colored_span_items: tuple[tuple[Span, ColorT], ...],
-        #isolated_spans: tuple[Span, ...],
-        #protected_spans: tuple[Span, ...],
-        #command_infos: tuple[CommandInfo, ...],
-        #command_info_pairs: tuple[tuple[CommandInfo, CommandInfo, dict[str, str], bool], ...],
-        #global_span_attribs: dict[str, str],
-        #local_span_attribs_items: tuple[tuple[Span, dict[str, str]], ...]
     ) -> tuple[tuple[tuple[Span, ColorT | None], ...], tuple[ReplacementRecord, ...]]:
-        #tuple[Span, BoundaryFlag, bool, dict[str, str] | None, ]
-        #(span, True, global_attribs, None)
-        #(span, False, attribs, None)
-        #(span, True, None, None)
-        #(span, None, None, None)
-        #(span, None, None, command_info)
 
         def get_sorting_key(
             span_boundary: tuple[SpanInfo, BoundaryFlag]
@@ -646,33 +490,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 -paired_index
             )
 
-        #span_boundaries = sorted((
-        #    (span_info, boundary_flag)
-        #    for boundary_flag in (BoundaryFlag.STOP, BoundaryFlag.START)
-        #    for span_info in span_infos[::boundary_flag.value]
-        #), key=get_sorting_key)
-        #span_boundaries = sorted(itertools.chain.from_iterable(
-        #    tuple(itertools.chain(
-        #        (
-        #            AttributedSpanBoundary(span=span, boundary_flag=boundary_flag, attribs=attribs)
-        #            for span, attribs in local_span_attribs.items()
-        #        ),
-        #        (
-        #            IsolatedSpanBoundary(span=span, boundary_flag=boundary_flag)
-        #            for span in isolated_spans
-        #        ),
-        #        (
-        #            ProtectedSpanBoundary(span=span, boundary_flag=boundary_flag)
-        #            for span in protected_spans
-        #        ),
-        #        (
-        #            CommandSpanBoundary(command_info=command_info, boundary_flag=boundary_flag)
-        #            for command_info in cls._iter_command_infos(string)
-        #        )
-        #    ))[::boundary_flag.value]
-        #    for boundary_flag in (BoundaryFlag.STOP, BoundaryFlag.START)
-        #), key=SpanBoundary.get_sorting_key)
-
         insertion_record_items: list[tuple[InsertionRecord, InsertionRecord, dict[str, str], bool, ColorT | None]] = []
         replacement_records: list[ReplacementRecord] = []
         bracket_counter = itertools.count()
@@ -681,14 +498,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         open_command_stack: list[tuple[InsertionRecord, CommandInfo]] = []
         start_stack: list[tuple[SpanInfo, InsertionRecord, int, tuple[int, ...]]] = []
         local_color_stack: list[ColorT] = []
-        #global_start_insertion_record = InsertionRecord(0)
-        #global_stop_insertion_record = InsertionRecord(len(string))
-        #labelled_items.append((
-        #    global_start_insertion_record,
-        #    global_stop_insertion_record,
-        #    global_span_attribs
-        #))
-        #replacement_records.append(global_start_insertion_record)
 
         for span_info, boundary_flag in sorted((
             (span_info, boundary_flag)
@@ -754,8 +563,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     raise ValueError(
                         f"Cannot handle substring: '{string[span.as_slice()]}'"
                     )
-                #if not span_info.isolated:
-                #    continue
                 if span_info.local_color is not None:
                     local_color = span_info.local_color
                     local_color_stack.pop()
@@ -767,68 +574,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     span_info.attribs if span_info.attribs is not None else {},
                     span_info.isolated,
                     local_color
-                    #span_boundary._attribs if isinstance(span_boundary, AttributedSpanBoundary) else {}
                 ))
-
-
-
-            #span = span_boundary._span
-            #if isinstance(span_boundary, ProtectedSpanBoundary):
-            #    protect_level += span_boundary._boundary_flag.value
-            #    if not isinstance(span_boundary, CommandSpanBoundary):
-            #        continue
-            #    if span_boundary._boundary_flag == BoundaryFlag.START:
-            #        continue
-            #    command_replacement = span_boundary._command_info.replacement
-            #    command_replacement_record = ReplacementRecord(
-            #        span=span,
-            #        unlabelled_replacement=command_replacement,
-            #        labelled_replacement=command_replacement
-            #    )
-            #    command_flag = span_boundary._command_info.flag
-            #    if command_flag == CommandFlag.OPEN:
-            #        bracket_stack.append(next(bracket_counter))
-            #        open_insertion_record = InsertionRecord(span._stop)
-            #        replacement_records.append(command_replacement_record)
-            #        replacement_records.append(open_insertion_record)
-            #        open_command_stack.append((span_boundary, open_insertion_record))
-            #    elif command_flag == CommandFlag.CLOSE:
-            #        bracket_stack.pop()
-            #        close_insertion_record = InsertionRecord(span._start)
-            #        replacement_records.append(close_insertion_record)
-            #        replacement_records.append(command_replacement_record)
-            #        open_span_boundary, open_insertion_record = open_command_stack.pop()
-            #        if (attribs := open_span_boundary._command_info.attribs) is not None:
-            #            labelled_items.append((
-            #                open_insertion_record,
-            #                close_insertion_record,
-            #                attribs
-            #            ))
-            #    else:
-            #        replacement_records.append(command_replacement_record)
-            #    continue
-
-            #if span_boundary._boundary_flag == BoundaryFlag.START:
-            #    start_insertion_record = InsertionRecord(span._start)
-            #    replacement_records.append(start_insertion_record)
-            #    start_stack.append((protect_level, span, tuple(bracket_stack), start_insertion_record))
-            #elif span_boundary._boundary_flag == BoundaryFlag.STOP:
-            #    stop_insertion_record = InsertionRecord(span._stop)
-            #    replacement_records.append(stop_insertion_record)
-            #    start_protect_level, start_span, start_bracket_stack, start_insertion_record = start_stack.pop()
-
-            #    if not start_protect_level and not protect_level:
-            #        assert start_span is span, \
-            #            f"Partly overlapping substrings detected: '{string[start_span.as_slice()]}', '{string[span.as_slice()]}'"
-            #        assert start_bracket_stack == tuple(bracket_stack), \
-            #            f"Cannot handle substring: '{string[span.as_slice()]}'"
-            #        labelled_items.append((
-            #            start_insertion_record,
-            #            stop_insertion_record,
-            #            span_boundary._attribs if isinstance(span_boundary, AttributedSpanBoundary) else {}
-            #        ))
-
-        #replacement_records.append(global_stop_insertion_record)
 
         assert protect_level == 0
         assert not bracket_stack
@@ -851,41 +597,15 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             start_unlabelled_insertion, stop_unlabelled_insertion = cls._get_command_pair(attribs)
             start_labelled_insertion, stop_labelled_insertion = cls._get_command_pair(labelled_attribs)
             start_insertion_record.write_replacements(
-                #label=label,
-                #boundary_flag=BoundaryFlag.START,
                 unlabelled_replacement=start_unlabelled_insertion,
                 labelled_replacement=start_labelled_insertion
             )
             stop_insertion_record.write_replacements(
-                #label=label,
-                #boundary_flag=BoundaryFlag.STOP,
                 unlabelled_replacement=stop_unlabelled_insertion,
                 labelled_replacement=stop_labelled_insertion
             )
-            #for insertion_record, boundary_flag in (
-            #    (start_insertion_record, BoundaryFlag.START),
-            #    (stop_insertion_record, BoundaryFlag.STOP)
-            #):
-            #    insertion_record.write_replacements(
-            #        label=label,
-            #        boundary_flag=boundary_flag,
-            #        unlabelled_replacement=cls._get_command_string(
-            #            label=None,
-            #            boundary_flag=boundary_flag,
-            #            attribs=attribs
-            #        ),
-            #        labelled_replacement=cls._get_command_string(
-            #            label=label,
-            #            boundary_flag=boundary_flag,
-            #            attribs=attribs
-            #        )
-            #    )
 
         return tuple(isolated_items), tuple(replacement_records)
-        #return tuple(isolated_spans), tuple(
-        #    replacement_record for replacement_record in replacement_records
-        #    if not isinstance(replacement_record, InsertionRecord) or replacement_record._activated
-        #)
 
     @classmethod
     def _iter_spans_by_selector(
@@ -941,14 +661,6 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         string: str
     ) -> Iterator[CommandInfo]:
         pass
-
-    #@classmethod
-    #@abstractmethod
-    #def _iter_command_info_pairs(
-    #    cls: type[Self],
-    #    string: str
-    #) -> Iterator[tuple[CommandInfo, CommandInfo, dict[str, str], bool]]:
-    #    pass
 
 
 class StringMobject(ShapeMobject):

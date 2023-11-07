@@ -25,7 +25,6 @@ from ...constants.custom_typing import (
 from ...toplevel.toplevel import Toplevel
 from ...utils.color_utils import ColorUtils
 from .string_mobject import (
-    #CommandFlag,
     CommandInfo,
     StandaloneCommandInfo,
     StringMobjectIO,
@@ -84,10 +83,6 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         "\"": "&quot;",
         "'": "&apos;"
     }
-    #_MARKUP_UNESCAPE_DICT: ClassVar[dict[str, str]] = {
-    #    v: k
-    #    for k, v in _MARKUP_ESCAPE_DICT.items()
-    #}
 
     @classmethod
     def _get_global_span_attribs(
@@ -201,62 +196,6 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
             result["foreground"] = f"#{label:06x}"
         return result
 
-    #@classmethod
-    #def _get_command_pair(
-    #    cls: type[Self],
-    #    label: int | None,
-    #    attribs: dict[str, str]
-    #) -> tuple[str, str]:
-    #    #converted_attribs = attribs.copy()
-
-    #    def convert_attrib_value(
-    #        key: str,
-    #        value: str
-    #    ) -> str | None:
-    #        if key in (
-    #            "foreground",
-    #            "fgcolor",
-    #            "color"
-    #        ):
-    #            return None
-    #        if key in (
-    #            "background",
-    #            "bgcolor",
-    #            "underline_color",
-    #            "overline_color",
-    #            "strikethrough_color"
-    #        ):
-    #            return "black"
-    #        return value
-
-    #    if label is not None:
-    #        attribs = {
-    #            key: converted_value
-    #            for key, value in attribs.items()
-    #            if (converted_value := convert_attrib_value(key, value)) is not None
-    #        }
-    #        attribs["foreground"] = f"#{label:06x}"
-    #        #for key in (
-    #        #    "background",
-    #        #    "bgcolor",
-    #        #    "underline_color",
-    #        #    "overline_color",
-    #        #    "strikethrough_color"
-    #        #):
-    #        #    if key in converted_attribs:
-    #        #        converted_attribs[key] = "black"
-    #        #for key in (
-    #        #    "foreground",
-    #        #    "fgcolor",
-    #        #    "color"
-    #        #):
-    #        #    if key in converted_attribs:
-    #        #        converted_attribs[key] = f"#{label:06x}"
-    #    return f"<span {" ".join(
-    #        f"{key}='{value}'"
-    #        for key, value in attribs.items()
-    #    )}>", "</span>"
-
     @classmethod
     def _iter_command_infos(
         cls: type[Self],
@@ -265,49 +204,6 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         pattern = re.compile(r"""[<>&"']""")
         for match_obj in pattern.finditer(string):
             yield StandaloneCommandInfo(match_obj, replacement=cls._markup_escape(match_obj.group()))
-        #yield from pattern.finditer(string)
-
-    #@classmethod
-    #def _get_command_flag(
-    #    cls: type[Self],
-    #    match_obj: re.Match[str]
-    #) -> CommandFlag:
-    #    return CommandFlag.OTHER
-
-    #@classmethod
-    #def _get_command_replacement(
-    #    cls: type[Self],
-    #    match_obj: re.Match[str]
-    #) -> str:
-    #    return cls._markup_escape(match_obj.group())
-
-    #@classmethod
-    #def _replace_for_matching(
-    #    cls: type[Self],
-    #    match_obj: re.Match[str]
-    #) -> str:
-    #    return match_obj.group()
-
-    #@classmethod
-    #def _get_attribs_from_command_pair(
-    #    cls: type[Self],
-    #    open_command: re.Match[str],
-    #    close_command: re.Match[str]
-    #) -> dict[str, str] | None:
-    #    pattern = r"""
-    #        (?P<attr_name>\w+)
-    #        \s*\=\s*
-    #        (?P<quot>["'])(?P<attr_val>.*?)(?P=quot)
-    #    """
-    #    tag_name = open_command.group("tag_name")
-    #    if tag_name == "span":
-    #        return {
-    #            match_obj.group("attr_name"): match_obj.group("attr_val")
-    #            for match_obj in re.finditer(
-    #                pattern, open_command.group("attr_list"), flags=re.VERBOSE | re.DOTALL
-    #            )
-    #        }
-    #    return cls._MARKUP_TAGS.get(tag_name, {})
 
     @classmethod
     def _markup_escape(
@@ -315,10 +211,3 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         substr: str
     ) -> str:
         return cls._MARKUP_ESCAPE_DICT.get(substr, substr)
-
-    #@classmethod
-    #def _markup_unescape(
-    #    cls: type[Self],
-    #    substr: str
-    #) -> str:
-    #    return cls._MARKUP_UNESCAPE_DICT.get(substr, substr)

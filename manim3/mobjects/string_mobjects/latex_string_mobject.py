@@ -16,7 +16,6 @@ from ...toplevel.toplevel import Toplevel
 from ...utils.color_utils import ColorUtils
 from .string_mobject import (
     BalancedCommandInfo,
-    #CommandFlag,
     CommandInfo,
     StandaloneCommandInfo,
     StringMobjectIO,
@@ -95,26 +94,6 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
             result["color"] = f"#{label:06x}"
         return result
 
-    #@classmethod
-    #def _get_command_pair(
-    #    cls: type[Self],
-    #    label: int | None,
-    #    attribs: dict[str, str]
-    #) -> tuple[str, str]:
-
-    #    def get_color_command(
-    #        color_hex: str
-    #    ) -> str:
-    #        match_obj = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
-    #        assert match_obj is not None
-    #        return f"\\color[RGB]{{{", ".join(str(int(match_obj.group(index), 16)) for index in range(1, 4))}}}"
-
-    #    if label is None:
-    #        if (color := attribs.get("color")) is not None:
-    #            return "{{" + get_color_command(color), "}}"
-    #        return "", ""
-    #    return "{{" + get_color_command(f"#{label:06x}"), "}}"
-
     @classmethod
     def _iter_command_infos(
         cls: type[Self],
@@ -147,21 +126,6 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
                     open_match_obj=open_match_obj,
                     close_match_obj=close_match_obj
                 )
-                #yield CommandInfo(
-                #    match_obj=open_match_obj,
-                #    command_flag=CommandFlag.OPEN,
-                #    #span=(open_stop - width, open_stop),
-                #    #flag=CommandFlag.OPEN,
-                #    #replacement=width * "{",
-                #    attribs={} if width >= 2 else None
-                #)
-                #yield CommandInfo(
-                #    match_obj=close_match_obj,
-                #    command_flag=CommandFlag.CLOSE
-                #    #span=(close_start, close_start + width),
-                #    #flag=CommandFlag.CLOSE,
-                #    #replacement=width * "}"
-                #)
                 open_stop -= width
                 close_start += width
                 if close_start < close_stop:

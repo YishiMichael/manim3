@@ -182,7 +182,7 @@ class LazyObject(ABC):
                 type_hint, overridden_descriptor = typed_overridden_descriptor
                 assert overridden_descriptor._plural is descriptor._plural
                 assert not overridden_descriptor._freeze or descriptor._freeze
-                assert type_hint.annotation_cls is element_annotation_cls  # TODO: subclass check
+                assert type_hint.annotation_cls is element_annotation_cls  # TODO: subclass check?
                 assert type_hint.annotation == element_annotation
 
             hinted_lazy_descriptors[name] = (TypeHint(
