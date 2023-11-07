@@ -6,8 +6,7 @@ from typing import (
     Iterable,
     Iterator,
     Self,
-    Unpack,
-    override
+    Unpack
 )
 
 import mapbox_earcut
@@ -44,7 +43,6 @@ class ShapeActions(AnimatableActions):
 
     @ActionMeta.register
     @classmethod
-    @override
     def interpolate(
         cls: type[Self],
         dst: Shape,
@@ -55,7 +53,6 @@ class ShapeActions(AnimatableActions):
 
     @ActionMeta.register
     @classmethod
-    @override
     def piecewise(
         cls: type[Self],
         dst: Shape,

@@ -47,7 +47,7 @@ class MathTexIO[MathTexInputT: MathTexInput](TexIO[MathTexInputT]):
         if input_data.inline:
             content = f"${content}$"
         else:
-            content = f"\\begin{{align*}}\n{content}\n\\end{{align*}}"
+            content = "\n".join(("\\begin{align*}", content, "\\end{align*}"))
         super()._create_svg(content, input_data, svg_path)
 
 

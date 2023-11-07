@@ -5,8 +5,8 @@ import json
 import os
 import pathlib
 from typing import (
+    Iterator,
     Self,
-    TypedDict,
     Unpack
 )
 
@@ -25,20 +25,20 @@ from .string_mobject import (
 
 
 # From `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
-class _HighlightStyle(TypedDict, total=False):
-    foreground: str
-    background: str
-    bold: bool
-    italic: bool
-    source_line: int
-    source_column: int
-    source_file: str
+#class _HighlightStyle(TypedDict, total=False):
+#    foreground: str
+#    background: str
+#    bold: bool
+#    italic: bool
+#    source_line: int
+#    source_column: int
+#    source_file: str
 
 
-class _Token(TypedDict):
-    begin: int
-    end: int
-    style: _HighlightStyle
+#class _Token(TypedDict):
+#    begin: int
+#    end: int
+#    style: _HighlightStyle
 
 
 @attrs.frozen(kw_only=True)
@@ -62,27 +62,28 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
         return "code"
 
     @classmethod
-    def _get_local_span_attrs(
+    def _iter_local_span_attribs(
         cls: type[Self],
         input_data: CodeInputT,
         temp_path: pathlib.Path
-    ) -> dict[Span, dict[str, str]]:
+    ) -> Iterator[tuple[Span, dict[str, str]]]:
 
-        def local_config_from_token(
-            token: _Token
-        ) -> tuple[Span, dict[str, str]]:
-            style = token["style"]
-            config: dict[str, str] = {}
-            if (foreground := style.get("foreground")):
-                config["fgcolor"] = foreground
-            if (background := style.get("background")):
-                config["bgcolor"] = background
-            if style.get("bold"):
-                config["font_weight"] = "bold"
-            if style.get("italic"):
-                config["font_style"] = "italic"
-            return Span(token["begin"], token["end"]), config
+        #def local_span_attribs_from_token(
+        #    token: _Token
+        #) -> tuple[Span, dict[str, str]]:
+        #    style = token["style"]
+        #    attribs: dict[str, str] = {}
+        #    if (foreground := style.get("foreground")):
+        #        attribs["fgcolor"] = foreground
+        #    if (background := style.get("background")):
+        #        attribs["bgcolor"] = background
+        #    if style.get("bold"):
+        #        attribs["font_weight"] = "bold"
+        #    if style.get("italic"):
+        #        attribs["font_style"] = "italic"
+        #    return Span(token["begin"], token["end"]), attribs
 
+        yield from super()._iter_local_span_attribs(input_data, temp_path)
         language_suffix = input_data.language_suffix
         try:
             code_path = temp_path.with_suffix(language_suffix)
@@ -105,17 +106,22 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
                 raise IOError("CodeIO: Failed to execute subl command")
 
             json_str = temp_path.with_suffix(".json").read_text(encoding="utf-8")
-            local_span_attrs = dict(
-                local_config_from_token(token)
-                for token in json.loads(json_str)
-            )
+            for token in json.loads(json_str):
+                # See `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
+                style = token["style"]
+                attribs: dict[str, str] = {}
+                if (foreground := style.get("foreground")):
+                    attribs["fgcolor"] = foreground
+                if (background := style.get("background")):
+                    attribs["bgcolor"] = background
+                if style.get("bold"):
+                    attribs["font_weight"] = "bold"
+                if style.get("italic"):
+                    attribs["font_style"] = "italic"
+                yield Span(token["begin"], token["end"]), attribs
         finally:
             for suffix in (language_suffix, ".json"):
                 temp_path.with_suffix(suffix).unlink(missing_ok=True)
-
-        for span, local_config in super()._get_local_span_attrs(input_data, temp_path).items():
-            local_span_attrs.setdefault(span, {}).update(local_config)
-        return local_span_attrs
 
 
 class Code(StringMobject):

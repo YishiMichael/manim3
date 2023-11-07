@@ -93,32 +93,3 @@ class Conditions:
         cls: type[Self]
     ) -> NeverCondition:
         return NeverCondition()
-
-    #@classmethod
-    #def launched(
-    #    cls,
-    #    timeline: "Timeline"
-    #) -> Launched:
-    #    return Launched(timeline)
-
-    #@classmethod
-    #def terminated(
-    #    cls,
-    #    timeline: "Timeline"
-    #) -> Terminated:
-    #    return Terminated(timeline)
-
-    #@classmethod
-    #def progress_duration(
-    #    cls,
-    #    timeline: "Timeline",
-    #    delta_alpha: float
-    #) -> ProgressDuration:
-    #    return ProgressDuration(timeline, delta_alpha)
-
-    #@classmethod
-    #def event_captured(
-    #    cls,
-    #    event: Event
-    #) -> EventCaptured:
-    #    return EventCaptured(event)

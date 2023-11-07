@@ -1,4 +1,5 @@
 from __future__ import annotations
+import pathlib
 
 
 import re
@@ -10,10 +11,14 @@ from typing import (
 
 import attrs
 
+from ...constants.custom_typing import ColorT
 from ...toplevel.toplevel import Toplevel
+from ...utils.color_utils import ColorUtils
 from .string_mobject import (
-    BoundaryFlag,
-    CommandFlag,
+    BalancedCommandInfo,
+    #CommandFlag,
+    CommandInfo,
+    StandaloneCommandInfo,
     StringMobjectIO,
     StringMobjectInput,
     StringMobjectKwargs
@@ -22,10 +27,12 @@ from .string_mobject import (
 
 @attrs.frozen(kw_only=True)
 class LatexStringMobjectInput(StringMobjectInput):
+    color: ColorT = attrs.field(factory=lambda: Toplevel.config.default_color)
     font_size: float = attrs.field(factory=lambda: Toplevel.config.latex_font_size)
 
 
 class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
+    color: ColorT
     font_size: float
 
 
@@ -48,11 +55,71 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         pass
 
     @classmethod
-    def _iter_command_matches(
+    def _get_global_span_attribs(
+        cls: type[Self],
+        input_data: LatexStringMobjectInputT,
+        temp_path: pathlib.Path
+    ) -> dict[str, str]:
+        global_span_attribs = {
+            "color": ColorUtils.color_to_hex(input_data.color)
+        }
+        global_span_attribs.update(super()._get_global_span_attribs(input_data, temp_path))
+        return global_span_attribs
+
+    @classmethod
+    def _get_command_pair(
+        cls: type[Self],
+        attribs: dict[str, str]
+    ) -> tuple[str, str]:
+        if (color_hex := attribs.get("color")) is None:
+            return "", ""
+        match_obj = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
+        assert match_obj is not None
+        return "{{" + f"\\color[RGB]{{{", ".join(
+            str(int(match_obj.group(index), 16))
+            for index in range(1, 4)
+        )}}}", "}}"
+
+    @classmethod
+    def _convert_attribs_for_labelling(
+        cls: type[Self],
+        attribs: dict[str, str],
+        label: int | None
+    ) -> dict[str, str]:
+        result = {
+            key: value
+            for key, value in attribs.items()
+            if key != "color"
+        }
+        if label is not None:
+            result["color"] = f"#{label:06x}"
+        return result
+
+    #@classmethod
+    #def _get_command_pair(
+    #    cls: type[Self],
+    #    label: int | None,
+    #    attribs: dict[str, str]
+    #) -> tuple[str, str]:
+
+    #    def get_color_command(
+    #        color_hex: str
+    #    ) -> str:
+    #        match_obj = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
+    #        assert match_obj is not None
+    #        return f"\\color[RGB]{{{", ".join(str(int(match_obj.group(index), 16)) for index in range(1, 4))}}}"
+
+    #    if label is None:
+    #        if (color := attribs.get("color")) is not None:
+    #            return "{{" + get_color_command(color), "}}"
+    #        return "", ""
+    #    return "{{" + get_color_command(f"#{label:06x}"), "}}"
+
+    @classmethod
+    def _iter_command_infos(
         cls: type[Self],
         string: str
-    ) -> Iterator[re.Match[str]]:
-        # Lump together adjacent brace pairs.
+    ) -> Iterator[CommandInfo]:
         pattern = re.compile(r"""
             (?P<command>\\(?:[a-zA-Z]+|.))
             |(?P<open>{+)
@@ -62,7 +129,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         for match_obj in pattern.finditer(string):
             if not match_obj.group("close"):
                 if not match_obj.group("open"):
-                    yield match_obj
+                    yield StandaloneCommandInfo(match_obj)
                     continue
                 open_stack.append(match_obj.span())
                 continue
@@ -71,74 +138,36 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
                 if not open_stack:
                     raise ValueError("Missing '{' inserted")
                 open_start, open_stop = open_stack.pop()
-                n = min(open_stop - open_start, close_stop - close_start)
-                assert (open_match_obj := pattern.fullmatch(
-                    string, pos=open_stop - n, endpos=open_stop
-                )) is not None
-                yield open_match_obj
-                assert (close_match_obj := pattern.fullmatch(
-                    string, pos=close_start, endpos=close_start + n
-                )) is not None
-                yield close_match_obj
-                close_start += n
+                width = min(open_stop - open_start, close_stop - close_start)
+                assert (open_match_obj := pattern.fullmatch(string, pos=open_stop - width, endpos=open_stop)) is not None
+                assert (close_match_obj := pattern.fullmatch(string, pos=close_start, endpos=close_start + width)) is not None
+                yield BalancedCommandInfo(
+                    attribs={},
+                    isolated=width >= 2,
+                    open_match_obj=open_match_obj,
+                    close_match_obj=close_match_obj
+                )
+                #yield CommandInfo(
+                #    match_obj=open_match_obj,
+                #    command_flag=CommandFlag.OPEN,
+                #    #span=(open_stop - width, open_stop),
+                #    #flag=CommandFlag.OPEN,
+                #    #replacement=width * "{",
+                #    attribs={} if width >= 2 else None
+                #)
+                #yield CommandInfo(
+                #    match_obj=close_match_obj,
+                #    command_flag=CommandFlag.CLOSE
+                #    #span=(close_start, close_start + width),
+                #    #flag=CommandFlag.CLOSE,
+                #    #replacement=width * "}"
+                #)
+                open_stop -= width
+                close_start += width
                 if close_start < close_stop:
                     continue
-                open_stop -= n
                 if open_start < open_stop:
                     open_stack.append((open_start, open_stop))
                 break
         if open_stack:
             raise ValueError("Missing '}' inserted")
-
-    @classmethod
-    def _get_command_flag(
-        cls: type[Self],
-        match_obj: re.Match[str]
-    ) -> CommandFlag:
-        if match_obj.group("open"):
-            return CommandFlag.OPEN
-        if match_obj.group("close"):
-            return CommandFlag.CLOSE
-        return CommandFlag.OTHER
-
-    @classmethod
-    def _replace_for_content(
-        cls: type[Self],
-        match_obj: re.Match[str]
-    ) -> str:
-        return match_obj.group()
-
-    @classmethod
-    def _replace_for_matching(
-        cls: type[Self],
-        match_obj: re.Match[str]
-    ) -> str:
-        if match_obj.group("command"):
-            return match_obj.group()
-        return ""
-
-    @classmethod
-    def _get_attrs_from_command_pair(
-        cls: type[Self],
-        open_command: re.Match[str],
-        close_command: re.Match[str]
-    ) -> dict[str, str] | None:
-        if len(open_command.group()) >= 2:
-            return {}
-        return None
-
-    @classmethod
-    def _get_command_string(
-        cls: type[Self],
-        label: int | None,
-        boundary_flag: BoundaryFlag,
-        attrs: dict[str, str]
-    ) -> str:
-        if label is None:
-            return ""
-        if boundary_flag == BoundaryFlag.STOP:
-            return "}}"
-        rg, b = divmod(label, 256)
-        r, g = divmod(rg, 256)
-        color_command = f"\\color[RGB]{{{r}, {g}, {b}}}"
-        return "{{" + color_command

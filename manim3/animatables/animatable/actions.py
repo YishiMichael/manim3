@@ -9,8 +9,7 @@ from typing import (
     Never,
     Protocol,
     Self,
-    overload,
-    override
+    overload
 )
 
 if TYPE_CHECKING:
@@ -28,7 +27,6 @@ class Actions:
 class ActionMeta:
     __slots__ = ()
 
-    @override
     def __new__(
         cls: type[Self]
     ) -> Never:
@@ -49,7 +47,6 @@ class ActionDescriptor[ActionsT: Actions, StaticT: Animatable, **P]:
         "_method"
     )
 
-    @override
     def __init__(
         self: Self,
         method: ActionMethodProtocol[ActionsT, StaticT, P]

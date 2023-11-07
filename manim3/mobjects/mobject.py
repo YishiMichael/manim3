@@ -8,8 +8,7 @@ from typing import (
     ClassVar,
     Iterator,
     Self,
-    overload,
-    override
+    overload
 )
 
 from ..animatables.animatable.animatable import AnimatableMeta
@@ -196,7 +195,6 @@ class Mobject(Model):
         self.discard(*self.iter_children())
         return self
 
-    @override
     def copy(
         self: Self
     ) -> Self:

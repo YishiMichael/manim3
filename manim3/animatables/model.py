@@ -108,7 +108,7 @@ class Box(LazyObject):
         maximum: NP_3f8,
         minimum: NP_3f8
     ) -> NP_3f8:
-        return (maximum - minimum) / 2.0
+        return np.maximum((maximum - minimum) / 2.0, 1e-8)  # Avoid 0-divisions.
 
     def get(
         self: Self,

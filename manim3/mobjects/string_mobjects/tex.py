@@ -97,10 +97,11 @@ class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
                 "-o", f"\"{svg_path}\"",
                 ">", os.devnull
             ))):
-                raise IOError("TexIO: Failed to execute latex command")
-            log_text = svg_path.with_suffix(".log").read_text(encoding="utf-8")
-            if (error_match_obj := re.search(r"(?<=\n! ).*", log_text)) is not None:
-                raise ValueError(f"LaTeX error: {error_match_obj.group()}")
+                error = IOError(f"TexIO: Failed to execute latex command")
+                log_text = svg_path.with_suffix(".log").read_text(encoding="utf-8")
+                if (error_match_obj := re.search(r"(?<=\n! ).*", log_text)) is not None:
+                    error.add_note(f"LaTeX error: {error_match_obj.group()}")
+                raise error
 
         finally:
             for suffix in (".tex", dvi_suffix, ".log", ".aux"):

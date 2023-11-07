@@ -77,8 +77,8 @@ from .timelines.piecewise.create import Create
 from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
-from .timelines.misc import TransformMatchingStrings
 from .timelines.transform import Transform
+from .timelines.transform_matching_strings import TransformMatchingStrings
 
 from .toplevel.events import Events
 from .toplevel.config import Config

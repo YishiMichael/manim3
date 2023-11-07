@@ -61,10 +61,11 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
             f"--path=\"{svg_path}\"",
             ">", os.devnull
         ))):
-            raise IOError("MathJaxIO: Failed to execute node command")
-        svg_text = svg_path.read_text(encoding="utf-8")
-        if (error_match_obj := re.search(r"<text\b.*?>(.*)</text>", svg_text)) is not None:
-            raise ValueError(f"MathJax error: {error_match_obj.group(1)}")
+            error = IOError("MathJaxIO: Failed to execute node command")
+            svg_text = svg_path.read_text(encoding="utf-8")
+            if (error_match_obj := re.search(r"<text\b.*?>(.*)</text>", svg_text)) is not None:
+                error.add_note(f"MathJax error: {error_match_obj.group(1)}")
+            raise error
 
     @classmethod
     @property

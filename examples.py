@@ -23,24 +23,27 @@ class ShapeTransformExample(Scene):
         await self.wait()
 
 
-class TexTransformExample(Scene):
+class TextTransformExample(Scene):
     async def construct(self) -> None:
         text = (
             Text("Text", concatenate=True)
             .scale(3)
             .set(color=ORANGE, opacity=0.5)
+            .shift(LEFT * 2)
             .add_strokes(color=BLUE, weight=10)
         )
         tex = (
             Tex("Tex", concatenate=True)
             .scale(3)
             .set(color=BLUE, opacity=0.5)
-            .shift(RIGHT * 2)
             .add_strokes(color=PINK, weight=10)
         )
+        code = Code("print(\"Code!\")").shift(RIGHT * 2)
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
+        await self.wait()
+        await self.play(FadeTransform(tex, code), run_time=2, rate=Rates.smooth())
         await self.wait(3)
 
 
@@ -119,25 +122,25 @@ class LaggedAnimationExample(Scene):
 
 class FormulaExample(Scene):
     async def construct(self) -> None:
-        factored_formula = Tex(
+        factored_formula = MathTex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
-            local_color={
+            local_colors={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
-        ).scale(0.7)
-        expanded_formula = Tex(
+        ).scale(0.7).shift(UP)
+        expanded_formula = MathTex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
-            local_color={
+            local_colors={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
-        ).scale(0.7)
+        ).scale(0.7).shift(DOWN)
         self.add(factored_formula)
         await self.wait()
         await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2)
-        await self.wait()
+        await self.wait(2)
 
 
 class InteractiveExample(Scene):
@@ -324,7 +327,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    TexTransformExample.render(config)
+    FormulaExample.render(config)
 
 
 if __name__ == "__main__":

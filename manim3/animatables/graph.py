@@ -6,8 +6,7 @@ from typing import (
     Iterator,
     Literal,
     Self,
-    Unpack,
-    override
+    Unpack
 )
 
 import numpy as np
@@ -41,7 +40,6 @@ class GraphActions(AnimatableActions):
 
     @ActionMeta.register
     @classmethod
-    @override
     def interpolate(
         cls: type[Self],
         dst: Graph,
@@ -52,7 +50,6 @@ class GraphActions(AnimatableActions):
 
     @ActionMeta.register
     @classmethod
-    @override
     def piecewise(
         cls: type[Self],
         dst: Graph,

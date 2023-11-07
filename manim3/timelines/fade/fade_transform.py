@@ -30,16 +30,12 @@ class FadeTransform(Timeline):
     ) -> None:
         start_mobject = self._start_mobject
         stop_mobject = self._stop_mobject
-        intermediate_start_mobject = start_mobject.copy()
-        intermediate_stop_mobject = stop_mobject.copy()
 
-        self.scene.discard(start_mobject)
-        self.scene.add(intermediate_start_mobject, intermediate_stop_mobject)
-        await self.play(Parallel(
-            FadeOut(intermediate_start_mobject),
-            intermediate_start_mobject.animate().move_to(stop_mobject),
-            FadeIn(intermediate_stop_mobject),
-            intermediate_stop_mobject.animate(rewind=True).move_to(start_mobject)
-        ))
-        self.scene.discard(intermediate_start_mobject, intermediate_stop_mobject)
         self.scene.add(stop_mobject)
+        await self.play(Parallel(
+            FadeOut(start_mobject),
+            start_mobject.animate().move_to(stop_mobject),
+            FadeIn(stop_mobject),
+            stop_mobject.animate(rewind=True).move_to(start_mobject)
+        ))
+        self.scene.discard(start_mobject)

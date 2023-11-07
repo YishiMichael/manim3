@@ -4,8 +4,7 @@ from __future__ import annotations
 from typing import (
     Iterator,
     Self,
-    Unpack,
-    override
+    Unpack
 )
 
 import numpy.typing as npt
@@ -30,7 +29,6 @@ class AnimatableArrayActions(AnimatableActions):
 
     @ActionMeta.register
     @classmethod
-    @override
     def interpolate(
         cls: type[Self],
         dst: AnimatableArray,
