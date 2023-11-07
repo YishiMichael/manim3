@@ -71,7 +71,7 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
                 "--command", "export_highlight",
                 ">", os.devnull
             ))):
-                raise IOError("CodeIO: Failed to execute subl command")
+                raise OSError("CodeIO: Failed to execute subl command")
 
             json_str = temp_path.with_suffix(".json").read_text(encoding="utf-8")
             for token in json.loads(json_str):

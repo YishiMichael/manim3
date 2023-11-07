@@ -106,7 +106,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         svg_path: pathlib.Path
     ) -> None:
         if MarkupUtils is None:
-            raise IOError("PangoStringMobjectIO: manimpango is not found")
+            raise OSError("PangoStringMobjectIO: manimpango is not found")
         if (validate_error := MarkupUtils.validate(content)):
             raise ValueError(f"Markup error: {validate_error}")
 

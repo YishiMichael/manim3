@@ -50,6 +50,7 @@ class Config:
         "ams",
         "autoload",
         "base",
+        "color",
         "newcommand",
         "require"
     )
