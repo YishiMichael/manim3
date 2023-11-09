@@ -103,14 +103,14 @@ class TransformMatchingStrings(Timeline):
         )
         mismatched_mobjects_0 = tuple(
             start_mobject._shape_mobjects[index_0].copy()
-            for index_0 in set(range(len(start_mobject._shape_mobjects))).difference(*(
+            for index_0 in set(range(len(start_mobject._shape_mobjects))).difference(*itertools.chain.from_iterable(
                 indices_tuples_0
                 for indices_tuples_0, _ in matched_indices_tuples
             ))
         )
         mismatched_mobjects_1 = tuple(
             stop_mobject._shape_mobjects[index_1].copy()
-            for index_1 in set(range(len(stop_mobject._shape_mobjects))).difference(*(
+            for index_1 in set(range(len(stop_mobject._shape_mobjects))).difference(*itertools.chain.from_iterable(
                 indices_tuples_1
                 for _, indices_tuples_1 in matched_indices_tuples
             ))

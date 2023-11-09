@@ -145,6 +145,8 @@ in GS_FS {
 out vec4 frag_accum;
 out float frag_revealage;
 
+const float PI = acos(-1.0);
+
 #include "includes/write_to_oit_frag.glsl"
 
 
@@ -156,21 +158,22 @@ float integate(float u) {
 float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_r, float radius) {
     vec3 pc = (position_0 + position_1) / 2.0;
     vec3 pd = (position_1 - position_0) / 2.0;
-    vec3 pr = position_r;
-    vec3 pc_cross_pd = cross(pc, pd);
+    vec3 pr = normalize(position_r);
     vec3 pc_cross_pr = cross(pc, pr);
     vec3 pd_cross_pr = cross(pd, pr);
 
-    float v = dot(pc_cross_pr, pd_cross_pr);
-    float w = dot(pd_cross_pr, pd_cross_pr);
-    float det = dot(pc_cross_pd, pr);
-    float delta = radius * radius * w - det * det;
+    float w = length(pd_cross_pr);
+    float v = dot(pc_cross_pr, pd_cross_pr) / w;
+    float det = dot(pc, pd_cross_pr) / w;
+    float delta = radius * radius - det * det;
     if (delta <= 0.0) {
         discard;
     }
-    float s = inversesqrt(dot(pr, pr) * delta);
-    float integral_result = integate(clamp((v + w) * s, -1.0, 1.0)) - integate(clamp((v - w) * s, -1.0, 1.0));
-    return 4.0 * integral_result * length(pd) * delta * delta / (w * w * sqrt(w) * radius * radius * radius);
+    float s = inversesqrt(delta);
+    float integral_result = delta * delta * (
+        integate(clamp((v + w) * s, -1.0, 1.0)) - integate(clamp((v - w) * s, -1.0, 1.0))
+    );
+    return integral_result / (PI * radius * radius * radius * radius);
 }
 
 
