@@ -11,7 +11,6 @@ from typing import (
     overload
 )
 
-#from ..animatables.animatable.animatable import AnimatableMeta
 from ..animatables.camera import Camera
 from ..animatables.model import Model
 from ..lazy.lazy import Lazy

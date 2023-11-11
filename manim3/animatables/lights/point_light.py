@@ -17,8 +17,6 @@ from ..point import Point
 class PointLight(Point):
     __slots__ = ()
 
-    #@AnimatableMeta.register_descriptor()
-    #@AnimatableMeta.register_converter(AnimatableColor)
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableColor)
     @Lazy.volatile()

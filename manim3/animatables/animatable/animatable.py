@@ -3,11 +3,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from typing import (
-    #Any,
-    #Callable,
-    #ClassVar,
     Iterator,
-    #Never,
     Self,
     Unpack
 )
@@ -16,7 +12,6 @@ from ...constants.custom_typing import (
     BoundaryT,
     NP_xf8
 )
-#from ...lazy.lazy_descriptor import LazyDescriptor
 from ...lazy.lazy_object import LazyObject
 from .actions import (
     Action,
@@ -102,33 +97,6 @@ class AnimatableActions(Actions):
 
 class Animatable(LazyObject):
     __slots__ = ()
-
-    #_actions_cls: type[AnimatableActions] = AnimatableActions
-    #_animatable_descriptors: ClassVar[tuple[LazyDescriptor, ...]] = ()
-    #_descriptor_converter_dict: ClassVar[dict[str, tuple[LazyDescriptor, Callable[[Any], Animatable]]]] = {}
-
-    #def __init_subclass__(
-    #    cls: type[Self]
-    #) -> None:
-    #    super().__init_subclass__()
-    #    #actions_cls: type[AnimatableActions] | None = None
-    #    #for base in cls.__mro__:
-    #    #    if issubclass(base, AnimatableActions) and not issubclass(base, Animatable):
-    #    #        actions_cls = base
-    #    #        break
-    #    #assert actions_cls is not None
-
-    #    #cls._actions_cls = actions_cls
-    #    #cls._animatable_descriptors = tuple(
-    #    #    descriptor
-    #    #    for descriptor in cls._lazy_descriptors
-    #    #    if descriptor in AnimatableMeta._animatable_descriptors
-    #    #)
-    #    #cls._descriptor_converter_dict = {
-    #    #    descriptor._name: (descriptor, converter)
-    #    #    for descriptor in cls._lazy_descriptors
-    #    #    if (converter := AnimatableMeta._descriptor_converter_dict.get(descriptor)) is not None
-    #    #}
 
     def animate(
         self: Self,
@@ -263,56 +231,3 @@ class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
     ) -> None:
         super().update_boundary(boundary)
         self.update(float(boundary))
-
-
-#class AnimatableMeta:
-#    __slots__ = ()
-
-#    _animatable_descriptors: list[LazyDescriptor] = []
-#    _descriptor_converter_dict: dict[LazyDescriptor, Callable[[Any], Animatable]] = {}
-
-#    def __new__(
-#        cls: type[Self]
-#    ) -> Never:
-#        raise TypeError
-
-#    @classmethod
-#    def register_descriptor[AnimatableT: Animatable, DataT](
-#        cls: type[Self]
-#    ) -> Callable[[LazyDescriptor[AnimatableT, DataT]], LazyDescriptor[AnimatableT, DataT]]:
-
-#        def result(
-#            descriptor: LazyDescriptor[AnimatableT, DataT]
-#        ) -> LazyDescriptor[AnimatableT, DataT]:
-#            assert not descriptor._is_property
-#            assert not descriptor._freeze
-#            assert descriptor._deepcopy
-#            cls._animatable_descriptors.append(descriptor)
-#            return descriptor
-
-#        return result
-
-#    @classmethod
-#    def register_converter[AnimatableT: Animatable](
-#        cls: type[Self],
-#        converter: Callable[[Any], AnimatableT] | None = None
-#    ) -> Callable[[LazyDescriptor[AnimatableT, AnimatableT]], LazyDescriptor[AnimatableT, AnimatableT]]:
-
-#        def identity(
-#            element: AnimatableT
-#        ) -> AnimatableT:
-#            return element
-
-#        if converter is None:
-#            converter = identity
-
-#        def result(
-#            descriptor: LazyDescriptor[AnimatableT, AnimatableT]
-#        ) -> LazyDescriptor[AnimatableT, AnimatableT]:
-#            assert not descriptor._is_property
-#            assert not descriptor._plural
-#            assert not descriptor._freeze
-#            cls._descriptor_converter_dict[descriptor] = converter
-#            return descriptor
-
-#        return result

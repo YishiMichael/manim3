@@ -38,8 +38,6 @@ class GraphMobject(Mobject):
         if graph is not None:
             self._graph_ = graph
 
-    #@AnimatableMeta.register_descriptor()
-    #@AnimatableMeta.register_converter()
     @AnimatableActions.interpolate.register_descriptor()
     @AnimatableActions.piecewise.register_descriptor()
     @Lazy.volatile()
@@ -47,8 +45,6 @@ class GraphMobject(Mobject):
     def _graph_() -> Graph:
         return Graph()
 
-    #@AnimatableMeta.register_descriptor()
-    #@AnimatableMeta.register_converter(AnimatableColor)
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableColor)
     @Lazy.volatile()
@@ -56,8 +52,6 @@ class GraphMobject(Mobject):
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
-    #@AnimatableMeta.register_descriptor()
-    #@AnimatableMeta.register_converter(AnimatableFloat)
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
@@ -65,8 +59,6 @@ class GraphMobject(Mobject):
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    #@AnimatableMeta.register_descriptor()
-    #@AnimatableMeta.register_converter(AnimatableFloat)
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
@@ -74,8 +66,6 @@ class GraphMobject(Mobject):
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    #@AnimatableMeta.register_descriptor()
-    #@AnimatableMeta.register_converter(AnimatableFloat)
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
