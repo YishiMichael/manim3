@@ -22,7 +22,7 @@ from ..lazy.lazy import Lazy
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..toplevel.toplevel import Toplevel
 from ..utils.space_utils import SpaceUtils
-from .animatable.animatable import AnimatableMeta
+from .animatable.animatable import AnimatableActions
 from .arrays.animatable_float import AnimatableFloat
 from .model import Model
 
@@ -31,7 +31,9 @@ class Camera(Model):
     __slots__ = ()
 
     def __init__(
-        self: Self
+        self: Self,
+        near: float | None = None,
+        far: float | None = None
     ) -> None:
         super().__init__()
         # Positions bound to `model_matrix`:
@@ -44,16 +46,22 @@ class Camera(Model):
             Toplevel.config.frame_radii,
             Toplevel.config.camera_distance
         ))
+        if near is not None:
+            self._near_ = AnimatableFloat(near)
+        if far is not None:
+            self._far_ = AnimatableFloat(far)
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    @AnimatableActions.interpolate.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _near_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.camera_near)
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    @AnimatableActions.interpolate.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _far_() -> AnimatableFloat:

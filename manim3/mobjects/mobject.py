@@ -11,7 +11,7 @@ from typing import (
     overload
 )
 
-from ..animatables.animatable.animatable import AnimatableMeta
+#from ..animatables.animatable.animatable import AnimatableMeta
 from ..animatables.camera import Camera
 from ..animatables.model import Model
 from ..lazy.lazy import Lazy
@@ -67,7 +67,7 @@ class Mobject(Model):
 
     # render
 
-    @AnimatableMeta.register_converter()
+    #@AnimatableMeta.register_converter()
     @Lazy.volatile(deepcopy=False)
     @staticmethod
     def _camera_() -> Camera:
@@ -78,6 +78,17 @@ class Mobject(Model):
         target_framebuffer: OITFramebuffer
     ) -> None:
         pass
+
+    def bind_camera(
+        self: Self,
+        camera: Camera,
+        *,
+        broadcast: bool = True,
+    ) -> Self:
+        for sibling in self._iter_siblings(broadcast=broadcast):
+            if isinstance(sibling, Mobject):
+                sibling._camera_ = camera
+        return self
 
     # family matters
     # These methods implement a DAG (directed acyclic graph).

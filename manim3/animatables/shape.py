@@ -22,7 +22,7 @@ from ..constants.custom_typing import (
 )
 from ..lazy.lazy import Lazy
 from ..utils.space_utils import SpaceUtils
-from .animatable.actions import ActionMeta
+from .animatable.actions import Action
 from .animatable.animatable import (
     Animatable,
     AnimatableActions,
@@ -41,7 +41,7 @@ from .graph import Graph
 class ShapeActions(AnimatableActions):
     __slots__ = ()
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def interpolate(
         cls: type[Self],
@@ -51,7 +51,7 @@ class ShapeActions(AnimatableActions):
     ) -> Iterator[Animation]:
         yield ShapeInterpolateAnimation(dst, src_0, src_1)
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def piecewise(
         cls: type[Self],
@@ -62,7 +62,7 @@ class ShapeActions(AnimatableActions):
         yield ShapePiecewiseAnimation(dst, src, piecewiser)
 
 
-class Shape(ShapeActions, Animatable):
+class Shape(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -214,6 +214,9 @@ class Shape(ShapeActions, Animatable):
     ) -> DynamicShape[Self]:
         return DynamicShape(self, **kwargs)
 
+    interpolate = ShapeActions.interpolate.build_animatable_method_descriptor()
+    piecewise = ShapeActions.piecewise.build_animatable_method_descriptor()
+
     def as_parameters(
         self: Self,
         positions: NP_x2f8,
@@ -332,8 +335,11 @@ class Shape(ShapeActions, Animatable):
         )
 
 
-class DynamicShape[ShapeT: Shape](ShapeActions, DynamicAnimatable[ShapeT]):
+class DynamicShape[ShapeT: Shape](DynamicAnimatable[ShapeT]):
     __slots__ = ()
+
+    interpolate = ShapeActions.interpolate.build_dynamic_animatable_method_descriptor()
+    piecewise = ShapeActions.piecewise.build_dynamic_animatable_method_descriptor()
 
 
 class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[ShapeT]):

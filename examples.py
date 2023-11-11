@@ -69,12 +69,12 @@ class ThreeDExample(Scene):
             .scale(2.0)
             .set(
                 color="#00FFAA",
-                opacity=0.25,
-                lighting=Lighting(
-                    AmbientLight().set(color=WHITE * 0.3),
-                    PointLight().shift(RIGHT * 5)
-                )
+                opacity=0.25
             )
+            .bind_lighting(Lighting(
+                AmbientLight().set(color=WHITE * 0.3),
+                PointLight().shift(RIGHT * 5)
+            ))
         )
         self.add(dodec)
         self.prepare(self.camera.animate(infinite=True).rotate(0.5 * DOWN))
@@ -327,7 +327,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    FormulaExample.render(config)
+    TextTransformExample.render(config)
 
 
 if __name__ == "__main__":

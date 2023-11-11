@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from typing import (
-    TYPE_CHECKING,
+    #TYPE_CHECKING,
     Iterator,
     Self,
     TypedDict,
@@ -27,11 +27,14 @@ from ..lazy.lazy import Lazy
 from ..lazy.lazy_object import LazyObject
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..utils.space_utils import SpaceUtils
-from .animatable.actions import ActionMeta
+from .animatable.actions import (
+    Action,
+    ConverterDescriptorParameters
+)
 from .animatable.animatable import (
     Animatable,
     AnimatableActions,
-    AnimatableMeta,
+    #AnimatableMeta,
     DynamicAnimatable
 )
 from .animatable.animation import (
@@ -40,12 +43,12 @@ from .animatable.animation import (
 )
 from .arrays.model_matrix import ModelMatrix
 
-if TYPE_CHECKING:
-    from .camera import Camera
-    from .graph import Graph
-    from .mesh import Mesh
-    from .shape import Shape
-    from .lighting import Lighting
+#if TYPE_CHECKING:
+#    from .camera import Camera
+#    from .graph import Graph
+#    from .mesh import Mesh
+#    from .shape import Shape
+#    from .lighting import Lighting
 
 
 class SetKwargs(TypedDict, total=False):
@@ -55,25 +58,25 @@ class SetKwargs(TypedDict, total=False):
     weight: float
 
     # Mobject
-    camera: Camera
+    #camera: Camera
 
     # MeshMobject
-    mesh: Mesh
+    #mesh: Mesh
     ambient_strength: float
     specular_strength: float
     shininess: float
-    lighting: Lighting
+    #lighting: Lighting
 
     # ShapeMobject
-    shape: Shape
+    #shape: Shape
 
     # GraphMobject
-    graph: Graph
+    #graph: Graph
     width: float
 
     # Camera
-    near: float
-    far: float
+    #near: float
+    #far: float
 
 
 class Box(LazyObject):
@@ -130,7 +133,7 @@ class Box(LazyObject):
 class ModelActions(AnimatableActions):
     __slots__ = ()
 
-    @ActionMeta.register
+    @Action.register(ConverterDescriptorParameters)
     @classmethod
     def set(
         cls: type[Self],
@@ -138,22 +141,42 @@ class ModelActions(AnimatableActions):
         broadcast: bool = True,
         **kwargs: Unpack[SetKwargs]
     ) -> Iterator[Animation]:
-        for sibling in dst._iter_siblings(broadcast=broadcast):
-            for name, animatable_input in kwargs.items():
-                if (descriptor_item := type(sibling)._descriptor_converter_dict.get(f"_{name}_")) is None:
-                    continue
-                descriptor, converter = descriptor_item
-                if descriptor not in type(sibling)._animatable_descriptors:
+        for descriptor, descriptor_parameters in cls.set._descriptor_dict.items():
+            if (input_value := kwargs.get(descriptor._name.strip("_"))) is None:
+                continue
+            converter = descriptor_parameters.converter
+            target = converter(input_value) if converter is not None else input_value
+            for sibling in dst._iter_siblings(broadcast=broadcast):
+                if descriptor not in sibling._lazy_descriptors:
                     continue
                 initial = descriptor.__get__(sibling)
-                target = converter(animatable_input)
-                yield from initial._actions_cls.interpolate(
+                yield from type(initial).interpolate._action(
                     dst=initial,
                     src_0=initial.copy(),
                     src_1=target
                 )
 
-    @ActionMeta.register
+        #for sibling in dst._iter_siblings(broadcast=broadcast):
+        #    descriptor_to_value = {
+        #        descriptor: descriptor_parameters.converter(animatable_input)
+        #        for descriptor, descriptor_parameters in cls.set._descriptor_dict.items()
+        #        if descriptor in 
+        #    }
+        #    for name, animatable_input in kwargs.items():
+        #        if (descriptor_item := type(sibling)._descriptor_converter_dict.get(f"_{name}_")) is None:
+        #            continue
+        #        descriptor, converter = descriptor_item
+        #        if descriptor not in type(sibling)._animatable_descriptors:
+        #            continue
+        #        initial = descriptor.__get__(sibling)
+        #        target = converter(animatable_input)
+        #        yield from initial._actions_cls.interpolate(
+        #            dst=initial,
+        #            src_0=initial.copy(),
+        #            src_1=target
+        #        )
+
+    @Action.register()
     @classmethod
     def shift(
         cls: type[Self],
@@ -167,7 +190,7 @@ class ModelActions(AnimatableActions):
             mask=mask * np.ones((3,))
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def move_to(
         cls: type[Self],
@@ -183,7 +206,7 @@ class ModelActions(AnimatableActions):
             mask=mask
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def next_to(
         cls: type[Self],
@@ -199,7 +222,7 @@ class ModelActions(AnimatableActions):
             mask=mask
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def scale(
         cls: type[Self],
@@ -219,7 +242,7 @@ class ModelActions(AnimatableActions):
             mask=mask * np.ones((3,))
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def scale_about_origin(
         cls: type[Self],
@@ -234,7 +257,7 @@ class ModelActions(AnimatableActions):
             mask=mask
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def scale_to(
         cls: type[Self],
@@ -252,7 +275,7 @@ class ModelActions(AnimatableActions):
             mask=mask
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def rotate(
         cls: type[Self],
@@ -272,7 +295,7 @@ class ModelActions(AnimatableActions):
             mask=mask * np.ones((3,))
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def rotate_about_origin(
         cls: type[Self],
@@ -287,7 +310,7 @@ class ModelActions(AnimatableActions):
             mask=mask
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def flip(
         cls: type[Self],
@@ -305,7 +328,7 @@ class ModelActions(AnimatableActions):
             mask=mask
         )
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def apply(
         cls: type[Self],
@@ -324,16 +347,19 @@ class ModelActions(AnimatableActions):
         )
 
 
-class Model(ModelActions, Animatable):
+class Model(Animatable):
     __slots__ = ()
 
-    @AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_descriptor()
+    @AnimatableActions.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
-    @AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_descriptor()
+    @AnimatableActions.interpolate.register_descriptor()
+    @AnimatableActions.piecewise.register_descriptor()
     @Lazy.volatile(plural=True)
     @staticmethod
     def _proper_siblings_() -> tuple[Model, ...]:
@@ -391,7 +417,7 @@ class Model(ModelActions, Animatable):
         self: Self,
         *,
         broadcast: bool = True
-    ) -> Iterator[Animatable]:
+    ) -> Iterator[Model]:
         yield self
         if broadcast:
             yield from self._proper_siblings_
@@ -408,22 +434,46 @@ class Model(ModelActions, Animatable):
     ) -> DynamicModel[Self]:
         return DynamicModel(self, **kwargs)
 
-    def set(
-        self: Self,
-        broadcast: bool = True,
-        **kwargs: Unpack[SetKwargs]
-    ) -> Self:
-        for sibling in self._iter_siblings(broadcast=broadcast):
-            for name, animatable_input in kwargs.items():
-                if (descriptor_item := type(sibling)._descriptor_converter_dict.get(f"_{name}_")) is None:
-                    continue
-                descriptor, converter = descriptor_item
-                descriptor.__set__(sibling, converter(animatable_input))
-        return self
+    set = ModelActions.set.build_animatable_method_descriptor()
+    shift = ModelActions.shift.build_animatable_method_descriptor()
+    move_to = ModelActions.move_to.build_animatable_method_descriptor()
+    next_to = ModelActions.next_to.build_animatable_method_descriptor()
+    scale = ModelActions.scale.build_animatable_method_descriptor()
+    scale_about_origin = ModelActions.scale_about_origin.build_animatable_method_descriptor()
+    scale_to = ModelActions.scale_to.build_animatable_method_descriptor()
+    rotate = ModelActions.rotate.build_animatable_method_descriptor()
+    rotate_about_origin = ModelActions.rotate_about_origin.build_animatable_method_descriptor()
+    flip = ModelActions.flip.build_animatable_method_descriptor()
+    apply = ModelActions.apply.build_animatable_method_descriptor()
+
+    #def set(
+    #    self: Self,
+    #    broadcast: bool = True,
+    #    **kwargs: Unpack[SetKwargs]
+    #) -> Self:
+    #    for sibling in self._iter_siblings(broadcast=broadcast):
+    #        for name, animatable_input in kwargs.items():
+    #            if (descriptor_item := type(sibling)._descriptor_converter_dict.get(f"_{name}_")) is None:
+    #                continue
+    #            descriptor, converter = descriptor_item
+    #            descriptor.__set__(sibling, converter(animatable_input))
+    #    return self
 
 
-class DynamicModel[ModelT: Model](ModelActions, DynamicAnimatable[ModelT]):
+class DynamicModel[ModelT: Model](DynamicAnimatable[ModelT]):
     __slots__ = ()
+
+    set = ModelActions.set.build_dynamic_animatable_method_descriptor()
+    shift = ModelActions.shift.build_dynamic_animatable_method_descriptor()
+    move_to = ModelActions.move_to.build_dynamic_animatable_method_descriptor()
+    next_to = ModelActions.next_to.build_dynamic_animatable_method_descriptor()
+    scale = ModelActions.scale.build_dynamic_animatable_method_descriptor()
+    scale_about_origin = ModelActions.scale_about_origin.build_dynamic_animatable_method_descriptor()
+    scale_to = ModelActions.scale_to.build_dynamic_animatable_method_descriptor()
+    rotate = ModelActions.rotate.build_dynamic_animatable_method_descriptor()
+    rotate_about_origin = ModelActions.rotate_about_origin.build_dynamic_animatable_method_descriptor()
+    flip = ModelActions.flip.build_dynamic_animatable_method_descriptor()
+    apply = ModelActions.apply.build_dynamic_animatable_method_descriptor()
 
 
 class ModelAnimation(Animation):

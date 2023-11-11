@@ -15,12 +15,12 @@ from ..constants.custom_typing import (
     NP_i4,
     NP_x2i4,
     NP_x3f8,
-    NP_xi4,
-    NP_xf8
+    NP_xf8,
+    NP_xi4
 )
 from ..lazy.lazy import Lazy
 from ..utils.space_utils import SpaceUtils
-from .animatable.actions import ActionMeta
+from .animatable.actions import Action
 from .animatable.animatable import (
     Animatable,
     AnimatableActions,
@@ -38,7 +38,7 @@ from .animatable.piecewiser import Piecewiser
 class GraphActions(AnimatableActions):
     __slots__ = ()
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def interpolate(
         cls: type[Self],
@@ -48,7 +48,7 @@ class GraphActions(AnimatableActions):
     ) -> Iterator[Animation]:
         yield GraphInterpolateAnimation(dst, src_0, src_1)
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def piecewise(
         cls: type[Self],
@@ -59,7 +59,7 @@ class GraphActions(AnimatableActions):
         yield GraphPiecewiseAnimation(dst, src, piecewiser)
 
 
-class Graph(GraphActions, Animatable):
+class Graph(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -294,6 +294,9 @@ class Graph(GraphActions, Animatable):
     ) -> DynamicGraph[Self]:
         return DynamicGraph(self, **kwargs)
 
+    interpolate = GraphActions.interpolate.build_animatable_method_descriptor()
+    piecewise = GraphActions.piecewise.build_animatable_method_descriptor()
+
     def as_parameters(
         self: Self,
         positions: NP_x3f8,
@@ -379,8 +382,11 @@ class Graph(GraphActions, Animatable):
         )
 
 
-class DynamicGraph[GraphT: Graph](GraphActions, DynamicAnimatable[GraphT]):
+class DynamicGraph[GraphT: Graph](DynamicAnimatable[GraphT]):
     __slots__ = ()
+
+    interpolate = GraphActions.interpolate.build_dynamic_animatable_method_descriptor()
+    piecewise = GraphActions.piecewise.build_dynamic_animatable_method_descriptor()
 
 
 class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[GraphT]):

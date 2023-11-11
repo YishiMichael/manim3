@@ -6,11 +6,12 @@ from typing import Self
 import moderngl
 import numpy as np
 
-from ...animatables.animatable.animatable import AnimatableMeta
+from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.lighting import Lighting
 from ...animatables.mesh import Mesh
+from ...animatables.model import ModelActions
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -39,56 +40,72 @@ class MeshMobject(Mobject):
         if mesh is not None:
             self._mesh_ = mesh
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter()
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter()
+
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableColor)
+    @AnimatableActions.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableColor)
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableColor)
+    @AnimatableActions.interpolate.register_descriptor()
+    @ModelActions.set.register_descriptor(converter=AnimatableColor)
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor()
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
+    @AnimatableActions.interpolate.register_descriptor()
+    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
+    @AnimatableActions.interpolate.register_descriptor()
+    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
+    @AnimatableActions.interpolate.register_descriptor()
+    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _ambient_strength_() -> AnimatableFloat:
         return AnimatableFloat(1.0)
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
+    @AnimatableActions.interpolate.register_descriptor()
+    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _specular_strength_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_specular_strength)
 
-    @AnimatableMeta.register_descriptor()
-    @AnimatableMeta.register_converter(AnimatableFloat)
+    #@AnimatableMeta.register_descriptor()
+    #@AnimatableMeta.register_converter(AnimatableFloat)
+    @AnimatableActions.interpolate.register_descriptor()
+    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _shininess_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_shininess)
 
-    @AnimatableMeta.register_converter()
+    #@AnimatableMeta.register_converter()
     @Lazy.volatile(deepcopy=False)
     @staticmethod
     def _lighting_() -> Lighting:
@@ -172,3 +189,14 @@ class MeshMobject(Mobject):
         target_framebuffer: OITFramebuffer
     ) -> None:
         self._mesh_vertex_array_.render(target_framebuffer)
+
+    def bind_lighting(
+        self: Self,
+        lighting: Lighting,
+        *,
+        broadcast: bool = True,
+    ) -> Self:
+        for sibling in self._iter_siblings(broadcast=broadcast):
+            if isinstance(sibling, MeshMobject):
+                sibling._lighting_ = lighting
+        return self

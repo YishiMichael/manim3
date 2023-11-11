@@ -11,7 +11,7 @@ import numpy.typing as npt
 
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
-from ..animatable.actions import ActionMeta
+from ..animatable.actions import Action
 from ..animatable.animatable import (
     Animatable,
     AnimatableActions,
@@ -27,7 +27,7 @@ from ..animatable.animation import (
 class AnimatableArrayActions(AnimatableActions):
     __slots__ = ()
 
-    @ActionMeta.register
+    @Action.register()
     @classmethod
     def interpolate(
         cls: type[Self],
@@ -38,7 +38,7 @@ class AnimatableArrayActions(AnimatableActions):
         yield AnimatableArrayInterpolateAnimation(dst, src_0, src_1)
 
 
-class AnimatableArray[NDArrayT: npt.NDArray](AnimatableArrayActions, Animatable):
+class AnimatableArray[NDArrayT: npt.NDArray](Animatable):
     __slots__ = ()
 
     def __init__(
@@ -60,9 +60,13 @@ class AnimatableArray[NDArrayT: npt.NDArray](AnimatableArrayActions, Animatable)
     ) -> DynamicAnimatableArray[Self]:
         return DynamicAnimatableArray(self, **kwargs)
 
+    interpolate = AnimatableArrayActions.interpolate.build_animatable_method_descriptor()
 
-class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](AnimatableArrayActions, DynamicAnimatable[AnimatableArrayT]):
+
+class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](DynamicAnimatable[AnimatableArrayT]):
     __slots__ = ()
+
+    interpolate = AnimatableArrayActions.interpolate.build_dynamic_animatable_method_descriptor()
 
 
 class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](AnimatableInterpolateAnimation[AnimatableArrayT]):
