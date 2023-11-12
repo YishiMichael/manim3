@@ -228,7 +228,7 @@ class ModelActions(AnimatableActions):
     ) -> Iterator[Animation]:
         yield from cls.scale(
             dst=dst,
-            factor=target.box.get_radii() / np.maximum(dst.box.get_radii(), 1e-8),
+            factor=target.box.get_radii() / dst.box.get_radii(),
             about=about,
             direction=direction,
             mask=mask

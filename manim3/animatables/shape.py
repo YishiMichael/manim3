@@ -208,15 +208,6 @@ class Shape(Animatable):
         counts[not_ring_indices] += 1
         return position_indices, counts
 
-    def animate(
-        self: Self,
-        **kwargs: Unpack[AnimateKwargs]
-    ) -> DynamicShape[Self]:
-        return DynamicShape(self, **kwargs)
-
-    interpolate = ShapeActions.interpolate.build_animatable_method_descriptor()
-    piecewise = ShapeActions.piecewise.build_animatable_method_descriptor()
-
     def as_parameters(
         self: Self,
         positions: NP_x2f8,
@@ -334,6 +325,15 @@ class Shape(Animatable):
             fill_type=pyclipr.NonZero
         )
 
+    def animate(
+        self: Self,
+        **kwargs: Unpack[AnimateKwargs]
+    ) -> DynamicShape[Self]:
+        return DynamicShape(self, **kwargs)
+
+    interpolate = ShapeActions.interpolate.build_animatable_method_descriptor()
+    piecewise = ShapeActions.piecewise.build_animatable_method_descriptor()
+
 
 class DynamicShape[ShapeT: Shape](DynamicAnimatable[ShapeT]):
     __slots__ = ()
@@ -345,37 +345,17 @@ class DynamicShape[ShapeT: Shape](DynamicAnimatable[ShapeT]):
 class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[ShapeT]):
     __slots__ = ()
 
-    def __init__(
-        self: Self,
-        dst: ShapeT,
-        src_0: ShapeT,
-        src_1: ShapeT
-    ) -> None:
-        super().__init__(dst, src_0, src_1)
-        self._shape_0_ = src_0.copy()
-        self._shape_1_ = src_1.copy()
-
-    @Lazy.variable()
-    @staticmethod
-    def _shape_0_() -> ShapeT:
-        return NotImplemented
-
-    @Lazy.variable()
-    @staticmethod
-    def _shape_1_() -> ShapeT:
-        return NotImplemented
-
     @Lazy.property()
     @staticmethod
     def _interpolate_info_(
-        shape_0: ShapeT,
-        shape_1: ShapeT
+        src_0: ShapeT,
+        src_1: ShapeT
     ) -> tuple[NP_x2f8, NP_x2f8, NP_xi4]:
         positions_0, positions_1, edges = Graph._general_interpolate(
-            graph_0=shape_0._graph_,
-            graph_1=shape_1._graph_,
-            disjoints_0=np.insert(np.cumsum(shape_0._counts_), 0, 0),
-            disjoints_1=np.insert(np.cumsum(shape_1._counts_), 0, 0)
+            graph_0=src_0._graph_,
+            graph_1=src_1._graph_,
+            disjoints_0=np.insert(np.cumsum(src_0._counts_), 0, 0),
+            disjoints_1=np.insert(np.cumsum(src_1._counts_), 0, 0)
         )
         position_indices, counts = Shape._get_position_indices_and_counts_from_edges(edges)
         return (

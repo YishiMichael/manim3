@@ -118,7 +118,7 @@ class Graph(Animatable):
             if centroid_0 is not None:
                 return positions_0, np.repeat(centroid_0, len(positions_0), axis=0), edges_0
             if centroid_1 is not None:
-                return positions_1, np.repeat(centroid_1, len(positions_1), axis=0), edges_1
+                return np.repeat(centroid_1, len(positions_1), axis=0), positions_1, edges_1
             return np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0,), dtype=np.int32)
 
         cumlengths_0 = graph_0._cumlengths_
@@ -211,7 +211,7 @@ class Graph(Animatable):
         values: NP_xf8,
         indices: NP_xi4
     ) -> NP_x3f8:
-        residues = (values - full_knots[indices]) / np.maximum(full_knots[indices + 1] - full_knots[indices], 1e-6)
+        residues = (values - full_knots[indices]) / np.maximum(full_knots[indices + 1] - full_knots[indices], 1e-8)
         return SpaceUtils.lerp(
             positions[edges[indices, 0]],
             positions[edges[indices, 1]],
@@ -287,15 +287,6 @@ class Graph(Animatable):
             positions_1[unique_edges[1]],
             edges_inverse.reshape((-1, 2))
         )
-
-    def animate(
-        self: Self,
-        **kwargs: Unpack[AnimateKwargs]
-    ) -> DynamicGraph[Self]:
-        return DynamicGraph(self, **kwargs)
-
-    interpolate = GraphActions.interpolate.build_animatable_method_descriptor()
-    piecewise = GraphActions.piecewise.build_animatable_method_descriptor()
 
     def as_parameters(
         self: Self,
@@ -381,6 +372,15 @@ class Graph(Animatable):
             ])
         )
 
+    def animate(
+        self: Self,
+        **kwargs: Unpack[AnimateKwargs]
+    ) -> DynamicGraph[Self]:
+        return DynamicGraph(self, **kwargs)
+
+    interpolate = GraphActions.interpolate.build_animatable_method_descriptor()
+    piecewise = GraphActions.piecewise.build_animatable_method_descriptor()
+
 
 class DynamicGraph[GraphT: Graph](DynamicAnimatable[GraphT]):
     __slots__ = ()
@@ -392,35 +392,15 @@ class DynamicGraph[GraphT: Graph](DynamicAnimatable[GraphT]):
 class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[GraphT]):
     __slots__ = ()
 
-    def __init__(
-        self: Self,
-        dst: GraphT,
-        src_0: GraphT,
-        src_1: GraphT
-    ) -> None:
-        super().__init__(dst, src_0, src_1)
-        self._graph_0_ = src_0.copy()
-        self._graph_1_ = src_1.copy()
-
-    @Lazy.variable()
-    @staticmethod
-    def _graph_0_() -> GraphT:
-        return NotImplemented
-
-    @Lazy.variable()
-    @staticmethod
-    def _graph_1_() -> GraphT:
-        return NotImplemented
-
     @Lazy.property()
     @staticmethod
     def _interpolate_info_(
-        graph_0: GraphT,
-        graph_1: GraphT
+        src_0: GraphT,
+        src_1: GraphT
     ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
         return Graph._general_interpolate(
-            graph_0=graph_0,
-            graph_1=graph_1,
+            graph_0=src_0,
+            graph_1=src_1,
             disjoints_0=np.zeros((0,), dtype=np.int32),
             disjoints_1=np.zeros((0,), dtype=np.int32)
         )

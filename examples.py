@@ -327,7 +327,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    TextTransformExample.render(config)
+    ShapeTransformExample.render(config)
 
 
 if __name__ == "__main__":

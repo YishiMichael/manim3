@@ -12,6 +12,7 @@ from ...constants.custom_typing import (
     BoundaryT,
     NP_xf8
 )
+from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
 from .actions import (
     Action,
@@ -128,8 +129,6 @@ class DynamicAnimatable[AnimatableT: Animatable](AnimationsTimeline):
 class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):
     __slots__ = (
         "_dst",
-        "_src_0",
-        "_src_1",
         "_interpolate_info"
     )
 
@@ -141,8 +140,18 @@ class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):
     ) -> None:
         super().__init__()
         self._dst: AnimatableT = dst
-        self._src_0: AnimatableT = src_0
-        self._src_1: AnimatableT = src_1
+        self._src_0_ = src_0.copy()
+        self._src_1_ = src_1.copy()
+
+    @Lazy.variable()
+    @staticmethod
+    def _src_0_() -> AnimatableT:
+        return NotImplemented
+
+    @Lazy.variable()
+    @staticmethod
+    def _src_1_() -> AnimatableT:
+        return NotImplemented
 
     @abstractmethod
     def interpolate(
@@ -172,7 +181,7 @@ class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):
         boundary: BoundaryT
     ) -> None:
         super().update_boundary(boundary)
-        self.becomes(self._dst, self._src_1 if boundary else self._src_0)
+        self.becomes(self._dst, self._src_1_ if boundary else self._src_0_)
 
 
 class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
