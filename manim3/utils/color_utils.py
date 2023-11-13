@@ -11,7 +11,7 @@ import numpy as np
 from colour import Color
 
 from ..constants.custom_typing import (
-    ColorT,
+    ColorType,
     NP_3f8
 )
 
@@ -27,7 +27,7 @@ class ColorUtils:
     @classmethod
     def standardize_color(
         cls: type[Self],
-        color: ColorT
+        color: ColorType
     ) -> NP_3f8:
         match color:
             case Color():
@@ -48,7 +48,7 @@ class ColorUtils:
     @classmethod
     def color_to_hex(
         cls: type[Self],
-        color: ColorT
+        color: ColorType
     ) -> str:
         components = (cls.standardize_color(color) * 255.0).astype(np.int32)
         return f"#{"".join("{:02x}".format(component) for component in components)}"

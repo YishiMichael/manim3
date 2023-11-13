@@ -7,8 +7,8 @@ import attrs
 from colour import Color
 
 from ..constants.custom_typing import (
-    AlignmentT,
-    ColorT
+    AlignmentType,
+    ColorType
 )
 
 
@@ -29,14 +29,14 @@ class Config:
     camera_near: float = 0.1
     camera_far: float = 100.0
 
-    default_color: ColorT = Color("white")
-    background_color: ColorT = Color("black")
+    default_color: ColorType = Color("white")
+    background_color: ColorType = Color("black")
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
 
     latex_font_size: float = 30
-    tex_alignment: AlignmentT = "left"
+    tex_alignment: AlignmentType = "left"
     tex_compiler: str = "xelatex"
     tex_preambles: tuple[str, ...] = (
         "\\usepackage[UTF8]{ctex}",
@@ -57,7 +57,7 @@ class Config:
     mathjax_inline: bool = False
 
     pango_font_size: float = 30
-    pango_alignment: AlignmentT = "left"
+    pango_alignment: AlignmentType = "left"
     pango_font: str = "Consolas"
     pango_justify: bool = False
     pango_indent: float = 0.0

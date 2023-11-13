@@ -7,7 +7,7 @@ from typing import (
     Self
 )
 
-from ..constants.custom_typing import SelectorT
+from ..constants.custom_typing import SelectorType
 from ..mobjects.string_mobjects.string_mobject import StringMobject
 from .composition.parallel import Parallel
 from .fade.fade_in import FadeIn
@@ -27,7 +27,7 @@ class TransformMatchingStrings(Timeline):
         self: Self,
         start_mobject: StringMobject,
         stop_mobject: StringMobject,
-        key_map: dict[SelectorT, SelectorT] | None = None
+        key_map: dict[SelectorType, SelectorType] | None = None
     ) -> None:
 
         def match_elements_evenly[T](

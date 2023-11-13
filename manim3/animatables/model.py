@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from typing import (
-    #TYPE_CHECKING,
     Iterator,
     Self,
     TypedDict,
@@ -17,8 +16,8 @@ from ..constants.constants import (
     PI
 )
 from ..constants.custom_typing import (
-    BoundaryT,
-    ColorT,
+    BoundaryType,
+    ColorType,
     NP_3f8,
     NP_44f8,
     NP_x3f8
@@ -45,7 +44,7 @@ from .arrays.model_matrix import ModelMatrix
 
 class SetKwargs(TypedDict, total=False):
     # polymorphism variables
-    color: ColorT
+    color: ColorType
     opacity: float
     weight: float
 
@@ -460,7 +459,7 @@ class ModelAnimation(Animation):
 
     def update_boundary(
         self: Self,
-        boundary: BoundaryT
+        boundary: BoundaryType
     ) -> None:
         super().update_boundary(boundary)
         self.update(float(boundary))

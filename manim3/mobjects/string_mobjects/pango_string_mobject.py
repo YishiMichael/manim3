@@ -19,8 +19,8 @@ except ImportError:
     MarkupUtils = None
 
 from ...constants.custom_typing import (
-    AlignmentT,
-    ColorT
+    AlignmentType,
+    ColorType
 )
 from ...toplevel.toplevel import Toplevel
 from ...utils.color_utils import ColorUtils
@@ -42,9 +42,9 @@ class PangoAlignment(Enum):
 
 @attrs.frozen(kw_only=True)
 class PangoStringMobjectInput(StringMobjectInput):
-    color: ColorT = attrs.field(factory=lambda: Toplevel.config.default_color)
+    color: ColorType = attrs.field(factory=lambda: Toplevel.config.default_color)
     font_size: float = attrs.field(factory=lambda: Toplevel.config.pango_font_size)
-    alignment: AlignmentT = attrs.field(factory=lambda: Toplevel.config.pango_alignment)
+    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel.config.pango_alignment)
     font: str = attrs.field(factory=lambda: Toplevel.config.pango_font)
     justify: bool = attrs.field(factory=lambda: Toplevel.config.pango_justify)
     indent: float = attrs.field(factory=lambda: Toplevel.config.pango_indent)
@@ -52,9 +52,9 @@ class PangoStringMobjectInput(StringMobjectInput):
 
 
 class PangoStringMobjectKwargs(StringMobjectKwargs, total=False):
-    color: ColorT
+    color: ColorType
     font_size: float
-    alignment: AlignmentT
+    alignment: AlignmentType
     font: str
     justify: bool
     indent: float

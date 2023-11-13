@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Self
 
-from ...constants.custom_typing import BoundaryT
+from ...constants.custom_typing import BoundaryType
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
 
@@ -19,7 +19,7 @@ class Rate(LazyObject):
 
     @Lazy.property()
     @staticmethod
-    def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
+    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
         return (0, 1)
 
     @abstractmethod

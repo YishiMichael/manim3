@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Self
 
 from ...constants.custom_typing import (
-    ColorT,
+    ColorType,
     NP_3f8
 )
 from ...lazy.lazy import Lazy
@@ -18,7 +18,7 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
 
     def __init__(
         self: Self,
-        color: ColorT | None = None
+        color: ColorType | None = None
     ) -> None:
         super().__init__(ColorUtils.standardize_color(color) if color is not None else None)
 

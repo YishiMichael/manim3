@@ -124,13 +124,13 @@ class Shape(Animatable):
         positions: NP_x2f8,
         cumcounts: NP_xi4
     ) -> Graph:
-        edges_0 = np.arange(len(positions), dtype=np.int32)
-        edges_1 = np.arange(len(positions), dtype=np.int32)
-        edges_1[cumcounts[:-1]] = np.roll(edges_1[cumcounts[:-1]], 1)
-        edges_1 = np.roll(edges_1, -1)
+        edge_starts = np.arange(len(positions), dtype=np.int32)
+        edge_stops = np.arange(len(positions), dtype=np.int32)
+        edge_stops[cumcounts[:-1]] = np.roll(edge_stops[cumcounts[:-1]], 1)
+        edge_stops = np.roll(edge_stops, -1)
         return Graph(
             positions=SpaceUtils.increase_dimension(positions),
-            edges=np.column_stack((edges_0, edges_1))
+            edges=np.column_stack((edge_starts, edge_stops))
         )
 
     @Lazy.property()
@@ -191,6 +191,105 @@ class Shape(Animatable):
         return concatenate_triangulations(
             get_contour_triangulation(contour)
             for contour in iter_contour_nodes(poly_tree_root.children)
+        )
+
+    @classmethod
+    def _get_interpolate_info(
+        cls: type[Self],
+        shape_0: Shape,
+        shape_1: Shape
+    ) -> tuple[NP_x2f8, NP_x2f8, NP_xi4]:
+        graph_0 = shape_0._graph_
+        graph_1 = shape_1._graph_
+        outline_positions_0, outline_positions_1, outline_edges = Graph._get_interpolate_info(
+            graph_0=graph_0,
+            graph_1=graph_1
+        )
+
+        shape_cumcounts_0 = shape_0._cumcounts_
+        shape_cumcounts_1 = shape_1._cumcounts_
+        graph_positions_0 = graph_0._positions_
+        graph_positions_1 = graph_1._positions_
+        graph_edges_0 = graph_0._edges_
+        graph_edges_1 = graph_1._edges_
+        knots_0 = graph_0._cumlengths_ * graph_1._cumlengths_[-1]
+        knots_1 = graph_1._cumlengths_ * graph_0._cumlengths_[-1]
+
+        if not len(graph_edges_0) or not len(graph_edges_1):
+            position_indices, counts = Shape._get_position_indices_and_counts_from_edges(outline_edges)
+            return (
+                SpaceUtils.decrease_dimension(outline_positions_0)[position_indices],
+                SpaceUtils.decrease_dimension(outline_positions_1)[position_indices],
+                counts
+            )
+
+        inlay_interpolated_positions_0, inlay_indices_0 = Graph._get_new_samples(
+            graph_positions=graph_positions_0,
+            graph_edges=graph_edges_0,
+            knots=knots_0,
+            alphas=knots_1[shape_cumcounts_1][1:-1],
+            side="right"
+        )
+        inlay_extended_positions_0, inlay_extended_edges_0 = Graph._compose_samples(
+            graph_positions=graph_positions_0,
+            graph_edges=np.column_stack((
+                graph_edges_0[shape_cumcounts_0[:-1], 0],
+                graph_edges_0[shape_cumcounts_0[1:] - 1, 1]
+            )),
+            interpolated_positions=inlay_interpolated_positions_0,
+            indices=np.searchsorted(
+                shape_cumcounts_0[1:-1] - 1,
+                inlay_indices_0,
+                side="right"
+            ).astype(np.int32)
+        )
+        inlay_interpolated_positions_1, inlay_indices_1 = Graph._get_new_samples(
+            graph_positions=graph_positions_1,
+            graph_edges=graph_edges_1,
+            knots=knots_1,
+            alphas=knots_0[shape_cumcounts_0][1:-1],
+            side="left"
+        )
+        inlay_extended_positions_1, inlay_extended_edges_1 = Graph._compose_samples(
+            graph_positions=graph_positions_1,
+            graph_edges=np.column_stack((
+                graph_edges_1[shape_cumcounts_1[:-1], 0],
+                graph_edges_1[shape_cumcounts_1[1:] - 1, 1]
+            )),
+            interpolated_positions=inlay_interpolated_positions_1,
+            indices=np.searchsorted(
+                shape_cumcounts_1[1:-1] - 1,
+                inlay_indices_1,
+                side="left"
+            ).astype(np.int32)
+        )
+        all_positions_0, all_positions_1, all_edges = Graph._pack_interpolate_info(
+            positions_0=np.concatenate((
+                outline_positions_0,
+                inlay_extended_positions_0,
+                Graph._get_centroid(graph_positions_0, graph_edges_0)[None]
+            )),
+            edges_0=np.concatenate((
+                outline_edges,
+                inlay_extended_edges_0 + len(outline_positions_0),
+                np.zeros_like(inlay_extended_edges_1) + (len(outline_positions_0) + len(inlay_extended_positions_0))
+            )),
+            positions_1=np.concatenate((
+                outline_positions_1,
+                inlay_extended_positions_1,
+                Graph._get_centroid(graph_positions_1, graph_edges_1)[None]
+            )),
+            edges_1=np.concatenate((
+                outline_edges,
+                np.zeros_like(inlay_extended_edges_0) + (len(outline_positions_1) + len(inlay_extended_positions_1)),
+                inlay_extended_edges_1 + len(outline_positions_1)
+            ))
+        )
+        position_indices, counts = Shape._get_position_indices_and_counts_from_edges(all_edges)
+        return (
+            SpaceUtils.decrease_dimension(all_positions_0)[position_indices],
+            SpaceUtils.decrease_dimension(all_positions_1)[position_indices],
+            counts
         )
 
     @classmethod
@@ -351,17 +450,9 @@ class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[Sh
         src_0: ShapeT,
         src_1: ShapeT
     ) -> tuple[NP_x2f8, NP_x2f8, NP_xi4]:
-        positions_0, positions_1, edges = Graph._general_interpolate(
-            graph_0=src_0._graph_,
-            graph_1=src_1._graph_,
-            disjoints_0=np.insert(np.cumsum(src_0._counts_), 0, 0),
-            disjoints_1=np.insert(np.cumsum(src_1._counts_), 0, 0)
-        )
-        position_indices, counts = Shape._get_position_indices_and_counts_from_edges(edges)
-        return (
-            SpaceUtils.decrease_dimension(positions_0)[position_indices],
-            SpaceUtils.decrease_dimension(positions_1)[position_indices],
-            counts
+        return Shape._get_interpolate_info(
+            shape_0=src_0,
+            shape_1=src_1
         )
 
     def interpolate(

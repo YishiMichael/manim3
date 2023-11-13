@@ -11,7 +11,7 @@ from typing import (
 
 import attrs
 
-from ...constants.custom_typing import AlignmentT
+from ...constants.custom_typing import AlignmentType
 from ...toplevel.toplevel import Toplevel
 from .latex_string_mobject import (
     LatexStringMobjectIO,
@@ -23,13 +23,13 @@ from .string_mobject import StringMobject
 
 @attrs.frozen(kw_only=True)
 class TexInput(LatexStringMobjectInput):
-    alignment: AlignmentT = attrs.field(factory=lambda: Toplevel.config.tex_alignment)
+    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel.config.tex_alignment)
     compiler: str = attrs.field(factory=lambda: Toplevel.config.tex_compiler)
     preambles: tuple[str, ...] = attrs.field(factory=lambda: Toplevel.config.tex_preambles)
 
 
 class TexKwargs(LatexStringMobjectKwargs, total=False):
-    alignment: AlignmentT
+    alignment: AlignmentType
     compiler: str
     preambles: tuple[str, ...]
 

@@ -20,10 +20,10 @@ __all__ = (
     "NP_x2i4",
     "NP_x3i4",
     "NP_xxi4",
-    "BoundaryT",
-    "ColorT",
-    "AlignmentT",
-    "SelectorT"
+    "BoundaryType",
+    "ColorType",
+    "AlignmentType",
+    "SelectorType"
 )
 
 
@@ -55,7 +55,7 @@ type NP_x2i4 = npt.NDArray[np.int32]
 type NP_x3i4 = npt.NDArray[np.int32]
 type NP_xxi4 = npt.NDArray[np.int32]
 
-type BoundaryT = Literal[0, 1]
-type ColorT = Color | str | NP_3f8
-type AlignmentT = Literal["left", "center", "right"]
-type SelectorT = str | re.Pattern[str] | slice
+type BoundaryType = Literal[0, 1]
+type ColorType = Color | str | NP_3f8
+type AlignmentType = Literal["left", "center", "right"]
+type SelectorType = str | re.Pattern[str] | slice

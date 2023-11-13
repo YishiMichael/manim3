@@ -13,7 +13,7 @@ from scipy.interpolate import BSpline
 
 from ...constants.constants import TAU
 from ...constants.custom_typing import (
-    BoundaryT,
+    BoundaryType,
     NP_xf8
 )
 from ...lazy.lazy import Lazy
@@ -46,8 +46,8 @@ class ComposeRate(Rate):
     @Lazy.property()
     @staticmethod
     def _boundaries_(
-        reversed_rates__boundaries: tuple[tuple[BoundaryT, BoundaryT], ...]
-    ) -> tuple[BoundaryT, BoundaryT]:
+        reversed_rates__boundaries: tuple[tuple[BoundaryType, BoundaryType], ...]
+    ) -> tuple[BoundaryType, BoundaryType]:
         boundaries = (0, 1)
         for rate_boundary_0, rate_boundary_1 in reversed_rates__boundaries:
             boundaries = (boundaries[rate_boundary_0], boundaries[rate_boundary_1])
@@ -64,8 +64,8 @@ class ComposeRate(Rate):
 
     #def at_boundary(
     #    self: Self,
-    #    boundary: BoundaryT
-    #) -> BoundaryT:
+    #    boundary: BoundaryType
+    #) -> BoundaryType:
     #    result = boundary
     #    for rate in self._reversed_rates:
     #        result = rate.at_boundary(result)
@@ -105,8 +105,8 @@ class ProductRate(Rate):
     @Lazy.property()
     @staticmethod
     def _boundaries_(
-        rates__boundaries: tuple[tuple[BoundaryT, BoundaryT], ...]
-    ) -> tuple[BoundaryT, BoundaryT]:
+        rates__boundaries: tuple[tuple[BoundaryType, BoundaryType], ...]
+    ) -> tuple[BoundaryType, BoundaryType]:
         boundary_0, boundary_1 = (0, 1)
         for rate_boundary_0, rate_boundary_1 in rates__boundaries:
             boundary_0, boundary_1 = (boundary_0 and rate_boundary_0, boundary_1 and rate_boundary_1)
@@ -169,8 +169,8 @@ class LinearRate(Rate):
 
     #def at_boundary(
     #    self: Self,
-    #    boundary: BoundaryT
-    #) -> BoundaryT:
+    #    boundary: BoundaryType
+    #) -> BoundaryType:
     #    return boundary
 
     #def is_increasing(
@@ -212,7 +212,7 @@ class BezierRate(Rate):
     @staticmethod
     def _boundaries_(
         values: NP_xf8
-    ) -> tuple[BoundaryT, BoundaryT]:
+    ) -> tuple[BoundaryType, BoundaryType]:
         boundary_0 = int(np.rint(values[0]))
         boundary_1 = int(np.rint(values[-1]))
         assert boundary_0 in (0, 1) and boundary_1 in (0, 1)
@@ -239,8 +239,8 @@ class BezierRate(Rate):
 
 #    def at_boundary(
 #        self: Self,
-#        boundary: BoundaryT
-#    ) -> BoundaryT:
+#        boundary: BoundaryType
+#    ) -> BoundaryType:
 #        return boundary
 
 #    def is_increasing(
@@ -279,7 +279,7 @@ class RewindRate(Rate):
 
     @Lazy.property()
     @staticmethod
-    def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
+    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
         return (1, 0)
 
     def at(
@@ -290,8 +290,8 @@ class RewindRate(Rate):
 
     #def at_boundary(
     #    self: Self,
-    #    boundary: BoundaryT
-    #) -> BoundaryT:
+    #    boundary: BoundaryType
+    #) -> BoundaryType:
     #    return 1 - boundary
 
     #def is_increasing(
@@ -310,7 +310,7 @@ class ThereAndBackRate(Rate):
 
     @Lazy.property()
     @staticmethod
-    def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
+    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
         return (0, 0)
 
     def at(
@@ -321,8 +321,8 @@ class ThereAndBackRate(Rate):
 
     #def at_boundary(
     #    self: Self,
-    #    boundary: BoundaryT
-    #) -> BoundaryT:
+    #    boundary: BoundaryType
+    #) -> BoundaryType:
     #    return boundary
 
     #def is_increasing(
@@ -341,7 +341,7 @@ class SinusoidalRate(Rate):
 
     @Lazy.property()
     @staticmethod
-    def _boundaries_() -> tuple[BoundaryT, BoundaryT]:
+    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
         return (0, 0)
 
     def at(
@@ -375,8 +375,8 @@ class RepeatRate(Rate):
 
     #def at_boundary(
     #    self: Self,
-    #    boundary: BoundaryT
-    #) -> BoundaryT:
+    #    boundary: BoundaryType
+    #) -> BoundaryType:
     #    return boundary
 
     #def is_increasing(

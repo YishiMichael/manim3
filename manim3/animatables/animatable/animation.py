@@ -8,7 +8,7 @@ from typing import (
     Unpack
 )
 
-from ...constants.custom_typing import BoundaryT
+from ...constants.custom_typing import BoundaryType
 from ...lazy.lazy_object import LazyObject
 from ...timelines.timeline.rate import Rate
 from ...timelines.timeline.rates import Rates
@@ -40,7 +40,7 @@ class Animation(LazyObject):
 
     def update_boundary(
         self: Self,
-        boundary: BoundaryT
+        boundary: BoundaryType
     ) -> None:
         pass
 
@@ -96,7 +96,7 @@ class AnimationsTimeline(Timeline):
 
     def update_boundary(
         self: Self,
-        boundary: BoundaryT
+        boundary: BoundaryType
     ) -> None:
         alpha_boundary = self._rate._boundaries_[boundary]
         for animation in self._animations:

@@ -19,8 +19,8 @@ import scipy.spatial.distance
 
 from ...animatables.shape import Shape
 from ...constants.custom_typing import (
-    ColorT,
-    SelectorT
+    ColorType,
+    SelectorType
 )
 from ...utils.color_utils import ColorUtils
 from ..mobject import Mobject
@@ -155,7 +155,7 @@ class SpanInfo:
     span: Span
     isolated: bool | None = None
     attribs: dict[str, str] | None = None
-    local_color: ColorT | None = None
+    local_color: ColorType | None = None
     command_item: tuple[CommandInfo, str, CommandFlag] | None = None
 
 
@@ -196,18 +196,18 @@ class InsertionRecord(ReplacementRecord):
 
 
 class StringMobjectKwargs(TypedDict, total=False):
-    local_colors: dict[SelectorT, ColorT]
-    isolate: list[SelectorT]
-    protect: list[SelectorT]
+    local_colors: dict[SelectorType, ColorType]
+    isolate: list[SelectorType]
+    protect: list[SelectorType]
     concatenate: bool
 
 
 @attrs.frozen(kw_only=True)
 class StringMobjectInput(MobjectInput):
     string: str
-    local_colors: dict[SelectorT, ColorT] = attrs.field(factory=dict)
-    isolate: list[SelectorT] = attrs.field(factory=list)
-    protect: list[SelectorT] = attrs.field(factory=list)
+    local_colors: dict[SelectorType, ColorType] = attrs.field(factory=dict)
+    isolate: list[SelectorType] = attrs.field(factory=list)
+    protect: list[SelectorType] = attrs.field(factory=list)
     concatenate: bool = False
 
 
@@ -471,7 +471,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         cls: type[Self],
         string: str,
         span_infos: tuple[SpanInfo, ...]
-    ) -> tuple[tuple[tuple[Span, ColorT | None], ...], tuple[ReplacementRecord, ...]]:
+    ) -> tuple[tuple[tuple[Span, ColorType | None], ...], tuple[ReplacementRecord, ...]]:
 
         def get_sorting_key(
             span_boundary: tuple[SpanInfo, BoundaryFlag]
@@ -488,14 +488,14 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 -paired_index
             )
 
-        insertion_record_items: list[tuple[InsertionRecord, InsertionRecord, dict[str, str], bool, ColorT | None]] = []
+        insertion_record_items: list[tuple[InsertionRecord, InsertionRecord, dict[str, str], bool, ColorType | None]] = []
         replacement_records: list[ReplacementRecord] = []
         bracket_counter = itertools.count()
         protect_level = 0
         bracket_stack: list[int] = []
         open_command_stack: list[tuple[InsertionRecord, CommandInfo]] = []
         start_stack: list[tuple[SpanInfo, InsertionRecord, int, tuple[int, ...]]] = []
-        local_color_stack: list[ColorT] = []
+        local_color_stack: list[ColorType] = []
 
         for span_info, boundary_flag in sorted((
             (span_info, boundary_flag)
@@ -581,7 +581,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         assert not local_color_stack
 
         label_counter = itertools.count()
-        isolated_items: list[tuple[Span, ColorT | None]] = []
+        isolated_items: list[tuple[Span, ColorType | None]] = []
         for start_insertion_record, stop_insertion_record, attribs, isolated, local_color in insertion_record_items:
             if isolated:
                 label = next(label_counter)
@@ -608,7 +608,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
     @classmethod
     def _iter_spans_by_selector(
         cls: type[Self],
-        selector: SelectorT,
+        selector: SelectorType,
         string: str
     ) -> Iterator[Span]:
         match selector:
@@ -702,7 +702,7 @@ class StringMobject(ShapeMobject):
 
     def _get_indices_tuple_by_selector(
         self: Self,
-        selector: SelectorT
+        selector: SelectorType
     ) -> tuple[tuple[int, ...], ...]:
         return tuple(
             tuple(
@@ -733,13 +733,13 @@ class StringMobject(ShapeMobject):
 
     def select_part(
         self: Self,
-        selector: SelectorT,
+        selector: SelectorType,
         index: int = 0
     ) -> Mobject:
         return self._build_from_indices(self._get_indices_tuple_by_selector(selector)[index])
 
     def select_parts(
         self: Self,
-        selector: SelectorT
+        selector: SelectorType
     ) -> Mobject:
         return self._build_from_indices_tuple(self._get_indices_tuple_by_selector(selector))

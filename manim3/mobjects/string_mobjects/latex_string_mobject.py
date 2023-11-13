@@ -11,7 +11,7 @@ from typing import (
 
 import attrs
 
-from ...constants.custom_typing import ColorT
+from ...constants.custom_typing import ColorType
 from ...toplevel.toplevel import Toplevel
 from ...utils.color_utils import ColorUtils
 from .string_mobject import (
@@ -26,12 +26,12 @@ from .string_mobject import (
 
 @attrs.frozen(kw_only=True)
 class LatexStringMobjectInput(StringMobjectInput):
-    color: ColorT = attrs.field(factory=lambda: Toplevel.config.default_color)
+    color: ColorType = attrs.field(factory=lambda: Toplevel.config.default_color)
     font_size: float = attrs.field(factory=lambda: Toplevel.config.latex_font_size)
 
 
 class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
-    color: ColorT
+    color: ColorType
     font_size: float
 
 

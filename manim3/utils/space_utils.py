@@ -174,10 +174,8 @@ class SpaceUtils:
                 scale_factor = specified_width / original_width
             case None, float():
                 scale_factor = specified_height / original_height
-            case None, None:
-                scale_factor = specified_frame_scale if specified_frame_scale is not None else 1.0
             case _:
-                raise ValueError  # never
+                scale_factor = specified_frame_scale if specified_frame_scale is not None else 1.0
         return scale_factor, scale_factor
 
     @classmethod

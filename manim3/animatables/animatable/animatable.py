@@ -9,7 +9,7 @@ from typing import (
 )
 
 from ...constants.custom_typing import (
-    BoundaryT,
+    BoundaryType,
     NP_xf8
 )
 from ...lazy.lazy import Lazy
@@ -178,7 +178,7 @@ class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):
 
     def update_boundary(
         self: Self,
-        boundary: BoundaryT
+        boundary: BoundaryType
     ) -> None:
         super().update_boundary(boundary)
         self.becomes(self._dst, self._src_1_ if boundary else self._src_0_)
@@ -236,7 +236,7 @@ class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
 
     def update_boundary(
         self: Self,
-        boundary: BoundaryT
+        boundary: BoundaryType
     ) -> None:
         super().update_boundary(boundary)
         self.update(float(boundary))
