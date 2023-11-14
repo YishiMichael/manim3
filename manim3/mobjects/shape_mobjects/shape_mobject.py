@@ -45,13 +45,13 @@ class ShapeMobject(MeshMobject):
     def _mesh_(
         shape__triangulation: tuple[NP_x3i4, NP_x2f8]
     ) -> Mesh:
-        faces, positions_2d = shape__triangulation
-        positions = SpaceUtils.increase_dimension(positions_2d)
-        normals = SpaceUtils.increase_dimension(np.zeros_like(positions_2d), z_value=1.0)
+        faces, coordinates = shape__triangulation
+        positions = SpaceUtils.increase_dimension(coordinates)
+        normals = SpaceUtils.increase_dimension(np.zeros_like(coordinates), z_value=1.0)
         return Mesh(
             positions=positions,
             normals=normals,
-            uvs=positions_2d,
+            uvs=coordinates,
             faces=faces
         )
 

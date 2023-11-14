@@ -38,12 +38,12 @@ class TextTransformExample(Scene):
             .set(color=BLUE, opacity=0.5)
             .add_strokes(color=PINK, weight=10)
         )
-        #code = Code("print(\"Code!\")").shift(RIGHT * 2)
+        code = Code("print(\"Code!\")").shift(RIGHT * 2)
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
-        #await self.wait()
-        #await self.play(FadeTransform(tex, code), run_time=2, rate=Rates.smooth())
+        await self.wait()
+        await self.play(FadeTransform(tex, code), run_time=2, rate=Rates.smooth())
         await self.wait(3)
 
 

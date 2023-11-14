@@ -43,7 +43,7 @@ class SVGMobjectOutput(MobjectOutput):
 
 
 class ShapeMobjectJSON(TypedDict):
-    positions: tuple[float, ...]  # flattened
+    coordinates: tuple[float, ...]  # flattened
     counts: tuple[int, ...]
     color: str
     opacity: float
@@ -167,28 +167,28 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
         ) -> Iterator[NP_x2f8]:
             se_path = se.Path(se_shape.segments(transformed=True))
             se_path.approximate_arcs_with_cubics()
-            positions_list: list[NP_2f8] = []
+            coordinates_list: list[NP_2f8] = []
             is_ring: bool = False
-            positions_dtype = np.dtype((np.float64, (2,)))
+            coordinates_dtype = np.dtype((np.float64, (2,)))
             for segment in se_path.segments(transformed=True):
                 match segment:
                     case se.Move(end=end):
                         if is_ring:
-                            yield np.fromiter(positions_list, dtype=positions_dtype)
-                        positions_list = [np.array(end)]
+                            yield np.fromiter(coordinates_list, dtype=coordinates_dtype)
+                        coordinates_list = [np.array(end)]
                         is_ring = False
                     case se.Close():
                         is_ring = True
                     case se.Line(end=end):
-                        positions_list.append(np.array(end))
+                        coordinates_list.append(np.array(end))
                     case se.QuadraticBezier() | se.CubicBezier():
                         # Approximate the bezier curve with a polyline.
                         curve = SpaceUtils.bezier(np.array(segment))
-                        positions_list.extend(curve(np.linspace(0.0, 1.0, 9)[1:]))
+                        coordinates_list.extend(curve(np.linspace(0.0, 1.0, 9)[1:]))
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
             if is_ring:
-                yield np.fromiter(positions_list, dtype=positions_dtype)
+                yield np.fromiter(coordinates_list, dtype=coordinates_dtype)
 
         def iter_shape_mobjects_from_svg(
             svg: se.SVG
@@ -210,7 +210,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                 if not isinstance(se_shape, se.Shape):
                     continue
                 shape = Shape().as_paths(iter_paths_from_se_shape(se_shape * transform))
-                if not len(shape._positions_):
+                if not len(shape._coordinates_):
                     # Filter out empty shapes.
                     continue
                 style_dict = {}
@@ -231,7 +231,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
     ) -> ShapeMobjectJSON:
         shape = shape_mobject._shape_
         return ShapeMobjectJSON(
-            positions=tuple(round(float(value), 6) for value in shape._positions_.flatten()),
+            coordinates=tuple(round(float(value), 6) for value in shape._coordinates_.flatten()),
             counts=tuple(int(value) for value in shape._counts_),
             color=ColorUtils.color_to_hex(shape_mobject._color_._array_),
             opacity=round(float(shape_mobject._opacity_._array_), 6)
@@ -242,13 +242,13 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
         cls: type[Self],
         shape_mobject_json: ShapeMobjectJSON
     ) -> ShapeMobject:
-        positions = shape_mobject_json["positions"]
+        coordinates = shape_mobject_json["coordinates"]
         counts = shape_mobject_json["counts"]
         color = shape_mobject_json["color"]
         opacity = shape_mobject_json["opacity"]
 
         return ShapeMobject(Shape(
-            positions=np.fromiter(positions, dtype=np.float64).reshape(-1, 2),
+            coordinates=np.fromiter(coordinates, dtype=np.float64).reshape(-1, 2),
             counts=np.fromiter(counts, dtype=np.int32)
         )).set(
             color=color,

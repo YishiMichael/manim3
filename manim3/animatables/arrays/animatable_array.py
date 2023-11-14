@@ -7,7 +7,7 @@ from typing import (
     Unpack
 )
 
-import numpy.typing as npt
+import numpy as np
 
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
@@ -38,7 +38,7 @@ class AnimatableArrayActions(AnimatableActions):
         yield AnimatableArrayInterpolateAnimation(dst, src_0, src_1)
 
 
-class AnimatableArray[NDArrayT: npt.NDArray](Animatable):
+class AnimatableArray[NDArrayT: np.ndarray](Animatable):
     __slots__ = ()
 
     def __init__(
@@ -84,12 +84,12 @@ class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](Ani
 
     @Lazy.variable()
     @staticmethod
-    def _array_0_() -> npt.NDArray:
+    def _array_0_() -> np.ndarray:
         return NotImplemented
 
     @Lazy.variable()
     @staticmethod
-    def _array_1_() -> npt.NDArray:
+    def _array_1_() -> np.ndarray:
         return NotImplemented
 
     def interpolate(

@@ -14,7 +14,7 @@ class Square(Polygon):
     def __init__(
         self: Self
     ) -> None:
-        super().__init__(positions=np.array((
+        super().__init__(coordinates=np.array((
             (1.0, 1.0),
             (-1.0, 1.0),
             (-1.0, -1.0),

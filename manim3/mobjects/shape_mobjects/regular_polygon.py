@@ -16,8 +16,8 @@ class RegularPolygon(Polygon):
         self: Self,
         n: int
     ) -> None:
-        # By default, one of positions is at (1, 0).
-        complex_positions = np.exp(1.0j * np.linspace(0.0, TAU, n, endpoint=False))
+        # By default, one of coordinates is at (1, 0).
+        complex_coordinates = np.exp(1.0j * np.linspace(0.0, TAU, n, endpoint=False))
         super().__init__(
-            positions=np.vstack((complex_positions.real, complex_positions.imag)).T
+            coordinates=np.vstack((complex_coordinates.real, complex_coordinates.imag)).T
         )
