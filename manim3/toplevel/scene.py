@@ -213,3 +213,23 @@ class Scene(Timeline):
         self: Self
     ) -> Lighting:
         return self._lighting
+
+    def bind_camera(
+        self: Self,
+        camera: Camera,
+        *,
+        broadcast: bool = True
+    ) -> Self:
+        self._camera = camera
+        self._root_mobject.bind_camera(camera, broadcast=broadcast)
+        return self
+
+    def bind_lighting(
+        self: Self,
+        lighting: Lighting,
+        *,
+        broadcast: bool = True
+    ) -> Self:
+        self._lighting = lighting
+        self._root_mobject.bind_lighting(lighting, broadcast=broadcast)
+        return self

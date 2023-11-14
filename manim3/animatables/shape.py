@@ -512,7 +512,7 @@ class ShapeUtils(GraphUtils):
         alphas: NP_xf8,
         side: Literal["left", "right"]
     ) -> tuple[NP_x3f8, NP_x2i4]:
-        inlay_interpolated_positions, inlay_insertion_indices = cls._get_new_samples(
+        inlay_interpolated_positions, inlay_insertion_indices = cls._get_interpolated_samples(
             positions=positions,
             edges=edges,
             knots=knots,

@@ -9,7 +9,6 @@ import numpy as np
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
-from ...animatables.lighting import Lighting
 from ...animatables.mesh import Mesh
 from ...animatables.model import ModelActions
 from ...constants.custom_typing import (
@@ -87,11 +86,6 @@ class MeshMobject(Mobject):
     @staticmethod
     def _shininess_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel.config.mesh_shininess)
-
-    @Lazy.volatile(deepcopy=False)
-    @staticmethod
-    def _lighting_() -> Lighting:
-        return Toplevel.scene._lighting
 
     @Lazy.variable(plural=True)
     @staticmethod
@@ -171,14 +165,3 @@ class MeshMobject(Mobject):
         target_framebuffer: OITFramebuffer
     ) -> None:
         self._mesh_vertex_array_.render(target_framebuffer)
-
-    def bind_lighting(
-        self: Self,
-        lighting: Lighting,
-        *,
-        broadcast: bool = True,
-    ) -> Self:
-        for sibling in self._iter_siblings(broadcast=broadcast):
-            if isinstance(sibling, MeshMobject):
-                sibling._lighting_ = lighting
-        return self

@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Self
 
+
+from typing import Self
 
 from pyglet.gl import Config as PygletWindowConfig
 from pyglet.window import Window as PygletWindow

@@ -12,6 +12,7 @@ from typing import (
 )
 
 from ..animatables.camera import Camera
+from ..animatables.lighting import Lighting
 from ..animatables.model import Model
 from ..lazy.lazy import Lazy
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
@@ -63,31 +64,6 @@ class Mobject(Model):
         index: int | slice
     ) -> Mobject | tuple[Mobject, ...]:
         return self._children.__getitem__(index)
-
-    # render
-
-    #@AnimatableMeta.register_converter()
-    @Lazy.volatile(deepcopy=False)
-    @staticmethod
-    def _camera_() -> Camera:
-        return Toplevel.scene._camera
-
-    def _render(
-        self: Self,
-        target_framebuffer: OITFramebuffer
-    ) -> None:
-        pass
-
-    def bind_camera(
-        self: Self,
-        camera: Camera,
-        *,
-        broadcast: bool = True,
-    ) -> Self:
-        for sibling in self._iter_siblings(broadcast=broadcast):
-            if isinstance(sibling, Mobject):
-                sibling._camera_ = camera
-        return self
 
     # family matters
     # These methods implement a DAG (directed acyclic graph).
@@ -230,3 +206,41 @@ class Mobject(Model):
             )
         type(self)._refresh_families(*descendants_copy)
         return result
+
+    # render
+
+    @Lazy.volatile(deepcopy=False)
+    @staticmethod
+    def _camera_() -> Camera:
+        return Toplevel.scene._camera
+
+    @Lazy.volatile(deepcopy=False)
+    @staticmethod
+    def _lighting_() -> Lighting:
+        return Toplevel.scene._lighting
+
+    def _render(
+        self: Self,
+        target_framebuffer: OITFramebuffer
+    ) -> None:
+        pass
+
+    def bind_camera(
+        self: Self,
+        camera: Camera,
+        *,
+        broadcast: bool = True,
+    ) -> Self:
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            mobject._camera_ = camera
+        return self
+
+    def bind_lighting(
+        self: Self,
+        lighting: Lighting,
+        *,
+        broadcast: bool = True,
+    ) -> Self:
+        for mobject in self.iter_descendants(broadcast=broadcast):
+            mobject._lighting_ = lighting
+        return self

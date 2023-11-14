@@ -216,7 +216,7 @@ class GraphUtils:
             extended_positions = positions
             piece_edges_tuple = tuple(edges for _ in range(len(alphas) + 1))
         else:
-            interpolated_positions, insertion_indices = cls._get_new_samples(
+            interpolated_positions, insertion_indices = cls._get_interpolated_samples(
                 positions=positions,
                 edges=edges,
                 knots=cumlengths,
@@ -386,7 +386,7 @@ class GraphUtils:
         alphas: NP_xf8,
         side: Literal["left", "right"]
     ) -> tuple[NP_x3f8, NP_x2i4]:
-        interpolated_positions, insertion_indices = cls._get_new_samples(
+        interpolated_positions, insertion_indices = cls._get_interpolated_samples(
             positions=positions,
             edges=edges,
             knots=knots,
@@ -401,7 +401,7 @@ class GraphUtils:
         )
 
     @classmethod
-    def _get_new_samples(
+    def _get_interpolated_samples(
         cls: type[Self],
         positions: NP_x3f8,
         edges: NP_x2i4,

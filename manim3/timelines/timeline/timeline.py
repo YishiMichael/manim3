@@ -295,8 +295,8 @@ class Timeline(ABC):
         timeline: Timeline,
         *,
         # `[0.0, +infty) -> [0.0, +infty), time |-> alpha`
-        # Must be an increasing function.
-        # Forced to be `None` if `_run_alpha` is infinity.
+        # `_is_increasing_` must be true.
+        # Must be `None` if `_run_alpha` is infinity.
         rate: Rate | None = None,
         # Intepreted as "the inverse of run speed" if `_run_alpha` is infinity.
         run_time: float | None = None,
