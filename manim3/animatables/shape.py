@@ -198,105 +198,6 @@ class Shape(Animatable):
             for contour in iter_contour_nodes(poly_tree_root.children)
         )
 
-    #@classmethod
-    #def _get_interpolate_info(
-    #    cls: type[Self],
-    #    shape_0: Shape,
-    #    shape_1: Shape
-    #) -> tuple[NP_x2f8, NP_x2f8, NP_xi4]:
-    #    graph_0 = shape_0._graph_
-    #    graph_1 = shape_1._graph_
-    #    outline_coordinates_0, outline_coordinates_1, outline_edges = Graph._get_interpolate_info(
-    #        graph_0=graph_0,
-    #        graph_1=graph_1
-    #    )
-
-    #    shape_cumcounts_0 = shape_0._cumcounts_
-    #    shape_cumcounts_1 = shape_1._cumcounts_
-    #    graph_positions_0 = graph_0._positions_
-    #    graph_positions_1 = graph_1._positions_
-    #    graph_edges_0 = graph_0._edges_
-    #    graph_edges_1 = graph_1._edges_
-    #    knots_0 = graph_0._cumlengths_ * graph_1._cumlengths_[-1]
-    #    knots_1 = graph_1._cumlengths_ * graph_0._cumlengths_[-1]
-
-    #    if not len(graph_edges_0) or not len(graph_edges_1):
-    #        position_indices, counts = cls._get_position_indices_and_counts_from_edges(outline_edges)
-    #        return (
-    #            SpaceUtils.decrease_dimension(outline_positions_0)[position_indices],
-    #            SpaceUtils.decrease_dimension(outline_positions_1)[position_indices],
-    #            counts
-    #        )
-
-    #    inlay_interpolated_positions_0, inlay_indices_0 = Graph._get_new_samples(
-    #        graph_positions=graph_positions_0,
-    #        graph_edges=graph_edges_0,
-    #        knots=knots_0,
-    #        alphas=knots_1[shape_cumcounts_1][1:-1],
-    #        side="right"
-    #    )
-    #    inlay_extended_positions_0, inlay_extended_edges_0 = Graph._insert_samples(
-    #        graph_positions=graph_positions_0,
-    #        graph_edges=np.column_stack((
-    #            graph_edges_0[shape_cumcounts_0[:-1], 0],
-    #            graph_edges_0[shape_cumcounts_0[1:] - 1, 1]
-    #        )),
-    #        interpolated_positions=inlay_interpolated_positions_0,
-    #        indices=np.searchsorted(
-    #            shape_cumcounts_0[1:-1] - 1,
-    #            inlay_indices_0,
-    #            side="right"
-    #        ).astype(np.int32)
-    #    )
-    #    inlay_interpolated_positions_1, inlay_indices_1 = Graph._get_new_samples(
-    #        graph_positions=graph_positions_1,
-    #        graph_edges=graph_edges_1,
-    #        knots=knots_1,
-    #        alphas=knots_0[shape_cumcounts_0][1:-1],
-    #        side="left"
-    #    )
-    #    inlay_extended_positions_1, inlay_extended_edges_1 = Graph._insert_samples(
-    #        graph_positions=graph_positions_1,
-    #        graph_edges=np.column_stack((
-    #            graph_edges_1[shape_cumcounts_1[:-1], 0],
-    #            graph_edges_1[shape_cumcounts_1[1:] - 1, 1]
-    #        )),
-    #        interpolated_positions=inlay_interpolated_positions_1,
-    #        indices=np.searchsorted(
-    #            shape_cumcounts_1[1:-1] - 1,
-    #            inlay_indices_1,
-    #            side="left"
-    #        ).astype(np.int32)
-    #    )
-    #    all_positions_0, all_positions_1, all_edges = Graph._pack_interpolate_info(
-    #        positions_0=np.concatenate((
-    #            outline_positions_0,
-    #            inlay_extended_positions_0,
-    #            Graph._get_centroid(graph_positions_0, graph_edges_0)[None]
-    #        )),
-    #        edges_0=np.concatenate((
-    #            outline_edges,
-    #            inlay_extended_edges_0 + len(outline_positions_0),
-    #            np.zeros_like(inlay_extended_edges_1) + (len(outline_positions_0) + len(inlay_extended_positions_0))
-    #        )),
-    #        positions_1=np.concatenate((
-    #            outline_positions_1,
-    #            Graph._get_centroid(graph_positions_1, graph_edges_1)[None],
-    #            inlay_extended_positions_1
-    #        )),
-    #        edges_1=np.concatenate((
-    #            outline_edges,
-    #            np.zeros_like(inlay_extended_edges_0) + len(outline_positions_1),
-    #            inlay_extended_edges_1 + (len(outline_positions_1) + 1)
-    #        ))
-    #    )
-    #    position_indices, counts = cls._get_position_indices_and_counts_from_edges(all_edges)
-    #    return (
-    #        SpaceUtils.decrease_dimension(all_positions_0)[position_indices],
-    #        SpaceUtils.decrease_dimension(all_positions_1)[position_indices],
-    #        counts
-    #    )
-
     def set(
         self: Self,
         coordinates: NP_x2f8,
@@ -305,24 +206,6 @@ class Shape(Animatable):
         self._coordinates_ = coordinates
         self._counts_ = counts
         return self
-
-    #def as_empty(
-    #    self: Self
-    #) -> Self:
-    #    return self.set(
-    #        positions=np.zeros((0, 3)),
-    #        counts=np.zeros((0,), dtype=np.int32)
-    #    )
-
-    #def as_graph(
-    #    self: Self,
-    #    graph: Graph
-    #) -> Self:
-    #    position_indices, counts = type(self)._get_position_indices_and_counts_from_edges(graph._edges_)
-    #    return self.set(
-    #        positions=SpaceUtils.decrease_dimension(graph._positions_)[position_indices],
-    #        counts=counts
-    #    )
 
     def as_paths(
         self: Self,
@@ -378,7 +261,6 @@ class Shape(Animatable):
             counts=counts
         )
         return self
-        #return self.as_graph(Graph().concatenate(tuple(src._graph_ for src in srcs)))
 
     def intersection(
         self: Self,
@@ -515,7 +397,6 @@ class ShapeUtils(GraphUtils):
     def shape_concatenate(
         cls: type[Self],
         shapes: tuple[Shape, ...]
-        #graph_edges_tuple: tuple[NP_x2i4, ...],
     ) -> tuple[NP_x2f8, NP_xi4]:
         positions, edges = cls.graph_concatenate(tuple(shape._graph_ for shape in shapes))
         (coordinates,), counts = cls._unified_graph_group_to_unified_shape_group((positions,), edges)
@@ -553,29 +434,22 @@ class ShapeUtils(GraphUtils):
         positions_tuple: tuple[NP_x3f8, ...],
         edges: NP_x2i4
     ) -> tuple[tuple[NP_x2f8, ...], NP_xi4]:
-        position_indices, counts = cls._get_position_indices_and_counts_from_edges(edges)
+        if not len(edges):
+            indices = np.zeros((0,), dtype=np.int32)
+            counts = np.zeros((0,), dtype=np.int32)
+        else:
+            disjoints = np.insert(np.array((0, len(edges))), 1, np.flatnonzero(edges[:-1, 1] - edges[1:, 0]) + 1)
+            open_path_indices = np.flatnonzero(edges[disjoints[:-1], 0] - edges[disjoints[1:] - 1, 1])
+            indices = np.insert(edges[:, 0], disjoints[open_path_indices + 1], edges[disjoints[open_path_indices + 1] - 1, 1])
+            counts = np.diff(disjoints)
+            counts[open_path_indices] += 1
         return (
             tuple(
-                SpaceUtils.decrease_dimension(positions)[position_indices]
+                SpaceUtils.decrease_dimension(positions)[indices]
                 for positions in positions_tuple
             ),
             counts
         )
-
-    @classmethod
-    def _get_position_indices_and_counts_from_edges(
-        cls: type[Self],
-        edges: NP_x2i4
-    ) -> tuple[NP_xi4, NP_xi4]:
-        if not len(edges):
-            return np.zeros((0,), dtype=np.int32), np.zeros((0,), dtype=np.int32)
-
-        disjoints = np.insert(np.array((0, len(edges))), 1, np.flatnonzero(edges[:-1, 1] - edges[1:, 0]) + 1)
-        not_ring_indices = np.flatnonzero(edges[disjoints[:-1], 0] - edges[disjoints[1:] - 1, 1])
-        position_indices = np.insert(edges[:, 0], disjoints[not_ring_indices + 1], edges[disjoints[not_ring_indices + 1] - 1, 1])
-        counts = np.diff(disjoints)
-        counts[not_ring_indices] += 1
-        return position_indices, counts
 
     @classmethod
     def _iter_aligned_graph_groups_for_shape_interpolation(
@@ -619,46 +493,6 @@ class ShapeUtils(GraphUtils):
             alphas=knots_0[cumcounts_0][1:-1],
             side="left"
         )
-        #inlay_interpolated_positions_0, inlay_insertion_indices_0 = cls._get_new_samples(
-        #    positions=positions_0,
-        #    edges=edges_0,
-        #    knots=knots_0,
-        #    alphas=knots_1[cumcounts_1][1:-1],
-        #    side="right"
-        #)
-        #inlay_extended_positions_0, inlay_extended_edges_0 = cls._insert_samples(
-        #    positions=positions_0,
-        #    edges=np.column_stack((
-        #        edges_0[cumcounts_0[:-1], 0],
-        #        edges_0[cumcounts_0[1:] - 1, 1]
-        #    )),
-        #    interpolated_positions=inlay_interpolated_positions_0,
-        #    insertion_indices=np.searchsorted(
-        #        cumcounts_0[1:-1] - 1,
-        #        inlay_insertion_indices_0,
-        #        side="right"
-        #    ).astype(np.int32)
-        #)
-        #inlay_interpolated_positions_1, inlay_insertion_indices_1 = cls._get_new_samples(
-        #    positions=positions_1,
-        #    edges=edges_1,
-        #    knots=knots_1,
-        #    alphas=knots_0[cumcounts_0][1:-1],
-        #    side="left"
-        #)
-        #inlay_extended_positions_1, inlay_extended_edges_1 = cls._insert_samples(
-        #    positions=positions_1,
-        #    edges=np.column_stack((
-        #        edges_1[cumcounts_1[:-1], 0],
-        #        edges_1[cumcounts_1[1:] - 1, 1]
-        #    )),
-        #    interpolated_positions=inlay_interpolated_positions_1,
-        #    insertion_indices=np.searchsorted(
-        #        cumcounts_1[1:-1] - 1,
-        #        inlay_insertion_indices_1,
-        #        side="left"
-        #    ).astype(np.int32)
-        #)
         yield (
             (inlay_positions_0, inlay_edges_0),
             cls._get_centroid_graph(positions_1, edges_1, inlay_edges_0)
@@ -667,28 +501,6 @@ class ShapeUtils(GraphUtils):
             cls._get_centroid_graph(positions_0, edges_0, inlay_edges_1),
             (inlay_positions_1, inlay_edges_1)
         )
-        #all_positions_0, all_positions_1, all_edges = cls._pack_interpolate_info(
-        #    positions_0=np.concatenate((
-        #        outline_positions_0,
-        #        inlay_extended_positions_0,
-        #        Graph._get_centroid(positions_0, edges_0)[None]
-        #    )),
-        #    edges_0=np.concatenate((
-        #        outline_edges,
-        #        inlay_extended_edges_0 + len(outline_positions_0),
-        #        np.zeros_like(inlay_extended_edges_1) + (len(outline_positions_0) + len(inlay_extended_positions_0))
-        #    )),
-        #    positions_1=np.concatenate((
-        #        outline_positions_1,
-        #        Graph._get_centroid(positions_1, edges_1)[None],
-        #        inlay_extended_positions_1
-        #    )),
-        #    edges_1=np.concatenate((
-        #        outline_edges,
-        #        np.zeros_like(inlay_extended_edges_0) + len(outline_positions_1),
-        #        inlay_extended_edges_1 + (len(outline_positions_1) + 1)
-        #    ))
-        #)
 
     @classmethod
     def _get_inlay_graph(

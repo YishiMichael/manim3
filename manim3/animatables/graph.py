@@ -101,14 +101,6 @@ class Graph(Animatable):
         self._edges_ = edges
         return self
 
-    #def as_empty(
-    #    self: Self
-    #) -> Self:
-    #    return self.set(
-    #        positions=np.zeros((0, 3)),
-    #        edges=np.zeros((0, 2), dtype=np.int32)
-    #    )
-
     def split(
         self: Self,
         dsts: tuple[Self, ...],
@@ -120,38 +112,6 @@ class Graph(Animatable):
                 edges=edges
             )
         return self
-        #positions = self._positions_
-        #edges = self._edges_
-        #if not len(edges):
-        #    for dst in dsts:
-        #        dst.as_empty()
-        #    return self
-
-        #cls = type(self)
-        #knots = self._cumlengths_
-        #interpolated_positions, indices = cls._get_new_samples(
-        #    graph_positions=positions,
-        #    graph_edges=edges,
-        #    knots=knots,
-        #    alphas=alphas * knots[-1]
-        #)
-        #extended_positions, extended_edges = cls._insert_samples(
-        #    graph_positions=positions,
-        #    graph_edges=edges,
-        #    interpolated_positions=interpolated_positions,
-        #    indices=indices
-        #)
-        #slice_indices = np.array((0, *(indices + np.arange(len(indices)) + 1), len(edges) + len(indices)))
-        #for dst, (start, stop) in zip(dsts, itertools.pairwise(slice_indices), strict=True):
-        #    unique_indices, inverse = np.unique(
-        #        extended_edges[start:stop].flatten(),
-        #        return_inverse=True
-        #    )
-        #    dst.set(
-        #        positions=extended_positions[unique_indices],
-        #        edges=inverse.reshape((-1, 2))
-        #    )
-        #return self
 
     def concatenate(
         self: Self,
@@ -163,23 +123,6 @@ class Graph(Animatable):
             edges=edges
         )
         return self
-        #if not srcs:
-        #    return self.as_empty()
-
-        #offsets = np.insert(np.cumsum([
-        #    len(graph._positions_)
-        #    for graph in srcs[:-1]
-        #], dtype=np.int32), 0, 0)
-        #return self.set(
-        #    positions=np.concatenate([
-        #        graph._positions_
-        #        for graph in srcs
-        #    ]),
-        #    edges=np.concatenate([
-        #        graph._edges_ + offset
-        #        for graph, offset in zip(srcs, offsets, strict=True)
-        #    ])
-        #)
 
     def animate(
         self: Self,
@@ -269,22 +212,9 @@ class GraphUtils:
         positions = graph._positions_
         edges = graph._edges_
         cumlengths = graph._cumlengths_
-        #positions = self._positions_
-        #edges = self._edges_
         if not len(edges):
             extended_positions = positions
             piece_edges_tuple = tuple(edges for _ in range(len(alphas) + 1))
-            #for _ in range(len(alphas) + 1):
-            #    yield (
-            #        np.zeros((0, 3)),
-            #        np.zeros((0, 2), dtype=np.int32)
-            #    )
-            #return
-            #for dst in dsts:
-            #    dst.as_empty()
-            #return self
-
-        #knots = self._cumlengths_
         else:
             interpolated_positions, insertion_indices = cls._get_new_samples(
                 positions=positions,
@@ -304,47 +234,20 @@ class GraphUtils:
                     np.array((0, *(insertion_indices + np.arange(len(alphas)) + 1), len(edges) + len(alphas)))
                 )
             )
-        #slice_indices = np.array((0, *(indices + np.arange(len(indices)) + 1), len(edges) + len(indices)))
         for piece_edges in piece_edges_tuple:
             (simplified_positions,), simplified_edges = cls._pack_aligned_graph_groups(((extended_positions, piece_edges),))
             yield simplified_positions, simplified_edges
-            #unique_indices, inverse = np.unique(
-            #    extended_edges[start:stop].flatten(),
-            #    return_inverse=True
-            #)
-            #yield (
-            #    extended_positions[unique_indices],
-            #    inverse.reshape((-1, 2))
-            #)
 
     @classmethod
     def graph_concatenate(
         cls: type[Self],
         graphs: tuple[Graph, ...]
-        #edges_tuple: tuple[NP_x2i4, ...],
     ) -> tuple[NP_x3f8, NP_x2i4]:
         (positions,), edges = cls._pack_aligned_graph_groups(tuple(
             (graph._positions_, graph._edges_)
             for graph in graphs
         ))
         return positions, edges
-        #if not graph_positions_tuple:
-        #    return (
-        #        np.zeros((0, 3)),
-        #        np.zeros((0, 2), dtype=np.int32)
-        #    )
-
-        #offsets = np.insert(np.cumsum([
-        #    len(graph_positions)
-        #    for graph_positions in graph_positions_tuple
-        #], dtype=np.int32), 0, 0)
-        #return (
-        #    np.concatenate(graph_positions_tuple),
-        #    np.concatenate([
-        #        edges + offset
-        #        for edges, offset in zip(graph_edges_tuple, offsets, strict=True)
-        #    ])
-        #)
 
     @classmethod
     def graph_interpolate_info(
@@ -366,67 +269,6 @@ class GraphUtils:
             zipped_graph_group_0, zipped_graph_group_1 = zip(*aligned_graph_groups, strict=True)
         (positions_0, positions_1), edges = cls._pack_aligned_graph_groups(zipped_graph_group_0, zipped_graph_group_1)
         return positions_0, positions_1, edges
-        #positions_0 = graph_0._positions_
-        #positions_1 = graph_1._positions_
-        #edges_0 = graph_0._edges_
-        #edges_1 = graph_1._edges_
-
-        #match len(edges_0), len(edges_1):
-        #    case 0, 0:
-        #        return (
-        #            np.zeros((0, 3)),
-        #            np.zeros((0, 3)),
-        #            np.zeros((0,), dtype=np.int32)
-        #        )
-        #    case _, 0:
-        #        centroid_0 = cls._get_centroid(positions_0, edges_0)
-        #        return (
-        #            positions_0,
-        #            np.repeat(centroid_0[None], len(positions_0), axis=0),
-        #            edges_0
-        #        )
-        #    case 0, _:
-        #        centroid_1 = cls._get_centroid(positions_1, edges_1)
-        #        return (
-        #            np.repeat(centroid_1[None], len(positions_1), axis=0),
-        #            positions_1,
-        #            edges_1
-        #        )
-
-        #knots_0 = graph_0._cumlengths_ * graph_1._cumlengths_[-1]
-        #knots_1 = graph_1._cumlengths_ * graph_0._cumlengths_[-1]
-        #interpolated_positions_0, indices_0 = cls._get_new_samples(
-        #    graph_positions=positions_0,
-        #    graph_edges=edges_0,
-        #    knots=knots_0,
-        #    alphas=knots_1[1:-1],
-        #    side="right"
-        #)
-        #extended_positions_0, extended_edges_0 = cls._insert_samples(
-        #    graph_positions=positions_0,
-        #    graph_edges=edges_0,
-        #    interpolated_positions=interpolated_positions_0,
-        #    indices=indices_0
-        #)
-        #interpolated_positions_1, indices_1 = cls._get_new_samples(
-        #    graph_positions=positions_1,
-        #    graph_edges=edges_1,
-        #    knots=knots_1,
-        #    alphas=knots_0[1:-1],
-        #    side="left"
-        #)
-        #extended_positions_1, extended_edges_1 = cls._insert_samples(
-        #    graph_positions=positions_1,
-        #    graph_edges=edges_1,
-        #    interpolated_positions=interpolated_positions_1,
-        #    indices=indices_1
-        #)
-        #return cls._pack_interpolate_info(
-        #    positions_0=extended_positions_0,
-        #    edges_0=extended_edges_0,
-        #    positions_1=extended_positions_1,
-        #    edges_1=extended_edges_1
-        #)
 
     @classmethod
     def _iter_aligned_graph_groups_for_graph_interpolation(
@@ -441,36 +283,16 @@ class GraphUtils:
         match len(edges_0), len(edges_1):
             case 0, 0:
                 pass
-                #return
-                #return (
-                #    np.zeros((0, 3)),
-                #    np.zeros((0, 3)),
-                #    np.zeros((0,), dtype=np.int32)
-                #)
             case _, 0:
-                #centroid_0 = cls._get_centroid_graph(positions_0, edges_0)
                 yield (
                     (positions_0, edges_0),
                     cls._get_centroid_graph(positions_0, edges_0, edges_0)
                 )
-                #return
-                #return (
-                #    positions_0,
-                #    np.repeat(centroid_0[None], len(positions_0), axis=0),
-                #    edges_0
-                #)
             case 0, _:
-                #centroid_1 = cls._get_centroid_graph(positions_1, edges_1)
                 yield (
                     cls._get_centroid_graph(positions_1, edges_1, edges_1),
                     (positions_1, edges_1)
                 )
-                #return
-                #return (
-                #    np.repeat(centroid_1[None], len(positions_1), axis=0),
-                #    positions_1,
-                #    edges_1
-                #)
             case _:
                 knots_0 = cumlengths_0 * cumlengths_1[-1]
                 knots_1 = cumlengths_1 * cumlengths_0[-1]
@@ -490,42 +312,6 @@ class GraphUtils:
                         side="left"
                     )
                 )
-        #interpolated_positions_0, insertion_indices_0 = cls._get_new_samples(
-        #    positions=positions_0,
-        #    edges=edges_0,
-        #    knots=knots_0,
-        #    alphas=knots_1[1:-1],
-        #    side="right"
-        #)
-        #extended_positions_0, extended_edges_0 = cls._insert_samples(
-        #    positions=positions_0,
-        #    edges=edges_0,
-        #    interpolated_positions=interpolated_positions_0,
-        #    insertion_indices=insertion_indices_0
-        #)
-        #interpolated_positions_1, insertion_indices_1 = cls._get_new_samples(
-        #    positions=positions_1,
-        #    edges=edges_1,
-        #    knots=knots_1,
-        #    alphas=knots_0[1:-1],
-        #    side="left"
-        #)
-        #extended_positions_1, extended_edges_1 = cls._insert_samples(
-        #    positions=positions_1,
-        #    edges=edges_1,
-        #    interpolated_positions=interpolated_positions_1,
-        #    insertion_indices=insertion_indices_1
-        #)
-        #yield (
-        #    (extended_positions_0, extended_edges_0),
-        #    (extended_positions_1, extended_edges_1)
-        #)
-        #return cls._pack_interpolate_info(
-        #    positions_0=extended_positions_0,
-        #    edges_0=extended_edges_0,
-        #    positions_1=extended_positions_1,
-        #    edges_1=extended_edges_1
-        #)
 
     @classmethod
     def _pack_aligned_graph_groups(
@@ -554,14 +340,6 @@ class GraphUtils:
             )
 
         unified_graph_groups = tuple(
-            #(
-            #    tuple(positions for positions, _ in aligned_graph_group),
-            #    np.unique(
-            #        np.array(tuple(edges.flatten() for _, edges in aligned_graph_group)),
-            #        axis=1,
-            #        return_inverse=True
-            #    )
-            #)
             unify_edges(aligned_graph_group)
             for aligned_graph_group in zip(*zipped_graph_groups, strict=True)
         )
@@ -587,18 +365,6 @@ class GraphUtils:
                 for (_, edges, _), offset in zip(unified_graph_groups, offsets, strict=True)
             ])
         )
-        #return (
-        #    np.concatenate(graph_positions_tuple),
-        #    np.concatenate([
-        #        graph_edges + offset
-        #        for graph_edges, offset in zip(graph_edges_tuple, offsets, strict=True)
-        #    ])
-        #)
-        #return (
-        #    positions_0[unique_indices_0],
-        #    positions_1[unique_indices_1],
-        #    inverse.reshape((-1, 2))
-        #)
 
     @classmethod
     def _get_centroid_graph(
@@ -610,25 +376,6 @@ class GraphUtils:
         samples = positions[edges.flatten()]
         centroid = (np.max(samples, axis=0) + np.min(samples, axis=0)) / 2.0
         return centroid[None], np.zeros_like(aligned_edges)
-
-    #@classmethod
-    #def _pack_interpolate_info(
-    #    cls: type[Self],
-    #    positions_0: NP_x3f8,
-    #    edges_0: NP_x2i4,
-    #    positions_1: NP_x3f8,
-    #    edges_1: NP_x2i4
-    #) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
-    #    (unique_indices_0, unique_indices_1), inverse = np.unique(
-    #        np.array((edges_0.flatten(), edges_1.flatten())),
-    #        axis=1,
-    #        return_inverse=True
-    #    )
-    #    return (
-    #        positions_0[unique_indices_0],
-    #        positions_1[unique_indices_1],
-    #        inverse.reshape((-1, 2))
-    #    )
 
     @classmethod
     def _extend_graph_samples(
