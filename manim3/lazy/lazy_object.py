@@ -5,6 +5,7 @@ import copy
 import functools
 import inspect
 import operator
+import pathlib
 from abc import ABC
 from enum import Enum
 from typing import (
@@ -105,14 +106,10 @@ class TypeHint:
 
 
 class LazyObject(ABC):
-    __slots__ = (
-        "_lazy_slots",
-        "_is_frozen"
-    )
+    __slots__ = ("_lazy_slots",)
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_lazy_slots": lambda o: type(o)(),
-        "_is_frozen": lambda o: False
+        "_lazy_slots": lambda o: type(o)()
     }
 
     _lazy_descriptors: tuple[LazyDescriptor, ...] = ()
@@ -169,13 +166,13 @@ class LazyObject(ABC):
             descriptor._hasher = (
                 Implementations.hashers.fetch(element_annotation_cls if descriptor._freeze else object)
             )
-            descriptor._freezer = (
-                Implementations.freezers.fetch(element_annotation_cls)
-                if descriptor._freeze else Implementations.empty_freezer
-            )
+            #descriptor._freezer = (
+            #    Implementations.freezers.fetch(element_annotation_cls)
+            #    if descriptor._freeze else Implementations.empty_freezer
+            #)
             descriptor._copier = (
                 Implementations.copiers.fetch(element_annotation_cls)
-                if descriptor._deepcopy else Implementations.empty_copier
+                if descriptor._deepcopy else Implementations.shallow_copier
             )
 
             if (typed_overridden_descriptor := hinted_lazy_descriptors.get(name)) is not None:
@@ -234,7 +231,7 @@ class LazyObject(ABC):
     ) -> None:
         super().__init__()
         self._lazy_slots: object = type(self)._lazy_slots_cls()
-        self._is_frozen: bool = False
+        #self._is_frozen: bool = False
 
     def _get_lazy_slot(
         self: Self,
@@ -242,16 +239,16 @@ class LazyObject(ABC):
     ) -> LazySlot:
         return self._lazy_slots.__getattribute__(name)
 
-    def _freeze(
-        self: Self
-    ) -> None:
-        if self._is_frozen:
-            return
-        self._is_frozen = True
-        for descriptor in type(self)._lazy_descriptors:
-            descriptor.get_slot(self).disable_writability()
-            for element in descriptor.get_elements(self):
-                descriptor._freezer(element)
+    #def _freeze(
+    #    self: Self
+    #) -> None:
+    #    if self._is_frozen:
+    #        return
+    #    self._is_frozen = True
+    #    for descriptor in type(self)._lazy_descriptors:
+    #        descriptor.get_slot(self).disable_writability()
+    #        for element in descriptor.get_elements(self):
+    #            descriptor._freezer(element)
 
     def copy(
         self: Self
@@ -313,7 +310,7 @@ class Implementations:
     decomposers: ClassVar[Registration[bool, Callable[[Any], tuple[Any, ...]]]] = Registration(operator.is_)
     composers: ClassVar[Registration[bool, Callable[[tuple[Any, ...]], Any]]] = Registration(operator.is_)
     hashers: ClassVar[Registration[type, Callable[[Any], Hashable]]] = Registration(issubclass)
-    freezers: ClassVar[Registration[type, Callable[[Any], None]]] = Registration(issubclass)
+    #freezers: ClassVar[Registration[type, Callable[[Any], None]]] = Registration(issubclass)
     copiers: ClassVar[Registration[type, Callable[[Any], Any]]] = Registration(issubclass)
 
     def __new__(
@@ -352,7 +349,11 @@ class Implementations:
 
     @hashers.register(int)
     @hashers.register(str)
+    # Note, for tuples, we require every field should be hashable.
+    # Consider creating a data class if it is not the case.
+    @hashers.register(tuple)
     @hashers.register(Enum)
+    @hashers.register(pathlib.Path)
     @staticmethod
     def _(
         element: Hashable
@@ -373,19 +374,19 @@ class Implementations:
     ) -> Hashable:
         return id(element)
 
-    @freezers.register(LazyObject)
-    @staticmethod
-    def _(
-        element: LazyObject
-    ) -> None:
-        element._freeze()
+    #@freezers.register(LazyObject)
+    #@staticmethod
+    #def _(
+    #    element: LazyObject
+    #) -> None:
+    #    element._freeze()
 
-    @freezers.register(object)
-    @staticmethod
-    def empty_freezer(
-        element: object
-    ) -> None:
-        pass
+    #@freezers.register(object)
+    #@staticmethod
+    #def empty_freezer(
+    #    element: object
+    #) -> None:
+    #    pass
 
     @copiers.register(LazyObject)
     @staticmethod
@@ -402,7 +403,7 @@ class Implementations:
         return copy.copy(element)
 
     @staticmethod
-    def empty_copier(
+    def shallow_copier(
         element: object
     ) -> object:
         return element

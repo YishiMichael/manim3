@@ -35,6 +35,7 @@ parameters:
   the name `a__b__c` under class `A` fetches data through the path
   `A._a_._b_._c_`. The fetched data will be an `n`-layer tuple tree, where `n`
   is the number of descriptors with their `plural` flags set to be true.
+  Finally, the last descriptor should have `freeze` set true.
 
 - `is_property: bool`
   Lazy.variable: false
@@ -61,16 +62,11 @@ parameters:
   Lazy.volatile: false
   Lazy.property: true
 
-  Determines whether data should be frozen when binding.
+  Determines whether data can be internally modified.
 
-  Note, freezing bound data does not block `__set__`. In other words, we are
-  freezing the data itself, not the binding relation. However, Unbinding data
-  by reassigning a new one does not unfreeze the data.
-
-  In fact, the freezing procedure can not go beyond the lazy scope. It only
-  prevents users from calling `__set__` of variable descriptors on descendant
-  lazy objects, but does not prevent users from modifying data that is not of
-  type `LazyObject`, e.g., `np.ndarray`.
+  One shall note that actually no freezing procedure is taken in runtime for
+  better performance. Internally modifying data bound to a descriptor with
+  `freeze` set true may result in unexpected results.
 
 - `deepcopy: bool`
   Lazy.variable: false

@@ -132,7 +132,7 @@ class LazyDescriptor[T, DataT]:
         "_decomposer",
         "_composer",
         "_hasher",
-        "_freezer",
+        #"_freezer",
         "_copier"
     )
 
@@ -159,7 +159,7 @@ class LazyDescriptor[T, DataT]:
         self._decomposer: Callable[[DataT], tuple[T, ...]] = NotImplemented
         self._composer: Callable[[tuple[T, ...]], DataT] = NotImplemented
         self._hasher: Callable[[T], Hashable] = NotImplemented
-        self._freezer: Callable[[T], None] = NotImplemented
+        #self._freezer: Callable[[T], None] = NotImplemented
         self._copier: Callable[[T], T] = NotImplemented
 
     @overload
@@ -208,9 +208,9 @@ class LazyDescriptor[T, DataT]:
         self: Self,
         elements: tuple[T, ...]
     ) -> tuple[Memoized[T], ...]:
-        freezer = self._freezer
-        for element in elements:
-            freezer(element)
+        #freezer = self._freezer
+        #for element in elements:
+        #    freezer(element)
         element_memoization = self._element_memoization
         hasher = self._hasher
         return tuple(
@@ -272,7 +272,7 @@ class LazyDescriptor[T, DataT]:
         elements: tuple[T, ...]
     ) -> None:
         slot = self.get_slot(instance)
-        slot.check_writability()
+        #slot.check_writability()
         memoized_elements = self._memoize_elements(elements)
         if memoized_elements == slot.get():
             return

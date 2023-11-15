@@ -10,12 +10,11 @@ import numpy as np
 
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.mesh import Mesh
-from ...animatables.shape import Shape
-from ...animatables.model import SetKwargs
-from ...constants.custom_typing import (
-    NP_x2f8,
-    NP_x3i4
+from ...animatables.shape import (
+    Shape,
+    Triangulation
 )
+from ...animatables.model import SetKwargs
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
@@ -43,9 +42,10 @@ class ShapeMobject(MeshMobject):
     @Lazy.property()
     @staticmethod
     def _mesh_(
-        shape__triangulation: tuple[NP_x3i4, NP_x2f8]
+        shape__triangulation: Triangulation
     ) -> Mesh:
-        faces, coordinates = shape__triangulation
+        faces = shape__triangulation.faces
+        coordinates = shape__triangulation.coordinates
         positions = SpaceUtils.increase_dimension(coordinates)
         normals = SpaceUtils.increase_dimension(np.zeros_like(coordinates), z_value=1.0)
         return Mesh(

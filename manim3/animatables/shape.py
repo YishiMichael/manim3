@@ -10,6 +10,7 @@ from typing import (
     Unpack
 )
 
+import attrs
 import mapbox_earcut
 import numpy as np
 import pyclipr
@@ -41,6 +42,12 @@ from .graph import (
     Graph,
     GraphUtils
 )
+
+
+@attrs.frozen(kw_only=True)
+class Triangulation:
+    faces: NP_x3i4
+    coordinates: NP_x2f8
 
 
 class ShapeActions(AnimatableActions):
@@ -143,7 +150,7 @@ class Shape(Animatable):
     def _triangulation_(
         coordinates: NP_x2f8,
         cumcounts: NP_xi4
-    ) -> tuple[NP_x3i4, NP_x2f8]:
+    ) -> Triangulation:
 
         def iter_contour_nodes(
             poly_trees: list[pyclipr.PolyTreeD]
@@ -156,7 +163,7 @@ class Shape(Animatable):
 
         def get_contour_triangulation(
             contour: pyclipr.PolyTreeD
-        ) -> tuple[NP_x3i4, NP_x2f8]:
+        ) -> Triangulation:
             ring_coordinates_list: list[NP_x2f8] = [
                 contour.polygon,
                 *(hole.polygon for hole in contour.children)
@@ -165,27 +172,36 @@ class Shape(Animatable):
             ring_ends = np.cumsum([
                 len(ring_coordinates) for ring_coordinates in ring_coordinates_list
             ], dtype=np.uint32)
-            return mapbox_earcut.triangulate_float64(coordinates, ring_ends).reshape((-1, 3)).astype(np.int32), coordinates
+            return Triangulation(
+                faces=mapbox_earcut.triangulate_float64(coordinates, ring_ends).reshape((-1, 3)).astype(np.int32),
+                coordinates=coordinates
+            )
 
         def concatenate_triangulations(
-            triangulations: Iterable[tuple[NP_x3i4, NP_x2f8]]
-        ) -> tuple[NP_x3i4, NP_x2f8]:
+            triangulations: Iterable[Triangulation]
+        ) -> Triangulation:
             triangulations_list = list(triangulations)
             coordinates_list = [
-                coordinates for _, coordinates in triangulations_list
+                triangulation.coordinates for triangulation in triangulations_list
             ]
             if not coordinates_list:
-                return np.zeros((0,), dtype=np.int32), np.zeros((0, 2))
+                return Triangulation(
+                    faces=np.zeros((0,), dtype=np.int32),
+                    coordinates=np.zeros((0, 2))
+                )
 
             offsets = np.insert(np.cumsum([
                 len(coordinates) for coordinates in coordinates_list[:-1]
             ], dtype=np.int32), 0, 0)
             all_faces = np.concatenate([
-                faces + offset
-                for (faces, _), offset in zip(triangulations_list, offsets, strict=True)
+                triangulation.faces + offset
+                for triangulation, offset in zip(triangulations_list, offsets, strict=True)
             ])
             all_coordinates = np.concatenate(coordinates_list)
-            return all_faces, all_coordinates
+            return Triangulation(
+                faces=all_faces,
+                coordinates=all_coordinates
+            )
 
         clipper = pyclipr.Clipper()
         clipper.addPaths([
@@ -323,6 +339,13 @@ class DynamicShape[ShapeT: Shape](DynamicAnimatable[ShapeT]):
     piecewise = ShapeActions.piecewise.build_dynamic_animatable_method_descriptor()
 
 
+@attrs.frozen(kw_only=True)
+class ShapeInterpolateInfo:
+    coordinates_0: NP_x2f8
+    coordinates_1: NP_x2f8
+    counts: NP_xi4
+
+
 class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[ShapeT]):
     __slots__ = ()
 
@@ -331,10 +354,15 @@ class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[Sh
     def _interpolate_info_(
         src_0: ShapeT,
         src_1: ShapeT
-    ) -> tuple[NP_x2f8, NP_x2f8, NP_xi4]:
-        return ShapeUtils.shape_interpolate_info(
+    ) -> ShapeInterpolateInfo:
+        coordinates_0, coordinates_1, counts = ShapeUtils.shape_interpolate(
             shape_0=src_0,
             shape_1=src_1
+        )
+        return ShapeInterpolateInfo(
+            coordinates_0=coordinates_0,
+            coordinates_1=coordinates_1,
+            counts=counts
         )
 
     def interpolate(
@@ -342,10 +370,10 @@ class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[Sh
         dst: ShapeT,
         alpha: float
     ) -> None:
-        coordinates_0, coordinates_1, counts = self._interpolate_info_
+        interpolate_info = self._interpolate_info_
         dst.set(
-            coordinates=SpaceUtils.lerp(coordinates_0, coordinates_1, alpha),
-            counts=counts
+            coordinates=SpaceUtils.lerp(interpolate_info.coordinates_0, interpolate_info.coordinates_1, alpha),
+            counts=interpolate_info.counts
         )
 
     def becomes(
@@ -403,7 +431,7 @@ class ShapeUtils(GraphUtils):
         return coordinates, counts
 
     @classmethod
-    def shape_interpolate_info(
+    def shape_interpolate(
         cls: type[Self],
         shape_0: Shape,
         shape_1: Shape

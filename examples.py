@@ -42,7 +42,7 @@ class TextTransformExample(Scene):
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
-        await self.wait()
+        #await self.wait()
         await self.play(FadeTransform(tex, code), run_time=2, rate=Rates.smooth())
         await self.wait(3)
 

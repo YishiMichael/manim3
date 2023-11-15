@@ -10,6 +10,7 @@ from typing import (
     Unpack
 )
 
+import attrs
 import numpy as np
 
 from ..constants.custom_typing import (
@@ -141,6 +142,13 @@ class DynamicGraph[GraphT: Graph](DynamicAnimatable[GraphT]):
     piecewise = GraphActions.piecewise.build_dynamic_animatable_method_descriptor()
 
 
+@attrs.frozen(kw_only=True)
+class GraphInterpolateInfo:
+    positions_0: NP_x3f8
+    positions_1: NP_x3f8
+    edges: NP_x2i4
+
+
 class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[GraphT]):
     __slots__ = ()
 
@@ -149,18 +157,23 @@ class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[Gr
     def _interpolate_info_(
         src_0: GraphT,
         src_1: GraphT
-    ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
-        return GraphUtils.graph_interpolate_info(src_0, src_1)
+    ) -> GraphInterpolateInfo:
+        positions_0, positions_1, edges = GraphUtils.graph_interpolate(src_0, src_1)
+        return GraphInterpolateInfo(
+            positions_0=positions_0,
+            positions_1=positions_1,
+            edges=edges
+        )
 
     def interpolate(
         self: Self,
         dst: GraphT,
         alpha: float
     ) -> None:
-        positions_0, positions_1, edges = self._interpolate_info_
+        interpolate_info = self._interpolate_info_
         dst.set(
-            positions=SpaceUtils.lerp(positions_0, positions_1, alpha),
-            edges=edges
+            positions=SpaceUtils.lerp(interpolate_info.positions_0, interpolate_info.positions_1, alpha),
+            edges=interpolate_info.edges
         )
 
     def becomes(
@@ -250,7 +263,7 @@ class GraphUtils:
         return positions, edges
 
     @classmethod
-    def graph_interpolate_info(
+    def graph_interpolate(
         cls: type[Self],
         graph_0: Graph,
         graph_1: Graph

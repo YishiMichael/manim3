@@ -6,7 +6,8 @@ from typing import Self
 import moderngl
 import numpy as np
 
-from ..constants.custom_typing import NP_3f8
+from ..animatables.arrays.animatable_color import AnimatableColor
+from ..animatables.arrays.animatable_float import AnimatableFloat
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
 from ..rendering.buffers.texture_buffer import TextureBuffer
@@ -16,7 +17,6 @@ from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
 from ..toplevel.toplevel import Toplevel
-from ..utils.color_utils import ColorUtils
 from ..utils.path_utils import PathUtils
 from .mobject import Mobject
 
@@ -24,15 +24,15 @@ from .mobject import Mobject
 class SceneRootMobject(Mobject):
     __slots__ = ()
 
-    @Lazy.variable()
+    @Lazy.volatile()
     @staticmethod
-    def _background_color_() -> NP_3f8:
-        return ColorUtils.standardize_color(Toplevel.config.background_color)
+    def _background_color_() -> AnimatableColor:
+        return AnimatableColor(Toplevel.config.background_color)
 
-    @Lazy.variable()
+    @Lazy.volatile()
     @staticmethod
-    def _background_opacity_() -> float:
-        return Toplevel.config.background_opacity
+    def _background_opacity_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel.config.background_opacity)
 
     @Lazy.property()
     @staticmethod
@@ -87,8 +87,8 @@ class SceneRootMobject(Mobject):
         self: Self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
-        red, green, blue = map(float, self._background_color_)
-        alpha = self._background_opacity_
+        red, green, blue = map(float, self._background_color_._array_)
+        alpha = float(self._background_opacity_._array_)
         target_framebuffer._framebuffer_.clear(
             red=red, green=green, blue=blue, alpha=alpha
         )
