@@ -15,25 +15,29 @@ from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
+from ..toplevel.toplevel import Toplevel
+from ..utils.color_utils import ColorUtils
 from ..utils.path_utils import PathUtils
 from .mobject import Mobject
 
 
 class SceneRootMobject(Mobject):
-    __slots__ = ("_background_color",)
-
-    def __init__(
-        self: Self,
-        background_color: NP_3f8
-    ) -> None:
-        super().__init__()
-        self._oit_framebuffer_ = OITFramebuffer()
-        self._background_color: NP_3f8 = background_color
+    __slots__ = ()
 
     @Lazy.variable()
     @staticmethod
+    def _background_color_() -> NP_3f8:
+        return ColorUtils.standardize_color(Toplevel.config.background_color)
+
+    @Lazy.variable()
+    @staticmethod
+    def _background_opacity_() -> float:
+        return Toplevel.config.background_opacity
+
+    @Lazy.property()
+    @staticmethod
     def _oit_framebuffer_() -> OITFramebuffer:
-        return NotImplemented
+        return OITFramebuffer()
 
     @Lazy.property()
     @staticmethod
@@ -83,8 +87,10 @@ class SceneRootMobject(Mobject):
         self: Self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
+        red, green, blue = map(float, self._background_color_)
+        alpha = self._background_opacity_
         target_framebuffer._framebuffer_.clear(
-            color=tuple(self._background_color)
+            red=red, green=green, blue=blue, alpha=alpha
         )
 
         oit_framebuffer = self._oit_framebuffer_

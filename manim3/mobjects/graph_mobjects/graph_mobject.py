@@ -50,21 +50,21 @@ class GraphMobject(Mobject):
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor()
+        return AnimatableColor(Toplevel.config.default_color)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
-        return AnimatableFloat(1.0)
+        return AnimatableFloat(Toplevel.config.default_opacity)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
-        return AnimatableFloat(1.0)
+        return AnimatableFloat(Toplevel.config.default_weight)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)

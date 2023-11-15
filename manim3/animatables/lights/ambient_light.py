@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+
 from ...lazy.lazy import Lazy
+from ...toplevel.toplevel import Toplevel
 from ..animatable.animatable import AnimatableActions
 from ..arrays.animatable_color import AnimatableColor
 from ..model import ModelActions
@@ -15,4 +17,4 @@ class AmbientLight(Point):
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor()
+        return AnimatableColor(Toplevel.config.default_color)

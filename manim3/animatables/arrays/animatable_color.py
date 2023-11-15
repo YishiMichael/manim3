@@ -7,8 +7,6 @@ from ...constants.custom_typing import (
     ColorType,
     NP_3f8
 )
-from ...lazy.lazy import Lazy
-from ...toplevel.toplevel import Toplevel
 from ...utils.color_utils import ColorUtils
 from .animatable_array import AnimatableArray
 
@@ -18,11 +16,6 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
 
     def __init__(
         self: Self,
-        color: ColorType | None = None
+        color: ColorType
     ) -> None:
-        super().__init__(ColorUtils.standardize_color(color) if color is not None else None)
-
-    @Lazy.variable()
-    @staticmethod
-    def _array_() -> NP_3f8:
-        return ColorUtils.standardize_color(Toplevel.config.default_color)
+        super().__init__(ColorUtils.standardize_color(color))

@@ -62,23 +62,6 @@ class ComposeRate(Rate):
             alpha = rate.at(alpha)
         return alpha
 
-    #def at_boundary(
-    #    self: Self,
-    #    boundary: BoundaryType
-    #) -> BoundaryType:
-    #    result = boundary
-    #    for rate in self._reversed_rates:
-    #        result = rate.at_boundary(result)
-    #    return result
-
-    #def is_increasing(
-    #    self: Self
-    #) -> bool:
-    #    return all(
-    #        rate.is_increasing()
-    #        for rate in self._reversed_rates
-    #    )
-
 
 class ProductRate(Rate):
     __slots__ = ()
@@ -167,17 +150,6 @@ class LinearRate(Rate):
     ) -> float:
         return time
 
-    #def at_boundary(
-    #    self: Self,
-    #    boundary: BoundaryType
-    #) -> BoundaryType:
-    #    return boundary
-
-    #def is_increasing(
-    #    self: Self
-    #) -> bool:
-    #    return True
-
 
 class BezierRate(Rate):
     __slots__ = ()
@@ -225,50 +197,6 @@ class BezierRate(Rate):
         return float(self._curve_(np.array(time)))
 
 
-#class RushFromRate(Rate):
-#    __slots__ = ()
-
-#    def __init__(self) -> None:
-#        super().__init__()
-
-#    def at(
-#        self: Self,
-#        t: float
-#    ) -> float:
-#        return (3.0 * t ** 5 - 10.0 * t ** 3 + 15.0 * t) / 8.0
-
-#    def at_boundary(
-#        self: Self,
-#        boundary: BoundaryType
-#    ) -> BoundaryType:
-#        return boundary
-
-#    def is_increasing(
-#        self: Self
-#    ) -> bool:
-#        return True
-
-
-#class RushIntoRate(RushFromRate):
-#    __slots__ = ()
-
-#    def at(
-#        self: Self,
-#        t: float
-#    ) -> float:
-#        return super().at(t - 1.0) + 1.0
-
-
-#class SmoothRate(RushFromRate):
-#    __slots__ = ()
-
-#    def at(
-#        self: Self,
-#        t: float
-#    ) -> float:
-#        return (super().at(2.0 * t - 1.0) + 1.0) / 2.0
-
-
 class RewindRate(Rate):
     __slots__ = ()
 
@@ -287,17 +215,6 @@ class RewindRate(Rate):
         time: float
     ) -> float:
         return 1.0 - time
-
-    #def at_boundary(
-    #    self: Self,
-    #    boundary: BoundaryType
-    #) -> BoundaryType:
-    #    return 1 - boundary
-
-    #def is_increasing(
-    #    self: Self
-    #) -> bool:
-    #    return False
 
 
 class ThereAndBackRate(Rate):
@@ -318,17 +235,6 @@ class ThereAndBackRate(Rate):
         time: float
     ) -> float:
         return 1.0 - abs(2.0 * time - 1.0)
-
-    #def at_boundary(
-    #    self: Self,
-    #    boundary: BoundaryType
-    #) -> BoundaryType:
-    #    return boundary
-
-    #def is_increasing(
-    #    self: Self
-    #) -> bool:
-    #    return False
 
 
 class SinusoidalRate(Rate):
@@ -372,17 +278,6 @@ class RepeatRate(Rate):
         time: float
     ) -> float:
         return time * float(self._periods) % 1.0
-
-    #def at_boundary(
-    #    self: Self,
-    #    boundary: BoundaryType
-    #) -> BoundaryType:
-    #    return boundary
-
-    #def is_increasing(
-    #    self: Self
-    #) -> bool:
-    #    return False
 
 
 class Rates:
@@ -454,7 +349,7 @@ class Rates:
     ) -> RepeatRate:
         return RepeatRate(periods)
 
-    # Variant rates, borrowed from 3b1b/manim.
+    # Variant rates, borrowed from `3b1b/manim`.
 
     @classmethod
     def smooth(

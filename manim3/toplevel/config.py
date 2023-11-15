@@ -22,15 +22,19 @@ class Config:
 
     aspect_ratio: float = 16.0 / 9.0
     frame_height: float = 8.0
-    pixel_height: float = 1080
-    window_pixel_height: float = 540
+    pixel_height: int = 1080
+    window_pixel_height: int = 540
 
     camera_distance: float = 5.0
     camera_near: float = 0.1
     camera_far: float = 100.0
 
     default_color: ColorType = Color("white")
+    default_opacity: float = 1.0
+    default_weight: float = 1.0
     background_color: ColorType = Color("black")
+    background_opacity: float = 0.0
+    mesh_ambient_strength: float = 1.0
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
@@ -50,7 +54,7 @@ class Config:
         "ams",
         "autoload",
         "base",
-        "color",
+        "color",  # Required for labelling.
         "newcommand",
         "require"
     )
@@ -82,40 +86,40 @@ class Config:
     def frame_size(
         self: Self
     ) -> tuple[float, float]:
-        return (self.frame_width, self.frame_height)
+        return self.frame_width, self.frame_height
 
     @property
     def frame_radii(
         self: Self
     ) -> tuple[float, float]:
-        return (self.frame_width / 2.0, self.frame_height / 2.0)
+        return self.frame_width / 2.0, self.frame_height / 2.0
 
     @property
     def pixel_width(
         self: Self
-    ) -> float:
-        return self.aspect_ratio * self.pixel_height
+    ) -> int:
+        return int(self.aspect_ratio * self.pixel_height)
 
     @property
     def pixel_size(
         self: Self
     ) -> tuple[int, int]:
-        return (int(self.pixel_width), int(self.pixel_height))
+        return self.pixel_width, self.pixel_height
 
     @property
     def pixel_per_unit(
         self: Self
-    ) -> float:
-        return self.pixel_height / self.frame_height
+    ) -> int:
+        return int(self.pixel_height / self.frame_height)
 
     @property
     def window_pixel_width(
         self: Self
-    ) -> float:
-        return self.aspect_ratio * self.window_pixel_height
+    ) -> int:
+        return int(self.aspect_ratio * self.window_pixel_height)
 
     @property
     def window_pixel_size(
         self: Self
     ) -> tuple[int, int]:
-        return (int(self.window_pixel_width), int(self.window_pixel_height))
+        return self.window_pixel_width, self.window_pixel_height

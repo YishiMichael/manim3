@@ -21,7 +21,6 @@ from ..timelines.timeline.timeline import Timeline
 from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..mobjects.mobject import Mobject
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
-from ..utils.color_utils import ColorUtils
 from ..utils.path_utils import PathUtils
 from .config import Config
 from .toplevel import Toplevel
@@ -41,9 +40,7 @@ class Scene(Timeline):
         super().__init__()
         self._camera: Camera = Camera()
         self._lighting: Lighting = Lighting(AmbientLight())
-        self._root_mobject: SceneRootMobject = SceneRootMobject(
-            background_color=ColorUtils.standardize_color(Toplevel.config.background_color)
-        )
+        self._root_mobject: SceneRootMobject = SceneRootMobject()
         self._timestamp: float = 0.0
 
     async def _render(
