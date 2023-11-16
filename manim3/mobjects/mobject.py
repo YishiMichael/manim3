@@ -23,24 +23,24 @@ class Mobject(Model):
     __slots__ = (
         "__weakref__",
         "_children",
-        "_descendants",
+        "_proper_descendants",
         "_parents",
-        "_ancestors"
+        "_proper_ancestors"
     )
 
     _special_slot_copiers: ClassVar[dict[str, Callable]] = {
         "_parents": lambda o: weakref.WeakSet(),
-        "_ancestors": lambda o: weakref.WeakSet()
+        "_proper_ancestors": lambda o: weakref.WeakSet()
     }
 
     def __init__(
         self: Self
     ) -> None:
         super().__init__()
-        self._children: tuple[Mobject, ...] = ()
-        self._descendants: tuple[Mobject, ...] = ()
+        self._children: list[Mobject] = []
+        self._proper_descendants: list[Mobject] = []
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
-        self._ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._proper_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
 
     def __iter__(
         self: Self
@@ -57,12 +57,12 @@ class Mobject(Model):
     def __getitem__(
         self: Self,
         index: slice
-    ) -> tuple[Mobject, ...]: ...
+    ) -> list[Mobject]: ...
 
     def __getitem__(
         self: Self,
         index: int | slice
-    ) -> Mobject | tuple[Mobject, ...]:
+    ) -> Mobject | list[Mobject]:
         return self._children.__getitem__(index)
 
     # family matters
@@ -88,27 +88,27 @@ class Mobject(Model):
             for parent in mobject._parents:
                 yield from iter_ancestors_by_parents(parent)
 
-        for ancestor in dict.fromkeys(itertools.chain.from_iterable(
+        for proper_ancestor in dict.fromkeys(itertools.chain.from_iterable(
             iter_ancestors_by_parents(mobject)
             for mobject in mobjects
         )):
-            descendants = tuple(dict.fromkeys(itertools.chain.from_iterable(
+            proper_descendants = dict.fromkeys(itertools.chain.from_iterable(
                 iter_descendants_by_children(child)
-                for child in ancestor._children
-            )))
-            ancestor._descendants = descendants
-            ancestor._proper_siblings_ = descendants
+                for child in proper_ancestor._children
+            ))
+            proper_ancestor._proper_descendants = list(proper_descendants)
+            proper_ancestor._proper_siblings_ = tuple(proper_descendants)
 
-        for descendant in dict.fromkeys(itertools.chain.from_iterable(
+        for proper_descendant in dict.fromkeys(itertools.chain.from_iterable(
             iter_descendants_by_children(mobject)
             for mobject in mobjects
         )):
-            ancestors = tuple(dict.fromkeys(itertools.chain.from_iterable(
+            proper_ancestors = dict.fromkeys(itertools.chain.from_iterable(
                 iter_descendants_by_children(parent)
-                for parent in descendant._parents
-            )))
-            descendant._ancestors.clear()
-            descendant._ancestors.update(ancestors)
+                for parent in proper_descendant._parents
+            ))
+            proper_descendant._proper_ancestors.clear()
+            proper_descendant._proper_ancestors.update(proper_ancestors)
 
     def iter_children(
         self: Self
@@ -127,7 +127,7 @@ class Mobject(Model):
     ) -> Iterator[Mobject]:
         yield self
         if broadcast:
-            yield from self._descendants
+            yield from self._proper_descendants
 
     def iter_ancestors(
         self: Self,
@@ -136,43 +136,35 @@ class Mobject(Model):
     ) -> Iterator[Mobject]:
         yield self
         if broadcast:
-            yield from self._ancestors
+            yield from self._proper_ancestors
 
     def add(
         self: Self,
         *mobjects: Mobject
     ) -> Self:
-        filtered_mobjects = tuple(
-            mobject for mobject in dict.fromkeys(mobjects)
-            if mobject not in self._children
-        )
         if (invalid_mobjects := tuple(
-            mobject for mobject in filtered_mobjects
+            mobject for mobject in mobjects
             if mobject in self.iter_ancestors()
         )):
             raise ValueError(f"Circular relationship occurred when adding {invalid_mobjects} to {self}")
-        children = list(self._children)
-        for mobject in filtered_mobjects:
-            children.append(mobject)
+        for mobject in dict.fromkeys(mobjects):
+            if mobject in self._children:
+                continue
+            self._children.append(mobject)
             mobject._parents.add(self)
-        self._children = tuple(children)
-        type(self)._refresh_families(self)
+        type(self)._refresh_families(self, *mobjects)
         return self
 
     def discard(
         self: Self,
         *mobjects: Mobject
     ) -> Self:
-        filtered_mobjects = tuple(
-            mobject for mobject in dict.fromkeys(mobjects)
-            if mobject in self._children
-        )
-        children = list(self._children)
-        for mobject in filtered_mobjects:
-            children.remove(mobject)
+        for mobject in dict.fromkeys(mobjects):
+            if mobject not in self._children:
+                continue
+            self._children.remove(mobject)
             mobject._parents.remove(self)
-        self._children = tuple(children)
-        type(self)._refresh_families(self, *filtered_mobjects)
+        type(self)._refresh_families(self, *mobjects)
         return self
 
     def clear(
@@ -186,19 +178,20 @@ class Mobject(Model):
     ) -> Self:
         # Copy all descendants. The result is not bound to any mobject.
         result = super().copy()
-        descendants: tuple[Mobject, ...] = (self, *(
+        descendants: list[Mobject] = [self, *(
             descendant for descendant in self._proper_siblings_
             if isinstance(descendant, Mobject)
-        ))
-        descendants_copy: tuple[Mobject, ...] = (result, *(
+        )]
+        descendants_copy: list[Mobject] = [result, *(
             descendant_copy for descendant_copy in result._proper_siblings_
             if isinstance(descendant_copy, Mobject)
-        ))
+        )]
         for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
-            descendant_copy._children = tuple(
+            descendant_copy._children = [
                 descendants_copy[descendants.index(child)]
                 for child in descendant._children
-            )
+            ]
+            descendant_copy._parents.clear()
             descendant_copy._parents.update(
                 descendants_copy[descendants.index(parent)]
                 for parent in descendant._parents

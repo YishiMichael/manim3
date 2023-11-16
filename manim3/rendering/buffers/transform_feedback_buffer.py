@@ -12,8 +12,8 @@ class TransformFeedbackBuffer(ReadOnlyBuffer):
     def __init__(
         self: Self,
         *,
-        fields: list[str],
-        child_structs: dict[str, list[str]] | None = None,
+        fields: tuple[str, ...],
+        child_structs: dict[str, tuple[str, ...]] | None = None,
         num_vertex: int,
         array_lens: dict[str, int] | None = None
     ) -> None:

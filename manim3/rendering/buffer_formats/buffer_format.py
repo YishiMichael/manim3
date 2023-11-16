@@ -84,16 +84,20 @@ class BufferFormat(LazyObject):
 
         def get_np_buffer_pointer(
             np_buffer: np.ndarray,
-            name_chain: list[str]
+            name_chain: tuple[str, ...]
         ) -> np.ndarray:
-            if not name_chain:
-                return np_buffer["_"]
-            name = name_chain.pop(0)
-            return get_np_buffer_pointer(np_buffer[name], name_chain)
+            result = np_buffer
+            for name in name_chain:
+                result = result[name]
+            return result["_"]
+            #if not name_chain:
+            #    return np_buffer["_"]
+            #name = name_chain.pop(0)
+            #return get_np_buffer_pointer(np_buffer[name], name_chain)
 
         np_buffer = np.zeros(self._shape_, dtype=self._dtype_)
         np_buffer_pointers = {
-            ".".join(name_chain): (get_np_buffer_pointer(np_buffer, list(name_chain)), base_ndim)
+            ".".join(name_chain): (get_np_buffer_pointer(np_buffer, name_chain), base_ndim)
             for name_chain, base_ndim in self._pointers_
         }
         return np_buffer, np_buffer_pointers

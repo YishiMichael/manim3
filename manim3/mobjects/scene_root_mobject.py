@@ -47,7 +47,7 @@ class SceneRootMobject(Mobject):
     ) -> VertexArray:
         return VertexArray(
             shader_path=PathUtils.shaders_dir.joinpath("oit_compose.glsl"),
-            texture_buffers=[
+            texture_buffers=(
                 TextureBuffer(
                     field="sampler2D t_accum_map",
                     texture_array=np.array(oit_framebuffer__accum_texture, dtype=moderngl.Texture)
@@ -56,13 +56,13 @@ class SceneRootMobject(Mobject):
                     field="sampler2D t_revealage_map",
                     texture_array=np.array(oit_framebuffer__revealage_texture, dtype=moderngl.Texture)
                 )
-            ],
+            ),
             indexed_attributes_buffer=IndexedAttributesBuffer(
                 attributes_buffer=AttributesBuffer(
-                    fields=[
+                    fields=(
                         "vec3 in_position",
                         "vec2 in_uv"
-                    ],
+                    ),
                     num_vertex=4,
                     data={
                         "in_position": np.array((
@@ -87,10 +87,10 @@ class SceneRootMobject(Mobject):
         self: Self,
         target_framebuffer: ColorFramebuffer
     ) -> None:
-        red, green, blue = map(float, self._background_color_._array_)
-        alpha = float(self._background_opacity_._array_)
+        red, green, blue = self._background_color_._array_
+        alpha = self._background_opacity_._array_
         target_framebuffer._framebuffer_.clear(
-            red=red, green=green, blue=blue, alpha=alpha
+            red=float(red), green=float(green), blue=float(blue), alpha=float(alpha)
         )
 
         oit_framebuffer = self._oit_framebuffer_

@@ -202,8 +202,8 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         string: str
     ) -> Iterator[CommandInfo]:
         pattern = re.compile(r"""[<>&"']""")
-        for match_obj in pattern.finditer(string):
-            yield StandaloneCommandInfo(match_obj, replacement=cls._markup_escape(match_obj.group()))
+        for match in pattern.finditer(string):
+            yield StandaloneCommandInfo(match, replacement=cls._markup_escape(match.group()))
 
     @classmethod
     def _markup_escape(

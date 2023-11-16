@@ -20,7 +20,6 @@ class LazySlot[T, DataT]:
     __slots__ = (
         "__weakref__",
         "_descriptor_ref",
-        #"_is_writable",
         "_elements",
         "_parameter_key",
         "_associated_slots"
@@ -32,7 +31,6 @@ class LazySlot[T, DataT]:
     ) -> None:
         super().__init__()
         self._descriptor_ref: weakref.ref[LazyDescriptor[T, DataT]] = weakref.ref(descriptor)
-        #self._is_writable: bool = not descriptor._is_property
         self._elements: tuple[Memoized[T], ...] | None = None
         self._parameter_key: Memoized[Hashable] | None = None
         self._associated_slots: weakref.WeakSet[LazySlot] = weakref.WeakSet()
@@ -42,16 +40,6 @@ class LazySlot[T, DataT]:
     ) -> LazyDescriptor[T, DataT]:
         assert (descriptor := self._descriptor_ref()) is not None
         return descriptor
-
-    #def disable_writability(
-    #    self: Self
-    #) -> None:
-    #    self._is_writable = False
-
-    #def check_writability(
-    #    self: Self
-    #) -> None:
-    #    assert self._is_writable, "Slot is not writable"
 
     def get(
         self: Self

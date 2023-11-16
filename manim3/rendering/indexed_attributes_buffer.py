@@ -30,7 +30,7 @@ class IndexedAttributesBuffer(LazyObject):
     @staticmethod
     def _attributes_buffer_() -> AttributesBuffer:
         return AttributesBuffer(
-            fields=[],
+            fields=(),
             num_vertex=0,
             data={}
         )

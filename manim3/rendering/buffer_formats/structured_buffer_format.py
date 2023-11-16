@@ -52,8 +52,8 @@ class StructuredBufferFormat(BufferFormat):
     ) -> np.dtype:
         return np.dtype({
             "names": children__name,
-            "formats": list(zip(children__dtype, children__shape, strict=True)),
-            "offsets": list(offsets),
+            "formats": tuple(zip(children__dtype, children__shape, strict=True)),
+            "offsets": offsets,
             "itemsize": itemsize
         })
 

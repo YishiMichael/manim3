@@ -68,12 +68,12 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
             (?P<quot>["'])(?P<attr_val>.*?)(?P=quot)
         """, flags=re.VERBOSE | re.DOTALL)
         open_stack: list[re.Match[str]] = []
-        for match_obj in pattern.finditer(string):
-            if match_obj.group("tag"):
-                if match_obj.group("elision_slash"):
-                    yield StandaloneCommandInfo(match_obj)
-                elif not match_obj.group("close_slash"):
-                    open_stack.append(match_obj)
+        for match in pattern.finditer(string):
+            if match.group("tag"):
+                if match.group("elision_slash"):
+                    yield StandaloneCommandInfo(match)
+                elif not match.group("close_slash"):
+                    open_stack.append(match)
                 else:
                     open_match_obj = open_stack.pop()
                     attribs = {
@@ -84,14 +84,14 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
                         attribs=attribs,
                         isolated=False,
                         open_match_obj=open_match_obj,
-                        close_match_obj=match_obj,
+                        close_match_obj=match,
                         open_replacement="",
                         close_replacement=""
                     )
-            elif match_obj.group("char"):
-                yield StandaloneCommandInfo(match_obj, replacement=cls._markup_escape(match_obj.group("char")))
+            elif match.group("char"):
+                yield StandaloneCommandInfo(match, replacement=cls._markup_escape(match.group("char")))
             else:
-                yield StandaloneCommandInfo(match_obj)
+                yield StandaloneCommandInfo(match)
             assert not open_stack
 
 

@@ -37,8 +37,8 @@ class ColorUtils:
             case str() if re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE) and (hex_len := len(color) - 1) in (3, 6):
                 component_size = hex_len // 3
                 return (1.0 / (16 ** component_size - 1)) * np.fromiter((
-                    int(match_obj.group(), 16)
-                    for match_obj in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
+                    int(match.group(), 16)
+                    for match in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
                 ), dtype=np.float64)
             case np.ndarray() if color.ndim == 1 and color.size == 3:
                 return color.astype(np.float64)

@@ -166,10 +166,6 @@ class LazyObject(ABC):
             descriptor._hasher = (
                 Implementations.hashers.fetch(element_annotation_cls if descriptor._freeze else object)
             )
-            #descriptor._freezer = (
-            #    Implementations.freezers.fetch(element_annotation_cls)
-            #    if descriptor._freeze else Implementations.empty_freezer
-            #)
             descriptor._copier = (
                 Implementations.copiers.fetch(element_annotation_cls)
                 if descriptor._deepcopy else Implementations.shallow_copier
@@ -231,24 +227,12 @@ class LazyObject(ABC):
     ) -> None:
         super().__init__()
         self._lazy_slots: object = type(self)._lazy_slots_cls()
-        #self._is_frozen: bool = False
 
     def _get_lazy_slot(
         self: Self,
         name: str
     ) -> LazySlot:
         return self._lazy_slots.__getattribute__(name)
-
-    #def _freeze(
-    #    self: Self
-    #) -> None:
-    #    if self._is_frozen:
-    #        return
-    #    self._is_frozen = True
-    #    for descriptor in type(self)._lazy_descriptors:
-    #        descriptor.get_slot(self).disable_writability()
-    #        for element in descriptor.get_elements(self):
-    #            descriptor._freezer(element)
 
     def copy(
         self: Self
@@ -310,7 +294,6 @@ class Implementations:
     decomposers: ClassVar[Registration[bool, Callable[[Any], tuple[Any, ...]]]] = Registration(operator.is_)
     composers: ClassVar[Registration[bool, Callable[[tuple[Any, ...]], Any]]] = Registration(operator.is_)
     hashers: ClassVar[Registration[type, Callable[[Any], Hashable]]] = Registration(issubclass)
-    #freezers: ClassVar[Registration[type, Callable[[Any], None]]] = Registration(issubclass)
     copiers: ClassVar[Registration[type, Callable[[Any], Any]]] = Registration(issubclass)
 
     def __new__(
@@ -373,20 +356,6 @@ class Implementations:
         element: object
     ) -> Hashable:
         return id(element)
-
-    #@freezers.register(LazyObject)
-    #@staticmethod
-    #def _(
-    #    element: LazyObject
-    #) -> None:
-    #    element._freeze()
-
-    #@freezers.register(object)
-    #@staticmethod
-    #def empty_freezer(
-    #    element: object
-    #) -> None:
-    #    pass
 
     @copiers.register(LazyObject)
     @staticmethod

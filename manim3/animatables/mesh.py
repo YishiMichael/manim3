@@ -68,11 +68,11 @@ class Mesh(Animatable):
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
-                fields=[
+                fields=(
                     "vec3 in_position",
                     "vec3 in_normal",
                     "vec2 in_uv"
-                ],
+                ),
                 num_vertex=len(positions),
                 data={
                     "in_position": positions,

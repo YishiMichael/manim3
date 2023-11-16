@@ -18,8 +18,8 @@ class UniformBlockBuffer(WriteOnlyBuffer):
         self: Self,
         *,
         name: str,
-        fields: list[str],
-        child_structs: dict[str, list[str]] | None = None,
+        fields: tuple[str, ...],
+        child_structs: dict[str, tuple[str, ...]] | None = None,
         array_lens: dict[str, int] | None = None,
         data: dict[str, np.ndarray]
     ) -> None:

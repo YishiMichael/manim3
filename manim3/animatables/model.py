@@ -328,9 +328,9 @@ class Model(Animatable):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_model",
-            fields=[
-                "mat4 u_model_matrix"
-            ],
+            fields=(
+                "mat4 u_model_matrix",
+            ),
             data={
                 "u_model_matrix": model_matrix__array.T
             }

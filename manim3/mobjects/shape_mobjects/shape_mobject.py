@@ -44,8 +44,8 @@ class ShapeMobject(MeshMobject):
     def _mesh_(
         shape__triangulation: Triangulation
     ) -> Mesh:
-        faces = shape__triangulation.faces
         coordinates = shape__triangulation.coordinates
+        faces = shape__triangulation.faces
         positions = SpaceUtils.increase_dimension(coordinates)
         normals = SpaceUtils.increase_dimension(np.zeros_like(coordinates), z_value=1.0)
         return Mesh(

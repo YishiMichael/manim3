@@ -4,10 +4,12 @@ from __future__ import annotations
 import itertools
 import pathlib
 import re
-from typing import Self
+from typing import (
+    Self,
+    TypeGuard
+)
 
 import attrs
-
 import moderngl
 import numpy as np
 
@@ -36,7 +38,7 @@ class ProgramAttributeInfo:
     def verify_buffer_format(
         self: Self,
         buffer_format: BufferFormat
-    ) -> bool:
+    ) -> TypeGuard[AtomicBufferFormat]:
         assert isinstance(buffer_format, AtomicBufferFormat)
         assert not buffer_format._is_empty_
         assert buffer_format._size_ == self.array_length
@@ -48,20 +50,21 @@ class ProgramAttributeInfo:
 @attrs.frozen(kw_only=True)
 class ProgramUniformInfo:
     array_length: int
-    shape: tuple[int, ...]
     binding: int
 
     def verify_buffer_format(
         self: Self,
         buffer_format: BufferFormat
-    ) -> bool:
+    ) -> TypeGuard[AtomicBufferFormat]:
+        assert isinstance(buffer_format, AtomicBufferFormat)
         assert not buffer_format._is_empty_
-        if (buffer_format_shape := buffer_format._shape_):
-            *shape, array_length = buffer_format_shape
-        else:
-            shape = ()
-            array_length = 1
-        assert shape == self.shape
+        match buffer_format._shape_:
+            case ():
+                array_length = 1
+            case (array_length,):
+                pass
+            case _:
+                raise ValueError
         assert array_length == self.array_length
         return True
 
@@ -74,7 +77,8 @@ class ProgramUniformBlockInfo:
     def verify_buffer_format(
         self: Self,
         buffer_format: BufferFormat
-    ) -> bool:
+    ) -> TypeGuard[StructuredBufferFormat]:
+        assert isinstance(buffer_format, StructuredBufferFormat)
         assert not buffer_format._is_empty_
         assert buffer_format._nbytes_ == self.size
         return True
@@ -95,20 +99,20 @@ class VertexArray(LazyObject):
         self: Self,
         *,
         shader_path: pathlib.Path,
-        custom_macros: list[str] | None = None,
-        texture_buffers: list[TextureBuffer] | None = None,
-        uniform_block_buffers: list[UniformBlockBuffer] | None = None,
+        custom_macros: tuple[str, ...] | None = None,
+        texture_buffers: tuple[TextureBuffer, ...] | None = None,
+        uniform_block_buffers: tuple[UniformBlockBuffer, ...] | None = None,
         indexed_attributes_buffer: IndexedAttributesBuffer | None = None,
         transform_feedback_buffer: TransformFeedbackBuffer | None = None
     ) -> None:
         super().__init__()
         self._shader_path_ = shader_path
         if custom_macros is not None:
-            self._custom_macros_ = tuple(custom_macros)
+            self._custom_macros_ = custom_macros
         if texture_buffers is not None:
-            self._texture_buffers_ = tuple(texture_buffers)
+            self._texture_buffers_ = texture_buffers
         if uniform_block_buffers is not None:
-            self._uniform_block_buffers_ = tuple(uniform_block_buffers)
+            self._uniform_block_buffers_ = uniform_block_buffers
         if indexed_attributes_buffer is not None:
             self._indexed_attributes_buffer_ = indexed_attributes_buffer
         if transform_feedback_buffer is not None:
@@ -139,7 +143,7 @@ class VertexArray(LazyObject):
     def _indexed_attributes_buffer_() -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
-                fields=[],
+                fields=(),
                 num_vertex=0,
                 data={}
             ),
@@ -150,7 +154,7 @@ class VertexArray(LazyObject):
     @staticmethod
     def _transform_feedback_buffer_() -> TransformFeedbackBuffer:
         return TransformFeedbackBuffer(
-            fields=[],
+            fields=(),
             num_vertex=0
         )
 
@@ -188,8 +192,8 @@ class VertexArray(LazyObject):
             shader_text = shader_path.read_text(encoding="utf-8")
             return re.sub(
                 r"#include \"(.+?)\"",
-                lambda match_obj: read_shader_with_includes_replaced(
-                    PathUtils.shaders_dir.joinpath(match_obj.group(1))
+                lambda match: read_shader_with_includes_replaced(
+                    PathUtils.shaders_dir.joinpath(match.group(1))
                 ),
                 shader_text
             )
@@ -226,78 +230,44 @@ class VertexArray(LazyObject):
             varyings=transform_feedback_buffer__buffer_pointer_keys
         )
 
-        attributes: dict[str, moderngl.Attribute] = {}
-        uniforms: dict[str, dict[tuple[int, ...], moderngl.Uniform]] = {}
-        uniform_blocks: dict[str, moderngl.UniformBlock] = {}
-        name_pattern = re.compile(r"""
-            (?P<name>\w+?)
-            (?P<multi_index>(\[\d+?\])*)
-        """, flags=re.VERBOSE)
-        for raw_name in program:
-            match_obj = name_pattern.fullmatch(raw_name)
-            assert match_obj is not None
-            name = match_obj.group("name")
-            multi_index = tuple(
-                int(index_match.group(1))
-                for index_match in re.finditer(r"\[(\d+?)\]", match_obj.group("multi_index"))
-            )
-            member = program[name]
-            if isinstance(member, moderngl.Attribute):
-                assert not multi_index
-                assert name not in attributes
-                attributes[name] = member
-            elif isinstance(member, moderngl.Uniform):
-                uniforms.setdefault(name, {})[multi_index] = member
-            elif isinstance(member, moderngl.UniformBlock):
-                assert not multi_index
-                assert name not in uniform_blocks
-                uniform_blocks[name] = member
-
-        attribute_info_dict = {
-            name: ProgramAttributeInfo(
-                array_length=attribute.array_length,
-                dimension=attribute.dimension,
-                shape=attribute.shape
-            )
-            for name, attribute in attributes.items()
-        }
-
+        attribute_info_dict: dict[str, ProgramAttributeInfo] = {}
         uniform_info_dict: dict[str, ProgramUniformInfo] = {}
-        texture_binding = 1
-        for name, uniform_dict in uniforms.items():
-            unique_array_lengths = list(dict.fromkeys(
-                uniform.array_length
-                for uniform in uniform_dict.values()
-            ))
-            array_length = unique_array_lengths.pop()
-            assert not unique_array_lengths
-            shape = tuple(
-                max(indices) + 1
-                for indices in zip(*uniform_dict)
-            )
-            uniform_info_dict[name] = ProgramUniformInfo(
-                array_length=array_length,
-                shape=shape,
-                binding=texture_binding
-            )
-
-            for multi_index in itertools.product(*(range(n) for n in shape)):
-                uniform = uniform_dict[multi_index]
-                # Used as a `sampler2D`.
-                assert uniform.dimension == 1
-                uniform.value = texture_binding if array_length == 1 else \
-                    list(range(texture_binding, texture_binding + array_length))
-                texture_binding += array_length
-
         uniform_block_info_dict: dict[str, ProgramUniformBlockInfo] = {}
+        texture_binding = 1
         uniform_block_binding = 0
-        for name, uniform_block in uniform_blocks.items():
-            uniform_block_info_dict[name] = ProgramUniformBlockInfo(
-                size=uniform_block.size,
-                binding=uniform_block_binding
-            )
-            uniform_block.binding = uniform_block_binding
-            uniform_block_binding += 1
+        for name in program:
+            assert re.fullmatch(r"\w+", name)
+
+            match program[name]:
+                case moderngl.Attribute() as attribute:
+                    attribute_info_dict[name] = ProgramAttributeInfo(
+                        array_length=attribute.array_length,
+                        dimension=attribute.dimension,
+                        shape=attribute.shape
+                    )
+
+                case moderngl.Uniform() as uniform:
+                    # Used as a `sampler2D`.
+                    assert uniform.dimension == 1
+                    array_length = uniform.array_length
+                    uniform_info_dict[name] = ProgramUniformInfo(
+                        array_length=array_length,
+                        binding=texture_binding
+                    )
+                    uniform.value = (
+                        texture_binding
+                        if array_length == 1
+                        else range(texture_binding, texture_binding + array_length)
+                    )
+                    texture_binding += array_length
+
+                case moderngl.UniformBlock() as uniform_block:
+                    uniform_block_info_dict[name] = ProgramUniformBlockInfo(
+                        size=uniform_block.size,
+                        binding=uniform_block_binding
+                    )
+                    uniform_block.binding = uniform_block_binding
+                    uniform_block_binding += 1
 
         return ProgramInfo(
             program=program,
@@ -325,7 +295,6 @@ class VertexArray(LazyObject):
             (child, offset)
             for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_, strict=True)
             if (attribute_info := program_info.attribute_info_dict.get(child._name_)) is not None
-            and isinstance(child, AtomicBufferFormat)
             and attribute_info.verify_buffer_format(child)
         )
 

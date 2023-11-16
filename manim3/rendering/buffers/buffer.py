@@ -17,16 +17,13 @@ class Buffer(LazyObject):
     def __init__(
         self: Self,
         field: str,
-        child_structs: dict[str, list[str]] | None,
+        child_structs: dict[str, tuple[str, ...]] | None,
         array_lens: dict[str, int] | None
     ) -> None:
         super().__init__()
         self._field_ = field
         if child_structs is not None:
-            self._child_struct_items_ = tuple(
-                (name, tuple(child_struct_fields))
-                for name, child_struct_fields in child_structs.items()
-            )
+            self._child_struct_items_ = tuple(child_structs.items())
         if array_lens is not None:
             self._array_len_items_ = tuple(array_lens.items())
 
@@ -69,13 +66,13 @@ class Buffer(LazyObject):
                 (?P<name>\w+?)
                 (?P<shape>(\[\w+?\])*)
             """, flags=re.VERBOSE)
-            match_obj = pattern.fullmatch(field_str)
-            assert match_obj is not None
-            dtype_str = match_obj.group("dtype_str")
-            name = match_obj.group("name")
+            match = pattern.fullmatch(field_str)
+            assert match is not None
+            dtype_str = match.group("dtype_str")
+            name = match.group("name")
             shape = tuple(
                 int(s) if re.match(r"^\d+$", s := index_match.group(1)) is not None else array_lens_dict[s]
-                for index_match in re.finditer(r"\[(\w+?)\]", match_obj.group("shape"))
+                for index_match in re.finditer(r"\[(\w+?)\]", match.group("shape"))
             )
             return (dtype_str, name, shape)
 

@@ -7,6 +7,7 @@ import re
 from abc import abstractmethod
 from enum import Enum
 from typing import (
+    Iterable,
     Iterator,
     Self,
     TypedDict
@@ -101,11 +102,11 @@ class CommandInfo:
         super().__init__()
         self._command_items: tuple[tuple[Span, str, CommandFlag], ...] = tuple(
             (
-                Span(*match_obj.span()),
-                replacement if replacement is not None else match_obj.group(),
+                Span(*match.span()),
+                replacement if replacement is not None else match.group(),
                 command_flag
             )
-            for match_obj, replacement, command_flag in match_obj_items
+            for match, replacement, command_flag in match_obj_items
         )
         self._attribs_item: tuple[dict[str, str], bool] | None = attribs_item
 
@@ -115,12 +116,12 @@ class StandaloneCommandInfo(CommandInfo):
 
     def __init__(
         self: Self,
-        match_obj: re.Match[str],
+        match: re.Match[str],
         replacement: str | None = None
     ) -> None:
         super().__init__(
             match_obj_items=(
-                (match_obj, replacement, CommandFlag.STANDALONE),
+                (match, replacement, CommandFlag.STANDALONE),
             ),
             attribs_item=None
         )
@@ -197,8 +198,8 @@ class InsertionRecord(ReplacementRecord):
 
 class StringMobjectKwargs(TypedDict, total=False):
     local_colors: dict[SelectorType, ColorType]
-    isolate: list[SelectorType]
-    protect: list[SelectorType]
+    isolate: Iterable[SelectorType]
+    protect: Iterable[SelectorType]
     concatenate: bool
 
 
@@ -206,8 +207,8 @@ class StringMobjectKwargs(TypedDict, total=False):
 class StringMobjectInput(MobjectInput):
     string: str
     local_colors: dict[SelectorType, ColorType] = attrs.field(factory=dict)
-    isolate: list[SelectorType] = attrs.field(factory=list)
-    protect: list[SelectorType] = attrs.field(factory=list)
+    isolate: Iterable[SelectorType] = ()
+    protect: Iterable[SelectorType] = ()
     concatenate: bool = False
 
 
@@ -400,7 +401,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             [shape.box.get() for shape in unlabelled_shape_mobjects],
             [shape.box.get() * scale_factor for shape in labelled_shape_mobjects]
         )
-        for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix)):
+        for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix), strict=True):
             yield (
                 unlabelled_shape_mobjects[unlabelled_index],
                 int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
@@ -624,8 +625,8 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     yield Span(index, index + substr_len)
                     index += substr_len
             case re.Pattern():
-                for match_obj in selector.finditer(string):
-                    start, stop = match_obj.span()
+                for match in selector.finditer(string):
+                    start, stop = match.span()
                     if start < stop:
                         yield Span(start, stop)
             case slice(start=int(start), stop=int(stop)):

@@ -112,14 +112,14 @@ class MeshMobject(Mobject):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_material",
-            fields=[
+            fields=(
                 "vec3 u_color",
                 "float u_opacity",
                 "float u_weight",
                 "float u_ambient_strength",
                 "float u_specular_strength",
                 "float u_shininess"
-            ],
+            ),
             data={
                 "u_color": color__array,
                 "u_opacity": opacity__array,
@@ -142,21 +142,21 @@ class MeshMobject(Mobject):
     ) -> VertexArray:
         return VertexArray(
             shader_path=PathUtils.shaders_dir.joinpath("mesh.glsl"),
-            texture_buffers=[
+            texture_buffers=(
                 TextureBuffer(
                     field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",
                     array_lens={
                         "NUM_T_COLOR_MAPS": len(color_maps)
                     },
                     texture_array=np.fromiter(color_maps, dtype=moderngl.Texture)
-                )
-            ],
-            uniform_block_buffers=[
+                ),
+            ),
+            uniform_block_buffers=(
                 camera__camera_uniform_block_buffer,
                 lighting__lighting_uniform_block_buffer,
                 model_uniform_block_buffer,
                 material_uniform_block_buffer
-            ],
+            ),
             indexed_attributes_buffer=mesh__indexed_attributes_buffer
         )
 

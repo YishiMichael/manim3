@@ -17,7 +17,7 @@ class AttributesBuffer(WriteOnlyBuffer):
     def __init__(
         self: Self,
         *,
-        fields: list[str],
+        fields: tuple[str, ...],
         num_vertex: int,
         array_lens: dict[str, int] | None = None,
         data: dict[str, np.ndarray]

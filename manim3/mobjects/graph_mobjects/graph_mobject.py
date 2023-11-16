@@ -91,12 +91,12 @@ class GraphMobject(Mobject):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_graph",
-            fields=[
+            fields=(
                 "vec3 u_color",
                 "float u_opacity",
                 "float u_weight",
                 "float u_width"
-            ],
+            ),
             data={
                 "u_color": color__array,
                 "u_opacity": opacity__array,
@@ -113,9 +113,9 @@ class GraphMobject(Mobject):
     ) -> IndexedAttributesBuffer:
         return IndexedAttributesBuffer(
             attributes_buffer=AttributesBuffer(
-                fields=[
-                    "vec3 in_position"
-                ],
+                fields=(
+                    "vec3 in_position",
+                ),
                 num_vertex=len(graph__positions),
                 data={
                     "in_position": graph__positions
@@ -137,11 +137,11 @@ class GraphMobject(Mobject):
     ) -> VertexArray:
         return VertexArray(
             shader_path=PathUtils.shaders_dir.joinpath("graph.glsl"),
-            uniform_block_buffers=[
+            uniform_block_buffers=(
                 camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,
                 graph_uniform_block_buffer
-            ],
+            ),
             indexed_attributes_buffer=graph_indexed_attributes_buffer
         )
 

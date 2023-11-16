@@ -217,6 +217,23 @@ class GraphUtils:
         raise TypeError
 
     @classmethod
+    def concatenate_graphs(
+        cls: type[Self],
+        graphs: Iterator[tuple[NP_x3f8, NP_x2i4]]
+    ) -> tuple[NP_x3f8, NP_x2i4]:
+        graph_tuple: tuple[tuple[NP_x3f8, NP_x2i4], ...] = (
+            (np.zeros((0, 3)), np.zeros((0, 2), dtype=np.int32)),
+            *graphs
+        )
+        offsets = np.roll(np.fromiter((
+            len(positions) for positions, _ in graph_tuple
+        ), dtype=np.int32).cumsum(), 1)
+        return (
+            np.concatenate(tuple(positions for positions, _ in graph_tuple)),
+            np.concatenate(tuple(edges + offset for (_, edges), offset in zip(graph_tuple, offsets, strict=True)))
+        )
+
+    @classmethod
     def graph_split(
         cls: type[Self],
         graph: Graph,
@@ -248,7 +265,7 @@ class GraphUtils:
                 )
             )
         for piece_edges in piece_edges_tuple:
-            (simplified_positions,), simplified_edges = cls._pack_aligned_graph_groups(((extended_positions, piece_edges),))
+            (simplified_positions,), simplified_edges = cls._unify_edges((extended_positions, piece_edges))
             yield simplified_positions, simplified_edges
 
     @classmethod
@@ -256,11 +273,11 @@ class GraphUtils:
         cls: type[Self],
         graphs: tuple[Graph, ...]
     ) -> tuple[NP_x3f8, NP_x2i4]:
-        (positions,), edges = cls._pack_aligned_graph_groups(tuple(
+        (simplified_positions,), simplified_edges = cls._unify_edges(cls.concatenate_graphs(
             (graph._positions_, graph._edges_)
             for graph in graphs
         ))
-        return positions, edges
+        return simplified_positions, simplified_edges
 
     @classmethod
     def graph_interpolate(
@@ -268,23 +285,19 @@ class GraphUtils:
         graph_0: Graph,
         graph_1: Graph
     ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
-        aligned_graph_groups = tuple(cls._iter_aligned_graph_groups_for_graph_interpolation(
-            positions_0=graph_0._positions_,
-            edges_0=graph_0._edges_,
-            cumlengths_0=graph_0._cumlengths_,
-            positions_1=graph_1._positions_,
-            edges_1=graph_1._edges_,
-            cumlengths_1=graph_1._cumlengths_
-        ))
-        if not aligned_graph_groups:
-            zipped_graph_group_0, zipped_graph_group_1 = (), ()
-        else:
-            zipped_graph_group_0, zipped_graph_group_1 = zip(*aligned_graph_groups, strict=True)
-        (positions_0, positions_1), edges = cls._pack_aligned_graph_groups(zipped_graph_group_0, zipped_graph_group_1)
-        return positions_0, positions_1, edges
+        return cls._unify_aligned_graph_pairs(
+            *cls._iter_aligned_graph_pairs_for_graph_interpolation(
+                positions_0=graph_0._positions_,
+                edges_0=graph_0._edges_,
+                cumlengths_0=graph_0._cumlengths_,
+                positions_1=graph_1._positions_,
+                edges_1=graph_1._edges_,
+                cumlengths_1=graph_1._cumlengths_
+            )
+        )
 
     @classmethod
-    def _iter_aligned_graph_groups_for_graph_interpolation(
+    def _iter_aligned_graph_pairs_for_graph_interpolation(
         cls: type[Self],
         positions_0: NP_x3f8,
         edges_0: NP_x2i4,
@@ -327,56 +340,38 @@ class GraphUtils:
                 )
 
     @classmethod
-    def _pack_aligned_graph_groups(
+    def _unify_aligned_graph_pairs(
         cls: type[Self],
-        *zipped_graph_groups: tuple[tuple[NP_x3f8, NP_x2i4], ...]
-    ) -> tuple[tuple[NP_x3f8, ...], NP_x2i4]:
-
-        def unify_edges(
-            aligned_graph_group: tuple[tuple[NP_x3f8, NP_x2i4], ...]
-        ) -> tuple[tuple[NP_x3f8, ...], NP_x2i4, int]:
-            unique_indices_array, inverse = np.unique(
-                np.array(tuple(
-                    edges.flatten()
-                    for _, edges in aligned_graph_group
-                )),
-                axis=1,
-                return_inverse=True
-            )
-            return (
-                tuple(
-                    positions[unique_indices]
-                    for (positions, _), unique_indices in zip(aligned_graph_group, unique_indices_array, strict=True)
-                ),
-                inverse.reshape((-1, 2)),
-                unique_indices_array.shape[1]
-            )
-
-        unified_graph_groups = tuple(
-            unify_edges(aligned_graph_group)
-            for aligned_graph_group in zip(*zipped_graph_groups, strict=True)
+        *aligned_graph_pairs: tuple[tuple[NP_x3f8, NP_x2i4], tuple[NP_x3f8, NP_x2i4]]
+    ) -> tuple[NP_x3f8, NP_x3f8, NP_x2i4]:
+        aligned_graph_0 = cls.concatenate_graphs(
+            graph_0 for graph_0, _ in aligned_graph_pairs
         )
-        if not unified_graph_groups:
-            return (
-                tuple(np.zeros((0, 3)) for _ in range(len(zipped_graph_groups))),
-                np.zeros((0, 2), dtype=np.int32)
-            )
+        aligned_graph_1 = cls.concatenate_graphs(
+            graph_1 for _, graph_1 in aligned_graph_pairs
+        )
+        (positions_0, positions_1), edges = cls._unify_edges(aligned_graph_0, aligned_graph_1)
+        return positions_0, positions_1, edges
 
-        offsets = np.insert(np.cumsum([
-            offset_increment
-            for _, _, offset_increment in unified_graph_groups[:-1]
-        ], dtype=np.int32), 0, 0)
+    @classmethod
+    def _unify_edges(
+        cls: type[Self],
+        *aligned_graphs: tuple[NP_x3f8, NP_x2i4]
+    ) -> tuple[tuple[NP_x3f8, ...], NP_x2i4]:
+        unique_indices_array, inverse = np.unique(
+            np.array(tuple(
+                edges.flatten()
+                for _, edges in aligned_graphs
+            )),
+            axis=1,
+            return_inverse=True
+        )
         return (
             tuple(
-                np.concatenate(zipped_positions_tuple)
-                for zipped_positions_tuple in zip(*(
-                    positions for positions, _, _ in unified_graph_groups
-                ), strict=True)
+                positions[unique_indices]
+                for (positions, _), unique_indices in zip(aligned_graphs, unique_indices_array, strict=True)
             ),
-            np.concatenate([
-                edges + offset
-                for (_, edges, _), offset in zip(unified_graph_groups, offsets, strict=True)
-            ])
+            inverse.reshape((-1, 2))
         )
 
     @classmethod

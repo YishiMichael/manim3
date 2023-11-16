@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import itertools
 from typing import (
-    Iterable,
     Iterator,
     Literal,
     Self,
@@ -46,8 +45,8 @@ from .graph import (
 
 @attrs.frozen(kw_only=True)
 class Triangulation:
-    faces: NP_x3i4
     coordinates: NP_x2f8
+    faces: NP_x3i4
 
 
 class ShapeActions(AnimatableActions):
@@ -163,44 +162,18 @@ class Shape(Animatable):
 
         def get_contour_triangulation(
             contour: pyclipr.PolyTreeD
-        ) -> Triangulation:
-            ring_coordinates_list: list[NP_x2f8] = [
+        ) -> tuple[NP_x2f8, NP_x3i4]:
+            ring_coordinates_tuple: tuple[NP_x2f8, ...] = (
                 contour.polygon,
                 *(hole.polygon for hole in contour.children)
-            ]
-            coordinates = np.concatenate(ring_coordinates_list)
-            ring_ends = np.cumsum([
-                len(ring_coordinates) for ring_coordinates in ring_coordinates_list
-            ], dtype=np.uint32)
-            return Triangulation(
-                faces=mapbox_earcut.triangulate_float64(coordinates, ring_ends).reshape((-1, 3)).astype(np.int32),
-                coordinates=coordinates
             )
-
-        def concatenate_triangulations(
-            triangulations: Iterable[Triangulation]
-        ) -> Triangulation:
-            triangulations_list = list(triangulations)
-            coordinates_list = [
-                triangulation.coordinates for triangulation in triangulations_list
-            ]
-            if not coordinates_list:
-                return Triangulation(
-                    faces=np.zeros((0,), dtype=np.int32),
-                    coordinates=np.zeros((0, 2))
-                )
-
-            offsets = np.insert(np.cumsum([
-                len(coordinates) for coordinates in coordinates_list[:-1]
-            ], dtype=np.int32), 0, 0)
-            all_faces = np.concatenate([
-                triangulation.faces + offset
-                for triangulation, offset in zip(triangulations_list, offsets, strict=True)
-            ])
-            all_coordinates = np.concatenate(coordinates_list)
-            return Triangulation(
-                faces=all_faces,
-                coordinates=all_coordinates
+            coordinates = np.concatenate(ring_coordinates_tuple)
+            ring_ends = np.fromiter((
+                len(ring_coordinates) for ring_coordinates in ring_coordinates_tuple
+            ), dtype=np.uint32).cumsum()
+            return (
+                coordinates,
+                mapbox_earcut.triangulate_float64(coordinates, ring_ends).reshape((-1, 3)).astype(np.int32)
             )
 
         clipper = pyclipr.Clipper()
@@ -209,9 +182,13 @@ class Shape(Animatable):
             for start, stop in itertools.pairwise(cumcounts)
         ], pyclipr.Subject)
         poly_tree_root = clipper.execute2(pyclipr.Union, pyclipr.EvenOdd)
-        return concatenate_triangulations(
+        triangulation_coordinates, triangulation_faces = ShapeUtils.concatenate_triangulations(
             get_contour_triangulation(contour)
             for contour in iter_contour_nodes(poly_tree_root.children)
+        )
+        return Triangulation(
+            coordinates=triangulation_coordinates,
+            faces=triangulation_faces
         )
 
     def set(
@@ -225,17 +202,18 @@ class Shape(Animatable):
 
     def as_paths(
         self: Self,
-        paths: Iterable[NP_x2f8]
+        paths: Iterator[NP_x2f8]
     ) -> Self:
-        path_list = list(paths)
-        if not path_list:
-            return self.set(
-                coordinates=np.zeros((0, 3)),
-                counts=np.zeros((0,), dtype=np.int32)
-            )
+        path_tuple = tuple(paths)
+        if not path_tuple:
+            coordinates = np.zeros((0, 3))
+            counts = np.zeros((0,), dtype=np.int32)
+        else:
+            coordinates = np.concatenate(path_tuple)
+            counts = np.fromiter((len(path) for path in path_tuple), dtype=np.int32)
         return self.set(
-            coordinates=np.concatenate(path_list),
-            counts=np.fromiter((len(path) for path in path_list), dtype=np.int32)
+            coordinates=coordinates,
+            counts=counts
         )
 
     def as_clipping(
@@ -253,7 +231,7 @@ class Shape(Animatable):
                 for start, stop in itertools.pairwise(shape._cumcounts_)
             ], path_type)
         path_list: list[NP_x2f8] = clipper.execute(clip_type, fill_type)
-        return self.as_paths(path_list)
+        return self.as_paths(iter(path_list))
 
     def split(
         self: Self,
@@ -412,13 +390,30 @@ class ShapeUtils(GraphUtils):
     __slots__ = ()
 
     @classmethod
+    def concatenate_triangulations(
+        cls: type[Self],
+        triangulations: Iterator[tuple[NP_x2f8, NP_x3i4]]
+    ) -> tuple[NP_x2f8, NP_x3i4]:
+        triangulation_tuple: tuple[tuple[NP_x2f8, NP_x3i4], ...] = (
+            (np.zeros((0, 2)), np.zeros((0, 3), dtype=np.int32)),
+            *triangulations
+        )
+        offsets = np.roll(np.fromiter((
+            len(coordinates) for coordinates, _ in triangulation_tuple
+        ), dtype=np.int32).cumsum(), 1)
+        return (
+            np.concatenate(tuple(coordinates for coordinates, _ in triangulation_tuple)),
+            np.concatenate(tuple(faces + offset for (_, faces), offset in zip(triangulation_tuple, offsets, strict=True)))
+        )
+
+    @classmethod
     def shape_split(
         cls: type[Self],
         shape: Shape,
         alphas: NP_xf8
     ) -> Iterator[tuple[NP_x2f8, NP_xi4]]:
         for positions, edges in cls.graph_split(shape._graph_, alphas):
-            (coordinates,), counts = cls._unified_graph_group_to_unified_shape_group((positions,), edges)
+            (coordinates,), counts = cls._unified_graphs_to_unified_shapes((positions,), edges)
             yield coordinates, counts
 
     @classmethod
@@ -427,7 +422,7 @@ class ShapeUtils(GraphUtils):
         shapes: tuple[Shape, ...]
     ) -> tuple[NP_x2f8, NP_xi4]:
         positions, edges = cls.graph_concatenate(tuple(shape._graph_ for shape in shapes))
-        (coordinates,), counts = cls._unified_graph_group_to_unified_shape_group((positions,), edges)
+        (coordinates,), counts = cls._unified_graphs_to_unified_shapes((positions,), edges)
         return coordinates, counts
 
     @classmethod
@@ -438,26 +433,23 @@ class ShapeUtils(GraphUtils):
     ) -> tuple[NP_x2f8, NP_x2f8, NP_xi4]:
         graph_0 = shape_0._graph_
         graph_1 = shape_1._graph_
-        aligned_graph_groups = tuple(cls._iter_aligned_graph_groups_for_shape_interpolation(
-            positions_0=graph_0._positions_,
-            edges_0=graph_0._edges_,
-            cumlengths_0=graph_0._cumlengths_,
-            cumcounts_0=shape_0._cumcounts_,
-            positions_1=graph_1._positions_,
-            edges_1=graph_1._edges_,
-            cumlengths_1=graph_1._cumlengths_,
-            cumcounts_1=shape_1._cumcounts_
-        ))
-        if not aligned_graph_groups:
-            zipped_graph_group_0, zipped_graph_group_1 = (), ()
-        else:
-            zipped_graph_group_0, zipped_graph_group_1 = zip(*aligned_graph_groups, strict=True)
-        (positions_0, positions_1), edges = cls._pack_aligned_graph_groups(zipped_graph_group_0, zipped_graph_group_1)
-        (coordinates_0, coordinates_1), counts = cls._unified_graph_group_to_unified_shape_group((positions_0, positions_1), edges)
+        positions_0, positions_1, edges = cls._unify_aligned_graph_pairs(
+            *cls._iter_aligned_graph_pairs_for_shape_interpolation(
+                positions_0=graph_0._positions_,
+                edges_0=graph_0._edges_,
+                cumlengths_0=graph_0._cumlengths_,
+                cumcounts_0=shape_0._cumcounts_,
+                positions_1=graph_1._positions_,
+                edges_1=graph_1._edges_,
+                cumlengths_1=graph_1._cumlengths_,
+                cumcounts_1=shape_1._cumcounts_
+            )
+        )
+        (coordinates_0, coordinates_1), counts = cls._unified_graphs_to_unified_shapes((positions_0, positions_1), edges)
         return coordinates_0, coordinates_1, counts
 
     @classmethod
-    def _unified_graph_group_to_unified_shape_group(
+    def _unified_graphs_to_unified_shapes(
         cls: type[Self],
         positions_tuple: tuple[NP_x3f8, ...],
         edges: NP_x2i4
@@ -466,7 +458,7 @@ class ShapeUtils(GraphUtils):
             indices = np.zeros((0,), dtype=np.int32)
             counts = np.zeros((0,), dtype=np.int32)
         else:
-            disjoints = np.insert(np.array((0, len(edges))), 1, np.flatnonzero(edges[:-1, 1] - edges[1:, 0]) + 1)
+            disjoints = np.array((0, *np.flatnonzero(edges[:-1, 1] - edges[1:, 0]) + 1, len(edges)))
             open_path_indices = np.flatnonzero(edges[disjoints[:-1], 0] - edges[disjoints[1:] - 1, 1])
             indices = np.insert(edges[:, 0], disjoints[open_path_indices + 1], edges[disjoints[open_path_indices + 1] - 1, 1])
             counts = np.diff(disjoints)
@@ -480,7 +472,7 @@ class ShapeUtils(GraphUtils):
         )
 
     @classmethod
-    def _iter_aligned_graph_groups_for_shape_interpolation(
+    def _iter_aligned_graph_pairs_for_shape_interpolation(
         cls: type[Self],
         positions_0: NP_x3f8,
         edges_0: NP_x2i4,
@@ -491,7 +483,7 @@ class ShapeUtils(GraphUtils):
         cumlengths_1: NP_xf8,
         cumcounts_1: NP_xi4
     ) -> Iterator[tuple[tuple[NP_x3f8, NP_x2i4], tuple[NP_x3f8, NP_x2i4]]]:
-        yield from cls._iter_aligned_graph_groups_for_graph_interpolation(
+        yield from cls._iter_aligned_graph_pairs_for_graph_interpolation(
             positions_0=positions_0,
             edges_0=edges_0,
             cumlengths_0=cumlengths_0,

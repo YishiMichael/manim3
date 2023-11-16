@@ -72,10 +72,10 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
     ) -> tuple[str, str]:
         if (color_hex := attribs.get("color")) is None:
             return "", ""
-        match_obj = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
-        assert match_obj is not None
+        match = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
+        assert match is not None
         return "{{" + f"\\color[RGB]{{{", ".join(
-            str(int(match_obj.group(index), 16))
+            str(int(match.group(index), 16))
             for index in range(1, 4)
         )}}}", "}}"
 
@@ -105,14 +105,14 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
             |(?P<close>}+)
         """, flags=re.VERBOSE | re.DOTALL)
         open_stack: list[tuple[int, int]] = []
-        for match_obj in pattern.finditer(string):
-            if not match_obj.group("close"):
-                if not match_obj.group("open"):
-                    yield StandaloneCommandInfo(match_obj)
+        for match in pattern.finditer(string):
+            if not match.group("close"):
+                if not match.group("open"):
+                    yield StandaloneCommandInfo(match)
                     continue
-                open_stack.append(match_obj.span())
+                open_stack.append(match.span())
                 continue
-            close_start, close_stop = match_obj.span()
+            close_start, close_stop = match.span()
             while True:
                 if not open_stack:
                     raise ValueError("Missing '{' inserted")

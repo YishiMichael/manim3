@@ -83,7 +83,3 @@ from .timelines.transform_matching_strings import TransformMatchingStrings
 from .toplevel.events import Events
 from .toplevel.config import Config
 from .toplevel.scene import Scene
-
-from .utils.color_utils import ColorUtils
-from .utils.path_utils import PathUtils
-from .utils.space_utils import SpaceUtils
