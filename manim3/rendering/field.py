@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 import functools
-#import itertools
 import operator
 import re
 from typing import (
@@ -101,13 +100,13 @@ class Field(LazyObject):
     ) -> int:
         return functools.reduce(operator.mul, shape, 1)
 
-    @Lazy.property()
-    @staticmethod
-    def _nbytes_(
-        itemsize: int,
-        size: int
-    ) -> int:
-        return itemsize * size
+    #@Lazy.property()
+    #@staticmethod
+    #def _nbytes_(
+    #    itemsize: int,
+    #    size: int
+    #) -> int:
+    #    return itemsize * size
 
     @Lazy.property()
     @staticmethod
@@ -148,7 +147,7 @@ class Field(LazyObject):
         return dtype_str, name, shape
 
     @classmethod
-    def get_atomic_field(
+    def parse_atomic_field(
         cls: type[Self],
         field_declaration: str,
         array_lens_dict: dict[str, int]
@@ -161,7 +160,7 @@ class Field(LazyObject):
         )
 
     @classmethod
-    def get_field(
+    def parse_field(
         cls: type[Self],
         field_declaration: str,
         struct_dict: dict[str, tuple[str, ...]],
@@ -178,7 +177,7 @@ class Field(LazyObject):
             name=name,
             shape=shape,
             fields=tuple(
-                cls.get_field(
+                cls.parse_field(
                     field_declaration=child_field_declaration,
                     struct_dict=struct_dict,
                     array_lens_dict=array_lens_dict
@@ -264,7 +263,7 @@ class AtomicField(Field):
         #shape_dict = dict(enumerate(base_shape))
         #col_len = shape_dict.get(0, 1)
         #row_len = shape_dict.get(1, 1)
-        *_, row_len, col_len = (1, 1) + base_shape
+        col_len, row_len, *_ = base_shape + (1, 1)
         col_padding = 0 if not shape and row_len == 1 else 4 - col_len
         base_alignment = (col_len if not shape and col_len <= 2 and row_len == 1 else 4) * base_itemsize
 
@@ -343,10 +342,10 @@ class AtomicField(Field):
     #    row_len: int
     #    #size: int
     #) -> str:
-    #    row_components = [f"{col_len}{base_char}{base_itemsize}"]
+    #    row_format = f"{col_len}{base_char}{base_itemsize}"
     #    if col_padding:
-    #        row_components.append(f"{col_padding}x{base_itemsize}")
-    #    return " ".join(itertools.repeat(" ".join(row_components), row_len))
+    #        row_format = f"{row_format} {col_padding}x{base_itemsize}"
+    #    return " ".join(itertools.repeat(row_format, row_len))
 
 
 class StructuredField(Field):
@@ -359,13 +358,17 @@ class StructuredField(Field):
         fields: tuple[Field, ...]
     ) -> None:
         struct_base_alignment = 16
+        #filtered_fields = tuple(field for field in fields if field._nbytes_)
+        next_base_alignments = (*(field._base_alignment_ for field in fields), struct_base_alignment)[1:]
         offsets: list[int] = []
+        paddings: list[int] = []
         offset = 0
-        for field in fields:
-            offset += (-offset) % field._base_alignment_
+        for field, next_base_alignment in zip(fields, next_base_alignments, strict=True):
             offsets.append(offset)
-            offset += field._nbytes_
-        offset += (-offset) % struct_base_alignment
+            offset += field._itemsize_ * field._size_
+            padding = (-offset) % next_base_alignment
+            paddings.append(padding)
+            offset += padding
 
         super().__init__(
             name=name,
@@ -375,6 +378,7 @@ class StructuredField(Field):
         )
         self._fields_ = fields
         self._offsets_ = tuple(offsets)
+        self._paddings_ = tuple(paddings)
 
     @Lazy.variable(plural=True)
     @staticmethod
@@ -384,6 +388,11 @@ class StructuredField(Field):
     @Lazy.variable(plural=True)
     @staticmethod
     def _offsets_() -> tuple[int, ...]:
+        return ()
+
+    @Lazy.variable(plural=True)
+    @staticmethod
+    def _paddings_() -> tuple[int, ...]:
         return ()
 
     @Lazy.property()
@@ -415,3 +424,16 @@ class StructuredField(Field):
             for field in fields
             for name_chain, base_ndim in field._pointers_
         )
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _format_str_(
+    #    fields: tuple[Field, ...],
+    #    paddings: tuple[int, ...]
+    #) -> str:
+    #    components: list[str] = []
+    #    for field, padding in zip(fields, paddings, strict=True):
+    #        components.extend(itertools.repeat(field._format_str_, field._size_))
+    #        if padding:
+    #            components.append(f"{padding}x")
+    #    return " ".join(components)

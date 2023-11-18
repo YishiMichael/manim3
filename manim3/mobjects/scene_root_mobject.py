@@ -98,7 +98,7 @@ class SceneRootMobject(Mobject):
         oit_framebuffer = self._oit_framebuffer_
         oit_framebuffer._framebuffer_.clear()
         for child in self.iter_children():
-            for mobject in child.iter_children():
+            for mobject in child.iter_descendants():
                 mobject._render(oit_framebuffer)
 
         self._render(target_framebuffer)

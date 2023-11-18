@@ -46,8 +46,8 @@ class AttributesBuffer(Buffer):
         self._data_dict_ = data_dict
         self._num_vertices_ = num_vertices
         if index is not None:
-            self._index_ = index
-            self._has_index_buffer_ = True
+            self._index_bytes_ = index.astype(np.uint32).tobytes()
+            self._use_index_buffer_ = True
         self._primitive_mode_ = primitive_mode
 
     @Lazy.variable(plural=True)
@@ -67,12 +67,12 @@ class AttributesBuffer(Buffer):
 
     @Lazy.variable()
     @staticmethod
-    def _index_() -> NP_xi4:
-        return np.zeros((0,), dtype=np.int32)
+    def _index_bytes_() -> bytes:
+        return b""
 
     @Lazy.variable()
     @staticmethod
-    def _has_index_buffer_() -> bool:
+    def _use_index_buffer_() -> bool:
         return False
 
     @Lazy.variable()
@@ -87,7 +87,7 @@ class AttributesBuffer(Buffer):
         array_len_items: tuple[tuple[str, int], ...]
     ) -> tuple[AtomicField, ...]:
         return tuple(
-            Field.get_atomic_field(
+            Field.parse_atomic_field(
                 field_declaration=field_declaration,
                 array_lens_dict=dict(array_len_items)
             )

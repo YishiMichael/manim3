@@ -69,7 +69,7 @@ class UniformBlockBuffer(Buffer):
             name=name,
             shape=(),
             fields=tuple(
-                Field.get_field(
+                Field.parse_field(
                     field_declaration=field_declaration,
                     struct_dict=dict(struct_items),
                     array_lens_dict=dict(array_len_items)

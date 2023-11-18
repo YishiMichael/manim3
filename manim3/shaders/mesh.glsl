@@ -56,9 +56,9 @@ out VS_FS {
 
 void main() {
     vec4 view_position = u_view_matrix * u_model_matrix * vec4(in_position, 1.0);
-    vs_out.uv = in_uv;
     vs_out.view_position = view_position.xyz / view_position.w;
     vs_out.view_normal = mat3(transpose(inverse(u_view_matrix * u_model_matrix))) * in_normal;
+    vs_out.uv = in_uv;
     gl_Position = u_projection_matrix * view_position;
 }
 

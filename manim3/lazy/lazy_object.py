@@ -333,6 +333,7 @@ class Implementations:
     @hashers.register(type)
     @hashers.register(int)
     @hashers.register(str)
+    @hashers.register(bytes)
     # Note, for tuples, we require every field should be hashable.
     # Consider creating a data class if it is not the case.
     @hashers.register(tuple)
