@@ -204,17 +204,15 @@ class Shape(Animatable):
         self: Self,
         paths: Iterator[NP_x2f8]
     ) -> Self:
-        path_tuple = tuple(paths)
-        if not path_tuple:
-            coordinates = np.zeros((0, 3))
-            counts = np.zeros((0,), dtype=np.int32)
-        else:
-            coordinates = np.concatenate(path_tuple)
-            counts = np.fromiter((len(path) for path in path_tuple), dtype=np.int32)
-        return self.set(
-            coordinates=coordinates,
-            counts=counts
-        )
+        cls = type(self)
+        return self.concatenate(tuple(
+            cls().set(
+                coordinates=path,
+                counts=np.array((len(path),), dtype=np.int32)
+            )
+            for path in paths
+            if len(path)
+        ))
 
     def as_clipping(
         self: Self,
@@ -306,15 +304,15 @@ class Shape(Animatable):
     ) -> DynamicShape[Self]:
         return DynamicShape(self, **kwargs)
 
-    interpolate = ShapeActions.interpolate.build_animatable_method_descriptor()
-    piecewise = ShapeActions.piecewise.build_animatable_method_descriptor()
+    interpolate = ShapeActions.interpolate.build_action_descriptor()
+    piecewise = ShapeActions.piecewise.build_action_descriptor()
 
 
 class DynamicShape[ShapeT: Shape](DynamicAnimatable[ShapeT]):
     __slots__ = ()
 
-    interpolate = ShapeActions.interpolate.build_dynamic_animatable_method_descriptor()
-    piecewise = ShapeActions.piecewise.build_dynamic_animatable_method_descriptor()
+    interpolate = ShapeActions.interpolate.build_dynamic_action_descriptor()
+    piecewise = ShapeActions.piecewise.build_dynamic_action_descriptor()
 
 
 @attrs.frozen(kw_only=True)

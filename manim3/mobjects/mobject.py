@@ -4,8 +4,6 @@ from __future__ import annotations
 import itertools
 import weakref
 from typing import (
-    Callable,
-    ClassVar,
     Iterator,
     Self,
     overload
@@ -15,7 +13,11 @@ from ..animatables.camera import Camera
 from ..animatables.lighting import Lighting
 from ..animatables.model import Model
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ..rendering.framebuffers.framebuffer import Framebuffer
+from ..rendering.vertex_array import (
+    ModernglBuffers,
+    VertexArray
+)
 from ..toplevel.toplevel import Toplevel
 
 
@@ -25,13 +27,14 @@ class Mobject(Model):
         "_children",
         "_proper_descendants",
         "_parents",
-        "_proper_ancestors"
+        "_proper_ancestors",
+        "_moderngl_buffers"
     )
 
-    _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_parents": lambda o: weakref.WeakSet(),
-        "_proper_ancestors": lambda o: weakref.WeakSet()
-    }
+    #_special_slot_copiers: ClassVar[dict[str, Callable]] = {
+    #    "_parents": lambda o: weakref.WeakSet(),
+    #    "_proper_ancestors": lambda o: weakref.WeakSet()
+    #}
 
     def __init__(
         self: Self
@@ -41,6 +44,7 @@ class Mobject(Model):
         self._proper_descendants: list[Mobject] = []
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
         self._proper_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
+        self._moderngl_buffers: ModernglBuffers | None = None
 
     def __iter__(
         self: Self
@@ -96,7 +100,8 @@ class Mobject(Model):
                 iter_descendants_by_children(child)
                 for child in proper_ancestor._children
             ))
-            proper_ancestor._proper_descendants = list(proper_descendants)
+            proper_ancestor._proper_descendants.clear()
+            proper_ancestor._proper_descendants.extend(proper_descendants)
             proper_ancestor._proper_siblings_ = tuple(proper_descendants)
 
         for proper_descendant in dict.fromkeys(itertools.chain.from_iterable(
@@ -186,17 +191,21 @@ class Mobject(Model):
             descendant_copy for descendant_copy in result._proper_siblings_
             if isinstance(descendant_copy, Mobject)
         )]
+
         for descendant, descendant_copy in zip(descendants, descendants_copy, strict=True):
             descendant_copy._children = [
                 descendants_copy[descendants.index(child)]
                 for child in descendant._children
             ]
-            descendant_copy._parents.clear()
-            descendant_copy._parents.update(
+            descendant_copy._proper_descendants = []
+            descendant_copy._parents = weakref.WeakSet(
                 descendants_copy[descendants.index(parent)]
                 for parent in descendant._parents
                 if parent in descendants
             )
+            descendant_copy._proper_ancestors = weakref.WeakSet()
+            descendant_copy._moderngl_buffers = None
+
         type(self)._refresh_families(*descendants_copy)
         return result
 
@@ -212,11 +221,22 @@ class Mobject(Model):
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting
 
+    def _get_vertex_array(
+        self: Self
+    ) -> VertexArray | None:
+        return None
+
     def _render(
         self: Self,
-        target_framebuffer: OITFramebuffer
+        target_framebuffer: Framebuffer
     ) -> None:
-        pass
+        if (vertex_array := self._get_vertex_array()) is None:
+            return
+        if (moderngl_buffers := self._moderngl_buffers) is None:
+            moderngl_buffers = vertex_array.fetch_moderngl_buffers()
+            self._moderngl_buffers = moderngl_buffers
+        #print(self, self._moderngl_buffers)
+        vertex_array.render(moderngl_buffers, target_framebuffer)
 
     def bind_camera(
         self: Self,

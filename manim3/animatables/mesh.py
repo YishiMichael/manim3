@@ -12,8 +12,6 @@ from ..constants.custom_typing import (
 )
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
-from ..rendering.buffers.index_buffer import IndexBuffer
-from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from .animatable.animatable import Animatable
 
@@ -60,28 +58,24 @@ class Mesh(Animatable):
 
     @Lazy.property()
     @staticmethod
-    def _indexed_attributes_buffer_(
+    def _attributes_buffer_(
         positions: NP_x3f8,
         normals: NP_x3f8,
         uvs: NP_x2f8,
         faces: NP_x3i4
-    ) -> IndexedAttributesBuffer:
-        return IndexedAttributesBuffer(
-            attributes_buffer=AttributesBuffer(
-                fields=(
-                    "vec3 in_position",
-                    "vec3 in_normal",
-                    "vec2 in_uv"
-                ),
-                num_vertex=len(positions),
-                data={
-                    "in_position": positions,
-                    "in_normal": normals,
-                    "in_uv": uvs
-                }
+    ) -> AttributesBuffer:
+        return AttributesBuffer(
+            field_declarations=(
+                "vec3 in_position",
+                "vec3 in_normal",
+                "vec2 in_uv"
             ),
-            index_buffer=IndexBuffer(
-                data=faces.flatten()
-            ),
-            mode=PrimitiveMode.TRIANGLES
+            data_dict={
+                "in_position": positions,
+                "in_normal": normals,
+                "in_uv": uvs
+            },
+            index=faces.flatten(),
+            primitive_mode=PrimitiveMode.TRIANGLES,
+            num_vertices=len(positions)
         )

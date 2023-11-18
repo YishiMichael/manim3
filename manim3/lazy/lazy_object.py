@@ -251,9 +251,9 @@ class LazyObject(ABC):
         return result
 
 
-class Registration[K: Hashable, V]:
+class ImplementationRegistry[K: Hashable, V]:
     __slots__ = (
-        "_registration",
+        "_registry",
         "_match_key"
     )
 
@@ -262,7 +262,7 @@ class Registration[K: Hashable, V]:
         match_key: Callable[[K, K], bool]
     ) -> None:
         super().__init__()
-        self._registration: dict[K, V] = {}
+        self._registry: dict[K, V] = {}
         self._match_key: Callable[[K, K], bool] = match_key
 
     def register(
@@ -273,7 +273,7 @@ class Registration[K: Hashable, V]:
         def result(
             value: V
         ) -> V:
-            self._registration[key] = value
+            self._registry[key] = value
             return value
 
         return result
@@ -282,19 +282,19 @@ class Registration[K: Hashable, V]:
         self: Self,
         key: K
     ) -> V:
-        for registered_key, value in self._registration.items():
+        for registered_key, value in self._registry.items():
             if self._match_key(key, registered_key):
                 return value
-        raise KeyError(key)
+        raise NotImplementedError(key)
 
 
 class Implementations:
     __slots__ = ()
 
-    decomposers: ClassVar[Registration[bool, Callable[[Any], tuple[Any, ...]]]] = Registration(operator.is_)
-    composers: ClassVar[Registration[bool, Callable[[tuple[Any, ...]], Any]]] = Registration(operator.is_)
-    hashers: ClassVar[Registration[type, Callable[[Any], Hashable]]] = Registration(issubclass)
-    copiers: ClassVar[Registration[type, Callable[[Any], Any]]] = Registration(issubclass)
+    decomposers: ClassVar[ImplementationRegistry[bool, Callable[[Any], tuple[Any, ...]]]] = ImplementationRegistry(operator.is_)
+    composers: ClassVar[ImplementationRegistry[bool, Callable[[tuple[Any, ...]], Any]]] = ImplementationRegistry(operator.is_)
+    hashers: ClassVar[ImplementationRegistry[type, Callable[[Any], Hashable]]] = ImplementationRegistry(issubclass)
+    copiers: ClassVar[ImplementationRegistry[type, Callable[[Any], Any]]] = ImplementationRegistry(issubclass)
 
     def __new__(
         cls: type[Self]
@@ -330,6 +330,7 @@ class Implementations:
     ) -> tuple[T, ...]:
         return elements
 
+    @hashers.register(type)
     @hashers.register(int)
     @hashers.register(str)
     # Note, for tuples, we require every field should be hashable.

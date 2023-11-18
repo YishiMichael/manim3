@@ -4,47 +4,31 @@ from __future__ import annotations
 import itertools
 import pathlib
 import re
-from typing import (
-    Self,
-    TypeGuard
-)
+from typing import Self
 
 import attrs
 import moderngl
-import numpy as np
+#import numpy as np
 
 from ..lazy.lazy import Lazy
 from ..lazy.lazy_object import LazyObject
 from ..toplevel.toplevel import Toplevel
 from ..utils.path_utils import PathUtils
-from .buffer_formats.atomic_buffer_format import AtomicBufferFormat
-from .buffer_formats.buffer_format import BufferFormat
-from .buffer_formats.structured_buffer_format import StructuredBufferFormat
+#from .buffer_formats.atomic_buffer_format import AtomicBufferFormat
+#from .buffer_formats.buffer_format import BufferFormat
+#from .buffer_formats.structured_buffer_format import StructuredBufferFormat
 from .buffers.attributes_buffer import AttributesBuffer
 from .buffers.texture_buffer import TextureBuffer
-from .buffers.transform_feedback_buffer import TransformFeedbackBuffer
+#from .buffers.transform_feedback_buffer import TransformFeedbackBuffer
 from .buffers.uniform_block_buffer import UniformBlockBuffer
 from .framebuffers.framebuffer import Framebuffer
-from .indexed_attributes_buffer import IndexedAttributesBuffer
+#from .indexed_attributes_buffer import IndexedAttributesBuffer
+from .field import (
+    AtomicField,
+    #Field,
+    StructuredField
+)
 from .mgl_enums import PrimitiveMode
-
-
-@attrs.frozen(kw_only=True)
-class ProgramAttributeInfo:
-    array_length: int
-    dimension: int
-    shape: str
-
-    def verify_buffer_format(
-        self: Self,
-        buffer_format: BufferFormat
-    ) -> TypeGuard[AtomicBufferFormat]:
-        assert isinstance(buffer_format, AtomicBufferFormat)
-        assert not buffer_format._is_empty_
-        assert buffer_format._size_ == self.array_length
-        assert buffer_format._col_len_ * buffer_format._row_len_ == self.dimension
-        assert buffer_format._base_char_.replace("u", "I") == self.shape
-        return True
 
 
 @attrs.frozen(kw_only=True)
@@ -52,20 +36,19 @@ class ProgramUniformInfo:
     array_length: int
     binding: int
 
-    def verify_buffer_format(
+    def verify_texture_buffer(
         self: Self,
-        buffer_format: BufferFormat
-    ) -> TypeGuard[AtomicBufferFormat]:
-        assert isinstance(buffer_format, AtomicBufferFormat)
-        assert not buffer_format._is_empty_
-        match buffer_format._shape_:
-            case ():
-                array_length = 1
-            case (array_length,):
-                pass
-            case _:
-                raise ValueError
-        assert array_length == self.array_length
+        texture_buffer: TextureBuffer
+    ) -> bool:
+        #assert isinstance(buffer_format, AtomicBufferFormat)
+        #match texture_buffer._shape_:
+        #    case ():
+        #        array_length = 1
+        #    case (array_length,):
+        #        assert array_length
+        #    case _:
+        #        raise AssertionError
+        assert len(texture_buffer._textures_) == self.array_length
         return True
 
 
@@ -74,22 +57,161 @@ class ProgramUniformBlockInfo:
     size: int
     binding: int
 
-    def verify_buffer_format(
+    def verify_structured_field(
         self: Self,
-        buffer_format: BufferFormat
-    ) -> TypeGuard[StructuredBufferFormat]:
-        assert isinstance(buffer_format, StructuredBufferFormat)
-        assert not buffer_format._is_empty_
-        assert buffer_format._nbytes_ == self.size
+        field: StructuredField
+    ) -> bool:
+        #assert isinstance(buffer_format, StructuredBufferFormat)
+        #assert not field._is_empty_
+        assert field._nbytes_ == self.size
+        return True
+
+
+@attrs.frozen(kw_only=True)
+class ProgramAttributeInfo:
+    array_length: int
+    dimension: int
+    shape: str
+
+    def verify_atomic_field(
+        self: Self,
+        field: AtomicField
+    ) -> bool:
+        #assert isinstance(field, AtomicBufferFormat)
+        assert field._nbytes_
+        assert field._size_ == self.array_length
+        assert field._col_len_ * field._row_len_ == self.dimension
+        assert field._base_char_.replace("u", "I") == self.shape
         return True
 
 
 @attrs.frozen(kw_only=True)
 class ProgramInfo:
     program: moderngl.Program
-    attribute_info_dict: dict[str, ProgramAttributeInfo]
     uniform_info_dict: dict[str, ProgramUniformInfo]
     uniform_block_info_dict: dict[str, ProgramUniformBlockInfo]
+    attribute_info_dict: dict[str, ProgramAttributeInfo]
+
+
+@attrs.frozen(kw_only=True)
+class ModernglBuffers:
+    mgl_uniform_block_buffers: dict[str, moderngl.Buffer]
+    mgl_attributes_buffer: moderngl.Buffer
+    mgl_index_buffer: moderngl.Buffer | None
+    mgl_vertex_array: moderngl.VertexArray
+    mgl_texture_bindings: tuple[tuple[moderngl.Texture, int], ...]
+    mgl_uniform_block_bindings: tuple[tuple[moderngl.Buffer, int], ...]
+
+    def render(
+        self: Self,
+        attributes_buffer: AttributesBuffer,
+        uniform_block_buffers: tuple[UniformBlockBuffer, ...],
+        framebuffer: Framebuffer
+    ) -> None:
+
+        def write_buffer(
+            buffer: moderngl.Buffer,
+            data_bytes: bytes,
+            *,
+            orphan: bool
+        ) -> None:
+            if orphan:
+                buffer.orphan(len(data_bytes))
+            buffer.write(data_bytes)
+
+        if not attributes_buffer._num_vertices_ or not attributes_buffer._merged_field_._nbytes_:
+            return
+        write_buffer(
+            self.mgl_attributes_buffer,
+            attributes_buffer._data_bytes_,
+            orphan=True
+        )
+        if attributes_buffer._has_index_buffer_:
+            assert self.mgl_index_buffer is not None
+            if not len(attributes_buffer._index_):
+                return
+            write_buffer(
+                self.mgl_index_buffer,
+                attributes_buffer._index_.tobytes(),
+                orphan=True
+            )
+
+        for uniform_block_buffer in uniform_block_buffers:
+            write_buffer(
+                self.mgl_uniform_block_buffers[uniform_block_buffer._name_],
+                uniform_block_buffer._data_bytes_,
+                orphan=False
+            )
+
+        with Toplevel.context.scope(
+            framebuffer=framebuffer._framebuffer_,
+            textures=self.mgl_texture_bindings,
+            uniform_buffers=self.mgl_uniform_block_bindings
+        ):
+            Toplevel.context.set_state(framebuffer._context_state_)
+            self.mgl_vertex_array.render()
+
+
+class ModernglBuffersFactory:
+    __slots__ = (
+        "_program",
+        "_texture_bindings",
+        "_uniform_block_items",
+        "_buffer_format_str",
+        "_attribute_names",
+        "_has_index_buffer",
+        "_primitive_mode"
+    )
+
+    def __init__(
+        self: Self,
+        program: moderngl.Program,
+        texture_bindings: tuple[tuple[moderngl.Texture, int], ...],
+        uniform_block_items: tuple[tuple[str, int, int], ...],
+        buffer_format_str: str,
+        attribute_names: tuple[str, ...],
+        has_index_buffer: bool,
+        primitive_mode: PrimitiveMode
+    ) -> None:
+        super().__init__()
+        self._program: moderngl.Program = program
+        self._texture_bindings: tuple[tuple[moderngl.Texture, int], ...] = texture_bindings
+        self._uniform_block_items: tuple[tuple[str, int, int], ...] = uniform_block_items
+        self._buffer_format_str: str = buffer_format_str
+        self._attribute_names: tuple[str, ...] = attribute_names
+        self._has_index_buffer: bool = has_index_buffer
+        self._primitive_mode: PrimitiveMode = primitive_mode
+
+    def fetch_moderngl_buffers(
+        self: Self
+    ) -> ModernglBuffers:
+        mgl_attributes_buffer = Toplevel.context.buffer(reserve=1, dynamic=True)
+        mgl_index_buffer = Toplevel.context.buffer(reserve=1, dynamic=True) if self._has_index_buffer else None
+        mgl_uniform_block_buffers = {
+            name: Toplevel.context.buffer(reserve=max(nbytes, 1))
+            for name, nbytes, _ in self._uniform_block_items
+        }
+        #print(self._attribute_names)
+        #print(self._buffer_format_str)
+        mgl_vertex_array = Toplevel.context.vertex_array(
+            program=self._program,
+            attributes_buffer=mgl_attributes_buffer,
+            buffer_format_str=self._buffer_format_str,
+            attribute_names=self._attribute_names,
+            index_buffer=mgl_index_buffer,
+            mode=self._primitive_mode
+        )
+        return ModernglBuffers(
+            mgl_uniform_block_buffers=mgl_uniform_block_buffers,
+            mgl_attributes_buffer=mgl_attributes_buffer,
+            mgl_index_buffer=mgl_index_buffer,
+            mgl_vertex_array=mgl_vertex_array,
+            mgl_texture_bindings=self._texture_bindings,
+            mgl_uniform_block_bindings=tuple(
+                (mgl_uniform_block_buffers[name], binding)
+                for name, _, binding in self._uniform_block_items
+            )
+        )
 
 
 class VertexArray(LazyObject):
@@ -102,8 +224,8 @@ class VertexArray(LazyObject):
         custom_macros: tuple[str, ...] | None = None,
         texture_buffers: tuple[TextureBuffer, ...] | None = None,
         uniform_block_buffers: tuple[UniformBlockBuffer, ...] | None = None,
-        indexed_attributes_buffer: IndexedAttributesBuffer | None = None,
-        transform_feedback_buffer: TransformFeedbackBuffer | None = None
+        attributes_buffer: AttributesBuffer | None = None
+        #transform_feedback_buffer: TransformFeedbackBuffer | None = None
     ) -> None:
         super().__init__()
         self._shader_path_ = shader_path
@@ -113,10 +235,10 @@ class VertexArray(LazyObject):
             self._texture_buffers_ = texture_buffers
         if uniform_block_buffers is not None:
             self._uniform_block_buffers_ = uniform_block_buffers
-        if indexed_attributes_buffer is not None:
-            self._indexed_attributes_buffer_ = indexed_attributes_buffer
-        if transform_feedback_buffer is not None:
-            self._transform_feedback_buffer_ = transform_feedback_buffer
+        if attributes_buffer is not None:
+            self._attributes_buffer_ = attributes_buffer
+        #if transform_feedback_buffer is not None:
+        #    self._transform_feedback_buffer_ = transform_feedback_buffer
 
     @Lazy.variable()
     @staticmethod
@@ -140,50 +262,46 @@ class VertexArray(LazyObject):
 
     @Lazy.variable()
     @staticmethod
-    def _indexed_attributes_buffer_() -> IndexedAttributesBuffer:
-        return IndexedAttributesBuffer(
-            attributes_buffer=AttributesBuffer(
-                fields=(),
-                num_vertex=0,
-                data={}
-            ),
-            mode=PrimitiveMode.POINTS
+    def _attributes_buffer_() -> AttributesBuffer:
+        return AttributesBuffer(
+            field_declarations=(),
+            data_dict={},
+            primitive_mode=PrimitiveMode.POINTS,
+            num_vertices=0
         )
 
-    @Lazy.variable()
-    @staticmethod
-    def _transform_feedback_buffer_() -> TransformFeedbackBuffer:
-        return TransformFeedbackBuffer(
-            fields=(),
-            num_vertex=0
-        )
+    #@Lazy.variable()
+    #@staticmethod
+    #def _transform_feedback_buffer_() -> TransformFeedbackBuffer:
+    #    return TransformFeedbackBuffer(
+    #        fields=(),
+    #        num_vertex=0
+    #    )
 
     @Lazy.property(plural=True)
     @staticmethod
-    def _array_len_items_(
-        texture_buffers__array_len_items: tuple[tuple[tuple[str, int], ...], ...],
-        uniform_block_buffers__array_len_items: tuple[tuple[tuple[str, int], ...], ...],
-        indexed_attributes_buffer__attributes_buffer__array_len_items: tuple[tuple[str, int], ...],
-        transform_feedback_buffer__array_len_items: tuple[tuple[str, int], ...]
-    ) -> tuple[tuple[str, int], ...]:
-        return tuple(
-            (array_len_name, array_len)
-            for array_len_name, array_len in itertools.chain(
-                itertools.chain.from_iterable(texture_buffers__array_len_items),
-                itertools.chain.from_iterable(uniform_block_buffers__array_len_items),
-                indexed_attributes_buffer__attributes_buffer__array_len_items,
-                transform_feedback_buffer__array_len_items
-            )
-            if not re.fullmatch(r"__\w+__", array_len_name)
-        )
+    def _macros_(
+        custom_macros: tuple[str, ...],
+        texture_buffers__macros: tuple[tuple[str, ...], ...],
+        uniform_block_buffers__macros: tuple[tuple[str, ...], ...],
+        attributes_buffer__macros: tuple[str, ...]
+        #transform_feedback_buffer__macros: tuple[str, ...]
+    ) -> tuple[str, ...]:
+        return tuple(itertools.chain(
+            custom_macros,
+            itertools.chain.from_iterable(texture_buffers__macros),
+            itertools.chain.from_iterable(uniform_block_buffers__macros),
+            attributes_buffer__macros
+            #transform_feedback_buffer__macros
+        ))
 
     @Lazy.property()
     @staticmethod
     def _program_info_(
         shader_path: pathlib.Path,
-        custom_macros: tuple[str, ...],
-        array_len_items: tuple[tuple[str, int], ...],
-        transform_feedback_buffer__buffer_pointer_keys: tuple[str, ...]
+        macros: tuple[str, ...]
+        #array_len_items: tuple[tuple[str, int], ...],
+        #transform_feedback_buffer__buffer_pointer_keys: tuple[str, ...]
     ) -> ProgramInfo:
 
         def read_shader_with_includes_replaced(
@@ -204,11 +322,11 @@ class VertexArray(LazyObject):
                 f"#version {Toplevel.context.version_code} core",
                 "\n",
                 f"#define {shader_type}",
-                *custom_macros,
-                *(
-                    f"#define {array_len_name} {array_len}"
-                    for array_len_name, array_len in array_len_items
-                ),
+                *macros,
+                #*(
+                #    f"#define {array_len_name} {array_len}"
+                #    for array_len_name, array_len in array_len_items
+                #),
                 "\n",
                 shader_text
             ))
@@ -226,26 +344,19 @@ class VertexArray(LazyObject):
             fragment_shader=shaders.get("FRAGMENT_SHADER"),
             geometry_shader=shaders.get("GEOMETRY_SHADER"),
             tess_control_shader=shaders.get("TESS_CONTROL_SHADER"),
-            tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER"),
-            varyings=transform_feedback_buffer__buffer_pointer_keys
+            tess_evaluation_shader=shaders.get("TESS_EVALUATION_SHADER")
+            #varyings=transform_feedback_buffer__buffer_pointer_keys
         )
 
-        attribute_info_dict: dict[str, ProgramAttributeInfo] = {}
         uniform_info_dict: dict[str, ProgramUniformInfo] = {}
         uniform_block_info_dict: dict[str, ProgramUniformBlockInfo] = {}
+        attribute_info_dict: dict[str, ProgramAttributeInfo] = {}
         texture_binding = 1
         uniform_block_binding = 0
         for name in program:
             assert re.fullmatch(r"\w+", name)
 
             match program[name]:
-                case moderngl.Attribute() as attribute:
-                    attribute_info_dict[name] = ProgramAttributeInfo(
-                        array_length=attribute.array_length,
-                        dimension=attribute.dimension,
-                        shape=attribute.shape
-                    )
-
                 case moderngl.Uniform() as uniform:
                     # Used as a `sampler2D`.
                     assert uniform.dimension == 1
@@ -269,106 +380,207 @@ class VertexArray(LazyObject):
                     uniform_block.binding = uniform_block_binding
                     uniform_block_binding += 1
 
+                case moderngl.Attribute() as attribute:
+                    attribute_info_dict[name] = ProgramAttributeInfo(
+                        array_length=attribute.array_length,
+                        dimension=attribute.dimension,
+                        shape=attribute.shape
+                    )
+
         return ProgramInfo(
             program=program,
-            attribute_info_dict=attribute_info_dict,
             uniform_info_dict=uniform_info_dict,
-            uniform_block_info_dict=uniform_block_info_dict
+            uniform_block_info_dict=uniform_block_info_dict,
+            attribute_info_dict=attribute_info_dict
         )
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _attributes_buffer_format_items_and_itemsize_(
+    #    attributes_buffer__buffer_format: BufferFormat
+    #) -> tuple[tuple[tuple[BufferFormat, int], ...], int]:
+    #    assert isinstance((buffer_format := attributes_buffer__buffer_format), StructuredBufferFormat)
+    #    return tuple(zip(buffer_format._children_, buffer_format._offsets_, strict=True)), buffer_format._itemsize_
 
     @Lazy.property()
     @staticmethod
-    def _vertex_array_(
-        indexed_attributes_buffer: IndexedAttributesBuffer,
-        program_info: ProgramInfo
-    ) -> moderngl.VertexArray | None:
-        attributes_buffer = indexed_attributes_buffer._attributes_buffer_
-        index_buffer = indexed_attributes_buffer._index_buffer_
-        mode = indexed_attributes_buffer._mode_
-        assert isinstance(attributes_buffer_format := attributes_buffer._buffer_format_, StructuredBufferFormat)
-        use_index_buffer = not index_buffer._omitted
-
-        if attributes_buffer_format._is_empty_ or use_index_buffer and index_buffer._buffer_format_._is_empty_:
-            return None
-
-        attribute_items = tuple(
-            (child, offset)
-            for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_, strict=True)
-            if (attribute_info := program_info.attribute_info_dict.get(child._name_)) is not None
-            and attribute_info.verify_buffer_format(child)
+    def _moderngl_buffers_factory_(
+        program_info: ProgramInfo,
+        texture_buffers: tuple[TextureBuffer, ...],
+        uniform_block_buffers__field: tuple[StructuredField, ...],
+        #uniform_block_buffers__name: tuple[str, ...],
+        #uniform_block_buffers__buffer_format: tuple[StructuredBufferFormat, ...],
+        #attributes_buffer_format_items_and_itemsize: tuple[tuple[tuple[BufferFormat, int], ...], int],
+        attributes_buffer__fields: tuple[AtomicField, ...],
+        attributes_buffer__merged_field__offsets: tuple[int, ...],
+        attributes_buffer__merged_field__itemsize: int,
+        #attributes_buffer__merged_field__format_str: str,
+        attributes_buffer__has_index_buffer: bool,
+        attributes_buffer__primitive_mode: PrimitiveMode
+    ) -> ModernglBuffersFactory:
+        uniform_info_dict = program_info.uniform_info_dict.copy()
+        texture_bindings = tuple(
+            (texture, binding)
+            for texture_buffer in texture_buffers
+            if (uniform_info := uniform_info_dict.pop(texture_buffer._name_, None)) is not None
+            and uniform_info.verify_texture_buffer(texture_buffer)
+            for binding, texture in enumerate(texture_buffer._textures_, start=uniform_info.binding)
         )
+        assert not uniform_info_dict
+
+        uniform_block_info_dict = program_info.uniform_block_info_dict.copy()
+        uniform_block_items = tuple(
+            (field._name_, field._nbytes_, uniform_block_info.binding)
+            for field in uniform_block_buffers__field
+            if (uniform_block_info := uniform_block_info_dict.pop(field._name_, None)) is not None
+            and uniform_block_info.verify_structured_field(field)
+        )
+        assert not uniform_block_info_dict
+
+        #attributes_buffer_format_items, attributes_buffer_itemsize = attributes_buffer_format_items_and_itemsize
+        attribute_info_dict = program_info.attribute_info_dict.copy()
+        attribute_items = tuple(
+            (field, offset)
+            for field, offset in zip(attributes_buffer__fields, attributes_buffer__merged_field__offsets, strict=True)
+            if (attribute_info := attribute_info_dict.pop(field._name_, None)) is not None
+            and attribute_info.verify_atomic_field(field)
+        )
+        assert not attribute_info_dict
+        #attribute_names = tuple(field._name_ for field, _ in attribute_items)
+        #print(program_info.uniform_info_dict)
+        #print(texture_bindings)
+        #print(program_info.uniform_block_info_dict)
+        #print(uniform_block_items)
+        #print(program_info.attribute_info_dict)
+        #print(attribute_items)
+        #print(attribute_names)
 
         components: list[str] = []
         current_offset = 0
-        for child, offset in attribute_items:
-            if (padding := offset - current_offset):
-                components.append(f"{padding}x")
-            components.append(child._format_str_)
-            current_offset = offset + child._nbytes_
-        if (padding := attributes_buffer_format._itemsize_ - current_offset):
-            components.append(f"{padding}x")
+        for field, offset in attribute_items:
+            #if (padding := offset - current_offset):
+            components.append(f"{offset - current_offset}x")
+
+            for _ in range(field._size_):
+                for _ in range(field._row_len_):
+                    components.append(f"{field._col_len_}{field._base_char_}{field._base_itemsize_}")
+                    #if field._col_padding_:
+                    components.append(f"{field._col_padding_}x{field._base_itemsize_}")
+                    #return " ".join(itertools.repeat(" ".join(row_components), row_len))
+
+
+            #components.extend(itertools.chain.from_iterable(itertools.repeat(row_components, field._row_len_)))
+            current_offset = offset + field._nbytes_
+        #if (padding := attributes_buffer__merged_field__itemsize - current_offset):
+        components.append(f"{attributes_buffer__merged_field__itemsize - current_offset}x")
         components.append("/v")
+        #buffer_format_str = " ".join(components)
+        #print()
 
-        return Toplevel.context.vertex_array(
+        return ModernglBuffersFactory(
             program=program_info.program,
-            attributes_buffer=attributes_buffer._buffer_,
+            texture_bindings=texture_bindings,
+            uniform_block_items=uniform_block_items,
             buffer_format_str=" ".join(components),
-            attribute_names=tuple(child._name_ for child, _ in attribute_items),
-            index_buffer=index_buffer._buffer_ if use_index_buffer else None,
-            mode=mode
+            attribute_names=tuple(field._name_ for field, _ in attribute_items),
+            has_index_buffer=attributes_buffer__has_index_buffer,
+            primitive_mode=attributes_buffer__primitive_mode
         )
 
-    @Lazy.property(plural=True)
-    @staticmethod
-    def _texture_bindings_(
-        texture_buffers: tuple[TextureBuffer, ...],
-        program_info: ProgramInfo
-    ) -> tuple[tuple[moderngl.Texture, int], ...]:
-        return tuple(
-            (texture, binding)
-            for texture_buffer in texture_buffers
-            if (uniform_info := program_info.uniform_info_dict.get(texture_buffer._buffer_format_._name_)) is not None
-            and uniform_info.verify_buffer_format(texture_buffer._buffer_format_)
-            for binding, texture in enumerate(texture_buffer._texture_array_.flatten(), start=uniform_info.binding)
-        )
+    #@Lazy.property()
+    #@staticmethod
+    #def _vertex_array_(
+    #    indexed_attributes_buffer: IndexedAttributesBuffer,
+    #    program_info: ProgramInfo
+    #) -> moderngl.VertexArray | None:
+    #    attributes_buffer = indexed_attributes_buffer._attributes_buffer_
+    #    index_buffer = indexed_attributes_buffer._index_buffer_
+    #    mode = indexed_attributes_buffer._mode_
+    #    assert isinstance(attributes_buffer_format := attributes_buffer._buffer_format_, StructuredBufferFormat)
+    #    use_index_buffer = not index_buffer._omitted
 
-    @Lazy.property(plural=True)
-    @staticmethod
-    def _uniform_block_bindings_(
-        uniform_block_buffers: tuple[UniformBlockBuffer, ...],
-        program_info: ProgramInfo
-    ) -> tuple[tuple[moderngl.Buffer, int], ...]:
-        return tuple(
-            (uniform_block_buffer._buffer_, uniform_block_info.binding)
-            for uniform_block_buffer in uniform_block_buffers
-            if (uniform_block_info := program_info.uniform_block_info_dict.get(uniform_block_buffer._buffer_format_._name_)) is not None
-            and uniform_block_info.verify_buffer_format(uniform_block_buffer._buffer_format_)
-        )
+    #    if attributes_buffer_format._is_empty_ or use_index_buffer and index_buffer._buffer_format_._is_empty_:
+    #        return None
+
+    #    attribute_items = tuple(
+    #        (child, offset)
+    #        for child, offset in zip(attributes_buffer_format._children_, attributes_buffer_format._offsets_, strict=True)
+    #        if (attribute_info := program_info.attribute_info_dict.get(child._name_)) is not None
+    #        and attribute_info.verify_buffer_format(child)
+    #    )
+
+    #    components: list[str] = []
+    #    current_offset = 0
+    #    for child, offset in attribute_items:
+    #        if (padding := offset - current_offset):
+    #            components.append(f"{padding}x")
+    #        components.append(child._format_str_)
+    #        current_offset = offset + child._nbytes_
+    #    if (padding := attributes_buffer_format._itemsize_ - current_offset):
+    #        components.append(f"{padding}x")
+    #    components.append("/v")
+
+    #    return Toplevel.context.vertex_array(
+    #        program=program_info.program,
+    #        attributes_buffer=attributes_buffer._buffer_,
+    #        buffer_format_str=" ".join(components),
+    #        attribute_names=tuple(child._name_ for child, _ in attribute_items),
+    #        index_buffer=index_buffer._buffer_ if use_index_buffer else None,
+    #        mode=mode
+    #    )
+
+    #@Lazy.property(plural=True)
+    #@staticmethod
+    #def _texture_bindings_(
+    #    texture_buffers: tuple[TextureBuffer, ...],
+    #    program_info: ProgramInfo
+    #) -> tuple[tuple[moderngl.Texture, int], ...]:
+    #    return tuple(
+    #        (texture, binding)
+    #        for texture_buffer in texture_buffers
+    #        if (uniform_info := program_info.uniform_info_dict.get(texture_buffer._buffer_format_._name_)) is not None
+    #        and uniform_info.verify_buffer_format(texture_buffer._buffer_format_)
+    #        for binding, texture in enumerate(texture_buffer._texture_array_.flatten(), start=uniform_info.binding)
+    #    )
+
+    #@Lazy.property(plural=True)
+    #@staticmethod
+    #def _uniform_block_bindings_(
+    #    uniform_block_buffers: tuple[UniformBlockBuffer, ...],
+    #    program_info: ProgramInfo
+    #) -> tuple[tuple[moderngl.Buffer, int], ...]:
+    #    return tuple(
+    #        (uniform_block_buffer._buffer_, uniform_block_info.binding)
+    #        for uniform_block_buffer in uniform_block_buffers
+    #        if (uniform_block_info := program_info.uniform_block_info_dict.get(uniform_block_buffer._buffer_format_._name_)) is not None
+    #        and uniform_block_info.verify_buffer_format(uniform_block_buffer._buffer_format_)
+    #    )
+
+    def fetch_moderngl_buffers(
+        self: Self
+    ) -> ModernglBuffers:
+        return self._moderngl_buffers_factory_.fetch_moderngl_buffers()
 
     def render(
         self: Self,
+        moderngl_buffers: ModernglBuffers,
         framebuffer: Framebuffer
     ) -> None:
-        if (vertex_array := self._vertex_array_) is None:
-            return
+        moderngl_buffers.render(
+            attributes_buffer=self._attributes_buffer_,
+            uniform_block_buffers=self._uniform_block_buffers_,
+            framebuffer=framebuffer
+        )
 
-        with Toplevel.context.scope(
-            framebuffer=framebuffer._framebuffer_,
-            textures=self._texture_bindings_,
-            uniform_buffers=self._uniform_block_bindings_
-        ):
-            Toplevel.context.set_state(framebuffer._context_state_)
-            vertex_array.render()
-
-    def transform(
-        self: Self
-    ) -> dict[str, np.ndarray]:
-        transform_feedback_buffer = self._transform_feedback_buffer_
-        with transform_feedback_buffer.buffer() as buffer:
-            if (vertex_array := self._vertex_array_) is not None:
-                with Toplevel.context.scope(
-                    uniform_buffers=self._uniform_block_bindings_
-                ):
-                    vertex_array.transform(buffer=buffer)
-            data_dict = transform_feedback_buffer.read(buffer)
-        return data_dict
+    #def transform(
+    #    self: Self
+    #) -> dict[str, np.ndarray]:
+    #    transform_feedback_buffer = self._transform_feedback_buffer_
+    #    with transform_feedback_buffer.buffer() as buffer:
+    #        if (vertex_array := self._vertex_array_) is not None:
+    #            with Toplevel.context.scope(
+    #                uniform_buffers=self._uniform_block_bindings_
+    #            ):
+    #                vertex_array.transform(buffer=buffer)
+    #        data_dict = transform_feedback_buffer.read(buffer)
+    #    return data_dict

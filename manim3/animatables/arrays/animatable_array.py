@@ -60,13 +60,13 @@ class AnimatableArray[NDArrayT: np.ndarray](Animatable):
     ) -> DynamicAnimatableArray[Self]:
         return DynamicAnimatableArray(self, **kwargs)
 
-    interpolate = AnimatableArrayActions.interpolate.build_animatable_method_descriptor()
+    interpolate = AnimatableArrayActions.interpolate.build_action_descriptor()
 
 
 class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](DynamicAnimatable[AnimatableArrayT]):
     __slots__ = ()
 
-    interpolate = AnimatableArrayActions.interpolate.build_dynamic_animatable_method_descriptor()
+    interpolate = AnimatableArrayActions.interpolate.build_dynamic_action_descriptor()
 
 
 class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](AnimatableInterpolateAnimation[AnimatableArrayT]):

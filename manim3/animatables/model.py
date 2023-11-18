@@ -328,10 +328,10 @@ class Model(Animatable):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_model",
-            fields=(
+            field_declarations=(
                 "mat4 u_model_matrix",
             ),
-            data={
+            data_dict={
                 "u_model_matrix": model_matrix__array.T
             }
         )
@@ -390,33 +390,33 @@ class Model(Animatable):
     ) -> DynamicModel[Self]:
         return DynamicModel(self, **kwargs)
 
-    set = ModelActions.set.build_animatable_method_descriptor()
-    shift = ModelActions.shift.build_animatable_method_descriptor()
-    move_to = ModelActions.move_to.build_animatable_method_descriptor()
-    next_to = ModelActions.next_to.build_animatable_method_descriptor()
-    scale = ModelActions.scale.build_animatable_method_descriptor()
-    scale_about_origin = ModelActions.scale_about_origin.build_animatable_method_descriptor()
-    scale_to = ModelActions.scale_to.build_animatable_method_descriptor()
-    rotate = ModelActions.rotate.build_animatable_method_descriptor()
-    rotate_about_origin = ModelActions.rotate_about_origin.build_animatable_method_descriptor()
-    flip = ModelActions.flip.build_animatable_method_descriptor()
-    apply = ModelActions.apply.build_animatable_method_descriptor()
+    set = ModelActions.set.build_action_descriptor()
+    shift = ModelActions.shift.build_action_descriptor()
+    move_to = ModelActions.move_to.build_action_descriptor()
+    next_to = ModelActions.next_to.build_action_descriptor()
+    scale = ModelActions.scale.build_action_descriptor()
+    scale_about_origin = ModelActions.scale_about_origin.build_action_descriptor()
+    scale_to = ModelActions.scale_to.build_action_descriptor()
+    rotate = ModelActions.rotate.build_action_descriptor()
+    rotate_about_origin = ModelActions.rotate_about_origin.build_action_descriptor()
+    flip = ModelActions.flip.build_action_descriptor()
+    apply = ModelActions.apply.build_action_descriptor()
 
 
 class DynamicModel[ModelT: Model](DynamicAnimatable[ModelT]):
     __slots__ = ()
 
-    set = ModelActions.set.build_dynamic_animatable_method_descriptor()
-    shift = ModelActions.shift.build_dynamic_animatable_method_descriptor()
-    move_to = ModelActions.move_to.build_dynamic_animatable_method_descriptor()
-    next_to = ModelActions.next_to.build_dynamic_animatable_method_descriptor()
-    scale = ModelActions.scale.build_dynamic_animatable_method_descriptor()
-    scale_about_origin = ModelActions.scale_about_origin.build_dynamic_animatable_method_descriptor()
-    scale_to = ModelActions.scale_to.build_dynamic_animatable_method_descriptor()
-    rotate = ModelActions.rotate.build_dynamic_animatable_method_descriptor()
-    rotate_about_origin = ModelActions.rotate_about_origin.build_dynamic_animatable_method_descriptor()
-    flip = ModelActions.flip.build_dynamic_animatable_method_descriptor()
-    apply = ModelActions.apply.build_dynamic_animatable_method_descriptor()
+    set = ModelActions.set.build_dynamic_action_descriptor()
+    shift = ModelActions.shift.build_dynamic_action_descriptor()
+    move_to = ModelActions.move_to.build_dynamic_action_descriptor()
+    next_to = ModelActions.next_to.build_dynamic_action_descriptor()
+    scale = ModelActions.scale.build_dynamic_action_descriptor()
+    scale_about_origin = ModelActions.scale_about_origin.build_dynamic_action_descriptor()
+    scale_to = ModelActions.scale_to.build_dynamic_action_descriptor()
+    rotate = ModelActions.rotate.build_dynamic_action_descriptor()
+    rotate_about_origin = ModelActions.rotate_about_origin.build_dynamic_action_descriptor()
+    flip = ModelActions.flip.build_dynamic_action_descriptor()
+    apply = ModelActions.apply.build_dynamic_action_descriptor()
 
 
 class ModelAnimation(Animation):

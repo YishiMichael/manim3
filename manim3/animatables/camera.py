@@ -138,12 +138,12 @@ class Camera(Model):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_camera",
-            fields=(
+            field_declarations=(
                 "mat4 u_projection_matrix",
                 "mat4 u_view_matrix",
                 "vec2 u_frame_radii"
             ),
-            data={
+            data_dict={
                 "u_projection_matrix": projection_matrix.T,
                 "u_view_matrix": view_matrix.T,
                 "u_frame_radii": frame_radii

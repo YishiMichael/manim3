@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 
-import re
 from typing import Self
 
 import moderngl
-import numpy as np
 
 from ...lazy.lazy import Lazy
 from .buffer import Buffer
@@ -17,21 +15,34 @@ class TextureBuffer(Buffer):
     def __init__(
         self: Self,
         *,
-        field: str,
-        array_lens: dict[str, int] | None = None,
+        name: str,
         # Note, each texture should occur only once.
-        texture_array: np.ndarray
+        textures: moderngl.Texture | tuple[moderngl.Texture, ...],
+        array_lens: dict[str, int] | None = None
     ) -> None:
-        replaced_field = re.sub(r"^sampler2D\b", "uint", field)
-        assert field != replaced_field
+        #replaced_field = re.sub(r"^sampler2D\b", "uint", field)
+        #assert field != replaced_field
+        if isinstance(textures, tuple):
+            shape = (len(textures),)
+        else:
+            shape = ()
+            textures = (textures,)
         super().__init__(
-            field=replaced_field,
-            child_structs=None,
+            #field=replaced_field,
+            #structs=None,
+            #shape=texture_array.shape,
+            shape=shape,
             array_lens=array_lens
         )
-        self._texture_array_ = texture_array
+        self._name_ = name
+        self._textures_ = textures
 
     @Lazy.variable()
     @staticmethod
-    def _texture_array_() -> np.ndarray:
-        return np.zeros((), dtype=moderngl.Texture)
+    def _name_() -> str:
+        return ""
+
+    @Lazy.variable(plural=True)
+    @staticmethod
+    def _textures_() -> tuple[moderngl.Texture, ...]:
+        return ()

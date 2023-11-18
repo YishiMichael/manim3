@@ -123,13 +123,10 @@ class Context:
 
     def buffer(
         self: Self,
-        data: bytes | None = None,
-        reserve: int = 0
+        reserve: int = 0,
+        dynamic: bool = False
     ) -> moderngl.Buffer:
-        if not data and not reserve:
-            data = None
-            reserve = 1
-        return self._mgl_context.buffer(data=data, reserve=reserve)
+        return self._mgl_context.buffer(reserve=reserve, dynamic=dynamic)
 
     def program(
         self: Self,

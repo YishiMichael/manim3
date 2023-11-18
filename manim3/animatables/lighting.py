@@ -55,11 +55,11 @@ class Lighting(Animatable):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_lighting",
-            fields=(
+            field_declarations=(
                 "AmbientLight u_ambient_lights[NUM_U_AMBIENT_LIGHTS]",
                 "PointLight u_point_lights[NUM_U_POINT_LIGHTS]"
             ),
-            child_structs={
+            structs={
                 "AmbientLight": (
                     "vec3 color",
                 ),
@@ -68,11 +68,7 @@ class Lighting(Animatable):
                     "vec3 color"
                 )
             },
-            array_lens={
-                "NUM_U_AMBIENT_LIGHTS": len(ambient_lights__color__array),
-                "NUM_U_POINT_LIGHTS": len(point_lights__color__array)
-            },
-            data={
+            data_dict={
                 "u_ambient_lights.color": np.fromiter(
                     ambient_lights__color__array,
                     dtype=np.dtype((np.float64, (3,)))
@@ -85,5 +81,9 @@ class Lighting(Animatable):
                     point_lights__color__array,
                     dtype=np.dtype((np.float64, (3,)))
                 )
+            },
+            array_lens={
+                "NUM_U_AMBIENT_LIGHTS": len(ambient_lights__color__array),
+                "NUM_U_POINT_LIGHTS": len(point_lights__color__array)
             }
         )

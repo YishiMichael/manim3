@@ -5,37 +5,89 @@ from typing import Self
 
 import numpy as np
 
+from ...constants.custom_typing import ShapeType
 from ...lazy.lazy import Lazy
-from ..buffer_layouts.buffer_layout import BufferLayout
-from ..buffer_layouts.std140_buffer_layout import Std140BufferLayout
-from .write_only_buffer import WriteOnlyBuffer
+#from ..buffer_format import StructuredBufferFormat
+#from ..std140_layout import STD140Layout
+from .buffer import Buffer
+from ..field import (
+    Field,
+    StructuredField
+)
 
 
-class UniformBlockBuffer(WriteOnlyBuffer):
+class UniformBlockBuffer(Buffer):
     __slots__ = ()
 
     def __init__(
         self: Self,
         *,
         name: str,
-        fields: tuple[str, ...],
-        child_structs: dict[str, tuple[str, ...]] | None = None,
-        array_lens: dict[str, int] | None = None,
-        data: dict[str, np.ndarray]
+        field_declarations: tuple[str, ...],
+        structs: dict[str, tuple[str, ...]] | None = None,
+        data_dict: dict[str, np.ndarray],
+        array_lens: dict[str, int] | None = None
     ) -> None:
-        if child_structs is None:
-            child_structs = {}
         super().__init__(
-            field=f"__UniformBlockStruct__ {name}",
-            child_structs={
-                "__UniformBlockStruct__": fields,
-                **child_structs
-            },
             array_lens=array_lens
         )
-        self.write(data)
+        self._name_ = name
+        self._field_declarations_ = field_declarations
+        if structs is not None:
+            self._struct_items_ = tuple(structs.items())
+        self._data_dict_ = data_dict
+
+    @Lazy.variable()
+    @staticmethod
+    def _name_() -> str:
+        return ""
+
+    @Lazy.variable(plural=True)
+    @staticmethod
+    def _field_declarations_() -> tuple[str, ...]:
+        return ()
+
+    @Lazy.variable(plural=True)
+    @staticmethod
+    def _struct_items_() -> tuple[tuple[str, tuple[str, ...]], ...]:
+        return ()
+
+    @Lazy.variable()
+    @staticmethod
+    def _data_dict_() -> dict[str, np.ndarray]:
+        return {}
 
     @Lazy.property()
     @staticmethod
-    def _layout_() -> type[BufferLayout]:
-        return Std140BufferLayout
+    def _field_(
+        name: str,
+        field_declarations: tuple[str, ...],
+        struct_items: tuple[tuple[str, tuple[str, ...]], ...],
+        array_len_items: tuple[tuple[str, int], ...]
+    ) -> StructuredField:
+        return StructuredField(
+            name=name,
+            shape=(),
+            fields=tuple(
+                Field.get_field(
+                    field_declaration=field_declaration,
+                    struct_dict=dict(struct_items),
+                    array_lens_dict=dict(array_len_items)
+                )
+                for field_declaration in field_declarations
+            )
+        )
+
+    @Lazy.property()
+    @staticmethod
+    def _data_bytes_(
+        field: StructuredField,
+        shape: ShapeType,
+        data_dict: dict[str, np.ndarray]
+    ) -> bytes:
+        return field.write(shape, data_dict)
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _layout_() -> type[BufferLayout]:
+    #    return Std140BufferLayout

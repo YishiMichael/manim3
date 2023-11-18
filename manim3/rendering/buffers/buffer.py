@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 
-import re
+#import functools
+#import operator
 from typing import Self
 
+from ...constants.custom_typing import ShapeType
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
-from ..buffer_formats.buffer_format import BufferFormat
-from ..buffer_layouts.buffer_layout import BufferLayout
-from ..buffer_layouts.dense_buffer_layout import DenseBufferLayout
 
 
 class Buffer(LazyObject):
@@ -16,25 +15,23 @@ class Buffer(LazyObject):
 
     def __init__(
         self: Self,
-        field: str,
-        child_structs: dict[str, tuple[str, ...]] | None,
-        array_lens: dict[str, int] | None
+        shape: ShapeType | None = None,
+        #fields: tuple[str, ...],
+        #structs: dict[str, tuple[str, ...]] | None = None,
+        array_lens: dict[str, int] | None = None
     ) -> None:
         super().__init__()
-        self._field_ = field
-        if child_structs is not None:
-            self._child_struct_items_ = tuple(child_structs.items())
+        #self._fields_ = fields
+        #if structs is not None:
+        #    self._struct_items_ = tuple(structs.items())
+        if shape is not None:
+            self._shape_ = shape
         if array_lens is not None:
             self._array_len_items_ = tuple(array_lens.items())
 
     @Lazy.variable()
     @staticmethod
-    def _field_() -> str:
-        return ""
-
-    @Lazy.variable(plural=True)
-    @staticmethod
-    def _child_struct_items_() -> tuple[tuple[str, tuple[str, ...]], ...]:
+    def _shape_() -> ShapeType:
         return ()
 
     @Lazy.variable(plural=True)
@@ -42,74 +39,52 @@ class Buffer(LazyObject):
     def _array_len_items_() -> tuple[tuple[str, int], ...]:
         return ()
 
-    @Lazy.property()
-    @staticmethod
-    def _layout_() -> type[BufferLayout]:
-        return DenseBufferLayout
-
-    @Lazy.property()
-    @staticmethod
-    def _buffer_format_(
-        field: str,
-        child_struct_items: tuple[tuple[str, tuple[str, ...]], ...],
-        array_len_items: tuple[tuple[str, int], ...],
-        layout: type[BufferLayout]
-    ) -> BufferFormat:
-
-        def parse_field_str(
-            field_str: str,
-            array_lens_dict: dict[str, int]
-        ) -> tuple[str, str, tuple[int, ...]]:
-            pattern = re.compile(r"""
-                (?P<dtype_str>\w+?)
-                \s
-                (?P<name>\w+?)
-                (?P<shape>(\[\w+?\])*)
-            """, flags=re.VERBOSE)
-            match = pattern.fullmatch(field_str)
-            assert match is not None
-            dtype_str = match.group("dtype_str")
-            name = match.group("name")
-            shape = tuple(
-                int(s) if re.match(r"^\d+$", s := index_match.group(1)) is not None else array_lens_dict[s]
-                for index_match in re.finditer(r"\[(\w+?)\]", match.group("shape"))
-            )
-            return (dtype_str, name, shape)
-
-        def get_buffer_format(
-            field: str,
-            child_structs_dict: dict[str, tuple[str, ...]],
-            array_lens_dict: dict[str, int]
-        ) -> BufferFormat:
-            dtype_str, name, shape = parse_field_str(field, array_lens_dict)
-            if (child_struct_fields := child_structs_dict.get(dtype_str)) is None:
-                return layout.get_atomic_buffer_format(
-                    name=name,
-                    shape=shape,
-                    gl_dtype_str=dtype_str
-                )
-            return layout.get_structured_buffer_format(
-                name=name,
-                shape=shape,
-                children=tuple(
-                    get_buffer_format(
-                        child_struct_field,
-                        child_structs_dict,
-                        array_lens_dict
-                    )
-                    for child_struct_field in child_struct_fields
-                )
-            )
-
-        return get_buffer_format(
-            field,
-            dict(child_struct_items),
-            dict(array_len_items)
-        )
+    #@Lazy.property()
+    #@staticmethod
+    #def _size_(
+    #    shape: ShapeType
+    #) -> int:
+    #    return functools.reduce(operator.mul, shape, initial=1)
 
     @Lazy.property(plural=True)
     @staticmethod
-    def _buffer_pointer_keys_(
-        buffer_format__pointers: tuple[tuple[tuple[str, ...], int], ...]
+    def _macros_(
+        array_len_items: tuple[tuple[str, int], ...]
     ) -> tuple[str, ...]:
-        return tuple(".".join(name_chain) for name_chain, _ in buffer_format__pointers)
+        return tuple(
+            f"#define {array_len_name} {array_len}"
+            for array_len_name, array_len in array_len_items
+            #if not re.fullmatch(r"__\w+__", array_len_name)
+        )
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _layout_() -> type[BufferLayout]:
+    #    return DenseBufferLayout
+
+    #@Lazy.property()
+    #@staticmethod
+    #def _buffer_format_(
+    #    fields: tuple[str, ...],
+    #    struct_items: tuple[tuple[str, tuple[str, ...]], ...],
+    #    array_len_items: tuple[tuple[str, int], ...],
+    #    layout: type[BufferLayout]
+    #) -> StructuredBufferFormat:
+    #    return layout._get_structured_buffer_format(
+    #        fields=fields,
+    #        struct_dict=dict(struct_items),
+    #        array_lens_dict=dict(array_len_items)
+    #    )
+
+        #return get_buffer_format_item(
+        #    field=field,
+        #    struct_dict=dict(struct_items),
+        #    array_lens_dict=dict(array_len_items)
+        #)
+
+    #@Lazy.property(plural=True)
+    #@staticmethod
+    #def _buffer_pointer_keys_(
+    #    buffer_format__pointers: tuple[tuple[tuple[str, ...], int], ...]
+    #) -> tuple[str, ...]:
+    #    return tuple(".".join(name_chain) for name_chain, _ in buffer_format__pointers)

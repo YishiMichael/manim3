@@ -16,10 +16,7 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
-from ...rendering.buffers.index_buffer import IndexBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
-from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
@@ -91,13 +88,13 @@ class GraphMobject(Mobject):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_graph",
-            fields=(
+            field_declarations=(
                 "vec3 u_color",
                 "float u_opacity",
                 "float u_weight",
                 "float u_width"
             ),
-            data={
+            data_dict={
                 "u_color": color__array,
                 "u_opacity": opacity__array,
                 "u_weight": weight__array,
@@ -107,24 +104,20 @@ class GraphMobject(Mobject):
 
     @Lazy.property()
     @staticmethod
-    def _graph_indexed_attributes_buffer_(
+    def _graph_attributes_buffer_(
         graph__positions: NP_x3f8,
         graph__edges: NP_x2i4
-    ) -> IndexedAttributesBuffer:
-        return IndexedAttributesBuffer(
-            attributes_buffer=AttributesBuffer(
-                fields=(
-                    "vec3 in_position",
-                ),
-                num_vertex=len(graph__positions),
-                data={
-                    "in_position": graph__positions
-                }
+    ) -> AttributesBuffer:
+        return AttributesBuffer(
+            field_declarations=(
+                "vec3 in_position",
             ),
-            index_buffer=IndexBuffer(
-                data=graph__edges.flatten()
-            ),
-            mode=PrimitiveMode.LINES
+            data_dict={
+                "in_position": graph__positions
+            },
+            index=graph__edges.flatten(),
+            primitive_mode=PrimitiveMode.LINES,
+            num_vertices=len(graph__positions)
         )
 
     @Lazy.property()
@@ -133,7 +126,7 @@ class GraphMobject(Mobject):
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         graph_uniform_block_buffer: UniformBlockBuffer,
-        graph_indexed_attributes_buffer: IndexedAttributesBuffer
+        graph_attributes_buffer: AttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_path=PathUtils.shaders_dir.joinpath("graph.glsl"),
@@ -142,11 +135,10 @@ class GraphMobject(Mobject):
                 model_uniform_block_buffer,
                 graph_uniform_block_buffer
             ),
-            indexed_attributes_buffer=graph_indexed_attributes_buffer
+            attributes_buffer=graph_attributes_buffer
         )
 
-    def _render(
-        self: Self,
-        target_framebuffer: OITFramebuffer
-    ) -> None:
-        self._graph_vertex_array_.render(target_framebuffer)
+    def _get_vertex_array(
+        self: Self
+    ) -> VertexArray | None:
+        return self._graph_vertex_array_

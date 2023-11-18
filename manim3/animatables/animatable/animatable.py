@@ -105,9 +105,9 @@ class Animatable(LazyObject):
     ) -> DynamicAnimatable[Self]:
         return DynamicAnimatable(self, **kwargs)
 
-    interpolate = AnimatableActions.interpolate.build_animatable_method_descriptor()
-    piecewise = AnimatableActions.piecewise.build_animatable_method_descriptor()
-    transform = AnimatableActions.transform.build_animatable_method_descriptor()
+    interpolate = AnimatableActions.interpolate.build_action_descriptor()
+    piecewise = AnimatableActions.piecewise.build_action_descriptor()
+    transform = AnimatableActions.transform.build_action_descriptor()
 
 
 class DynamicAnimatable[AnimatableT: Animatable](AnimationsTimeline):
@@ -121,9 +121,9 @@ class DynamicAnimatable[AnimatableT: Animatable](AnimationsTimeline):
         super().__init__(**kwargs)
         self._dst: AnimatableT = dst
 
-    interpolate = AnimatableActions.interpolate.build_dynamic_animatable_method_descriptor()
-    piecewise = AnimatableActions.piecewise.build_dynamic_animatable_method_descriptor()
-    transform = AnimatableActions.transform.build_dynamic_animatable_method_descriptor()
+    interpolate = AnimatableActions.interpolate.build_dynamic_action_descriptor()
+    piecewise = AnimatableActions.piecewise.build_dynamic_action_descriptor()
+    transform = AnimatableActions.transform.build_dynamic_action_descriptor()
 
 
 class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):

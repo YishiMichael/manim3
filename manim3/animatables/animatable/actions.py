@@ -108,18 +108,18 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: 
 
         return result
 
-    def build_animatable_method_descriptor(
+    def build_action_descriptor(
         self: Self
-    ) -> AnimatableMethodDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]:
-        return AnimatableMethodDescriptor(self)
+    ) -> ActionDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]:
+        return ActionDescriptor(self)
 
-    def build_dynamic_animatable_method_descriptor(
+    def build_dynamic_action_descriptor(
         self: Self
-    ) -> DynamicAnimatableMethodDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]:
-        return DynamicAnimatableMethodDescriptor(self)
+    ) -> DynamicActionDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]:
+        return DynamicActionDescriptor(self)
 
 
-class AnimatableMethodDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P]:
+class ActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P]:
     __slots__ = ("_action",)
 
     def __init__(
@@ -162,8 +162,8 @@ class AnimatableMethodDescriptor[ActionsT: Actions, AnimatableT: Animatable, Des
         return bound_method
 
 
-class DynamicAnimatableMethodDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
-    AnimatableMethodDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]
+class DynamicActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
+    ActionDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]
 ):
     __slots__ = ()
 

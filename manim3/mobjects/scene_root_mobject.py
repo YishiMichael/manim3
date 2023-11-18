@@ -13,7 +13,6 @@ from ..rendering.buffers.attributes_buffer import AttributesBuffer
 from ..rendering.buffers.texture_buffer import TextureBuffer
 from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
-from ..rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
 from ..toplevel.toplevel import Toplevel
@@ -49,39 +48,42 @@ class SceneRootMobject(Mobject):
             shader_path=PathUtils.shaders_dir.joinpath("oit_compose.glsl"),
             texture_buffers=(
                 TextureBuffer(
-                    field="sampler2D t_accum_map",
-                    texture_array=np.array(oit_framebuffer__accum_texture, dtype=moderngl.Texture)
+                    name="t_accum_map",
+                    textures=oit_framebuffer__accum_texture
                 ),
                 TextureBuffer(
-                    field="sampler2D t_revealage_map",
-                    texture_array=np.array(oit_framebuffer__revealage_texture, dtype=moderngl.Texture)
+                    name="t_revealage_map",
+                    textures=oit_framebuffer__revealage_texture
                 )
             ),
-            indexed_attributes_buffer=IndexedAttributesBuffer(
-                attributes_buffer=AttributesBuffer(
-                    fields=(
-                        "vec3 in_position",
-                        "vec2 in_uv"
-                    ),
-                    num_vertex=4,
-                    data={
-                        "in_position": np.array((
-                            (-1.0, -1.0, 0.0),
-                            (1.0, -1.0, 0.0),
-                            (1.0, 1.0, 0.0),
-                            (-1.0, 1.0, 0.0)
-                        )),
-                        "in_uv": np.array((
-                            (0.0, 0.0),
-                            (1.0, 0.0),
-                            (1.0, 1.0),
-                            (0.0, 1.0)
-                        ))
-                    }
+            attributes_buffer=AttributesBuffer(
+                field_declarations=(
+                    "vec3 in_position",
+                    "vec2 in_uv"
                 ),
-                mode=PrimitiveMode.TRIANGLE_FAN
+                data_dict={
+                    "in_position": np.array((
+                        (-1.0, -1.0, 0.0),
+                        (1.0, -1.0, 0.0),
+                        (1.0, 1.0, 0.0),
+                        (-1.0, 1.0, 0.0)
+                    )),
+                    "in_uv": np.array((
+                        (0.0, 0.0),
+                        (1.0, 0.0),
+                        (1.0, 1.0),
+                        (0.0, 1.0)
+                    ))
+                },
+                primitive_mode=PrimitiveMode.TRIANGLE_FAN,
+                num_vertices=4
             )
         )
+
+    def _get_vertex_array(
+        self: Self
+    ) -> VertexArray | None:
+        return self._oit_compose_vertex_array_
 
     def _render_scene(
         self: Self,
@@ -95,7 +97,9 @@ class SceneRootMobject(Mobject):
 
         oit_framebuffer = self._oit_framebuffer_
         oit_framebuffer._framebuffer_.clear()
-        for mobject in self.iter_descendants():
-            mobject._render(oit_framebuffer)
+        for child in self.iter_children():
+            for mobject in child.iter_children():
+                mobject._render(oit_framebuffer)
 
-        self._oit_compose_vertex_array_.render(target_framebuffer)
+        self._render(target_framebuffer)
+        #self._oit_compose_vertex_array_.render(target_framebuffer)

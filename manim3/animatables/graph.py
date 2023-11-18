@@ -131,15 +131,15 @@ class Graph(Animatable):
     ) -> DynamicGraph[Self]:
         return DynamicGraph(self, **kwargs)
 
-    interpolate = GraphActions.interpolate.build_animatable_method_descriptor()
-    piecewise = GraphActions.piecewise.build_animatable_method_descriptor()
+    interpolate = GraphActions.interpolate.build_action_descriptor()
+    piecewise = GraphActions.piecewise.build_action_descriptor()
 
 
 class DynamicGraph[GraphT: Graph](DynamicAnimatable[GraphT]):
     __slots__ = ()
 
-    interpolate = GraphActions.interpolate.build_dynamic_animatable_method_descriptor()
-    piecewise = GraphActions.piecewise.build_dynamic_animatable_method_descriptor()
+    interpolate = GraphActions.interpolate.build_dynamic_action_descriptor()
+    piecewise = GraphActions.piecewise.build_dynamic_action_descriptor()
 
 
 @attrs.frozen(kw_only=True)

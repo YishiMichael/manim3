@@ -49,11 +49,8 @@ from .mobjects.image_mobject import ImageMobject
 from .mobjects.svg_mobject import SVGMobject
 
 from .rendering.buffers.attributes_buffer import AttributesBuffer
-from .rendering.buffers.index_buffer import IndexBuffer
 from .rendering.buffers.texture_buffer import TextureBuffer
-from .rendering.buffers.transform_feedback_buffer import TransformFeedbackBuffer
 from .rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from .rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from .rendering.mgl_enums import (
     BlendEquation,
     BlendFunc,

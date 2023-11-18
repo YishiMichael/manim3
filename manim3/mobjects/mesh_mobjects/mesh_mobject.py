@@ -18,10 +18,9 @@ from ...constants.custom_typing import (
     NP_x3i4
 )
 from ...lazy.lazy import Lazy
+from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
-from ...rendering.indexed_attributes_buffer import IndexedAttributesBuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
@@ -112,7 +111,7 @@ class MeshMobject(Mobject):
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_material",
-            fields=(
+            field_declarations=(
                 "vec3 u_color",
                 "float u_opacity",
                 "float u_weight",
@@ -120,7 +119,7 @@ class MeshMobject(Mobject):
                 "float u_specular_strength",
                 "float u_shininess"
             ),
-            data={
+            data_dict={
                 "u_color": color__array,
                 "u_opacity": opacity__array,
                 "u_weight": weight__array,
@@ -132,24 +131,31 @@ class MeshMobject(Mobject):
 
     @Lazy.property()
     @staticmethod
+    def _color_maps_texture_buffer_(
+        color_maps: tuple[moderngl.Texture, ...]
+    ) -> TextureBuffer:
+        return TextureBuffer(
+            name="t_color_maps",
+            textures=color_maps,
+            array_lens={
+                "NUM_T_COLOR_MAPS": len(color_maps)
+            }
+        )
+
+    @Lazy.property()
+    @staticmethod
     def _mesh_vertex_array_(
-        color_maps: tuple[moderngl.Texture, ...],
+        color_maps_texture_buffer: TextureBuffer,
         camera__camera_uniform_block_buffer: UniformBlockBuffer,
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
-        mesh__indexed_attributes_buffer: IndexedAttributesBuffer
+        mesh__attributes_buffer: AttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_path=PathUtils.shaders_dir.joinpath("mesh.glsl"),
             texture_buffers=(
-                TextureBuffer(
-                    field="sampler2D t_color_maps[NUM_T_COLOR_MAPS]",
-                    array_lens={
-                        "NUM_T_COLOR_MAPS": len(color_maps)
-                    },
-                    texture_array=np.fromiter(color_maps, dtype=moderngl.Texture)
-                ),
+                color_maps_texture_buffer,
             ),
             uniform_block_buffers=(
                 camera__camera_uniform_block_buffer,
@@ -157,11 +163,10 @@ class MeshMobject(Mobject):
                 model_uniform_block_buffer,
                 material_uniform_block_buffer
             ),
-            indexed_attributes_buffer=mesh__indexed_attributes_buffer
+            attributes_buffer=mesh__attributes_buffer
         )
 
-    def _render(
-        self: Self,
-        target_framebuffer: OITFramebuffer
-    ) -> None:
-        self._mesh_vertex_array_.render(target_framebuffer)
+    def _get_vertex_array(
+        self: Self
+    ) -> VertexArray | None:
+        return self._mesh_vertex_array_
