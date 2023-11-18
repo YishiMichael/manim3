@@ -61,7 +61,7 @@ class Scene(Timeline):
                 Toplevel.window.pyglet_window.dispatch_events()
             self._progress()
             Toplevel.window.event_queue.clear()
-            self._root_mobject._render_scene(color_framebuffer)
+            self._root_mobject._render(color_framebuffer)
             if preview:
                 self._render_to_window(color_framebuffer._framebuffer_)
             if video_stdin is not None:
@@ -87,7 +87,7 @@ class Scene(Timeline):
                 if self.get_after_terminated_state() is not None:
                     break
 
-            self._root_mobject._render_scene(color_framebuffer)
+            self._root_mobject._render(color_framebuffer)
             if write_last_frame:
                 self._write_frame_to_image(color_framebuffer._color_texture_)
 

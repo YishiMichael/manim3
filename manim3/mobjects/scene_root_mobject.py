@@ -11,7 +11,7 @@ from ..animatables.arrays.animatable_float import AnimatableFloat
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
 from ..rendering.buffers.texture_buffer import TextureBuffer
-from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
+from ..rendering.framebuffers.framebuffer import Framebuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
@@ -85,9 +85,9 @@ class SceneRootMobject(Mobject):
     ) -> VertexArray | None:
         return self._oit_compose_vertex_array_
 
-    def _render_scene(
+    def _render(
         self: Self,
-        target_framebuffer: ColorFramebuffer
+        target_framebuffer: Framebuffer
     ) -> None:
         red, green, blue = self._background_color_._array_
         alpha = self._background_opacity_._array_
@@ -100,6 +100,10 @@ class SceneRootMobject(Mobject):
         for child in self.iter_children():
             for mobject in child.iter_descendants():
                 mobject._render(oit_framebuffer)
+        #if isinstance(oit_framebuffer, OITFramebuffer):
+        #    Image.frombytes("I;16L", oit_framebuffer._revealage_texture_.size, oit_framebuffer._revealage_texture_.read()).show()
 
-        self._render(target_framebuffer)
+        super()._render(target_framebuffer)
+        #if isinstance(target_framebuffer, ColorFramebuffer):
+        #    Image.frombytes("RGB", target_framebuffer._framebuffer_.size, target_framebuffer._framebuffer_.read()).show()
         #self._oit_compose_vertex_array_.render(target_framebuffer)

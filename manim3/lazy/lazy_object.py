@@ -108,14 +108,14 @@ class TypeHint:
 class LazyObject(ABC):
     __slots__ = ("_lazy_slots",)
 
-    _special_slot_copiers: ClassVar[dict[str, Callable]] = {
-        "_lazy_slots": lambda o: type(o)()
-    }
+    #_special_slot_copiers: ClassVar[dict[str, Callable]] = {
+    #    "_lazy_slots": lambda o: type(o)()
+    #}
 
     _lazy_descriptors: tuple[LazyDescriptor, ...] = ()
     _hinted_lazy_descriptors: dict[str, tuple[TypeHint, LazyDescriptor]] = {}
     _lazy_slots_cls: ClassVar[type] = object
-    _slot_copiers: ClassVar[dict[str, Callable]] = {}
+    _slot_names: ClassVar[tuple[str, ...]] = ()
 
     def __init_subclass__(
         cls: type[Self]
@@ -166,10 +166,10 @@ class LazyObject(ABC):
             descriptor._hasher = (
                 Implementations.hashers.fetch(element_annotation_cls if descriptor._freeze else object)
             )
-            descriptor._copier = (
-                Implementations.copiers.fetch(element_annotation_cls)
-                if descriptor._deepcopy else Implementations.shallow_copier
-            )
+            #descriptor._copier = (
+            #    Implementations.copiers.fetch(element_annotation_cls)
+            #    if descriptor._deepcopy else Implementations.shallow_copier
+            #)
 
             if (typed_overridden_descriptor := hinted_lazy_descriptors.get(name)) is not None:
                 type_hint, overridden_descriptor = typed_overridden_descriptor
@@ -214,19 +214,25 @@ class LazyObject(ABC):
             slots=True,
             frozen=True
         )
-        cls._slot_copiers = {
-            slot_name: base._special_slot_copiers.get(slot_name, copy.copy)
+        cls._slot_names = tuple(
+            slot_name#: base._special_slot_copiers.get(slot_name, copy.copy)
             for base in reversed(cls.__mro__)
             if issubclass(base, LazyObject)
             for slot_name in base.__slots__
             if not slot_name.startswith("__")
-        }
+            and slot_name != "_lazy_slots"
+        )
 
     def __init__(
         self: Self
     ) -> None:
         super().__init__()
         self._lazy_slots: object = type(self)._lazy_slots_cls()
+
+    def __copy__(
+        self: Self
+    ) -> Self:
+        return self.copy()
 
     def _get_lazy_slot(
         self: Self,
@@ -239,15 +245,16 @@ class LazyObject(ABC):
     ) -> Self:
         cls = type(self)
         result = cls.__new__(cls)
-        for slot_name, slot_copier in cls._slot_copiers.items():
-            result.__setattr__(slot_name, slot_copier(self.__getattribute__(slot_name)))
+        for slot_name in cls._slot_names:
+            result.__setattr__(slot_name, copy.copy(self.__getattribute__(slot_name)))
+        result._lazy_slots = cls._lazy_slots_cls()
         for descriptor in cls._lazy_descriptors:
             if descriptor._is_property:
                 continue
-            descriptor.set_elements(result, tuple(
-                descriptor._copier(element)
-                for element in descriptor.get_elements(self)
-            ))
+            elements = descriptor.get_elements(self)
+            if descriptor._deepcopy:
+                elements = tuple(copy.copy(element) for element in elements)
+            descriptor.set_elements(result, elements)
         return result
 
 
@@ -294,7 +301,7 @@ class Implementations:
     decomposers: ClassVar[ImplementationRegistry[bool, Callable[[Any], tuple[Any, ...]]]] = ImplementationRegistry(operator.is_)
     composers: ClassVar[ImplementationRegistry[bool, Callable[[tuple[Any, ...]], Any]]] = ImplementationRegistry(operator.is_)
     hashers: ClassVar[ImplementationRegistry[type, Callable[[Any], Hashable]]] = ImplementationRegistry(issubclass)
-    copiers: ClassVar[ImplementationRegistry[type, Callable[[Any], Any]]] = ImplementationRegistry(issubclass)
+    #copiers: ClassVar[ImplementationRegistry[type, Callable[[Any], Any]]] = ImplementationRegistry(issubclass)
 
     def __new__(
         cls: type[Self]
@@ -359,22 +366,22 @@ class Implementations:
     ) -> Hashable:
         return id(element)
 
-    @copiers.register(LazyObject)
-    @staticmethod
-    def _(
-        element: LazyObject
-    ) -> LazyObject:
-        return element.copy()
+    #@copiers.register(LazyObject)
+    #@staticmethod
+    #def _(
+    #    element: LazyObject
+    #) -> LazyObject:
+    #    return element.copy()
 
-    @copiers.register(object)
-    @staticmethod
-    def _(
-        element: object
-    ) -> object:
-        return copy.copy(element)
+    #@copiers.register(object)
+    #@staticmethod
+    #def _(
+    #    element: object
+    #) -> object:
+    #    return copy.copy(element)
 
-    @staticmethod
-    def shallow_copier(
-        element: object
-    ) -> object:
-        return element
+    #@staticmethod
+    #def shallow_copier(
+    #    element: object
+    #) -> object:
+    #    return element

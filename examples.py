@@ -95,7 +95,7 @@ class OITExample(Scene):
         self.add(*(
             (Circle()
                 .set(color=color, opacity=opacity)
-                .shift(RIGHT * 0.5)
+                .shift(RIGHT * 2.5)
                 .rotate_about_origin(OUT * angle)
             )
             for color, opacity, angle in zip(

@@ -131,8 +131,8 @@ class LazyDescriptor[T, DataT]:
         "_parameter_name_chains",
         "_decomposer",
         "_composer",
-        "_hasher",
-        "_copier"
+        "_hasher"
+        #"_copier"
     )
 
     def __init__(
@@ -158,7 +158,7 @@ class LazyDescriptor[T, DataT]:
         self._decomposer: Callable[[DataT], tuple[T, ...]] = NotImplemented
         self._composer: Callable[[tuple[T, ...]], DataT] = NotImplemented
         self._hasher: Callable[[T], Hashable] = NotImplemented
-        self._copier: Callable[[T], T] = NotImplemented
+        #self._copier: Callable[[T], T] = NotImplemented
 
     @overload
     def __get__(

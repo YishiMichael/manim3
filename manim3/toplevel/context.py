@@ -123,10 +123,11 @@ class Context:
 
     def buffer(
         self: Self,
+        data: bytes | None = None,
         reserve: int = 0,
         dynamic: bool = False
     ) -> moderngl.Buffer:
-        return self._mgl_context.buffer(reserve=reserve, dynamic=dynamic)
+        return self._mgl_context.buffer(data=data, reserve=reserve, dynamic=dynamic)
 
     def program(
         self: Self,
@@ -152,18 +153,19 @@ class Context:
         *,
         program: moderngl.Program,
         attributes_buffer: moderngl.Buffer,
-        buffer_format_str: str,
+        attributes_buffer_format_str: str,
         attribute_names: tuple[str, ...],
         index_buffer: moderngl.Buffer | None,
         mode: PrimitiveMode
     ) -> moderngl.VertexArray:
         content = []
         if attribute_names:
-            content.append((attributes_buffer, buffer_format_str, *attribute_names))
+            content.append((attributes_buffer, attributes_buffer_format_str, *attribute_names))
         return self._mgl_context.vertex_array(
             program=program,
             content=content,
             index_buffer=index_buffer,
+            index_element_size=4,
             mode=mode.value
         )
 
