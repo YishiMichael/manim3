@@ -263,11 +263,9 @@ class LazyDescriptor[T, DataT]:
         instance: LazyObject,
         memoized_elements: tuple[Memoized[T], ...]
     ) -> None:
+        assert not self._is_property
         slot = self.get_slot(instance)
-        if memoized_elements == slot.get():
-            return
-        # `slot` passes the writability check, hence is guaranteed to be a variable slot.
-        # Expire associated property slots.
+        # Guaranteed to be a variable slot. Expire associated property slots.
         for expired_property_slot in slot.iter_associated_slots():
             expired_property_slot.expire()
         slot.set(

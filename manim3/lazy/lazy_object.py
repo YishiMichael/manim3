@@ -4,7 +4,6 @@ from __future__ import annotations
 import copy
 import functools
 import inspect
-import itertools
 import operator
 import pathlib
 from abc import ABC
@@ -294,7 +293,6 @@ class Implementations:
     decomposers: ClassVar[ImplementationRegistry[bool, Callable[[Any], tuple[Any, ...]]]] = ImplementationRegistry(operator.is_)
     composers: ClassVar[ImplementationRegistry[bool, Callable[[tuple[Any, ...]], Any]]] = ImplementationRegistry(operator.is_)
     hashers: ClassVar[ImplementationRegistry[type, Callable[[Any], Hashable]]] = ImplementationRegistry(issubclass)
-    #_object_hash_counter: itertools.count[int] = itertools.count()
 
     def __new__(
         cls: type[Self]
@@ -356,4 +354,7 @@ class Implementations:
     def _(
         element: object
     ) -> Hashable:
+        # We are safe to use `id` here since the memoization is a weak-value-dictionary.
+        # The reallocation of an old id indicates that the object has been garbage collected,
+        # and its corresponding item in the memoization should have already been removed.
         return id(element)
