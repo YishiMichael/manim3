@@ -17,6 +17,7 @@ from ...constants.custom_typing import (
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
@@ -138,7 +139,8 @@ class GraphMobject(Mobject):
             attributes_buffer=graph_attributes_buffer
         )
 
-    def _get_vertex_array(
-        self: Self
-    ) -> VertexArray | None:
-        return self._graph_vertex_array_
+    def _render(
+        self: Self,
+        target_framebuffer: OITFramebuffer
+    ) -> None:
+        self._graph_vertex_array_.render(target_framebuffer)

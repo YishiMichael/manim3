@@ -13,11 +13,7 @@ from ..animatables.camera import Camera
 from ..animatables.lighting import Lighting
 from ..animatables.model import Model
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffers.framebuffer import Framebuffer
-from ..rendering.vertex_array import (
-    ModernglBuffers,
-    VertexArray
-)
+from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..toplevel.toplevel import Toplevel
 
 
@@ -27,8 +23,7 @@ class Mobject(Model):
         "_children",
         "_proper_descendants",
         "_parents",
-        "_proper_ancestors",
-        "_moderngl_buffers"
+        "_proper_ancestors"
     )
 
     #_special_slot_copiers: ClassVar[dict[str, Callable]] = {
@@ -44,7 +39,6 @@ class Mobject(Model):
         self._proper_descendants: list[Mobject] = []
         self._parents: weakref.WeakSet[Mobject] = weakref.WeakSet()
         self._proper_ancestors: weakref.WeakSet[Mobject] = weakref.WeakSet()
-        self._moderngl_buffers: ModernglBuffers | None = None
 
     def __iter__(
         self: Self
@@ -204,7 +198,6 @@ class Mobject(Model):
                 if parent in descendants
             )
             descendant_copy._proper_ancestors = weakref.WeakSet()
-            descendant_copy._moderngl_buffers = None
 
         type(self)._refresh_families(*descendants_copy)
         return result
@@ -221,22 +214,11 @@ class Mobject(Model):
     def _lighting_() -> Lighting:
         return Toplevel.scene._lighting
 
-    def _get_vertex_array(
-        self: Self
-    ) -> VertexArray | None:
-        return None
-
     def _render(
         self: Self,
-        target_framebuffer: Framebuffer
+        target_framebuffer: OITFramebuffer
     ) -> None:
-        if (vertex_array := self._get_vertex_array()) is None:
-            return
-        if (moderngl_buffers := self._moderngl_buffers) is None:
-            moderngl_buffers = vertex_array.fetch_moderngl_buffers()
-            self._moderngl_buffers = moderngl_buffers
-        #print(self, self._moderngl_buffers)
-        vertex_array.render(moderngl_buffers, target_framebuffer)
+        pass
 
     def bind_camera(
         self: Self,

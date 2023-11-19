@@ -95,7 +95,7 @@ class OITExample(Scene):
         self.add(*(
             (Circle()
                 .set(color=color, opacity=opacity)
-                .shift(RIGHT * 2.5)
+                .shift(RIGHT * 0.5)
                 .rotate_about_origin(OUT * angle)
             )
             for color, opacity, angle in zip(
@@ -327,7 +327,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    OITExample.render(config)
+    TextTransformExample.render(config)
 
 
 if __name__ == "__main__":

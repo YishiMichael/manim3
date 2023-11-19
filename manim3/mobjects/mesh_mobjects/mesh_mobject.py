@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Self
 
 import moderngl
-import numpy as np
 
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.arrays.animatable_color import AnimatableColor
@@ -21,6 +20,7 @@ from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
+from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
 from ...utils.path_utils import PathUtils
@@ -166,7 +166,8 @@ class MeshMobject(Mobject):
             attributes_buffer=mesh__attributes_buffer
         )
 
-    def _get_vertex_array(
-        self: Self
-    ) -> VertexArray | None:
-        return self._mesh_vertex_array_
+    def _render(
+        self: Self,
+        target_framebuffer: OITFramebuffer
+    ) -> None:
+        self._mesh_vertex_array_.render(target_framebuffer)

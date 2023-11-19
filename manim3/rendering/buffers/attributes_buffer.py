@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Self
 
+import moderngl
 import numpy as np
 
 from ...constants.custom_typing import (
@@ -14,14 +15,15 @@ from ...lazy.lazy import Lazy
 #    AtomicBufferFormat,
 #    StructuredBufferFormat
 #)
+from ...toplevel.toplevel import Toplevel
 from ..mgl_enums import PrimitiveMode
 #from ..std140_layout import STD140Layout
-from .buffer import Buffer
 from ..field import (
     AtomicField,
     Field,
     StructuredField
 )
+from .buffer import Buffer
 
 
 class AttributesBuffer(Buffer):
@@ -107,12 +109,22 @@ class AttributesBuffer(Buffer):
 
     @Lazy.property()
     @staticmethod
-    def _data_bytes_(
+    def _buffer_(
         merged_field: StructuredField,
         shape: ShapeType,
         data_dict: dict[str, np.ndarray]
-    ) -> bytes:
-        return merged_field.write(shape, data_dict)
+    ) -> moderngl.Buffer:
+        return Toplevel.context.buffer(merged_field.write(shape, data_dict))
+
+    @Lazy.property()
+    @staticmethod
+    def _index_buffer_(
+        index_bytes: bytes,
+        use_index_buffer: bool
+    ) -> moderngl.Buffer | None:
+        if not use_index_buffer:
+            return None
+        return Toplevel.context.buffer(index_bytes)
 
     #@Lazy.property()
     #@staticmethod

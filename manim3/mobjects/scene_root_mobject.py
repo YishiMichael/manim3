@@ -11,7 +11,7 @@ from ..animatables.arrays.animatable_float import AnimatableFloat
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
 from ..rendering.buffers.texture_buffer import TextureBuffer
-from ..rendering.framebuffers.framebuffer import Framebuffer
+from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
@@ -80,14 +80,14 @@ class SceneRootMobject(Mobject):
             )
         )
 
-    def _get_vertex_array(
-        self: Self
-    ) -> VertexArray | None:
-        return self._oit_compose_vertex_array_
+    #def _get_vertex_array(
+    #    self: Self
+    #) -> VertexArray | None:
+    #    return self._oit_compose_vertex_array_
 
-    def _render(
+    def _render_scene(
         self: Self,
-        target_framebuffer: Framebuffer
+        target_framebuffer: ColorFramebuffer
     ) -> None:
         red, green, blue = self._background_color_._array_
         alpha = self._background_opacity_._array_
@@ -97,13 +97,12 @@ class SceneRootMobject(Mobject):
 
         oit_framebuffer = self._oit_framebuffer_
         oit_framebuffer._framebuffer_.clear()
-        for child in self.iter_children():
-            for mobject in child.iter_descendants():
-                mobject._render(oit_framebuffer)
+        for mobject in self.iter_descendants():
+            mobject._render(oit_framebuffer)
         #if isinstance(oit_framebuffer, OITFramebuffer):
         #    Image.frombytes("I;16L", oit_framebuffer._revealage_texture_.size, oit_framebuffer._revealage_texture_.read()).show()
 
-        super()._render(target_framebuffer)
+        #super()._render(target_framebuffer)
         #if isinstance(target_framebuffer, ColorFramebuffer):
         #    Image.frombytes("RGB", target_framebuffer._framebuffer_.size, target_framebuffer._framebuffer_.read()).show()
-        #self._oit_compose_vertex_array_.render(target_framebuffer)
+        self._oit_compose_vertex_array_.render(target_framebuffer)
