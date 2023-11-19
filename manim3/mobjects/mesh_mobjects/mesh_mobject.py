@@ -5,6 +5,8 @@ from typing import Self
 
 import moderngl
 
+from manim3.rendering.mgl_enums import PrimitiveMode
+
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
@@ -13,6 +15,7 @@ from ...animatables.model import ModelActions
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
+    NP_x2f8,
     NP_x3f8,
     NP_x3i4
 )
@@ -101,6 +104,19 @@ class MeshMobject(Mobject):
 
     @Lazy.property()
     @staticmethod
+    def _color_maps_texture_buffer_(
+        color_maps: tuple[moderngl.Texture, ...]
+    ) -> TextureBuffer:
+        return TextureBuffer(
+            name="t_color_maps",
+            textures=color_maps,
+            array_lens={
+                "NUM_T_COLOR_MAPS": len(color_maps)
+            }
+        )
+
+    @Lazy.property()
+    @staticmethod
     def _material_uniform_block_buffer_(
         color__array: NP_3f8,
         opacity__array: NP_f8,
@@ -131,15 +147,26 @@ class MeshMobject(Mobject):
 
     @Lazy.property()
     @staticmethod
-    def _color_maps_texture_buffer_(
-        color_maps: tuple[moderngl.Texture, ...]
-    ) -> TextureBuffer:
-        return TextureBuffer(
-            name="t_color_maps",
-            textures=color_maps,
-            array_lens={
-                "NUM_T_COLOR_MAPS": len(color_maps)
-            }
+    def _mesh_attributes_buffer_(
+        mesh__positions: NP_x3f8,
+        mesh__normals: NP_x3f8,
+        mesh__uvs: NP_x2f8,
+        mesh__faces: NP_x3i4
+    ) -> AttributesBuffer:
+        return AttributesBuffer(
+            field_declarations=(
+                "vec3 in_position",
+                "vec3 in_normal",
+                "vec2 in_uv"
+            ),
+            data_dict={
+                "in_position": mesh__positions,
+                "in_normal": mesh__normals,
+                "in_uv": mesh__uvs
+            },
+            index=mesh__faces.flatten(),
+            primitive_mode=PrimitiveMode.TRIANGLES,
+            num_vertices=len(mesh__positions)
         )
 
     @Lazy.property()
@@ -150,7 +177,7 @@ class MeshMobject(Mobject):
         lighting__lighting_uniform_block_buffer: UniformBlockBuffer,
         model_uniform_block_buffer: UniformBlockBuffer,
         material_uniform_block_buffer: UniformBlockBuffer,
-        mesh__attributes_buffer: AttributesBuffer
+        mesh_attributes_buffer: AttributesBuffer
     ) -> VertexArray:
         return VertexArray(
             shader_path=PathUtils.shaders_dir.joinpath("mesh.glsl"),
@@ -163,7 +190,7 @@ class MeshMobject(Mobject):
                 model_uniform_block_buffer,
                 material_uniform_block_buffer
             ),
-            attributes_buffer=mesh__attributes_buffer
+            attributes_buffer=mesh_attributes_buffer
         )
 
     def _render(

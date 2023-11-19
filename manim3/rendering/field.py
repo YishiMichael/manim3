@@ -59,15 +59,12 @@ class Field(LazyObject):
     def __init__(
         self: Self,
         *,
-        #name: str,
         name: str,
         shape: ShapeType,
         itemsize: int,
         base_alignment: int
-        #shape: ShapeType
     ) -> None:
         super().__init__()
-        #self._name_ = name
         self._name_ = name
         self._shape_ = shape
         self._itemsize_ = itemsize
@@ -100,14 +97,6 @@ class Field(LazyObject):
     ) -> int:
         return functools.reduce(operator.mul, shape, 1)
 
-    #@Lazy.property()
-    #@staticmethod
-    #def _nbytes_(
-    #    itemsize: int,
-    #    size: int
-    #) -> int:
-    #    return itemsize * size
-
     @Lazy.property()
     @staticmethod
     def _dtype_() -> np.dtype:
@@ -117,11 +106,6 @@ class Field(LazyObject):
     @staticmethod
     def _pointers_() -> tuple[tuple[tuple[str, ...], int], ...]:
         return ()
-
-    #@Lazy.property()
-    #@staticmethod
-    #def _format_str_() -> str:
-    #    return ""
 
     @classmethod
     def _parse_field_declaration(
@@ -199,10 +183,6 @@ class Field(LazyObject):
             for name in name_chain:
                 result = result[name]
             return result["_"]
-            #if not name_chain:
-            #    return np_buffer["_"]
-            #name = name_chain.pop(0)
-            #return get_np_buffer_pointer(np_buffer[name], name_chain)
 
         np_buffer = np.zeros(shape, dtype=self._dtype_)
         np_buffer_pointers = {
@@ -250,19 +230,11 @@ class AtomicField(Field):
         name: str,
         shape: ShapeType,
         dtype: np.dtype
-        #field_declaration: str,
-        #array_lens_dict: dict[str, int]
     ) -> None:
-        #cls = type(self)
-        #glsl_dtype_str, name, shape = cls._parse_field_declaration(field_declaration, array_lens_dict)
-        #base_char, base_itemsize, base_shape = type(self)._GLSL_DTYPES[glsl_dtype_str]
         base_shape = dtype.shape
         base_char = dtype.base.char
         base_itemsize = dtype.base.itemsize
         assert len(base_shape) <= 2 and all(2 <= l <= 4 for l in base_shape)
-        #shape_dict = dict(enumerate(base_shape))
-        #col_len = shape_dict.get(0, 1)
-        #row_len = shape_dict.get(1, 1)
         col_len, row_len, *_ = base_shape + (1, 1)
         col_padding = 0 if not shape and row_len == 1 else 4 - col_len
         base_alignment = (col_len if not shape and col_len <= 2 and row_len == 1 else 4) * base_itemsize
@@ -332,21 +304,6 @@ class AtomicField(Field):
     ) -> tuple[tuple[tuple[str, ...], int], ...]:
         return (((), base_ndim),)
 
-    #@Lazy.property()
-    #@staticmethod
-    #def _format_str_(
-    #    col_len: int,
-    #    base_char: str,
-    #    base_itemsize: int,
-    #    col_padding: int,
-    #    row_len: int
-    #    #size: int
-    #) -> str:
-    #    row_format = f"{col_len}{base_char}{base_itemsize}"
-    #    if col_padding:
-    #        row_format = f"{row_format} {col_padding}x{base_itemsize}"
-    #    return " ".join(itertools.repeat(row_format, row_len))
-
 
 class StructuredField(Field):
     __slots__ = ()
@@ -358,7 +315,6 @@ class StructuredField(Field):
         fields: tuple[Field, ...]
     ) -> None:
         struct_base_alignment = 16
-        #filtered_fields = tuple(field for field in fields if field._nbytes_)
         next_base_alignments = (*(field._base_alignment_ for field in fields), struct_base_alignment)[1:]
         offsets: list[int] = []
         paddings: list[int] = []
@@ -398,11 +354,8 @@ class StructuredField(Field):
     @Lazy.property()
     @staticmethod
     def _dtype_(
-        #names: tuple[str, ...],
         fields: tuple[Field, ...],
         offsets: tuple[int, ...],
-        #shapes: tuple[ShapeType, ...],
-        #offsets: tuple[int, ...],
         itemsize: int
     ) -> np.dtype:
         return np.dtype({
@@ -416,24 +369,9 @@ class StructuredField(Field):
     @staticmethod
     def _pointers_(
         fields: tuple[Field, ...]
-        #names: tuple[str, ...],
-        #children__pointers: tuple[tuple[tuple[tuple[str, ...], int], ...], ...]
     ) -> tuple[tuple[tuple[str, ...], int], ...]:
         return tuple(
             ((field._name_,) + name_chain, base_ndim)
             for field in fields
             for name_chain, base_ndim in field._pointers_
         )
-
-    #@Lazy.property()
-    #@staticmethod
-    #def _format_str_(
-    #    fields: tuple[Field, ...],
-    #    paddings: tuple[int, ...]
-    #) -> str:
-    #    components: list[str] = []
-    #    for field, padding in zip(fields, paddings, strict=True):
-    #        components.extend(itertools.repeat(field._format_str_, field._size_))
-    #        if padding:
-    #            components.append(f"{padding}x")
-    #    return " ".join(components)

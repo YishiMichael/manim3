@@ -45,7 +45,7 @@ class Memoization[KT: Hashable, VT](weakref.WeakValueDictionary[KT, Memoized[VT]
         return memoized_value
 
 
-class Cache[KT: Hashable, VT](weakref.WeakKeyDictionary[KT, VT]):
+class Cache[KT: Hashable, VT](dict[KT, VT]):
     __slots__ = ("_capacity",)
 
     def __init__(
@@ -132,7 +132,6 @@ class LazyDescriptor[T, DataT]:
         "_decomposer",
         "_composer",
         "_hasher"
-        #"_copier"
     )
 
     def __init__(
@@ -158,7 +157,6 @@ class LazyDescriptor[T, DataT]:
         self._decomposer: Callable[[DataT], tuple[T, ...]] = NotImplemented
         self._composer: Callable[[tuple[T, ...]], DataT] = NotImplemented
         self._hasher: Callable[[T], Hashable] = NotImplemented
-        #self._copier: Callable[[T], T] = NotImplemented
 
     @overload
     def __get__(

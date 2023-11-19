@@ -9,13 +9,11 @@ import numpy as np
 from ...constants.custom_typing import ShapeType
 from ...lazy.lazy import Lazy
 from ...toplevel.toplevel import Toplevel
-#from ..buffer_format import StructuredBufferFormat
-#from ..std140_layout import STD140Layout
-from .buffer import Buffer
 from ..field import (
     Field,
     StructuredField
 )
+from .buffer import Buffer
 
 
 class UniformBlockBuffer(Buffer):
@@ -88,8 +86,3 @@ class UniformBlockBuffer(Buffer):
         data_dict: dict[str, np.ndarray]
     ) -> moderngl.Buffer:
         return Toplevel.context.buffer(field.write(shape, data_dict))
-
-    #@Lazy.property()
-    #@staticmethod
-    #def _layout_() -> type[BufferLayout]:
-    #    return Std140BufferLayout

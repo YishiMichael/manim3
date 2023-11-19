@@ -11,13 +11,8 @@ from ...constants.custom_typing import (
     ShapeType
 )
 from ...lazy.lazy import Lazy
-#from ..buffer_format import (
-#    AtomicBufferFormat,
-#    StructuredBufferFormat
-#)
 from ...toplevel.toplevel import Toplevel
 from ..mgl_enums import PrimitiveMode
-#from ..std140_layout import STD140Layout
 from ..field import (
     AtomicField,
     Field,
@@ -40,7 +35,6 @@ class AttributesBuffer(Buffer):
         array_lens: dict[str, int] | None = None
     ) -> None:
         super().__init__(
-            #field_declarations=tuple(field_declarations_dict),
             shape=(num_vertices,),
             array_lens=array_lens
         )
@@ -125,29 +119,3 @@ class AttributesBuffer(Buffer):
         if not use_index_buffer:
             return None
         return Toplevel.context.buffer(index_bytes)
-
-    #@Lazy.property()
-    #@staticmethod
-    #def _layout_() -> type[BufferLayout]:
-    #    # Let's keep using std140 layout, hopefully giving a faster processing speed.
-    #    return STD140Layout
-
-    #@Lazy.property()
-    #@staticmethod
-    #def _buffer_format_str_(
-    #    buffer_format: BufferFormat,
-    #    itemsize: int
-    #) -> str:
-    #    assert isinstance(buffer_format, StructuredBufferFormat)
-    #    components: list[str] = []
-    #    current_offset = 0
-    #    for child, offset in zip(buffer_format._children_, buffer_format._offsets_, strict=True):
-    #        assert isinstance(child, AtomicBufferFormat)
-    #        if (padding := offset - current_offset):
-    #            components.append(f"{padding}x")
-    #        components.append(child._format_str_)
-    #        current_offset = offset + child._nbytes_
-    #    if (padding := itemsize - current_offset):
-    #        components.append(f"{padding}x")
-    #    components.append("/v")
-    #    return " ".join(components)

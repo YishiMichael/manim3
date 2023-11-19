@@ -80,11 +80,6 @@ class SceneRootMobject(Mobject):
             )
         )
 
-    #def _get_vertex_array(
-    #    self: Self
-    #) -> VertexArray | None:
-    #    return self._oit_compose_vertex_array_
-
     def _render_scene(
         self: Self,
         target_framebuffer: ColorFramebuffer
@@ -99,10 +94,5 @@ class SceneRootMobject(Mobject):
         oit_framebuffer._framebuffer_.clear()
         for mobject in self.iter_descendants():
             mobject._render(oit_framebuffer)
-        #if isinstance(oit_framebuffer, OITFramebuffer):
-        #    Image.frombytes("I;16L", oit_framebuffer._revealage_texture_.size, oit_framebuffer._revealage_texture_.read()).show()
 
-        #super()._render(target_framebuffer)
-        #if isinstance(target_framebuffer, ColorFramebuffer):
-        #    Image.frombytes("RGB", target_framebuffer._framebuffer_.size, target_framebuffer._framebuffer_.read()).show()
         self._oit_compose_vertex_array_.render(target_framebuffer)

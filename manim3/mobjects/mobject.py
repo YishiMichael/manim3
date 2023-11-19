@@ -26,11 +26,6 @@ class Mobject(Model):
         "_proper_ancestors"
     )
 
-    #_special_slot_copiers: ClassVar[dict[str, Callable]] = {
-    #    "_parents": lambda o: weakref.WeakSet(),
-    #    "_proper_ancestors": lambda o: weakref.WeakSet()
-    #}
-
     def __init__(
         self: Self
     ) -> None:

@@ -108,10 +108,6 @@ class TypeHint:
 class LazyObject(ABC):
     __slots__ = ("_lazy_slots",)
 
-    #_special_slot_copiers: ClassVar[dict[str, Callable]] = {
-    #    "_lazy_slots": lambda o: type(o)()
-    #}
-
     _lazy_descriptors: tuple[LazyDescriptor, ...] = ()
     _hinted_lazy_descriptors: dict[str, tuple[TypeHint, LazyDescriptor]] = {}
     _lazy_slots_cls: ClassVar[type] = object
@@ -166,10 +162,6 @@ class LazyObject(ABC):
             descriptor._hasher = (
                 Implementations.hashers.fetch(element_annotation_cls if descriptor._freeze else object)
             )
-            #descriptor._copier = (
-            #    Implementations.copiers.fetch(element_annotation_cls)
-            #    if descriptor._deepcopy else Implementations.shallow_copier
-            #)
 
             if (typed_overridden_descriptor := hinted_lazy_descriptors.get(name)) is not None:
                 type_hint, overridden_descriptor = typed_overridden_descriptor
@@ -215,7 +207,7 @@ class LazyObject(ABC):
             frozen=True
         )
         cls._slot_names = tuple(
-            slot_name#: base._special_slot_copiers.get(slot_name, copy.copy)
+            slot_name
             for base in reversed(cls.__mro__)
             if issubclass(base, LazyObject)
             for slot_name in base.__slots__
@@ -301,7 +293,6 @@ class Implementations:
     decomposers: ClassVar[ImplementationRegistry[bool, Callable[[Any], tuple[Any, ...]]]] = ImplementationRegistry(operator.is_)
     composers: ClassVar[ImplementationRegistry[bool, Callable[[tuple[Any, ...]], Any]]] = ImplementationRegistry(operator.is_)
     hashers: ClassVar[ImplementationRegistry[type, Callable[[Any], Hashable]]] = ImplementationRegistry(issubclass)
-    #copiers: ClassVar[ImplementationRegistry[type, Callable[[Any], Any]]] = ImplementationRegistry(issubclass)
 
     def __new__(
         cls: type[Self]
@@ -337,7 +328,6 @@ class Implementations:
     ) -> tuple[T, ...]:
         return elements
 
-    @hashers.register(type)
     @hashers.register(int)
     @hashers.register(str)
     @hashers.register(bytes)
@@ -365,23 +355,3 @@ class Implementations:
         element: object
     ) -> Hashable:
         return id(element)
-
-    #@copiers.register(LazyObject)
-    #@staticmethod
-    #def _(
-    #    element: LazyObject
-    #) -> LazyObject:
-    #    return element.copy()
-
-    #@copiers.register(object)
-    #@staticmethod
-    #def _(
-    #    element: object
-    #) -> object:
-    #    return copy.copy(element)
-
-    #@staticmethod
-    #def shallow_copier(
-    #    element: object
-    #) -> object:
-    #    return element

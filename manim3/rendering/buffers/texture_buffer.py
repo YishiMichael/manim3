@@ -20,17 +20,12 @@ class TextureBuffer(Buffer):
         textures: moderngl.Texture | tuple[moderngl.Texture, ...],
         array_lens: dict[str, int] | None = None
     ) -> None:
-        #replaced_field = re.sub(r"^sampler2D\b", "uint", field)
-        #assert field != replaced_field
         if isinstance(textures, tuple):
             shape = (len(textures),)
         else:
             shape = ()
             textures = (textures,)
         super().__init__(
-            #field=replaced_field,
-            #structs=None,
-            #shape=texture_array.shape,
             shape=shape,
             array_lens=array_lens
         )
