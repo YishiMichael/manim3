@@ -19,5 +19,5 @@ class Polygon(ShapeMobject):
     ) -> None:
         super().__init__(Shape(
             coordinates=coordinates,
-            counts=np.array((len(coordinates)),)
+            counts=np.array((len(coordinates),))
         ))

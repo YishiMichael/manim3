@@ -116,6 +116,7 @@ class WindowHandlers:
 
 class Window:
     __slots__ = (
+        "_window_handlers",
         "_pyglet_window",
         "_event_queue",
         "_recent_event"
@@ -140,13 +141,15 @@ class Window:
                     minor_version=minor_version
                 )
             )
-            # Keep a strong reference to the handler object, as per
-            # `https://pyglet.readthedocs.io/en/latest/programming_guide/events.html#stacking-event-handlers`.
-            handlers = WindowHandlers()
-            pyglet_window.push_handlers(handlers)  # TODO: not working
+            window_handlers = WindowHandlers()
+            pyglet_window.push_handlers(window_handlers)
         else:
+            window_handlers = None
             pyglet_window = None
 
+        # Keep a strong reference to the handler object, as per
+        # `https://pyglet.readthedocs.io/en/latest/programming_guide/events.html#stacking-event-handlers`.
+        self._window_handlers: WindowHandlers | None = window_handlers
         self._pyglet_window: PygletWindow | None = pyglet_window
         self._event_queue: list[Event] = []
         self._recent_event: Event | None = None

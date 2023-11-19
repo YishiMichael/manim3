@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 
+import itertools
 import weakref
 from typing import (
     TYPE_CHECKING,
     Callable,
+    ClassVar,
     Hashable,
     Iterator,
     Never,
@@ -20,15 +22,29 @@ if TYPE_CHECKING:
 class Memoized[T]:
     __slots__ = (
         "__weakref__",
+        "_id",
         "_value"
     )
+
+    _id_counter: ClassVar[itertools.count[int]] = itertools.count()
 
     def __init__(
         self: Self,
         value: T
     ) -> None:
         super().__init__()
+        self._id: int = next(type(self)._id_counter)
         self._value: T = value
+
+    def get_id(
+        self: Self
+    ) -> int:
+        return self._id
+
+    def get_value(
+        self: Self
+    ) -> T:
+        return self._value
 
 
 class Memoization[KT: Hashable, VT](weakref.WeakValueDictionary[KT, Memoized[VT]]):
@@ -93,27 +109,16 @@ class Tree[T]:
         else:
             yield self
 
-    def as_tuple_tree(
-        self: Self
-    ) -> TupleTree[T]:
-        if (children := self._children) is not None:
-            return tuple(
-                child.as_tuple_tree()
-                for child in children
-            )
-        return self._content
-
-    def convert[ConvertedT](
+    def as_tuple_tree[ConvertedT](
         self: Self,
         func: Callable[[T], ConvertedT]
-    ) -> Tree[ConvertedT]:
-        return Tree(
-            content=func(self._content),
-            children=tuple(
-                child.convert(func)
+    ) -> TupleTree[ConvertedT]:
+        if (children := self._children) is not None:
+            return tuple(
+                child.as_tuple_tree(func)
                 for child in children
-            ) if (children := self._children) is not None else None
-        )
+            )
+        return func(self._content)
 
 
 class LazyDescriptor[T, DataT]:
@@ -211,45 +216,39 @@ class LazyDescriptor[T, DataT]:
             for element in elements
         )
 
-    def get_slot(
+    def _get_memoized_elements(
         self: Self,
         instance: LazyObject
-    ) -> LazySlot:
-        return instance._get_lazy_slot(self._name)
-
-    def get_elements(
-        self: Self,
-        instance: LazyObject
-    ) -> tuple[T, ...]:
+    ) -> tuple[Memoized[T], ...]:
         slot = self.get_slot(instance)
         if (memoized_elements := slot.get()) is None:
             # If there's at least a parameter, `slot` is guaranteed to be a property slot.
             # Associate it with variable slots.
-            trees = tuple(Tree(instance) for _ in self._parameter_name_chains)
+            tree_root = Memoized(instance)
+            trees = tuple(Tree(tree_root) for _ in self._parameter_name_chains)
             associated_slots: set[LazySlot] = set()
             for parameter_name_chain, tree in zip(self._parameter_name_chains, trees, strict=True):
                 for name in parameter_name_chain:
                     for leaf in tree.iter_leaves():
-                        leaf_object = leaf._content
+                        leaf_object = leaf._content.get_value()
                         leaf_slot = leaf_object._get_lazy_slot(name)
                         descriptor = leaf_slot.get_descriptor()
-                        elements = descriptor.get_elements(leaf_object)
+                        children_memoized_elements = descriptor._get_memoized_elements(leaf_object)
                         if descriptor._plural:
-                            leaf._children = tuple(Tree(element) for element in elements)
+                            leaf._children = tuple(Tree(element) for element in children_memoized_elements)
                         else:
-                            (element,) = elements
-                            leaf._content = element
+                            (leaf._content,) = children_memoized_elements
                         if descriptor._is_property:
                             associated_slots.update(leaf_slot.iter_associated_slots())
                         else:
                             associated_slots.add(leaf_slot)
 
             memoized_parameter_key = self._memoize_parameter_key(tuple(
-                tree.convert(id).as_tuple_tree() for tree in trees
+                tree.as_tuple_tree(Memoized.get_id) for tree in trees
             ))
             if (memoized_elements := self._cache.get(memoized_parameter_key)) is None:
                 memoized_elements = self._memoize_elements(self._decomposer(self._method(*(
-                    tree.as_tuple_tree() for tree in trees
+                    tree.as_tuple_tree(Memoized.get_value) for tree in trees
                 ))))
                 self._cache.set(memoized_parameter_key, memoized_elements)
             slot.set(
@@ -257,15 +256,14 @@ class LazyDescriptor[T, DataT]:
                 parameter_key=memoized_parameter_key,
                 associated_slots=associated_slots
             )
-        return tuple(memoized_element._value for memoized_element in memoized_elements)
+        return memoized_elements
 
-    def set_elements(
+    def _set_memoized_elements(
         self: Self,
         instance: LazyObject,
-        elements: tuple[T, ...]
+        memoized_elements: tuple[Memoized[T], ...]
     ) -> None:
         slot = self.get_slot(instance)
-        memoized_elements = self._memoize_elements(elements)
         if memoized_elements == slot.get():
             return
         # `slot` passes the writability check, hence is guaranteed to be a variable slot.
@@ -277,3 +275,22 @@ class LazyDescriptor[T, DataT]:
             parameter_key=None,
             associated_slots=set()
         )
+
+    def get_slot(
+        self: Self,
+        instance: LazyObject
+    ) -> LazySlot:
+        return instance._get_lazy_slot(self._name)
+
+    def get_elements(
+        self: Self,
+        instance: LazyObject
+    ) -> tuple[T, ...]:
+        return tuple(memoized_element.get_value() for memoized_element in self._get_memoized_elements(instance))
+
+    def set_elements(
+        self: Self,
+        instance: LazyObject,
+        elements: tuple[T, ...]
+    ) -> None:
+        self._set_memoized_elements(instance, self._memoize_elements(elements))
