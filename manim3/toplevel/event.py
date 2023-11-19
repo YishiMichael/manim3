@@ -14,7 +14,10 @@ from .toplevel import Toplevel
 
 
 class EventCapturedCondition(Condition):
-    __slots__ = ("_event",)
+    __slots__ = (
+        "_event",
+        "_captured_event"
+    )
 
     def __init__(
         self: Self,
@@ -22,11 +25,21 @@ class EventCapturedCondition(Condition):
     ) -> None:
         super().__init__()
         self._event: Event = event
+        self._captured_event: Event | None = None
 
     def judge(
         self: Self
     ) -> bool:
-        return Toplevel.window.capture_event(self._event)
+        captured_event = Toplevel.window.capture_event(self._event)
+        if captured_event is not None:
+            self._captured_event = captured_event
+            return True
+        return False
+
+    def get_captured_event(
+        self: Self
+    ) -> Event | None:
+        return self._captured_event
 
 
 @attrs.frozen(kw_only=True)
@@ -34,7 +47,7 @@ class Event(ABC):
     @abstractmethod
     def _capture(
         self: Self,
-        event: "Event"
+        event: Event
     ) -> bool:
         pass
 

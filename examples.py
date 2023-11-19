@@ -237,31 +237,30 @@ class NoteTimeline(Timeline):
 
     async def construct(self) -> None:
         note = self._note
-        judge_condition = MobjectPositionInRange(note, y_min=-3.4, y_max=-2.6)
         self.scene.add(note)
+        key_pressed_event = Events.key_press(self._key).captured()
         await self.play(
             note.animate(infinite=True).shift(7.0 * DOWN),
             terminate_condition=Conditions.any((
                 Conditions.all((
-                    Events.key_press(self._key).captured(),
-                    judge_condition
+                    key_pressed_event,
+                    MobjectPositionInRange(note, y_min=-3.4, y_max=-2.6)
                 )),
                 MobjectPositionInRange(note, y_max=-3.4)
             ))
         )
-        if not judge_condition.judge():
+        if key_pressed_event.get_captured_event():
+            await self.play(
+                note.animate().set(opacity=0.0).scale(1.5),
+                rate=Rates.rush_from()
+            )
+        else:
             note.set(opacity=0.4)
             await self.play(
                 note.animate(infinite=True).shift(10.0 * DOWN),
                 terminate_condition=MobjectPositionInRange(note, y_max=-5.0)
             )
-            self.scene.discard(note)
-            return
-
-        await self.play(Parallel(
-            FadeOut(note),
-            note.animate().scale(1.5)
-        ), rate=Rates.rush_from())
+        self.scene.discard(note)
 
 
 class GameExample(Scene):
@@ -327,7 +326,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )
-    TextTransformExample.render(config)
+    GameExample.render(config)
 
 
 if __name__ == "__main__":

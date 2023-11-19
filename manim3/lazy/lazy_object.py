@@ -27,18 +27,18 @@ from .lazy_slot import LazySlot
 
 
 @attrs.frozen(kw_only=True)
-class TypeHint:
-    type_params_cls: type
-    annotation_cls: type
+class AnnotationRecord:
     annotation: Any
+    annotation_cls: type
+    type_params_cls: type
 
     def specialize(
         self: Self,
-        type_hint: TypeHint
-    ) -> TypeHint:
-        assert self.type_params_cls is type_hint.annotation_cls
+        annotation_record: AnnotationRecord
+    ) -> AnnotationRecord:
+        assert self.type_params_cls is annotation_record.annotation_cls
         type_params = self.type_params_cls.__type_params__
-        specializations = getattr(type_hint.annotation, "__args__", ())
+        specializations = getattr(annotation_record.annotation, "__args__", ())
         assert len(type_params) == len(specializations)
         annotation = self.annotation
         if annotation in type_params:
@@ -50,10 +50,10 @@ class TypeHint:
             )]
         else:
             new_annotation = annotation
-        return TypeHint(
-            type_params_cls=type_hint.type_params_cls,
+        return AnnotationRecord(
+            annotation=new_annotation,
             annotation_cls=self.annotation_cls,
-            annotation=new_annotation
+            type_params_cls=annotation_record.type_params_cls
         )
 
     @classmethod
@@ -61,22 +61,22 @@ class TypeHint:
         cls: type[Self],
         override_cls: type,
         base_cls: type
-    ) -> Self:
-        return cls(
-            type_params_cls=override_cls,
+    ) -> AnnotationRecord:
+        return AnnotationRecord(
+            annotation=base_cls if not base_cls.__type_params__ else override_cls.__orig_bases__[0],
             annotation_cls=base_cls,
-            annotation=base_cls if not base_cls.__type_params__ else override_cls.__orig_bases__[0]
+            type_params_cls=override_cls
         )
 
     @classmethod
     def from_root(
         cls: type[Self],
         root_cls: type
-    ) -> Self:
-        return cls(
-            type_params_cls=root_cls,
+    ) -> AnnotationRecord:
+        return AnnotationRecord(
+            annotation=root_cls if not root_cls.__type_params__ else root_cls[*root_cls.__type_params__],
             annotation_cls=root_cls,
-            annotation=root_cls if not root_cls.__type_params__ else root_cls[*root_cls.__type_params__]
+            type_params_cls=root_cls
         )
 
     @classmethod
@@ -109,7 +109,7 @@ class LazyObject(ABC):
     __slots__ = ("_lazy_slots",)
 
     _lazy_descriptors: tuple[LazyDescriptor, ...] = ()
-    _hinted_lazy_descriptors: dict[str, tuple[TypeHint, LazyDescriptor]] = {}
+    _annotated_lazy_descriptors: dict[str, tuple[AnnotationRecord, LazyDescriptor]] = {}
     _lazy_slots_cls: ClassVar[type] = object
     _slot_names: ClassVar[tuple[str, ...]] = ()
 
@@ -118,15 +118,15 @@ class LazyObject(ABC):
     ) -> None:
         super().__init_subclass__()
 
-        hinted_lazy_descriptors = {
-            name: (type_hint.specialize(TypeHint.from_override(cls, base)), descriptor)
+        annotated_lazy_descriptors = {
+            name: (annotation_record.specialize(AnnotationRecord.from_override(cls, base)), descriptor)
             for base in reversed(cls.__bases__)
             if issubclass(base, LazyObject)
-            for name, (type_hint, descriptor) in base._hinted_lazy_descriptors.items()
+            for name, (annotation_record, descriptor) in base._annotated_lazy_descriptors.items()
         }
-        cls._hinted_lazy_descriptors = hinted_lazy_descriptors
+        cls._annotated_lazy_descriptors = annotated_lazy_descriptors
 
-        root_type_hint = TypeHint.from_root(cls)
+        root_annotation_record = AnnotationRecord.from_root(cls)
         for name, descriptor in cls.__dict__.items():
             if not isinstance(descriptor, LazyDescriptor):
                 continue
@@ -142,11 +142,11 @@ class LazyObject(ABC):
                 },
                 eval_str=True
             )
-            element_annotation = TypeHint.extract_element_annotation(
+            element_annotation = AnnotationRecord.extract_element_annotation(
                 annotation=signature.return_annotation,
                 plural=descriptor._plural
             )
-            element_annotation_cls = TypeHint.get_cls_from_annotation(element_annotation)
+            element_annotation_cls = AnnotationRecord.get_cls_from_annotation(element_annotation)
 
             assert name.startswith("_") and name.endswith("_") and "__" not in name
             descriptor._name = name
@@ -163,45 +163,45 @@ class LazyObject(ABC):
                 Implementations.hashers.fetch(element_annotation_cls if descriptor._freeze else object)
             )
 
-            if (typed_overridden_descriptor := hinted_lazy_descriptors.get(name)) is not None:
-                type_hint, overridden_descriptor = typed_overridden_descriptor
+            if (typed_overridden_descriptor := annotated_lazy_descriptors.get(name)) is not None:
+                annotation_record, overridden_descriptor = typed_overridden_descriptor
                 assert overridden_descriptor._plural is descriptor._plural
                 assert not overridden_descriptor._freeze or descriptor._freeze
-                assert type_hint.annotation_cls is element_annotation_cls
-                assert type_hint.annotation == element_annotation
+                assert annotation_record.annotation_cls is element_annotation_cls
+                assert annotation_record.annotation == element_annotation
 
-            hinted_lazy_descriptors[name] = (TypeHint(
-                type_params_cls=cls,
+            annotated_lazy_descriptors[name] = (AnnotationRecord(
+                annotation=element_annotation,
                 annotation_cls=element_annotation_cls,
-                annotation=element_annotation
+                type_params_cls=cls
             ), descriptor)
 
             for parameter_name_chain, parameter in zip(
                 parameter_name_chains, signature.parameters.values(), strict=True
             ):
                 last_descriptor_freeze: bool = False
-                type_hint = root_type_hint
+                annotation_record = root_annotation_record
                 provided_annotation = parameter.annotation
                 for name_segment in parameter_name_chain:
-                    assert issubclass(element_cls := type_hint.annotation_cls, LazyObject)
-                    parameter_type_hint, parameter_descriptor = element_cls._hinted_lazy_descriptors[name_segment]
+                    assert issubclass(element_cls := annotation_record.annotation_cls, LazyObject)
+                    parameter_annotation_record, parameter_descriptor = element_cls._annotated_lazy_descriptors[name_segment]
                     last_descriptor_freeze = parameter_descriptor._freeze
-                    type_hint = parameter_type_hint.specialize(type_hint)
-                    provided_annotation = TypeHint.extract_element_annotation(
+                    annotation_record = parameter_annotation_record.specialize(annotation_record)
+                    provided_annotation = AnnotationRecord.extract_element_annotation(
                         annotation=provided_annotation,
                         plural=parameter_descriptor._plural
                     )
                 assert last_descriptor_freeze
-                assert type_hint.annotation == provided_annotation
+                assert annotation_record.annotation == provided_annotation
                 assert parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
                 assert parameter.default is inspect.Parameter.empty
 
-        cls._lazy_descriptors = tuple(descriptor for _, descriptor in hinted_lazy_descriptors.values())
+        cls._lazy_descriptors = tuple(descriptor for _, descriptor in annotated_lazy_descriptors.values())
         cls._lazy_slots_cls = attrs.make_class(
             name=f"__{cls.__name__}",
             attrs={
                 name: attrs.field(factory=functools.partial(LazySlot, descriptor))
-                for name, (_, descriptor) in hinted_lazy_descriptors.items()
+                for name, (_, descriptor) in annotated_lazy_descriptors.items()
             },
             slots=True,
             frozen=True

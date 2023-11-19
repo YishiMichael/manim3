@@ -60,7 +60,7 @@ class Scene(Timeline):
             if preview:
                 Toplevel.window.pyglet_window.dispatch_events()
             self._progress()
-            Toplevel.window.event_queue.clear()
+            Toplevel.window.clear_event_queue()
             self._root_mobject._render_scene(color_framebuffer)
             if preview:
                 self._render_to_window(color_framebuffer._framebuffer_)

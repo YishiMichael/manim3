@@ -19,7 +19,7 @@ class WindowHandlers:
         symbol: int,
         modifiers: int
     ) -> None:
-        Toplevel.window.event_queue.append(Events.key_press(
+        Toplevel.window.push_event(Events.key_press(
             symbol=symbol,
             modifiers=modifiers
         ))
@@ -29,7 +29,7 @@ class WindowHandlers:
         symbol: int,
         modifiers: int
     ) -> None:
-        Toplevel.window.event_queue.append(Events.key_release(
+        Toplevel.window.push_event(Events.key_release(
             symbol=symbol,
             modifiers=modifiers
         ))
@@ -41,7 +41,7 @@ class WindowHandlers:
         dx: int,
         dy: int
     ) -> None:
-        Toplevel.window.event_queue.append(Events.mouse_motion(
+        Toplevel.window.push_event(Events.mouse_motion(
             x=x,
             y=y,
             dx=dx,
@@ -57,7 +57,7 @@ class WindowHandlers:
         buttons: int,
         modifiers: int
     ) -> None:
-        Toplevel.window.event_queue.append(Events.mouse_drag(
+        Toplevel.window.push_event(Events.mouse_drag(
             x=x,
             y=y,
             dx=dx,
@@ -73,7 +73,7 @@ class WindowHandlers:
         buttons: int,
         modifiers: int
     ) -> None:
-        Toplevel.window.event_queue.append(Events.mouse_press(
+        Toplevel.window.push_event(Events.mouse_press(
             x=x,
             y=y,
             buttons=buttons,
@@ -87,7 +87,7 @@ class WindowHandlers:
         buttons: int,
         modifiers: int
     ) -> None:
-        Toplevel.window.event_queue.append(Events.mouse_release(
+        Toplevel.window.push_event(Events.mouse_release(
             x=x,
             y=y,
             buttons=buttons,
@@ -101,7 +101,7 @@ class WindowHandlers:
         scroll_x: float,
         scroll_y: float
     ) -> None:
-        Toplevel.window.event_queue.append(Events.mouse_scroll(
+        Toplevel.window.push_event(Events.mouse_scroll(
             x=x,
             y=y,
             scroll_x=scroll_x,
@@ -118,8 +118,7 @@ class Window:
     __slots__ = (
         "_window_handlers",
         "_pyglet_window",
-        "_event_queue",
-        "_recent_event"
+        "_event_queue"
     )
 
     def __init__(
@@ -152,7 +151,6 @@ class Window:
         self._window_handlers: WindowHandlers | None = window_handlers
         self._pyglet_window: PygletWindow | None = pyglet_window
         self._event_queue: list[Event] = []
-        self._recent_event: Event | None = None
 
     @property
     def pyglet_window(
@@ -161,30 +159,27 @@ class Window:
         assert (pyglet_window := self._pyglet_window) is not None
         return pyglet_window
 
-    @property
-    def event_queue(
-        self: Self
-    ) -> list[Event]:
-        return self._event_queue
-
-    @property
-    def recent_event(
-        self: Self
-    ) -> Event:
-        assert (recent_event := self._recent_event) is not None
-        return recent_event
+    def push_event(
+        self: Self,
+        event: Event
+    ) -> None:
+        self._event_queue.append(event)
 
     def capture_event(
         self: Self,
-        targeting_event: Event
-    ) -> bool:
-        event_queue = self.event_queue
+        target_event: Event
+    ) -> Event | None:
+        event_queue = self._event_queue
         for event in event_queue:
-            if targeting_event._capture(event):
+            if target_event._capture(event):
                 event_queue.remove(event)
-                self._recent_event = event
-                return True
-        return False
+                return event
+        return None
+
+    def clear_event_queue(
+        self: Self
+    ) -> None:
+        self._event_queue.clear()
 
     def close(
         self: Self
