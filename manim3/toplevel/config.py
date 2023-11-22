@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pathlib
 import sys
+from types import TracebackType
 from typing import Self
 
 import attrs
@@ -12,6 +13,7 @@ from ..constants.custom_typing import (
     AlignmentType,
     ColorType
 )
+from .toplevel import Toplevel
 
 
 @attrs.frozen(kw_only=True)
@@ -24,9 +26,7 @@ class Config:
     aspect_ratio: float = 16.0 / 9.0
     frame_height: float = 8.0
     pixel_height: int = 1080
-    streaming_pixel_height: int = 360
-    verbose: bool = True
-    window_font: str = "Consolas"
+    window_pixel_height: int = 540
 
     camera_distance: float = 5.0
     camera_near: float = 0.1
@@ -128,13 +128,34 @@ class Config:
         return int(self.pixel_height / self.frame_height)
 
     @property
-    def streaming_pixel_width(
+    def window_pixel_width(
         self: Self
     ) -> int:
-        return int(self.aspect_ratio * self.streaming_pixel_height)
+        return int(self.aspect_ratio * self.window_pixel_height)
 
     @property
-    def streaming_pixel_size(
+    def window_pixel_size(
         self: Self
     ) -> tuple[int, int]:
-        return self.streaming_pixel_width, self.streaming_pixel_height
+        return self.window_pixel_width, self.window_pixel_height
+
+    def __enter__(
+        self: Self
+    ) -> None:
+        #assert Toplevel._configure_contextmanager is None
+        #configure_contextmanager = Toplevel._configure()
+        #Toplevel._configure_contextmanager = configure_contextmanager
+        #configure_contextmanager.__enter__()
+        Toplevel._config = self
+
+    def __exit__(
+        self: Self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None
+    ) -> None:
+        Toplevel._config = None
+        #assert Toplevel._configure_contextmanager is not None
+        #configure_contextmanager = Toplevel._configure_contextmanager
+        #Toplevel._configure_contextmanager = None
+        #configure_contextmanager.__exit__(exc_type, exc_value, exc_traceback)

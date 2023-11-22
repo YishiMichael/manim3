@@ -326,7 +326,7 @@ def main() -> None:
         #write_last_frame=True,
         #pixel_height=540,
     )):
-        with Toplevel.streaming():
+        with Toplevel.livestream():
             InteractiveExample().run()
 
 

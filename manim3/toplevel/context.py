@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import functools
 import operator
+from types import TracebackType
 from typing import Self
 
 import attrs
@@ -40,6 +41,20 @@ class Context:
         self._mgl_context: moderngl.Context = mgl_context
         #self._root_color_framebuffer: ColorFramebuffer = ColorFramebuffer()
         #self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
+
+    def __enter__(
+        self: Self
+    ) -> None:
+        Toplevel._context = self
+
+    def __exit__(
+        self: Self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None
+    ) -> None:
+        self._mgl_context.release()
+        Toplevel._context = None
 
     def set_state(
         self: Self,
@@ -177,8 +192,3 @@ class Context:
             textures=textures,
             uniform_buffers=uniform_buffers
         )
-
-    def release(
-        self: Self
-    ) -> None:
-        self._mgl_context.release()

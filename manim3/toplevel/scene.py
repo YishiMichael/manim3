@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+from types import TracebackType
 from typing import Self
 
 from ..animatables.lights.ambient_light import AmbientLight
@@ -40,6 +41,19 @@ class Scene(Timeline):
             background_color=Toplevel._get_config().background_color,
             background_opacity=Toplevel._get_config().background_opacity
         )
+
+    def __enter__(
+        self: Self
+    ) -> None:
+        Toplevel._scene = self
+
+    def __exit__(
+        self: Self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None
+    ) -> None:
+        Toplevel._scene = None
 
     #async def _render(
     #    self: Self
@@ -94,7 +108,7 @@ class Scene(Timeline):
         Toplevel._get_window()._pyglet_window.dispatch_events()
         self._progress()
         Toplevel._get_window().clear_event_queue()
-        Toplevel._get_renderer()._process_frame(self)
+        Toplevel._get_renderer().process_frame(self)
 
     async def _run(
         self: Self
@@ -107,7 +121,7 @@ class Scene(Timeline):
 
             async with asyncio.TaskGroup() as task_group:
                 task_group.create_task(self._run_frame())
-                if Toplevel._get_renderer()._streaming:
+                if Toplevel._get_renderer()._livestream:
                     task_group.create_task(asyncio.sleep(spf))
 
             if self.get_after_terminated_state() is not None:
@@ -206,7 +220,7 @@ class Scene(Timeline):
     def run(
         self: Self
     ) -> None:
-        with Toplevel._set_toplevel_scene(self):
+        with self:
             asyncio.run(self._run())
 
     # Shortcut access to root mobject.

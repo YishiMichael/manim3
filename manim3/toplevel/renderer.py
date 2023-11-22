@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import pathlib
 import subprocess
+from types import TracebackType
 from typing import (
     IO,
     Self
 )
 
 import numpy as np
-import pyglet.gl as gl
 from PIL import Image
 
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
@@ -24,6 +24,7 @@ from .toplevel import Toplevel
 
 class VideoPipe:
     __slots__ = (
+        "_writing_process",
         "_video_stream",
         "_writable"
     )
@@ -33,7 +34,7 @@ class VideoPipe:
         video_path: pathlib.Path
     ) -> None:
         super().__init__()
-        process = subprocess.Popen((
+        writing_process = subprocess.Popen((
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
@@ -48,8 +49,9 @@ class VideoPipe:
             "-loglevel", "error",
             video_path  # TODO: str()
         ), stdin=subprocess.PIPE)
-        assert process.stdin is not None
-        self._video_stream: IO[bytes] = process.stdin
+        assert writing_process.stdin is not None
+        self._writing_process: subprocess.Popen = writing_process
+        self._video_stream: IO[bytes] = writing_process.stdin
         self._writable: bool = False
 
     def write(
@@ -57,6 +59,13 @@ class VideoPipe:
         data: bytes
     ) -> None:
         self._video_stream.write(data)
+
+    def close(
+        self: Self
+    ) -> None:
+        self._video_stream.close()
+        self._writing_process.wait()
+        self._writing_process.terminate()
 
     def set_writability(
         self: Self,
@@ -70,7 +79,7 @@ class Renderer:
         "_color_framebuffer",
         "_oit_framebuffer",
         "_oit_compose_vertex_array",
-        "_streaming",
+        "_livestream",
         "_video_pipes"
     )
 
@@ -120,67 +129,58 @@ class Renderer:
         self._color_framebuffer: ColorFramebuffer = color_framebuffer
         self._oit_framebuffer: OITFramebuffer = oit_framebuffer
         self._oit_compose_vertex_array: VertexArray = oit_compose_vertex_array
-        self._streaming: bool = False
+        self._livestream: bool = False
         self._video_pipes: dict[pathlib.Path, VideoPipe] = {}
 
-    def _process_frame(
-        self: Self,
-        scene: Scene
-    ) -> None:
-        if self._streaming or self._video_pipes:
-            self._render_frame(scene)
-        if self._streaming:
-            self._stream_frame()
-        if self._video_pipes:
-            self._record_frame()
-
-    def _render_frame(
-        self: Self,
-        scene: Scene
-    ) -> None:
-        self._oit_framebuffer._framebuffer_.clear()
-        for mobject in scene._root_mobject.iter_descendants():
-            mobject._render(self._oit_framebuffer)
-
-        red, green, blue = scene._background_color
-        alpha = scene._background_opacity
-        self._color_framebuffer._framebuffer_.clear(
-            red=red, green=green, blue=blue, alpha=alpha
-        )
-        self._oit_compose_vertex_array.render(self._color_framebuffer)
-
-    def _stream_frame(
+    def __enter__(
         self: Self
     ) -> None:
-        src = self._color_framebuffer._framebuffer_
-        dst = Toplevel._get_context().screen_framebuffer
-        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
-        gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
-        gl.glBlitFramebuffer(
-            *src.viewport, *Toplevel._get_window().get_scene_viewport(),
-            gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
-        )
-        #Toplevel._get_context().blit(framebuffer, screen_framebuffer)
-        Toplevel._get_window()._pyglet_window.flip()
+        Toplevel._renderer = self
 
-    def _record_frame(
-        self: Self
+    def __exit__(
+        self: Self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None
     ) -> None:
-        frame_data = self._color_framebuffer._color_texture_.read()
         for video_pipe in self._video_pipes.values():
-            if not video_pipe._writable:
-                continue
-            video_pipe.write(frame_data)
+            video_pipe.close()
+        Toplevel._renderer = None
 
-    def start_streaming(
+    def process_frame(
+        self: Self,
+        scene: Scene
+    ) -> None:
+        if self._livestream or self._video_pipes:
+            self._oit_framebuffer._framebuffer_.clear()
+            for mobject in scene._root_mobject.iter_descendants():
+                mobject._render(self._oit_framebuffer)
+
+            red, green, blue = scene._background_color
+            alpha = scene._background_opacity
+            self._color_framebuffer._framebuffer_.clear(
+                red=red, green=green, blue=blue, alpha=alpha
+            )
+            self._oit_compose_vertex_array.render(self._color_framebuffer)
+
+        if self._livestream:
+            Toplevel._get_window().draw_frame(self._color_framebuffer._framebuffer_)
+        if self._video_pipes:
+            frame_data = self._color_framebuffer._color_texture_.read()
+            for video_pipe in self._video_pipes.values():
+                if not video_pipe._writable:
+                    continue
+                video_pipe.write(frame_data)
+
+    def start_livestream(
         self: Self
     ) -> None:
-        self._streaming = True
+        self._livestream = True
 
-    def stop_streaming(
+    def stop_livestream(
         self: Self
     ) -> None:
-        self._streaming = False
+        self._livestream = False
 
     def start_recording(
         self: Self,
@@ -190,7 +190,8 @@ class Renderer:
             video_path = Toplevel._get_config().video_output_dir.joinpath(Toplevel._get_config().default_filename).with_suffix(".mp4")
         else:
             video_path = Toplevel._get_config().video_output_dir.joinpath(filename)
-            assert video_path.suffix == ".mp4", f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
+            assert video_path.suffix == ".mp4", \
+                f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
         if (video_pipe := self._video_pipes.pop(video_path, None)) is None:
             video_pipe = VideoPipe(video_path)
             self._video_pipes[video_path] = video_pipe
@@ -204,12 +205,13 @@ class Renderer:
             video_path = Toplevel._get_config().video_output_dir.joinpath(Toplevel._get_config().default_filename).with_suffix(".mp4")
         else:
             video_path = Toplevel._get_config().video_output_dir.joinpath(filename)
-            assert video_path.suffix == ".mp4", f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
+            assert video_path.suffix == ".mp4", \
+                f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
         if (video_pipe := self._video_pipes.pop(video_path, None)) is None:
             raise ValueError(f"Video pipe on {filename} not found.")
         video_pipe.set_writability(False)
 
-    def screenshot(
+    def snapshot(
         self: Self,
         filename: str | None = None
     ) -> None:
@@ -217,7 +219,8 @@ class Renderer:
             image_path = Toplevel._get_config().image_output_dir.joinpath(Toplevel._get_config().default_filename).with_suffix(".png")
         else:
             image_path = Toplevel._get_config().image_output_dir.joinpath(filename)
-            assert image_path.suffix == ".png", f"Image format other than .png is currently not supported: {image_path.suffix}"
+            assert image_path.suffix == ".png", \
+                f"Image format other than .png is currently not supported: {image_path.suffix}"
         image = Image.frombytes(
             "RGB",
             Toplevel._get_config().pixel_size,

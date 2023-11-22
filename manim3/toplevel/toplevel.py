@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 
-import pathlib
 from contextlib import contextmanager
 from typing import (
-    IO,
     TYPE_CHECKING,
     ClassVar,
     Iterator,
     Self
 )
 
-from .config import Config
-
 if TYPE_CHECKING:
+    from .config import Config
     from .context import Context
+    from .logger import Logger
     from .renderer import Renderer
     from .scene import Scene
     from .window import Window
@@ -24,12 +22,11 @@ class Toplevel:
     __slots__ = ()
 
     _config: ClassVar[Config | None] = None
+    _logger: ClassVar[Logger | None] = None
     _window: ClassVar[Window | None] = None
     _context: ClassVar[Context | None] = None
     _renderer: ClassVar[Renderer | None] = None
     _scene: ClassVar[Scene | None] = None
-    _streaming: ClassVar[bool] = False
-    _video_process_items: ClassVar[dict[pathlib.Path, tuple[IO[bytes], bool]]] = {}
 
     @classmethod
     def _get_config(
@@ -37,6 +34,13 @@ class Toplevel:
     ) -> Config:
         assert (config := cls._config) is not None
         return config
+
+    @classmethod
+    def _get_logger(
+        cls: type[Self]
+    ) -> Logger:
+        assert (logger := cls._logger) is not None
+        return logger
 
     @classmethod
     def _get_window(
@@ -73,21 +77,34 @@ class Toplevel:
         config: Config
         #scene_cls: type[Scene]
     ) -> Iterator[None]:
+        from .logger import Logger
         from .window import Window
         from .context import Context
         from .renderer import Renderer
-
-        cls._config = config
-        cls._window = Window()
-        cls._context = Context()
-        cls._renderer = Renderer()
-        yield
-        cls._renderer = None
-        cls._context.release()
-        cls._context = None
-        cls._window.close()
-        cls._window = None
-        cls._config = None
+        with (
+            config,
+            Logger(),
+            Window(),
+            Context(),
+            Renderer()
+        ):
+            yield
+        #cls._config = config
+        #with Logger() as logger:
+        #    cls._logger = logger
+        #cls._window = Window()
+        #cls._context = Context()
+        #cls._renderer = Renderer()
+        #yield
+        #cls._renderer.clear_pipes()
+        #cls._renderer = None
+        #cls._context.release()
+        #cls._context = None
+        #cls._window.close()
+        #cls._window = None
+        ##cls._logger.close()
+        #cls._logger = None
+        #cls._config = None
 
     #@classmethod
     #@contextmanager
@@ -98,7 +115,7 @@ class Toplevel:
     #    from .window import Window
     #    window = Window(
     #        #gl_version=config.gl_version,
-    #        #streaming_pixel_size=config.streaming_pixel_size,
+    #        #livestream_pixel_size=config.livestream_pixel_size,
     #        #verbose=config.verbose
     #    )
     #    yield window
@@ -127,27 +144,27 @@ class Toplevel:
     #    from .renderer import Renderer
     #    yield Renderer()
 
-    @classmethod
-    @contextmanager
-    def _set_toplevel_scene(
-        cls: type[Self],
-        scene: Scene
-    ) -> Iterator[None]:
-        cls._scene = scene
-        yield
-        cls._scene = None
+    #@classmethod
+    #@contextmanager
+    #def _set_toplevel_scene(
+    #    cls: type[Self],
+    #    scene: Scene
+    #) -> Iterator[None]:
+    #    cls._scene = scene
+    #    yield
+    #    cls._scene = None
 
     @classmethod
-    def start_streaming(
+    def start_livestream(
         cls: type[Self]
     ) -> None:
-        cls._get_renderer().start_streaming()
+        cls._get_renderer().start_livestream()
 
     @classmethod
-    def stop_streaming(
+    def stop_livestream(
         cls: type[Self]
     ) -> None:
-        cls._get_renderer().stop_streaming()
+        cls._get_renderer().stop_livestream()
 
     @classmethod
     def start_recording(
@@ -164,20 +181,20 @@ class Toplevel:
         cls._get_renderer().stop_recording(filename)
 
     @classmethod
-    def screenshot(
+    def snapshot(
         cls: type[Self],
         filename: str | None = None
     ) -> None:
-        cls._get_renderer().screenshot(filename)
+        cls._get_renderer().snapshot(filename)
 
     @classmethod
     @contextmanager
-    def streaming(
+    def livestream(
         cls: type[Self]
     ) -> Iterator[None]:
-        cls.start_streaming()
+        cls.start_livestream()
         yield
-        cls.stop_streaming()
+        cls.stop_livestream()
 
     @classmethod
     @contextmanager
