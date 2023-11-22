@@ -18,4 +18,4 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
         self: Self,
         color: ColorType
     ) -> None:
-        super().__init__(ColorUtils.standardize_color(color))
+        super().__init__(ColorUtils.color_to_array(color))

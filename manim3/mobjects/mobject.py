@@ -202,12 +202,12 @@ class Mobject(Model):
     @Lazy.volatile(deepcopy=False)
     @staticmethod
     def _camera_() -> Camera:
-        return Toplevel.scene._camera
+        return Toplevel._get_scene()._camera
 
     @Lazy.volatile(deepcopy=False)
     @staticmethod
     def _lighting_() -> Lighting:
-        return Toplevel.scene._lighting
+        return Toplevel._get_scene()._lighting
 
     def _render(
         self: Self,

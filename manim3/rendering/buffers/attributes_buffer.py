@@ -31,16 +31,16 @@ class AttributesBuffer(Buffer):
         data_dict: dict[str, np.ndarray],
         index: NP_xi4 | None = None,
         primitive_mode: PrimitiveMode,
-        num_vertices: int,
+        vertices_count: int,
         array_lens: dict[str, int] | None = None
     ) -> None:
         super().__init__(
-            shape=(num_vertices,),
+            shape=(vertices_count,),
             array_lens=array_lens
         )
         self._field_declarations_ = field_declarations
         self._data_dict_ = data_dict
-        self._num_vertices_ = num_vertices
+        self._vertices_count_ = vertices_count
         if index is not None:
             self._index_bytes_ = index.astype(np.uint32).tobytes()
             self._use_index_buffer_ = True
@@ -58,7 +58,7 @@ class AttributesBuffer(Buffer):
 
     @Lazy.variable()
     @staticmethod
-    def _num_vertices_() -> int:
+    def _vertices_count_() -> int:
         return 0
 
     @Lazy.variable()
@@ -108,7 +108,7 @@ class AttributesBuffer(Buffer):
         shape: ShapeType,
         data_dict: dict[str, np.ndarray]
     ) -> moderngl.Buffer:
-        return Toplevel.context.buffer(merged_field.write(shape, data_dict))
+        return Toplevel._get_context().buffer(merged_field.write(shape, data_dict))
 
     @Lazy.property()
     @staticmethod
@@ -118,4 +118,4 @@ class AttributesBuffer(Buffer):
     ) -> moderngl.Buffer | None:
         if not use_index_buffer:
             return None
-        return Toplevel.context.buffer(index_bytes)
+        return Toplevel._get_context().buffer(index_bytes)

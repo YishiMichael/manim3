@@ -6,6 +6,5 @@ numpy
 pillow
 pyclipr
 pyglet
-pyopengl
 scipy
 svgelements

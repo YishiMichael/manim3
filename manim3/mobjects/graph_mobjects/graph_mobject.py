@@ -21,7 +21,6 @@ from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-from ...utils.path_utils import PathUtils
 from ..mobject import Mobject
 
 
@@ -48,28 +47,28 @@ class GraphMobject(Mobject):
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor(Toplevel.config.default_color)
+        return AnimatableColor(Toplevel._get_config().default_color)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.default_opacity)
+        return AnimatableFloat(Toplevel._get_config().default_opacity)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.default_weight)
+        return AnimatableFloat(Toplevel._get_config().default_weight)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _width_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.graph_width)
+        return AnimatableFloat(Toplevel._get_config().graph_width)
 
     @Lazy.property()
     @staticmethod
@@ -118,7 +117,7 @@ class GraphMobject(Mobject):
             },
             index=graph__edges.flatten(),
             primitive_mode=PrimitiveMode.LINES,
-            num_vertices=len(graph__positions)
+            vertices_count=len(graph__positions)
         )
 
     @Lazy.property()
@@ -130,7 +129,7 @@ class GraphMobject(Mobject):
         graph_attributes_buffer: AttributesBuffer
     ) -> VertexArray:
         return VertexArray(
-            shader_path=PathUtils.shaders_dir.joinpath("graph.glsl"),
+            shader_filename="graph.glsl",
             uniform_block_buffers=(
                 camera__camera_uniform_block_buffer,
                 model_uniform_block_buffer,

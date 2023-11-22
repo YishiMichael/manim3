@@ -23,7 +23,7 @@ class PointLight(Point):
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor(Toplevel.config.default_color)
+        return AnimatableColor(Toplevel._get_config().default_color)
 
     @Lazy.property()
     @staticmethod

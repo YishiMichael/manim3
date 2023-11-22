@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 
+import pathlib
+import sys
 from typing import Self
 
 import attrs
@@ -14,16 +16,17 @@ from ..constants.custom_typing import (
 
 @attrs.frozen(kw_only=True)
 class Config:
-    fps: int = 30
-    write_video: bool = False
-    write_last_frame: bool = False
-    preview: bool = True
+    #write_video: bool = False
+    #write_last_frame: bool = False
+    #preview: bool = True
     gl_version: tuple[int, int] = (4, 3)
-
+    fps: int = 30
     aspect_ratio: float = 16.0 / 9.0
     frame_height: float = 8.0
     pixel_height: int = 1080
-    window_pixel_height: int = 540
+    streaming_pixel_height: int = 360
+    verbose: bool = True
+    window_font: str = "Consolas"
 
     camera_distance: float = 5.0
     camera_near: float = 0.1
@@ -69,6 +72,18 @@ class Config:
     code_font: str = "JetBrains Mono"
     code_language_suffix: str = ".py"
 
+    shader_search_dirs: tuple[pathlib.Path, ...] = (
+        pathlib.Path(),
+        pathlib.Path(__import__("manim3").__file__).parent.joinpath("shaders")
+    )
+    image_search_dirs: tuple[pathlib.Path, ...] = (
+        pathlib.Path(),
+    )
+    output_dir: pathlib.Path = pathlib.Path("manim3_output")
+    video_output_dir: pathlib.Path = pathlib.Path("manim3_output/videos")
+    image_output_dir: pathlib.Path = pathlib.Path("manim3_output/images")
+    default_filename: str = sys.argv[0]
+
     @property
     def gl_version_code(
         self: Self
@@ -113,13 +128,13 @@ class Config:
         return int(self.pixel_height / self.frame_height)
 
     @property
-    def window_pixel_width(
+    def streaming_pixel_width(
         self: Self
     ) -> int:
-        return int(self.aspect_ratio * self.window_pixel_height)
+        return int(self.aspect_ratio * self.streaming_pixel_height)
 
     @property
-    def window_pixel_size(
+    def streaming_pixel_size(
         self: Self
     ) -> tuple[int, int]:
-        return self.window_pixel_width, self.window_pixel_height
+        return self.streaming_pixel_width, self.streaming_pixel_height

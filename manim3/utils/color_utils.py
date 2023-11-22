@@ -25,7 +25,7 @@ class ColorUtils:
         raise TypeError
 
     @classmethod
-    def standardize_color(
+    def color_to_array(
         cls: type[Self],
         color: ColorType
     ) -> NP_3f8:
@@ -34,13 +34,12 @@ class ColorUtils:
                 return np.array(color.rgb)
             case str() if re.fullmatch(r"\w+", color):
                 return np.array(Color(color).rgb)
-            case str() if re.fullmatch(r"#[0-9A-F]+", color, flags=re.IGNORECASE) and (hex_len := len(color) - 1) in (3, 6):
-                component_size = hex_len // 3
-                return (1.0 / (16 ** component_size - 1)) * np.fromiter((
+            case str() if re.fullmatch(r"#[0-9A-F]{6}", color, flags=re.IGNORECASE):
+                return np.fromiter((
                     int(match.group(), 16)
-                    for match in re.finditer(rf"[0-9A-F]{{{component_size}}}", color, flags=re.IGNORECASE)
-                ), dtype=np.float64)
-            case np.ndarray() if color.ndim == 1 and color.size == 3:
+                    for match in re.finditer(r"[0-9A-F]{2}", color, flags=re.IGNORECASE)
+                ), dtype=np.float64) / 255.0
+            case np.ndarray() if color.shape == (3,):
                 return color.astype(np.float64)
             case _:
                 raise ValueError(f"Invalid color: {color}")
@@ -50,5 +49,5 @@ class ColorUtils:
         cls: type[Self],
         color: ColorType
     ) -> str:
-        components = (cls.standardize_color(color) * 255.0).astype(np.int32)
+        components = (cls.color_to_array(color) * 255.0).astype(np.int32)
         return f"#{"".join("{:02x}".format(component) for component in components)}"

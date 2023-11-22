@@ -5,7 +5,6 @@ import copy
 import functools
 import inspect
 import operator
-import pathlib
 from abc import ABC
 from enum import Enum
 from typing import (
@@ -335,7 +334,6 @@ class Implementations:
     # Consider creating a data class if it is not the case.
     @hashers.register(tuple)
     @hashers.register(Enum)
-    @hashers.register(pathlib.Path)
     @staticmethod
     def _(
         element: Hashable

@@ -24,13 +24,13 @@ class OITFramebuffer(Framebuffer):
         size: tuple[int, int] | None = None
     ) -> None:
         if size is None:
-            size = Toplevel.config.pixel_size
-        accum_texture = Toplevel.context.texture(
+            size = Toplevel._get_config().pixel_size
+        accum_texture = Toplevel._get_context().texture(
             size=size,
             components=4,
             dtype="f2"
         )
-        revealage_texture = Toplevel.context.texture(
+        revealage_texture = Toplevel._get_context().texture(
             size=size,
             components=1,
             dtype="f2"

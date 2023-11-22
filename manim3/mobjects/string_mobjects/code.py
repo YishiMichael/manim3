@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 from typing import (
+    ClassVar,
     Iterator,
     Self,
     Unpack
@@ -26,8 +27,8 @@ from .string_mobject import (
 
 @attrs.frozen(kw_only=True)
 class CodeInput(PangoStringMobjectInput):
-    font: str = attrs.field(factory=lambda: Toplevel.config.code_font)
-    language_suffix: str = attrs.field(factory=lambda: Toplevel.config.code_language_suffix)
+    font: str = attrs.field(factory=lambda: Toplevel._get_config().code_font)
+    language_suffix: str = attrs.field(factory=lambda: Toplevel._get_config().code_language_suffix)
 
 
 class CodeKwargs(PangoStringMobjectKwargs, total=False):
@@ -37,21 +38,16 @@ class CodeKwargs(PangoStringMobjectKwargs, total=False):
 class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _dir_name(
-        cls: type[Self]
-    ) -> str:
-        return "code"
+    _dir_name: ClassVar[str] = "code"
 
     @classmethod
-    def _iter_local_span_attribs(
+    def _iter_local_span_attributes(
         cls: type[Self],
         input_data: CodeInputT,
         temp_path: pathlib.Path
     ) -> Iterator[tuple[Span, dict[str, str]]]:
 
-        yield from super()._iter_local_span_attribs(input_data, temp_path)
+        yield from super()._iter_local_span_attributes(input_data, temp_path)
         language_suffix = input_data.language_suffix
         try:
             code_path = temp_path.with_suffix(language_suffix)
@@ -77,16 +73,16 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
             for token in json.loads(json_str):
                 # See `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
                 style = token["style"]
-                attribs: dict[str, str] = {}
+                attributes: dict[str, str] = {}
                 if (foreground := style.get("foreground")):
-                    attribs["fgcolor"] = foreground
+                    attributes["fgcolor"] = foreground
                 if (background := style.get("background")):
-                    attribs["bgcolor"] = background
+                    attributes["bgcolor"] = background
                 if style.get("bold"):
-                    attribs["font_weight"] = "bold"
+                    attributes["font_weight"] = "bold"
                 if style.get("italic"):
-                    attribs["font_style"] = "italic"
-                yield Span(token["begin"], token["end"]), attribs
+                    attributes["font_style"] = "italic"
+                yield Span(token["begin"], token["end"]), attributes
         finally:
             for suffix in (language_suffix, ".json"):
                 temp_path.with_suffix(suffix).unlink(missing_ok=True)

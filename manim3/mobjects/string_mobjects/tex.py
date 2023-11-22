@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 from typing import (
+    ClassVar,
     Self,
     Unpack
 )
@@ -23,9 +24,9 @@ from .string_mobject import StringMobject
 
 @attrs.frozen(kw_only=True)
 class TexInput(LatexStringMobjectInput):
-    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel.config.tex_alignment)
-    compiler: str = attrs.field(factory=lambda: Toplevel.config.tex_compiler)
-    preambles: tuple[str, ...] = attrs.field(factory=lambda: Toplevel.config.tex_preambles)
+    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel._get_config().tex_alignment)
+    compiler: str = attrs.field(factory=lambda: Toplevel._get_config().tex_compiler)
+    preambles: tuple[str, ...] = attrs.field(factory=lambda: Toplevel._get_config().tex_preambles)
 
 
 class TexKwargs(LatexStringMobjectKwargs, total=False):
@@ -37,12 +38,8 @@ class TexKwargs(LatexStringMobjectKwargs, total=False):
 class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _dir_name(
-        cls: type[Self]
-    ) -> str:
-        return "tex"
+    _dir_name: ClassVar[str] = "tex"
+    _scale_factor_per_font_point: ClassVar[float] = 0.001577
 
     @classmethod
     def _create_svg(
@@ -106,13 +103,6 @@ class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
         finally:
             for suffix in (".tex", dvi_suffix, ".log", ".aux"):
                 svg_path.with_suffix(suffix).unlink(missing_ok=True)
-
-    @classmethod
-    @property
-    def _scale_factor_per_font_point(
-        cls: type[Self]
-    ) -> float:
-        return 0.001577
 
 
 class Tex(StringMobject):

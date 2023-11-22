@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 
+__version__ = "0.0.1"
+
 from .animatables.lights.ambient_light import AmbientLight
 from .animatables.lights.point_light import PointLight
 from .animatables.camera import Camera
@@ -80,3 +82,4 @@ from .timelines.transform_matching_strings import TransformMatchingStrings
 from .toplevel.events import Events
 from .toplevel.config import Config
 from .toplevel.scene import Scene
+from .toplevel.toplevel import Toplevel

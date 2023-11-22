@@ -319,14 +319,15 @@ class GameExample(Scene):
 
 
 def main() -> None:
-    config = Config(
+    with Toplevel.configure(Config(
         fps=30,
         #preview=False,
         #write_video=True,
         #write_last_frame=True,
         #pixel_height=540,
-    )
-    GameExample.render(config)
+    )):
+        with Toplevel.streaming():
+            InteractiveExample().run()
 
 
 if __name__ == "__main__":

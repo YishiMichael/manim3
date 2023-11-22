@@ -30,7 +30,7 @@ class EventCapturedCondition(Condition):
     def judge(
         self: Self
     ) -> bool:
-        captured_event = Toplevel.window.capture_event(self._event)
+        captured_event = Toplevel._get_window().capture_event(self._event)
         if captured_event is not None:
             self._captured_event = captured_event
             return True

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from typing import (
+    ClassVar,
     Iterator,
     Self,
     Unpack
@@ -35,12 +36,7 @@ class MarkupKwargs(PangoStringMobjectKwargs, total=False):
 class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _dir_name(
-        cls: type[Self]
-    ) -> str:
-        return "markup"
+    _dir_name: ClassVar[str] = "markup"
 
     @classmethod
     def _iter_command_infos(
@@ -62,7 +58,7 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
             |(?P<entity>&(?P<unicode>\#(?P<hex>x)?)?(?P<content>.*?);)
             |(?P<char>[>"'])
         """, flags=re.VERBOSE | re.DOTALL)
-        attribs_pattern = re.compile(r"""
+        attributes_pattern = re.compile(r"""
             (?P<attr_name>\w+)
             \s*\=\s*
             (?P<quot>["'])(?P<attr_val>.*?)(?P=quot)
@@ -76,12 +72,12 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
                     open_stack.append(match)
                 else:
                     open_match_obj = open_stack.pop()
-                    attribs = {
-                        attribs_match_obj.group("attr_name"): attribs_match_obj.group("attr_val")
-                        for attribs_match_obj in attribs_pattern.finditer(open_match_obj.group("attr_list"))
+                    attributes = {
+                        attributes_match_obj.group("attr_name"): attributes_match_obj.group("attr_val")
+                        for attributes_match_obj in attributes_pattern.finditer(open_match_obj.group("attr_list"))
                     } if (tag_name := open_match_obj.group("tag_name")) == "span" else cls._MARKUP_TAGS[tag_name]
                     yield BalancedCommandInfo(
-                        attribs=attribs,
+                        attributes=attributes,
                         isolated=False,
                         open_match_obj=open_match_obj,
                         close_match_obj=match,

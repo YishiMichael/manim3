@@ -7,7 +7,8 @@ from typing import Self
 
 import attrs
 import moderngl
-import OpenGL.GL as gl
+import pyglet.gl as gl
+#import OpenGL.GL as gl
 
 from ..rendering.mgl_enums import (
     BlendEquation,
@@ -15,6 +16,7 @@ from ..rendering.mgl_enums import (
     ContextFlag,
     PrimitiveMode
 )
+from ..toplevel.toplevel import Toplevel
 
 
 @attrs.frozen(kw_only=True)
@@ -25,24 +27,19 @@ class ContextState:
 
 
 class Context:
-    __slots__ = (
-        "_mgl_context",
-        "_window_framebuffer"
-    )
+    __slots__ = ("_mgl_context",)
 
     def __init__(
-        self: Self,
-        gl_version_code: int,
-        preview: bool
+        self: Self
     ) -> None:
         super().__init__()
         mgl_context = moderngl.create_context(
-            require=gl_version_code,
-            standalone=not preview
+            require=Toplevel._get_config().gl_version_code
         )
         mgl_context.gc_mode = "auto"
         self._mgl_context: moderngl.Context = mgl_context
-        self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
+        #self._root_color_framebuffer: ColorFramebuffer = ColorFramebuffer()
+        #self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
 
     def set_state(
         self: Self,
@@ -64,17 +61,18 @@ class Context:
                 blend_equation.value
             )
 
-    def blit(
-        self: Self,
-        src: moderngl.Framebuffer,
-        dst: moderngl.Framebuffer
-    ) -> None:
-        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
-        gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
-        gl.glBlitFramebuffer(
-            *src.viewport, *dst.viewport,
-            gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
-        )
+    #def blit(
+    #    self: Self,
+    #    src: moderngl.Framebuffer,
+    #    dst: moderngl.Framebuffer
+    #) -> None:
+    #    print(src.glo, dst.glo)
+    #    gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
+    #    gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
+    #    gl.glBlitFramebuffer(
+    #        *src.viewport, *dst.viewport,
+    #        gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
+    #    )
 
     @property
     def version_code(

@@ -16,19 +16,25 @@ class ImageMobject(Plane):
 
     def __init__(
         self: Self,
-        image_path: str,
+        image_filename: str,
         *,
         width: float | None = None,
         height: float | None = 4.0,
         frame_scale: float | None = None
     ) -> None:
         super().__init__()
+        for image_dir in Toplevel._get_config().image_search_dirs:
+            if (image_path := image_dir.joinpath(image_filename)).exists():
+                break
+        else:
+            raise FileNotFoundError(image_filename)
+
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image_texture = Toplevel.context.texture(size=image.size, components=3, dtype="f1")
+        image_texture = Toplevel._get_context().texture(size=image.size, components=3, dtype="f1")
         image_texture.write(image.tobytes("raw", "RGB"))
         self._color_maps_ = (image_texture,)
 
-        pixel_per_unit = Toplevel.config.pixel_per_unit
+        pixel_per_unit = Toplevel._get_config().pixel_per_unit
         original_width = image.width / pixel_per_unit
         original_height = image.height / pixel_per_unit
         scale_x, scale_y = SpaceUtils.get_frame_scale_vector(

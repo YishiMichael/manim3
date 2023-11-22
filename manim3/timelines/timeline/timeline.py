@@ -31,7 +31,7 @@ class BaseAbsoluteRate:
     def at(
         self: Self
     ) -> float:
-        return Toplevel.scene._timestamp
+        return Toplevel._get_scene()._timestamp
 
 
 class AbsoluteRate(BaseAbsoluteRate):
@@ -340,7 +340,7 @@ class Timeline(ABC):
     def scene(
         self: Self
     ) -> Scene:
-        return Toplevel.scene
+        return Toplevel._get_scene()
 
     async def play(
         self: Self,

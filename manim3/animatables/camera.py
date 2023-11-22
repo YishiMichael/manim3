@@ -43,8 +43,8 @@ class Camera(Model):
         # `frame_radii`: (|RIGHT - ORIGIN|, |UP - ORIGIN|)
         # `distance`: |OUT - ORIGIN|
         self.scale(np.append(
-            Toplevel.config.frame_radii,
-            Toplevel.config.camera_distance
+            Toplevel._get_config().frame_radii,
+            Toplevel._get_config().camera_distance
         ))
         if near is not None:
             self._near_ = AnimatableFloat(near)
@@ -55,13 +55,13 @@ class Camera(Model):
     @Lazy.volatile()
     @staticmethod
     def _near_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.camera_near)
+        return AnimatableFloat(Toplevel._get_config().camera_near)
 
     @AnimatableActions.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _far_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.camera_far)
+        return AnimatableFloat(Toplevel._get_config().camera_far)
 
     @Lazy.property()
     @staticmethod

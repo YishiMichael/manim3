@@ -42,13 +42,13 @@ class PangoAlignment(Enum):
 
 @attrs.frozen(kw_only=True)
 class PangoStringMobjectInput(StringMobjectInput):
-    color: ColorType = attrs.field(factory=lambda: Toplevel.config.default_color)
-    font_size: float = attrs.field(factory=lambda: Toplevel.config.pango_font_size)
-    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel.config.pango_alignment)
-    font: str = attrs.field(factory=lambda: Toplevel.config.pango_font)
-    justify: bool = attrs.field(factory=lambda: Toplevel.config.pango_justify)
-    indent: float = attrs.field(factory=lambda: Toplevel.config.pango_indent)
-    line_width: float = attrs.field(factory=lambda: Toplevel.config.pango_line_width)
+    color: ColorType = attrs.field(factory=lambda: Toplevel._get_config().default_color)
+    font_size: float = attrs.field(factory=lambda: Toplevel._get_config().pango_font_size)
+    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel._get_config().pango_alignment)
+    font: str = attrs.field(factory=lambda: Toplevel._get_config().pango_font)
+    justify: bool = attrs.field(factory=lambda: Toplevel._get_config().pango_justify)
+    indent: float = attrs.field(factory=lambda: Toplevel._get_config().pango_indent)
+    line_width: float = attrs.field(factory=lambda: Toplevel._get_config().pango_line_width)
 
 
 class PangoStringMobjectKwargs(StringMobjectKwargs, total=False):
@@ -85,18 +85,18 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
     }
 
     @classmethod
-    def _get_global_span_attribs(
+    def _get_global_span_attributes(
         cls: type[Self],
         input_data: PangoStringMobjectInputT,
         temp_path: pathlib.Path
     ) -> dict[str, str]:
-        global_span_attribs = {
+        global_span_attributes = {
             "foreground": ColorUtils.color_to_hex(input_data.color),
             "font_size": str(round(input_data.font_size * 1024.0)),
             "font_family": input_data.font
         }
-        global_span_attribs.update(super()._get_global_span_attribs(input_data, temp_path))
-        return global_span_attribs
+        global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
+        return global_span_attributes
 
     @classmethod
     def _create_svg(
@@ -139,7 +139,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
             alignment=pango_alignment,
             pango_width=(
                 -1 if (line_width := input_data.line_width) < 0.0
-                else line_width * Toplevel.config.pixel_per_unit
+                else line_width * Toplevel._get_config().pixel_per_unit
             )
         )
 
@@ -153,17 +153,17 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
     @classmethod
     def _get_command_pair(
         cls: type[Self],
-        attribs: dict[str, str]
+        attributes: dict[str, str]
     ) -> tuple[str, str]:
         return f"<span {" ".join(
             f"{key}='{value}'"
-            for key, value in attribs.items()
+            for key, value in attributes.items()
         )}>", "</span>"
 
     @classmethod
-    def _convert_attribs_for_labelling(
+    def _convert_attributes_for_labelling(
         cls: type[Self],
-        attribs: dict[str, str],
+        attributes: dict[str, str],
         label: int | None
     ) -> dict[str, str]:
 
@@ -189,7 +189,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
 
         result = {
             key: converted_value
-            for key, value in attribs.items()
+            for key, value in attributes.items()
             if (converted_value := convert_attrib_value(key, value)) is not None
         }
         if label is not None:

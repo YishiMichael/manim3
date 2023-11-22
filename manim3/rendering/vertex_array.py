@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 import itertools
-import pathlib
 import re
 from typing import Self
 
@@ -12,7 +11,6 @@ import moderngl
 from ..lazy.lazy import Lazy
 from ..lazy.lazy_object import LazyObject
 from ..toplevel.toplevel import Toplevel
-from ..utils.path_utils import PathUtils
 from .buffers.attributes_buffer import AttributesBuffer
 from .buffers.texture_buffer import TextureBuffer
 from .buffers.uniform_block_buffer import UniformBlockBuffer
@@ -75,14 +73,14 @@ class VertexArray(LazyObject):
     def __init__(
         self: Self,
         *,
-        shader_path: pathlib.Path,
+        shader_filename: str,
         custom_macros: tuple[str, ...] = (),
         texture_buffers: tuple[TextureBuffer, ...] = (),
         uniform_block_buffers: tuple[UniformBlockBuffer, ...] = (),
         attributes_buffer: AttributesBuffer
     ) -> None:
         super().__init__()
-        self._shader_path_ = shader_path
+        self._shader_filename_ = shader_filename
         self._custom_macros_ = custom_macros
         self._texture_buffers_ = texture_buffers
         self._uniform_block_buffers_ = uniform_block_buffers
@@ -90,8 +88,8 @@ class VertexArray(LazyObject):
 
     @Lazy.variable()
     @staticmethod
-    def _shader_path_() -> pathlib.Path:
-        return NotImplemented
+    def _shader_filename_() -> str:
+        return ""
 
     @Lazy.variable(plural=True)
     @staticmethod
@@ -131,25 +129,30 @@ class VertexArray(LazyObject):
     @Lazy.property()
     @staticmethod
     def _program_(
-        shader_path: pathlib.Path,
+        shader_filename: str,
         macros: tuple[str, ...],
     ) -> moderngl.Program:
+
         def read_shader_with_includes_replaced(
-            shader_path: pathlib.Path
+            shader_filename: str
         ) -> str:
+            for shader_dir in Toplevel._get_config().shader_search_dirs:
+                if (shader_path := shader_dir.joinpath(shader_filename)).exists():
+                    break
+            else:
+                raise FileNotFoundError(shader_filename)
+
             shader_text = shader_path.read_text(encoding="utf-8")
             return re.sub(
                 r"#include \"(.+?)\"",
-                lambda match: read_shader_with_includes_replaced(
-                    PathUtils.shaders_dir.joinpath(match.group(1))
-                ),
+                lambda match: read_shader_with_includes_replaced(match.group(1)),
                 shader_text
             )
 
-        shader_text = read_shader_with_includes_replaced(shader_path)
+        shader_text = read_shader_with_includes_replaced(shader_filename)
         shaders = {
             shader_type: "\n".join((
-                f"#version {Toplevel.context.version_code} core",
+                f"#version {Toplevel._get_context().version_code} core",
                 "\n",
                 f"#define {shader_type}",
                 *macros,
@@ -165,7 +168,7 @@ class VertexArray(LazyObject):
             )
             if re.search(rf"\b{shader_type}\b", shader_text, flags=re.MULTILINE) is not None
         }
-        return Toplevel.context.program(
+        return Toplevel._get_context().program(
             vertex_shader=shaders["VERTEX_SHADER"],
             fragment_shader=shaders.get("FRAGMENT_SHADER"),
             geometry_shader=shaders.get("GEOMETRY_SHADER"),
@@ -260,13 +263,13 @@ class VertexArray(LazyObject):
         assert not attribute_info_dict
 
         if (
-            not attributes_buffer._num_vertices_
+            not attributes_buffer._vertices_count_
             or not attributes_buffer._merged_field_._itemsize_
             or attributes_buffer._use_index_buffer_ and not attributes_buffer._index_bytes_
         ):
             return None
         return VertexArrayInfo(
-            vertex_array=Toplevel.context.vertex_array(
+            vertex_array=Toplevel._get_context().vertex_array(
                 program=program,
                 attributes_buffer=attributes_buffer._buffer_,
                 attributes_buffer_format_str=" ".join(format_components),
@@ -289,7 +292,7 @@ class VertexArray(LazyObject):
             uniform_block_buffer._name_: uniform_block_buffer
             for uniform_block_buffer in self._uniform_block_buffers_
         }
-        with Toplevel.context.scope(
+        with Toplevel._get_context().scope(
             framebuffer=framebuffer._framebuffer_,
             textures=vertex_array_info.texture_bindings,
             uniform_buffers=tuple(
@@ -297,5 +300,5 @@ class VertexArray(LazyObject):
                 for name, binding in vertex_array_info.uniform_block_bindings
             )
         ):
-            Toplevel.context.set_state(framebuffer._context_state_)
+            Toplevel._get_context().set_state(framebuffer._context_state_)
             vertex_array_info.vertex_array.render()

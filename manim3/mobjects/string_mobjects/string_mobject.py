@@ -91,13 +91,13 @@ class CommandFlag(Enum):
 class CommandInfo:
     __slots__ = (
         "_command_items",
-        "_attribs_item"
+        "_attributes_item"
     )
 
     def __init__(
         self: Self,
         match_obj_items: tuple[tuple[re.Match[str], str | None, CommandFlag], ...],
-        attribs_item: tuple[dict[str, str], bool] | None
+        attributes_item: tuple[dict[str, str], bool] | None
     ) -> None:
         super().__init__()
         self._command_items: tuple[tuple[Span, str, CommandFlag], ...] = tuple(
@@ -108,7 +108,7 @@ class CommandInfo:
             )
             for match, replacement, command_flag in match_obj_items
         )
-        self._attribs_item: tuple[dict[str, str], bool] | None = attribs_item
+        self._attributes_item: tuple[dict[str, str], bool] | None = attributes_item
 
 
 class StandaloneCommandInfo(CommandInfo):
@@ -123,19 +123,19 @@ class StandaloneCommandInfo(CommandInfo):
             match_obj_items=(
                 (match, replacement, CommandFlag.STANDALONE),
             ),
-            attribs_item=None
+            attributes_item=None
         )
 
 
 class BalancedCommandInfo(CommandInfo):
     __slots__ = (
         "_other_match_obj_item",
-        "_attribs_item"
+        "_attributes_item"
     )
 
     def __init__(
         self: Self,
-        attribs: dict[str, str],
+        attributes: dict[str, str],
         isolated: bool,
         open_match_obj: re.Match[str],
         close_match_obj: re.Match[str],
@@ -147,7 +147,7 @@ class BalancedCommandInfo(CommandInfo):
                 (open_match_obj, open_replacement, CommandFlag.OPEN),
                 (close_match_obj, close_replacement, CommandFlag.CLOSE)
             ),
-            attribs_item=(attribs, isolated)
+            attributes_item=(attributes, isolated)
         )
 
 
@@ -155,7 +155,7 @@ class BalancedCommandInfo(CommandInfo):
 class SpanInfo:
     span: Span
     isolated: bool | None = None
-    attribs: dict[str, str] | None = None
+    attributes: dict[str, str] | None = None
     local_color: ColorType | None = None
     command_item: tuple[CommandInfo, str, CommandFlag] | None = None
 
@@ -256,15 +256,15 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 SpanInfo(
                     span=Span(0, len(string)),
                     isolated=True,
-                    attribs=cls._get_global_span_attribs(input_data, temp_path)
+                    attributes=cls._get_global_span_attributes(input_data, temp_path)
                 ),
                 *(
                     SpanInfo(
                         span=span,
                         isolated=False,
-                        attribs=attribs
+                        attributes=attributes
                     )
-                    for span, attribs in cls._iter_local_span_attribs(input_data, temp_path)
+                    for span, attributes in cls._iter_local_span_attributes(input_data, temp_path)
                 ),
                 *(
                     SpanInfo(
@@ -331,7 +331,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         for shape_mobject, label in shape_mobject_items:
             _, local_color = isolated_items[label]
             if local_color is not None:
-                shape_mobject._color_._array_ = ColorUtils.standardize_color(local_color)
+                shape_mobject._color_._array_ = ColorUtils.color_to_array(local_color)
 
         return StringMobjectOutput(
             shape_mobjects=tuple(shape_mobject for shape_mobject, _ in shape_mobject_items),
@@ -431,7 +431,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         return shape_mobjects
 
     @classmethod
-    def _get_global_span_attribs(
+    def _get_global_span_attributes(
         cls: type[Self],
         input_data: StringMobjectInputT,
         temp_path: pathlib.Path
@@ -439,7 +439,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         return {}
 
     @classmethod
-    def _iter_local_span_attribs(
+    def _iter_local_span_attributes(
         cls: type[Self],
         input_data: StringMobjectInputT,
         temp_path: pathlib.Path
@@ -529,12 +529,12 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     replacement_records.append(command_replacement_record)
                     open_insertion_record, open_command_info = open_command_stack.pop()
                     assert open_command_info is command_info
-                    assert (attribs_item := command_info._attribs_item) is not None
-                    attribs, isolated = attribs_item
+                    assert (attributes_item := command_info._attributes_item) is not None
+                    attributes, isolated = attributes_item
                     insertion_record_items.append((
                         open_insertion_record,
                         close_insertion_record,
-                        attribs,
+                        attributes,
                         isolated,
                         None
                     ))
@@ -570,7 +570,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 insertion_record_items.append((
                     start_insertion_record,
                     stop_insertion_record,
-                    span_info.attribs if span_info.attribs is not None else {},
+                    span_info.attributes if span_info.attributes is not None else {},
                     span_info.isolated,
                     local_color
                 ))
@@ -583,7 +583,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
 
         label_counter = itertools.count()
         isolated_items: list[tuple[Span, ColorType | None]] = []
-        for start_insertion_record, stop_insertion_record, attribs, isolated, local_color in insertion_record_items:
+        for start_insertion_record, stop_insertion_record, attributes, isolated, local_color in insertion_record_items:
             if isolated:
                 label = next(label_counter)
                 isolated_items.append((
@@ -592,9 +592,9 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 ))
             else:
                 label = None
-            labelled_attribs = cls._convert_attribs_for_labelling(attribs, label)
-            start_unlabelled_insertion, stop_unlabelled_insertion = cls._get_command_pair(attribs)
-            start_labelled_insertion, stop_labelled_insertion = cls._get_command_pair(labelled_attribs)
+            labelled_attributes = cls._convert_attributes_for_labelling(attributes, label)
+            start_unlabelled_insertion, stop_unlabelled_insertion = cls._get_command_pair(attributes)
+            start_labelled_insertion, stop_labelled_insertion = cls._get_command_pair(labelled_attributes)
             start_insertion_record.write_replacements(
                 unlabelled_replacement=start_unlabelled_insertion,
                 labelled_replacement=start_labelled_insertion
@@ -640,15 +640,15 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
     @abstractmethod
     def _get_command_pair(
         cls: type[Self],
-        attribs: dict[str, str]
+        attributes: dict[str, str]
     ) -> tuple[str, str]:
         pass
 
     @classmethod
     @abstractmethod
-    def _convert_attribs_for_labelling(
+    def _convert_attributes_for_labelling(
         cls: type[Self],
-        attribs: dict[str, str],
+        attributes: dict[str, str],
         label: int | None
     ) -> dict[str, str]:
         pass

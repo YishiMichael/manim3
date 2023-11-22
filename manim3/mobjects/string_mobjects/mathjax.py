@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 from typing import (
+    ClassVar,
     Self,
     Unpack
 )
@@ -12,7 +13,6 @@ from typing import (
 import attrs
 
 from ...toplevel.toplevel import Toplevel
-from ...utils.path_utils import PathUtils
 from .latex_string_mobject import (
     LatexStringMobjectIO,
     LatexStringMobjectKwargs,
@@ -23,8 +23,8 @@ from .string_mobject import StringMobject
 
 @attrs.frozen(kw_only=True)
 class MathJaxInput(LatexStringMobjectInput):
-    extensions: tuple[str, ...] = attrs.field(factory=lambda: Toplevel.config.mathjax_extensions)
-    inline: bool = attrs.field(factory=lambda: Toplevel.config.mathjax_inline)
+    extensions: tuple[str, ...] = attrs.field(factory=lambda: Toplevel._get_config().mathjax_extensions)
+    inline: bool = attrs.field(factory=lambda: Toplevel._get_config().mathjax_inline)
 
 
 class MathJaxKwargs(LatexStringMobjectKwargs, total=False):
@@ -35,12 +35,8 @@ class MathJaxKwargs(LatexStringMobjectKwargs, total=False):
 class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _dir_name(
-        cls: type[Self]
-    ) -> str:
-        return "mathjax"
+    _dir_name: ClassVar[str] = "mathjax"
+    _scale_factor_per_font_point: ClassVar[float] = 0.009758
 
     @classmethod
     def _create_svg(
@@ -49,7 +45,7 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
         input_data: MathJaxInputT,
         svg_path: pathlib.Path
     ) -> None:
-        mathjax_program_path = PathUtils.plugins_dir.joinpath("mathjax/index.js")
+        mathjax_program_path = __import__("manim3").joinpath("plugins/mathjax/index.js")
         full_content = content.replace("\n", " ")
 
         if os.system(" ".join((
@@ -67,13 +63,6 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
             error = OSError("MathJaxIO: Failed to execute node command")
             error.add_note(f"MathJax error: {error_match_obj.group(1)}")
             raise error
-
-    @classmethod
-    @property
-    def _scale_factor_per_font_point(
-        cls: type[Self]
-    ) -> float:
-        return 0.009758
 
 
 class MathJax(StringMobject):

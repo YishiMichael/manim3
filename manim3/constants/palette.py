@@ -71,7 +71,7 @@ __all__ = (
 from ..utils.color_utils import ColorUtils
 
 
-_c = ColorUtils.standardize_color
+_c = ColorUtils.color_to_array
 
 BLUE_E = _c("#1C758A")
 BLUE_D = _c("#29ABCA")

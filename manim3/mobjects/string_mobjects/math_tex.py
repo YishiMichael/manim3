@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pathlib
 from typing import (
+    ClassVar,
     Self,
     Unpack
 )
@@ -20,7 +21,7 @@ from .tex import (
 
 @attrs.frozen(kw_only=True)
 class MathTexInput(TexInput):
-    inline: bool = attrs.field(factory=lambda: Toplevel.config.math_tex_inline)
+    inline: bool = attrs.field(factory=lambda: Toplevel._get_config().math_tex_inline)
 
 
 class MathTexKwargs(TexKwargs, total=False):
@@ -30,12 +31,7 @@ class MathTexKwargs(TexKwargs, total=False):
 class MathTexIO[MathTexInputT: MathTexInput](TexIO[MathTexInputT]):
     __slots__ = ()
 
-    @classmethod
-    @property
-    def _dir_name(
-        cls: type[Self]
-    ) -> str:
-        return "math_tex"
+    _dir_name: ClassVar[str] = "math_tex"
 
     @classmethod
     def _create_svg(

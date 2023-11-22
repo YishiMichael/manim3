@@ -5,6 +5,7 @@ import pathlib
 import re
 from abc import abstractmethod
 from typing import (
+    ClassVar,
     Iterator,
     Self
 )
@@ -26,8 +27,8 @@ from .string_mobject import (
 
 @attrs.frozen(kw_only=True)
 class LatexStringMobjectInput(StringMobjectInput):
-    color: ColorType = attrs.field(factory=lambda: Toplevel.config.default_color)
-    font_size: float = attrs.field(factory=lambda: Toplevel.config.latex_font_size)
+    color: ColorType = attrs.field(factory=lambda: Toplevel._get_config().default_color)
+    font_size: float = attrs.field(factory=lambda: Toplevel._get_config().latex_font_size)
 
 
 class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
@@ -38,6 +39,8 @@ class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
 class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT]):
     __slots__ = ()
 
+    _scale_factor_per_font_point: ClassVar[float]
+
     @classmethod
     def _get_svg_frame_scale(
         cls: type[Self],
@@ -46,31 +49,23 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         return cls._scale_factor_per_font_point * input_data.font_size
 
     @classmethod
-    @property
-    @abstractmethod
-    def _scale_factor_per_font_point(
-        cls: type[Self]
-    ) -> float:
-        pass
-
-    @classmethod
-    def _get_global_span_attribs(
+    def _get_global_span_attributes(
         cls: type[Self],
         input_data: LatexStringMobjectInputT,
         temp_path: pathlib.Path
     ) -> dict[str, str]:
-        global_span_attribs = {
+        global_span_attributes = {
             "color": ColorUtils.color_to_hex(input_data.color)
         }
-        global_span_attribs.update(super()._get_global_span_attribs(input_data, temp_path))
-        return global_span_attribs
+        global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
+        return global_span_attributes
 
     @classmethod
     def _get_command_pair(
         cls: type[Self],
-        attribs: dict[str, str]
+        attributes: dict[str, str]
     ) -> tuple[str, str]:
-        if (color_hex := attribs.get("color")) is None:
+        if (color_hex := attributes.get("color")) is None:
             return "", ""
         match = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
         assert match is not None
@@ -80,14 +75,14 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         )}}}", "}}"
 
     @classmethod
-    def _convert_attribs_for_labelling(
+    def _convert_attributes_for_labelling(
         cls: type[Self],
-        attribs: dict[str, str],
+        attributes: dict[str, str],
         label: int | None
     ) -> dict[str, str]:
         result = {
             key: value
-            for key, value in attribs.items()
+            for key, value in attributes.items()
             if key != "color"
         }
         if label is not None:
@@ -121,7 +116,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
                 assert (open_match_obj := pattern.fullmatch(string, pos=open_stop - width, endpos=open_stop)) is not None
                 assert (close_match_obj := pattern.fullmatch(string, pos=close_start, endpos=close_start + width)) is not None
                 yield BalancedCommandInfo(
-                    attribs={},
+                    attributes={},
                     isolated=width >= 2,
                     open_match_obj=open_match_obj,
                     close_match_obj=close_match_obj

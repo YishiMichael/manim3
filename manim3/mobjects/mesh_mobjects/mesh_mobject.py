@@ -5,8 +5,6 @@ from typing import Self
 
 import moderngl
 
-from manim3.rendering.mgl_enums import PrimitiveMode
-
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
@@ -24,9 +22,9 @@ from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
-from ...utils.path_utils import PathUtils
 from ..mobject import Mobject
 
 
@@ -52,42 +50,42 @@ class MeshMobject(Mobject):
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
-        return AnimatableColor(Toplevel.config.default_color)
+        return AnimatableColor(Toplevel._get_config().default_color)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.default_opacity)
+        return AnimatableFloat(Toplevel._get_config().default_opacity)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.default_weight)
+        return AnimatableFloat(Toplevel._get_config().default_weight)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _ambient_strength_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.mesh_ambient_strength)
+        return AnimatableFloat(Toplevel._get_config().mesh_ambient_strength)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _specular_strength_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.mesh_specular_strength)
+        return AnimatableFloat(Toplevel._get_config().mesh_specular_strength)
 
     @AnimatableActions.interpolate.register_descriptor()
     @ModelActions.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _shininess_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel.config.mesh_shininess)
+        return AnimatableFloat(Toplevel._get_config().mesh_shininess)
 
     @Lazy.variable(plural=True)
     @staticmethod
@@ -166,7 +164,7 @@ class MeshMobject(Mobject):
             },
             index=mesh__faces.flatten(),
             primitive_mode=PrimitiveMode.TRIANGLES,
-            num_vertices=len(mesh__positions)
+            vertices_count=len(mesh__positions)
         )
 
     @Lazy.property()
@@ -180,7 +178,7 @@ class MeshMobject(Mobject):
         mesh_attributes_buffer: AttributesBuffer
     ) -> VertexArray:
         return VertexArray(
-            shader_path=PathUtils.shaders_dir.joinpath("mesh.glsl"),
+            shader_filename="mesh.glsl",
             texture_buffers=(
                 color_maps_texture_buffer,
             ),

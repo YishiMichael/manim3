@@ -21,7 +21,7 @@ class Framebuffer(LazyObject):
         depth_attachment: moderngl.Texture | None = None
     ) -> None:
         super().__init__()
-        self._framebuffer_ = Toplevel.context.framebuffer(
+        self._framebuffer_ = Toplevel._get_context().framebuffer(
             color_attachments=color_attachments,
             depth_attachment=depth_attachment
         )
