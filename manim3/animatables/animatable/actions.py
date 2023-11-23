@@ -37,7 +37,9 @@ class ConverterDescriptorParameters(DescriptorParameters):
 class Actions:
     __slots__ = ()
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(
+        cls: type[Self]
+    ) -> None:
         super().__init_subclass__()
         for action in cls.__dict__.values():
             if not isinstance(action, Action):

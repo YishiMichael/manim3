@@ -113,10 +113,10 @@ class WindowHandlers:
             scroll_y=scroll_y
         ))
 
-    #def on_close(
-    #    self: Self
-    #) -> None:
-    #    Toplevel._get_window()._pyglet_window.close()
+    def on_close(
+        self: Self
+    ) -> None:
+        Toplevel._get_window()._pyglet_window.close()
 
 
 class Window(ToplevelResource):

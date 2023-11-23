@@ -328,7 +328,7 @@ def main() -> None:
             #pixel_height=540,
         ),
         Toplevel.livestream(),
-        #Toplevel.recording("TextTransformExample.mp4")
+        Toplevel.recording("TextTransformExample.mp4")
     ):
         TextTransformExample().run()
 

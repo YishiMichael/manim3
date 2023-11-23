@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-import asyncio
 import itertools
+import time
 from typing import Self
 
 from ..animatables.lights.ambient_light import AmbientLight
@@ -40,29 +40,24 @@ class Scene(Timeline):
             background_opacity=Toplevel._get_config().background_opacity
         )
 
-    async def _run_frame(
-        self: Self
-    ) -> None:
-        await asyncio.sleep(0.0)
-        Toplevel._get_window()._pyglet_window.dispatch_events()
-        self._progress()
-        Toplevel._get_window().clear_event_queue()
-        Toplevel._get_renderer().process_frame(self)
-
-    async def _run_scene(
+    def _run(
         self: Self
     ) -> None:
         self._root_schedule()
         spf = 1.0 / Toplevel._get_config().fps
         for frame_index in itertools.count():
+            frame_start_timestamp = time.perf_counter()
             self._scene_timer = frame_index * spf
             Toplevel._get_logger()._fps_counter.increment_frame()
             Toplevel._get_logger()._scene_timer = self._scene_timer
-
-            async with asyncio.TaskGroup() as task_group:
-                task_group.create_task(self._run_frame())
-                if Toplevel._get_renderer()._livestream:
-                    task_group.create_task(asyncio.sleep(spf))
+            Toplevel._get_window()._pyglet_window.dispatch_events()
+            self._progress()
+            Toplevel._get_window().clear_event_queue()
+            Toplevel._get_renderer().process_frame(self)
+            if Toplevel._get_renderer()._livestream and (sleep_time := spf - (
+                time.perf_counter() - frame_start_timestamp
+            )) > 0.0:
+                time.sleep(sleep_time)
 
             if self.get_after_terminated_state() is not None:
                 break
@@ -73,7 +68,10 @@ class Scene(Timeline):
         Toplevel._scene = self
         Toplevel._get_logger()._scene_name = type(self).__name__
         Toplevel._get_logger()._scene_timer = 0.0
-        asyncio.run(self._run_scene())
+        try:
+            self._run()
+        except KeyboardInterrupt:
+            pass
         Toplevel._get_logger()._scene_timer = None
         Toplevel._get_logger()._scene_name = None
         Toplevel._scene = None

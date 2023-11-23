@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import collections
 import datetime
 import itertools
 import time
@@ -51,8 +52,7 @@ class Logger(ToplevelResource):
         "_recordings_count",
         "_scene_name",
         "_scene_timer",
-        "_log_messages",
-        "_log_messages_capacity"
+        "_log_messages"
     )
 
     def __init__(
@@ -65,8 +65,7 @@ class Logger(ToplevelResource):
         self._recordings_count: int | None = None
         self._scene_name: str | None = None
         self._scene_timer: float | None = None
-        self._log_messages_capacity: int = 10
-        self._log_messages: list[str] = []
+        self._log_messages: collections.deque[str] = collections.deque(maxlen=10)
 
     def __contextmanager__(
         self: Self
@@ -82,9 +81,10 @@ class Logger(ToplevelResource):
         log_table = rich.table.Table.grid(
             rich.table.Column(no_wrap=True, overflow="crop")
         )
+        assert (maxlen := self._log_messages.maxlen) is not None
         for log_message in itertools.chain(
             self._log_messages,
-            itertools.repeat("", self._log_messages_capacity - len(self._log_messages))
+            itertools.repeat("", maxlen - len(self._log_messages))
         ):
             log_table.add_row(log_message)
 
@@ -120,5 +120,3 @@ class Logger(ToplevelResource):
         message: str
     ) -> None:
         self._log_messages.append(message)
-        if len(self._log_messages) > self._log_messages_capacity:
-            self._log_messages.pop(0)

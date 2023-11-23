@@ -145,6 +145,10 @@ class Renderer(ToplevelResource):
         self: Self,
         scene: Scene
     ) -> None:
+        if Toplevel._get_window()._pyglet_window.context is None:
+            # User has attempted to close the window.
+            raise KeyboardInterrupt
+
         if self._livestream or self._video_pipes:
             self._oit_framebuffer._framebuffer_.clear()
             for mobject in scene._root_mobject.iter_descendants():
