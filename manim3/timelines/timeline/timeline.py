@@ -31,7 +31,7 @@ class BaseAbsoluteRate:
     def at(
         self: Self
     ) -> float:
-        return Toplevel._get_scene()._timestamp
+        return Toplevel._get_scene()._scene_timer
 
 
 class AbsoluteRate(BaseAbsoluteRate):

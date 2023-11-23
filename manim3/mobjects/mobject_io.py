@@ -58,11 +58,15 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
         json_path = cls._get_output_subdir(cls._dir_name).joinpath(f"{hex_string}.json")
         if not json_path.exists():
             #with cls.display_during_execution():
+            Toplevel._get_logger().log(f"Generating intermediate files in {cls.__name__}...")
             temp_path = cls._get_output_subdir("_temp").joinpath(hex_string)
             output_data = cls.generate(input_data, temp_path)
             json_data = cls.dump_json(output_data)
             json_text = json.dumps(json_data, ensure_ascii=False)
             json_path.write_text(json_text, encoding="utf-8")
+            Toplevel._get_logger().log(f"Intermediate files generation completed.")
+        else:
+            Toplevel._get_logger().log(f"Using cached intermediate files in {cls.__name__}.")
         json_text = json_path.read_text(encoding="utf-8")
         json_data = json.loads(json_text)
         return cls.load_json(json_data)

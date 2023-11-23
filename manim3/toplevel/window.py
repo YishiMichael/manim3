@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 
-from types import TracebackType
-from typing import Self
+from typing import (
+    Iterator,
+    Self
+)
 
 import moderngl
 import pyglet
@@ -11,6 +13,7 @@ import pyglet.gl as gl
 from .event import Event
 from .events import Events
 from .toplevel import Toplevel
+from .toplevel_resource import ToplevelResource
 
 
 class WindowHandlers:
@@ -133,7 +136,7 @@ class WindowHandlers:
 #    log_widget: pyglet.text.layout.ScrollableTextLayout
 
 
-class Window:
+class Window(ToplevelResource):
     __slots__ = (
         #"_window_handlers",
         #"_pyglet_window",
@@ -244,17 +247,11 @@ class Window:
 
         #self._pyglet_window: PygletWindow | None = pyglet_window
 
-    def __enter__(
+    def __contextmanager__(
         self: Self
-    ) -> None:
+    ) -> Iterator[None]:
         Toplevel._window = self
-
-    def __exit__(
-        self: Self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_traceback: TracebackType | None
-    ) -> None:
+        yield
         self._pyglet_window.close()
         Toplevel._window = None
 

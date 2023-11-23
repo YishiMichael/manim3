@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import itertools
-from types import TracebackType
 from typing import Self
 
 from ..animatables.lights.ambient_light import AmbientLight
@@ -24,7 +23,7 @@ class Scene(Timeline):
         "_background_color",
         "_background_opacity",
         "_root_mobject",
-        "_timestamp"
+        "_scene_timer"
     )
 
     def __init__(
@@ -36,24 +35,11 @@ class Scene(Timeline):
         self._background_color: tuple[float, float, float] = (0.0, 0.0, 0.0)
         self._background_opacity: float = 0.0
         self._root_mobject: Mobject = Mobject()
-        self._timestamp: float = 0.0
+        self._scene_timer: float = 0.0
         self.set(
             background_color=Toplevel._get_config().background_color,
             background_opacity=Toplevel._get_config().background_opacity
         )
-
-    def __enter__(
-        self: Self
-    ) -> None:
-        Toplevel._scene = self
-
-    def __exit__(
-        self: Self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_traceback: TracebackType | None
-    ) -> None:
-        Toplevel._scene = None
 
     #async def _render(
     #    self: Self
@@ -117,7 +103,10 @@ class Scene(Timeline):
         spf = 1.0 / Toplevel._get_config().fps
         for frame_index in itertools.count():
             #sleep_time = spf if Toplevel._get_renderer()._streaming else 0.0
-            self._timestamp = frame_index * spf
+            self._scene_timer = frame_index * spf
+
+            Toplevel._get_logger()._fps_counter.increment_frame()
+            Toplevel._get_logger()._scene_timer = self._scene_timer
 
             async with asyncio.TaskGroup() as task_group:
                 task_group.create_task(self._run_frame())
@@ -220,8 +209,13 @@ class Scene(Timeline):
     def run(
         self: Self
     ) -> None:
-        with self:
-            asyncio.run(self._run())
+        Toplevel._scene = self
+        Toplevel._get_logger()._scene_name = type(self).__name__
+        Toplevel._get_logger()._scene_timer = 0.0
+        asyncio.run(self._run())
+        Toplevel._get_logger()._scene_timer = None
+        Toplevel._get_logger()._scene_name = None
+        Toplevel._scene = None
 
     # Shortcut access to root mobject.
 

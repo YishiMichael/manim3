@@ -3,7 +3,6 @@ import pathlib
 
 
 import re
-from abc import abstractmethod
 from typing import (
     ClassVar,
     Iterator,

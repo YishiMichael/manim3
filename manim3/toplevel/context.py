@@ -3,13 +3,14 @@ from __future__ import annotations
 
 import functools
 import operator
-from types import TracebackType
-from typing import Self
+from typing import (
+    Iterator,
+    Self
+)
 
 import attrs
 import moderngl
 import pyglet.gl as gl
-#import OpenGL.GL as gl
 
 from ..rendering.mgl_enums import (
     BlendEquation,
@@ -18,6 +19,7 @@ from ..rendering.mgl_enums import (
     PrimitiveMode
 )
 from ..toplevel.toplevel import Toplevel
+from .toplevel_resource import ToplevelResource
 
 
 @attrs.frozen(kw_only=True)
@@ -27,7 +29,7 @@ class ContextState:
     blend_equations: tuple[BlendEquation, ...]
 
 
-class Context:
+class Context(ToplevelResource):
     __slots__ = ("_mgl_context",)
 
     def __init__(
@@ -42,18 +44,11 @@ class Context:
         #self._root_color_framebuffer: ColorFramebuffer = ColorFramebuffer()
         #self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
 
-    def __enter__(
+    def __contextmanager__(
         self: Self
-    ) -> None:
+    ) -> Iterator[None]:
         Toplevel._context = self
-
-    def __exit__(
-        self: Self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_traceback: TracebackType | None
-    ) -> None:
-        self._mgl_context.release()
+        yield
         Toplevel._context = None
 
     def set_state(

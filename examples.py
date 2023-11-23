@@ -319,15 +319,18 @@ class GameExample(Scene):
 
 
 def main() -> None:
-    with Toplevel.configure(Config(
-        fps=30,
-        #preview=False,
-        #write_video=True,
-        #write_last_frame=True,
-        #pixel_height=540,
-    )):
-        with Toplevel.livestream():
-            InteractiveExample().run()
+    with (
+        Config(
+            fps=30,
+            #preview=False,
+            #write_video=True,
+            #write_last_frame=True,
+            #pixel_height=540,
+        ),
+        #Toplevel.livestream(),
+        Toplevel.recording("TextTransformExample.mp4")
+    ):
+        TextTransformExample().run()
 
 
 if __name__ == "__main__":

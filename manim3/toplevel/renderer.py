@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import pathlib
 import subprocess
-from types import TracebackType
 from typing import (
     IO,
+    Iterator,
     Self
 )
 
@@ -20,6 +20,7 @@ from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
 from .scene import Scene
 from .toplevel import Toplevel
+from .toplevel_resource import ToplevelResource
 
 
 class VideoPipe:
@@ -67,14 +68,8 @@ class VideoPipe:
         self._writing_process.wait()
         self._writing_process.terminate()
 
-    def set_writability(
-        self: Self,
-        writable: bool
-    ) -> None:
-        self._writable = writable
 
-
-class Renderer:
+class Renderer(ToplevelResource):
     __slots__ = (
         "_color_framebuffer",
         "_oit_framebuffer",
@@ -130,21 +125,20 @@ class Renderer:
         self._oit_framebuffer: OITFramebuffer = oit_framebuffer
         self._oit_compose_vertex_array: VertexArray = oit_compose_vertex_array
         self._livestream: bool = False
-        self._video_pipes: dict[pathlib.Path, VideoPipe] = {}
+        self._video_pipes: dict[str, VideoPipe] = {}
 
-    def __enter__(
+    def __contextmanager__(
         self: Self
-    ) -> None:
+    ) -> Iterator[None]:
         Toplevel._renderer = self
-
-    def __exit__(
-        self: Self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_traceback: TracebackType | None
-    ) -> None:
-        for video_pipe in self._video_pipes.values():
+        Toplevel._get_logger()._livestream = False
+        Toplevel._get_logger()._recordings_count = 0
+        yield
+        Toplevel._get_logger()._recordings_count = None
+        Toplevel._get_logger()._livestream = None
+        for filename, video_pipe in self._video_pipes.items():
             video_pipe.close()
+            Toplevel._get_logger().log(f"Recording saved to '{filename}'.")
         Toplevel._renderer = None
 
     def process_frame(
@@ -175,52 +169,68 @@ class Renderer:
     def start_livestream(
         self: Self
     ) -> None:
+        if self._livestream:
+            return
         self._livestream = True
+        Toplevel._get_logger()._livestream = True
+        Toplevel._get_logger().log("Start livestream.")
 
     def stop_livestream(
         self: Self
     ) -> None:
+        if not self._livestream:
+            return
         self._livestream = False
+        Toplevel._get_logger()._livestream = False
+        Toplevel._get_logger().log("Stop livestream.")
 
     def start_recording(
         self: Self,
         filename: str | None = None
     ) -> None:
         if filename is None:
-            video_path = Toplevel._get_config().video_output_dir.joinpath(Toplevel._get_config().default_filename).with_suffix(".mp4")
-        else:
-            video_path = Toplevel._get_config().video_output_dir.joinpath(filename)
-            assert video_path.suffix == ".mp4", \
-                f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
-        if (video_pipe := self._video_pipes.pop(video_path, None)) is None:
+            filename = f"{Toplevel._get_config().default_filename}.mp4"
+        video_dir = Toplevel._get_config().video_output_dir
+        video_dir.mkdir(exist_ok=True)
+        video_path = video_dir.joinpath(filename)
+        assert video_path.suffix == ".mp4", \
+            f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
+        if (video_pipe := self._video_pipes.pop(filename, None)) is None:
             video_pipe = VideoPipe(video_path)
-            self._video_pipes[video_path] = video_pipe
-        video_pipe.set_writability(True)
+            self._video_pipes[filename] = video_pipe
+        if video_pipe._writable:
+            return
+        video_pipe._writable = True
+        assert (recordings_count := Toplevel._get_logger()._recordings_count) is not None
+        Toplevel._get_logger()._recordings_count = recordings_count + 1
+        Toplevel._get_logger().log(f"Start recording video to '{filename}'.")
 
     def stop_recording(
         self: Self,
         filename: str | None = None
     ) -> None:
         if filename is None:
-            video_path = Toplevel._get_config().video_output_dir.joinpath(Toplevel._get_config().default_filename).with_suffix(".mp4")
-        else:
-            video_path = Toplevel._get_config().video_output_dir.joinpath(filename)
-            assert video_path.suffix == ".mp4", \
-                f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
-        if (video_pipe := self._video_pipes.pop(video_path, None)) is None:
+            filename = f"{Toplevel._get_config().default_filename}.mp4"
+        if (video_pipe := self._video_pipes.pop(filename, None)) is None:
             raise ValueError(f"Video pipe on {filename} not found.")
-        video_pipe.set_writability(False)
+        if not video_pipe._writable:
+            return
+        video_pipe._writable = False
+        assert (recordings_count := Toplevel._get_logger()._recordings_count) is not None
+        Toplevel._get_logger()._recordings_count = recordings_count - 1
+        Toplevel._get_logger().log(f"Stop recording video to '{filename}'.")
 
     def snapshot(
         self: Self,
         filename: str | None = None
     ) -> None:
         if filename is None:
-            image_path = Toplevel._get_config().image_output_dir.joinpath(Toplevel._get_config().default_filename).with_suffix(".png")
-        else:
-            image_path = Toplevel._get_config().image_output_dir.joinpath(filename)
-            assert image_path.suffix == ".png", \
-                f"Image format other than .png is currently not supported: {image_path.suffix}"
+            filename = f"{Toplevel._get_config().default_filename}.png"
+        image_dir = Toplevel._get_config().image_output_dir
+        image_dir.mkdir(exist_ok=True)
+        image_path = image_dir.joinpath(filename)
+        assert image_path.suffix == ".png", \
+            f"Image format other than .png is currently not supported: {image_path.suffix}"
         image = Image.frombytes(
             "RGB",
             Toplevel._get_config().pixel_size,
@@ -228,3 +238,4 @@ class Renderer:
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         image.save(image_path)
+        Toplevel._get_logger().log(f"Snapshot saved to '{filename}'.")

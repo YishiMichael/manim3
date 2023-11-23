@@ -70,41 +70,41 @@ class Toplevel:
         assert (scene := cls._scene) is not None
         return scene
 
-    @classmethod
-    @contextmanager
-    def configure(
-        cls: type[Self],
-        config: Config
-        #scene_cls: type[Scene]
-    ) -> Iterator[None]:
-        from .logger import Logger
-        from .window import Window
-        from .context import Context
-        from .renderer import Renderer
-        with (
-            config,
-            Logger(),
-            Window(),
-            Context(),
-            Renderer()
-        ):
-            yield
-        #cls._config = config
-        #with Logger() as logger:
-        #    cls._logger = logger
-        #cls._window = Window()
-        #cls._context = Context()
-        #cls._renderer = Renderer()
-        #yield
-        #cls._renderer.clear_pipes()
-        #cls._renderer = None
-        #cls._context.release()
-        #cls._context = None
-        #cls._window.close()
-        #cls._window = None
-        ##cls._logger.close()
-        #cls._logger = None
-        #cls._config = None
+    #@classmethod
+    #@contextmanager
+    #def configure(
+    #    cls: type[Self],
+    #    config: Config
+    #    #scene_cls: type[Scene]
+    #) -> Iterator[None]:
+    #    from .logger import Logger
+    #    from .window import Window
+    #    from .context import Context
+    #    from .renderer import Renderer
+    #    with (
+    #        config,
+    #        Logger(),
+    #        Window(),
+    #        Context(),
+    #        Renderer()
+    #    ):
+    #        yield
+    #    #cls._config = config
+    #    #with Logger() as logger:
+    #    #    cls._logger = logger
+    #    #cls._window = Window()
+    #    #cls._context = Context()
+    #    #cls._renderer = Renderer()
+    #    #yield
+    #    #cls._renderer.clear_pipes()
+    #    #cls._renderer = None
+    #    #cls._context.release()
+    #    #cls._context = None
+    #    #cls._window.close()
+    #    #cls._window = None
+    #    ##cls._logger.close()
+    #    #cls._logger = None
+    #    #cls._config = None
 
     #@classmethod
     #@contextmanager

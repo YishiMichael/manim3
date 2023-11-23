@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import pathlib
 import sys
-from types import TracebackType
-from typing import Self
+from typing import (
+    Iterator,
+    Self
+)
 
 import attrs
 from colour import Color
@@ -14,10 +16,11 @@ from ..constants.custom_typing import (
     ColorType
 )
 from .toplevel import Toplevel
+from .toplevel_resource import ToplevelResource
 
 
 @attrs.frozen(kw_only=True)
-class Config:
+class Config(ToplevelResource):
     #write_video: bool = False
     #write_last_frame: bool = False
     #preview: bool = True
@@ -82,7 +85,7 @@ class Config:
     output_dir: pathlib.Path = pathlib.Path("manim3_output")
     video_output_dir: pathlib.Path = pathlib.Path("manim3_output/videos")
     image_output_dir: pathlib.Path = pathlib.Path("manim3_output/images")
-    default_filename: str = sys.argv[0]
+    default_filename: str = sys.argv[0].removesuffix(".py")
 
     @property
     def gl_version_code(
@@ -139,23 +142,20 @@ class Config:
     ) -> tuple[int, int]:
         return self.window_pixel_width, self.window_pixel_height
 
-    def __enter__(
+    def __contextmanager__(
         self: Self
-    ) -> None:
-        #assert Toplevel._configure_contextmanager is None
-        #configure_contextmanager = Toplevel._configure()
-        #Toplevel._configure_contextmanager = configure_contextmanager
-        #configure_contextmanager.__enter__()
-        Toplevel._config = self
+    ) -> Iterator[None]:
+        from .logger import Logger
+        from .window import Window
+        from .context import Context
+        from .renderer import Renderer
 
-    def __exit__(
-        self: Self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        exc_traceback: TracebackType | None
-    ) -> None:
+        Toplevel._config = self
+        with (
+            Logger(),
+            Window(),
+            Context(),
+            Renderer()
+        ):
+            yield
         Toplevel._config = None
-        #assert Toplevel._configure_contextmanager is not None
-        #configure_contextmanager = Toplevel._configure_contextmanager
-        #Toplevel._configure_contextmanager = None
-        #configure_contextmanager.__exit__(exc_type, exc_value, exc_traceback)
