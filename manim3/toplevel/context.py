@@ -86,36 +86,28 @@ class Context(ToplevelResource):
         *,
         size: tuple[int, int],
         components: int,
+        samples: int,
         dtype: str
     ) -> moderngl.Texture:
         return self._mgl_context.texture(
             size=size,
             components=components,
+            samples=samples,
             dtype=dtype
-        )
-
-    def depth_texture(
-        self: Self,
-        *,
-        size: tuple[int, int]
-    ) -> moderngl.Texture:
-        return self._mgl_context.depth_texture(
-            size=size
         )
 
     def framebuffer(
         self: Self,
         *,
-        color_attachments: tuple[moderngl.Texture, ...],
-        depth_attachment: moderngl.Texture | None
+        color_attachments: tuple[moderngl.Texture, ...]
     ) -> moderngl.Framebuffer:
         return self._mgl_context.framebuffer(
-            color_attachments=color_attachments,
-            depth_attachment=depth_attachment
+            color_attachments=color_attachments
         )
 
     def buffer(
         self: Self,
+        *,
         data: bytes
     ) -> moderngl.Buffer:
         return self._mgl_context.buffer(data=data)
@@ -171,4 +163,30 @@ class Context(ToplevelResource):
             framebuffer=framebuffer,
             textures=textures,
             uniform_buffers=uniform_buffers
+        )
+
+    def copy_framebuffer(
+        self: Self,
+        *,
+        dst: moderngl.Framebuffer,
+        src: moderngl.Framebuffer
+    ) -> None:
+        self._mgl_context.copy_framebuffer(
+            dst=dst,
+            src=src
+        )
+
+    def blit_framebuffer(
+        self: Self,
+        *,
+        dst: moderngl.Framebuffer,
+        src: moderngl.Framebuffer
+    ) -> None:
+        # Moderngl `copy_framebuffer` does not support unequal frame sizes.
+        # This method is a simple patch for such requirement.
+        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
+        gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
+        gl.glBlitFramebuffer(
+            *src.viewport, *dst.viewport,
+            gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
         )

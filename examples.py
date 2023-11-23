@@ -328,9 +328,9 @@ def main() -> None:
             #pixel_height=540,
         ),
         Toplevel.livestream(),
-        #Toplevel.recording("FormulaExample.mp4")
+        #Toplevel.recording("FormulaExample_no_msaa.mp4")
     ):
-        FormulaExample().run()
+        OITExample().run()
 
 
 if __name__ == "__main__":

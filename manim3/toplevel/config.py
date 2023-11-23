@@ -27,16 +27,19 @@ class Config(ToplevelResource):
     frame_height: float = 8.0
     pixel_height: int = 1080
     window_pixel_height: int = 540
-
-    camera_distance: float = 5.0
-    camera_near: float = 0.1
-    camera_far: float = 100.0
+    use_msaa: bool = True
+    msaa_samples: int = 4
 
     default_color: ColorType = Color("white")
     default_opacity: float = 1.0
     default_weight: float = 1.0
     background_color: ColorType = Color("black")
     background_opacity: float = 0.0
+
+    camera_distance: float = 5.0
+    camera_near: float = 0.1
+    camera_far: float = 100.0
+
     mesh_ambient_strength: float = 1.0
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0

@@ -292,13 +292,12 @@ class VertexArray(LazyObject):
             uniform_block_buffer._name_: uniform_block_buffer
             for uniform_block_buffer in self._uniform_block_buffers_
         }
-        with Toplevel._get_context().scope(
-            framebuffer=framebuffer._framebuffer_,
+        uniform_buffers = tuple(
+            (uniform_block_buffer_dict[name]._buffer_, binding)
+            for name, binding in vertex_array_info.uniform_block_bindings
+        )
+        framebuffer._render_msaa(
             textures=vertex_array_info.texture_bindings,
-            uniform_buffers=tuple(
-                (uniform_block_buffer_dict[name]._buffer_, binding)
-                for name, binding in vertex_array_info.uniform_block_bindings
-            )
-        ):
-            Toplevel._get_context().set_state(framebuffer._context_state_)
-            vertex_array_info.vertex_array.render()
+            uniform_buffers=uniform_buffers,
+            vertex_array=vertex_array_info.vertex_array
+        )

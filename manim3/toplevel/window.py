@@ -6,9 +6,7 @@ from typing import (
     Self
 )
 
-import moderngl
 import pyglet
-import pyglet.gl as gl
 
 from .event import Event
 from .events import Events
@@ -179,17 +177,3 @@ class Window(ToplevelResource):
         self: Self
     ) -> None:
         self._event_queue.clear()
-
-    def update_frame(
-        self: Self,
-        framebuffer: moderngl.Framebuffer
-    ) -> None:
-        src = framebuffer
-        dst = Toplevel._get_context().screen_framebuffer
-        gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
-        gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
-        gl.glBlitFramebuffer(
-            *src.viewport, *dst.viewport,
-            gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
-        )
-        self._pyglet_window.flip()

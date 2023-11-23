@@ -94,7 +94,7 @@ class Logger(ToplevelResource):
             padding=(0, 2)
         )
         for status_key, status_value in {
-            "Perf Timer": f"{datetime.timedelta(seconds=int(time.perf_counter() - self._start_timestamp))}",
+            "Run Time": f"{datetime.timedelta(seconds=int(time.perf_counter() - self._start_timestamp))}",
             "FPS": f"{self._fps_counter._last_frames_count}",
             "Livestream": "-" if self._livestream is None else "[green]On" if self._livestream else "[red]Off",
             "Recording": "-" if self._recordings_count is None else (

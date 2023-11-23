@@ -108,7 +108,7 @@ class AttributesBuffer(Buffer):
         shape: ShapeType,
         data_dict: dict[str, np.ndarray]
     ) -> moderngl.Buffer:
-        return Toplevel._get_context().buffer(merged_field.write(shape, data_dict))
+        return Toplevel._get_context().buffer(data=merged_field.write(shape, data_dict))
 
     @Lazy.property()
     @staticmethod
@@ -118,4 +118,4 @@ class AttributesBuffer(Buffer):
     ) -> moderngl.Buffer | None:
         if not use_index_buffer:
             return None
-        return Toplevel._get_context().buffer(index_bytes)
+        return Toplevel._get_context().buffer(data=index_bytes)

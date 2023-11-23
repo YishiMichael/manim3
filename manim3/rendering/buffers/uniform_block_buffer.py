@@ -85,4 +85,4 @@ class UniformBlockBuffer(Buffer):
         shape: ShapeType,
         data_dict: dict[str, np.ndarray]
     ) -> moderngl.Buffer:
-        return Toplevel._get_context().buffer(field.write(shape, data_dict))
+        return Toplevel._get_context().buffer(data=field.write(shape, data_dict))

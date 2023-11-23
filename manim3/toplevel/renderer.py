@@ -18,7 +18,6 @@ from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
-from .scene import Scene
 from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
 
@@ -83,18 +82,19 @@ class Renderer(ToplevelResource):
     ) -> None:
         super().__init__()
 
+        samples = Toplevel._get_config().msaa_samples if Toplevel._get_config().use_msaa else 0
         color_framebuffer = ColorFramebuffer()
-        oit_framebuffer = OITFramebuffer()
+        oit_framebuffer = OITFramebuffer(samples=samples)
         oit_compose_vertex_array = VertexArray(
             shader_filename="oit_compose.glsl",
             texture_buffers=(
                 TextureBuffer(
                     name="t_accum_map",
-                    textures=oit_framebuffer._accum_texture_
+                    textures=oit_framebuffer._accum_texture
                 ),
                 TextureBuffer(
                     name="t_revealage_map",
-                    textures=oit_framebuffer._revealage_texture_
+                    textures=oit_framebuffer._revealage_texture
                 )
             ),
             attributes_buffer=AttributesBuffer(
@@ -142,30 +142,46 @@ class Renderer(ToplevelResource):
             Toplevel._get_logger().log(f"Recording saved to '{filename}'.")
         Toplevel._renderer = None
 
+    def _render_frame(
+        self: Self
+    ) -> None:
+        scene = Toplevel._get_scene()
+
+        self._oit_framebuffer._msaa_framebuffer.clear()
+        for mobject in scene._root_mobject.iter_descendants():
+            mobject._render(self._oit_framebuffer)
+        if self._oit_framebuffer._msaa_framebuffer is not self._oit_framebuffer._framebuffer:
+            Toplevel._get_context().copy_framebuffer(
+                dst=self._oit_framebuffer._framebuffer,
+                src=self._oit_framebuffer._msaa_framebuffer
+            )
+
+        red, green, blue = scene._background_color
+        alpha = scene._background_opacity
+        self._color_framebuffer._framebuffer.clear(
+            red=red, green=green, blue=blue, alpha=alpha
+        )
+        self._oit_compose_vertex_array.render(self._color_framebuffer)
+
     def process_frame(
-        self: Self,
-        scene: Scene
+        self: Self
     ) -> None:
         if Toplevel._get_window()._pyglet_window.context is None:
             # User has attempted to close the window.
             raise KeyboardInterrupt
 
         if self._livestream or self._video_pipes:
-            self._oit_framebuffer._framebuffer_.clear()
-            for mobject in scene._root_mobject.iter_descendants():
-                mobject._render(self._oit_framebuffer)
-
-            red, green, blue = scene._background_color
-            alpha = scene._background_opacity
-            self._color_framebuffer._framebuffer_.clear(
-                red=red, green=green, blue=blue, alpha=alpha
-            )
-            self._oit_compose_vertex_array.render(self._color_framebuffer)
+            self._render_frame()
 
         if self._livestream:
-            Toplevel._get_window().update_frame(self._color_framebuffer._framebuffer_)
+            Toplevel._get_context().blit_framebuffer(
+                dst=Toplevel._get_context().screen_framebuffer,
+                src=self._color_framebuffer._framebuffer
+            )
+            Toplevel._get_window()._pyglet_window.flip()
+
         if self._video_pipes:
-            frame_data = self._color_framebuffer._color_texture_.read()
+            frame_data = self._color_framebuffer._color_texture.read()
             for video_pipe in self._video_pipes.values():
                 if not video_pipe._writable:
                     continue
@@ -234,13 +250,12 @@ class Renderer(ToplevelResource):
         image_dir = Toplevel._get_config().image_output_dir
         image_dir.mkdir(exist_ok=True)
         image_path = image_dir.joinpath(filename)
-        assert image_path.suffix == ".png", \
-            f"Image format other than .png is currently not supported: {image_path.suffix}"
-        image = Image.frombytes(
+
+        self._render_frame()
+        Image.frombytes(
             "RGB",
             Toplevel._get_config().pixel_size,
-            self._color_framebuffer._color_texture_.read(),
+            self._color_framebuffer._color_texture.read(),
             "raw"
-        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-        image.save(image_path)
+        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(image_path)
         Toplevel._get_logger().log(f"Snapshot saved to '{filename}'.")
