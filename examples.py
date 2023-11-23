@@ -122,14 +122,14 @@ class LaggedAnimationExample(Scene):
 
 class FormulaExample(Scene):
     async def construct(self) -> None:
-        factored_formula = MathTex(
+        factored_formula = MathJax(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             local_colors={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
         ).scale(0.7).shift(UP)
-        expanded_formula = MathTex(
+        expanded_formula = MathJax(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
             local_colors={
@@ -328,9 +328,9 @@ def main() -> None:
             #pixel_height=540,
         ),
         Toplevel.livestream(),
-        Toplevel.recording("TextTransformExample.mp4")
+        #Toplevel.recording("FormulaExample.mp4")
     ):
-        TextTransformExample().run()
+        FormulaExample().run()
 
 
 if __name__ == "__main__":

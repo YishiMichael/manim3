@@ -131,6 +131,7 @@ class Renderer(ToplevelResource):
         self: Self
     ) -> Iterator[None]:
         Toplevel._renderer = self
+        Toplevel._get_config().output_dir.mkdir(exist_ok=True)
         Toplevel._get_logger()._livestream = False
         Toplevel._get_logger()._recordings_count = 0
         yield

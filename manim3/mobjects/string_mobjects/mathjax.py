@@ -45,7 +45,7 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
         input_data: MathJaxInputT,
         svg_path: pathlib.Path
     ) -> None:
-        mathjax_program_path = __import__("manim3").joinpath("plugins/mathjax/index.js")
+        mathjax_program_path = pathlib.Path(__import__("manim3").__file__).parent.joinpath("plugins/mathjax/index.js")
         full_content = content.replace("\n", " ")
 
         if os.system(" ".join((
@@ -63,6 +63,13 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
             error = OSError("MathJaxIO: Failed to execute node command")
             error.add_note(f"MathJax error: {error_match_obj.group(1)}")
             raise error
+
+        # Seems svgelements cannot handle units in the root tag, so remove them manually.
+        svg_path.write_text(re.sub(
+            r"(width|height)=\"([\d\.]+)ex\"",
+            lambda match: f"{match.group(1)}=\"{match.group(2)}\"",
+            svg_path.read_text(encoding="utf-8")
+        ), encoding="utf-8")
 
 
 class MathJax(StringMobject):

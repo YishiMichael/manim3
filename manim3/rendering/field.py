@@ -19,6 +19,10 @@ from ..lazy.lazy_object import LazyObject
 class Field(LazyObject):
     __slots__ = ()
 
+    # Note, numpy matrices are row-major, while OpenGL store matrices in column-major format.
+    # One may need to transpose matrices before passing them to shaders.
+    # In numpy, shape `(r, c)` stands for `r` rows and `c` columns.
+    # In glsl, `matcxr` specifies a matrix with `r` rows and `c` columns.
     _GLSL_DTYPES: ClassVar[dict[str, np.dtype]] = {
         "int":     np.dtype("i4"),
         "ivec2":   np.dtype("2i4"),
@@ -33,7 +37,7 @@ class Field(LazyObject):
         "vec3":    np.dtype("3f4"),
         "vec4":    np.dtype("4f4"),
         "mat2":    np.dtype("(2,2)f4"),
-        "mat2x3":  np.dtype("(2,3)f4"),  # TODO: check order
+        "mat2x3":  np.dtype("(2,3)f4"),
         "mat2x4":  np.dtype("(2,4)f4"),
         "mat3x2":  np.dtype("(3,2)f4"),
         "mat3":    np.dtype("(3,3)f4"),

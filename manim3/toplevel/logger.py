@@ -108,7 +108,7 @@ class Logger(ToplevelResource):
         table = rich.table.Table(
             rich.table.Column(header="Log Messages", no_wrap=True, overflow="crop", width=80),
             rich.table.Column(header="Status", no_wrap=True, overflow="crop", width=40),
-            caption=f"manim3 [green]v{__import__("manim3").__version__}",
+            caption=f"manim3 v{__import__("manim3").__version__}",
             caption_justify="left",
             box=rich.box.ASCII
         )

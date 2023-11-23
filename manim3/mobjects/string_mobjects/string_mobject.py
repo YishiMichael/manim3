@@ -479,13 +479,11 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         ) -> tuple[int, int, int]:
             span_info, boundary_flag = span_boundary
             span = span_info.span
-            flag_value = boundary_flag.value
             index = span.get_boundary_index(boundary_flag)
             paired_index = span.get_boundary_index(boundary_flag.negate())
-            # All spans have nonzero widths.
             return (
                 index,
-                flag_value,
+                (boundary_flag.value) * (-1 if index == paired_index else 2),
                 -paired_index
             )
 
@@ -626,14 +624,12 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     index += substr_len
             case re.Pattern():
                 for match in selector.finditer(string):
-                    start, stop = match.span()
-                    if start < stop:
-                        yield Span(start, stop)
+                    yield Span(*match.span())
             case slice(start=int(start), stop=int(stop)):
                 l = len(string)
                 start = min(start, l) if start >= 0 else max(start + l, 0)
                 stop = min(stop, l) if stop >= 0 else max(stop + l, 0)
-                if start < stop:
+                if start <= stop:
                     yield Span(start, stop)
 
     @classmethod
