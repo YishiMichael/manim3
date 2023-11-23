@@ -327,8 +327,8 @@ def main() -> None:
             #write_last_frame=True,
             #pixel_height=540,
         ),
-        #Toplevel.livestream(),
-        Toplevel.recording("TextTransformExample.mp4")
+        Toplevel.livestream(),
+        #Toplevel.recording("TextTransformExample.mp4")
     ):
         TextTransformExample().run()
 

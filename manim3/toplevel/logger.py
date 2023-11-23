@@ -59,12 +59,8 @@ class Logger(ToplevelResource):
         self: Self
     ) -> None:
         super().__init__()
-        #self._console: rich.console.Console = rich.console.Console()
         self._start_timestamp: float = time.perf_counter()
         self._fps_counter: FPSCounter = FPSCounter()
-        #self._last_frames_count_update_timestamp: float | None = None
-        #self._last_frames_count: int | None = None
-        #self._frames_count: int | None = None
         self._livestream: bool | None = None
         self._recordings_count: int | None = None
         self._scene_name: str | None = None
@@ -83,18 +79,22 @@ class Logger(ToplevelResource):
     def _get_table(
         self: Self
     ) -> rich.table.Table:
-        log_table = rich.table.Table.grid()
+        log_table = rich.table.Table.grid(
+            rich.table.Column(no_wrap=True, overflow="crop")
+        )
         for log_message in itertools.chain(
             self._log_messages,
             itertools.repeat("", self._log_messages_capacity - len(self._log_messages))
         ):
-            log_table.add_row(
-                rich.text.Text(log_message, no_wrap=True, overflow="crop")
-            )
+            log_table.add_row(log_message)
 
-        info_table = rich.table.Table.grid(padding=(0, 2))
-        for info_key, info_value in {
-            "Timer": f"{datetime.timedelta(seconds=int(time.perf_counter() - self._start_timestamp))}",
+        status_table = rich.table.Table.grid(
+            rich.table.Column(no_wrap=True, overflow="crop"),
+            rich.table.Column(no_wrap=True, overflow="crop"),
+            padding=(0, 2)
+        )
+        for status_key, status_value in {
+            "Perf Timer": f"{datetime.timedelta(seconds=int(time.perf_counter() - self._start_timestamp))}",
             "FPS": f"{self._fps_counter._last_frames_count}",
             "Livestream": "-" if self._livestream is None else "[green]On" if self._livestream else "[red]Off",
             "Recording": "-" if self._recordings_count is None else (
@@ -103,19 +103,16 @@ class Logger(ToplevelResource):
             "Scene Name": "-" if self._scene_name is None else self._scene_name,
             "Scene Timer": "-" if self._scene_timer is None else f"{datetime.timedelta(seconds=int(self._scene_timer))}"
         }.items():
-            info_table.add_row(
-                rich.text.Text(info_key, no_wrap=True, overflow="crop"),  # TODO: bold
-                rich.text.Text(info_value, no_wrap=True, overflow="crop")
-            )
+            status_table.add_row(status_key, status_value)
 
         table = rich.table.Table(
             rich.table.Column(header="Log Messages", no_wrap=True, overflow="crop", width=80),
-            rich.table.Column(header="Info", no_wrap=True, overflow="crop", width=40),
+            rich.table.Column(header="Status", no_wrap=True, overflow="crop", width=40),
             caption=f"manim3 [green]v{__import__("manim3").__version__}",
             caption_justify="left",
             box=rich.box.ASCII
         )
-        table.add_row(log_table, info_table)
+        table.add_row(log_table, status_table)
         return table
 
     def log(
@@ -123,5 +120,5 @@ class Logger(ToplevelResource):
         message: str
     ) -> None:
         self._log_messages.append(message)
-        while len(self._log_messages) > self._log_messages_capacity:
+        if len(self._log_messages) > self._log_messages_capacity:
             self._log_messages.pop(0)

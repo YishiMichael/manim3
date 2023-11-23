@@ -10,7 +10,6 @@ from ..animatables.camera import Camera
 from ..animatables.lighting import Lighting
 from ..constants.custom_typing import ColorType
 from ..mobjects.mobject import Mobject
-#from ..mobjects.scene_root_mobject import SceneRootMobject
 from ..timelines.timeline.timeline import Timeline
 from ..utils.color_utils import ColorUtils
 from .toplevel import Toplevel
@@ -41,52 +40,6 @@ class Scene(Timeline):
             background_opacity=Toplevel._get_config().background_opacity
         )
 
-    #async def _render(
-    #    self: Self
-    #) -> None:
-
-    #    async def run_frame(
-    #        color_framebuffer: ColorFramebuffer,
-    #        video_stdin: IO[bytes] | None
-    #    ) -> None:
-    #        await asyncio.sleep(0.0)
-    #        if Toplevel._get_config().preview:
-    #            Toplevel._get_window().pyglet_window.dispatch_events()
-    #        self._progress()
-    #        Toplevel._get_window().clear_event_queue()
-    #        self._root_mobject._render_scene(color_framebuffer)
-    #        if Toplevel._get_config().preview:
-    #            self._render_to_window(color_framebuffer._framebuffer_)
-    #        if video_stdin is not None:
-    #            self._write_frame_to_video(color_framebuffer._color_texture_, video_stdin)
-
-    #    async def run_frames(
-    #        color_framebuffer: ColorFramebuffer,
-    #        video_stdin: IO[bytes] | None
-    #    ) -> None:
-    #        self._root_schedule()
-    #        spf = 1.0 / Toplevel._get_config().fps
-    #        sleep_time = spf if Toplevel._get_config().preview else 0.0
-    #        for frame_index in itertools.count():
-    #            self._timestamp = frame_index * spf
-    #            await asyncio.gather(
-    #                run_frame(
-    #                    color_framebuffer,
-    #                    video_stdin
-    #                ),
-    #                asyncio.sleep(sleep_time),
-    #                return_exceptions=False  #True
-    #            )
-    #            if self.get_after_terminated_state() is not None:
-    #                break
-
-    #        self._root_mobject._render_scene(color_framebuffer)
-    #        if Toplevel._get_config().write_last_frame:
-    #            self._write_frame_to_image(color_framebuffer._color_texture_)
-
-    #    with self._video_writer() as video_stdin:
-    #        await run_frames(ColorFramebuffer(), video_stdin)
-
     async def _run_frame(
         self: Self
     ) -> None:
@@ -96,15 +49,13 @@ class Scene(Timeline):
         Toplevel._get_window().clear_event_queue()
         Toplevel._get_renderer().process_frame(self)
 
-    async def _run(
+    async def _run_scene(
         self: Self
     ) -> None:
         self._root_schedule()
         spf = 1.0 / Toplevel._get_config().fps
         for frame_index in itertools.count():
-            #sleep_time = spf if Toplevel._get_renderer()._streaming else 0.0
             self._scene_timer = frame_index * spf
-
             Toplevel._get_logger()._fps_counter.increment_frame()
             Toplevel._get_logger()._scene_timer = self._scene_timer
 
@@ -116,114 +67,18 @@ class Scene(Timeline):
             if self.get_after_terminated_state() is not None:
                 break
 
-            #await asyncio.gather(
-            #    run_frame(
-            #        color_framebuffer,
-            #        video_stdin
-            #    ),
-            #    asyncio.sleep(sleep_time),
-            #    return_exceptions=False  #True
-            #)
-            #if self.get_after_terminated_state() is not None:
-            #    break
-
-        #self._root_mobject._render_scene(color_framebuffer)
-        #if Toplevel._get_config().write_last_frame:
-        #    self._write_frame_to_image(color_framebuffer._color_texture_)
-
-    #@classmethod
-    #@contextmanager
-    #def _video_writer(
-    #    cls: type[Self]
-    #) -> Iterator[IO[bytes] | None]:
-    #    if not Toplevel._get_config().write_video:
-    #        yield None
-    #        return
-    #    writing_process = subprocess.Popen((
-    #        "ffmpeg",
-    #        "-y",  # Overwrite output file if it exists.
-    #        "-f", "rawvideo",
-    #        "-s", f"{Toplevel._get_config().pixel_width}x{Toplevel._get_config().pixel_height}",  # size of one frame
-    #        "-pix_fmt", "rgb24",
-    #        "-r", f"{Toplevel._get_config().fps}",  # frames per second
-    #        "-i", "-",  # The input comes from a pipe.
-    #        "-vf", "vflip",
-    #        "-an",
-    #        "-vcodec", "libx264",
-    #        "-pix_fmt", "yuv420p",
-    #        "-loglevel", "error",
-    #        PathUtils.get_output_subdir("videos").joinpath(f"{cls.__name__}.mp4")
-    #    ), stdin=subprocess.PIPE)
-    #    assert (video_stdin := writing_process.stdin) is not None
-    #    yield video_stdin
-    #    video_stdin.close()
-    #    writing_process.wait()
-    #    writing_process.terminate()
-
-    #@classmethod
-    #def _render_to_window(
-    #    cls: type[Self],
-    #    framebuffer: moderngl.Framebuffer
-    #) -> None:
-    #    window_framebuffer = Toplevel._get_context()._window_framebuffer
-    #    Toplevel._get_context().blit(framebuffer, window_framebuffer)
-    #    Toplevel._get_window().pyglet_window.flip()
-
-    #@classmethod
-    #def _write_frame_to_video(
-    #    cls: type[Self],
-    #    color_texture: moderngl.Texture,
-    #    video_stdin: IO[bytes]
-    #) -> None:
-    #    video_stdin.write(color_texture.read())
-
-    #@classmethod
-    #def _write_frame_to_image(
-    #    cls: type[Self],
-    #    color_texture: moderngl.Texture
-    #) -> None:
-    #    image = Image.frombytes(
-    #        "RGB",
-    #        Toplevel._get_config().pixel_size,
-    #        color_texture.read(),
-    #        "raw"
-    #    ).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
-    #    image.save(PathUtils.get_output_subdir("images").joinpath(f"{cls.__name__}.png"))
-
-    #@classmethod
-    #def render(
-    #    cls: type[Self],
-    #    config: Config | None = None
-    #) -> None:
-    #    if config is None:
-    #        config = Config()
-    #    try:
-    #        with Toplevel.configure(
-    #            config=config,
-    #            scene_cls=cls
-    #        ) as self:
-    #            asyncio.run(self._render())
-    #    except KeyboardInterrupt:
-    #        pass
-
     def run(
         self: Self
     ) -> None:
         Toplevel._scene = self
         Toplevel._get_logger()._scene_name = type(self).__name__
         Toplevel._get_logger()._scene_timer = 0.0
-        asyncio.run(self._run())
+        asyncio.run(self._run_scene())
         Toplevel._get_logger()._scene_timer = None
         Toplevel._get_logger()._scene_name = None
         Toplevel._scene = None
 
     # Shortcut access to root mobject.
-
-    #@property
-    #def root_mobject(
-    #    self: Self
-    #) -> SceneRootMobject:
-    #    return self._root_mobject
 
     def add(
         self: Self,

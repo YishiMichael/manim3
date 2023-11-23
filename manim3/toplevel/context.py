@@ -18,7 +18,7 @@ from ..rendering.mgl_enums import (
     ContextFlag,
     PrimitiveMode
 )
-from ..toplevel.toplevel import Toplevel
+from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
 
 
@@ -41,8 +41,6 @@ class Context(ToplevelResource):
         )
         mgl_context.gc_mode = "auto"
         self._mgl_context: moderngl.Context = mgl_context
-        #self._root_color_framebuffer: ColorFramebuffer = ColorFramebuffer()
-        #self._window_framebuffer: moderngl.Framebuffer = mgl_context.detect_framebuffer()
 
     def __contextmanager__(
         self: Self
@@ -70,19 +68,6 @@ class Context(ToplevelResource):
                 index,
                 blend_equation.value
             )
-
-    #def blit(
-    #    self: Self,
-    #    src: moderngl.Framebuffer,
-    #    dst: moderngl.Framebuffer
-    #) -> None:
-    #    print(src.glo, dst.glo)
-    #    gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, src.glo)
-    #    gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, dst.glo)
-    #    gl.glBlitFramebuffer(
-    #        *src.viewport, *dst.viewport,
-    #        gl.GL_COLOR_BUFFER_BIT, gl.GL_LINEAR
-    #    )
 
     @property
     def version_code(

@@ -39,16 +39,16 @@ class VideoPipe:
             "ffmpeg",
             "-y",  # Overwrite output file if it exists.
             "-f", "rawvideo",
-            "-s", f"{Toplevel._get_config().pixel_width}x{Toplevel._get_config().pixel_height}",  # size of one frame
+            "-s", f"{Toplevel._get_config().pixel_width}x{Toplevel._get_config().pixel_height}",
             "-pix_fmt", "rgb24",
-            "-r", f"{Toplevel._get_config().fps}",  # frames per second
+            "-r", f"{Toplevel._get_config().fps}",
             "-i", "-",  # The input comes from a pipe.
             "-vf", "vflip",
             "-an",
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            video_path  # TODO: str()
+            f"{video_path}"
         ), stdin=subprocess.PIPE)
         assert writing_process.stdin is not None
         self._writing_process: subprocess.Popen = writing_process
@@ -158,7 +158,7 @@ class Renderer(ToplevelResource):
             self._oit_compose_vertex_array.render(self._color_framebuffer)
 
         if self._livestream:
-            Toplevel._get_window().draw_frame(self._color_framebuffer._framebuffer_)
+            Toplevel._get_window().update_frame(self._color_framebuffer._framebuffer_)
         if self._video_pipes:
             frame_data = self._color_framebuffer._color_texture_.read()
             for video_pipe in self._video_pipes.values():

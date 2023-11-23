@@ -21,9 +21,6 @@ from .toplevel_resource import ToplevelResource
 
 @attrs.frozen(kw_only=True)
 class Config(ToplevelResource):
-    #write_video: bool = False
-    #write_last_frame: bool = False
-    #preview: bool = True
     gl_version: tuple[int, int] = (4, 3)
     fps: int = 30
     aspect_ratio: float = 16.0 / 9.0

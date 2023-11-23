@@ -56,8 +56,9 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
         json_path = cls._get_output_subdir(cls._dir_name).joinpath(f"{hex_string}.json")
-        if not json_path.exists():
-            #with cls.display_during_execution():
+        if json_path.exists():
+            Toplevel._get_logger().log(f"Using cached intermediate files in {cls.__name__}.")
+        else:
             Toplevel._get_logger().log(f"Generating intermediate files in {cls.__name__}...")
             temp_path = cls._get_output_subdir("_temp").joinpath(hex_string)
             output_data = cls.generate(input_data, temp_path)
@@ -65,8 +66,6 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
             json_text = json.dumps(json_data, ensure_ascii=False)
             json_path.write_text(json_text, encoding="utf-8")
             Toplevel._get_logger().log(f"Intermediate files generation completed.")
-        else:
-            Toplevel._get_logger().log(f"Using cached intermediate files in {cls.__name__}.")
         json_text = json_path.read_text(encoding="utf-8")
         json_data = json.loads(json_text)
         return cls.load_json(json_data)
@@ -104,15 +103,3 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
         json_data: MobjectJSONT
     ) -> MobjectOutputT:
         pass
-
-    #@classmethod
-    #@contextmanager
-    #def display_during_execution(
-    #    cls: type[Self]
-    #) -> Iterator[None]:  # TODO: needed?
-    #    message = "Generating intermediate files..."
-    #    try:
-    #        print(message, end="\r")
-    #        yield
-    #    finally:
-    #        print(" " * len(message), end="\r")
