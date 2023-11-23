@@ -9,8 +9,8 @@ from .animatables.camera import Camera
 from .animatables.graph import Graph
 from .animatables.lighting import Lighting
 from .animatables.mesh import Mesh
-from .animatables.shape import Shape
 from .animatables.point import Point
+from .animatables.shape import Shape
 
 from .constants.constants import *
 from .constants.custom_typing import *
@@ -27,7 +27,6 @@ from .mobjects.mesh_mobjects.parametric_surface import ParametricSurface
 from .mobjects.mesh_mobjects.plane import Plane
 from .mobjects.mesh_mobjects.sphere import Sphere
 from .mobjects.mesh_mobjects.mesh_mobject import MeshMobject
-from .mobjects.mobject import Mobject
 from .mobjects.shape_mobjects.circle import Circle
 from .mobjects.shape_mobjects.polygon import Polygon
 from .mobjects.shape_mobjects.polyhedra import (
@@ -48,6 +47,7 @@ from .mobjects.string_mobjects.mathjax import MathJax
 from .mobjects.string_mobjects.tex import Tex
 from .mobjects.string_mobjects.text import Text
 from .mobjects.image_mobject import ImageMobject
+from .mobjects.mobject import Mobject
 from .mobjects.svg_mobject import SVGMobject
 
 from .rendering.buffers.attributes_buffer import AttributesBuffer
@@ -61,11 +61,6 @@ from .rendering.mgl_enums import (
 )
 from .rendering.vertex_array import VertexArray
 
-from .timelines.timeline.condition import Condition
-from .timelines.timeline.conditions import Conditions
-from .timelines.timeline.rate import Rate
-from .timelines.timeline.rates import Rates
-from .timelines.timeline.timeline import Timeline
 from .timelines.composition.lagged import Lagged
 from .timelines.composition.parallel import Parallel
 from .timelines.composition.series import Series
@@ -76,10 +71,15 @@ from .timelines.piecewise.create import Create
 from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
+from .timelines.timeline.condition import Condition
+from .timelines.timeline.conditions import Conditions
+from .timelines.timeline.rate import Rate
+from .timelines.timeline.rates import Rates
+from .timelines.timeline.timeline import Timeline
 from .timelines.transform import Transform
 from .timelines.transform_matching_strings import TransformMatchingStrings
 
-from .toplevel.events import Events
 from .toplevel.config import Config
+from .toplevel.events import Events
 from .toplevel.scene import Scene
 from .toplevel.toplevel import Toplevel

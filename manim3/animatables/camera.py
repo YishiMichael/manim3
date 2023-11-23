@@ -7,16 +7,19 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from ..constants.constants import (
+    DL,
     ORIGIN,
     OUT,
     RIGHT,
-    UP
+    UP,
+    UR
 )
 from ..constants.custom_typing import (
     NP_2f8,
     NP_3f8,
     NP_44f8,
-    NP_f8
+    NP_f8,
+    NP_x3f8
 )
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
@@ -149,3 +152,10 @@ class Camera(Model):
                 "u_frame_radii": frame_radii
             }
         )
+
+    @Lazy.property()
+    @staticmethod
+    def _local_sample_positions_() -> NP_x3f8:
+        # Form a rectangle covering the screen,
+        # so that aligning on border can be achieved by aligning with the camera.
+        return np.array((UR, DL))

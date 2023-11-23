@@ -24,6 +24,7 @@ from ...constants.custom_typing import (
     SelectorType
 )
 from ...utils.color_utils import ColorUtils
+from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..mobject import Mobject
 from ..mobject_io import (
     MobjectIO,
@@ -31,7 +32,6 @@ from ..mobject_io import (
     MobjectJSON,
     MobjectOutput
 )
-from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..svg_mobject import (
     SVGMobjectIO,
     ShapeMobjectJSON

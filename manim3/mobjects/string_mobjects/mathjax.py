@@ -15,8 +15,8 @@ import attrs
 from ...toplevel.toplevel import Toplevel
 from .latex_string_mobject import (
     LatexStringMobjectIO,
-    LatexStringMobjectKwargs,
-    LatexStringMobjectInput
+    LatexStringMobjectInput,
+    LatexStringMobjectKwargs
 )
 from .string_mobject import StringMobject
 

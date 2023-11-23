@@ -19,13 +19,13 @@ from ..constants.custom_typing import (
 )
 from ..utils.color_utils import ColorUtils
 from ..utils.space_utils import SpaceUtils
+from .shape_mobjects.shape_mobject import ShapeMobject
 from .mobject_io import (
     MobjectIO,
     MobjectInput,
     MobjectJSON,
     MobjectOutput
 )
-from .shape_mobjects.shape_mobject import ShapeMobject
 
 
 @attrs.frozen(kw_only=True)

@@ -321,16 +321,13 @@ class GameExample(Scene):
 def main() -> None:
     with (
         Config(
-            fps=30,
-            #preview=False,
-            #write_video=True,
-            #write_last_frame=True,
+            #fps=30,
             #pixel_height=540,
         ),
         Toplevel.livestream(),
-        #Toplevel.recording("FormulaExample_no_msaa.mp4")
+        #Toplevel.recording("TextTransformExample.mp4")
     ):
-        OITExample().run()
+        TextTransformExample().run()
 
 
 if __name__ == "__main__":

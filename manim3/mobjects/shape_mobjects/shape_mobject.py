@@ -10,11 +10,11 @@ import numpy as np
 
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.mesh import Mesh
+from ...animatables.model import SetKwargs
 from ...animatables.shape import (
     Shape,
     Triangulation
 )
-from ...animatables.model import SetKwargs
 from ...lazy.lazy import Lazy
 from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
