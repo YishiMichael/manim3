@@ -58,7 +58,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
 
     @property
     @classmethod
-    def _dir_name(
+    def _get_subdir_name(
         cls: type[Self]
     ) -> str:
         return "svg_mobject"

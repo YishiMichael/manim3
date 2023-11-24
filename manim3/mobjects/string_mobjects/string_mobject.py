@@ -252,53 +252,44 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         string = input_data.string
         isolated_items, replacement_records = cls._get_isolated_items_and_replacement_records(
             string=string,
-            span_infos=(
+            environment_command_pair=cls._get_environment_command_pair(input_data),
+            global_attributes=cls._get_global_span_attributes(input_data, temp_path),
+            local_span_infos=tuple(itertools.chain((
                 SpanInfo(
-                    span=Span(0, len(string)),
-                    isolated=True,
-                    attributes=cls._get_global_span_attributes(input_data, temp_path)
-                ),
-                *(
-                    SpanInfo(
-                        span=span,
-                        isolated=False,
-                        attributes=attributes
-                    )
-                    for span, attributes in cls._iter_local_span_attributes(input_data, temp_path)
-                ),
-                *(
-                    SpanInfo(
-                        span=span,
-                        isolated=True,
-                        local_color=local_color
-                    )
-                    for selector, local_color in input_data.local_colors.items()
-                    for span in cls._iter_spans_by_selector(selector, string)
-                ),
-                *(
-                    SpanInfo(
-                        span=span,
-                        isolated=True
-                    )
-                    for selector in input_data.isolate
-                    for span in cls._iter_spans_by_selector(selector, string)
-                ),
-                *(
-                    SpanInfo(
-                        span=span
-                    )
-                    for selector in input_data.protect
-                    for span in cls._iter_spans_by_selector(selector, string)
-                ),
-                *(
-                    SpanInfo(
-                        span=span,
-                        command_item=(command_info, replacement, command_flag)
-                    )
-                    for command_info in cls._iter_command_infos(string)
-                    for span, replacement, command_flag in command_info._command_items
+                    span=span,
+                    isolated=False,
+                    attributes=attributes
                 )
-            )
+                for span, attributes in cls._iter_local_span_attributes(input_data, temp_path)
+            ), (
+                SpanInfo(
+                    span=span,
+                    isolated=True,
+                    local_color=local_color
+                )
+                for selector, local_color in input_data.local_colors.items()
+                for span in cls._iter_spans_by_selector(selector, string)
+            ), (
+                SpanInfo(
+                    span=span,
+                    isolated=True
+                )
+                for selector in input_data.isolate
+                for span in cls._iter_spans_by_selector(selector, string)
+            ), (
+                SpanInfo(
+                    span=span
+                )
+                for selector in input_data.protect
+                for span in cls._iter_spans_by_selector(selector, string)
+            ), (
+                SpanInfo(
+                    span=span,
+                    command_item=(command_info, replacement, command_flag)
+                )
+                for command_info in cls._iter_command_infos(string)
+                for span, replacement, command_flag in command_info._command_items
+            )))
         )
         original_pieces = tuple(
             string[start:stop]
@@ -371,107 +362,12 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         )
 
     @classmethod
-    def _iter_shape_mobject_items(
-        cls: type[Self],
-        unlabelled_content: str,
-        labelled_content: str,
-        requires_labelling: bool,
-        input_data: StringMobjectInputT,
-        temp_path: pathlib.Path
-    ) -> Iterator[tuple[ShapeMobject, int]]:
-        unlabelled_shape_mobjects = cls._get_shape_mobjects(unlabelled_content, input_data, temp_path)
-        if input_data.concatenate:
-            yield ShapeMobject(Shape().concatenate(tuple(
-                shape_mobject._shape_ for shape_mobject in unlabelled_shape_mobjects
-            ))), 0
-            return
-
-        if not requires_labelling or not unlabelled_shape_mobjects:
-            for unlabelled_shape_mobject in unlabelled_shape_mobjects:
-                yield unlabelled_shape_mobject, 0
-            return
-
-        labelled_shape_mobjects = cls._get_shape_mobjects(labelled_content, input_data, temp_path)
-        assert len(unlabelled_shape_mobjects) == len(labelled_shape_mobjects)
-
-        unlabelled_radii = Mobject().add(*unlabelled_shape_mobjects).box.get_radii()
-        labelled_radii = Mobject().add(*labelled_shape_mobjects).box.get_radii()
-        scale_factor = unlabelled_radii / labelled_radii
-        distance_matrix = scipy.spatial.distance.cdist(
-            [shape.box.get() for shape in unlabelled_shape_mobjects],
-            [shape.box.get() * scale_factor for shape in labelled_shape_mobjects]
-        )
-        for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix), strict=True):
-            yield (
-                unlabelled_shape_mobjects[unlabelled_index],
-                int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
-            )
-
-    @classmethod
-    def _get_shape_mobjects(
-        cls: type[Self],
-        content: str,
-        input_data: StringMobjectInputT,
-        temp_path: pathlib.Path
-    ) -> tuple[ShapeMobject, ...]:
-        svg_path = temp_path.with_suffix(".svg")
-        try:
-            cls._create_svg(
-                content=content,
-                input_data=input_data,
-                svg_path=svg_path
-            )
-            shape_mobjects = SVGMobjectIO._get_shape_mobjects_from_svg_path(
-                svg_path=svg_path,
-                frame_scale=cls._get_svg_frame_scale(input_data)
-            )
-        finally:
-            svg_path.unlink(missing_ok=True)
-
-        return shape_mobjects
-
-    @classmethod
-    def _get_global_span_attributes(
-        cls: type[Self],
-        input_data: StringMobjectInputT,
-        temp_path: pathlib.Path
-    ) -> dict[str, str]:
-        return {}
-
-    @classmethod
-    def _iter_local_span_attributes(
-        cls: type[Self],
-        input_data: StringMobjectInputT,
-        temp_path: pathlib.Path
-    ) -> Iterator[tuple[Span, dict[str, str]]]:
-        yield from ()
-
-    @classmethod
-    @abstractmethod
-    def _create_svg(
-        cls: type[Self],
-        content: str,
-        input_data: StringMobjectInputT,
-        svg_path: pathlib.Path
-    ) -> None:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def _get_svg_frame_scale(
-        cls: type[Self],
-        input_data: StringMobjectInputT
-    ) -> float:
-        # `font_size=30` shall make the height of "x" become roughly 0.30.
-        pass
-
-    # parsing
-
-    @classmethod
     def _get_isolated_items_and_replacement_records(
         cls: type[Self],
         string: str,
-        span_infos: tuple[SpanInfo, ...]
+        environment_command_pair: tuple[str, str],
+        global_attributes: dict[str, str],
+        local_span_infos: tuple[SpanInfo, ...]
     ) -> tuple[tuple[tuple[Span, ColorType | None], ...], tuple[ReplacementRecord, ...]]:
 
         def get_sorting_key(
@@ -481,9 +377,10 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             span = span_info.span
             index = span.get_boundary_index(boundary_flag)
             paired_index = span.get_boundary_index(boundary_flag.negate())
+            # All local spans are guaranteed to have non-zero widths.
             return (
                 index,
-                (boundary_flag.value) * (-1 if index == paired_index else 2),
+                boundary_flag.value,
                 -paired_index
             )
 
@@ -499,7 +396,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         for span_info, boundary_flag in sorted((
             (span_info, boundary_flag)
             for boundary_flag in (BoundaryFlag.STOP, BoundaryFlag.START)
-            for span_info in span_infos[::boundary_flag.value]
+            for span_info in local_span_infos[::boundary_flag.value]
         ), key=get_sorting_key):
             span = span_info.span
             if span_info.isolated is None:
@@ -581,6 +478,29 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
 
         label_counter = itertools.count()
         isolated_items: list[tuple[Span, ColorType | None]] = []
+
+        global_start_insertion_record = InsertionRecord(0)
+        global_stop_insertion_record = InsertionRecord(len(string))
+        replacement_records.insert(0, global_start_insertion_record)
+        replacement_records.append(global_stop_insertion_record)
+        isolated_items.append((
+            Span(0, len(string)),
+            None
+        ))
+        global_label = next(label_counter)
+        labelled_global_attributes = cls._convert_attributes_for_labelling(global_attributes, global_label)
+        global_start_unlabelled_insertion, global_stop_unlabelled_insertion = cls._get_command_pair(global_attributes)
+        global_start_labelled_insertion, global_stop_labelled_insertion = cls._get_command_pair(labelled_global_attributes)
+        environment_start_insertion, environment_stop_insertion = environment_command_pair
+        global_start_insertion_record.write_replacements(
+            unlabelled_replacement=global_start_unlabelled_insertion + environment_start_insertion,
+            labelled_replacement=global_start_labelled_insertion + environment_start_insertion
+        )
+        global_stop_insertion_record.write_replacements(
+            unlabelled_replacement=environment_stop_insertion + global_stop_unlabelled_insertion,
+            labelled_replacement=environment_stop_insertion + global_stop_labelled_insertion
+        )
+
         for start_insertion_record, stop_insertion_record, attributes, isolated, local_color in insertion_record_items:
             if isolated:
                 label = next(label_counter)
@@ -624,38 +544,139 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                     index += substr_len
             case re.Pattern():
                 for match in selector.finditer(string):
-                    yield Span(*match.span())
+                    start, stop = match.span()
+                    if start < stop:
+                        yield Span(start, stop)
             case slice(start=int(start), stop=int(stop)):
                 l = len(string)
                 start = min(start, l) if start >= 0 else max(start + l, 0)
                 stop = min(stop, l) if stop >= 0 else max(stop + l, 0)
-                if start <= stop:
+                if start < stop:
                     yield Span(start, stop)
 
     @classmethod
-    @abstractmethod
-    def _get_command_pair(
+    def _iter_shape_mobject_items(
         cls: type[Self],
-        attributes: dict[str, str]
-    ) -> tuple[str, str]:
+        unlabelled_content: str,
+        labelled_content: str,
+        requires_labelling: bool,
+        input_data: StringMobjectInputT,
+        temp_path: pathlib.Path
+    ) -> Iterator[tuple[ShapeMobject, int]]:
+        unlabelled_shape_mobjects = cls._get_shape_mobjects(unlabelled_content, input_data, temp_path)
+        if input_data.concatenate:
+            yield ShapeMobject(Shape().concatenate(tuple(
+                shape_mobject._shape_ for shape_mobject in unlabelled_shape_mobjects
+            ))), 0
+            return
+
+        if not requires_labelling or not unlabelled_shape_mobjects:
+            for unlabelled_shape_mobject in unlabelled_shape_mobjects:
+                yield unlabelled_shape_mobject, 0
+            return
+
+        labelled_shape_mobjects = cls._get_shape_mobjects(labelled_content, input_data, temp_path)
+        assert len(unlabelled_shape_mobjects) == len(labelled_shape_mobjects)
+
+        unlabelled_radii = Mobject().add(*unlabelled_shape_mobjects).box.get_radii()
+        labelled_radii = Mobject().add(*labelled_shape_mobjects).box.get_radii()
+        scale_factor = unlabelled_radii / labelled_radii
+        distance_matrix = scipy.spatial.distance.cdist(
+            [shape.box.get() for shape in unlabelled_shape_mobjects],
+            [shape.box.get() * scale_factor for shape in labelled_shape_mobjects]
+        )
+        for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix), strict=True):
+            yield (
+                unlabelled_shape_mobjects[unlabelled_index],
+                int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
+            )
+
+    @classmethod
+    def _get_shape_mobjects(
+        cls: type[Self],
+        content: str,
+        input_data: StringMobjectInputT,
+        temp_path: pathlib.Path
+    ) -> tuple[ShapeMobject, ...]:
+        svg_path = temp_path.with_suffix(".svg")
+        try:
+            cls._create_svg(
+                content=content,
+                input_data=input_data,
+                svg_path=svg_path
+            )
+            shape_mobjects = SVGMobjectIO._get_shape_mobjects_from_svg_path(
+                svg_path=svg_path,
+                frame_scale=cls._get_svg_frame_scale(input_data)
+            )
+        finally:
+            svg_path.unlink(missing_ok=True)
+
+        return shape_mobjects
+
+    @classmethod
+    @abstractmethod
+    def _create_svg(
+        cls: type[Self],
+        content: str,
+        input_data: StringMobjectInputT,
+        svg_path: pathlib.Path
+    ) -> None:
         pass
 
     @classmethod
     @abstractmethod
+    def _get_svg_frame_scale(
+        cls: type[Self],
+        input_data: StringMobjectInputT
+    ) -> float:
+        # The line height shall be roughly equal to `font_size` for default fonts.
+        pass
+
+    @classmethod
+    def _get_environment_command_pair(
+        cls: type[Self],
+        input_data: StringMobjectInputT
+    ) -> tuple[str, str]:
+        return "", ""
+
+    @classmethod
+    def _get_global_span_attributes(
+        cls: type[Self],
+        input_data: StringMobjectInputT,
+        temp_path: pathlib.Path
+    ) -> dict[str, str]:
+        return {}
+
+    @classmethod
+    def _iter_local_span_attributes(
+        cls: type[Self],
+        input_data: StringMobjectInputT,
+        temp_path: pathlib.Path
+    ) -> Iterator[tuple[Span, dict[str, str]]]:
+        yield from ()
+
+    @classmethod
+    def _get_command_pair(
+        cls: type[Self],
+        attributes: dict[str, str]
+    ) -> tuple[str, str]:
+        return "", ""
+
+    @classmethod
     def _convert_attributes_for_labelling(
         cls: type[Self],
         attributes: dict[str, str],
         label: int | None
     ) -> dict[str, str]:
-        pass
+        return attributes
 
     @classmethod
-    @abstractmethod
     def _iter_command_infos(
         cls: type[Self],
         string: str
     ) -> Iterator[CommandInfo]:
-        pass
+        yield from ()
 
 
 class StringMobject(ShapeMobject):

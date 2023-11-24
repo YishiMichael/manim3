@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pathlib
 import re
+from abc import abstractmethod
 from typing import (
-    ClassVar,
     Iterator,
     Self
 )
@@ -38,14 +38,12 @@ class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
 class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT]):
     __slots__ = ()
 
-    _scale_factor_per_font_point: ClassVar[float]
-
     @classmethod
     def _get_svg_frame_scale(
         cls: type[Self],
-        input_data: LatexStringMobjectInput
+        input_data: LatexStringMobjectInputT
     ) -> float:
-        return cls._scale_factor_per_font_point * input_data.font_size
+        return cls._get_scale_factor_per_font_point() * input_data.font_size
 
     @classmethod
     def _get_global_span_attributes(
@@ -129,3 +127,10 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
                 break
         if open_stack:
             raise ValueError("Missing '}' inserted")
+
+    @classmethod
+    @abstractmethod
+    def _get_scale_factor_per_font_point(
+        cls: type[Self]
+    ) -> float:
+        pass

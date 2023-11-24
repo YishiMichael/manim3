@@ -45,7 +45,7 @@ class Config(ToplevelResource):
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
 
-    latex_font_size: float = 30
+    latex_font_size: float = 0.5
     tex_alignment: AlignmentType = "left"
     tex_compiler: str = "xelatex"
     tex_preambles: tuple[str, ...] = (
@@ -66,13 +66,15 @@ class Config(ToplevelResource):
     )
     mathjax_inline: bool = False
 
-    pango_font_size: float = 30
+    pango_font_size: float = 0.5
     pango_alignment: AlignmentType = "left"
     pango_font: str = "Consolas"
     pango_justify: bool = False
     pango_indent: float = 0.0
-    pango_line_width: float = -1.0
-    code_font: str = "JetBrains Mono"
+    pango_line_width: float | None = None
+    pango_line_height: float = 1.0
+    code_font_size: float = 0.5
+    code_font: str = "Consolas"
     code_language_suffix: str = ".py"
 
     shader_search_dirs: tuple[pathlib.Path, ...] = (

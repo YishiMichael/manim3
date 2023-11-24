@@ -5,7 +5,6 @@ import os
 import pathlib
 import re
 from typing import (
-    ClassVar,
     Self,
     Unpack
 )
@@ -38,8 +37,11 @@ class TexKwargs(LatexStringMobjectKwargs, total=False):
 class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "tex"
-    _scale_factor_per_font_point: ClassVar[float] = 0.001577
+    @classmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        return "tex"
 
     @classmethod
     def _create_svg(
@@ -103,6 +105,12 @@ class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
         finally:
             for suffix in (".tex", dvi_suffix, ".log", ".aux"):
                 svg_path.with_suffix(suffix).unlink(missing_ok=True)
+
+    @classmethod
+    def _get_scale_factor_per_font_point(
+        cls: type[Self]
+    ) -> float:
+        return 0.04579
 
 
 class Tex(StringMobject):

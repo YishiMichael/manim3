@@ -5,7 +5,6 @@ import os
 import pathlib
 import re
 from typing import (
-    ClassVar,
     Self,
     Unpack
 )
@@ -35,8 +34,11 @@ class MathJaxKwargs(LatexStringMobjectKwargs, total=False):
 class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "mathjax"
-    _scale_factor_per_font_point: ClassVar[float] = 0.009758
+    @classmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        return "mathjax"
 
     @classmethod
     def _create_svg(
@@ -70,6 +72,19 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
             lambda match: f"{match.group(1)}=\"{match.group(2)}\"",
             svg_path.read_text(encoding="utf-8")
         ), encoding="utf-8")
+
+    @classmethod
+    def _get_environment_command_pair(
+        cls: type[Self],
+        input_data: MathJaxInputT
+    ) -> tuple[str, str]:
+        return "{{", "}}"
+
+    @classmethod
+    def _get_scale_factor_per_font_point(
+        cls: type[Self]
+    ) -> float:
+        return 0.4021
 
 
 class MathJax(StringMobject):

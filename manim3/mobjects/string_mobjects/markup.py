@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import re
 from typing import (
-    ClassVar,
     Iterator,
     Self,
     Unpack
@@ -36,7 +35,11 @@ class MarkupKwargs(PangoStringMobjectKwargs, total=False):
 class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "markup"
+    @classmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        return "markup"
 
     @classmethod
     def _iter_command_infos(

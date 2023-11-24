@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 
-import pathlib
 from typing import (
-    ClassVar,
     Self,
     Unpack
 )
@@ -31,20 +29,20 @@ class MathTexKwargs(TexKwargs, total=False):
 class MathTexIO[MathTexInputT: MathTexInput](TexIO[MathTexInputT]):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "math_tex"
+    @classmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        return "math_tex"
 
     @classmethod
-    def _create_svg(
+    def _get_environment_command_pair(
         cls: type[Self],
-        content: str,
-        input_data: MathTexInputT,
-        svg_path: pathlib.Path
-    ) -> None:
+        input_data: MathTexInputT
+    ) -> tuple[str, str]:
         if input_data.inline:
-            content = f"${content}$"
-        else:
-            content = "\n".join(("\\begin{align*}", content, "\\end{align*}"))
-        super()._create_svg(content, input_data, svg_path)
+            return "$", "$"
+        return "\\begin{align*}\n", "\n\\end{align*}"
 
 
 class MathTex(StringMobject):

@@ -5,7 +5,6 @@ import json
 import os
 import pathlib
 from typing import (
-    ClassVar,
     Iterator,
     Self,
     Unpack
@@ -27,6 +26,7 @@ from .string_mobject import (
 
 @attrs.frozen(kw_only=True)
 class CodeInput(PangoStringMobjectInput):
+    font_size: float = attrs.field(factory=lambda: Toplevel._get_config().code_font_size)
     font: str = attrs.field(factory=lambda: Toplevel._get_config().code_font)
     language_suffix: str = attrs.field(factory=lambda: Toplevel._get_config().code_language_suffix)
 
@@ -38,7 +38,11 @@ class CodeKwargs(PangoStringMobjectKwargs, total=False):
 class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "code"
+    @classmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        return "code"
 
     @classmethod
     def _iter_local_span_attributes(

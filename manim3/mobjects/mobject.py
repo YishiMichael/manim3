@@ -5,8 +5,7 @@ import itertools
 import weakref
 from typing import (
     Iterator,
-    Self,
-    overload
+    Self
 )
 
 from ..animatables.camera import Camera
@@ -38,25 +37,7 @@ class Mobject(Model):
     def __iter__(
         self: Self
     ) -> Iterator[Mobject]:
-        return iter(self._children)
-
-    @overload
-    def __getitem__(
-        self: Self,
-        index: int
-    ) -> Mobject: ...
-
-    @overload
-    def __getitem__(
-        self: Self,
-        index: slice
-    ) -> list[Mobject]: ...
-
-    def __getitem__(
-        self: Self,
-        index: int | slice
-    ) -> Mobject | list[Mobject]:
-        return self._children.__getitem__(index)
+        yield from self._children
 
     # family matters
     # These methods implement a DAG (directed acyclic graph).

@@ -9,7 +9,6 @@ from abc import (
     abstractmethod
 )
 from typing import (
-    ClassVar,
     Never,
     Self,
     TypedDict
@@ -37,8 +36,6 @@ class MobjectJSON(TypedDict):
 class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, MobjectJSONT: MobjectJSON](ABC):
     __slots__ = ()
 
-    _dir_name: ClassVar[str]
-
     def __new__(
         cls: type[Self]
     ) -> Never:
@@ -55,7 +52,7 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
         hash_content = str(input_data)
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-        json_path = cls._get_output_subdir(cls._dir_name).joinpath(f"{hex_string}.json")
+        json_path = cls._get_output_subdir(cls._get_subdir_name()).joinpath(f"{hex_string}.json")
         if json_path.exists():
             Toplevel._get_logger().log(f"Using cached intermediate files in {cls.__name__}.")
         else:
@@ -78,6 +75,13 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
         subdir = Toplevel._get_config().output_dir.joinpath(dir_name)
         subdir.mkdir(exist_ok=True)
         return subdir
+
+    @classmethod
+    @abstractmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        pass
 
     @classmethod
     @abstractmethod

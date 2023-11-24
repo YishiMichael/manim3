@@ -48,7 +48,8 @@ class PangoStringMobjectInput(StringMobjectInput):
     font: str = attrs.field(factory=lambda: Toplevel._get_config().pango_font)
     justify: bool = attrs.field(factory=lambda: Toplevel._get_config().pango_justify)
     indent: float = attrs.field(factory=lambda: Toplevel._get_config().pango_indent)
-    line_width: float = attrs.field(factory=lambda: Toplevel._get_config().pango_line_width)
+    line_width: float | None = attrs.field(factory=lambda: Toplevel._get_config().pango_line_width)
+    line_height: float = attrs.field(factory=lambda: Toplevel._get_config().pango_line_height)
 
 
 class PangoStringMobjectKwargs(StringMobjectKwargs, total=False):
@@ -58,7 +59,8 @@ class PangoStringMobjectKwargs(StringMobjectKwargs, total=False):
     font: str
     justify: bool
     indent: float
-    line_width: float
+    line_width: float | None
+    line_height: float
 
 
 class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](StringMobjectIO[PangoStringMobjectInputT]):
@@ -83,20 +85,6 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         "\"": "&quot;",
         "'": "&apos;"
     }
-
-    @classmethod
-    def _get_global_span_attributes(
-        cls: type[Self],
-        input_data: PangoStringMobjectInputT,
-        temp_path: pathlib.Path
-    ) -> dict[str, str]:
-        global_span_attributes = {
-            "foreground": ColorUtils.color_to_hex(input_data.color),
-            "font_size": str(round(input_data.font_size * 1024.0)),
-            "font_family": input_data.font
-        }
-        global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
-        return global_span_attributes
 
     @classmethod
     def _create_svg(
@@ -138,7 +126,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
             line_spacing=None,         # Already handled.
             alignment=pango_alignment,
             pango_width=(
-                -1 if (line_width := input_data.line_width) < 0.0
+                -1 if (line_width := input_data.line_width) is None
                 else line_width * Toplevel._get_config().pixel_per_unit
             )
         )
@@ -148,7 +136,22 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         cls: type[Self],
         input_data: PangoStringMobjectInputT
     ) -> float:
-        return 0.01147
+        return 0.03516
+
+    @classmethod
+    def _get_global_span_attributes(
+        cls: type[Self],
+        input_data: PangoStringMobjectInputT,
+        temp_path: pathlib.Path
+    ) -> dict[str, str]:
+        global_span_attributes = {
+            "foreground": ColorUtils.color_to_hex(input_data.color),
+            "font_size": str(round(input_data.font_size * 16384.0)),
+            "font_family": input_data.font,
+            "line_height": str(input_data.line_height)
+        }
+        global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
+        return global_span_attributes
 
     @classmethod
     def _get_command_pair(

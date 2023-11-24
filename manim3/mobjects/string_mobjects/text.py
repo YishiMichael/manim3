@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 from typing import (
-    ClassVar,
     Self,
     Unpack
 )
@@ -29,7 +28,11 @@ class TextKwargs(PangoStringMobjectKwargs, total=False):
 class TextIO[TextInputT: TextInput](PangoStringMobjectIO[TextInputT]):
     __slots__ = ()
 
-    _dir_name: ClassVar[str] = "text"
+    @classmethod
+    def _get_subdir_name(
+        cls: type[Self]
+    ) -> str:
+        return "text"
 
 
 class Text(StringMobject):
