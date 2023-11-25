@@ -43,23 +43,19 @@ class PangoAlignment(Enum):
 @attrs.frozen(kw_only=True)
 class PangoStringMobjectInput(StringMobjectInput):
     color: ColorType = attrs.field(factory=lambda: Toplevel._get_config().default_color)
-    font_size: float = attrs.field(factory=lambda: Toplevel._get_config().pango_font_size)
     alignment: AlignmentType = attrs.field(factory=lambda: Toplevel._get_config().pango_alignment)
     font: str = attrs.field(factory=lambda: Toplevel._get_config().pango_font)
     justify: bool = attrs.field(factory=lambda: Toplevel._get_config().pango_justify)
     indent: float = attrs.field(factory=lambda: Toplevel._get_config().pango_indent)
-    line_width: float | None = attrs.field(factory=lambda: Toplevel._get_config().pango_line_width)
     line_height: float = attrs.field(factory=lambda: Toplevel._get_config().pango_line_height)
 
 
 class PangoStringMobjectKwargs(StringMobjectKwargs, total=False):
     color: ColorType
-    font_size: float
     alignment: AlignmentType
     font: str
     justify: bool
     indent: float
-    line_width: float | None
     line_height: float
 
 
@@ -111,32 +107,28 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         MarkupUtils.text2svg(
             text=content,
             font="",                   # Already handled.
-            slant="NORMAL",            # Already handled.
-            weight="NORMAL",           # Already handled.
-            size=1,                    # Already handled.
+            slant="NORMAL",
+            weight="NORMAL",
+            size=10,
             _=0,                       # Empty parameter.
             disable_liga=False,
             file_name=str(svg_path),
             START_X=0,
             START_Y=0,
-            width=16384,               # Ensure the canvas is large enough
+            width=16384,               # Ensure the canvas is large enough.
             height=16384,              # to hold all glyphs.
             justify=input_data.justify,
             indent=input_data.indent,
             line_spacing=None,         # Already handled.
             alignment=pango_alignment,
-            pango_width=(
-                -1 if (line_width := input_data.line_width) is None
-                else line_width * Toplevel._get_config().pixel_per_unit
-            )
+            pango_width=None           # No auto wraplines.
         )
 
     @classmethod
     def _get_svg_frame_scale(
-        cls: type[Self],
-        input_data: PangoStringMobjectInputT
+        cls: type[Self]
     ) -> float:
-        return 0.03516
+        return 0.05626
 
     @classmethod
     def _get_global_span_attributes(
@@ -146,7 +138,6 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
     ) -> dict[str, str]:
         global_span_attributes = {
             "foreground": ColorUtils.color_to_hex(input_data.color),
-            "font_size": str(round(input_data.font_size * 16384.0)),
             "font_family": input_data.font,
             "line_height": str(input_data.line_height)
         }

@@ -26,7 +26,6 @@ from .string_mobject import (
 
 @attrs.frozen(kw_only=True)
 class CodeInput(PangoStringMobjectInput):
-    font_size: float = attrs.field(factory=lambda: Toplevel._get_config().code_font_size)
     font: str = attrs.field(factory=lambda: Toplevel._get_config().code_font)
     language_suffix: str = attrs.field(factory=lambda: Toplevel._get_config().code_language_suffix)
 

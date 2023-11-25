@@ -74,14 +74,7 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
         ), encoding="utf-8")
 
     @classmethod
-    def _get_environment_command_pair(
-        cls: type[Self],
-        input_data: MathJaxInputT
-    ) -> tuple[str, str]:
-        return "{{", "}}"
-
-    @classmethod
-    def _get_scale_factor_per_font_point(
+    def _get_svg_frame_scale(
         cls: type[Self]
     ) -> float:
         return 0.4021

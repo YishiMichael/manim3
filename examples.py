@@ -27,18 +27,16 @@ class TextTransformExample(Scene):
     async def construct(self) -> None:
         text = (
             Text("Text", concatenate=True)
-            .scale(3)
             .set(color=ORANGE, opacity=0.5)
             .shift(LEFT * 2)
             .add_strokes(color=BLUE, weight=10)
         )
         tex = (
             Tex("Tex", concatenate=True)
-            .scale(3)
             .set(color=BLUE, opacity=0.5)
             .add_strokes(color=PINK, weight=10)
         )
-        code = Code("print(\"Code!\")").shift(RIGHT * 2)
+        code = Code("print(\"Code!\")", language_suffix=".txt").shift(RIGHT * 2)
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
@@ -51,7 +49,6 @@ class CreateTexExample(Scene):
     async def construct(self) -> None:
         text = (
             Text("Text", concatenate=True)
-            .scale(3)
             .set(color=ORANGE, opacity=0.5)
             .add_strokes(color=BLUE, weight=10)
         )
@@ -79,7 +76,7 @@ class ThreeDExample(Scene):
         self.add(dodec)
         self.prepare(self.camera.animate(infinite=True).rotate(0.5 * DOWN))
 
-        text = Text("Dodecahedron")
+        text = Text("Dodecahedron").scale(0.5)
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
@@ -109,7 +106,7 @@ class OITExample(Scene):
 
 class LaggedAnimationExample(Scene):
     async def construct(self) -> None:
-        text = Text("Text").scale(3)
+        text = Text("Text")
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),
@@ -128,7 +125,7 @@ class FormulaExample(Scene):
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
-        ).scale(0.7).shift(UP)
+        ).scale(0.5).shift(UP)
         expanded_formula = MathJax(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
@@ -136,7 +133,7 @@ class FormulaExample(Scene):
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
-        ).scale(0.7).shift(DOWN)
+        ).scale(0.5).shift(DOWN)
         self.add(factored_formula)
         await self.wait()
         await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2)

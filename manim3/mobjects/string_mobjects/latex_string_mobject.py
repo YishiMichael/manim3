@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pathlib
 import re
-from abc import abstractmethod
 from typing import (
     Iterator,
     Self
@@ -27,23 +26,14 @@ from .string_mobject import (
 @attrs.frozen(kw_only=True)
 class LatexStringMobjectInput(StringMobjectInput):
     color: ColorType = attrs.field(factory=lambda: Toplevel._get_config().default_color)
-    font_size: float = attrs.field(factory=lambda: Toplevel._get_config().latex_font_size)
 
 
 class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
     color: ColorType
-    font_size: float
 
 
 class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT]):
     __slots__ = ()
-
-    @classmethod
-    def _get_svg_frame_scale(
-        cls: type[Self],
-        input_data: LatexStringMobjectInputT
-    ) -> float:
-        return cls._get_scale_factor_per_font_point() * input_data.font_size
 
     @classmethod
     def _get_global_span_attributes(
@@ -66,10 +56,10 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
             return "", ""
         match = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
         assert match is not None
-        return "{{" + f"\\color[RGB]{{{", ".join(
+        return f"{{\\color[RGB]{{{", ".join(
             str(int(match.group(index), 16))
             for index in range(1, 4)
-        )}}}", "}}"
+        )}}}{{", f"}}}}"
 
     @classmethod
     def _convert_attributes_for_labelling(
@@ -127,10 +117,3 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
                 break
         if open_stack:
             raise ValueError("Missing '}' inserted")
-
-    @classmethod
-    @abstractmethod
-    def _get_scale_factor_per_font_point(
-        cls: type[Self]
-    ) -> float:
-        pass

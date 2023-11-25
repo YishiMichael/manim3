@@ -607,7 +607,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             )
             shape_mobjects = SVGMobjectIO._get_shape_mobjects_from_svg_path(
                 svg_path=svg_path,
-                frame_scale=cls._get_svg_frame_scale(input_data)
+                frame_scale=cls._get_svg_frame_scale()
             )
         finally:
             svg_path.unlink(missing_ok=True)
@@ -627,10 +627,9 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
     @classmethod
     @abstractmethod
     def _get_svg_frame_scale(
-        cls: type[Self],
-        input_data: StringMobjectInputT
+        cls: type[Self]
     ) -> float:
-        # The line height shall be roughly equal to `font_size` for default fonts.
+        # The line height shall be roughly equal to 1.0 for default fonts.
         pass
 
     @classmethod
