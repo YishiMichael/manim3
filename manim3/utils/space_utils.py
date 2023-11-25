@@ -158,25 +158,25 @@ class SpaceUtils:
         return result, z_value
 
     @classmethod
-    def get_frame_scale_vector(
+    def get_scale_vector(
         cls: type[Self],
         *,
         original_width: float,
         original_height: float,
         specified_width: float | None,
         specified_height: float | None,
-        specified_frame_scale: float | None
+        specified_scale: float | None
     ) -> tuple[float, float]:
         match specified_width, specified_height:
             case float(), float():
                 return specified_width / original_width, specified_height / original_height
             case float(), None:
-                scale_factor = specified_width / original_width
+                scale = specified_width / original_width
             case None, float():
-                scale_factor = specified_height / original_height
+                scale = specified_height / original_height
             case _:
-                scale_factor = specified_frame_scale if specified_frame_scale is not None else 1.0
-        return scale_factor, scale_factor
+                scale = specified_scale if specified_scale is not None else 1.0
+        return scale, scale
 
     @classmethod
     def apply(

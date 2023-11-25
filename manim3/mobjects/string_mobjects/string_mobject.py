@@ -582,8 +582,8 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         labelled_radii = Mobject().add(*labelled_shape_mobjects).box.get_radii()
         scale_factor = unlabelled_radii / labelled_radii
         distance_matrix = scipy.spatial.distance.cdist(
-            [shape.box.get() for shape in unlabelled_shape_mobjects],
-            [shape.box.get() * scale_factor for shape in labelled_shape_mobjects]
+            tuple(shape.box.get() for shape in unlabelled_shape_mobjects),
+            tuple(shape.box.get() * scale_factor for shape in labelled_shape_mobjects)
         )
         for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix), strict=True):
             yield (
@@ -607,7 +607,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             )
             shape_mobjects = SVGMobjectIO._get_shape_mobjects_from_svg_path(
                 svg_path=svg_path,
-                frame_scale=cls._get_svg_frame_scale()
+                scale=cls._get_adjustment_scale()
             )
         finally:
             svg_path.unlink(missing_ok=True)
@@ -626,7 +626,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
 
     @classmethod
     @abstractmethod
-    def _get_svg_frame_scale(
+    def _get_adjustment_scale(
         cls: type[Self]
     ) -> float:
         # The line height shall be roughly equal to 1.0 for default fonts.

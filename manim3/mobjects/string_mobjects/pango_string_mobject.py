@@ -125,7 +125,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         )
 
     @classmethod
-    def _get_svg_frame_scale(
+    def _get_adjustment_scale(
         cls: type[Self]
     ) -> float:
         return 0.05626

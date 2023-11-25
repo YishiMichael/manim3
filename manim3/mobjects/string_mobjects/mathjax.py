@@ -74,7 +74,7 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
         ), encoding="utf-8")
 
     @classmethod
-    def _get_svg_frame_scale(
+    def _get_adjustment_scale(
         cls: type[Self]
     ) -> float:
         return 0.4021

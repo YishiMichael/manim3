@@ -34,7 +34,7 @@ class SVGMobjectInput(MobjectInput):
     svg_text: str
     width: float | None
     height: float | None
-    frame_scale: float | None
+    scale: float | None
 
 
 @attrs.frozen(kw_only=True)
@@ -74,7 +74,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                 svg_path=input_data.svg_path,
                 width=input_data.width,
                 height=input_data.height,
-                frame_scale=input_data.frame_scale
+                scale=input_data.scale
             )
         )
 
@@ -109,7 +109,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
         *,
         width: float | None = None,
         height: float | None = None,
-        frame_scale: float | None = None
+        scale: float | None = None
     ) -> tuple[ShapeMobject, ...]:
 
         def perspective(
@@ -133,7 +133,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
             bbox: tuple[float, float, float, float],
             width: float | None,
             height: float | None,
-            frame_scale: float | None
+            scale: float | None
         ) -> se.Matrix:
 
             min_x, min_y, max_x, max_y = bbox
@@ -147,12 +147,12 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                 radius_x=radius_x,
                 radius_y=radius_y
             )
-            scale_x, scale_y = SpaceUtils.get_frame_scale_vector(
+            scale_x, scale_y = SpaceUtils.get_scale_vector(
                 original_width=radius_x * 2.0,
                 original_height=radius_y * 2.0,
                 specified_width=width,
                 specified_height=height,
-                specified_frame_scale=frame_scale
+                specified_scale=scale
             )
             transform *= perspective(
                 origin_x=0.0,
@@ -203,7 +203,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                 bbox=bbox,
                 width=width,
                 height=height,
-                frame_scale=frame_scale
+                scale=scale
             )
 
             for se_shape in svg.elements():
@@ -265,7 +265,7 @@ class SVGMobject(ShapeMobject):
         *,
         width: float | None = None,
         height: float | None = None,
-        frame_scale: float | None = None
+        scale: float | None = None
     ) -> None:
         super().__init__()
         svg_path = pathlib.Path(svg_path)
@@ -274,7 +274,7 @@ class SVGMobject(ShapeMobject):
             svg_text=svg_path.read_text(encoding="utf-8"),
             width=width,
             height=height,
-            frame_scale=frame_scale
+            scale=scale
         ))
 
         shape_mobjects = output_data.shape_mobjects

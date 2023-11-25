@@ -36,7 +36,7 @@ class TextTransformExample(Scene):
             .set(color=BLUE, opacity=0.5)
             .add_strokes(color=PINK, weight=10)
         )
-        code = Code("print(\"Code!\")", language_suffix=".txt").shift(RIGHT * 2)
+        code = Code("print(\"Code!\")").shift(RIGHT * 2)
         self.add(text)
         await self.wait()
         await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
@@ -119,14 +119,14 @@ class LaggedAnimationExample(Scene):
 
 class FormulaExample(Scene):
     async def construct(self) -> None:
-        factored_formula = MathJax(
+        factored_formula = MathTex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             local_colors={
                 re.compile(r"a_{\d}"): TEAL,
                 re.compile(r"b_{\d}"): ORANGE
             }
         ).scale(0.5).shift(UP)
-        expanded_formula = MathJax(
+        expanded_formula = MathTex(
             "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
                 + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
             local_colors={

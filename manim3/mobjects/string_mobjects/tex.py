@@ -107,7 +107,7 @@ class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
                 svg_path.with_suffix(suffix).unlink(missing_ok=True)
 
     @classmethod
-    def _get_svg_frame_scale(
+    def _get_adjustment_scale(
         cls: type[Self]
     ) -> float:
         return 0.04579

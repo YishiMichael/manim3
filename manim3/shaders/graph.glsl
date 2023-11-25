@@ -69,7 +69,6 @@ void emit_parallelepiped(vec3 origin, vec3 radius_x, vec3 radius_y, vec3 radius_
     vec3 p_110 = origin - radius_x - radius_y + radius_z;
     vec3 p_111 = origin - radius_x - radius_y - radius_z;
 
-    // TODO: How can we emit 3 faces instead of 6?
     emit_vertex(p_000);
     emit_vertex(p_001);
     emit_vertex(p_010);
