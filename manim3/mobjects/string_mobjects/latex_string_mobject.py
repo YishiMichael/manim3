@@ -10,9 +10,9 @@ from typing import (
 
 import attrs
 
+from ...animatables.arrays.animatable_color import AnimatableColor
 from ...constants.custom_typing import ColorType
 from ...toplevel.toplevel import Toplevel
-from ...utils.color_utils import ColorUtils
 from .string_mobject import (
     BalancedCommandInfo,
     CommandInfo,
@@ -42,7 +42,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         temp_path: pathlib.Path
     ) -> dict[str, str]:
         global_span_attributes = {
-            "color": ColorUtils.color_to_hex(input_data.color)
+            "color": AnimatableColor._color_to_hex(input_data.color)
         }
         global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
         return global_span_attributes

@@ -18,12 +18,12 @@ try:
 except ImportError:
     MarkupUtils = None
 
+from ...animatables.arrays.animatable_color import AnimatableColor
 from ...constants.custom_typing import (
     AlignmentType,
     ColorType
 )
 from ...toplevel.toplevel import Toplevel
-from ...utils.color_utils import ColorUtils
 from .string_mobject import (
     CommandInfo,
     StandaloneCommandInfo,
@@ -106,22 +106,22 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
 
         MarkupUtils.text2svg(
             text=content,
-            font="",                   # Already handled.
+            font="",  # Already handled.
             slant="NORMAL",
             weight="NORMAL",
             size=10,
-            _=0,                       # Empty parameter.
+            _=0,  # Empty parameter.
             disable_liga=False,
             file_name=str(svg_path),
             START_X=0,
             START_Y=0,
-            width=16384,               # Ensure the canvas is large enough.
-            height=16384,              # to hold all glyphs.
+            width=16384,  # Ensure the canvas is large enough to hold all glyphs.
+            height=16384,
             justify=input_data.justify,
             indent=input_data.indent,
-            line_spacing=None,         # Already handled.
+            line_spacing=None,  # Already handled.
             alignment=pango_alignment,
-            pango_width=None           # No auto wraplines.
+            pango_width=None  # No auto wraplines.
         )
 
     @classmethod
@@ -137,7 +137,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         temp_path: pathlib.Path
     ) -> dict[str, str]:
         global_span_attributes = {
-            "foreground": ColorUtils.color_to_hex(input_data.color),
+            "foreground": AnimatableColor._color_to_hex(input_data.color),
             "font_family": input_data.font,
             "line_height": str(input_data.line_height)
         }

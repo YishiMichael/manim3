@@ -10,7 +10,6 @@ from typing import (
 import numpy as np
 
 from ...lazy.lazy import Lazy
-from ...utils.space_utils import SpaceUtils
 from ..animatable.actions import Action
 from ..animatable.animatable import (
     Animatable,
@@ -97,7 +96,7 @@ class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](Ani
         dst: AnimatableArrayT,
         alpha: float
     ) -> None:
-        dst._array_ = SpaceUtils.lerp(self._array_0_, self._array_1_, alpha)
+        dst._array_ = (1.0 - alpha) * self._array_0_ + alpha * self._array_1_
 
     def becomes(
         self: Self,

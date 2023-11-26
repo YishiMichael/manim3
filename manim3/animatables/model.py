@@ -25,7 +25,6 @@ from ..constants.custom_typing import (
 from ..lazy.lazy import Lazy
 from ..lazy.lazy_object import LazyObject
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ..utils.space_utils import SpaceUtils
 from .animatable.actions import (
     Action,
     ConverterDescriptorParameters
@@ -280,7 +279,7 @@ class ModelActions(AnimatableActions):
     ) -> Iterator[Animation]:
         yield from cls.rotate(
             dst=dst,
-            rotvec=SpaceUtils.normalize(axis) * PI,
+            rotvec=axis / np.linalg.norm(axis) * PI,
             about=about,
             direction=direction,
             mask=mask
@@ -347,7 +346,7 @@ class Model(Animatable):
         model_matrix__array: NP_44f8,
         local_sample_positions: NP_x3f8,
     ) -> NP_x3f8:
-        return SpaceUtils.apply_multiple(model_matrix__array, local_sample_positions)
+        return ModelMatrix._apply_multiple(model_matrix__array, local_sample_positions)
 
     @Lazy.property()
     @staticmethod
@@ -434,8 +433,8 @@ class ModelAnimation(Animation):
     ) -> None:
         super().__init__()
         about_point = about.box.get(direction)
-        self._pre_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(-about_point)
-        self._post_shift_matrix: NP_44f8 = SpaceUtils.matrix_from_shift(about_point)
+        self._pre_shift_matrix: NP_44f8 = ModelMatrix._matrix_from_shift(-about_point)
+        self._post_shift_matrix: NP_44f8 = ModelMatrix._matrix_from_shift(about_point)
         self._model_matrices: dict[ModelMatrix, NP_44f8] = {
             sibling._model_matrix_: sibling._model_matrix_._array_
             for sibling in (model, *model._proper_siblings_)
@@ -489,7 +488,7 @@ class ModelShiftAnimation(ModelAnimation):
         self: Self,
         alpha: float
     ) -> NP_44f8:
-        return SpaceUtils.matrix_from_shift(self._vector * (self._mask * alpha))
+        return ModelMatrix._matrix_from_shift(self._vector * (self._mask * alpha))
 
 
 class ModelScaleAnimation(ModelAnimation):
@@ -520,7 +519,7 @@ class ModelScaleAnimation(ModelAnimation):
         self: Self,
         alpha: float
     ) -> NP_44f8:
-        return SpaceUtils.matrix_from_scale(self._factor ** (self._mask * alpha))
+        return ModelMatrix._matrix_from_scale(self._factor ** (self._mask * alpha))
 
 
 class ModelRotateAnimation(ModelAnimation):
@@ -549,7 +548,7 @@ class ModelRotateAnimation(ModelAnimation):
         self: Self,
         alpha: float
     ) -> NP_44f8:
-        return SpaceUtils.matrix_from_rotate(self._rotvec * (self._mask * alpha))
+        return ModelMatrix._matrix_from_rotate(self._rotvec * (self._mask * alpha))
 
 
 class ModelApplyAnimation(ModelAnimation):
@@ -573,4 +572,4 @@ class ModelApplyAnimation(ModelAnimation):
         self: Self,
         alpha: float
     ) -> NP_44f8:
-        return SpaceUtils.lerp(np.identity(4), self._matrix, alpha)
+        return (1.0 - alpha) * np.identity(4) + alpha * self._matrix

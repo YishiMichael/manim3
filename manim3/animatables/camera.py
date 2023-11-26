@@ -6,6 +6,7 @@ from typing import Self
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+
 from ..constants.constants import (
     DL,
     ORIGIN,
@@ -24,9 +25,9 @@ from ..constants.custom_typing import (
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..toplevel.toplevel import Toplevel
-from ..utils.space_utils import SpaceUtils
 from .animatable.animatable import AnimatableActions
 from .arrays.animatable_float import AnimatableFloat
+from .arrays.model_matrix import ModelMatrix
 from .model import Model
 
 
@@ -71,14 +72,14 @@ class Camera(Model):
     def _target_(
         model_matrix__array: NP_44f8
     ) -> NP_3f8:
-        return SpaceUtils.apply(model_matrix__array, ORIGIN)
+        return ModelMatrix._apply(model_matrix__array, ORIGIN)
 
     @Lazy.property()
     @staticmethod
     def _eye_(
         model_matrix__array: NP_44f8
     ) -> NP_3f8:
-        return SpaceUtils.apply(model_matrix__array, OUT)
+        return ModelMatrix._apply(model_matrix__array, OUT)
 
     @Lazy.property()
     @staticmethod
@@ -87,8 +88,8 @@ class Camera(Model):
         target: NP_3f8
     ) -> NP_2f8:
         return np.array((
-            SpaceUtils.norm(SpaceUtils.apply(model_matrix__array, RIGHT) - target),
-            SpaceUtils.norm(SpaceUtils.apply(model_matrix__array, UP) - target)
+            np.linalg.norm(ModelMatrix._apply(model_matrix__array, RIGHT) - target),
+            np.linalg.norm(ModelMatrix._apply(model_matrix__array, UP) - target)
         ))
 
     @Lazy.property()
@@ -97,7 +98,7 @@ class Camera(Model):
         eye: NP_3f8,
         target: NP_3f8
     ) -> NP_f8:
-        return np.array(SpaceUtils.norm(eye - target))
+        return np.array(np.linalg.norm(eye - target))
 
     @Lazy.property()
     @staticmethod
@@ -128,8 +129,8 @@ class Camera(Model):
         model_basis = model_matrix__array[:3, :3]
         model_basis_normalized = model_basis / np.linalg.norm(model_basis, axis=0, keepdims=True)
         return (
-            SpaceUtils.matrix_from_rotate(-Rotation.from_matrix(model_basis_normalized).as_rotvec())
-            @ SpaceUtils.matrix_from_shift(-eye)
+            ModelMatrix._matrix_from_rotate(-Rotation.from_matrix(model_basis_normalized).as_rotvec())
+            @ ModelMatrix._matrix_from_shift(-eye)
         )
 
     @Lazy.property()

@@ -17,7 +17,6 @@ from ...constants.custom_typing import (
     NP_xf8
 )
 from ...lazy.lazy import Lazy
-from ...utils.space_utils import SpaceUtils
 from .rate import Rate
 
 
@@ -171,7 +170,11 @@ class BezierRate(Rate):
     def _curve_(
         values: NP_xf8
     ) -> BSpline:
-        return SpaceUtils.bezier(values)
+        return BSpline(
+            t=np.repeat(np.array((0.0, 1.0)), len(values)),
+            c=values,
+            k=len(values) - 1
+        )
 
     @Lazy.property()
     @staticmethod

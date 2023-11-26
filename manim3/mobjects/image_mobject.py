@@ -7,7 +7,6 @@ import numpy as np
 from PIL import Image
 
 from ..toplevel.toplevel import Toplevel
-from ..utils.space_utils import SpaceUtils
 from .mesh_mobjects.plane import Plane
 
 
@@ -37,7 +36,7 @@ class ImageMobject(Plane):
         pixel_per_unit = Toplevel._get_config().pixel_per_unit
         original_width = image.width / pixel_per_unit
         original_height = image.height / pixel_per_unit
-        scale_x, scale_y = SpaceUtils.get_scale_vector(
+        scale_x, scale_y = type(self)._get_scale_vector(
             original_width=original_width,
             original_height=original_height,
             specified_width=width,
@@ -49,3 +48,24 @@ class ImageMobject(Plane):
             scale_y * original_height / 2.0,
             1.0
         )))
+
+    @classmethod
+    def _get_scale_vector(
+        cls: type[Self],
+        *,
+        original_width: float,
+        original_height: float,
+        specified_width: float | None,
+        specified_height: float | None,
+        specified_scale: float | None
+    ) -> tuple[float, float]:
+        match specified_width, specified_height:
+            case float(), float():
+                return specified_width / original_width, specified_height / original_height
+            case float(), None:
+                scale = specified_width / original_width
+            case None, float():
+                scale = specified_height / original_height
+            case _:
+                scale = specified_scale if specified_scale is not None else 1.0
+        return scale, scale

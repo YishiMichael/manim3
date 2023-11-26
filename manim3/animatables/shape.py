@@ -23,7 +23,6 @@ from ..constants.custom_typing import (
     NP_xi4
 )
 from ..lazy.lazy import Lazy
-from ..utils.space_utils import SpaceUtils
 from .animatable.actions import Action
 from .animatable.animatable import (
     Animatable,
@@ -140,7 +139,7 @@ class Shape(Animatable):
         edge_stops[cumcounts[:-1]] = np.roll(edge_stops[cumcounts[:-1]], 1)
         edge_stops = np.roll(edge_stops, -1)
         return Graph(
-            positions=SpaceUtils.increase_dimension(coordinates),
+            positions=np.concatenate((coordinates, np.zeros((len(coordinates), 1))), axis=1),
             edges=np.column_stack((edge_starts, edge_stops))
         )
 
@@ -348,7 +347,7 @@ class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[Sh
     ) -> None:
         interpolate_info = self._interpolate_info_
         dst.set(
-            coordinates=SpaceUtils.lerp(interpolate_info.coordinates_0, interpolate_info.coordinates_1, alpha),
+            coordinates=(1.0 - alpha) * interpolate_info.coordinates_0 + alpha * interpolate_info.coordinates_1,
             counts=interpolate_info.counts
         )
 
@@ -463,7 +462,7 @@ class ShapeUtils(GraphUtils):
             counts[open_path_indices] += 1
         return (
             tuple(
-                SpaceUtils.decrease_dimension(positions)[indices]
+                positions[indices, :2]
                 for positions in positions_tuple
             ),
             counts

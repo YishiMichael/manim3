@@ -16,7 +16,6 @@ from ...animatables.shape import (
     Triangulation
 )
 from ...lazy.lazy import Lazy
-from ...utils.space_utils import SpaceUtils
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
 
@@ -46,8 +45,8 @@ class ShapeMobject(MeshMobject):
     ) -> Mesh:
         coordinates = shape__triangulation.coordinates
         faces = shape__triangulation.faces
-        positions = SpaceUtils.increase_dimension(coordinates)
-        normals = SpaceUtils.increase_dimension(np.zeros_like(coordinates), z_value=1.0)
+        positions = np.concatenate((coordinates, np.zeros((len(coordinates), 1))), axis=1)
+        normals = np.concatenate((np.zeros_like(coordinates), np.ones((len(coordinates), 1))), axis=1)
         return Mesh(
             positions=positions,
             normals=normals,

@@ -5,13 +5,13 @@ import itertools
 import time
 from typing import Self
 
+from ..animatables.arrays.animatable_color import AnimatableColor
 from ..animatables.lights.ambient_light import AmbientLight
 from ..animatables.camera import Camera
 from ..animatables.lighting import Lighting
 from ..constants.custom_typing import ColorType
 from ..mobjects.mobject import Mobject
 from ..timelines.timeline.timeline import Timeline
-from ..utils.color_utils import ColorUtils
 from .toplevel import Toplevel
 
 
@@ -144,8 +144,8 @@ class Scene(Timeline):
         if lighting is not None:
             self.bind_lighting(lighting, broadcast=broadcast)
         if background_color is not None:
-            red, green, blue = tuple(float(component) for component in ColorUtils.color_to_array(background_color))
-            self._background_color = (red, green, blue)
+            red, green, blue = AnimatableColor._color_to_array(background_color)
+            self._background_color = (float(red), float(green), float(blue))
         if background_opacity is not None:
             self._background_opacity = background_opacity
         return self

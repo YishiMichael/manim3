@@ -20,7 +20,6 @@ from ..constants.custom_typing import (
     NP_xi4
 )
 from ..lazy.lazy import Lazy
-from ..utils.space_utils import SpaceUtils
 from .animatable.actions import Action
 from .animatable.animatable import (
     Animatable,
@@ -90,7 +89,7 @@ class Graph(Animatable):
         positions: NP_x3f8,
         edges: NP_x2i4
     ) -> NP_xf8:
-        lengths = SpaceUtils.norm(positions[edges[:, 1]] - positions[edges[:, 0]])
+        lengths = np.linalg.norm(positions[edges[:, 1]] - positions[edges[:, 0]], axis=1)
         return np.insert(np.cumsum(lengths), 0, 0.0)
 
     def set(
@@ -172,7 +171,7 @@ class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[Gr
     ) -> None:
         interpolate_info = self._interpolate_info_
         dst.set(
-            positions=SpaceUtils.lerp(interpolate_info.positions_0, interpolate_info.positions_1, alpha),
+            positions=(1.0 - alpha) * interpolate_info.positions_0 + alpha * interpolate_info.positions_1,
             edges=interpolate_info.edges
         )
 
@@ -419,10 +418,9 @@ class GraphUtils:
     ) -> tuple[NP_x3f8, NP_xi4]:
         insertion_indices = np.searchsorted(knots[1:-1], alphas, side=side).astype(np.int32)
         residues = (alphas - knots[insertion_indices]) / np.maximum(knots[insertion_indices + 1] - knots[insertion_indices], 1e-8)
-        interpolated_positions = SpaceUtils.lerp(
-            positions[edges[insertion_indices, 0]],
-            positions[edges[insertion_indices, 1]],
-            residues[:, None]
+        interpolated_positions = (
+            (1.0 - residues[:, None]) * positions[edges[insertion_indices, 0]]
+            + residues[:, None] * positions[edges[insertion_indices, 1]]
         )
         return interpolated_positions, insertion_indices
 

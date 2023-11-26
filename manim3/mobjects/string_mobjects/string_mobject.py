@@ -15,15 +15,15 @@ from typing import (
 
 import attrs
 
-import scipy.optimize
 import scipy.spatial.distance
+import scipy.optimize
 
+from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.shape import Shape
 from ...constants.custom_typing import (
     ColorType,
     SelectorType
 )
-from ...utils.color_utils import ColorUtils
 from ..shape_mobjects.shape_mobject import ShapeMobject
 from ..mobject import Mobject
 from ..mobject_io import (
@@ -322,7 +322,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         for shape_mobject, label in shape_mobject_items:
             _, local_color = isolated_items[label]
             if local_color is not None:
-                shape_mobject._color_._array_ = ColorUtils.color_to_array(local_color)
+                shape_mobject._color_._array_ = AnimatableColor._color_to_array(local_color)
 
         return StringMobjectOutput(
             shape_mobjects=tuple(shape_mobject for shape_mobject, _ in shape_mobject_items),
@@ -588,7 +588,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         for unlabelled_index, labelled_index in zip(*scipy.optimize.linear_sum_assignment(distance_matrix), strict=True):
             yield (
                 unlabelled_shape_mobjects[unlabelled_index],
-                int(ColorUtils.color_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
+                int(AnimatableColor._array_to_hex(labelled_shape_mobjects[labelled_index]._color_._array_)[1:], 16)
             )
 
     @classmethod

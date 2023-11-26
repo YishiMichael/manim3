@@ -5,8 +5,6 @@ from typing import Self
 
 import numpy as np
 
-from ...constants.constants import UP
-from ...utils.space_utils import SpaceUtils
 from .parametric_surface import ParametricSurface
 
 
@@ -17,8 +15,8 @@ class Plane(ParametricSurface):
         self: Self
     ) -> None:
         super().__init__(
-            func=SpaceUtils.increase_dimension,
-            normal_func=lambda samples: np.repeat((UP,), len(samples), axis=0),
+            func=lambda samples: np.concatenate((samples, np.zeros((len(samples), 1))), axis=1),
+            normal_func=lambda samples: np.concatenate((np.zeros_like(samples), np.ones((len(samples), 1))), axis=1),
             u_range=(-1.0, 1.0),
             v_range=(-1.0, 1.0),
             resolution=(1, 1)

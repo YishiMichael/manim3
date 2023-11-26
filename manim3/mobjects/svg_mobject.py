@@ -11,15 +11,16 @@ from typing import (
 import attrs
 import numpy as np
 import svgelements as se
+from scipy.interpolate import BSpline
 
+from ..animatables.arrays.animatable_color import AnimatableColor
 from ..animatables.shape import Shape
 from ..constants.custom_typing import (
     NP_2f8,
     NP_x2f8
 )
-from ..utils.color_utils import ColorUtils
-from ..utils.space_utils import SpaceUtils
 from .shape_mobjects.shape_mobject import ShapeMobject
+from .image_mobject import ImageMobject
 from .mobject_io import (
     MobjectIO,
     MobjectInput,
@@ -147,7 +148,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                 radius_x=radius_x,
                 radius_y=radius_y
             )
-            scale_x, scale_y = SpaceUtils.get_scale_vector(
+            scale_x, scale_y = ImageMobject._get_scale_vector(
                 original_width=radius_x * 2.0,
                 original_height=radius_y * 2.0,
                 specified_width=width,
@@ -183,7 +184,12 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
                         coordinates_list.append(np.array(end))
                     case se.QuadraticBezier() | se.CubicBezier():
                         # Approximate the bezier curve with a polyline.
-                        curve = SpaceUtils.bezier(np.array(segment))
+                        control_positions = np.array(segment)
+                        curve = BSpline(
+                            t=np.repeat(np.array((0.0, 1.0)), len(control_positions)),
+                            c=control_positions,
+                            k=len(control_positions) - 1
+                        )
                         coordinates_list.extend(curve(np.linspace(0.0, 1.0, 9)[1:]))
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
@@ -233,7 +239,7 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
         return ShapeMobjectJSON(
             coordinates=tuple(round(float(value), 6) for value in shape._coordinates_.flatten()),
             counts=tuple(int(value) for value in shape._counts_),
-            color=ColorUtils.color_to_hex(shape_mobject._color_._array_),
+            color=AnimatableColor._array_to_hex(shape_mobject._color_._array_),
             opacity=round(float(shape_mobject._opacity_._array_), 6)
         )
 

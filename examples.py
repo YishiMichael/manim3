@@ -69,7 +69,7 @@ class ThreeDExample(Scene):
                 opacity=0.25
             )
             .bind_lighting(Lighting(
-                AmbientLight().set(color=WHITE * 0.3),
+                AmbientLight().set(color=GREY_D),
                 PointLight().shift(RIGHT * 5)
             ))
         )

@@ -10,7 +10,6 @@ from ...constants.custom_typing import (
     NP_x3f8,
     NP_xxi4
 )
-from ...utils.space_utils import SpaceUtils
 from .polygon import Polygon
 from .shape_mobject import ShapeMobject
 
@@ -35,21 +34,23 @@ class Polyhedron(ShapeMobject):
         positions: NP_x3f8
     ) -> Polygon:
         assert len(positions) >= 3
-        # We first choose three positions that define the plane.
+        # We first choose three sample positions that define the plane.
         # Instead of choosing `positions[:3]`, we choose `positions[:2]` and the geometric centroid,
         # in order to reduce the chance that they happen to be colinear.
-        # The winding order should be counterclockwise.
-        origin = positions[0]
-        x_axis = SpaceUtils.normalize(positions[1] - positions[0])
-        z_axis = SpaceUtils.normalize(np.cross(x_axis, np.average(positions, axis=0) - origin))
+        sample_0 = np.average(positions, axis=0)
+        sample_1 = positions[0]
+        sample_2 = positions[1]
+        x_axis = (x_direction := sample_1 - sample_0) / np.linalg.norm(x_direction)
+        z_axis = (z_direction := np.cross(x_axis, sample_2 - sample_0)) / np.linalg.norm(z_direction)
         y_axis = np.cross(z_axis, x_axis)
         rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
         rotation_vector = Rotation.from_matrix(rotation_matrix).as_rotvec()
 
-        transformed = (np.linalg.inv(rotation_matrix) @ (positions - origin).T).T
-        transformed_xy, transformed_z = SpaceUtils.decrease_dimension(transformed, extract_z=True)
+        transformed = (np.linalg.inv(rotation_matrix) @ (positions - sample_0).T).T
+        transformed_xy = transformed[:, :2]
+        transformed_z = transformed[:, 2]
         assert np.isclose(transformed_z, 0.0).all(), "Positions are not coplanar"
-        return Polygon(transformed_xy).rotate_about_origin(rotation_vector).shift(origin)
+        return Polygon(transformed_xy).rotate_about_origin(rotation_vector).shift(sample_0)
 
 
 # The five platonic solids are ported from manim community.
