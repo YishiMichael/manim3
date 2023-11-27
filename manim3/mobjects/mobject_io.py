@@ -46,10 +46,10 @@ class MobjectIO[MobjectInputT: MobjectInput, MobjectOutputT: MobjectOutput, Mobj
         cls: type[Self],
         input_data: MobjectInputT
     ) -> MobjectOutputT:
-        # Notice that as we are using `str(input_data)` as key,
+        # Notice that as we are using string as key,
         # each item shall have an explicit string representation of data,
         # which shall not contain any information varying in each run, like addresses.
-        hash_content = str(input_data)
+        hash_content = f"{input_data}"
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
         json_path = cls._get_output_subdir(cls._get_subdir_name()).joinpath(f"{hex_string}.json")

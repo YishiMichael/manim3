@@ -20,9 +20,10 @@ class Field(LazyObject):
     __slots__ = ()
 
     # Note, numpy matrices are row-major, while OpenGL store matrices in column-major format.
-    # One may need to transpose matrices before passing them to shaders.
     # In numpy, shape `(r, c)` stands for `r` rows and `c` columns.
     # In glsl, `matcxr` specifies a matrix with `r` rows and `c` columns.
+    # The behavior of a `matcxr` is simulated by an ndarray with shape `(r, c)`,
+    # and one needs to transpose matrices before passing them to shaders.
     _GLSL_DTYPES: ClassVar[dict[str, np.dtype]] = {
         "int":     np.dtype("i4"),
         "ivec2":   np.dtype("2i4"),

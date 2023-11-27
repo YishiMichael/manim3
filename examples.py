@@ -1,11 +1,14 @@
 import re
+from typing import Self
 
 import numpy as np
 from manim3 import *
 
 
 class ShapeTransformExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         square = (
             Square()
             .set(color=WHITE, opacity=1.0)
@@ -14,53 +17,78 @@ class ShapeTransformExample(Scene):
         circle = (
             Circle()
             .set(color=PINK, opacity=0.9)
-            .add_strokes(color=YELLOW, weight=10)
+            .add_strokes(color=YELLOW, weight=10.0)
         )
 
         self.add(square)
         await self.wait()
-        await self.play(Transform(square, circle), run_time=2, rate=Rates.smooth())
+        await self.play(Transform(square, circle), run_time=2.0, rate=Rates.smooth())
         await self.wait()
 
 
 class TextTransformExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         text = (
             Text("Text", concatenate=True)
             .set(color=ORANGE, opacity=0.5)
-            .shift(LEFT * 2)
-            .add_strokes(color=BLUE, weight=10)
+            .shift(2.0 * LEFT)
+            .add_strokes(color=BLUE, weight=10.0)
         )
         tex = (
             Tex("Tex", concatenate=True)
             .set(color=BLUE, opacity=0.5)
-            .add_strokes(color=PINK, weight=10)
+            .add_strokes(color=PINK, weight=10.0)
         )
-        code = Code("print(\"Code!\")").shift(RIGHT * 2)
+        code = Code("print(\"Code!\")").shift(2.0 * RIGHT)
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2, rate=Rates.smooth())
+        await self.play(Transform(text, tex), run_time=2.0, rate=Rates.smooth())
         await self.wait()
-        await self.play(FadeTransform(tex, code), run_time=2, rate=Rates.smooth())
-        await self.wait(3)
+        await self.play(FadeTransform(tex, code), run_time=2.0, rate=Rates.smooth())
+        await self.wait(3.0)
 
 
 class CreateTexExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         text = (
             Text("Text", concatenate=True)
             .set(color=ORANGE, opacity=0.5)
-            .add_strokes(color=BLUE, weight=10)
+            .add_strokes(color=BLUE, weight=10.0)
         )
         await self.wait()
-        await self.play(Create(text, n_segments=5), rate=Rates.smooth(), run_time=2)
+        await self.play(Create(text, n_segments=5), rate=Rates.smooth(), run_time=2.0)
         await self.wait()
-        await self.play(Uncreate(text, backwards=True, n_segments=5), rate=Rates.smooth(), run_time=2)
+        await self.play(Uncreate(text, backwards=True, n_segments=5), rate=Rates.smooth(), run_time=2.0)
         await self.wait()
+
+
+class WriteExample(Scene):
+    async def construct(
+        self: Self
+    ) -> None:
+        tex = Tex("Hello").scale(2.0)
+        await self.play(Parallel(*(
+            Series(
+                Create(stroke := glyph.build_stroke()),
+                Parallel(
+                    FadeIn(glyph),
+                    FadeOut(stroke)
+                )
+            )
+            for glyph in tex
+            if isinstance(glyph, ShapeMobject)
+        ), lag_ratio=0.3), run_time=3.0)
+        await self.wait(2.0)
 
 
 class ThreeDExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         dodec = (
             Dodecahedron()
             .scale(2.0)
@@ -70,7 +98,7 @@ class ThreeDExample(Scene):
             )
             .bind_lighting(Lighting(
                 AmbientLight().set(color=GREY_D),
-                PointLight().shift(RIGHT * 5)
+                PointLight().shift(5.0 * RIGHT)
             ))
         )
         self.add(dodec)
@@ -84,28 +112,33 @@ class ThreeDExample(Scene):
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
-        await self.wait(3)
+        await self.wait(3.0)
 
 
 class OITExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         self.add(*(
             (Circle()
                 .set(color=color, opacity=opacity)
-                .shift(RIGHT * 0.5)
-                .rotate_about_origin(OUT * angle)
+                .shift(0.5 * RIGHT)
+                .rotate_about_origin(angle * OUT)
             )
             for color, opacity, angle in zip(
                 (RED, GREEN, BLUE),
                 (0.3, 0.5, 0.6),
-                np.linspace(0, TAU, 3, endpoint=False)
+                np.linspace(0.0, TAU, 3, endpoint=False),
+                strict=True
             )
         ))
-        await self.wait(5)
+        await self.wait(5.0)
 
 
 class LaggedAnimationExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         text = Text("Text")
         await self.play(Parallel(*(
             Parallel(
@@ -114,11 +147,13 @@ class LaggedAnimationExample(Scene):
             )
             for char in text
         ), lag_time=0.5), rate=Rates.smooth())
-        await self.wait(3)
+        await self.wait(3.0)
 
 
 class FormulaExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         factored_formula = MathTex(
             "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
             local_colors={
@@ -136,12 +171,14 @@ class FormulaExample(Scene):
         ).scale(0.5).shift(DOWN)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2)
-        await self.wait(2)
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
+        await self.wait(2.0)
 
 
 class InteractiveExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         squares = ShapeMobject().add(*(
             (
                 Circle()
@@ -151,7 +188,8 @@ class InteractiveExample(Scene):
             )
             for x, color in zip(
                 np.linspace(-4.0, 4.0, 5),
-                (RED, YELLOW, GREEN, BLUE, PURPLE)
+                (RED, YELLOW, GREEN, BLUE, PURPLE),
+                strict=True
             )
         ))
         text = Text("Press space to animate.").shift(1.5 * DOWN)
@@ -232,7 +270,9 @@ class NoteTimeline(Timeline):
         self._note: Mobject = note
         self._key: int = key
 
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         note = self._note
         self.scene.add(note)
         key_pressed_event = Events.key_press(self._key).captured()
@@ -261,7 +301,9 @@ class NoteTimeline(Timeline):
 
 
 class GameExample(Scene):
-    async def construct(self) -> None:
+    async def construct(
+        self: Self
+    ) -> None:
         score = [
             "|  | |    |      |     |   | |  ",
             " |  |    |     |   |  |   |  | |",
@@ -322,9 +364,9 @@ def main() -> None:
             #pixel_height=540,
         ),
         Toplevel.livestream(),
-        #Toplevel.recording("TextTransformExample.mp4")
+        #Toplevel.recording("WriteExample.mp4")
     ):
-        TextTransformExample().run()
+        WriteExample().run()
 
 
 if __name__ == "__main__":

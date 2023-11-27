@@ -112,7 +112,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
             size=10,
             _=0,  # Empty parameter.
             disable_liga=False,
-            file_name=str(svg_path),
+            file_name=f"{svg_path}",
             START_X=0,
             START_Y=0,
             width=16384,  # Ensure the canvas is large enough to hold all glyphs.
@@ -139,7 +139,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         global_span_attributes = {
             "foreground": AnimatableColor._color_to_hex(input_data.color),
             "font_family": input_data.font,
-            "line_height": str(input_data.line_height)
+            "line_height": f"{input_data.line_height}"
         }
         global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
         return global_span_attributes

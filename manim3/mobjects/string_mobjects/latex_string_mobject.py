@@ -57,7 +57,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         match = re.fullmatch(r"#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})", color_hex, flags=re.IGNORECASE)
         assert match is not None
         return f"{{\\color[RGB]{{{", ".join(
-            str(int(match.group(index), 16))
+            f"{int(match.group(index), 16)}"
             for index in range(1, 4)
         )}}}{{", f"}}}}"
 

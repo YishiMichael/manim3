@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 import collections
-import datetime
 import itertools
 import time
 from typing import (
@@ -78,6 +77,13 @@ class Logger(ToplevelResource):
     def _get_table(
         self: Self
     ) -> rich.table.Table:
+
+        def format_duration(
+            duration: float
+        ) -> str:
+            minutes, seconds = divmod(int(duration), 60)
+            return f"{minutes}:{seconds:02}"
+
         log_table = rich.table.Table.grid(
             rich.table.Column(no_wrap=True, overflow="crop")
         )
@@ -94,14 +100,14 @@ class Logger(ToplevelResource):
             padding=(0, 2)
         )
         for status_key, status_value in {
-            "Run Time": f"{datetime.timedelta(seconds=int(time.perf_counter() - self._start_timestamp))}",
+            "Run Time": format_duration(time.perf_counter() - self._start_timestamp),
             "FPS": f"{self._fps_counter._last_frames_count}",
             "Livestream": "-" if self._livestream is None else "[green]On" if self._livestream else "[red]Off",
             "Recording": "-" if self._recordings_count is None else (
                 f"[green]On ({self._recordings_count})" if self._recordings_count else "[red]Off"
             ),
             "Scene Name": "-" if self._scene_name is None else self._scene_name,
-            "Scene Timer": "-" if self._scene_timer is None else f"{datetime.timedelta(seconds=int(self._scene_timer))}"
+            "Scene Timer": "-" if self._scene_timer is None else format_duration(self._scene_timer)
         }.items():
             status_table.add_row(status_key, status_value)
 
