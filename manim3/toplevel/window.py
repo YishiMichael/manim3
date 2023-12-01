@@ -144,7 +144,7 @@ class Window(ToplevelResource):
 
         self._pyglet_window: pyglet.window.Window = pyglet_window
         self._event_queue: list[Event] = []
-        # Keep a strong reference to the handler object, as per
+        # Keep a strong reference to the handler object, according to
         # `https://pyglet.readthedocs.io/en/latest/programming_guide/events.html#stacking-event-handlers`.
         self._window_handlers: WindowHandlers = window_handlers
 

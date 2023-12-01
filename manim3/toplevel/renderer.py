@@ -132,15 +132,17 @@ class Renderer(ToplevelResource):
     ) -> Iterator[None]:
         Toplevel._renderer = self
         Toplevel._get_config().output_dir.mkdir(exist_ok=True)
-        Toplevel._get_logger()._livestream = False
-        Toplevel._get_logger()._recordings_count = 0
         yield
-        Toplevel._get_logger()._recordings_count = None
-        Toplevel._get_logger()._livestream = None
         for filename, video_pipe in self._video_pipes.items():
             video_pipe.close()
             Toplevel._get_logger().log(f"Recording saved to '{filename}'.")
         Toplevel._renderer = None
+
+    @property
+    def _recording(
+        self: Self
+    ) -> bool:
+        return any(video_pipe._writable for video_pipe in self._video_pipes.values())
 
     def _render_frame(
         self: Self
@@ -193,7 +195,6 @@ class Renderer(ToplevelResource):
         if self._livestream:
             return
         self._livestream = True
-        Toplevel._get_logger()._livestream = True
         Toplevel._get_logger().log("Start livestream.")
 
     def stop_livestream(
@@ -202,7 +203,6 @@ class Renderer(ToplevelResource):
         if not self._livestream:
             return
         self._livestream = False
-        Toplevel._get_logger()._livestream = False
         Toplevel._get_logger().log("Stop livestream.")
 
     def start_recording(
@@ -222,8 +222,6 @@ class Renderer(ToplevelResource):
         if video_pipe._writable:
             return
         video_pipe._writable = True
-        assert (recordings_count := Toplevel._get_logger()._recordings_count) is not None
-        Toplevel._get_logger()._recordings_count = recordings_count + 1
         Toplevel._get_logger().log(f"Start recording video to '{filename}'.")
 
     def stop_recording(
@@ -237,8 +235,6 @@ class Renderer(ToplevelResource):
         if not video_pipe._writable:
             return
         video_pipe._writable = False
-        assert (recordings_count := Toplevel._get_logger()._recordings_count) is not None
-        Toplevel._get_logger()._recordings_count = recordings_count - 1
         Toplevel._get_logger().log(f"Stop recording video to '{filename}'.")
 
     def snapshot(

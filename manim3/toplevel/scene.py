@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 
-import itertools
-import time
 from typing import Self
 
 from ..animatables.arrays.animatable_color import AnimatableColor
@@ -22,7 +20,7 @@ class Scene(Timeline):
         "_background_color",
         "_background_opacity",
         "_root_mobject",
-        "_scene_timer"
+        "_scene_time"
     )
 
     def __init__(
@@ -34,7 +32,7 @@ class Scene(Timeline):
         self._background_color: tuple[float, float, float] = (0.0, 0.0, 0.0)
         self._background_opacity: float = 0.0
         self._root_mobject: Mobject = Mobject()
-        self._scene_timer: float = 0.0
+        self._scene_time: float = 0.0
         self.set(
             background_color=Toplevel._get_config().background_color,
             background_opacity=Toplevel._get_config().background_opacity
@@ -44,21 +42,12 @@ class Scene(Timeline):
         self: Self
     ) -> None:
         self._root_schedule()
-        spf = 1.0 / Toplevel._get_config().fps
-        for frame_index in itertools.count():
-            frame_start_timestamp = time.perf_counter()
-            self._scene_timer = frame_index * spf
-            Toplevel._get_logger()._fps_counter.increment_frame()
-            Toplevel._get_logger()._scene_timer = self._scene_timer
+        for scene_time in Toplevel._get_timer().frame_clock():
+            self._scene_time = scene_time
             Toplevel._get_window()._pyglet_window.dispatch_events()
             self._progress()
             Toplevel._get_window().clear_event_queue()
             Toplevel._get_renderer().process_frame()
-            if Toplevel._get_renderer()._livestream and (sleep_time := spf - (
-                time.perf_counter() - frame_start_timestamp
-            )) > 0.0:
-                time.sleep(sleep_time)
-
             if self.get_after_terminated_state() is not None:
                 break
 
@@ -66,14 +55,10 @@ class Scene(Timeline):
         self: Self
     ) -> None:
         Toplevel._scene = self
-        Toplevel._get_logger()._scene_name = type(self).__name__
-        Toplevel._get_logger()._scene_timer = 0.0
         try:
             self._run()
         except KeyboardInterrupt:
             pass
-        Toplevel._get_logger()._scene_timer = None
-        Toplevel._get_logger()._scene_name = None
         Toplevel._scene = None
 
     # Shortcut access to root mobject.

@@ -143,17 +143,19 @@ class Config(ToplevelResource):
     def __contextmanager__(
         self: Self
     ) -> Iterator[None]:
-        from .logger import Logger
+        from .timer import Timer
         from .window import Window
         from .context import Context
         from .renderer import Renderer
+        from .logger import Logger
 
         Toplevel._config = self
         with (
-            Logger(),
+            Timer(),
             Window(),
             Context(),
-            Renderer()
+            Renderer(),
+            Logger()
         ):
             yield
         Toplevel._config = None
