@@ -10,8 +10,10 @@ from typing import (
 
 from ...constants.custom_typing import BoundaryType
 from ...lazy.lazy_object import LazyObject
-from ...timelines.timeline.rate import Rate
-from ...timelines.timeline.rates import Rates
+from ...timelines.timeline.rates import (
+    Rate,
+    Rates
+)
 from ...timelines.timeline.timeline import Timeline
 
 

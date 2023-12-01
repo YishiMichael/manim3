@@ -16,10 +16,14 @@ from typing import (
 import attrs
 
 from ...toplevel.toplevel import Toplevel
-from .condition import Condition
-from .conditions import Conditions
-from .rate import Rate
-from .rates import Rates
+from .conditions import (
+    Condition,
+    Conditions
+)
+from .rates import (
+    Rate,
+    Rates
+)
 
 if TYPE_CHECKING:
     from ...toplevel.scene import Scene

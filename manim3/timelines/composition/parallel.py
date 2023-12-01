@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Self
 
 from ..timeline.conditions import Conditions
-from ..timeline.rate import Rate
+from ..timeline.rates import Rate
 from ..timeline.timeline import Timeline
 from .lagged import Lagged
 

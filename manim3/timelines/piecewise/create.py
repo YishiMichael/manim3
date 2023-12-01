@@ -3,8 +3,10 @@ from __future__ import annotations
 
 from typing import Self
 
-from ...animatables.animatable.piecewiser import Piecewiser
-from ...animatables.animatable.piecewisers import Piecewisers
+from ...animatables.animatable.piecewisers import (
+    Piecewiser,
+    Piecewisers
+)
 from ...mobjects.mobject import Mobject
 from ..timeline.timeline import Timeline
 

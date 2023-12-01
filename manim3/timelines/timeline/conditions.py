@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 
+from abc import (
+    ABC,
+    abstractmethod
+)
 from typing import (
     Iterable,
     Never,
     Self
 )
 
-from .condition import Condition
+
+class Condition(ABC):
+    __slots__ = ()
+
+    @abstractmethod
+    def judge(
+        self: Self
+    ) -> bool:
+        pass
 
 
 class AllCondition(Condition):

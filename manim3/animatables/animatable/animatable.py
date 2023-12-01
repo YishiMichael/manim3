@@ -23,7 +23,7 @@ from .animation import (
     Animation,
     AnimationsTimeline
 )
-from .piecewiser import Piecewiser
+from .piecewisers import Piecewiser
 
 
 class AnimatableActions(Actions):

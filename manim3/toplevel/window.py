@@ -8,8 +8,10 @@ from typing import (
 
 import pyglet
 
-from .event import Event
-from .events import Events
+from .events import (
+    Event,
+    Events
+)
 from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
 

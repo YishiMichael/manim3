@@ -71,15 +71,22 @@ from .timelines.piecewise.create import Create
 from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
-from .timelines.timeline.condition import Condition
-from .timelines.timeline.conditions import Conditions
-from .timelines.timeline.rate import Rate
-from .timelines.timeline.rates import Rates
+from .timelines.timeline.conditions import (
+    Condition,
+    Conditions
+)
+from .timelines.timeline.rates import (
+    Rate,
+    Rates
+)
 from .timelines.timeline.timeline import Timeline
 from .timelines.transform import Transform
 from .timelines.transform_matching_strings import TransformMatchingStrings
 
 from .toplevel.config import Config
-from .toplevel.events import Events
+from .toplevel.events import (
+    Event,
+    Events
+)
 from .toplevel.scene import Scene
 from .toplevel.toplevel import Toplevel
