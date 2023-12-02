@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import collections
 import itertools
 import pathlib
 import re
@@ -180,9 +181,10 @@ class ReplacementRecord:
         *,
         unlabelled_replacement: str,
         labelled_replacement: str
-    ) -> None:
+    ) -> Self:
         self._unlabelled_replacement = unlabelled_replacement
         self._labelled_replacement = labelled_replacement
+        return self
 
 
 class InsertionRecord(ReplacementRecord):
@@ -230,7 +232,7 @@ class StringMobjectJSON(MobjectJSON):
     isolated_spans: tuple[tuple[int, ...], ...]
 
 
-class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: TypedDict](
+class StringMobjectIO[AttributesT: TypedDict, StringMobjectInputT: StringMobjectInput](
     MobjectIO[StringMobjectInputT, StringMobjectOutput, StringMobjectJSON]
 ):
     __slots__ = ()
@@ -268,6 +270,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
                 SpanInfo(
                     span=span,
                     isolated=True,
+                    attributes=cls._get_empty_attributes(),
                     local_color=local_color
                 )
                 for selector, local_color in input_data.local_colors.items()
@@ -275,7 +278,8 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
             ), (
                 SpanInfo(
                     span=span,
-                    isolated=True
+                    isolated=True,
+                    attributes=cls._get_empty_attributes()
                 )
                 for selector in input_data.isolate
                 for span in cls._iter_spans_by_selector(selector, string)
@@ -388,7 +392,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
             )
 
         insertion_record_items: list[tuple[InsertionRecord, InsertionRecord, AttributesT, bool, ColorType | None]] = []
-        replacement_records: list[ReplacementRecord] = []
+        replacement_records: collections.deque[ReplacementRecord] = collections.deque()
         bracket_counter = itertools.count()
         protect_level = 0
         bracket_stack: list[int] = []
@@ -409,8 +413,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
                 if boundary_flag == BoundaryFlag.START:
                     continue
                 command_info, command_replacement, command_flag = span_info.command_item
-                command_replacement_record = ReplacementRecord(span)
-                command_replacement_record.write_replacements(
+                command_replacement_record = ReplacementRecord(span).write_replacements(
                     unlabelled_replacement=command_replacement,
                     labelled_replacement=command_replacement
                 )
@@ -427,8 +430,8 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
                     replacement_records.append(command_replacement_record)
                     open_insertion_record, open_command_info = open_command_stack.pop()
                     assert open_command_info is command_info
-                    assert (attributes_item := command_info._attributes_item) is not None
-                    attributes, isolated = attributes_item
+                    assert command_info._attributes_item is not None
+                    attributes, isolated = command_info._attributes_item
                     insertion_record_items.append((
                         open_insertion_record,
                         close_insertion_record,
@@ -465,10 +468,11 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
                     local_color_stack.pop()
                 else:
                     local_color = local_color_stack[-1] if local_color_stack else None
+                assert span_info.attributes is not None
                 insertion_record_items.append((
                     start_insertion_record,
                     stop_insertion_record,
-                    span_info.attributes if span_info.attributes is not None else cls._get_default_attributes(),
+                    span_info.attributes,
                     span_info.isolated,
                     local_color
                 ))
@@ -482,42 +486,41 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
         label_counter = itertools.count()
         isolated_items: list[tuple[Span, ColorType | None]] = []
 
-        global_start_insertion_record = InsertionRecord(0)
-        global_stop_insertion_record = InsertionRecord(len(string))
-        replacement_records.insert(0, global_start_insertion_record)
-        replacement_records.append(global_stop_insertion_record)
-        isolated_items.append((
-            Span(0, len(string)),
-            None
-        ))
         global_label = next(label_counter)
-        global_unlabelled_insertion_pairs = (*(
-            cls._get_command_pair(global_attributes)
-            for global_attributes in global_attributes_items
-        ), environment_command_pair)
-        global_labelled_insertion_pairs = (*(
-            cls._get_command_pair(cls._convert_attributes_for_labelling(global_attributes, global_label))
-            for global_attributes in global_attributes_items
-        ), environment_command_pair)
-        global_start_insertion_record.write_replacements(
-            unlabelled_replacement="".join(start_insertion for start_insertion, _ in global_unlabelled_insertion_pairs),
-            labelled_replacement="".join(start_insertion for start_insertion, _ in global_labelled_insertion_pairs)
-        )
-        global_stop_insertion_record.write_replacements(
-            unlabelled_replacement="".join(stop_insertion for _, stop_insertion in reversed(global_unlabelled_insertion_pairs)),
-            labelled_replacement="".join(stop_insertion for _, stop_insertion in reversed(global_labelled_insertion_pairs))
-        )
+        global_span = Span(0, len(string))
+        isolated_items.append((global_span, None))
+
+        start_environment_command, stop_environment_command = environment_command_pair
+        replacement_records.appendleft(InsertionRecord(global_span._start).write_replacements(
+            unlabelled_replacement=start_environment_command,
+            labelled_replacement=start_environment_command
+        ))
+        replacement_records.append(InsertionRecord(global_span._stop).write_replacements(
+            unlabelled_replacement=stop_environment_command,
+            labelled_replacement=stop_environment_command
+        ))
+
+        for attributes in reversed(global_attributes_items):
+            labelled_attributes = cls._convert_attributes_for_labelling(attributes, global_label)
+            start_unlabelled_insertion, stop_unlabelled_insertion = cls._get_command_pair(attributes)
+            start_labelled_insertion, stop_labelled_insertion = cls._get_command_pair(labelled_attributes)
+            replacement_records.appendleft(InsertionRecord(global_span._start).write_replacements(
+                unlabelled_replacement=start_unlabelled_insertion,
+                labelled_replacement=start_labelled_insertion
+            ))
+            replacement_records.append(InsertionRecord(global_span._stop).write_replacements(
+                unlabelled_replacement=stop_unlabelled_insertion,
+                labelled_replacement=stop_labelled_insertion
+            ))
 
         for start_insertion_record, stop_insertion_record, attributes, isolated, local_color in insertion_record_items:
             if isolated:
-                label = next(label_counter)
-                isolated_items.append((
-                    Span(start_insertion_record._span._stop, stop_insertion_record._span._start),
-                    local_color
-                ))
+                local_label = next(label_counter)
+                local_span = Span(start_insertion_record._span._stop, stop_insertion_record._span._start)
+                isolated_items.append((local_span, local_color))
             else:
-                label = None
-            labelled_attributes = cls._convert_attributes_for_labelling(attributes, label)
+                local_label = None
+            labelled_attributes = cls._convert_attributes_for_labelling(attributes, local_label)
             start_unlabelled_insertion, stop_unlabelled_insertion = cls._get_command_pair(attributes)
             start_labelled_insertion, stop_labelled_insertion = cls._get_command_pair(labelled_attributes)
             start_insertion_record.write_replacements(
@@ -666,7 +669,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: Type
 
     @classmethod
     @abstractmethod
-    def _get_default_attributes(
+    def _get_empty_attributes(
         cls: type[Self]
     ) -> AttributesT:
         pass

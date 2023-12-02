@@ -50,19 +50,20 @@ class TextTransformExample(Scene):
         await self.wait(3.0)
 
 
-class CreateTexExample(Scene):
+class CreateExample(Scene):
     async def construct(
         self: Self
     ) -> None:
         text = (
-            Text("Text", concatenate=True)
-            .set(color=ORANGE, opacity=0.5)
-            .add_strokes(color=BLUE, weight=10.0)
+            Markup("<span underline='single'><span color='red'>Markup</span> <span color='blue'>Text</span></span>",
+                local_attributes={"Text": {"color": GOLD}, re.compile(r"Text"): {"color": TEAL}})
+            #.set(color=ORANGE, opacity=0.5)
+            #.add_strokes(color=BLUE, weight=10.0)
         )
         await self.wait()
-        await self.play(Create(text, n_segments=5), rate=Rates.smooth(), run_time=2.0)
+        await self.play(FadeIn(text), rate=Rates.smooth(), run_time=2.0)
         await self.wait()
-        await self.play(Uncreate(text, backwards=True, n_segments=5), rate=Rates.smooth(), run_time=2.0)
+        #await self.play(Uncreate(text, backwards=True, n_segments=5), rate=Rates.smooth(), run_time=2.0)
         await self.wait()
 
 
@@ -366,7 +367,7 @@ def main() -> None:
         Toplevel.livestream(),
         #Toplevel.recording("WriteExample.mp4")
     ):
-        TextTransformExample().run()
+        CreateExample().run()
 
 
 if __name__ == "__main__":

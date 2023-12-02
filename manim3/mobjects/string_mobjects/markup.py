@@ -92,7 +92,7 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
                 yield StandaloneCommandInfo(match, replacement=cls._markup_escape(match.group("char")))
             else:
                 yield StandaloneCommandInfo(match)
-            assert not open_stack
+        assert not open_stack
 
 
 class Markup(StringMobject):

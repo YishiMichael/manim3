@@ -107,7 +107,7 @@ class PangoStringMobjectKwargs(StringMobjectKwargs[PangoAttributes], total=False
     font: str
 
 
-class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](StringMobjectIO[PangoStringMobjectInputT, PangoAttributes]):
+class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](StringMobjectIO[PangoAttributes, PangoStringMobjectInputT]):
     __slots__ = ()
 
     _MARKUP_TAGS: ClassVar[dict[str, PangoAttributes]] = {
@@ -190,7 +190,7 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         yield from super()._iter_global_span_attributes(input_data, temp_path)
 
     @classmethod
-    def _get_default_attributes(
+    def _get_empty_attributes(
         cls: type[Self]
     ) -> PangoAttributes:
         return PangoAttributes()

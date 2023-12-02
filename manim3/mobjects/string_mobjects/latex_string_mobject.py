@@ -37,7 +37,7 @@ class LatexStringMobjectKwargs(StringMobjectKwargs[LatexAttributes], total=False
     color: ColorType
 
 
-class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT, LatexAttributes]):
+class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexAttributes, LatexStringMobjectInputT]):
     __slots__ = ()
 
     @classmethod
@@ -52,7 +52,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
         yield from super()._iter_global_span_attributes(input_data, temp_path)
 
     @classmethod
-    def _get_default_attributes(
+    def _get_empty_attributes(
         cls: type[Self]
     ) -> LatexAttributes:
         return LatexAttributes()
