@@ -11,6 +11,7 @@ from typing import (
 import attrs
 
 from .pango_string_mobject import (
+    PangoAttributes,
     PangoStringMobjectIO,
     PangoStringMobjectInput,
     PangoStringMobjectKwargs
@@ -45,7 +46,7 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
     def _iter_command_infos(
         cls: type[Self],
         string: str
-    ) -> Iterator[CommandInfo]:
+    ) -> Iterator[CommandInfo[PangoAttributes]]:
         pattern = re.compile(r"""
             (?P<tag>
                 <
@@ -75,10 +76,10 @@ class MarkupIO[MarkupInputT: MarkupInput](PangoStringMobjectIO[MarkupInputT]):
                     open_stack.append(match)
                 else:
                     open_match_obj = open_stack.pop()
-                    attributes = {
+                    attributes = PangoAttributes({
                         attributes_match_obj.group("attr_name"): attributes_match_obj.group("attr_val")
                         for attributes_match_obj in attributes_pattern.finditer(open_match_obj.group("attr_list"))
-                    } if (tag_name := open_match_obj.group("tag_name")) == "span" else cls._MARKUP_TAGS[tag_name]
+                    }) if (tag_name := open_match_obj.group("tag_name")) == "span" else cls._MARKUP_TAGS[tag_name]
                     yield BalancedCommandInfo(
                         attributes=attributes,
                         isolated=False,

@@ -14,7 +14,6 @@ from typing import (
 )
 
 import attrs
-
 import scipy.spatial.distance
 import scipy.optimize
 
@@ -88,7 +87,7 @@ class CommandFlag(Enum):
     CLOSE = -1
 
 
-class CommandInfo:
+class CommandInfo[AttributesT: TypedDict]:
     __slots__ = (
         "_command_items",
         "_attributes_item"
@@ -97,7 +96,7 @@ class CommandInfo:
     def __init__(
         self: Self,
         match_obj_items: tuple[tuple[re.Match[str], str | None, CommandFlag], ...],
-        attributes_item: tuple[dict[str, str], bool] | None
+        attributes_item: tuple[AttributesT, bool] | None
     ) -> None:
         super().__init__()
         self._command_items: tuple[tuple[Span, str, CommandFlag], ...] = tuple(
@@ -108,10 +107,10 @@ class CommandInfo:
             )
             for match, replacement, command_flag in match_obj_items
         )
-        self._attributes_item: tuple[dict[str, str], bool] | None = attributes_item
+        self._attributes_item: tuple[AttributesT, bool] | None = attributes_item
 
 
-class StandaloneCommandInfo(CommandInfo):
+class StandaloneCommandInfo[AttributesT: TypedDict](CommandInfo[AttributesT]):
     __slots__ = ()
 
     def __init__(
@@ -127,7 +126,7 @@ class StandaloneCommandInfo(CommandInfo):
         )
 
 
-class BalancedCommandInfo(CommandInfo):
+class BalancedCommandInfo[AttributesT: TypedDict](CommandInfo[AttributesT]):
     __slots__ = (
         "_other_match_obj_item",
         "_attributes_item"
@@ -135,7 +134,7 @@ class BalancedCommandInfo(CommandInfo):
 
     def __init__(
         self: Self,
-        attributes: dict[str, str],
+        attributes: AttributesT,
         isolated: bool,
         open_match_obj: re.Match[str],
         close_match_obj: re.Match[str],
@@ -152,12 +151,12 @@ class BalancedCommandInfo(CommandInfo):
 
 
 @attrs.frozen(kw_only=True)
-class SpanInfo:
+class SpanInfo[AttributesT: TypedDict]:
     span: Span
     isolated: bool | None = None
-    attributes: dict[str, str] | None = None
+    attributes: AttributesT | None = None
     local_color: ColorType | None = None
-    command_item: tuple[CommandInfo, str, CommandFlag] | None = None
+    command_item: tuple[CommandInfo[AttributesT], str, CommandFlag] | None = None
 
 
 class ReplacementRecord:
@@ -196,7 +195,9 @@ class InsertionRecord(ReplacementRecord):
         super().__init__(Span(index, index))
 
 
-class StringMobjectKwargs(TypedDict, total=False):
+class StringMobjectKwargs[AttributesT: TypedDict](TypedDict, total=False):
+    global_attributes: AttributesT
+    local_attributes: dict[SelectorType, AttributesT]
     local_colors: dict[SelectorType, ColorType]
     isolate: Iterable[SelectorType]
     protect: Iterable[SelectorType]
@@ -204,8 +205,10 @@ class StringMobjectKwargs(TypedDict, total=False):
 
 
 @attrs.frozen(kw_only=True)
-class StringMobjectInput(MobjectInput):
+class StringMobjectInput[AttributesT: TypedDict](MobjectInput):
     string: str
+    global_attributes: AttributesT = attrs.field(factory=dict)
+    local_attributes: dict[SelectorType, AttributesT] = attrs.field(factory=dict)
     local_colors: dict[SelectorType, ColorType] = attrs.field(factory=dict)
     isolate: Iterable[SelectorType] = ()
     protect: Iterable[SelectorType] = ()
@@ -227,7 +230,7 @@ class StringMobjectJSON(MobjectJSON):
     isolated_spans: tuple[tuple[int, ...], ...]
 
 
-class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
+class StringMobjectIO[StringMobjectInputT: StringMobjectInput, AttributesT: TypedDict](
     MobjectIO[StringMobjectInputT, StringMobjectOutput, StringMobjectJSON]
 ):
     __slots__ = ()
@@ -253,7 +256,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         isolated_items, replacement_records = cls._get_isolated_items_and_replacement_records(
             string=string,
             environment_command_pair=cls._get_environment_command_pair(input_data),
-            global_attributes=cls._get_global_span_attributes(input_data, temp_path),
+            global_attributes_items=tuple(cls._iter_global_span_attributes(input_data, temp_path)),
             local_span_infos=tuple(itertools.chain((
                 SpanInfo(
                     span=span,
@@ -366,12 +369,12 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         cls: type[Self],
         string: str,
         environment_command_pair: tuple[str, str],
-        global_attributes: dict[str, str],
-        local_span_infos: tuple[SpanInfo, ...]
+        global_attributes_items: tuple[AttributesT, ...],
+        local_span_infos: tuple[SpanInfo[AttributesT], ...]
     ) -> tuple[tuple[tuple[Span, ColorType | None], ...], tuple[ReplacementRecord, ...]]:
 
         def get_sorting_key(
-            span_boundary: tuple[SpanInfo, BoundaryFlag]
+            span_boundary: tuple[SpanInfo[AttributesT], BoundaryFlag]
         ) -> tuple[int, int, int]:
             span_info, boundary_flag = span_boundary
             span = span_info.span
@@ -384,13 +387,13 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 -paired_index
             )
 
-        insertion_record_items: list[tuple[InsertionRecord, InsertionRecord, dict[str, str], bool, ColorType | None]] = []
+        insertion_record_items: list[tuple[InsertionRecord, InsertionRecord, AttributesT, bool, ColorType | None]] = []
         replacement_records: list[ReplacementRecord] = []
         bracket_counter = itertools.count()
         protect_level = 0
         bracket_stack: list[int] = []
-        open_command_stack: list[tuple[InsertionRecord, CommandInfo]] = []
-        start_stack: list[tuple[SpanInfo, InsertionRecord, int, tuple[int, ...]]] = []
+        open_command_stack: list[tuple[InsertionRecord, CommandInfo[AttributesT]]] = []
+        start_stack: list[tuple[SpanInfo[AttributesT], InsertionRecord, int, tuple[int, ...]]] = []
         local_color_stack: list[ColorType] = []
 
         for span_info, boundary_flag in sorted((
@@ -465,7 +468,7 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
                 insertion_record_items.append((
                     start_insertion_record,
                     stop_insertion_record,
-                    span_info.attributes if span_info.attributes is not None else {},
+                    span_info.attributes if span_info.attributes is not None else cls._get_default_attributes(),
                     span_info.isolated,
                     local_color
                 ))
@@ -488,17 +491,21 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
             None
         ))
         global_label = next(label_counter)
-        labelled_global_attributes = cls._convert_attributes_for_labelling(global_attributes, global_label)
-        global_start_unlabelled_insertion, global_stop_unlabelled_insertion = cls._get_command_pair(global_attributes)
-        global_start_labelled_insertion, global_stop_labelled_insertion = cls._get_command_pair(labelled_global_attributes)
-        environment_start_insertion, environment_stop_insertion = environment_command_pair
+        global_unlabelled_insertion_pairs = (*(
+            cls._get_command_pair(global_attributes)
+            for global_attributes in global_attributes_items
+        ), environment_command_pair)
+        global_labelled_insertion_pairs = (*(
+            cls._get_command_pair(cls._convert_attributes_for_labelling(global_attributes, global_label))
+            for global_attributes in global_attributes_items
+        ), environment_command_pair)
         global_start_insertion_record.write_replacements(
-            unlabelled_replacement=global_start_unlabelled_insertion + environment_start_insertion,
-            labelled_replacement=global_start_labelled_insertion + environment_start_insertion
+            unlabelled_replacement="".join(start_insertion for start_insertion, _ in global_unlabelled_insertion_pairs),
+            labelled_replacement="".join(start_insertion for start_insertion, _ in global_labelled_insertion_pairs)
         )
         global_stop_insertion_record.write_replacements(
-            unlabelled_replacement=environment_stop_insertion + global_stop_unlabelled_insertion,
-            labelled_replacement=environment_stop_insertion + global_stop_labelled_insertion
+            unlabelled_replacement="".join(stop_insertion for _, stop_insertion in reversed(global_unlabelled_insertion_pairs)),
+            labelled_replacement="".join(stop_insertion for _, stop_insertion in reversed(global_labelled_insertion_pairs))
         )
 
         for start_insertion_record, stop_insertion_record, attributes, isolated, local_color in insertion_record_items:
@@ -640,57 +647,61 @@ class StringMobjectIO[StringMobjectInputT: StringMobjectInput](
         return "", ""
 
     @classmethod
-    def _get_global_span_attributes(
+    def _iter_global_span_attributes(
         cls: type[Self],
         input_data: StringMobjectInputT,
         temp_path: pathlib.Path
-    ) -> dict[str, str]:
-        return {}
+    ) -> Iterator[AttributesT]:
+        yield input_data.global_attributes
 
     @classmethod
     def _iter_local_span_attributes(
         cls: type[Self],
         input_data: StringMobjectInputT,
         temp_path: pathlib.Path
-    ) -> Iterator[tuple[Span, dict[str, str]]]:
-        yield from ()
+    ) -> Iterator[tuple[Span, AttributesT]]:
+        for selector, attributes in input_data.local_attributes.items():
+            for span in cls._iter_spans_by_selector(selector, input_data.string):
+                yield span, attributes
 
     @classmethod
+    @abstractmethod
+    def _get_default_attributes(
+        cls: type[Self]
+    ) -> AttributesT:
+        pass
+
+    @classmethod
+    @abstractmethod
     def _get_command_pair(
         cls: type[Self],
-        attributes: dict[str, str]
+        attributes: AttributesT
     ) -> tuple[str, str]:
-        return "", ""
+        pass
 
     @classmethod
+    @abstractmethod
     def _convert_attributes_for_labelling(
         cls: type[Self],
-        attributes: dict[str, str],
+        attributes: AttributesT,
         label: int | None
-    ) -> dict[str, str]:
-        return attributes
+    ) -> AttributesT:
+        pass
 
     @classmethod
+    @abstractmethod
     def _iter_command_infos(
         cls: type[Self],
         string: str
-    ) -> Iterator[CommandInfo]:
-        yield from ()
+    ) -> Iterator[CommandInfo[AttributesT]]:
+        pass
 
 
 class StringMobject(ShapeMobject):
     """
-    An abstract base class for `Tex` and `MarkupText`.
-
     This class aims to optimize the logic of "slicing children
     via substrings". This could be much clearer and more user-friendly
     than slicing through numerical indices explicitly.
-
-    Users are expected to specify substrings in `isolate` parameter
-    if they want to do anything with their corresponding children.
-    `isolate` parameter can be either a string, a `re.Pattern` object,
-    or a 2-tuple containing integers or None, or a collection of the above.
-    Note, substrings specified cannot *partly* overlap with each other.
 
     Each instance of `StringMobject` generates 2 svg files.
     The additional one is generated with some color commands inserted,

@@ -14,6 +14,7 @@ import attrs
 
 from ...toplevel.toplevel import Toplevel
 from .pango_string_mobject import (
+    PangoAttributes,
     PangoStringMobjectIO,
     PangoStringMobjectInput,
     PangoStringMobjectKwargs
@@ -48,9 +49,7 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
         cls: type[Self],
         input_data: CodeInputT,
         temp_path: pathlib.Path
-    ) -> Iterator[tuple[Span, dict[str, str]]]:
-
-        yield from super()._iter_local_span_attributes(input_data, temp_path)
+    ) -> Iterator[tuple[Span, PangoAttributes]]:
         language_suffix = input_data.language_suffix
         try:
             code_path = temp_path.with_suffix(language_suffix)
@@ -76,7 +75,7 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
             for token in json.loads(json_str):
                 # See `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
                 style = token["style"]
-                attributes: dict[str, str] = {}
+                attributes: PangoAttributes = {}
                 if (foreground := style.get("foreground")):
                     attributes["fgcolor"] = foreground
                 if (background := style.get("background")):
@@ -89,6 +88,8 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
         finally:
             for suffix in (language_suffix, ".json"):
                 temp_path.with_suffix(suffix).unlink(missing_ok=True)
+
+        yield from super()._iter_local_span_attributes(input_data, temp_path)
 
 
 class Code(StringMobject):

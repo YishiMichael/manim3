@@ -5,7 +5,8 @@ import pathlib
 import re
 from typing import (
     Iterator,
-    Self
+    Self,
+    TypedDict
 )
 
 import attrs
@@ -23,34 +24,43 @@ from .string_mobject import (
 )
 
 
+class LatexAttributes(TypedDict, total=False):
+    color: str
+
+
 @attrs.frozen(kw_only=True)
-class LatexStringMobjectInput(StringMobjectInput):
+class LatexStringMobjectInput(StringMobjectInput[LatexAttributes]):
     color: ColorType = attrs.field(factory=lambda: Toplevel._get_config().default_color)
 
 
-class LatexStringMobjectKwargs(StringMobjectKwargs, total=False):
+class LatexStringMobjectKwargs(StringMobjectKwargs[LatexAttributes], total=False):
     color: ColorType
 
 
-class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT]):
+class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](StringMobjectIO[LatexStringMobjectInputT, LatexAttributes]):
     __slots__ = ()
 
     @classmethod
-    def _get_global_span_attributes(
+    def _iter_global_span_attributes(
         cls: type[Self],
         input_data: LatexStringMobjectInputT,
         temp_path: pathlib.Path
-    ) -> dict[str, str]:
-        global_span_attributes = {
-            "color": AnimatableColor._color_to_hex(input_data.color)
-        }
-        global_span_attributes.update(super()._get_global_span_attributes(input_data, temp_path))
-        return global_span_attributes
+    ) -> Iterator[LatexAttributes]:
+        yield LatexAttributes(
+            color=AnimatableColor._color_to_hex(input_data.color)
+        )
+        yield from super()._iter_global_span_attributes(input_data, temp_path)
+
+    @classmethod
+    def _get_default_attributes(
+        cls: type[Self]
+    ) -> LatexAttributes:
+        return LatexAttributes()
 
     @classmethod
     def _get_command_pair(
         cls: type[Self],
-        attributes: dict[str, str]
+        attributes: LatexAttributes
     ) -> tuple[str, str]:
         if (color_hex := attributes.get("color")) is None:
             return "", ""
@@ -64,14 +74,16 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
     @classmethod
     def _convert_attributes_for_labelling(
         cls: type[Self],
-        attributes: dict[str, str],
+        attributes: LatexAttributes,
         label: int | None
-    ) -> dict[str, str]:
-        result = {
-            key: value
-            for key, value in attributes.items()
-            if key != "color"
-        }
+    ) -> LatexAttributes:
+        result = LatexAttributes(attributes)
+        for key in (
+            "color",
+        ):
+            if key in result:
+                result.pop(key)
+
         if label is not None:
             result["color"] = f"#{label:06x}"
         return result
@@ -80,7 +92,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
     def _iter_command_infos(
         cls: type[Self],
         string: str
-    ) -> Iterator[CommandInfo]:
+    ) -> Iterator[CommandInfo[LatexAttributes]]:
         pattern = re.compile(r"""
             (?P<command>\\(?:[a-zA-Z]+|.))
             |(?P<open>{+)
@@ -103,7 +115,7 @@ class LatexStringMobjectIO[LatexStringMobjectInputT: LatexStringMobjectInput](St
                 assert (open_match_obj := pattern.fullmatch(string, pos=open_stop - width, endpos=open_stop)) is not None
                 assert (close_match_obj := pattern.fullmatch(string, pos=close_start, endpos=close_start + width)) is not None
                 yield BalancedCommandInfo(
-                    attributes={},
+                    attributes=LatexAttributes(),
                     isolated=width >= 2,
                     open_match_obj=open_match_obj,
                     close_match_obj=close_match_obj
