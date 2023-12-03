@@ -46,6 +46,7 @@ class Config(ToplevelResource):
     graph_width: float = 0.05
 
     tex_alignment: AlignmentType = "left"
+    tex_template: str = "default"
     tex_compiler: str = "xelatex"
     tex_preambles: tuple[str, ...] = (
         "\\usepackage[UTF8]{ctex}",
@@ -53,6 +54,7 @@ class Config(ToplevelResource):
         "\\usepackage{amssymb}",
         "\\usepackage{xcolor}"  # Required for labelling.
     )
+    math_tex_alignment: AlignmentType = "center"
     math_tex_inline: bool = False
     # See `https://docs.mathjax.org/en/latest/input/tex/extensions/index.html`.
     mathjax_extensions: tuple[str, ...] = (
@@ -63,6 +65,7 @@ class Config(ToplevelResource):
         "newcommand",
         "require"
     )
+    mathjax_alignment: AlignmentType = "center"
     mathjax_inline: bool = False
 
     pango_alignment: AlignmentType = "left"

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
-import os
 import pathlib
 import re
+import subprocess
 from typing import (
     Self,
     Unpack
@@ -11,6 +11,7 @@ from typing import (
 
 import attrs
 
+from ...constants.custom_typing import AlignmentType
 from ...toplevel.toplevel import Toplevel
 from .latex_string_mobject import (
     LatexStringMobjectIO,
@@ -22,11 +23,13 @@ from .string_mobject import StringMobject
 
 @attrs.frozen(kw_only=True)
 class MathJaxInput(LatexStringMobjectInput):
+    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel._get_config().mathjax_alignment)
     extensions: tuple[str, ...] = attrs.field(factory=lambda: Toplevel._get_config().mathjax_extensions)
     inline: bool = attrs.field(factory=lambda: Toplevel._get_config().mathjax_inline)
 
 
 class MathJaxKwargs(LatexStringMobjectKwargs, total=False):
+    alignment: AlignmentType
     extensions: tuple[str, ...]
     inline: bool
 
@@ -48,17 +51,16 @@ class MathJaxIO[MathJaxInputT: MathJaxInput](LatexStringMobjectIO[MathJaxInputT]
         svg_path: pathlib.Path
     ) -> None:
         mathjax_program_path = pathlib.Path(__import__("manim3").__file__).parent.joinpath("plugins/mathjax/index.js")
-        full_content = content.replace("\n", " ")
 
-        if os.system(" ".join((
+        if subprocess.run((
             "node",
-            f"\"{mathjax_program_path}\"",
-            f"--tex=\"{full_content}\"",
-            f"--extensions=\"{" ".join(input_data.extensions)}\"",
-            f"--inline={input_data.inline}",
-            f"--path=\"{svg_path}\"",
-            ">", os.devnull
-        ))):
+            mathjax_program_path,
+            "--tex", content,
+            "--extensions", " ".join(input_data.extensions),
+            "--alignment", input_data.alignment,
+            "--inline", "true" if input_data.inline else "false",
+            "--path", svg_path
+        ), stdout=subprocess.DEVNULL).returncode:
             raise OSError("MathJaxIO: Failed to execute node command")
         svg_text = svg_path.read_text(encoding="utf-8")
         if (error_match_obj := re.search(r"<text\b.*?>(.*)</text>", svg_text)) is not None:

@@ -8,6 +8,7 @@ from typing import (
 
 import attrs
 
+from ...constants.custom_typing import AlignmentType
 from ...toplevel.toplevel import Toplevel
 from .string_mobject import StringMobject
 from .tex import (
@@ -19,6 +20,7 @@ from .tex import (
 
 @attrs.frozen(kw_only=True)
 class MathTexInput(TexInput):
+    alignment: AlignmentType = attrs.field(factory=lambda: Toplevel._get_config().math_tex_alignment)
     inline: bool = attrs.field(factory=lambda: Toplevel._get_config().math_tex_inline)
 
 

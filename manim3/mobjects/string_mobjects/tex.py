@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 
-import os
 import pathlib
 import re
+import subprocess
 from typing import (
     Self,
     Unpack
@@ -52,10 +52,10 @@ class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
     ) -> None:
         match input_data.compiler:
             case "latex":
-                program = "latex"
+                compiler_args = ("latex",)
                 dvi_suffix = ".dvi"
             case "xelatex":
-                program = "xelatex -no-pdf"
+                compiler_args = ("xelatex", "-no-pdf")
                 dvi_suffix = ".xdv"
             case _:
                 raise ValueError(f"Compiler '{input_data.compiler}' is not implemented")
@@ -81,21 +81,19 @@ class TexIO[TexInputT: TexInput](LatexStringMobjectIO[TexInputT]):
         tex_path.write_text(full_content, encoding="utf-8")
 
         try:
-            if os.system(" ".join((
-                program,
-                f"\"{tex_path}\"",
-                "-interaction=batchmode",
+            if subprocess.run((
+                *compiler_args,
+                tex_path,
+                "-interaction", "batchmode",
                 "-halt-on-error",
-                f"-output-directory=\"{svg_path.parent}\"",
-                ">", os.devnull
-            ))) or os.system(" ".join((
+                "-output-directory", svg_path.parent
+            ), stdout=subprocess.DEVNULL).returncode or subprocess.run((
                 "dvisvgm",
-                f"\"{svg_path.with_suffix(dvi_suffix)}\"",
+                svg_path.with_suffix(dvi_suffix),
                 "-n",
                 "-v", "0",
-                "-o", f"\"{svg_path}\"",
-                ">", os.devnull
-            ))):
+                "-o", svg_path
+            ), stdout=subprocess.DEVNULL).returncode:
                 error = OSError(f"TexIO: Failed to execute latex command")
                 log_text = svg_path.with_suffix(".log").read_text(encoding="utf-8")
                 if (error_match_obj := re.search(r"(?<=\n! ).*", log_text)) is not None:

@@ -53,7 +53,7 @@ class Timer(ToplevelResource):
                 self._next_fps = 0
             self._next_fps += 1
             yield frame_index * spf
-            if Toplevel._get_renderer()._livestream and (sleep_time := spf - (
+            if Toplevel._get_renderer()._livestreamer.is_livestreaming and (sleep_time := spf - (
                 time.perf_counter() - timestamp
             )) > 0.0:
                 time.sleep(sleep_time)

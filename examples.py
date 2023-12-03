@@ -367,7 +367,7 @@ def main() -> None:
         Toplevel.livestream(),
         #Toplevel.recording("WriteExample.mp4")
     ):
-        CreateExample().run()
+        WriteExample().run()
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ import { hideBin } from "yargs/helpers";
 function main(
     tex,
     extensions,
+    alignment,
     inline,
     path
 ) {
@@ -22,7 +23,8 @@ function main(
             packages: extensions
         }),
         OutputJax: new SVG({
-            fontCache: "none"
+            displayAlign: alignment
+            //fontCache: "none"
         })
     };
     const convertOption = {
@@ -42,6 +44,7 @@ const argv = yargs(hideBin(process.argv)).argv;
 main(
     argv.tex,
     argv.extensions.split(" "),
-    argv.inline == "True",
+    argv.alignment,
+    argv.inline == "true",
     argv.path
 );

@@ -24,9 +24,10 @@ from .toplevel_resource import ToplevelResource
 
 class VideoPipe:
     __slots__ = (
-        "_writing_process",
+        "_video_path",
         "_video_stream",
-        "_writable"
+        "_writing_process",
+        "_writing"
     )
 
     def __init__(
@@ -47,12 +48,35 @@ class VideoPipe:
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "-loglevel", "error",
-            f"{video_path}"
+            video_path
         ), stdin=subprocess.PIPE)
         assert writing_process.stdin is not None
-        self._writing_process: subprocess.Popen = writing_process
+        self._video_path: pathlib.Path = video_path
         self._video_stream: IO[bytes] = writing_process.stdin
-        self._writable: bool = False
+        self._writing_process: subprocess.Popen = writing_process
+        self._writing: bool = False
+
+    @property
+    def is_writing(
+        self: Self
+    ) -> bool:
+        return self._writing
+
+    def enable_writing(
+        self: Self
+    ) -> None:
+        if self._writing:
+            return
+        self._writing = True
+        Toplevel._get_logger().log(f"Start recording video to '{self._video_path}'.")
+
+    def disable_writing(
+        self: Self
+    ) -> None:
+        if not self._writing:
+            return
+        self._writing = False
+        Toplevel._get_logger().log(f"Stop recording video to '{self._video_path}'.")
 
     def write(
         self: Self,
@@ -60,12 +84,136 @@ class VideoPipe:
     ) -> None:
         self._video_stream.write(data)
 
-    def close(
+    def save(
         self: Self
     ) -> None:
-        self._video_stream.close()
-        self._writing_process.wait()
-        self._writing_process.terminate()
+        self._writing_process.communicate()
+        Toplevel._get_logger().log(f"Recording saved to '{self._video_path}'.")
+
+
+class Livestreamer:
+    __slots__ = ("_livestreaming",)
+
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__()
+        self._livestreaming: bool = False
+
+    @property
+    def is_livestreaming(
+        self: Self
+    ) -> bool:
+        return self._livestreaming
+
+    def enable_livestreaming(
+        self: Self
+    ) -> None:
+        if self._livestreaming:
+            return
+        self._livestreaming = True
+        Toplevel._get_logger().log("Start livestreaming.")
+
+    def disable_livestreaming(
+        self: Self
+    ) -> None:
+        if not self._livestreaming:
+            return
+        self._livestreaming = False
+        Toplevel._get_logger().log("Stop livestreaming.")
+
+    def livestream_frame(
+        self: Self,
+        framebuffer: ColorFramebuffer
+    ) -> None:
+        Toplevel._get_context().blit_framebuffer(
+            dst=Toplevel._get_context().screen_framebuffer,
+            src=framebuffer._framebuffer
+        )
+        Toplevel._get_window()._pyglet_window.flip()
+
+
+class VideoRecorder:
+    __slots__ = (
+        "_video_dir",
+        "_video_pipes"
+    )
+
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__()
+        video_dir = Toplevel._get_config().video_output_dir
+        video_dir.mkdir(exist_ok=True)
+        self._video_dir: pathlib.Path = video_dir
+        self._video_pipes: dict[str, VideoPipe] = {}
+
+    @property
+    def is_recording(
+        self: Self
+    ) -> bool:
+        return any(video_pipe.is_writing for video_pipe in self._video_pipes.values())
+
+    def enable_recording(
+        self: Self,
+        filename: str
+    ) -> None:
+        if (video_pipe := self._video_pipes.get(filename)) is None:
+            video_path = self._video_dir.joinpath(filename)
+            assert video_path.suffix == ".mp4", \
+                f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
+            video_pipe = VideoPipe(video_path)
+            self._video_pipes[filename] = video_pipe
+        video_pipe.enable_writing()
+
+    def disable_recording(
+        self: Self,
+        filename: str
+    ) -> None:
+        if (video_pipe := self._video_pipes.get(filename)) is None:
+            raise ValueError(f"Video pipe to {filename} not found.")
+        video_pipe.disable_writing()
+
+    def record_frame(
+        self: Self,
+        framebuffer: ColorFramebuffer
+    ) -> None:
+        frame_data = framebuffer._color_texture.read()
+        for video_pipe in self._video_pipes.values():
+            if video_pipe.is_writing:
+                video_pipe.write(frame_data)
+
+    def save_videos(
+        self: Self
+    ) -> None:
+        for video_pipe in self._video_pipes.values():
+            video_pipe.save()
+
+
+class ImageRecoder:
+    __slots__ = ("_image_dir",)
+
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__()
+        image_dir = Toplevel._get_config().image_output_dir
+        image_dir.mkdir(exist_ok=True)
+        self._image_dir: pathlib.Path = image_dir
+
+    def record_frame(
+        self: Self,
+        filename: str,
+        framebuffer: ColorFramebuffer
+    ) -> None:
+        image_path = self._image_dir.joinpath(filename)
+        Image.frombytes(
+            "RGB",
+            Toplevel._get_config().pixel_size,
+            framebuffer._color_texture.read(),
+            "raw"
+        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(image_path)
+        Toplevel._get_logger().log(f"Snapshot saved to '{image_path}'.")
 
 
 class Renderer(ToplevelResource):
@@ -73,8 +221,9 @@ class Renderer(ToplevelResource):
         "_color_framebuffer",
         "_oit_framebuffer",
         "_oit_compose_vertex_array",
-        "_livestream",
-        "_video_pipes"
+        "_livestreamer",
+        "_video_recorder",
+        "_image_recoder"
     )
 
     def __init__(
@@ -124,8 +273,9 @@ class Renderer(ToplevelResource):
         self._color_framebuffer: ColorFramebuffer = color_framebuffer
         self._oit_framebuffer: OITFramebuffer = oit_framebuffer
         self._oit_compose_vertex_array: VertexArray = oit_compose_vertex_array
-        self._livestream: bool = False
-        self._video_pipes: dict[str, VideoPipe] = {}
+        self._livestreamer: Livestreamer = Livestreamer()
+        self._video_recorder: VideoRecorder = VideoRecorder()
+        self._image_recoder: ImageRecoder = ImageRecoder()
 
     def __contextmanager__(
         self: Self
@@ -133,16 +283,8 @@ class Renderer(ToplevelResource):
         Toplevel._renderer = self
         Toplevel._get_config().output_dir.mkdir(exist_ok=True)
         yield
-        for filename, video_pipe in self._video_pipes.items():
-            video_pipe.close()
-            Toplevel._get_logger().log(f"Recording saved to '{filename}'.")
+        self._video_recorder.save_videos()
         Toplevel._renderer = None
-
-    @property
-    def _recording(
-        self: Self
-    ) -> bool:
-        return any(video_pipe._writable for video_pipe in self._video_pipes.values())
 
     def _render_frame(
         self: Self
@@ -171,71 +313,38 @@ class Renderer(ToplevelResource):
         if Toplevel._get_window()._pyglet_window.context is None:
             # User has attempted to close the window.
             raise KeyboardInterrupt
-
-        if self._livestream or self._video_pipes:
+        if self._livestreamer.is_livestreaming or self._video_recorder.is_recording:
             self._render_frame()
-
-        if self._livestream:
-            Toplevel._get_context().blit_framebuffer(
-                dst=Toplevel._get_context().screen_framebuffer,
-                src=self._color_framebuffer._framebuffer
-            )
-            Toplevel._get_window()._pyglet_window.flip()
-
-        if self._video_pipes:
-            frame_data = self._color_framebuffer._color_texture.read()
-            for video_pipe in self._video_pipes.values():
-                if not video_pipe._writable:
-                    continue
-                video_pipe.write(frame_data)
+        if self._livestreamer.is_livestreaming:
+            self._livestreamer.livestream_frame(self._color_framebuffer)
+        if self._video_recorder.is_recording:
+            self._video_recorder.record_frame(self._color_framebuffer)
 
     def start_livestream(
         self: Self
     ) -> None:
-        if self._livestream:
-            return
-        self._livestream = True
-        Toplevel._get_logger().log("Start livestream.")
+        self._livestreamer.enable_livestreaming()
 
     def stop_livestream(
         self: Self
     ) -> None:
-        if not self._livestream:
-            return
-        self._livestream = False
-        Toplevel._get_logger().log("Stop livestream.")
+        self._livestreamer.disable_livestreaming()
 
     def start_recording(
         self: Self,
-        filename: str | None = None
+        filename: str | None
     ) -> None:
         if filename is None:
             filename = f"{Toplevel._get_config().default_filename}.mp4"
-        video_dir = Toplevel._get_config().video_output_dir
-        video_dir.mkdir(exist_ok=True)
-        video_path = video_dir.joinpath(filename)
-        assert video_path.suffix == ".mp4", \
-            f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
-        if (video_pipe := self._video_pipes.pop(filename, None)) is None:
-            video_pipe = VideoPipe(video_path)
-            self._video_pipes[filename] = video_pipe
-        if video_pipe._writable:
-            return
-        video_pipe._writable = True
-        Toplevel._get_logger().log(f"Start recording video to '{filename}'.")
+        self._video_recorder.enable_recording(filename)
 
     def stop_recording(
         self: Self,
-        filename: str | None = None
+        filename: str | None
     ) -> None:
         if filename is None:
             filename = f"{Toplevel._get_config().default_filename}.mp4"
-        if (video_pipe := self._video_pipes.pop(filename, None)) is None:
-            raise ValueError(f"Video pipe on {filename} not found.")
-        if not video_pipe._writable:
-            return
-        video_pipe._writable = False
-        Toplevel._get_logger().log(f"Stop recording video to '{filename}'.")
+        self._video_recorder.disable_recording(filename)
 
     def snapshot(
         self: Self,
@@ -243,15 +352,5 @@ class Renderer(ToplevelResource):
     ) -> None:
         if filename is None:
             filename = f"{Toplevel._get_config().default_filename}.png"
-        image_dir = Toplevel._get_config().image_output_dir
-        image_dir.mkdir(exist_ok=True)
-        image_path = image_dir.joinpath(filename)
-
         self._render_frame()
-        Image.frombytes(
-            "RGB",
-            Toplevel._get_config().pixel_size,
-            self._color_framebuffer._color_texture.read(),
-            "raw"
-        ).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(image_path)
-        Toplevel._get_logger().log(f"Snapshot saved to '{filename}'.")
+        self._image_recoder.record_frame(filename, self._color_framebuffer)

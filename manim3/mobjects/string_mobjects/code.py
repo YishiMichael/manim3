@@ -2,8 +2,8 @@ from __future__ import annotations
 
 
 import json
-import os
 import pathlib
+import subprocess
 from typing import (
     Iterator,
     Self,
@@ -58,24 +58,22 @@ class CodeIO[CodeInputT: CodeInput](PangoStringMobjectIO[CodeInputT]):
             # First open the file, then launch the command.
             # We separate these two steps as file loading is asynchronous,
             # and operations on `view` has no effect while loading.
-            if os.system(" ".join((
+            if subprocess.run((
                 "subl",
-                f"\"{code_path}\"",
-                "--background",   # Don't activate the application.
-                ">", os.devnull
-            ))) or os.system(" ".join((
+                code_path,
+                "--background"   # Don't activate the application.
+            ), stdout=subprocess.DEVNULL).returncode or subprocess.run((
                 "subl",
                 "--background",
-                "--command", "export_highlight",
-                ">", os.devnull
-            ))):
+                "--command", "export_highlight"
+            ), stdout=subprocess.DEVNULL).returncode:
                 raise OSError("CodeIO: Failed to execute subl command")
 
             json_str = temp_path.with_suffix(".json").read_text(encoding="utf-8")
             for token in json.loads(json_str):
                 # See `https://www.sublimetext.com/docs/api_reference.html#sublime.View.style_for_scope`.
                 style = token["style"]
-                attributes: PangoAttributes = {}
+                attributes = PangoAttributes()
                 if (foreground := style.get("foreground")):
                     attributes["fgcolor"] = foreground
                 if (background := style.get("background")):
