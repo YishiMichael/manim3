@@ -24,10 +24,10 @@ class Toplevel:
 
     _config: ClassVar[Config | None] = None
     _timer: ClassVar[Timer | None] = None
+    _logger: ClassVar[Logger | None] = None
     _window: ClassVar[Window | None] = None
     _context: ClassVar[Context | None] = None
     _renderer: ClassVar[Renderer | None] = None
-    _logger: ClassVar[Logger | None] = None
     _scene: ClassVar[Scene | None] = None
 
     @classmethod
@@ -43,6 +43,13 @@ class Toplevel:
     ) -> Timer:
         assert (timer := cls._timer) is not None
         return timer
+
+    @classmethod
+    def _get_logger(
+        cls: type[Self]
+    ) -> Logger:
+        assert (logger := cls._logger) is not None
+        return logger
 
     @classmethod
     def _get_window(
@@ -66,24 +73,11 @@ class Toplevel:
         return renderer
 
     @classmethod
-    def _get_logger(
-        cls: type[Self]
-    ) -> Logger:
-        assert (logger := cls._logger) is not None
-        return logger
-
-    @classmethod
     def _get_scene(
         cls: type[Self]
     ) -> Scene:
         assert (scene := cls._scene) is not None
         return scene
-
-    @classmethod
-    def _get_scene_if_exists(
-        cls: type[Self]
-    ) -> Scene | None:
-        return cls._scene
 
     @classmethod
     def start_livestream(

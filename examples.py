@@ -365,7 +365,7 @@ def main() -> None:
             #pixel_height=540,
         ),
         Toplevel.livestream(),
-        #Toplevel.recording("WriteExample.mp4")
+        Toplevel.recording("WriteExample.mp4")
     ):
         WriteExample().run()
 

@@ -71,12 +71,13 @@ class Logger(ToplevelResource):
             return f"{minutes}:{seconds:02}"
 
         timer = Toplevel._get_timer()
-        scene = Toplevel._get_scene_if_exists()
+        renderer = Toplevel._renderer
+        scene = Toplevel._scene
         status_dict = {
             "Run Time": format_duration(timer._current_timestamp - timer._start_timestamp),
             "FPS": f"{timer._recorded_fps}",
-            "Livestream": "[green]On" if Toplevel._get_renderer()._livestreamer.is_livestreaming else "[red]Off",
-            "Recording": "[green]On" if Toplevel._get_renderer()._video_recorder.is_recording else "[red]Off",
+            "Livestream": "-" if renderer is None else "[green]On" if renderer._livestreamer.is_livestreaming else "[red]Off",
+            "Recording": "-" if renderer is None else "[green]On" if renderer._video_recorder.is_recording else "[red]Off",
             "Scene Name": "-" if scene is None else type(scene).__name__,
             "Scene Time": "-" if scene is None else format_duration(scene._scene_time)
         }

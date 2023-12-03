@@ -9,6 +9,7 @@ from typing import (
     Self
 )
 
+import ffmpeg
 import numpy as np
 from PIL import Image
 
@@ -35,25 +36,29 @@ class VideoPipe:
         video_path: pathlib.Path
     ) -> None:
         super().__init__()
-        writing_process = subprocess.Popen((
-            "ffmpeg",
-            "-y",  # Overwrite output file if it exists.
-            "-f", "rawvideo",
-            "-s", f"{Toplevel._get_config().pixel_width}x{Toplevel._get_config().pixel_height}",
-            "-pix_fmt", "rgb24",
-            "-r", f"{Toplevel._get_config().fps}",
-            "-i", "-",  # The input comes from a pipe.
-            "-vf", "vflip",
-            "-an",
-            "-vcodec", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-loglevel", "error",
-            video_path
-        ), stdin=subprocess.PIPE)
-        assert writing_process.stdin is not None
+        writing_process = (
+            ffmpeg
+            .input(
+                filename="pipe:",
+                format="rawvideo",
+                pix_fmt="rgb24",
+                s=f"{Toplevel._get_config().pixel_width}x{Toplevel._get_config().pixel_height}",
+                framerate=Toplevel._get_config().fps
+            )
+            .vflip()
+            .output(
+                filename=video_path,
+                pix_fmt="yuv420p",
+                loglevel="quiet"
+            )
+            .run_async(
+                pipe_stdin=True,
+                overwrite_output=True
+            )
+        )
         self._video_path: pathlib.Path = video_path
         self._video_stream: IO[bytes] = writing_process.stdin
-        self._writing_process: subprocess.Popen = writing_process
+        self._writing_process: subprocess.Popen[bytes] = writing_process
         self._writing: bool = False
 
     @property

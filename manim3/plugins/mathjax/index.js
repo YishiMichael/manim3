@@ -24,7 +24,6 @@ function main(
         }),
         OutputJax: new SVG({
             displayAlign: alignment
-            //fontCache: "none"
         })
     };
     const convertOption = {

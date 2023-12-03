@@ -146,18 +146,18 @@ class Config(ToplevelResource):
         self: Self
     ) -> Iterator[None]:
         from .timer import Timer
+        from .logger import Logger
         from .window import Window
         from .context import Context
         from .renderer import Renderer
-        from .logger import Logger
 
         Toplevel._config = self
         with (
             Timer(),
+            Logger(),
             Window(),
             Context(),
-            Renderer(),
-            Logger()
+            Renderer()
         ):
             yield
         Toplevel._config = None
