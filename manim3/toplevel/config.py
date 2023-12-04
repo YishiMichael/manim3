@@ -69,8 +69,6 @@ class Config(ToplevelResource):
     mathjax_inline: bool = False
 
     pango_alignment: AlignmentType = "left"
-    pango_justify: bool = False
-    pango_indent: float = 0.0
     pango_font: str = "Consolas"
     code_font: str = "Consolas"
     code_language_suffix: str = ".py"

@@ -13,12 +13,9 @@ from typing import (
 )
 
 import attrs
-
-try:
-    # Soft dependency.
-    from manimpango import MarkupUtils
-except ImportError:
-    MarkupUtils = None
+import cairocffi
+import pangocairocffi
+import pangocffi
 
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...constants.custom_typing import (
@@ -94,16 +91,12 @@ class PangoAttributes(TypedDict, total=False):
 class PangoStringMobjectInput(StringMobjectInput[PangoAttributes]):
     color: ColorType = attrs.field(factory=lambda: Toplevel._get_config().default_color)
     alignment: AlignmentType = attrs.field(factory=lambda: Toplevel._get_config().pango_alignment)
-    justify: bool = attrs.field(factory=lambda: Toplevel._get_config().pango_justify)
-    indent: float = attrs.field(factory=lambda: Toplevel._get_config().pango_indent)
     font: str = attrs.field(factory=lambda: Toplevel._get_config().pango_font)
 
 
 class PangoStringMobjectKwargs(StringMobjectKwargs[PangoAttributes], total=False):
     color: ColorType
     alignment: AlignmentType
-    justify: bool
-    indent: float
     font: str
 
 
@@ -136,40 +129,22 @@ class PangoStringMobjectIO[PangoStringMobjectInputT: PangoStringMobjectInput](St
         input_data: PangoStringMobjectInputT,
         svg_path: pathlib.Path
     ) -> None:
-        if MarkupUtils is None:
-            raise OSError("PangoStringMobjectIO: manimpango is not found")
-        if (validate_error := MarkupUtils.validate(content)):
-            raise ValueError(f"Markup error: {validate_error}")
-
-        # `manimpango` is under construction,
-        # so the following code is intended to suit its interface.
         match input_data.alignment:
             case "left":
-                pango_alignment = PangoAlignment.LEFT
+                pango_alignment = pangocffi.Alignment.LEFT
             case "center":
-                pango_alignment = PangoAlignment.CENTER
+                pango_alignment = pangocffi.Alignment.CENTER
             case "right":
-                pango_alignment = PangoAlignment.RIGHT
+                pango_alignment = pangocffi.Alignment.RIGHT
 
-        MarkupUtils.text2svg(
-            text=content,
-            font="",  # Already handled.
-            slant="NORMAL",
-            weight="NORMAL",
-            size=10,
-            _=0,  # Empty parameter.
-            disable_liga=False,
-            file_name=f"{svg_path}",
-            START_X=0,
-            START_Y=0,
-            width=16384,  # Ensure the canvas is large enough to hold all glyphs.
-            height=16384,
-            justify=input_data.justify,
-            indent=input_data.indent,
-            line_spacing=None,  # Already handled.
-            alignment=pango_alignment,
-            pango_width=None  # No auto wraplines.
-        )
+        with svg_path.open(mode="wb") as svg_file:
+            surface = cairocffi.SVGSurface(svg_file, 1024.0, 1024.0)
+            context = cairocffi.Context(surface)
+            layout = pangocairocffi.create_layout(context)
+            layout.alignment = pango_alignment
+            layout.apply_markup(content)
+            pangocairocffi.show_layout(context, layout)
+            surface.finish()
 
     @classmethod
     def _get_adjustment_scale(
