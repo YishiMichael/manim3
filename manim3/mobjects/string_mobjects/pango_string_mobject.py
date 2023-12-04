@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import pathlib
 import re
-from enum import Enum
 from typing import (
     ClassVar,
     Iterator,
@@ -30,13 +29,6 @@ from .string_mobject import (
     StringMobjectInput,
     StringMobjectKwargs
 )
-
-
-# Ported from `manimpango/enums.pyx`.
-class PangoAlignment(Enum):
-    LEFT = 0
-    CENTER = 1
-    RIGHT = 2
 
 
 # See `https://docs.gtk.org/Pango/pango_markup.html`.

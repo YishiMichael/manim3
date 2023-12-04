@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import functools
 import operator
-from abc import abstractmethod
+from abc import (
+    ABC,
+    abstractmethod
+)
 from typing import (
     Never,
     Self
@@ -13,26 +16,18 @@ import numpy as np
 from scipy.interpolate import BSpline
 
 from ...constants.constants import TAU
-from ...constants.custom_typing import (
-    BoundaryType,
-    NP_xf8
-)
-from ...lazy.lazy import Lazy
-from ...lazy.lazy_object import LazyObject
+from ...constants.custom_typing import NP_xf8
 
 
-class Rate(LazyObject):
-    __slots__ = ()
+class Rate(ABC):
+    __slots__ = ("_is_increasing",)
 
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_() -> bool:
-        return True
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
-        return (0, 1)
+    def __init__(
+        self: Self,
+        is_increasing: bool
+    ) -> None:
+        super().__init__()
+        self._is_increasing: bool = is_increasing
 
     @abstractmethod
     def at(
@@ -43,78 +38,34 @@ class Rate(LazyObject):
 
 
 class ComposeRate(Rate):
-    __slots__ = ()
+    __slots__ = ("_rates",)
 
     def __init__(
         self: Self,
         *rates: Rate
     ) -> None:
-        super().__init__()
-        self._reversed_rates_ = tuple(reversed(rates))
-
-    @Lazy.variable(plural=True)
-    @staticmethod
-    def _reversed_rates_() -> tuple[Rate, ...]:
-        return ()
-
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_(
-        reversed_rates__is_increasing: tuple[bool, ...]
-    ) -> bool:
-        return all(reversed_rates__is_increasing)
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_(
-        reversed_rates__boundaries: tuple[tuple[BoundaryType, BoundaryType], ...]
-    ) -> tuple[BoundaryType, BoundaryType]:
-        boundaries = (0, 1)
-        for rate_boundary_0, rate_boundary_1 in reversed_rates__boundaries:
-            boundaries = (boundaries[rate_boundary_0], boundaries[rate_boundary_1])
-        return boundaries
+        super().__init__(is_increasing=all(rate._is_increasing for rate in rates))
+        self._rates: tuple[Rate, ...] = rates
 
     def at(
         self: Self,
         time: float
     ) -> float:
         alpha = time
-        for rate in self._reversed_rates_:
+        for rate in reversed(self._rates):
             alpha = rate.at(alpha)
         return alpha
 
 
 class ProductRate(Rate):
-    __slots__ = ()
+    __slots__ = ("_rates",)
 
     def __init__(
         self: Self,
         *rates: Rate
     ) -> None:
-        super().__init__()
-        self._rates_ = rates
-
-    @Lazy.variable(plural=True)
-    @staticmethod
-    def _rates_() -> tuple[Rate, ...]:
-        return ()
-
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_(
-        rates__is_increasing: tuple[bool, ...]
-    ) -> bool:
-        return all(rates__is_increasing)
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_(
-        rates__boundaries: tuple[tuple[BoundaryType, BoundaryType], ...]
-    ) -> tuple[BoundaryType, BoundaryType]:
-        boundary_0, boundary_1 = (0, 1)
-        for rate_boundary_0, rate_boundary_1 in rates__boundaries:
-            boundary_0, boundary_1 = (boundary_0 and rate_boundary_0, boundary_1 and rate_boundary_1)
-        return (boundary_0, boundary_1)
+        super().__init__(is_increasing=all(rate._is_increasing for rate in rates))
+        self._rates: tuple[Rate, ...] = rates
 
     def at(
         self: Self,
@@ -122,7 +73,7 @@ class ProductRate(Rate):
     ) -> float:
         return functools.reduce(operator.mul, (
             rate.at(time)
-            for rate in self._rates_
+            for rate in self._rates
         ), 1.0)
 
 
@@ -141,14 +92,14 @@ class ClipRate(Rate):
         min_time: float,
         max_time: float
     ) -> None:
-        assert rate._is_increasing_
+        assert rate._is_increasing
         min_alpha = rate.at(min_time)
         max_alpha = rate.at(max_time)
         delta_time = max_time - min_time
         delta_alpha = max_alpha - min_alpha
         assert delta_time > 0.0
         assert delta_alpha > 0.0
-        super().__init__()
+        super().__init__(is_increasing=True)
         self._rate: Rate = rate
         self._min_time: float = min_time
         self._delta_time: float = delta_time
@@ -165,6 +116,11 @@ class ClipRate(Rate):
 class LinearRate(Rate):
     __slots__ = ()
 
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__(is_increasing=True)
+
     def at(
         self: Self,
         time: float
@@ -173,67 +129,33 @@ class LinearRate(Rate):
 
 
 class BezierRate(Rate):
-    __slots__ = ()
+    __slots__ = ("_curve",)
 
     def __init__(
         self: Self,
         values: NP_xf8
     ) -> None:
-        super().__init__()
-        self._values_ = values
-
-    @Lazy.variable()
-    @staticmethod
-    def _values_() -> NP_xf8:
-        return np.zeros((0,))
-
-    @Lazy.property()
-    @staticmethod
-    def _curve_(
-        values: NP_xf8
-    ) -> BSpline:
-        return BSpline(
+        super().__init__(is_increasing=bool(np.all(np.diff(values) >= 0.0)))
+        self._curve: BSpline = BSpline(
             t=np.repeat(np.array((0.0, 1.0)), len(values)),
             c=values,
             k=len(values) - 1
         )
 
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_(
-        values: NP_xf8
-    ) -> bool:
-        return bool(np.all(np.diff(values) >= 0.0))
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_(
-        values: NP_xf8
-    ) -> tuple[BoundaryType, BoundaryType]:
-        boundary_0 = int(np.rint(values[0]))
-        boundary_1 = int(np.rint(values[-1]))
-        assert boundary_0 in (0, 1) and boundary_1 in (0, 1)
-        return (boundary_0, boundary_1)
-
     def at(
         self: Self,
         time: float
     ) -> float:
-        return float(self._curve_(np.array(time)))
+        return float(self._curve(time))
 
 
 class RewindRate(Rate):
     __slots__ = ()
 
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_() -> bool:
-        return False
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
-        return (1, 0)
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__(is_increasing=True)
 
     def at(
         self: Self,
@@ -245,15 +167,10 @@ class RewindRate(Rate):
 class ThereAndBackRate(Rate):
     __slots__ = ()
 
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_() -> bool:
-        return False
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
-        return (0, 0)
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__(is_increasing=False)
 
     def at(
         self: Self,
@@ -265,15 +182,10 @@ class ThereAndBackRate(Rate):
 class SinusoidalRate(Rate):
     __slots__ = ()
 
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_() -> bool:
-        return False
-
-    @Lazy.property()
-    @staticmethod
-    def _boundaries_() -> tuple[BoundaryType, BoundaryType]:
-        return (0, 0)
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__(is_increasing=False)
 
     def at(
         self: Self,
@@ -290,13 +202,8 @@ class RepeatRate(Rate):
         periods: int
     ) -> None:
         assert periods > 0
-        super().__init__()
+        super().__init__(is_increasing=False)
         self._periods: int = periods
-
-    @Lazy.property()
-    @staticmethod
-    def _is_increasing_() -> bool:
-        return False
 
     def at(
         self: Self,
@@ -399,14 +306,14 @@ class Rates:
         cls: type[Self],
         pull_factor: float = -0.5
     ) -> Rate:
-        return cls.bezier(np.array((0, 0, pull_factor, pull_factor, 1, 1, 1)))
+        return cls.bezier(np.array((0.0, 0.0, pull_factor, pull_factor, 1.0, 1.0, 1.0)))
 
     @classmethod
     def overshoot(
         cls: type[Self],
         pull_factor: float = 1.5
     ) -> Rate:
-        return cls.bezier(np.array((0, 0, pull_factor, pull_factor, 1, 1)))
+        return cls.bezier(np.array((0.0, 0.0, pull_factor, pull_factor, 1.0, 1.0)))
 
     @classmethod
     def there_and_back_smoothly(

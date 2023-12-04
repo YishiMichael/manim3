@@ -299,7 +299,7 @@ class Timeline(ABC):
         timeline: Timeline,
         *,
         # `[0.0, +infty) -> [0.0, +infty), time |-> alpha`
-        # `_is_increasing_` must be true.
+        # Must be an increasing function.
         # Must be `None` if `_run_alpha` is infinity.
         rate: Rate | None = None,
         # Intepreted as "the inverse of run speed" if `_run_alpha` is infinity.
@@ -319,7 +319,7 @@ class Timeline(ABC):
             run_time_scale = run_time
         if rate is None:
             rate = Rates.linear()
-        assert rate._is_increasing_
+        assert rate._is_increasing
         timeline._schedule(ScheduleInfo(
             parent_absolute_rate=timeline_state.absolute_rate,
             rate=rate,

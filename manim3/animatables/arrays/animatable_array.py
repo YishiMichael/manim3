@@ -71,36 +71,9 @@ class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](DynamicAnimatabl
 class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](AnimatableInterpolateAnimation[AnimatableArrayT]):
     __slots__ = ()
 
-    def __init__(
-        self: Self,
-        dst: AnimatableArrayT,
-        src_0: AnimatableArrayT,
-        src_1: AnimatableArrayT
-    ) -> None:
-        super().__init__(dst, src_0, src_1)
-        self._array_0_ = src_0._array_
-        self._array_1_ = src_1._array_
-
-    @Lazy.variable()
-    @staticmethod
-    def _array_0_() -> np.ndarray:
-        return NotImplemented
-
-    @Lazy.variable()
-    @staticmethod
-    def _array_1_() -> np.ndarray:
-        return NotImplemented
-
     def interpolate(
         self: Self,
         dst: AnimatableArrayT,
         alpha: float
     ) -> None:
-        dst._array_ = (1.0 - alpha) * self._array_0_ + alpha * self._array_1_
-
-    def becomes(
-        self: Self,
-        dst: AnimatableArrayT,
-        src: AnimatableArrayT
-    ) -> None:
-        dst._array_ = src._array_
+        dst._array_ = (1.0 - alpha) * self._src_0_._array_ + alpha * self._src_1_._array_

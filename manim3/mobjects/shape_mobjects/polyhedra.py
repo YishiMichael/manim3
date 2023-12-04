@@ -53,8 +53,7 @@ class Polyhedron(ShapeMobject):
         return Polygon(transformed_xy).rotate_about_origin(rotation_vector).shift(sample_0)
 
 
-# The five platonic solids are ported from manim community.
-# `/manim/mobject/three_d/polyhedra.py`
+# The five Platonic solids, ported from manim community `/manim/mobject/three_d/polyhedra.py`
 # All these polyhedra have all positions sitting on the unit sphere.
 class Tetrahedron(Polyhedron):
     __slots__ = ()

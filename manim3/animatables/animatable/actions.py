@@ -158,7 +158,7 @@ class ActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorPar
             **kwargs: P.kwargs
         ) -> InstanceT:
             for animation in self._action(instance, *args, **kwargs):
-                animation.update_boundary(1)
+                animation.update(1.0)
             return instance
 
         return bound_method

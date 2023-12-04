@@ -16,7 +16,6 @@ from ..constants.constants import (
     PI
 )
 from ..constants.custom_typing import (
-    BoundaryType,
     ColorType,
     NP_3f8,
     NP_44f8,
@@ -455,13 +454,6 @@ class ModelAnimation(Animation):
         matrix = self._post_shift_matrix @ self._get_matrix(alpha) @ self._pre_shift_matrix
         for model_matrix, initial_model_matrix_array in self._model_matrices.items():
             model_matrix._array_ = matrix @ initial_model_matrix_array
-
-    def update_boundary(
-        self: Self,
-        boundary: BoundaryType
-    ) -> None:
-        super().update_boundary(boundary)
-        self.update(float(boundary))
 
 
 class ModelShiftAnimation(ModelAnimation):

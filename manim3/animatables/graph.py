@@ -175,16 +175,6 @@ class GraphInterpolateAnimation[GraphT: Graph](AnimatableInterpolateAnimation[Gr
             edges=interpolate_info.edges
         )
 
-    def becomes(
-        self: Self,
-        dst: GraphT,
-        src: GraphT
-    ) -> None:
-        dst.set(
-            positions=src._positions_,
-            edges=src._edges_
-        )
-
 
 class GraphPiecewiseAnimation[GraphT: Graph](AnimatablePiecewiseAnimation[GraphT]):
     __slots__ = ()

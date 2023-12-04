@@ -8,10 +8,7 @@ from typing import (
     Unpack
 )
 
-from ...constants.custom_typing import (
-    BoundaryType,
-    NP_xf8
-)
+from ...constants.custom_typing import NP_xf8
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
 from .actions import (
@@ -161,27 +158,12 @@ class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):
     ) -> None:
         pass
 
-    @abstractmethod
-    def becomes(
-        self: Self,
-        dst: AnimatableT,
-        src: AnimatableT
-    ) -> None:
-        pass
-
     def update(
         self: Self,
         alpha: float
     ) -> None:
         super().update(alpha)
         self.interpolate(self._dst, alpha)
-
-    def update_boundary(
-        self: Self,
-        boundary: BoundaryType
-    ) -> None:
-        super().update_boundary(boundary)
-        self.becomes(self._dst, self._src_1_ if boundary else self._src_0_)
 
 
 class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
@@ -233,10 +215,3 @@ class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
         pieces = tuple(animatable_cls() for _ in range(len(piecewise_data.split_alphas) + 1))
         cls.split(pieces, self._src, piecewise_data.split_alphas)
         cls.concatenate(dst, tuple(pieces[index] for index in piecewise_data.concatenate_indices))
-
-    def update_boundary(
-        self: Self,
-        boundary: BoundaryType
-    ) -> None:
-        super().update_boundary(boundary)
-        self.update(float(boundary))

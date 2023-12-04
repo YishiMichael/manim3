@@ -14,7 +14,6 @@ __all__ = (
     "NP_x3i4",
     "NP_xxi4",
     "ShapeType",
-    "BoundaryType",
     "ColorType",
     "AlignmentType",
     "SelectorType"
@@ -47,7 +46,6 @@ type NP_x3i4 = np.ndarray[tuple[_XD, _3D], np.dtype[np.int32]]
 type NP_xxi4 = np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
 
 type ShapeType = tuple[int, ...]
-type BoundaryType = Literal[0, 1]
 type ColorType = Color | str | NP_3f8
 type AlignmentType = Literal["left", "center", "right"]
 type SelectorType = str | re.Pattern[str] | slice

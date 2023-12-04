@@ -351,16 +351,6 @@ class ShapeInterpolateAnimation[ShapeT: Shape](AnimatableInterpolateAnimation[Sh
             counts=interpolate_info.counts
         )
 
-    def becomes(
-        self: Self,
-        dst: ShapeT,
-        src: ShapeT
-    ) -> None:
-        dst.set(
-            coordinates=src._coordinates_,
-            counts=src._counts_
-        )
-
 
 class ShapePiecewiseAnimation[ShapeT: Shape](AnimatablePiecewiseAnimation[ShapeT]):
     __slots__ = ()
