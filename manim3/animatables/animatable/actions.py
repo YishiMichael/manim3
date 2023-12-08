@@ -7,7 +7,6 @@ from typing import (
     Callable,
     Concatenate,
     Iterator,
-    Never,
     Self,
     overload
 )
@@ -31,7 +30,7 @@ class DescriptorParameters:
 
 @attrs.frozen(kw_only=True)
 class ConverterDescriptorParameters(DescriptorParameters):
-    converter: Callable[[Any], Animatable] | None = None
+    converter: Callable[[Any], Animatable]
 
 
 class Actions:
@@ -45,11 +44,6 @@ class Actions:
             if not isinstance(action, Action):
                 continue
             action._actions_cls = cls
-
-    def __new__(
-        cls: type[Self]
-    ) -> Never:
-        raise TypeError
 
 
 class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
@@ -66,13 +60,72 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
         self._method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]] = method
         self._actions_cls: type[ActionsT] = NotImplemented
 
-    def iter_animations(
+    @overload
+    def __get__[InstanceT: Animatable](
         self: Self,
-        dst: AnimatableT,
-        *args: P.args,
-        **kwargs: P.kwargs
-    ) -> Iterator[Animation]:
-        return self._method(self._actions_cls, dst, *args, **kwargs)
+        instance: InstanceT,
+        owner: type[InstanceT] | None = None
+    ) -> Callable[P, InstanceT]: ...
+
+    @overload
+    def __get__[InstanceT: DynamicAnimatable[Animatable]](
+        self: Self,
+        instance: InstanceT,
+        owner: type[InstanceT] | None = None
+    ) -> Callable[P, InstanceT]: ...
+
+    @overload
+    def __get__(
+        self: Self,
+        instance: None,
+        owner: type[Actions] | None = None
+    ) -> Self: ...
+
+    def __get__(
+        self: Self,
+        instance: Actions | None,
+        owner: type[Actions] | None = None
+    ) -> Any:
+
+        def get_bound_method(
+            action: Self,
+            instance: Any
+        ) -> Any:
+
+            def result(
+                *args: P.args,
+                **kwargs: P.kwargs
+            ) -> Any:
+                for animation in action.iter_animations(instance, *args, **kwargs):
+                    animation.update(1.0)
+                return instance
+
+            return result
+
+        def get_dynamic_bound_method(
+            action: Self,
+            instance: Any
+        ) -> Any:
+
+            def result(
+                *args: P.args,
+                **kwargs: P.kwargs
+            ) -> Any:
+                instance._animations.extend(action.iter_animations(instance._dst, *args, **kwargs))
+                return instance
+
+            return result
+
+        from .animatable import (
+            Animatable,
+            DynamicAnimatable
+        )
+
+        if isinstance(instance, Animatable):
+            return get_bound_method(self, instance)
+        if isinstance(instance, DynamicAnimatable):
+            return get_dynamic_bound_method(self, instance)
+        return self
 
     @classmethod
     def register(
@@ -90,15 +143,13 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
 
         return result
 
-    def build_action_descriptor(
-        self: Self
-    ) -> ActionDescriptor[ActionsT, AnimatableT, P]:
-        return ActionDescriptor(self)
-
-    def build_dynamic_action_descriptor(
-        self: Self
-    ) -> DynamicActionDescriptor[ActionsT, AnimatableT, P]:
-        return DynamicActionDescriptor(self)
+    def iter_animations(
+        self: Self,
+        dst: AnimatableT,
+        *args: P.args,
+        **kwargs: P.kwargs
+    ) -> Iterator[Animation]:
+        return self._method(self._actions_cls, dst, *args, **kwargs)
 
 
 class DescriptiveAction[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
@@ -153,81 +204,3 @@ class DescriptiveAction[ActionsT: Actions, AnimatableT: Animatable, DescriptorPa
             return descriptor
 
         return result
-
-
-class ActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, **P]:
-    __slots__ = ("_action",)
-
-    def __init__(
-        self: Self,
-        action: Action[ActionsT, AnimatableT, P]
-    ) -> None:
-        super().__init__()
-        self._action: Action[ActionsT, AnimatableT, P] = action
-
-    @overload
-    def __get__[InstanceT: Animatable](
-        self: Self,
-        instance: InstanceT,
-        owner: type[InstanceT] | None = None
-    ) -> Callable[P, InstanceT]: ...
-
-    @overload
-    def __get__[InstanceT: Animatable](
-        self: Self,
-        instance: None,
-        owner: type[InstanceT] | None = None
-    ) -> Self: ...
-
-    def __get__[InstanceT: Animatable](
-        self: Self,
-        instance: InstanceT | None,
-        owner: type[InstanceT] | None = None
-    ) -> Self | Callable[P, InstanceT]:
-        if instance is None:
-            return self
-
-        def bound_method(
-            *args: P.args,
-            **kwargs: P.kwargs
-        ) -> InstanceT:
-            for animation in self._action.iter_animations(instance, *args, **kwargs):
-                animation.update(1.0)
-            return instance
-
-        return bound_method
-
-
-class DynamicActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, **P](ActionDescriptor[ActionsT, AnimatableT, P]):
-    __slots__ = ()
-
-    @overload
-    def __get__[InstanceT: DynamicAnimatable[Animatable]](
-        self: Self,
-        instance: InstanceT,
-        owner: type[InstanceT] | None = None
-    ) -> Callable[P, InstanceT]: ...
-
-    @overload
-    def __get__[InstanceT: DynamicAnimatable[Animatable]](
-        self: Self,
-        instance: None,
-        owner: type[InstanceT] | None = None
-    ) -> Self: ...
-
-    def __get__[InstanceT: DynamicAnimatable[Animatable]](
-        self: Self,
-        instance: InstanceT | None,
-        owner: type[InstanceT] | None = None
-    ) -> Self | Callable[P, InstanceT]:
-        if instance is None:
-            return self
-
-        def bound_method(
-            *args: P.args,
-            **kwargs: P.kwargs
-        ) -> InstanceT:
-            instance._animations.extend(self._action.iter_animations(instance._dst, *args, **kwargs))
-            return instance
-
-        return bound_method

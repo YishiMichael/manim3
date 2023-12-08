@@ -59,7 +59,7 @@ class GraphActions(AnimatableActions):
         yield GraphPiecewiseAnimation(dst, src, piecewiser)
 
 
-class Graph(Animatable):
+class Graph(GraphActions, Animatable):
     __slots__ = ()
 
     def __init__(
@@ -130,15 +130,9 @@ class Graph(Animatable):
     ) -> DynamicGraph[Self]:
         return DynamicGraph(self, **kwargs)
 
-    interpolate = GraphActions.interpolate.build_action_descriptor()
-    piecewise = GraphActions.piecewise.build_action_descriptor()
 
-
-class DynamicGraph[GraphT: Graph](DynamicAnimatable[GraphT]):
+class DynamicGraph[GraphT: Graph](GraphActions, DynamicAnimatable[GraphT]):
     __slots__ = ()
-
-    interpolate = GraphActions.interpolate.build_dynamic_action_descriptor()
-    piecewise = GraphActions.piecewise.build_dynamic_action_descriptor()
 
 
 @attrs.frozen(kw_only=True)

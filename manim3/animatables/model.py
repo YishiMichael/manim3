@@ -122,12 +122,13 @@ class ModelActions(AnimatableActions):
             if (input_value := kwargs.get(descriptor._name.strip("_"))) is None:
                 continue
             converter = descriptor_parameters.converter
-            target = converter(input_value) if converter is not None else input_value
+            target = converter(input_value)
             for sibling in dst._iter_siblings(broadcast=broadcast):
                 if descriptor not in sibling._lazy_descriptors:
                     continue
-                initial: Animatable = descriptor.__get__(sibling)
-                yield from type(initial).interpolate._action.iter_animations(
+                initial = descriptor.__get__(sibling)
+                assert isinstance(initial, Animatable)
+                yield from type(initial).interpolate.iter_animations(
                     dst=initial,
                     src_0=initial.copy(),
                     src_1=target
@@ -304,7 +305,7 @@ class ModelActions(AnimatableActions):
         )
 
 
-class Model(Animatable):
+class Model(ModelActions, Animatable):
     __slots__ = ()
 
     @AnimatableActions.interpolate.register_descriptor()
@@ -389,33 +390,9 @@ class Model(Animatable):
     ) -> DynamicModel[Self]:
         return DynamicModel(self, **kwargs)
 
-    set = ModelActions.set.build_action_descriptor()
-    shift = ModelActions.shift.build_action_descriptor()
-    move_to = ModelActions.move_to.build_action_descriptor()
-    next_to = ModelActions.next_to.build_action_descriptor()
-    scale = ModelActions.scale.build_action_descriptor()
-    scale_about_origin = ModelActions.scale_about_origin.build_action_descriptor()
-    scale_to = ModelActions.scale_to.build_action_descriptor()
-    rotate = ModelActions.rotate.build_action_descriptor()
-    rotate_about_origin = ModelActions.rotate_about_origin.build_action_descriptor()
-    flip = ModelActions.flip.build_action_descriptor()
-    apply = ModelActions.apply.build_action_descriptor()
 
-
-class DynamicModel[ModelT: Model](DynamicAnimatable[ModelT]):
+class DynamicModel[ModelT: Model](ModelActions, DynamicAnimatable[ModelT]):
     __slots__ = ()
-
-    set = ModelActions.set.build_dynamic_action_descriptor()
-    shift = ModelActions.shift.build_dynamic_action_descriptor()
-    move_to = ModelActions.move_to.build_dynamic_action_descriptor()
-    next_to = ModelActions.next_to.build_dynamic_action_descriptor()
-    scale = ModelActions.scale.build_dynamic_action_descriptor()
-    scale_about_origin = ModelActions.scale_about_origin.build_dynamic_action_descriptor()
-    scale_to = ModelActions.scale_to.build_dynamic_action_descriptor()
-    rotate = ModelActions.rotate.build_dynamic_action_descriptor()
-    rotate_about_origin = ModelActions.rotate_about_origin.build_dynamic_action_descriptor()
-    flip = ModelActions.flip.build_dynamic_action_descriptor()
-    apply = ModelActions.apply.build_dynamic_action_descriptor()
 
 
 class ModelAnimation(Animation):

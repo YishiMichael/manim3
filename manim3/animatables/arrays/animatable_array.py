@@ -37,7 +37,7 @@ class AnimatableArrayActions(AnimatableActions):
         yield AnimatableArrayInterpolateAnimation(dst, src_0, src_1)
 
 
-class AnimatableArray[NDArrayT: np.ndarray](Animatable):
+class AnimatableArray[NDArrayT: np.ndarray](AnimatableArrayActions, Animatable):
     __slots__ = ()
 
     def __init__(
@@ -59,13 +59,9 @@ class AnimatableArray[NDArrayT: np.ndarray](Animatable):
     ) -> DynamicAnimatableArray[Self]:
         return DynamicAnimatableArray(self, **kwargs)
 
-    interpolate = AnimatableArrayActions.interpolate.build_action_descriptor()
 
-
-class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](DynamicAnimatable[AnimatableArrayT]):
+class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](AnimatableArrayActions, DynamicAnimatable[AnimatableArrayT]):
     __slots__ = ()
-
-    interpolate = AnimatableArrayActions.interpolate.build_dynamic_action_descriptor()
 
 
 class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](AnimatableInterpolateAnimation[AnimatableArrayT]):

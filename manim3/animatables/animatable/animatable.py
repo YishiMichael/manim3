@@ -49,7 +49,7 @@ class AnimatableActions(Actions):
                 strict=True
             ):
                 assert isinstance(dst_element, Animatable)
-                yield from type(dst_element).interpolate._action.iter_animations(
+                yield from type(dst_element).interpolate.iter_animations(
                     dst=dst_element,
                     src_0=src_0_element,
                     src_1=src_1_element
@@ -75,7 +75,7 @@ class AnimatableActions(Actions):
                 strict=True
             ):
                 assert isinstance(dst_element, Animatable)
-                yield from type(dst_element).piecewise._action.iter_animations(
+                yield from type(dst_element).piecewise.iter_animations(
                     dst=dst_element,
                     src=src_element,
                     piecewiser=piecewiser
@@ -95,7 +95,7 @@ class AnimatableActions(Actions):
         )
 
 
-class Animatable(LazyObject):
+class Animatable(AnimatableActions, LazyObject):
     __slots__ = ()
 
     def animate(
@@ -104,12 +104,8 @@ class Animatable(LazyObject):
     ) -> DynamicAnimatable[Self]:
         return DynamicAnimatable(self, **kwargs)
 
-    interpolate = AnimatableActions.interpolate.build_action_descriptor()
-    piecewise = AnimatableActions.piecewise.build_action_descriptor()
-    transform = AnimatableActions.transform.build_action_descriptor()
 
-
-class DynamicAnimatable[AnimatableT: Animatable](AnimationsTimeline):
+class DynamicAnimatable[AnimatableT: Animatable](AnimatableActions, AnimationsTimeline):
     __slots__ = ("_dst",)
 
     def __init__(
@@ -119,10 +115,6 @@ class DynamicAnimatable[AnimatableT: Animatable](AnimationsTimeline):
     ) -> None:
         super().__init__(**kwargs)
         self._dst: AnimatableT = dst
-
-    interpolate = AnimatableActions.interpolate.build_dynamic_action_descriptor()
-    piecewise = AnimatableActions.piecewise.build_dynamic_action_descriptor()
-    transform = AnimatableActions.transform.build_dynamic_action_descriptor()
 
 
 class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):

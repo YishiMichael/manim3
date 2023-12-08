@@ -72,7 +72,7 @@ class ShapeActions(AnimatableActions):
         yield ShapePiecewiseAnimation(dst, src, piecewiser)
 
 
-class Shape(Animatable):
+class Shape(ShapeActions, Animatable):
     __slots__ = ()
 
     def __init__(
@@ -303,15 +303,9 @@ class Shape(Animatable):
     ) -> DynamicShape[Self]:
         return DynamicShape(self, **kwargs)
 
-    interpolate = ShapeActions.interpolate.build_action_descriptor()
-    piecewise = ShapeActions.piecewise.build_action_descriptor()
 
-
-class DynamicShape[ShapeT: Shape](DynamicAnimatable[ShapeT]):
+class DynamicShape[ShapeT: Shape](ShapeActions, DynamicAnimatable[ShapeT]):
     __slots__ = ()
-
-    interpolate = ShapeActions.interpolate.build_dynamic_action_descriptor()
-    piecewise = ShapeActions.piecewise.build_dynamic_action_descriptor()
 
 
 @attrs.frozen(kw_only=True)
