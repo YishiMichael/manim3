@@ -26,7 +26,8 @@ from ..lazy.lazy_object import LazyObject
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from .animatable.actions import (
     Action,
-    ConverterDescriptorParameters
+    ConverterDescriptorParameters,
+    DescriptiveAction
 )
 from .animatable.animatable import (
     Animatable,
@@ -109,7 +110,7 @@ class Box(LazyObject):
 class ModelActions(AnimatableActions):
     __slots__ = ()
 
-    @Action.register(ConverterDescriptorParameters)
+    @DescriptiveAction.register(ConverterDescriptorParameters)
     @classmethod
     def set(
         cls: type[Self],
@@ -117,7 +118,7 @@ class ModelActions(AnimatableActions):
         broadcast: bool = True,
         **kwargs: Unpack[SetKwargs]
     ) -> Iterator[Animation]:
-        for descriptor, descriptor_parameters in cls.set._descriptor_dict.items():
+        for descriptor, descriptor_parameters in cls.set.iter_descriptor_items():
             if (input_value := kwargs.get(descriptor._name.strip("_"))) is None:
                 continue
             converter = descriptor_parameters.converter
@@ -125,8 +126,8 @@ class ModelActions(AnimatableActions):
             for sibling in dst._iter_siblings(broadcast=broadcast):
                 if descriptor not in sibling._lazy_descriptors:
                     continue
-                initial = descriptor.__get__(sibling)
-                yield from type(initial).interpolate._action(
+                initial: Animatable = descriptor.__get__(sibling)
+                yield from type(initial).interpolate._action.iter_animations(
                     dst=initial,
                     src_0=initial.copy(),
                     src_1=target
@@ -156,7 +157,7 @@ class ModelActions(AnimatableActions):
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
-        yield from cls.shift(
+        yield from cls.shift.iter_animations(
             dst=dst,
             vector=target.box.get(direction) - dst.box.get(direction, buff),
             mask=mask
@@ -172,7 +173,7 @@ class ModelActions(AnimatableActions):
         buff: float | NP_3f8 = 0.0,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
-        yield from cls.shift(
+        yield from cls.shift.iter_animations(
             dst=dst,
             vector=target.box.get(direction) - dst.box.get(-direction, buff),
             mask=mask
@@ -206,7 +207,7 @@ class ModelActions(AnimatableActions):
         factor: float | NP_3f8,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
-        yield from cls.scale(
+        yield from cls.scale.iter_animations(
             dst=dst,
             factor=factor,
             about=Model(),
@@ -223,7 +224,7 @@ class ModelActions(AnimatableActions):
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
-        yield from cls.scale(
+        yield from cls.scale.iter_animations(
             dst=dst,
             factor=target.box.get_radii() / dst.box.get_radii(),
             about=about,
@@ -259,7 +260,7 @@ class ModelActions(AnimatableActions):
         rotvec: NP_3f8,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
-        yield from cls.rotate(
+        yield from cls.rotate.iter_animations(
             dst=dst,
             rotvec=rotvec,
             about=Model(),
@@ -276,7 +277,7 @@ class ModelActions(AnimatableActions):
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
-        yield from cls.rotate(
+        yield from cls.rotate.iter_animations(
             dst=dst,
             rotvec=axis / np.linalg.norm(axis) * PI,
             about=about,

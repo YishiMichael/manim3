@@ -52,26 +52,21 @@ class Actions:
         raise TypeError
 
 
-class Action[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P]:
+class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
     __slots__ = (
-        "_descriptor_parameters_cls",
-        "_descriptor_dict",
         "_method",
         "_actions_cls"
     )
 
     def __init__(
         self: Self,
-        descriptor_parameters_cls: type[DescriptorParametersT],
         method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
     ) -> None:
         super().__init__()
-        self._descriptor_parameters_cls: type[DescriptorParametersT] = descriptor_parameters_cls
-        self._descriptor_dict: dict[LazyDescriptor, DescriptorParametersT] = {}
         self._method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]] = method
         self._actions_cls: type[ActionsT] = NotImplemented
 
-    def __call__(
+    def iter_animations(
         self: Self,
         dst: AnimatableT,
         *args: P.args,
@@ -80,19 +75,68 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: 
         return self._method(self._actions_cls, dst, *args, **kwargs)
 
     @classmethod
-    def register[ActionsT_: Actions, AnimatableT_: Animatable, DescriptorParametersT_: DescriptorParameters, **P_](
-        cls: type[Self],
-        descriptor_parameters_cls: type[DescriptorParametersT_] = DescriptorParameters
+    def register(
+        cls: type[Self]
     ) -> Callable[
-        [Callable[Concatenate[type[ActionsT_], AnimatableT_, P_], Iterator[Animation]]],
-        Action[ActionsT_, AnimatableT_, DescriptorParametersT_, P_]
+        [Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]],
+        Self
     ]:
 
         def result(
-            method: Callable[Concatenate[type[ActionsT_], AnimatableT_, P_], Iterator[Animation]]
-        ) -> Action[ActionsT_, AnimatableT_, DescriptorParametersT_, P_]:
+            method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+        ) -> Self:
             assert isinstance(method, classmethod)
-            return Action(descriptor_parameters_cls, method.__func__)
+            return cls(method.__func__)
+
+        return result
+
+    def build_action_descriptor(
+        self: Self
+    ) -> ActionDescriptor[ActionsT, AnimatableT, P]:
+        return ActionDescriptor(self)
+
+    def build_dynamic_action_descriptor(
+        self: Self
+    ) -> DynamicActionDescriptor[ActionsT, AnimatableT, P]:
+        return DynamicActionDescriptor(self)
+
+
+class DescriptiveAction[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
+    Action[ActionsT, AnimatableT, P]
+):
+    __slots__ = (
+        "_descriptor_parameters_cls",
+        "_descriptor_items"
+    )
+
+    def __init__(
+        self: Self,
+        descriptor_parameters_cls: type[DescriptorParametersT],
+        method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+    ) -> None:
+        super().__init__(method)
+        self._descriptor_parameters_cls: type[DescriptorParametersT] = descriptor_parameters_cls
+        self._descriptor_items: list[tuple[LazyDescriptor, DescriptorParametersT]] = []
+
+    def iter_descriptor_items(
+        self: Self
+    ) -> Iterator[tuple[LazyDescriptor, DescriptorParametersT]]:
+        yield from self._descriptor_items
+
+    @classmethod
+    def register(
+        cls: type[Self],
+        descriptor_parameters_cls: type[DescriptorParametersT]
+    ) -> Callable[
+        [Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]],
+        Self
+    ]:
+
+        def result(
+            method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+        ) -> Self:
+            assert isinstance(method, classmethod)
+            return cls(descriptor_parameters_cls, method.__func__)
 
         return result
 
@@ -105,31 +149,21 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: 
             descriptor: LazyDescriptorT
         ) -> LazyDescriptorT:
             assert not descriptor._freeze
-            self._descriptor_dict[descriptor] = self._descriptor_parameters_cls(**parameters)
+            self._descriptor_items.append((descriptor, self._descriptor_parameters_cls(**parameters)))
             return descriptor
 
         return result
 
-    def build_action_descriptor(
-        self: Self
-    ) -> ActionDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]:
-        return ActionDescriptor(self)
 
-    def build_dynamic_action_descriptor(
-        self: Self
-    ) -> DynamicActionDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]:
-        return DynamicActionDescriptor(self)
-
-
-class ActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P]:
+class ActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, **P]:
     __slots__ = ("_action",)
 
     def __init__(
         self: Self,
-        action: Action[ActionsT, AnimatableT, DescriptorParametersT, P]
+        action: Action[ActionsT, AnimatableT, P]
     ) -> None:
         super().__init__()
-        self._action: Action[ActionsT, AnimatableT, DescriptorParametersT, P] = action
+        self._action: Action[ActionsT, AnimatableT, P] = action
 
     @overload
     def __get__[InstanceT: Animatable](
@@ -157,33 +191,31 @@ class ActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorPar
             *args: P.args,
             **kwargs: P.kwargs
         ) -> InstanceT:
-            for animation in self._action(instance, *args, **kwargs):
+            for animation in self._action.iter_animations(instance, *args, **kwargs):
                 animation.update(1.0)
             return instance
 
         return bound_method
 
 
-class DynamicActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
-    ActionDescriptor[ActionsT, AnimatableT, DescriptorParametersT, P]
-):
+class DynamicActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, **P](ActionDescriptor[ActionsT, AnimatableT, P]):
     __slots__ = ()
 
     @overload
-    def __get__[InstanceT: DynamicAnimatable](
+    def __get__[InstanceT: DynamicAnimatable[Animatable]](
         self: Self,
         instance: InstanceT,
         owner: type[InstanceT] | None = None
     ) -> Callable[P, InstanceT]: ...
 
     @overload
-    def __get__[InstanceT: DynamicAnimatable](
+    def __get__[InstanceT: DynamicAnimatable[Animatable]](
         self: Self,
         instance: None,
         owner: type[InstanceT] | None = None
     ) -> Self: ...
 
-    def __get__[InstanceT: DynamicAnimatable](
+    def __get__[InstanceT: DynamicAnimatable[Animatable]](
         self: Self,
         instance: InstanceT | None,
         owner: type[InstanceT] | None = None
@@ -195,7 +227,7 @@ class DynamicActionDescriptor[ActionsT: Actions, AnimatableT: Animatable, Descri
             *args: P.args,
             **kwargs: P.kwargs
         ) -> InstanceT:
-            instance._animations.extend(self._action(instance._dst, *args, **kwargs))
+            instance._animations.extend(self._action.iter_animations(instance._dst, *args, **kwargs))
             return instance
 
         return bound_method

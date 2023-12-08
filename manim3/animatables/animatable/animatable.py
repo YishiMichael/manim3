@@ -13,7 +13,9 @@ from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
 from .actions import (
     Action,
-    Actions
+    Actions,
+    DescriptiveAction,
+    DescriptorParameters
 )
 from .animation import (
     AnimateKwargs,
@@ -26,7 +28,7 @@ from .piecewiser import Piecewiser
 class AnimatableActions(Actions):
     __slots__ = ()
 
-    @Action.register()
+    @DescriptiveAction.register(DescriptorParameters)
     @classmethod
     def interpolate(
         cls: type[Self],
@@ -34,7 +36,7 @@ class AnimatableActions(Actions):
         src_0: Animatable,
         src_1: Animatable
     ) -> Iterator[Animation]:
-        for descriptor in cls.interpolate._descriptor_dict:
+        for descriptor, _ in cls.interpolate.iter_descriptor_items():
             if not all(
                 descriptor in animatable._lazy_descriptors
                 for animatable in (dst, src_0, src_1)
@@ -47,13 +49,13 @@ class AnimatableActions(Actions):
                 strict=True
             ):
                 assert isinstance(dst_element, Animatable)
-                yield from type(dst_element).interpolate._action(
+                yield from type(dst_element).interpolate._action.iter_animations(
                     dst=dst_element,
                     src_0=src_0_element,
                     src_1=src_1_element
                 )
 
-    @Action.register()
+    @DescriptiveAction.register(DescriptorParameters)
     @classmethod
     def piecewise(
         cls: type[Self],
@@ -61,7 +63,7 @@ class AnimatableActions(Actions):
         src: Animatable,
         piecewiser: Piecewiser
     ) -> Iterator[Animation]:
-        for descriptor in cls.piecewise._descriptor_dict:
+        for descriptor, _ in cls.piecewise.iter_descriptor_items():
             if not all(
                 descriptor in animatable._lazy_descriptors
                 for animatable in (dst, src)
@@ -73,7 +75,7 @@ class AnimatableActions(Actions):
                 strict=True
             ):
                 assert isinstance(dst_element, Animatable)
-                yield from type(dst_element).piecewise._action(
+                yield from type(dst_element).piecewise._action.iter_animations(
                     dst=dst_element,
                     src=src_element,
                     piecewiser=piecewiser
@@ -86,7 +88,7 @@ class AnimatableActions(Actions):
         dst: Animatable,
         src: Animatable
     ) -> Iterator[Animation]:
-        yield from cls.interpolate(
+        yield from cls.interpolate.iter_animations(
             dst=dst,
             src_0=dst.copy(),
             src_1=src
