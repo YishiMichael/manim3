@@ -3,12 +3,19 @@ from __future__ import annotations
 
 from typing import Self
 
-from ...animatables.animatable.piecewisers import (
-    Piecewiser,
-    Piecewisers
-)
+from ...animatables.animatable.piecewiser import Piecewiser
 from ...mobjects.mobject import Mobject
 from ..timeline.timeline import Timeline
+
+
+class PartialPiecewiser(Piecewiser):
+    __slots__ = ()
+
+    def get_segment(
+        self: Self,
+        alpha: float
+    ) -> tuple[float, float]:
+        return (0.0, alpha)
 
 
 class Create(Timeline):
@@ -26,7 +33,7 @@ class Create(Timeline):
     ) -> None:
         super().__init__(run_alpha=1.0)
         self._mobject: Mobject = mobject
-        self._piecewiser: Piecewiser = Piecewisers.partial(
+        self._piecewiser: PartialPiecewiser = PartialPiecewiser(
             n_segments=n_segments,
             backwards=backwards
         )

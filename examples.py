@@ -202,7 +202,7 @@ class InteractiveExample(Scene):
             self.prepare(
                 timeline,
                 rate=Rates.smooth(),
-                launch_condition=Events.key_press(KEY.SPACE).captured()
+                launch_condition=Event(EventType.KEY_PRESS, symbol=KEY.SPACE).captured()
             )
         await self.wait_until(Conditions.all(timeline.terminated() for timeline in timelines))
         await self.wait()
@@ -275,7 +275,7 @@ class NoteTimeline(Timeline):
     ) -> None:
         note = self._note
         self.scene.add(note)
-        key_pressed_event = Events.key_press(self._key).captured()
+        key_pressed_event = Event(EventType.KEY_PRESS, symbol=self._key).captured()
         await self.play(
             note.animate(infinite=True).shift(7.0 * DOWN),
             terminate_condition=Conditions.any((

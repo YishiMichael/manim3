@@ -3,12 +3,9 @@ from __future__ import annotations
 
 from typing import Self
 
-from ...animatables.animatable.piecewisers import (
-    Piecewiser,
-    Piecewisers
-)
 from ...mobjects.mobject import Mobject
 from ..timeline.timeline import Timeline
+from .create import PartialPiecewiser
 
 
 class Uncreate(Timeline):
@@ -26,7 +23,7 @@ class Uncreate(Timeline):
     ) -> None:
         super().__init__(run_alpha=1.0)
         self._mobject: Mobject = mobject
-        self._piecewiser: Piecewiser = Piecewisers.partial(
+        self._piecewiser: PartialPiecewiser = PartialPiecewiser(
             n_segments=n_segments,
             backwards=backwards
         )

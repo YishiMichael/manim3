@@ -84,9 +84,9 @@ from .timelines.transform import Transform
 from .timelines.transform_matching_strings import TransformMatchingStrings
 
 from .toplevel.config import Config
-from .toplevel.events import (
+from .toplevel.event import (
     Event,
-    Events
+    EventType
 )
 from .toplevel.scene import Scene
 from .toplevel.toplevel import Toplevel

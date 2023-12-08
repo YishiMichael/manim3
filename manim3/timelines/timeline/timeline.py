@@ -101,73 +101,6 @@ class AfterTerminated(TimelineState):
     pass
 
 
-class TimelineLaunchedCondition(Condition):
-    __slots__ = ("_timeline_ref",)
-
-    def __init__(
-        self: Self,
-        timeline: Timeline
-    ) -> None:
-        super().__init__()
-        self._timeline_ref: weakref.ref[Timeline] = weakref.ref(timeline)
-
-    def judge(
-        self: Self
-    ) -> bool:
-        timeline = self._timeline_ref()
-        return (
-            timeline is None
-            or timeline.get_on_progressing_state() is not None
-            or timeline.get_after_terminated_state() is not None
-        )
-
-
-class TimelineTerminatedCondition(Condition):
-    __slots__ = ("_timeline_ref",)
-
-    def __init__(
-        self: Self,
-        timeline: Timeline
-    ) -> None:
-        super().__init__()
-        self._timeline_ref: weakref.ref[Timeline] = weakref.ref(timeline)
-
-    def judge(
-        self: Self
-    ) -> bool:
-        timeline = self._timeline_ref()
-        return (
-            timeline is None
-            or timeline.get_after_terminated_state() is not None
-        )
-
-
-class TimelineProgressedDurationCondition(Condition):
-    __slots__ = (
-        "_timeline_ref",
-        "_target_alpha"
-    )
-
-    def __init__(
-        self: Self,
-        timeline: Timeline,
-        delta_alpha: float
-    ) -> None:
-        assert (timeline_state := timeline.get_on_progressing_state()) is not None
-        self._timeline_ref: weakref.ref[Timeline] = weakref.ref(timeline)
-        self._target_alpha: float = timeline_state.absolute_rate.at() + delta_alpha
-
-    def judge(
-        self: Self
-    ) -> bool:
-        timeline = self._timeline_ref()
-        return (
-            timeline is None
-            or (timeline_state := timeline.get_on_progressing_state()) is None
-            or timeline_state.absolute_rate.at() >= self._target_alpha
-        )
-
-
 class Timeline(ABC):
     __slots__ = (
         "__weakref__",
@@ -386,3 +319,70 @@ class Timeline(ABC):
         delta_alpha: float
     ) -> TimelineProgressedDurationCondition:
         return TimelineProgressedDurationCondition(self, delta_alpha)
+
+
+class TimelineLaunchedCondition(Condition):
+    __slots__ = ("_timeline_ref",)
+
+    def __init__(
+        self: Self,
+        timeline: Timeline
+    ) -> None:
+        super().__init__()
+        self._timeline_ref: weakref.ref[Timeline] = weakref.ref(timeline)
+
+    def judge(
+        self: Self
+    ) -> bool:
+        timeline = self._timeline_ref()
+        return (
+            timeline is None
+            or timeline.get_on_progressing_state() is not None
+            or timeline.get_after_terminated_state() is not None
+        )
+
+
+class TimelineTerminatedCondition(Condition):
+    __slots__ = ("_timeline_ref",)
+
+    def __init__(
+        self: Self,
+        timeline: Timeline
+    ) -> None:
+        super().__init__()
+        self._timeline_ref: weakref.ref[Timeline] = weakref.ref(timeline)
+
+    def judge(
+        self: Self
+    ) -> bool:
+        timeline = self._timeline_ref()
+        return (
+            timeline is None
+            or timeline.get_after_terminated_state() is not None
+        )
+
+
+class TimelineProgressedDurationCondition(Condition):
+    __slots__ = (
+        "_timeline_ref",
+        "_target_alpha"
+    )
+
+    def __init__(
+        self: Self,
+        timeline: Timeline,
+        delta_alpha: float
+    ) -> None:
+        assert (timeline_state := timeline.get_on_progressing_state()) is not None
+        self._timeline_ref: weakref.ref[Timeline] = weakref.ref(timeline)
+        self._target_alpha: float = timeline_state.absolute_rate.at() + delta_alpha
+
+    def judge(
+        self: Self
+    ) -> bool:
+        timeline = self._timeline_ref()
+        return (
+            timeline is None
+            or (timeline_state := timeline.get_on_progressing_state()) is None
+            or timeline_state.absolute_rate.at() >= self._target_alpha
+        )

@@ -32,7 +32,7 @@ from .animatable.animation import (
     AnimateKwargs,
     Animation
 )
-from .animatable.piecewisers import Piecewiser
+from .animatable.piecewiser import Piecewiser
 
 
 class GraphActions(AnimatableActions):

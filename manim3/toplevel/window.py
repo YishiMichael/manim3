@@ -8,9 +8,9 @@ from typing import (
 
 import pyglet
 
-from .events import (
+from .event import (
     Event,
-    Events
+    EventType
 )
 from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
@@ -24,7 +24,8 @@ class WindowHandlers:
         symbol: int,
         modifiers: int
     ) -> None:
-        Toplevel._get_window().push_event(Events.key_press(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.KEY_PRESS,
             symbol=symbol,
             modifiers=modifiers
         ))
@@ -34,7 +35,8 @@ class WindowHandlers:
         symbol: int,
         modifiers: int
     ) -> None:
-        Toplevel._get_window().push_event(Events.key_release(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.KEY_RELEASE,
             symbol=symbol,
             modifiers=modifiers
         ))
@@ -46,7 +48,8 @@ class WindowHandlers:
         dx: int,
         dy: int
     ) -> None:
-        Toplevel._get_window().push_event(Events.mouse_motion(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.MOUSE_MOTION,
             x=x,
             y=y,
             dx=dx,
@@ -62,7 +65,8 @@ class WindowHandlers:
         buttons: int,
         modifiers: int
     ) -> None:
-        Toplevel._get_window().push_event(Events.mouse_drag(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.MOUSE_DRAG,
             x=x,
             y=y,
             dx=dx,
@@ -78,7 +82,8 @@ class WindowHandlers:
         buttons: int,
         modifiers: int
     ) -> None:
-        Toplevel._get_window().push_event(Events.mouse_press(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.MOUSE_PRESS,
             x=x,
             y=y,
             buttons=buttons,
@@ -92,7 +97,8 @@ class WindowHandlers:
         buttons: int,
         modifiers: int
     ) -> None:
-        Toplevel._get_window().push_event(Events.mouse_release(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.MOUSE_RELEASE,
             x=x,
             y=y,
             buttons=buttons,
@@ -106,7 +112,8 @@ class WindowHandlers:
         scroll_x: float,
         scroll_y: float
     ) -> None:
-        Toplevel._get_window().push_event(Events.mouse_scroll(
+        Toplevel._get_window().push_event(Event(
+            event_type=EventType.MOUSE_SCROLL,
             x=x,
             y=y,
             scroll_x=scroll_x,
