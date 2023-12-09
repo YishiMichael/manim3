@@ -202,57 +202,10 @@ class InteractiveExample(Scene):
             self.prepare(
                 timeline,
                 rate=Rates.smooth(),
-                launch_condition=Event(EventType.KEY_PRESS, symbol=KEY.SPACE).captured()
+                launch_condition=EventCapturer(event_type="key_press", symbol=KEY.SPACE).captured
             )
-        await self.wait_until(Conditions.all(timeline.terminated() for timeline in timelines))
+        await self.wait_until(lambda: all(timeline.terminated() for timeline in timelines))
         await self.wait()
-
-
-class MobjectPositionInRange(Condition):
-    __slots__ = (
-        "_mobject",
-        "_direction",
-        "_x_min",
-        "_x_max",
-        "_y_min",
-        "_y_max",
-        "_z_min",
-        "_z_max"
-    )
-
-    def __init__(
-        self,
-        mobject: Mobject,
-        direction: NP_3f8 = ORIGIN,
-        *,
-        x_min: float | None = None,
-        x_max: float | None = None,
-        y_min: float | None = None,
-        y_max: float | None = None,
-        z_min: float | None = None,
-        z_max: float | None = None
-    ) -> None:
-        super().__init__()
-        self._mobject: Mobject = mobject
-        self._direction: NP_3f8 = direction
-        self._x_min: float | None = x_min
-        self._x_max: float | None = x_max
-        self._y_min: float | None = y_min
-        self._y_max: float | None = y_max
-        self._z_min: float | None = z_min
-        self._z_max: float | None = z_max
-
-    def judge(self) -> bool:
-        position = self._mobject.box.get(self._direction)
-        x_val, y_val, z_val = position
-        return all((
-            (x_min := self._x_min) is None or x_val >= x_min,
-            (x_max := self._x_max) is None or x_val <= x_max,
-            (y_min := self._y_min) is None or y_val >= y_min,
-            (y_max := self._y_max) is None or y_val <= y_max,
-            (z_min := self._z_min) is None or z_val >= z_min,
-            (z_max := self._z_max) is None or z_val <= z_max
-        ))
 
 
 class NoteTimeline(Timeline):
@@ -275,18 +228,12 @@ class NoteTimeline(Timeline):
     ) -> None:
         note = self._note
         self.scene.add(note)
-        key_pressed_event = Event(EventType.KEY_PRESS, symbol=self._key).captured()
+        capturer = EventCapturer(event_type="key_press", symbol=self._key)
         await self.play(
             note.animate(infinite=True).shift(7.0 * DOWN),
-            terminate_condition=Conditions.any((
-                Conditions.all((
-                    key_pressed_event,
-                    MobjectPositionInRange(note, y_min=-3.4, y_max=-2.6)
-                )),
-                MobjectPositionInRange(note, y_max=-3.4)
-            ))
+            terminate_condition=lambda: capturer.captured() and -3.4 <= note.box.get()[1] <= -2.6 or note.box.get()[1] <= -3.4
         )
-        if key_pressed_event.get_captured_event():
+        if capturer.captured():
             await self.play(
                 note.animate().set(opacity=0.0).scale(1.5),
                 rate=Rates.rush_from()
@@ -295,7 +242,7 @@ class NoteTimeline(Timeline):
             note.set(opacity=0.4)
             await self.play(
                 note.animate(infinite=True).shift(10.0 * DOWN),
-                terminate_condition=MobjectPositionInRange(note, y_max=-5.0)
+                terminate_condition=lambda: note.box.get()[1] <= -5.0
             )
         self.scene.discard(note)
 
@@ -366,7 +313,7 @@ def main() -> None:
         Toplevel.livestream(),
         #Toplevel.recording("ShapeTransformExample.mp4")
     ):
-        ShapeTransformExample().run()
+        GameExample().run()
 
 
 if __name__ == "__main__":

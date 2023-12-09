@@ -16,6 +16,7 @@ from .constants.constants import *
 from .constants.custom_typing import *
 from .constants.palette import *
 from .constants.pyglet_constants import *
+from .constants.rates import Rates
 
 from .lazy.lazy import Lazy
 from .lazy.lazy_object import LazyObject
@@ -71,22 +72,11 @@ from .timelines.piecewise.create import Create
 from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
-from .timelines.timeline.conditions import (
-    Condition,
-    Conditions
-)
-from .timelines.timeline.rates import (
-    Rate,
-    Rates
-)
-from .timelines.timeline.timeline import Timeline
-from .timelines.transform import Transform
-from .timelines.transform_matching_strings import TransformMatchingStrings
+from .timelines.transform.transform import Transform
+from .timelines.transform.transform_matching_strings import TransformMatchingStrings
+from .timelines.timeline import Timeline
 
 from .toplevel.config import Config
-from .toplevel.event import (
-    Event,
-    EventType
-)
+from .toplevel.event import EventCapturer
 from .toplevel.scene import Scene
 from .toplevel.toplevel import Toplevel

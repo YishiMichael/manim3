@@ -4,7 +4,6 @@ from __future__ import annotations
 import copy
 import functools
 import inspect
-import operator
 from abc import ABC
 from enum import Enum
 from typing import (
@@ -289,8 +288,8 @@ class ImplementationRegistry[K: Hashable, V]:
 class Implementations:
     __slots__ = ()
 
-    decomposers: ClassVar[ImplementationRegistry[bool, Callable[[Any], tuple[Any, ...]]]] = ImplementationRegistry(operator.is_)
-    composers: ClassVar[ImplementationRegistry[bool, Callable[[tuple[Any, ...]], Any]]] = ImplementationRegistry(operator.is_)
+    decomposers: ClassVar[ImplementationRegistry[bool, Callable[[Any], tuple[Any, ...]]]] = ImplementationRegistry(bool.__eq__)
+    composers: ClassVar[ImplementationRegistry[bool, Callable[[tuple[Any, ...]], Any]]] = ImplementationRegistry(bool.__eq__)
     hashers: ClassVar[ImplementationRegistry[type, Callable[[Any], Hashable]]] = ImplementationRegistry(issubclass)
 
     def __new__(

@@ -9,7 +9,7 @@ from ..animatables.camera import Camera
 from ..animatables.lighting import Lighting
 from ..constants.custom_typing import ColorType
 from ..mobjects.mobject import Mobject
-from ..timelines.timeline.timeline import Timeline
+from ..timelines.timeline import Timeline
 from .toplevel import Toplevel
 
 
@@ -41,14 +41,14 @@ class Scene(Timeline):
     def _run(
         self: Self
     ) -> None:
-        self._root_schedule()
+        self.schedule(parent_absolute_rate=lambda: Toplevel._get_scene()._scene_time)
         for scene_time in Toplevel._get_timer().frame_clock():
             self._scene_time = scene_time
             Toplevel._get_window()._pyglet_window.dispatch_events()
             self._progress()
             Toplevel._get_window().clear_event_queue()
             Toplevel._get_renderer().process_frame()
-            if self.get_after_terminated_state() is not None:
+            if self.terminated():
                 break
 
     def run(

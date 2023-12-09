@@ -5,7 +5,7 @@ from typing import Self
 
 from ...animatables.animatable.piecewiser import Piecewiser
 from ...mobjects.mobject import Mobject
-from ..timeline.timeline import Timeline
+from ..timeline import Timeline
 
 
 class DashedPiecewiser(Piecewiser):

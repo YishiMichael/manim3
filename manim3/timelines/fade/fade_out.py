@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Self
 
 from ...mobjects.mobject import Mobject
-from ..timeline.timeline import Timeline
+from ..timeline import Timeline
 
 
 class FadeOut(Timeline):

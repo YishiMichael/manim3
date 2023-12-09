@@ -7,12 +7,12 @@ from typing import (
     Self
 )
 
-from ..constants.custom_typing import SelectorType
-from ..mobjects.string_mobjects.string_mobject import StringMobject
-from .composition.parallel import Parallel
-from .fade.fade_in import FadeIn
-from .fade.fade_out import FadeOut
-from .timeline.timeline import Timeline
+from ...constants.custom_typing import SelectorType
+from ...mobjects.string_mobjects.string_mobject import StringMobject
+from ..composition.parallel import Parallel
+from ..fade.fade_in import FadeIn
+from ..fade.fade_out import FadeOut
+from ..timeline import Timeline
 from .transform import Transform
 
 

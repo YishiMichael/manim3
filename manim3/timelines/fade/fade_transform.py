@@ -5,7 +5,7 @@ from typing import Self
 
 from ...mobjects.mobject import Mobject
 from ..composition.parallel import Parallel
-from ..timeline.timeline import Timeline
+from ..timeline import Timeline
 from .fade_in import FadeIn
 from .fade_out import FadeOut
 

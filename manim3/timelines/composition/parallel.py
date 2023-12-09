@@ -3,9 +3,8 @@ from __future__ import annotations
 
 from typing import Self
 
-from ..timeline.conditions import Conditions
-from ..timeline.rates import Rate
-from ..timeline.timeline import Timeline
+from ...constants.custom_typing import RateType
+from ..timeline import Timeline
 from .lagged import Lagged
 
 
@@ -18,7 +17,7 @@ class Parallel(Timeline):
     def __init__(
         self: Self,
         *timelines: Timeline,
-        rate: Rate | None = None,
+        rate: RateType | None = None,
         lag_time: float = 0.0,
         lag_ratio: float = 0.0
     ) -> None:
@@ -34,7 +33,7 @@ class Parallel(Timeline):
             ), default=0.0)
         )
         self._timeline_items: tuple[tuple[Timeline, float], ...] = tuple(timeline_items)
-        self._rate: Rate | None = rate
+        self._rate: RateType | None = rate
 
     async def construct(
         self: Self
@@ -43,6 +42,6 @@ class Parallel(Timeline):
         rate = self._rate
         for timeline, timeline_lag_time in timeline_items:
             self.prepare(Lagged(timeline, lag_time=timeline_lag_time), rate=rate)
-        await self.wait_until(Conditions.all(
+        await self.wait_until(lambda: all(
             timeline.terminated() for timeline, _ in timeline_items
         ))

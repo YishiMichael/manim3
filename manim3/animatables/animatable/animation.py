@@ -8,16 +8,14 @@ from typing import (
     Unpack
 )
 
+from ...constants.custom_typing import RateType
+from ...constants.rates import Rates
 from ...lazy.lazy_object import LazyObject
-from ...timelines.timeline.rates import (
-    Rate,
-    Rates
-)
-from ...timelines.timeline.timeline import Timeline
+from ...timelines.timeline import Timeline
 
 
 class AnimateKwargs(TypedDict, total=False):
-    rate: Rate
+    rate: RateType
     rewind: bool
     infinite: bool
 
@@ -71,21 +69,21 @@ class AnimationsTimeline(Timeline):
 
     def __init__(
         self: Self,
-        rate: Rate = Rates.linear(),
+        rate: RateType = Rates.linear(),
         rewind: bool = False,
         infinite: bool = False
     ) -> None:
         super().__init__(run_alpha=float("inf") if infinite else 1.0)
         if rewind:
             rate = Rates.compose(rate, Rates.rewind())
-        self._rate: Rate = rate
+        self._rate: RateType = rate
         self._animations: list[Animation] = []
 
     def update(
         self: Self,
         time: float
     ) -> None:
-        alpha = self._rate.at(time)
+        alpha = self._rate(time)
         for animation in self._animations:
             animation.update(alpha)
 

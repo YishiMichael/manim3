@@ -16,12 +16,17 @@ __all__ = (
     "ShapeType",
     "ColorType",
     "AlignmentType",
-    "SelectorType"
+    "SelectorType",
+    "RateType",
+    "ConditionType"
 )
 
 
 import re
-from typing import Literal
+from typing import (
+    Callable,
+    Literal
+)
 
 import numpy as np
 from colour import Color
@@ -49,3 +54,6 @@ type ShapeType = tuple[int, ...]
 type ColorType = Color | str | NP_3f8
 type AlignmentType = Literal["left", "center", "right"]
 type SelectorType = str | re.Pattern[str] | slice
+
+type RateType = Callable[[float], float]
+type ConditionType = Callable[[], bool]

@@ -1,28 +1,30 @@
 from __future__ import annotations
 
 
-from enum import Enum
 from typing import (
+    Literal,
+    Required,
     Self,
     TypedDict,
     Unpack
 )
 
-from ..timelines.timeline.conditions import Condition
 from .toplevel import Toplevel
 
 
-class EventType(Enum):
-    KEY_PRESS = 0
-    KEY_RELEASE = 1
-    MOUSE_MOTION = 2
-    MOUSE_DRAG = 3
-    MOUSE_PRESS = 4
-    MOUSE_RELEASE = 5
-    MOUSE_SCROLL = 6
+type EventType = Literal[
+    "key_press",
+    "key_release",
+    "mouse_motion",
+    "mouse_drag",
+    "mouse_press",
+    "mouse_release",
+    "mouse_scroll"
+]
 
 
-class EventKwargs(TypedDict, total=False):
+class Event(TypedDict, total=False):
+    event_type: Required[EventType]
     symbol: int
     modifiers: int
     buttons: int
@@ -34,32 +36,30 @@ class EventKwargs(TypedDict, total=False):
     scroll_y: float
 
 
-class Event:
+class EventCapturer:
     __slots__ = (
-        "_event_type",
-        "_event_kwargs"
+        "_event_kwargs",
+        "_captured_event"
     )
 
     def __init__(
         self: Self,
-        event_type: EventType,
-        **kwargs: Unpack[EventKwargs]
+        **kwargs: Unpack[Event]
     ) -> None:
         super().__init__()
-        self._event_type: EventType = event_type
-        self._event_kwargs: EventKwargs = kwargs
+        self._event_kwargs: Event = kwargs
+        self._captured_event: Event | None = None
 
     def _capture(
         self: Self,
         event: Event
     ) -> bool:
-        target_kwargs = self._event_kwargs
-        source_kwargs = event._event_kwargs
-        return (
-            self._event_type is event._event_type
+        target = self._event_kwargs
+        if (
+            target["event_type"] == event["event_type"]
             and all(
-                (target_value := target_kwargs.get(field_name)) is None
-                or (source_value := source_kwargs.get(field_name)) is None
+                (target_value := target.get(field_name)) is None
+                or (source_value := event.get(field_name)) is None
                 or target_value == (target_value & source_value if masked else source_value)
                 for field_name, masked in (
                     ("symbol", False),
@@ -67,36 +67,15 @@ class Event:
                     ("buttons", True),
                 )
             )
-        )
+        ):
+            self._captured_event = event
+            return True
+        return False
 
     def captured(
         self: Self
-    ) -> EventCapturedCondition:
-        return EventCapturedCondition(self)
-
-
-class EventCapturedCondition(Condition):
-    __slots__ = (
-        "_event",
-        "_captured_event"
-    )
-
-    def __init__(
-        self: Self,
-        event: Event
-    ) -> None:
-        super().__init__()
-        self._event: Event = event
-        self._captured_event: Event | None = None
-
-    def judge(
-        self: Self
     ) -> bool:
-        captured_event = Toplevel._get_window().capture_event(self._event)
-        if captured_event is not None:
-            self._captured_event = captured_event
-            return True
-        return False
+        return self._captured_event is not None or Toplevel._get_window().capture_event(self)
 
     def get_captured_event(
         self: Self

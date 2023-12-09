@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Self
 
-from ..timeline.rates import Rate
-from ..timeline.timeline import Timeline
+from ...constants.custom_typing import RateType
+from ..timeline import Timeline
 from .parallel import Parallel
 
 
@@ -14,7 +14,7 @@ class Series(Parallel):
     def __init__(
         self: Self,
         *timelines: Timeline,
-        rate: Rate | None = None,
+        rate: RateType | None = None,
         lag_time: float = 0.0,
         lag_ratio: float = 1.0
     ) -> None:

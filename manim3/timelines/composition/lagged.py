@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Self
 
-from ..timeline.rates import Rate
-from ..timeline.timeline import Timeline
+from ...constants.custom_typing import RateType
+from ..timeline import Timeline
 
 
 class Lagged(Timeline):
@@ -18,14 +18,14 @@ class Lagged(Timeline):
         self: Self,
         timeline: Timeline,
         *,
-        rate: Rate | None = None,
+        rate: RateType | None = None,
         lag_time: float = 0.0
     ) -> None:
         super().__init__(
             run_alpha=lag_time + timeline._run_alpha
         )
         self._timeline: Timeline = timeline
-        self._rate: Rate | None = rate
+        self._rate: RateType | None = rate
         self._lag_time: float = lag_time
 
     async def construct(

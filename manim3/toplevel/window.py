@@ -10,7 +10,7 @@ import pyglet
 
 from .event import (
     Event,
-    EventType
+    EventCapturer
 )
 from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
@@ -25,7 +25,7 @@ class WindowHandlers:
         modifiers: int
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.KEY_PRESS,
+            event_type="key_press",
             symbol=symbol,
             modifiers=modifiers
         ))
@@ -36,7 +36,7 @@ class WindowHandlers:
         modifiers: int
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.KEY_RELEASE,
+            event_type="key_release",
             symbol=symbol,
             modifiers=modifiers
         ))
@@ -49,7 +49,7 @@ class WindowHandlers:
         dy: int
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.MOUSE_MOTION,
+            event_type="mouse_motion",
             x=x,
             y=y,
             dx=dx,
@@ -66,7 +66,7 @@ class WindowHandlers:
         modifiers: int
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.MOUSE_DRAG,
+            event_type="mouse_drag",
             x=x,
             y=y,
             dx=dx,
@@ -83,7 +83,7 @@ class WindowHandlers:
         modifiers: int
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.MOUSE_PRESS,
+            event_type="mouse_press",
             x=x,
             y=y,
             buttons=buttons,
@@ -98,7 +98,7 @@ class WindowHandlers:
         modifiers: int
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.MOUSE_RELEASE,
+            event_type="mouse_release",
             x=x,
             y=y,
             buttons=buttons,
@@ -113,7 +113,7 @@ class WindowHandlers:
         scroll_y: float
     ) -> None:
         Toplevel._get_window().push_event(Event(
-            event_type=EventType.MOUSE_SCROLL,
+            event_type="mouse_scroll",
             x=x,
             y=y,
             scroll_x=scroll_x,
@@ -173,14 +173,14 @@ class Window(ToplevelResource):
 
     def capture_event(
         self: Self,
-        target_event: Event
-    ) -> Event | None:
+        event_capturer: EventCapturer
+    ) -> bool:
         event_queue = self._event_queue
         for event in event_queue:
-            if target_event._capture(event):
+            if event_capturer._capture(event):
                 event_queue.remove(event)
-                return event
-        return None
+                return True
+        return False
 
     def clear_event_queue(
         self: Self
