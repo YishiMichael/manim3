@@ -243,11 +243,11 @@ class Renderer(ToplevelResource):
             texture_buffers=(
                 TextureBuffer(
                     name="t_accum_map",
-                    textures=oit_framebuffer._accum_texture
+                    textures=oit_framebuffer.accum_texture
                 ),
                 TextureBuffer(
                     name="t_revealage_map",
-                    textures=oit_framebuffer._revealage_texture
+                    textures=oit_framebuffer.revealage_texture
                 )
             ),
             attributes_buffer=AttributesBuffer(
@@ -295,18 +295,14 @@ class Renderer(ToplevelResource):
     ) -> None:
         scene = Toplevel._get_scene()
 
-        self._oit_framebuffer._msaa_framebuffer.clear()
+        self._oit_framebuffer.clear()
         for mobject in scene._root_mobject.iter_descendants():
             for vertex_array in mobject._iter_vertex_arrays():
-                vertex_array.render_msaa(self._oit_framebuffer)
-        self._oit_framebuffer._downsample_from_msaa()
+                self._oit_framebuffer.render_msaa(vertex_array)
+        self._oit_framebuffer.downsample_from_msaa()
 
-        red, green, blue = scene._background_color
-        alpha = scene._background_opacity
-        self._final_framebuffer._framebuffer.clear(
-            red=red, green=green, blue=blue, alpha=alpha
-        )
-        self._oit_compose_vertex_array.render_msaa(self._final_framebuffer)
+        self._final_framebuffer.clear(color=(*scene._background_color, scene._background_opacity))
+        self._final_framebuffer.render_msaa(self._oit_compose_vertex_array)
 
     def process_frame(
         self: Self

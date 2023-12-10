@@ -12,6 +12,7 @@ from ..mgl_enums import (
     BlendFunc,
     ContextFlag
 )
+from ..vertex_array import VertexArray
 
 
 @attrs.frozen(kw_only=True)
@@ -78,27 +79,43 @@ class Framebuffer:
         self._use_msaa: bool = use_msaa
         self._flag: ContextFlag = flag
 
-    def _render_msaa(
+    def clear(
         self: Self,
-        textures: tuple[tuple[moderngl.Texture, int], ...],
-        uniform_buffers: tuple[tuple[moderngl.Buffer, int], ...],
-        vertex_array: moderngl.VertexArray
+        color: tuple[float, float, float, float] | None = None
     ) -> None:
+        self._framebuffer.clear(color=color)
+        if self._use_msaa:
+            self._msaa_framebuffer.clear(color=color)
+
+    def render_msaa(
+        self: Self,
+        vertex_array: VertexArray
+    ) -> None:
+        if (vertex_array_info := vertex_array._vertex_array_info_) is None:
+            return None
+
+        uniform_block_buffer_dict = {
+            uniform_block_buffer._name_: uniform_block_buffer
+            for uniform_block_buffer in vertex_array._uniform_block_buffers_
+        }
+
         with Toplevel._get_context().scope(
             framebuffer=self._msaa_framebuffer,
-            textures=textures,
-            uniform_buffers=uniform_buffers
+            textures=vertex_array_info.texture_bindings,
+            uniform_buffers=tuple(
+                (uniform_block_buffer_dict[name]._buffer_, binding)
+                for name, binding in vertex_array_info.uniform_block_bindings
+            )
         ):
             Toplevel._get_context().set_blendings(self._blendings)
             Toplevel._get_context().set_flag(self._flag)
-            vertex_array.render()
+            vertex_array_info.vertex_array.render()
 
-    def _downsample_from_msaa(
+    def downsample_from_msaa(
         self: Self
     ) -> None:
-        if not self._use_msaa:
-            return
-        Toplevel._get_context().copy_framebuffer(
-            dst=self._framebuffer,
-            src=self._msaa_framebuffer
-        )
+        if self._use_msaa:
+            Toplevel._get_context().copy_framebuffer(
+                dst=self._framebuffer,
+                src=self._msaa_framebuffer
+            )

@@ -14,7 +14,6 @@ from ..toplevel.toplevel import Toplevel
 from .buffers.attributes_buffer import AttributesBuffer
 from .buffers.texture_buffer import TextureBuffer
 from .buffers.uniform_block_buffer import UniformBlockBuffer
-from .framebuffers.framebuffer import Framebuffer
 from .field import (
     AtomicField,
     StructuredField
@@ -62,9 +61,9 @@ class ProgramAttributeInfo:
 
 @attrs.frozen(kw_only=True)
 class VertexArrayInfo:
-    vertex_array: moderngl.VertexArray
     texture_bindings: tuple[tuple[moderngl.Texture, int], ...]
     uniform_block_bindings: tuple[tuple[str, int], ...]
+    vertex_array: moderngl.VertexArray
 
 
 class VertexArray(LazyObject):
@@ -269,6 +268,8 @@ class VertexArray(LazyObject):
         ):
             return None
         return VertexArrayInfo(
+            texture_bindings=tuple(texture_bindings),
+            uniform_block_bindings=tuple(uniform_block_bindings),
             vertex_array=Toplevel._get_context().vertex_array(
                 program=program,
                 attributes_buffer=attributes_buffer._buffer_,
@@ -276,28 +277,5 @@ class VertexArray(LazyObject):
                 attribute_names=tuple(attribute_names),
                 index_buffer=attributes_buffer._index_buffer_,
                 mode=attributes_buffer._primitive_mode_
-            ),
-            texture_bindings=tuple(texture_bindings),
-            uniform_block_bindings=tuple(uniform_block_bindings)
-        )
-
-    def render_msaa(
-        self: Self,
-        framebuffer: Framebuffer
-    ) -> None:
-        if (vertex_array_info := self._vertex_array_info_) is None:
-            return
-
-        uniform_block_buffer_dict = {
-            uniform_block_buffer._name_: uniform_block_buffer
-            for uniform_block_buffer in self._uniform_block_buffers_
-        }
-        uniform_buffers = tuple(
-            (uniform_block_buffer_dict[name]._buffer_, binding)
-            for name, binding in vertex_array_info.uniform_block_bindings
-        )
-        framebuffer._render_msaa(
-            textures=vertex_array_info.texture_bindings,
-            uniform_buffers=uniform_buffers,
-            vertex_array=vertex_array_info.vertex_array
+            )
         )

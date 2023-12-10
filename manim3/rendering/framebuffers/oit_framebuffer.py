@@ -45,13 +45,13 @@ class OITFramebuffer(Framebuffer):
         )
 
     @property
-    def _accum_texture(
+    def accum_texture(
         self: Self
     ) -> moderngl.Texture:
         return self._named_textures["accum"]
 
     @property
-    def _revealage_texture(
+    def revealage_texture(
         self: Self
     ) -> moderngl.Texture:
         return self._named_textures["revealage"]
