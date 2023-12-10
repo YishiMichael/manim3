@@ -19,10 +19,18 @@ class ShapeTransformExample(Scene):
             .set(color=PINK, opacity=0.9)
             .add_strokes(color=YELLOW, weight=10.0)
         )
+        triangle = (
+            RegularPolygon(3)
+            .rotate_about_origin(OUT * (PI / 2.0))
+            .set(color=BLUE, opacity=0.9)
+            .add_strokes(color=GREEN_A, weight=10.0)
+        )
 
         self.add(square)
         await self.wait()
         await self.play(Transform(square, circle), run_time=2.0, rate=Rates.smooth())
+        await self.wait()
+        await self.play(Transform(circle, triangle), run_time=2.0, rate=Rates.smooth())
         await self.wait()
 
 
@@ -171,7 +179,7 @@ class FormulaExample(Scene):
         ).scale(0.5).shift(DOWN)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
+        await self.play(FadeTransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
         await self.wait(2.0)
 
 

@@ -7,16 +7,17 @@ from typing import (
     Self
 )
 
+
 from ...constants.custom_typing import SelectorType
 from ...mobjects.string_mobjects.string_mobject import StringMobject
 from ..composition.parallel import Parallel
-from ..fade.fade_in import FadeIn
-from ..fade.fade_out import FadeOut
 from ..timeline import Timeline
-from .transform import Transform
+from .fade_in import FadeIn
+from .fade_out import FadeOut
+from .fade_transform import FadeTransform
 
 
-class TransformMatchingStrings(Timeline):
+class FadeTransformMatchingStrings(Timeline):
     __slots__ = (
         "_start_mobject",
         "_stop_mobject",
@@ -123,7 +124,7 @@ class TransformMatchingStrings(Timeline):
         )
         await self.play(Parallel(
             *(
-                Transform(matched_mobject_0, matched_mobject_1)
+                FadeTransform(matched_mobject_0, matched_mobject_1)
                 for matched_mobject_0, matched_mobject_1 in matched_mobjects_pairs
             ),
             *(

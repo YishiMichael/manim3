@@ -68,12 +68,14 @@ from .timelines.composition.series import Series
 from .timelines.fade.fade_in import FadeIn
 from .timelines.fade.fade_out import FadeOut
 from .timelines.fade.fade_transform import FadeTransform
+from .timelines.fade.fade_transform_matching_strings import FadeTransformMatchingStrings
 from .timelines.piecewise.create import Create
 from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
 from .timelines.transform.transform import Transform
-from .timelines.transform.transform_matching_strings import TransformMatchingStrings
+from .timelines.transform.transform_from import TransformFrom
+from .timelines.transform.transform_to import TransformTo
 from .timelines.timeline import Timeline
 
 from .toplevel.config import Config
