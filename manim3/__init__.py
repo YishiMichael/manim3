@@ -74,8 +74,6 @@ from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
 from .timelines.transform.transform import Transform
-from .timelines.transform.transform_from import TransformFrom
-from .timelines.transform.transform_to import TransformTo
 from .timelines.timeline import Timeline
 
 from .toplevel.config import Config
