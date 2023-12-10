@@ -77,6 +77,14 @@ from .timelines.transform.transform_matching_strings import TransformMatchingStr
 from .timelines.timeline import Timeline
 
 from .toplevel.config import Config
-from .toplevel.event import EventCapturer
+from .toplevel.events import (
+    KeyPress,
+    KeyRelease,
+    MouseDrag,
+    MouseMotion,
+    MousePress,
+    MouseRelease,
+    MouseScroll
+)
 from .toplevel.scene import Scene
 from .toplevel.toplevel import Toplevel

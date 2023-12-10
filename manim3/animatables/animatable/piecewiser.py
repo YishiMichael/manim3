@@ -17,7 +17,7 @@ from ...constants.custom_typing import (
 
 
 @attrs.frozen(kw_only=True)
-class PiecewiseData:
+class PiecewiseInfo:
     split_alphas: NP_xf8
     concatenate_indices: NP_xi4
 
@@ -40,7 +40,7 @@ class Piecewiser(ABC):
     def piecewise(
         self: Self,
         alpha: float
-    ) -> PiecewiseData:
+    ) -> PiecewiseInfo:
         n_segments = self._n_segments
         backwards = self._backwards
         start, stop = self.get_segment(alpha)
@@ -60,7 +60,7 @@ class Piecewiser(ABC):
             for offset in (offset_0, offset_1)
         )).flatten() / n_segments
         concatenate_indices = np.arange(first_index, 2 * n_segments + 1, 2)
-        return PiecewiseData(
+        return PiecewiseInfo(
             split_alphas=split_alphas,
             concatenate_indices=concatenate_indices
         )

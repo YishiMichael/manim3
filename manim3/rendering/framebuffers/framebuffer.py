@@ -3,55 +3,77 @@ from __future__ import annotations
 
 from typing import Self
 
+import attrs
 import moderngl
 
-from ...toplevel.context import ContextState
 from ...toplevel.toplevel import Toplevel
+from ..mgl_enums import (
+    BlendEquation,
+    BlendFunc,
+    ContextFlag
+)
+
+
+@attrs.frozen(kw_only=True)
+class Texture_info:
+    components: int
+    dtype: str
+    src_blend_func: BlendFunc
+    dst_blend_func: BlendFunc
+    blend_equation: BlendEquation
 
 
 class Framebuffer:
     __slots__ = (
         "_named_textures",
-        "_msaa_framebuffer",
         "_framebuffer",
-        "_context_state"
+        "_msaa_framebuffer",
+        "_blendings",
+        "_flag"
     )
 
     def __init__(
         self: Self,
+        texture_info_dict: dict[str, Texture_info],
         samples: int,
-        texture_infos: dict[str, tuple[int, str]],
-        context_state: ContextState
+        flag: ContextFlag
     ) -> None:
         super().__init__()
         size = Toplevel._get_config().pixel_size
-        named_textures = {
-            name: Toplevel._get_context().texture(
-                size=size,
-                components=components,
-                samples=0,
-                dtype=dtype
-            )
-            for name, (components, dtype) in texture_infos.items()
-        }
-        framebuffer = Toplevel._get_context().framebuffer(color_attachments=tuple(named_textures.values()))
-        if samples:
-            msaa_framebuffer = Toplevel._get_context().framebuffer(color_attachments=tuple(
-                Toplevel._get_context().texture(
-                    size=size,
-                    components=color_attachment.components,
-                    samples=samples,
-                    dtype=color_attachment.dtype
-                )
-                for color_attachment in framebuffer.color_attachments
-            ))
-        else:
-            msaa_framebuffer = framebuffer
 
-        self._named_textures: dict[str, moderngl.Texture] = named_textures
-        self._msaa_framebuffer: moderngl.Framebuffer = msaa_framebuffer
-        self._framebuffer: moderngl.Framebuffer = framebuffer
-        self._context_state: ContextState = context_state
+        names: list[str] = []
+        framebuffer_attachments: list[moderngl.Texture] = []
+        msaa_framebuffer_attachments: list[moderngl.Texture] = []
+        blendings: list[tuple[BlendFunc, BlendFunc, BlendEquation]] = []
+
+        for name, texture_info in texture_info_dict.items():
+            attachment = Toplevel._get_context().texture(
+                size=size,
+                components=texture_info.components,
+                samples=0,
+                dtype=texture_info.dtype
+            )
+            msaa_attachment = attachment if not samples else Toplevel._get_context().texture(
+                size=size,
+                components=texture_info.components,
+                samples=samples,
+                dtype=texture_info.dtype
+            )
+
+            names.append(name)
+            framebuffer_attachments.append(attachment)
+            msaa_framebuffer_attachments.append(msaa_attachment)
+            blendings.append((texture_info.src_blend_func, texture_info.dst_blend_func, texture_info.blend_equation))
+
+        self._named_textures: dict[str, moderngl.Texture] = dict(zip(names, framebuffer_attachments, strict=True))
+        self._framebuffer: moderngl.Framebuffer = Toplevel._get_context().framebuffer(
+            color_attachments=tuple(framebuffer_attachments)
+        )
+        self._msaa_framebuffer: moderngl.Framebuffer = Toplevel._get_context().framebuffer(
+            color_attachments=tuple(msaa_framebuffer_attachments)
+        )
+        self._blendings: tuple[tuple[BlendFunc, BlendFunc, BlendEquation], ...] = tuple(blendings)
+        self._flag: ContextFlag = flag
 
     def _render_msaa(
         self: Self,
@@ -64,5 +86,6 @@ class Framebuffer:
             textures=textures,
             uniform_buffers=uniform_buffers
         ):
-            Toplevel._get_context().set_state(self._context_state)
+            Toplevel._get_context().set_blendings(self._blendings)
+            Toplevel._get_context().set_flag(self._flag)
             vertex_array.render()

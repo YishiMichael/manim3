@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 
-import functools
-import operator
 from typing import (
     Iterator,
     Self
 )
 
-import attrs
 import moderngl
 import pyglet.gl as gl
 
@@ -20,13 +17,6 @@ from ..rendering.mgl_enums import (
 )
 from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
-
-
-@attrs.frozen(kw_only=True)
-class ContextState:
-    flags: tuple[ContextFlag, ...]
-    blend_funcs: tuple[tuple[BlendFunc, BlendFunc], ...]
-    blend_equations: tuple[BlendEquation, ...]
 
 
 class Context(ToplevelResource):
@@ -49,16 +39,11 @@ class Context(ToplevelResource):
         yield
         Toplevel._context = None
 
-    def set_state(
+    def set_blendings(
         self: Self,
-        context_state: ContextState
+        blendings: tuple[tuple[BlendFunc, BlendFunc, BlendEquation], ...]
     ) -> None:
-        self._mgl_context.enable_only(functools.reduce(operator.or_, (
-            flag.value for flag in context_state.flags
-        ), ContextFlag.NOTHING.value))
-        for index, ((src_blend_func, dst_blend_func), blend_equation) in enumerate(
-            zip(context_state.blend_funcs, context_state.blend_equations, strict=True)
-        ):
+        for index, (src_blend_func, dst_blend_func, blend_equation) in enumerate(blendings):
             gl.glBlendFunci(
                 index,
                 src_blend_func.value,
@@ -68,6 +53,12 @@ class Context(ToplevelResource):
                 index,
                 blend_equation.value
             )
+
+    def set_flag(
+        self: Self,
+        flag: ContextFlag
+    ) -> None:
+        self._mgl_context.enable_only(flag.value)
 
     @property
     def version_code(

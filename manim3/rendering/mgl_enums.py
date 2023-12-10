@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 
-from enum import Enum
+from enum import (
+    Enum,
+    Flag
+)
 
 import moderngl
 
 
-class ContextFlag(Enum):
+class ContextFlag(Flag):
     NOTHING = moderngl.NOTHING
     BLEND = moderngl.BLEND
     DEPTH_TEST = moderngl.DEPTH_TEST

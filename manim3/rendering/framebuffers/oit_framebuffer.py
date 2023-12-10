@@ -5,36 +5,53 @@ from typing import Self
 
 import moderngl
 
-from ...toplevel.context import ContextState
 from ..mgl_enums import (
     BlendEquation,
     BlendFunc,
     ContextFlag
 )
-from .framebuffer import Framebuffer
+from .framebuffer import (
+    Framebuffer,
+    Texture_info
+)
 
 
 class OITFramebuffer(Framebuffer):
-    __slots__ = (
-        "_accum_texture",
-        "_revealage_texture"
-    )
+    __slots__ = ()
 
     def __init__(
         self: Self,
         samples: int = 0
     ) -> None:
         super().__init__(
-            samples=samples,
-            texture_infos={
-                "accum": (4, "f2"),
-                "revealage": (1, "f2")
+            texture_info_dict={
+                "accum": Texture_info(
+                    components=4,
+                    dtype="f2",
+                    src_blend_func=BlendFunc.ONE,
+                    dst_blend_func=BlendFunc.ONE,
+                    blend_equation=BlendEquation.FUNC_ADD
+                ),
+                "revealage": Texture_info(
+                    components=1,
+                    dtype="f2",
+                    src_blend_func=BlendFunc.ONE,
+                    dst_blend_func=BlendFunc.ONE,
+                    blend_equation=BlendEquation.FUNC_ADD
+                )
             },
-            context_state=ContextState(
-                flags=(ContextFlag.BLEND,),
-                blend_funcs=((BlendFunc.ONE, BlendFunc.ONE), (BlendFunc.ONE, BlendFunc.ONE)),
-                blend_equations=((BlendEquation.FUNC_ADD, BlendEquation.FUNC_ADD))
-            )
+            samples=samples,
+            flag=ContextFlag.BLEND
         )
-        self._accum_texture: moderngl.Texture = self._named_textures["accum"]
-        self._revealage_texture: moderngl.Texture = self._named_textures["revealage"]
+
+    @property
+    def _accum_texture(
+        self: Self
+    ) -> moderngl.Texture:
+        return self._named_textures["accum"]
+
+    @property
+    def _revealage_texture(
+        self: Self
+    ) -> moderngl.Texture:
+        return self._named_textures["revealage"]

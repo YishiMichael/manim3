@@ -203,9 +203,9 @@ class AnimatablePiecewiseAnimation[AnimatableT: Animatable](Animation):
     ) -> None:
         super().update(alpha)
         cls = type(self)
-        piecewise_data = self._piecewiser.piecewise(alpha)
+        piecewise_info = self._piecewiser.piecewise(alpha)
         dst = self._dst
         animatable_cls = type(dst)
-        pieces = tuple(animatable_cls() for _ in range(len(piecewise_data.split_alphas) + 1))
-        cls.split(pieces, self._src, piecewise_data.split_alphas)
-        cls.concatenate(dst, tuple(pieces[index] for index in piecewise_data.concatenate_indices))
+        pieces = tuple(animatable_cls() for _ in range(len(piecewise_info.split_alphas) + 1))
+        cls.split(pieces, self._src, piecewise_info.split_alphas)
+        cls.concatenate(dst, tuple(pieces[index] for index in piecewise_info.concatenate_indices))

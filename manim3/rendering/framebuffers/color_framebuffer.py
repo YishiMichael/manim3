@@ -5,31 +5,40 @@ from typing import Self
 
 import moderngl
 
-from ...toplevel.context import ContextState
 from ..mgl_enums import (
     BlendEquation,
     BlendFunc,
     ContextFlag
 )
-from .framebuffer import Framebuffer
+from .framebuffer import (
+    Framebuffer,
+    Texture_info
+)
 
 
 class ColorFramebuffer(Framebuffer):
-    __slots__ = ("_color_texture",)
+    __slots__ = ()
 
     def __init__(
         self: Self,
         samples: int = 0
     ) -> None:
         super().__init__(
-            samples=samples,
-            texture_infos={
-                "color": (3, "f1")
+            texture_info_dict={
+                "color": Texture_info(
+                    components=3,
+                    dtype="f1",
+                    src_blend_func=BlendFunc.SRC_ALPHA,
+                    dst_blend_func=BlendFunc.ONE_MINUS_SRC_ALPHA,
+                    blend_equation=BlendEquation.FUNC_ADD
+                )
             },
-            context_state=ContextState(
-                flags=(ContextFlag.BLEND,),
-                blend_funcs=((BlendFunc.SRC_ALPHA, BlendFunc.ONE_MINUS_SRC_ALPHA),),
-                blend_equations=(BlendEquation.FUNC_ADD,)
-            )
+            samples=samples,
+            flag=ContextFlag.BLEND
         )
-        self._color_texture: moderngl.Texture = self._named_textures["color"]
+
+    @property
+    def _color_texture(
+        self: Self
+    ) -> moderngl.Texture:
+        return self._named_textures["color"]

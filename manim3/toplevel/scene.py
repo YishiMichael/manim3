@@ -46,7 +46,7 @@ class Scene(Timeline):
             self._scene_time = scene_time
             Toplevel._get_window()._pyglet_window.dispatch_events()
             self._progress()
-            Toplevel._get_window().clear_event_queue()
+            Toplevel._get_window().clear_event_info_queue()
             Toplevel._get_renderer().process_frame()
             if self.terminated():
                 break

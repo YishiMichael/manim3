@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 import functools
-import operator
 import re
 from typing import (
     ClassVar,
@@ -100,7 +99,7 @@ class Field(LazyObject):
     def _size_(
         shape: ShapeType
     ) -> int:
-        return functools.reduce(operator.mul, shape, 1)
+        return functools.reduce(int.__mul__, shape, 1)
 
     @Lazy.property()
     @staticmethod

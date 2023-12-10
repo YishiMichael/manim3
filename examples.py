@@ -202,7 +202,7 @@ class InteractiveExample(Scene):
             self.prepare(
                 timeline,
                 rate=Rates.smooth(),
-                launch_condition=EventCapturer(event_type="key_press", symbol=KEY.SPACE).captured
+                launch_condition=KeyPress(KEY.SPACE).captured
             )
         await self.wait_until(lambda: all(timeline.terminated() for timeline in timelines))
         await self.wait()
@@ -228,12 +228,12 @@ class NoteTimeline(Timeline):
     ) -> None:
         note = self._note
         self.scene.add(note)
-        capturer = EventCapturer(event_type="key_press", symbol=self._key)
+        event = KeyPress(self._key)
         await self.play(
             note.animate(infinite=True).shift(7.0 * DOWN),
-            terminate_condition=lambda: capturer.captured() and -3.4 <= note.box.get()[1] <= -2.6 or note.box.get()[1] <= -3.4
+            terminate_condition=lambda: event.captured() and -3.4 <= note.box.get()[1] <= -2.6 or note.box.get()[1] <= -3.4
         )
-        if capturer.captured():
+        if event.captured():
             await self.play(
                 note.animate().set(opacity=0.0).scale(1.5),
                 rate=Rates.rush_from()
@@ -313,7 +313,7 @@ def main() -> None:
         Toplevel.livestream(),
         #Toplevel.recording("ShapeTransformExample.mp4")
     ):
-        GameExample().run()
+        ShapeTransformExample().run()
 
 
 if __name__ == "__main__":
