@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 
-from typing import Self
+from typing import (
+    Iterator,
+    Self
+)
 
 import moderngl
 
@@ -21,7 +24,6 @@ from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.texture_buffer import TextureBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
@@ -191,8 +193,8 @@ class MeshMobject(Mobject):
             attributes_buffer=mesh_attributes_buffer
         )
 
-    def _render(
-        self: Self,
-        target_framebuffer: OITFramebuffer
-    ) -> None:
-        self._mesh_vertex_array_.render(target_framebuffer)
+    def _iter_vertex_arrays(
+        self: Self
+    ) -> Iterator[VertexArray]:
+        yield from super()._iter_vertex_arrays()
+        yield self._mesh_vertex_array_

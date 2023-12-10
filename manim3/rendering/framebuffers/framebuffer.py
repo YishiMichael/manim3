@@ -29,6 +29,7 @@ class Framebuffer:
         "_framebuffer",
         "_msaa_framebuffer",
         "_blendings",
+        "_use_msaa",
         "_flag"
     )
 
@@ -41,6 +42,7 @@ class Framebuffer:
         super().__init__()
         size = Toplevel._get_config().pixel_size
 
+        use_msaa = bool(samples)
         names: list[str] = []
         framebuffer_attachments: list[moderngl.Texture] = []
         msaa_framebuffer_attachments: list[moderngl.Texture] = []
@@ -53,7 +55,7 @@ class Framebuffer:
                 samples=0,
                 dtype=texture_info.dtype
             )
-            msaa_attachment = attachment if not samples else Toplevel._get_context().texture(
+            msaa_attachment = attachment if not use_msaa else Toplevel._get_context().texture(
                 size=size,
                 components=texture_info.components,
                 samples=samples,
@@ -73,6 +75,7 @@ class Framebuffer:
             color_attachments=tuple(msaa_framebuffer_attachments)
         )
         self._blendings: tuple[tuple[BlendFunc, BlendFunc, BlendEquation], ...] = tuple(blendings)
+        self._use_msaa: bool = use_msaa
         self._flag: ContextFlag = flag
 
     def _render_msaa(
@@ -89,3 +92,13 @@ class Framebuffer:
             Toplevel._get_context().set_blendings(self._blendings)
             Toplevel._get_context().set_flag(self._flag)
             vertex_array.render()
+
+    def _downsample_from_msaa(
+        self: Self
+    ) -> None:
+        if not self._use_msaa:
+            return
+        Toplevel._get_context().copy_framebuffer(
+            dst=self._framebuffer,
+            src=self._msaa_framebuffer
+        )

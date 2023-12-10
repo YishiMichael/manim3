@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from typing import Self
 
-import moderngl
-
 from ..mgl_enums import (
     BlendEquation,
     BlendFunc,
@@ -16,7 +14,7 @@ from .framebuffer import (
 )
 
 
-class ColorFramebuffer(Framebuffer):
+class FinalFramebuffer(Framebuffer):
     __slots__ = ()
 
     def __init__(
@@ -25,8 +23,8 @@ class ColorFramebuffer(Framebuffer):
     ) -> None:
         super().__init__(
             texture_info_dict={
-                "color": Texture_info(
-                    components=3,
+                "": Texture_info(
+                    components=4,
                     dtype="f1",
                     src_blend_func=BlendFunc.SRC_ALPHA,
                     dst_blend_func=BlendFunc.ONE_MINUS_SRC_ALPHA,
@@ -36,9 +34,3 @@ class ColorFramebuffer(Framebuffer):
             samples=samples,
             flag=ContextFlag.BLEND
         )
-
-    @property
-    def _color_texture(
-        self: Self
-    ) -> moderngl.Texture:
-        return self._named_textures["color"]

@@ -281,7 +281,7 @@ class VertexArray(LazyObject):
             uniform_block_bindings=tuple(uniform_block_bindings)
         )
 
-    def render(
+    def render_msaa(
         self: Self,
         framebuffer: Framebuffer
     ) -> None:

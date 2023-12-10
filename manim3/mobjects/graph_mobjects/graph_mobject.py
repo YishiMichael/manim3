@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 
-from typing import Self
+from typing import (
+    Iterator,
+    Self
+)
 
 from ...animatables.animatable.animatable import AnimatableActions
 from ...animatables.arrays.animatable_color import AnimatableColor
@@ -17,7 +20,6 @@ from ...constants.custom_typing import (
 from ...lazy.lazy import Lazy
 from ...rendering.buffers.attributes_buffer import AttributesBuffer
 from ...rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from ...rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ...rendering.mgl_enums import PrimitiveMode
 from ...rendering.vertex_array import VertexArray
 from ...toplevel.toplevel import Toplevel
@@ -138,8 +140,8 @@ class GraphMobject(Mobject):
             attributes_buffer=graph_attributes_buffer
         )
 
-    def _render(
-        self: Self,
-        target_framebuffer: OITFramebuffer
-    ) -> None:
-        self._graph_vertex_array_.render(target_framebuffer)
+    def _iter_vertex_arrays(
+        self: Self
+    ) -> Iterator[VertexArray]:
+        yield from super()._iter_vertex_arrays()
+        yield self._graph_vertex_array_

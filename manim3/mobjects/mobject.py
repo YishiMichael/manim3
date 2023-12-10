@@ -12,7 +12,7 @@ from ..animatables.camera import Camera
 from ..animatables.lighting import Lighting
 from ..animatables.model import Model
 from ..lazy.lazy import Lazy
-from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
+from ..rendering.vertex_array import VertexArray
 from ..toplevel.toplevel import Toplevel
 
 
@@ -190,11 +190,10 @@ class Mobject(Model):
     def _lighting_() -> Lighting:
         return Toplevel._get_scene()._lighting
 
-    def _render(
-        self: Self,
-        target_framebuffer: OITFramebuffer
-    ) -> None:
-        pass
+    def _iter_vertex_arrays(
+        self: Self
+    ) -> Iterator[VertexArray]:
+        yield from ()
 
     def bind_camera(
         self: Self,

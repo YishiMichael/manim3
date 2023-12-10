@@ -129,13 +129,14 @@ class OITExample(Scene):
     ) -> None:
         self.add(*(
             (Circle()
-                .set(color=color, opacity=opacity)
+                .set(color=color, opacity=opacity, weight=weight)
                 .shift(0.5 * RIGHT)
                 .rotate_about_origin(angle * OUT)
             )
-            for color, opacity, angle in zip(
+            for color, opacity, weight, angle in zip(
                 (RED, GREEN, BLUE),
                 (0.3, 0.5, 0.6),
+                (1.0, 2.0, 1.0),
                 np.linspace(0.0, TAU, 3, endpoint=False),
                 strict=True
             )
@@ -179,7 +180,7 @@ class FormulaExample(Scene):
         ).scale(0.5).shift(DOWN)
         self.add(factored_formula)
         await self.wait()
-        await self.play(FadeTransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
+        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
         await self.wait(2.0)
 
 
@@ -316,7 +317,8 @@ def main() -> None:
     with (
         Config(
             #fps=30,
-            #pixel_height=540,
+            #pixel_height=540
+            #msaa_samples=0
         ),
         Toplevel.livestream(),
         #Toplevel.recording("ShapeTransformExample.mp4")

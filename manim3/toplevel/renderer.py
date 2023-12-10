@@ -15,7 +15,7 @@ from PIL import Image
 
 from ..rendering.buffers.attributes_buffer import AttributesBuffer
 from ..rendering.buffers.texture_buffer import TextureBuffer
-from ..rendering.framebuffers.color_framebuffer import ColorFramebuffer
+from ..rendering.framebuffers.final_framebuffer import FinalFramebuffer
 from ..rendering.framebuffers.oit_framebuffer import OITFramebuffer
 from ..rendering.mgl_enums import PrimitiveMode
 from ..rendering.vertex_array import VertexArray
@@ -129,7 +129,7 @@ class Livestreamer:
 
     def livestream_frame(
         self: Self,
-        framebuffer: ColorFramebuffer
+        framebuffer: FinalFramebuffer
     ) -> None:
         Toplevel._get_context().blit_framebuffer(
             dst=Toplevel._get_context().screen_framebuffer,
@@ -181,9 +181,9 @@ class VideoRecorder:
 
     def record_frame(
         self: Self,
-        framebuffer: ColorFramebuffer
+        framebuffer: FinalFramebuffer
     ) -> None:
-        frame_data = framebuffer._color_texture.read()
+        frame_data = framebuffer._framebuffer.read()
         for video_pipe in self._video_pipes.values():
             if video_pipe.is_writing:
                 video_pipe.write(frame_data)
@@ -209,13 +209,13 @@ class ImageRecoder:
     def record_frame(
         self: Self,
         filename: str,
-        framebuffer: ColorFramebuffer
+        framebuffer: FinalFramebuffer
     ) -> None:
         image_path = self._image_dir.joinpath(filename)
         Image.frombytes(
             "RGB",
             Toplevel._get_config().pixel_size,
-            framebuffer._color_texture.read(),
+            framebuffer._framebuffer.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(image_path)
         Toplevel._get_logger().log(f"Snapshot saved to '{image_path}'.")
@@ -223,7 +223,7 @@ class ImageRecoder:
 
 class Renderer(ToplevelResource):
     __slots__ = (
-        "_color_framebuffer",
+        "_final_framebuffer",
         "_oit_framebuffer",
         "_oit_compose_vertex_array",
         "_livestreamer",
@@ -236,9 +236,8 @@ class Renderer(ToplevelResource):
     ) -> None:
         super().__init__()
 
-        samples = Toplevel._get_config().msaa_samples if Toplevel._get_config().use_msaa else 0
-        color_framebuffer = ColorFramebuffer()
-        oit_framebuffer = OITFramebuffer(samples=samples)
+        final_framebuffer = FinalFramebuffer()
+        oit_framebuffer = OITFramebuffer(samples=Toplevel._get_config().msaa_samples)
         oit_compose_vertex_array = VertexArray(
             shader_filename="oit_compose.glsl",
             texture_buffers=(
@@ -275,7 +274,7 @@ class Renderer(ToplevelResource):
             )
         )
 
-        self._color_framebuffer: ColorFramebuffer = color_framebuffer
+        self._final_framebuffer: FinalFramebuffer = final_framebuffer
         self._oit_framebuffer: OITFramebuffer = oit_framebuffer
         self._oit_compose_vertex_array: VertexArray = oit_compose_vertex_array
         self._livestreamer: Livestreamer = Livestreamer()
@@ -298,19 +297,16 @@ class Renderer(ToplevelResource):
 
         self._oit_framebuffer._msaa_framebuffer.clear()
         for mobject in scene._root_mobject.iter_descendants():
-            mobject._render(self._oit_framebuffer)
-        if self._oit_framebuffer._msaa_framebuffer is not self._oit_framebuffer._framebuffer:
-            Toplevel._get_context().copy_framebuffer(
-                dst=self._oit_framebuffer._framebuffer,
-                src=self._oit_framebuffer._msaa_framebuffer
-            )
+            for vertex_array in mobject._iter_vertex_arrays():
+                vertex_array.render_msaa(self._oit_framebuffer)
+        self._oit_framebuffer._downsample_from_msaa()
 
         red, green, blue = scene._background_color
         alpha = scene._background_opacity
-        self._color_framebuffer._framebuffer.clear(
+        self._final_framebuffer._framebuffer.clear(
             red=red, green=green, blue=blue, alpha=alpha
         )
-        self._oit_compose_vertex_array.render(self._color_framebuffer)
+        self._oit_compose_vertex_array.render_msaa(self._final_framebuffer)
 
     def process_frame(
         self: Self
@@ -321,9 +317,9 @@ class Renderer(ToplevelResource):
         if self._livestreamer.is_livestreaming or self._video_recorder.is_recording:
             self._render_frame()
         if self._livestreamer.is_livestreaming:
-            self._livestreamer.livestream_frame(self._color_framebuffer)
+            self._livestreamer.livestream_frame(self._final_framebuffer)
         if self._video_recorder.is_recording:
-            self._video_recorder.record_frame(self._color_framebuffer)
+            self._video_recorder.record_frame(self._final_framebuffer)
 
     def start_livestream(
         self: Self
@@ -358,4 +354,4 @@ class Renderer(ToplevelResource):
         if filename is None:
             filename = f"{Toplevel._get_config().default_filename}.png"
         self._render_frame()
-        self._image_recoder.record_frame(filename, self._color_framebuffer)
+        self._image_recoder.record_frame(filename, self._final_framebuffer)

@@ -12,12 +12,12 @@ from ...constants.custom_typing import SelectorType
 from ...mobjects.string_mobjects.string_mobject import StringMobject
 from ..composition.parallel import Parallel
 from ..timeline import Timeline
-from .fade_in import FadeIn
-from .fade_out import FadeOut
-from .fade_transform import FadeTransform
+from ..fade.fade_in import FadeIn
+from ..fade.fade_out import FadeOut
+from .transform import Transform
 
 
-class FadeTransformMatchingStrings(Timeline):
+class TransformMatchingStrings(Timeline):
     __slots__ = (
         "_start_mobject",
         "_stop_mobject",
@@ -124,7 +124,7 @@ class FadeTransformMatchingStrings(Timeline):
         )
         await self.play(Parallel(
             *(
-                FadeTransform(matched_mobject_0, matched_mobject_1)
+                Transform(matched_mobject_0, matched_mobject_1)
                 for matched_mobject_0, matched_mobject_1 in matched_mobjects_pairs
             ),
             *(
