@@ -12,7 +12,7 @@ from ..mgl_enums import (
 )
 from .framebuffer import (
     Framebuffer,
-    Texture_info
+    AttachmentInfo
 )
 
 
@@ -24,15 +24,15 @@ class OITFramebuffer(Framebuffer):
         samples: int = 0
     ) -> None:
         super().__init__(
-            texture_info_dict={
-                "accum": Texture_info(
+            attachment_info_dict={
+                "accum": AttachmentInfo(
                     components=4,
                     dtype="f2",
                     src_blend_func=BlendFunc.ONE,
                     dst_blend_func=BlendFunc.ONE,
                     blend_equation=BlendEquation.FUNC_ADD
                 ),
-                "revealage": Texture_info(
+                "revealage": AttachmentInfo(
                     components=1,
                     dtype="f2",
                     src_blend_func=BlendFunc.ONE,
@@ -45,13 +45,13 @@ class OITFramebuffer(Framebuffer):
         )
 
     @property
-    def accum_texture(
+    def accum_attachment(
         self: Self
     ) -> moderngl.Texture:
-        return self._named_textures["accum"]
+        return self._named_attachments["accum"]
 
     @property
-    def revealage_texture(
+    def revealage_attachment(
         self: Self
     ) -> moderngl.Texture:
-        return self._named_textures["revealage"]
+        return self._named_attachments["revealage"]

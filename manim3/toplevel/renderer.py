@@ -223,8 +223,10 @@ class ImageRecoder:
 
 class Renderer(ToplevelResource):
     __slots__ = (
+        "_use_msaa",
         "_final_framebuffer",
         "_oit_framebuffer",
+        "_oit_msaa_framebuffer",
         "_oit_compose_vertex_array",
         "_livestreamer",
         "_video_recorder",
@@ -236,18 +238,21 @@ class Renderer(ToplevelResource):
     ) -> None:
         super().__init__()
 
+        msaa_samples = Toplevel._get_config().msaa_samples
+        use_msaa = bool(msaa_samples)
         final_framebuffer = FinalFramebuffer()
-        oit_framebuffer = OITFramebuffer(samples=Toplevel._get_config().msaa_samples)
+        oit_framebuffer = OITFramebuffer()
+        oit_msaa_framebuffer = OITFramebuffer(samples=msaa_samples) if use_msaa else oit_framebuffer
         oit_compose_vertex_array = VertexArray(
             shader_filename="oit_compose.glsl",
             texture_buffers=(
                 TextureBuffer(
                     name="t_accum_map",
-                    textures=oit_framebuffer.accum_texture
+                    textures=oit_framebuffer.accum_attachment
                 ),
                 TextureBuffer(
                     name="t_revealage_map",
-                    textures=oit_framebuffer.revealage_texture
+                    textures=oit_framebuffer.revealage_attachment
                 )
             ),
             attributes_buffer=AttributesBuffer(
@@ -274,8 +279,10 @@ class Renderer(ToplevelResource):
             )
         )
 
+        self._use_msaa: bool = use_msaa
         self._final_framebuffer: FinalFramebuffer = final_framebuffer
         self._oit_framebuffer: OITFramebuffer = oit_framebuffer
+        self._oit_msaa_framebuffer: OITFramebuffer = oit_msaa_framebuffer
         self._oit_compose_vertex_array: VertexArray = oit_compose_vertex_array
         self._livestreamer: Livestreamer = Livestreamer()
         self._video_recorder: VideoRecorder = VideoRecorder()
@@ -295,14 +302,15 @@ class Renderer(ToplevelResource):
     ) -> None:
         scene = Toplevel._get_scene()
 
-        self._oit_framebuffer.clear()
+        self._oit_msaa_framebuffer.clear()
         for mobject in scene._root_mobject.iter_descendants():
             for vertex_array in mobject._iter_vertex_arrays():
-                self._oit_framebuffer.render_msaa(vertex_array)
-        self._oit_framebuffer.downsample_from_msaa()
+                self._oit_msaa_framebuffer.render(vertex_array)
+        if self._use_msaa:
+            self._oit_framebuffer.copy_from(self._oit_msaa_framebuffer)  # TODO: resolve in final fbo, using sampler2DMS, texelFetch.
 
         self._final_framebuffer.clear(color=(*scene._background_color, scene._background_opacity))
-        self._final_framebuffer.render_msaa(self._oit_compose_vertex_array)
+        self._final_framebuffer.render(self._oit_compose_vertex_array)
 
     def process_frame(
         self: Self

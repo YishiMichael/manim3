@@ -16,7 +16,7 @@ from ..vertex_array import VertexArray
 
 
 @attrs.frozen(kw_only=True)
-class Texture_info:
+class AttachmentInfo:
     components: int
     dtype: str
     src_blend_func: BlendFunc
@@ -26,57 +26,43 @@ class Texture_info:
 
 class Framebuffer:
     __slots__ = (
-        "_named_textures",
+        "_named_attachments",
         "_framebuffer",
-        "_msaa_framebuffer",
         "_blendings",
-        "_use_msaa",
         "_flag"
     )
 
     def __init__(
         self: Self,
-        texture_info_dict: dict[str, Texture_info],
+        attachment_info_dict: dict[str, AttachmentInfo],
         samples: int,
         flag: ContextFlag
     ) -> None:
         super().__init__()
         size = Toplevel._get_config().pixel_size
-
-        use_msaa = bool(samples)
-        names: list[str] = []
-        framebuffer_attachments: list[moderngl.Texture] = []
-        msaa_framebuffer_attachments: list[moderngl.Texture] = []
-        blendings: list[tuple[BlendFunc, BlendFunc, BlendEquation]] = []
-
-        for name, texture_info in texture_info_dict.items():
-            attachment = Toplevel._get_context().texture(
-                size=size,
-                components=texture_info.components,
-                samples=0,
-                dtype=texture_info.dtype
+        attachment_items = tuple(
+            (
+                name,
+                Toplevel._get_context().texture(
+                    size=size,
+                    components=attachment_info.components,
+                    samples=samples,
+                    dtype=attachment_info.dtype
+                ),
+                (attachment_info.src_blend_func, attachment_info.dst_blend_func, attachment_info.blend_equation)
             )
-            msaa_attachment = attachment if not use_msaa else Toplevel._get_context().texture(
-                size=size,
-                components=texture_info.components,
-                samples=samples,
-                dtype=texture_info.dtype
-            )
-
-            names.append(name)
-            framebuffer_attachments.append(attachment)
-            msaa_framebuffer_attachments.append(msaa_attachment)
-            blendings.append((texture_info.src_blend_func, texture_info.dst_blend_func, texture_info.blend_equation))
-
-        self._named_textures: dict[str, moderngl.Texture] = dict(zip(names, framebuffer_attachments, strict=True))
-        self._framebuffer: moderngl.Framebuffer = Toplevel._get_context().framebuffer(
-            color_attachments=tuple(framebuffer_attachments)
+            for name, attachment_info in attachment_info_dict.items()
         )
-        self._msaa_framebuffer: moderngl.Framebuffer = Toplevel._get_context().framebuffer(
-            color_attachments=tuple(msaa_framebuffer_attachments)
+
+        self._named_attachments: dict[str, moderngl.Texture] = {
+            name: attachment for name, attachment, _ in attachment_items
+        }
+        self._framebuffer: moderngl.Framebuffer = Toplevel._get_context().framebuffer(color_attachments=tuple(
+            attachment for _, attachment, _ in attachment_items
+        ))
+        self._blendings: tuple[tuple[BlendFunc, BlendFunc, BlendEquation], ...] = tuple(
+            blending for _, _, blending in attachment_items
         )
-        self._blendings: tuple[tuple[BlendFunc, BlendFunc, BlendEquation], ...] = tuple(blendings)
-        self._use_msaa: bool = use_msaa
         self._flag: ContextFlag = flag
 
     def clear(
@@ -84,10 +70,8 @@ class Framebuffer:
         color: tuple[float, float, float, float] | None = None
     ) -> None:
         self._framebuffer.clear(color=color)
-        if self._use_msaa:
-            self._msaa_framebuffer.clear(color=color)
 
-    def render_msaa(
+    def render(
         self: Self,
         vertex_array: VertexArray
     ) -> None:
@@ -100,7 +84,7 @@ class Framebuffer:
         }
 
         with Toplevel._get_context().scope(
-            framebuffer=self._msaa_framebuffer,
+            framebuffer=self._framebuffer,
             textures=vertex_array_info.texture_bindings,
             uniform_buffers=tuple(
                 (uniform_block_buffer_dict[name]._buffer_, binding)
@@ -111,11 +95,11 @@ class Framebuffer:
             Toplevel._get_context().set_flag(self._flag)
             vertex_array_info.vertex_array.render()
 
-    def downsample_from_msaa(
-        self: Self
+    def copy_from(
+        self: Self,
+        framebuffer: Framebuffer
     ) -> None:
-        if self._use_msaa:
-            Toplevel._get_context().copy_framebuffer(
-                dst=self._framebuffer,
-                src=self._msaa_framebuffer
-            )
+        Toplevel._get_context().copy_framebuffer(
+            dst=self._framebuffer,
+            src=framebuffer._framebuffer
+        )

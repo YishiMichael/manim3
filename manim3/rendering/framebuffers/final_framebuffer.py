@@ -10,7 +10,7 @@ from ..mgl_enums import (
 )
 from .framebuffer import (
     Framebuffer,
-    Texture_info
+    AttachmentInfo
 )
 
 
@@ -22,8 +22,8 @@ class FinalFramebuffer(Framebuffer):
         samples: int = 0
     ) -> None:
         super().__init__(
-            texture_info_dict={
-                "": Texture_info(
+            attachment_info_dict={
+                "": AttachmentInfo(
                     components=4,
                     dtype="f1",
                     src_blend_func=BlendFunc.SRC_ALPHA,
