@@ -156,17 +156,6 @@ class Context(ToplevelResource):
             uniform_buffers=uniform_buffers
         )
 
-    def copy_framebuffer(
-        self: Self,
-        *,
-        dst: moderngl.Framebuffer,
-        src: moderngl.Framebuffer
-    ) -> None:
-        self._mgl_context.copy_framebuffer(
-            dst=dst,
-            src=src
-        )
-
     def blit_framebuffer(
         self: Self,
         *,

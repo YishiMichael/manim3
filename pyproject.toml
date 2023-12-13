@@ -16,14 +16,19 @@ classifiers = [
     "Programming Language :: Python"
 ]
 dependencies = [
+    "attrs",
+    "cairocffi",
     "colour",
+    "ffmpeg-python",
     "mapbox-earcut",
     "moderngl",
     "numpy",
+    "pangocairocffi",
+    "pangocffi",
     "pillow",
+    "pyclipr",
     "pyglet",
-    "pyopengl",
+    "rich",
     "scipy",
-    "shapely",
     "svgelements"
 ]

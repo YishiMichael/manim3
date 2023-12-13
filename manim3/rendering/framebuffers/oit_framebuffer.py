@@ -43,15 +43,3 @@ class OITFramebuffer(Framebuffer):
             samples=samples,
             flag=ContextFlag.BLEND
         )
-
-    @property
-    def accum_attachment(
-        self: Self
-    ) -> moderngl.Texture:
-        return self._named_attachments["accum"]
-
-    @property
-    def revealage_attachment(
-        self: Self
-    ) -> moderngl.Texture:
-        return self._named_attachments["revealage"]

@@ -65,6 +65,12 @@ class Framebuffer:
         )
         self._flag: ContextFlag = flag
 
+    def get_attachment(
+        self: Self,
+        name: str
+    ) -> moderngl.Texture:
+        return self._named_attachments[name]
+
     def clear(
         self: Self,
         color: tuple[float, float, float, float] | None = None
@@ -94,12 +100,3 @@ class Framebuffer:
             Toplevel._get_context().set_blendings(self._blendings)
             Toplevel._get_context().set_flag(self._flag)
             vertex_array_info.vertex_array.render()
-
-    def copy_from(
-        self: Self,
-        framebuffer: Framebuffer
-    ) -> None:
-        Toplevel._get_context().copy_framebuffer(
-            dst=self._framebuffer,
-            src=framebuffer._framebuffer
-        )
