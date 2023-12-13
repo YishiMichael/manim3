@@ -4,10 +4,10 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "manim3"
-version = "0.0.1"
+version = "0.1.0-alpha"
 description = "A personal variant of manim"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = {file = "LICENSE.md"}
 authors = [
     {name = "YishiMichael"}
