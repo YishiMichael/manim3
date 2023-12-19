@@ -31,11 +31,7 @@ Install typst.
 
 ## Using manim3
 
-A demo file is provided as `examples.py`. After installing, just run
-```sh
-py examples.py
-```
-A window running a scene shall pop up.
+The directory `examples` provides several demo scenes. Under that directory, simply run any script via `py xxx.py`. A window running a scene shall pop up.
 
 
 ## License

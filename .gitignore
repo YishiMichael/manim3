@@ -6,6 +6,6 @@ package-lock.json
 result.json
 
 /dist/
-/manim3_output/
+/examples/manim3_output/
 /playground/
 /videos/
