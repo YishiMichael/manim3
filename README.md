@@ -25,17 +25,8 @@ Through either way most features of manim3 have become available. To enable more
 ### Generating Videos
 Install ffmpeg.
 
-### `Tex`, `MathTex`
-Install LaTeX.
-
-### `MathJax`
-Install node modules by running `npm install` under `manim3/plugins/mathjax`.
-
-### `Text`, `Markup`
-Install `Pango`, `GLib`, and `libffi`. See `https://pangocffi.readthedocs.io/en/latest/overview.html` for reference.
-
-### `Code`
-Install requirements for `Text`. Plus, install sublime (which will generate highlight information), and copy the directory `manim3/plugins/code/export_highlight` under `~/Sublime Text/Packages/`.
+### `TypstMobject` (including `Text`, `Math`, `Code`)
+Install typst.
 
 
 ## Using manim3
