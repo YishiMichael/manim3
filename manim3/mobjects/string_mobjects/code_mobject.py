@@ -1,6 +1,8 @@
 from __future__ import annotations
+import itertools
 
 
+import pathlib
 from typing import (
     Self,
     Unpack
@@ -20,11 +22,18 @@ from .typst_mobject import (
 
 class CodeKwargs(TypstMobjectKwargs, total=False):
     syntax: str
+    theme: str | pathlib.Path | None
 
 
 @attrs.frozen(kw_only=True)
 class CodeInputs(TypstMobjectInputs):
-    syntax: str = attrs.field(factory=lambda: Toplevel._get_config().code_syntax)
+    syntax: str = attrs.field(
+        factory=lambda: Toplevel._get_config().code_syntax
+    )
+    theme: pathlib.Path | None = attrs.field(
+        factory=lambda: Toplevel._get_config().code_theme,
+        converter=lambda theme: None if theme is None else pathlib.Path(theme) if isinstance(theme, str) else theme
+    )
 
 
 class Code(TypstMobject[CodeInputs]):
@@ -38,9 +47,23 @@ class Code(TypstMobject[CodeInputs]):
         super().__init__(CodeInputs(string=string, **kwargs))
 
     @classmethod
+    def _get_preamble_from_inputs(
+        cls: type[Self],
+        inputs: CodeInputs,
+        temp_path: pathlib.Path
+    ) -> str:
+        return "\n".join(filter(None, (
+            super()._get_preamble_from_inputs(inputs, temp_path),
+            f"""#set raw(theme: "{
+                pathlib.Path("/".join(itertools.repeat("..", len(temp_path.parts) - 1))).joinpath(inputs.theme)
+            }")""" if inputs.theme is not None else ""
+        )))
+
+    @classmethod
     def _get_environment_pair_from_inputs(
         cls: type[Self],
-        inputs: CodeInputs
+        inputs: CodeInputs,
+        temp_path: pathlib.Path
     ) -> tuple[str, str]:
         return f"```{inputs.syntax}\n", "\n```"
 

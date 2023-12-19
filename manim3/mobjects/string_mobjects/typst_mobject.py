@@ -64,12 +64,23 @@ class TypstMobjectInputs(CachedMobjectInputs):
             trimmed.pop(0)
         return "\n".join(trimmed)
 
-    string: str = attrs.field(converter=_docstring_trim)
-    preamble: str = attrs.field(factory=lambda: Toplevel._get_config().typst_preamble, converter=_docstring_trim)
+    string: str = attrs.field(
+        converter=_docstring_trim
+    )
+    preamble: str = attrs.field(
+        factory=lambda: Toplevel._get_config().typst_preamble,
+        converter=_docstring_trim
+    )
     concatenate: bool = False
-    align: str | None = attrs.field(factory=lambda: Toplevel._get_config().typst_align)
-    font: str | tuple[str, ...] | None = attrs.field(factory=lambda: Toplevel._get_config().typst_font)
-    color: ColorType | None = attrs.field(factory=lambda: Toplevel._get_config().default_color)
+    align: str | None = attrs.field(
+        factory=lambda: Toplevel._get_config().typst_align
+    )
+    font: str | tuple[str, ...] | None = attrs.field(
+        factory=lambda: Toplevel._get_config().typst_font
+    )
+    color: ColorType | None = attrs.field(
+        factory=lambda: Toplevel._get_config().default_color
+    )
 
 
 class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstMobjectInputsT]):
@@ -93,8 +104,8 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         inputs: TypstMobjectInputsT,
         temp_path: pathlib.Path
     ) -> tuple[ShapeMobject, ...]:
-        preamble = cls._get_preamble_from_inputs(inputs)
-        environment_begin, environment_end = cls._get_environment_pair_from_inputs(inputs)
+        preamble = cls._get_preamble_from_inputs(inputs, temp_path)
+        environment_begin, environment_end = cls._get_environment_pair_from_inputs(inputs, temp_path)
         content = "\n".join(filter(None, (
             preamble,
             inputs.preamble,
@@ -106,18 +117,14 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         typst_path.write_text(content, encoding="utf-8")
 
         try:
-            if (stdout := subprocess.check_output((
+            subprocess.check_output((
                 "typst",
                 "compile",
+                "--root", pathlib.Path(),
                 typst_path,
                 svg_path
-            ))):
-                error = OSError("Typst error")
-                error.add_note(stdout.decode())
-                raise error
-
+            ), stderr=subprocess.STDOUT)
             shape_mobjects = SVGMobject._generate_shape_mobjects_from_svg(svg_path)
-
         finally:
             for path in (svg_path, typst_path):
                 path.unlink(missing_ok=True)
@@ -131,7 +138,8 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     @classmethod
     def _get_preamble_from_inputs(
         cls: type[Self],
-        inputs: TypstMobjectInputsT
+        inputs: TypstMobjectInputsT,
+        temp_path: pathlib.Path
     ) -> str:
         return "\n".join(filter(None, (
             f"""#set align({
@@ -150,7 +158,8 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     @classmethod
     def _get_environment_pair_from_inputs(
         cls: type[Self],
-        inputs: TypstMobjectInputsT
+        inputs: TypstMobjectInputsT,
+        temp_path: pathlib.Path
     ) -> tuple[str, str]:
         return "", ""
 
@@ -163,16 +172,7 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     ) -> TypstMobjectInputsT:
         pass
 
-    def _build_from_selector(
-        self: Self,
-        selector: SelectorType
-    ) -> ShapeMobject:
-        return ShapeMobject().add(*(
-            self._shape_mobjects[index]
-            for index in self._selector_to_indices_dict[selector]
-        ))
-
-    def probe(
+    def _probe_indices_from_selectors(
         self: Self,
         selectors: tuple[SelectorType, ...]
     ) -> None:
@@ -204,18 +204,27 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
                 continue
             self._selector_to_indices_dict[label_to_selector_dict[label]].append(index)
 
+    def _build_from_selector(
+        self: Self,
+        selector: SelectorType
+    ) -> ShapeMobject:
+        return ShapeMobject().add(*(
+            self._shape_mobjects[index]
+            for index in self._selector_to_indices_dict[selector]
+        ))
+
     def select(
         self: Self,
         selector: SelectorType
     ) -> ShapeMobject:
-        self.probe((selector,))
+        self._probe_indices_from_selectors((selector,))
         return self._build_from_selector(selector)
 
     def set_local_styles(
         self: Self,
         selector_to_kwargs_dict: dict[SelectorType, SetKwargs]
     ) -> Self:
-        self.probe(tuple(selector_to_kwargs_dict))
+        self._probe_indices_from_selectors(tuple(selector_to_kwargs_dict))
         for selector, kwargs in selector_to_kwargs_dict.items():
             self._build_from_selector(selector).set(**kwargs)
         return self
@@ -228,4 +237,12 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
             selector: {"color": color}
             for selector, color in selector_to_color_dict.items()
         })
+        return self
+
+    def set_local_color(
+        self: Self,
+        selector: SelectorType,
+        color: ColorType
+    ) -> Self:
+        self.set_local_colors({selector: color})
         return self

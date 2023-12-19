@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 import itertools
+import pathlib
 import re
 from typing import (
     Self,
@@ -25,7 +26,9 @@ class MathKwargs(TypstMobjectKwargs, total=False):
 
 @attrs.frozen(kw_only=True)
 class MathInputs(TypstMobjectInputs):
-    inline: bool = attrs.field(factory=lambda: Toplevel._get_config().math_inline)
+    inline: bool = attrs.field(
+        factory=lambda: Toplevel._get_config().math_inline
+    )
 
 
 class Math(TypstMobject[MathInputs]):
@@ -41,7 +44,8 @@ class Math(TypstMobject[MathInputs]):
     @classmethod
     def _get_environment_pair_from_inputs(
         cls: type[Self],
-        inputs: MathInputs
+        inputs: MathInputs,
+        temp_path: pathlib.Path
     ) -> tuple[str, str]:
         if inputs.inline:
             return "$", "$"
