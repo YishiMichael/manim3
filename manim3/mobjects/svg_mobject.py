@@ -23,129 +23,12 @@ from .cached_mobject import (
     CachedMobjectInputs
 )
 from .image_mobject import ImageMobject
-#from .mobject_io import (
-#    MobjectIO,
-#    MobjectInput,
-#    MobjectJSON,
-#    MobjectOutput
-#)
 
 
 @attrs.frozen(kw_only=True)
 class SVGMobjectInputs(CachedMobjectInputs):
     svg_path: pathlib.Path
     svg_text: str
-    #width: float | None
-    #height: float | None
-    #scale: float | None
-
-
-#@attrs.frozen(kw_only=True)
-#class SVGMobjectOutput(MobjectOutput):
-#    shape_mobjects: tuple[ShapeMobject, ...]
-
-
-#class ShapeMobjectJSON(TypedDict):
-#    coordinates: tuple[float, ...]  # flattened
-#    counts: tuple[int, ...]
-#    color: str
-#    opacity: float
-
-
-#class SVGMobjectJSON(MobjectJSON):
-#    shape_mobjects: tuple[ShapeMobjectJSON, ...]
-
-
-#class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON]):
-#    __slots__ = ()
-
-#    @classmethod
-#    def _get_subdir_name(
-#        cls: type[Self]
-#    ) -> str:
-#        return "svg_mobject"
-
-#    @classmethod
-#    def generate(
-#        cls: type[Self],
-#        input_data: SVGMobjectInput,
-#        temp_path: pathlib.Path
-#    ) -> SVGMobjectOutput:
-#        return SVGMobjectOutput(
-#            shape_mobjects=cls._get_shape_mobjects_from_svg_path(
-#                svg_path=input_data.svg_path,
-#                width=input_data.width,
-#                height=input_data.height,
-#                scale=input_data.scale
-#            )
-#        )
-
-#    @classmethod
-#    def dump_json(
-#        cls: type[Self],
-#        output_data: SVGMobjectOutput
-#    ) -> SVGMobjectJSON:
-#        return SVGMobjectJSON(
-#            shape_mobjects=tuple(
-#                cls._shape_mobject_to_json(shape_mobject)
-#                for shape_mobject in output_data.shape_mobjects
-#            )
-#        )
-
-#    @classmethod
-#    def load_json(
-#        cls: type[Self],
-#        json_data: SVGMobjectJSON
-#    ) -> SVGMobjectOutput:
-#        return SVGMobjectOutput(
-#            shape_mobjects=tuple(
-#                cls._json_to_shape_mobject(shape_mobject_json)
-#                for shape_mobject_json in json_data["shape_mobjects"]
-#            )
-#        )
-
-#    @classmethod
-#    def _get_shape_mobjects_from_svg_path(
-#        cls: type[Self],
-#        svg_path: str | pathlib.Path,
-#        *,
-#        width: float | None = None,
-#        height: float | None = None,
-#        scale: float | None = None
-#    ) -> tuple[ShapeMobject, ...]:
-
-#        
-
-#    @classmethod
-#    def _shape_mobject_to_json(
-#        cls: type[Self],
-#        shape_mobject: ShapeMobject
-#    ) -> ShapeMobjectJSON:
-#        shape = shape_mobject._shape_
-#        return ShapeMobjectJSON(
-#            coordinates=tuple(round(float(value), 6) for value in shape._coordinates_.flatten()),
-#            counts=tuple(int(value) for value in shape._counts_),
-#            color=AnimatableColor._array_to_hex(shape_mobject._color_._array_),
-#            opacity=round(float(shape_mobject._opacity_._array_), 6)
-#        )
-
-#    @classmethod
-#    def _json_to_shape_mobject(
-#        cls: type[Self],
-#        shape_mobject_json: ShapeMobjectJSON
-#    ) -> ShapeMobject:
-#        coordinates = shape_mobject_json["coordinates"]
-#        counts = shape_mobject_json["counts"]
-#        color = shape_mobject_json["color"]
-#        opacity = shape_mobject_json["opacity"]
-
-#        return ShapeMobject(Shape(
-#            coordinates=np.fromiter(coordinates, dtype=np.float64).reshape(-1, 2),
-#            counts=np.fromiter(counts, dtype=np.int32)
-#        )).set(
-#            color=color,
-#            opacity=opacity
-#        )
 
 
 class SVGMobject(CachedMobject[SVGMobjectInputs]):
@@ -163,14 +46,12 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
         super().__init__(SVGMobjectInputs(
             svg_path=svg_path,
             svg_text=svg_path.read_text(encoding="utf-8")
-            #width=width,
-            #height=height,
-            #scale=scale
         ))
 
+        radii = self.box.get_radii()
         scale_x, scale_y = ImageMobject._get_scale_vector(
-            original_width=float(self.box.get_radii()[0]),
-            original_height=float(self.box.get_radii()[1]),
+            original_width=float(radii[0]),
+            original_height=float(radii[1]),
             specified_width=width,
             specified_height=height,
             specified_scale=scale
@@ -193,9 +74,6 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
     def _generate_shape_mobjects_from_svg(
         cls: type[Self],
         svg_path: pathlib.Path
-        #width: float | None,
-        #height: float | None,
-        #scale: float | None
     ) -> tuple[ShapeMobject, ...]:
 
         def iter_paths_from_se_shape(

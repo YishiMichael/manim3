@@ -39,18 +39,3 @@ class AnimatableColor(AnimatableArray[NP_3f8]):
                 return color.astype(np.float64)
             case _:
                 raise ValueError(f"Invalid color: {color}")
-
-    #@classmethod
-    #def _array_to_hex(
-    #    cls: type[Self],
-    #    color_array: NP_3f8
-    #) -> str:
-    #    components = (color_array * 255.0).astype(np.int32)
-    #    return f"#{"".join(f"{component:02x}" for component in components)}"
-
-    #@classmethod
-    #def _color_to_hex(
-    #    cls: type[Self],
-    #    color: ColorType
-    #) -> str:
-    #    return cls._array_to_hex(cls._color_to_array(color))

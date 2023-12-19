@@ -47,34 +47,6 @@ class Config(ToplevelResource):
     math_inline: bool = False
     code_syntax: str = "py"
 
-    #tex_alignment: AlignmentType = "left"
-    #tex_template: str = "default"
-    #tex_compiler: str = "xelatex"
-    #tex_preambles: tuple[str, ...] = (
-    #    "\\usepackage[UTF8]{ctex}",
-    #    "\\usepackage{amsmath}",
-    #    "\\usepackage{amssymb}",
-    #    "\\usepackage{xcolor}"  # Required for labelling.
-    #)
-    #math_tex_alignment: AlignmentType = "center"
-    #math_tex_inline: bool = False
-    ## See `https://docs.mathjax.org/en/latest/input/tex/extensions/index.html`.
-    #mathjax_extensions: tuple[str, ...] = (
-    #    "ams",
-    #    "autoload",
-    #    "base",
-    #    "color",  # Required for labelling.
-    #    "newcommand",
-    #    "require"
-    #)
-    #mathjax_alignment: AlignmentType = "center"
-    #mathjax_inline: bool = False
-
-    #pango_alignment: AlignmentType = "left"
-    #pango_font: str = "Consolas"
-    #code_font: str = "Consolas"
-    #code_language_suffix: str = ".py"
-
     shader_search_dirs: tuple[pathlib.Path, ...] = (
         pathlib.Path(),
         pathlib.Path(__import__("manim3").__file__).parent.joinpath("shaders")

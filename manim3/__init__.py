@@ -70,7 +70,6 @@ from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
 from .timelines.transform.transform import Transform
-#from .timelines.transform.transform_matching_strings import TransformMatchingStrings
 from .timelines.timeline import Timeline
 
 from .toplevel.config import Config
