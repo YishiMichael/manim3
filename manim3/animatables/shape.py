@@ -176,11 +176,11 @@ class Shape(ShapeActions, Animatable):
             )
 
         clipper = pyclipr.Clipper()
-        clipper.addPaths([
+        clipper.addPaths(tuple(
             coordinates[start:stop]
             for start, stop in itertools.pairwise(cumcounts)
-        ], pyclipr.Subject)
-        poly_tree_root = clipper.execute2(pyclipr.Union, pyclipr.EvenOdd)
+        ), pyclipr.Subject)
+        poly_tree_root = clipper.execute2(pyclipr.Union, pyclipr.FillRule.EvenOdd)
         triangulation_coordinates, triangulation_faces = ShapeUtils.concatenate_triangulations(
             get_contour_triangulation(contour)
             for contour in iter_contour_nodes(poly_tree_root.children)
@@ -219,7 +219,7 @@ class Shape(ShapeActions, Animatable):
         # http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/ClipType.htm
         clip_type: pyclipr.ClipType,
         # http://www.angusj.com/clipper2/Docs/Units/Clipper/Types/FillRule.htm
-        fill_type: pyclipr.FillType
+        fillRule: pyclipr.FillRule
     ) -> Self:
         clipper = pyclipr.Clipper()
         for shape, path_type in shape_path_type_pairs:
@@ -227,7 +227,7 @@ class Shape(ShapeActions, Animatable):
                 shape._coordinates_[start:stop]
                 for start, stop in itertools.pairwise(shape._cumcounts_)
             ], path_type)
-        path_list: list[NP_x2f8] = clipper.execute(clip_type, fill_type)
+        path_list: list[NP_x2f8] = clipper.execute(clip_type, fillRule)
         return self.as_paths(iter(path_list))
 
     def split(
@@ -261,7 +261,7 @@ class Shape(ShapeActions, Animatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Intersection,
-            fill_type=pyclipr.NonZero
+            fillRule=pyclipr.FillRule.NonZero
         )
 
     def union(
@@ -272,7 +272,7 @@ class Shape(ShapeActions, Animatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Union,
-            fill_type=pyclipr.NonZero
+            fillRule=pyclipr.FillRule.NonZero
         )
 
     def difference(
@@ -283,7 +283,7 @@ class Shape(ShapeActions, Animatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Difference,
-            fill_type=pyclipr.NonZero
+            fillRule=pyclipr.FillRule.NonZero
         )
 
     def xor(
@@ -294,7 +294,7 @@ class Shape(ShapeActions, Animatable):
             (self, pyclipr.Subject),
             (other, pyclipr.Clip),
             clip_type=pyclipr.Xor,
-            fill_type=pyclipr.NonZero
+            fillRule=pyclipr.FillRule.NonZero
         )
 
     def animate(

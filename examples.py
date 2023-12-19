@@ -44,17 +44,17 @@ class TextTransformExample(Scene):
             .shift(2.0 * LEFT)
             .add_strokes(color=BLUE, weight=10.0)
         )
-        tex = (
-            Tex("Tex", concatenate=True)
+        typst = (
+            Text("Typst", concatenate=True)
             .set(color=BLUE, opacity=0.5)
             .add_strokes(color=PINK, weight=10.0)
         )
         code = Code("print(\"Code!\")").shift(2.0 * RIGHT)
         self.add(text)
         await self.wait()
-        await self.play(Transform(text, tex), run_time=2.0, rate=Rates.smooth())
+        await self.play(Transform(text, typst), run_time=2.0, rate=Rates.smooth())
         await self.wait()
-        await self.play(FadeTransform(tex, code), run_time=2.0, rate=Rates.smooth())
+        await self.play(FadeTransform(typst, code), run_time=2.0, rate=Rates.smooth())
         await self.wait(3.0)
 
 
@@ -78,7 +78,7 @@ class WriteExample(Scene):
     async def construct(
         self: Self
     ) -> None:
-        tex = Tex("Hello").scale(2.0)
+        text = Text("Hello").scale(1.5)
         await self.play(Parallel(*(
             Series(
                 Create(stroke := glyph.build_stroke()),
@@ -87,7 +87,7 @@ class WriteExample(Scene):
                     FadeOut(stroke)
                 )
             )
-            for glyph in tex
+            for glyph in text
             if isinstance(glyph, ShapeMobject)
         ), lag_ratio=0.3), run_time=3.0)
         await self.wait(2.0)
@@ -163,24 +163,25 @@ class FormulaExample(Scene):
     async def construct(
         self: Self
     ) -> None:
-        factored_formula = MathTex(
-            "\\left( a_{0}^{2} + a_{1}^{2} \\right) \\left( b_{0}^{2} + b_{1}^{2} + b_{2}^{2} \\right)",
-            local_colors={
-                re.compile(r"a_{\d}"): TEAL,
-                re.compile(r"b_{\d}"): ORANGE
-            }
-        ).scale(0.5).shift(UP)
-        expanded_formula = MathTex(
-            "a_{0}^{2} b_{0}^{2} + a_{0}^{2} b_{1}^{2} + a_{0}^{2} b_{2}^{2}" \
-                + " + a_{1}^{2} b_{0}^{2} + a_{1}^{2} b_{1}^{2} + a_{1}^{2} b_{2}^{2}",
-            local_colors={
-                re.compile(r"a_{\d}"): TEAL,
-                re.compile(r"b_{\d}"): ORANGE
-            }
-        ).scale(0.5).shift(DOWN)
+        factored_formula = Math(
+            "(a_0^2 + a_1^2) (b_0^2 + b_1^2 + b_2^2)"
+        ).set_local_colors({
+            "a": TEAL,
+            re.compile(r"(?<=a_)\d"): TEAL,
+            "b": ORANGE,
+            re.compile(r"(?<=b_)\d"): ORANGE
+        }).scale(0.5).shift(UP)
+        expanded_formula = Math(
+            "a_0^2 b_0^2 + a_0^2 b_1^2 + a_0^2 b_2^2 + a_1^2 b_0^2 + a_1^2 b_1^2 + a_1^2 b_2^2"
+        ).set_local_colors({
+            "a": TEAL,
+            re.compile(r"(?<=a_)\d"): TEAL,
+            "b": ORANGE,
+            re.compile(r"(?<=b_)\d"): ORANGE
+        }).scale(0.5).shift(DOWN)
         self.add(factored_formula)
         await self.wait()
-        await self.play(TransformMatchingStrings(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
+        await self.play(FadeTransform(factored_formula, expanded_formula), rate=Rates.smooth(), run_time=2.0)
         await self.wait(2.0)
 
 
@@ -323,7 +324,7 @@ def main() -> None:
         Toplevel.livestream(),
         #Toplevel.recording("ShapeTransformExample.mp4")
     ):
-        ShapeTransformExample().run()
+        FormulaExample().run()
 
 
 if __name__ == "__main__":

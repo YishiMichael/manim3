@@ -11,10 +11,7 @@ from typing import (
 import attrs
 from colour import Color
 
-from ..constants.custom_typing import (
-    AlignmentType,
-    ColorType
-)
+from ..constants.custom_typing import ColorType
 from .toplevel import Toplevel
 from .toplevel_resource import ToplevelResource
 
@@ -44,33 +41,39 @@ class Config(ToplevelResource):
     mesh_shininess: float = 32.0
     graph_width: float = 0.05
 
-    tex_alignment: AlignmentType = "left"
-    tex_template: str = "default"
-    tex_compiler: str = "xelatex"
-    tex_preambles: tuple[str, ...] = (
-        "\\usepackage[UTF8]{ctex}",
-        "\\usepackage{amsmath}",
-        "\\usepackage{amssymb}",
-        "\\usepackage{xcolor}"  # Required for labelling.
-    )
-    math_tex_alignment: AlignmentType = "center"
-    math_tex_inline: bool = False
-    # See `https://docs.mathjax.org/en/latest/input/tex/extensions/index.html`.
-    mathjax_extensions: tuple[str, ...] = (
-        "ams",
-        "autoload",
-        "base",
-        "color",  # Required for labelling.
-        "newcommand",
-        "require"
-    )
-    mathjax_alignment: AlignmentType = "center"
-    mathjax_inline: bool = False
+    typst_preamble: str = ""
+    typst_align: str | None = None
+    typst_font: str | tuple[str, ...] | None = None
+    math_inline: bool = False
+    code_syntax: str = "py"
 
-    pango_alignment: AlignmentType = "left"
-    pango_font: str = "Consolas"
-    code_font: str = "Consolas"
-    code_language_suffix: str = ".py"
+    #tex_alignment: AlignmentType = "left"
+    #tex_template: str = "default"
+    #tex_compiler: str = "xelatex"
+    #tex_preambles: tuple[str, ...] = (
+    #    "\\usepackage[UTF8]{ctex}",
+    #    "\\usepackage{amsmath}",
+    #    "\\usepackage{amssymb}",
+    #    "\\usepackage{xcolor}"  # Required for labelling.
+    #)
+    #math_tex_alignment: AlignmentType = "center"
+    #math_tex_inline: bool = False
+    ## See `https://docs.mathjax.org/en/latest/input/tex/extensions/index.html`.
+    #mathjax_extensions: tuple[str, ...] = (
+    #    "ams",
+    #    "autoload",
+    #    "base",
+    #    "color",  # Required for labelling.
+    #    "newcommand",
+    #    "require"
+    #)
+    #mathjax_alignment: AlignmentType = "center"
+    #mathjax_inline: bool = False
+
+    #pango_alignment: AlignmentType = "left"
+    #pango_font: str = "Consolas"
+    #code_font: str = "Consolas"
+    #code_language_suffix: str = ".py"
 
     shader_search_dirs: tuple[pathlib.Path, ...] = (
         pathlib.Path(),

@@ -4,8 +4,7 @@ from __future__ import annotations
 import pathlib
 from typing import (
     Iterator,
-    Self,
-    TypedDict
+    Self
 )
 
 import attrs
@@ -13,155 +12,191 @@ import numpy as np
 import svgelements as se
 from scipy.interpolate import BSpline
 
-from ..animatables.arrays.animatable_color import AnimatableColor
 from ..animatables.shape import Shape
 from ..constants.custom_typing import (
     NP_2f8,
     NP_x2f8
 )
 from .shape_mobjects.shape_mobject import ShapeMobject
-from .image_mobject import ImageMobject
-from .mobject_io import (
-    MobjectIO,
-    MobjectInput,
-    MobjectJSON,
-    MobjectOutput
+from .cached_mobject import (
+    CachedMobject,
+    CachedMobjectInputs
 )
+from .image_mobject import ImageMobject
+#from .mobject_io import (
+#    MobjectIO,
+#    MobjectInput,
+#    MobjectJSON,
+#    MobjectOutput
+#)
 
 
 @attrs.frozen(kw_only=True)
-class SVGMobjectInput(MobjectInput):
+class SVGMobjectInputs(CachedMobjectInputs):
     svg_path: pathlib.Path
     svg_text: str
-    width: float | None
-    height: float | None
-    scale: float | None
+    #width: float | None
+    #height: float | None
+    #scale: float | None
 
 
-@attrs.frozen(kw_only=True)
-class SVGMobjectOutput(MobjectOutput):
-    shape_mobjects: tuple[ShapeMobject, ...]
+#@attrs.frozen(kw_only=True)
+#class SVGMobjectOutput(MobjectOutput):
+#    shape_mobjects: tuple[ShapeMobject, ...]
 
 
-class ShapeMobjectJSON(TypedDict):
-    coordinates: tuple[float, ...]  # flattened
-    counts: tuple[int, ...]
-    color: str
-    opacity: float
+#class ShapeMobjectJSON(TypedDict):
+#    coordinates: tuple[float, ...]  # flattened
+#    counts: tuple[int, ...]
+#    color: str
+#    opacity: float
 
 
-class SVGMobjectJSON(MobjectJSON):
-    shape_mobjects: tuple[ShapeMobjectJSON, ...]
+#class SVGMobjectJSON(MobjectJSON):
+#    shape_mobjects: tuple[ShapeMobjectJSON, ...]
 
 
-class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON]):
-    __slots__ = ()
+#class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON]):
+#    __slots__ = ()
 
-    @property
-    @classmethod
-    def _get_subdir_name(
-        cls: type[Self]
-    ) -> str:
-        return "svg_mobject"
+#    @classmethod
+#    def _get_subdir_name(
+#        cls: type[Self]
+#    ) -> str:
+#        return "svg_mobject"
 
-    @classmethod
-    def generate(
-        cls: type[Self],
-        input_data: SVGMobjectInput,
-        temp_path: pathlib.Path
-    ) -> SVGMobjectOutput:
-        return SVGMobjectOutput(
-            shape_mobjects=cls._get_shape_mobjects_from_svg_path(
-                svg_path=input_data.svg_path,
-                width=input_data.width,
-                height=input_data.height,
-                scale=input_data.scale
-            )
-        )
+#    @classmethod
+#    def generate(
+#        cls: type[Self],
+#        input_data: SVGMobjectInput,
+#        temp_path: pathlib.Path
+#    ) -> SVGMobjectOutput:
+#        return SVGMobjectOutput(
+#            shape_mobjects=cls._get_shape_mobjects_from_svg_path(
+#                svg_path=input_data.svg_path,
+#                width=input_data.width,
+#                height=input_data.height,
+#                scale=input_data.scale
+#            )
+#        )
 
-    @classmethod
-    def dump_json(
-        cls: type[Self],
-        output_data: SVGMobjectOutput
-    ) -> SVGMobjectJSON:
-        return SVGMobjectJSON(
-            shape_mobjects=tuple(
-                cls._shape_mobject_to_json(shape_mobject)
-                for shape_mobject in output_data.shape_mobjects
-            )
-        )
+#    @classmethod
+#    def dump_json(
+#        cls: type[Self],
+#        output_data: SVGMobjectOutput
+#    ) -> SVGMobjectJSON:
+#        return SVGMobjectJSON(
+#            shape_mobjects=tuple(
+#                cls._shape_mobject_to_json(shape_mobject)
+#                for shape_mobject in output_data.shape_mobjects
+#            )
+#        )
 
-    @classmethod
-    def load_json(
-        cls: type[Self],
-        json_data: SVGMobjectJSON
-    ) -> SVGMobjectOutput:
-        return SVGMobjectOutput(
-            shape_mobjects=tuple(
-                cls._json_to_shape_mobject(shape_mobject_json)
-                for shape_mobject_json in json_data["shape_mobjects"]
-            )
-        )
+#    @classmethod
+#    def load_json(
+#        cls: type[Self],
+#        json_data: SVGMobjectJSON
+#    ) -> SVGMobjectOutput:
+#        return SVGMobjectOutput(
+#            shape_mobjects=tuple(
+#                cls._json_to_shape_mobject(shape_mobject_json)
+#                for shape_mobject_json in json_data["shape_mobjects"]
+#            )
+#        )
 
-    @classmethod
-    def _get_shape_mobjects_from_svg_path(
-        cls: type[Self],
+#    @classmethod
+#    def _get_shape_mobjects_from_svg_path(
+#        cls: type[Self],
+#        svg_path: str | pathlib.Path,
+#        *,
+#        width: float | None = None,
+#        height: float | None = None,
+#        scale: float | None = None
+#    ) -> tuple[ShapeMobject, ...]:
+
+#        
+
+#    @classmethod
+#    def _shape_mobject_to_json(
+#        cls: type[Self],
+#        shape_mobject: ShapeMobject
+#    ) -> ShapeMobjectJSON:
+#        shape = shape_mobject._shape_
+#        return ShapeMobjectJSON(
+#            coordinates=tuple(round(float(value), 6) for value in shape._coordinates_.flatten()),
+#            counts=tuple(int(value) for value in shape._counts_),
+#            color=AnimatableColor._array_to_hex(shape_mobject._color_._array_),
+#            opacity=round(float(shape_mobject._opacity_._array_), 6)
+#        )
+
+#    @classmethod
+#    def _json_to_shape_mobject(
+#        cls: type[Self],
+#        shape_mobject_json: ShapeMobjectJSON
+#    ) -> ShapeMobject:
+#        coordinates = shape_mobject_json["coordinates"]
+#        counts = shape_mobject_json["counts"]
+#        color = shape_mobject_json["color"]
+#        opacity = shape_mobject_json["opacity"]
+
+#        return ShapeMobject(Shape(
+#            coordinates=np.fromiter(coordinates, dtype=np.float64).reshape(-1, 2),
+#            counts=np.fromiter(counts, dtype=np.int32)
+#        )).set(
+#            color=color,
+#            opacity=opacity
+#        )
+
+
+class SVGMobject(CachedMobject[SVGMobjectInputs]):
+    __slots__ = ("_shape_mobjects",)
+
+    def __init__(
+        self: Self,
         svg_path: str | pathlib.Path,
         *,
         width: float | None = None,
         height: float | None = None,
         scale: float | None = None
+    ) -> None:
+        svg_path = pathlib.Path(svg_path)
+        super().__init__(SVGMobjectInputs(
+            svg_path=svg_path,
+            svg_text=svg_path.read_text(encoding="utf-8")
+            #width=width,
+            #height=height,
+            #scale=scale
+        ))
+
+        scale_x, scale_y = ImageMobject._get_scale_vector(
+            original_width=float(self.box.get_radii()[0]),
+            original_height=float(self.box.get_radii()[1]),
+            specified_width=width,
+            specified_height=height,
+            specified_scale=scale
+        )
+        self.scale(np.array((
+            scale_x,
+            scale_y,
+            1.0
+        )))
+
+    @classmethod
+    def _generate_shape_mobjects(
+        cls: type[Self],
+        inputs: SVGMobjectInputs,
+        temp_path: pathlib.Path
     ) -> tuple[ShapeMobject, ...]:
+        return cls._generate_shape_mobjects_from_svg(inputs.svg_path)
 
-        def perspective(
-            origin_x: float,
-            origin_y: float,
-            radius_x: float,
-            radius_y: float
-        ) -> se.Matrix:
-            # `(origin=(0.0, 0.0), radius=(1.0, 1.0))` ->
-            # `(origin=(origin_x, origin_y), radius=(radius_x, radius_y))`
-            return se.Matrix(
-                radius_x,
-                0.0,
-                0.0,
-                radius_y,
-                origin_x,
-                origin_y
-            )
-
-        def get_transform(
-            bbox: tuple[float, float, float, float],
-            width: float | None,
-            height: float | None,
-            scale: float | None
-        ) -> se.Matrix:
-
-            min_x, min_y, max_x, max_y = bbox
-            origin_x = (min_x + max_x) / 2.0
-            origin_y = (min_y + max_y) / 2.0
-            radius_x = (max_x - min_x) / 2.0
-            radius_y = (max_y - min_y) / 2.0
-            transform = ~perspective(
-                origin_x=origin_x,
-                origin_y=origin_y,
-                radius_x=radius_x,
-                radius_y=radius_y
-            )
-            scale_x, scale_y = ImageMobject._get_scale_vector(
-                original_width=radius_x * 2.0,
-                original_height=radius_y * 2.0,
-                specified_width=width,
-                specified_height=height,
-                specified_scale=scale
-            )
-            transform *= perspective(
-                origin_x=0.0,
-                origin_y=0.0,
-                radius_x=scale_x * radius_x,
-                radius_y=-scale_y * radius_y  # Flip y.
-            )
-            return transform
+    @classmethod
+    def _generate_shape_mobjects_from_svg(
+        cls: type[Self],
+        svg_path: pathlib.Path
+        #width: float | None,
+        #height: float | None,
+        #scale: float | None
+    ) -> tuple[ShapeMobject, ...]:
 
         def iter_paths_from_se_shape(
             se_shape: se.Shape
@@ -205,11 +240,14 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
 
             # Handle transform before constructing `Shape`s,
             # so that the center of the entire shape falls on the origin.
-            transform = get_transform(
-                bbox=bbox,
-                width=width,
-                height=height,
-                scale=scale
+            min_x, min_y, max_x, max_y = bbox
+            transform = se.Matrix(
+                1.0,
+                0.0,
+                0.0,
+                -1.0,  # Flip y.
+                -(min_x + max_x) / 2.0,
+                (min_y + max_y) / 2.0
             )
 
             for se_shape in svg.elements():
@@ -229,60 +267,3 @@ class SVGMobjectIO(MobjectIO[SVGMobjectInput, SVGMobjectOutput, SVGMobjectJSON])
 
         svg: se.SVG = se.SVG.parse(svg_path)
         return tuple(iter_shape_mobjects_from_svg(svg))
-
-    @classmethod
-    def _shape_mobject_to_json(
-        cls: type[Self],
-        shape_mobject: ShapeMobject
-    ) -> ShapeMobjectJSON:
-        shape = shape_mobject._shape_
-        return ShapeMobjectJSON(
-            coordinates=tuple(round(float(value), 6) for value in shape._coordinates_.flatten()),
-            counts=tuple(int(value) for value in shape._counts_),
-            color=AnimatableColor._array_to_hex(shape_mobject._color_._array_),
-            opacity=round(float(shape_mobject._opacity_._array_), 6)
-        )
-
-    @classmethod
-    def _json_to_shape_mobject(
-        cls: type[Self],
-        shape_mobject_json: ShapeMobjectJSON
-    ) -> ShapeMobject:
-        coordinates = shape_mobject_json["coordinates"]
-        counts = shape_mobject_json["counts"]
-        color = shape_mobject_json["color"]
-        opacity = shape_mobject_json["opacity"]
-
-        return ShapeMobject(Shape(
-            coordinates=np.fromiter(coordinates, dtype=np.float64).reshape(-1, 2),
-            counts=np.fromiter(counts, dtype=np.int32)
-        )).set(
-            color=color,
-            opacity=opacity
-        )
-
-
-class SVGMobject(ShapeMobject):
-    __slots__ = ("_shape_mobjects",)
-
-    def __init__(
-        self: Self,
-        svg_path: str | pathlib.Path,
-        *,
-        width: float | None = None,
-        height: float | None = None,
-        scale: float | None = None
-    ) -> None:
-        super().__init__()
-        svg_path = pathlib.Path(svg_path)
-        output_data = SVGMobjectIO.get(SVGMobjectInput(
-            svg_path=svg_path,
-            svg_text=svg_path.read_text(encoding="utf-8"),
-            width=width,
-            height=height,
-            scale=scale
-        ))
-
-        shape_mobjects = output_data.shape_mobjects
-        self._shape_mobjects: tuple[ShapeMobject, ...] = shape_mobjects
-        self.add(*shape_mobjects)

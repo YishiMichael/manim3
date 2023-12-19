@@ -41,12 +41,9 @@ from .mobjects.shape_mobjects.polyhedra import (
 from .mobjects.shape_mobjects.regular_polygon import RegularPolygon
 from .mobjects.shape_mobjects.shape_mobject import ShapeMobject
 from .mobjects.shape_mobjects.square import Square
-from .mobjects.string_mobjects.code import Code
-from .mobjects.string_mobjects.markup import Markup
-from .mobjects.string_mobjects.math_tex import MathTex
-from .mobjects.string_mobjects.mathjax import MathJax
-from .mobjects.string_mobjects.tex import Tex
-from .mobjects.string_mobjects.text import Text
+from .mobjects.string_mobjects.code_mobject import Code
+from .mobjects.string_mobjects.math_mobject import Math
+from .mobjects.string_mobjects.text_mobject import Text
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mobject import Mobject
 from .mobjects.svg_mobject import SVGMobject
@@ -73,7 +70,7 @@ from .timelines.piecewise.dashed import Dashed
 from .timelines.piecewise.flash import Flash
 from .timelines.piecewise.uncreate import Uncreate
 from .timelines.transform.transform import Transform
-from .timelines.transform.transform_matching_strings import TransformMatchingStrings
+#from .timelines.transform.transform_matching_strings import TransformMatchingStrings
 from .timelines.timeline import Timeline
 
 from .toplevel.config import Config

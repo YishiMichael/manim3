@@ -15,7 +15,6 @@ __all__ = (
     "NP_xxi4",
     "ShapeType",
     "ColorType",
-    "AlignmentType",
     "SelectorType",
     "RateType",
     "ConditionType"
@@ -52,8 +51,7 @@ type NP_xxi4 = np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
 
 type ShapeType = tuple[int, ...]
 type ColorType = Color | str | NP_3f8
-type AlignmentType = Literal["left", "center", "right"]
-type SelectorType = str | re.Pattern[str] | slice
+type SelectorType = str | re.Pattern[str]
 
 type RateType = Callable[[float], float]
 type ConditionType = Callable[[], bool]
