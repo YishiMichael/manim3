@@ -14,6 +14,8 @@ from typing import (
     overload
 )
 
+from lru import LRU
+
 if TYPE_CHECKING:
     from .lazy_object import LazyObject
     from .lazy_slot import LazySlot
@@ -59,27 +61,6 @@ class Memoization[KT: Hashable, VT](weakref.WeakValueDictionary[KT, Memoized[VT]
             memoized_value = Memoized(value)
             self[key] = memoized_value
         return memoized_value
-
-
-class Cache[KT: Hashable, VT](dict[KT, VT]):
-    __slots__ = ("_capacity",)
-
-    def __init__(
-        self: Self,
-        capacity: int
-    ) -> None:
-        super().__init__()
-        self._capacity: int = capacity
-
-    def set(
-        self: Self,
-        key: KT,
-        value: VT
-    ) -> None:
-        assert key not in self
-        self[key] = value
-        if len(self) > self._capacity:
-            self.pop(next(iter(self)))
 
 
 type TupleTree[T] = T | tuple[TupleTree[T], ...]
@@ -129,7 +110,7 @@ class LazyDescriptor[T, DataT]:
         "_plural",
         "_freeze",
         "_deepcopy",
-        "_cache",
+        "_lru_cache",
         "_parameter_key_memoization",
         "_element_memoization",
         "_name",
@@ -154,7 +135,7 @@ class LazyDescriptor[T, DataT]:
         self._plural: bool = plural
         self._freeze: bool = freeze
         self._deepcopy: bool = deepcopy
-        self._cache: Cache[Memoized[Hashable], tuple[Memoized[T], ...]] = Cache(capacity=cache_capacity)
+        self._lru_cache: LRU[Memoized[Hashable], tuple[Memoized[T], ...]] | None = LRU(cache_capacity) if cache_capacity else None
         self._parameter_key_memoization: Memoization[Hashable, Hashable] = Memoization()
         self._element_memoization: Memoization[Hashable, T] = Memoization()
         self._name: str = NotImplemented
@@ -246,11 +227,12 @@ class LazyDescriptor[T, DataT]:
             memoized_parameter_key = self._memoize_parameter_key(tuple(
                 tree.as_tuple_tree(Memoized.get_id) for tree in trees
             ))
-            if (memoized_elements := self._cache.get(memoized_parameter_key)) is None:
+            if (lru_cache := self._lru_cache) is None or (memoized_elements := lru_cache.get(memoized_parameter_key)) is None:
                 memoized_elements = self._memoize_elements(self._decomposer(self._method(*(
                     tree.as_tuple_tree(Memoized.get_value) for tree in trees
                 ))))
-                self._cache.set(memoized_parameter_key, memoized_elements)
+                if lru_cache is not None:
+                    lru_cache[memoized_parameter_key] = memoized_elements
             slot.set(
                 elements=memoized_elements,
                 parameter_key=memoized_parameter_key,
