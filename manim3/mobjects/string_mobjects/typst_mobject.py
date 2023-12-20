@@ -12,7 +12,6 @@ from typing import (
 import attrs
 
 from ...animatables.arrays.animatable_color import AnimatableColor
-from ...animatables.model import SetKwargs
 from ...animatables.shape import Shape
 from ...constants.custom_typing import (
     ColorType,
@@ -213,6 +212,16 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
             for index in self._selector_to_indices_dict[selector]
         ))
 
+    def select_multiple(
+        self: Self,
+        selectors: tuple[SelectorType, ...]
+    ) -> ShapeMobject:
+        self._probe_indices_from_selectors(selectors)
+        return ShapeMobject().add(*(
+            self._build_from_selector(selector)
+            for selector in selectors
+        ))
+
     def select(
         self: Self,
         selector: SelectorType
@@ -220,23 +229,16 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         self._probe_indices_from_selectors((selector,))
         return self._build_from_selector(selector)
 
-    def set_local_styles(
-        self: Self,
-        selector_to_kwargs_dict: dict[SelectorType, SetKwargs]
-    ) -> Self:
-        self._probe_indices_from_selectors(tuple(selector_to_kwargs_dict))
-        for selector, kwargs in selector_to_kwargs_dict.items():
-            self._build_from_selector(selector).set(**kwargs)
-        return self
-
     def set_local_colors(
         self: Self,
         selector_to_color_dict: dict[SelectorType, ColorType]
     ) -> Self:
-        self.set_local_styles({
-            selector: {"color": color}
-            for selector, color in selector_to_color_dict.items()
-        })
+        for mobject, color in zip(
+            self.select_multiple(tuple(selector_to_color_dict)),
+            selector_to_color_dict.values(),
+            strict=True
+        ):
+            mobject.set(color=color)
         return self
 
     def set_local_color(
@@ -244,5 +246,5 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         selector: SelectorType,
         color: ColorType
     ) -> Self:
-        self.set_local_colors({selector: color})
+        self.select(selector).set(color=color)
         return self

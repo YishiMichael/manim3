@@ -20,13 +20,15 @@ from ..constants.custom_typing import (
     NP_xi4
 )
 from ..lazy.lazy import Lazy
-from .animatable.actions import Action
+from .animatable.action import (
+    DescriptiveAction,
+    DescriptorParameters
+)
 from .animatable.animatable import (
     Animatable,
-    AnimatableActions,
     AnimatableInterpolateAnimation,
     AnimatablePiecewiseAnimation,
-    DynamicAnimatable
+    AnimatableTimeline
 )
 from .animatable.animation import (
     AnimateKwargs,
@@ -35,31 +37,7 @@ from .animatable.animation import (
 from .animatable.piecewiser import Piecewiser
 
 
-class GraphActions(AnimatableActions):
-    __slots__ = ()
-
-    @Action.register()
-    @classmethod
-    def interpolate(
-        cls: type[Self],
-        dst: Graph,
-        src_0: Graph,
-        src_1: Graph
-    ) -> Iterator[Animation]:
-        yield GraphInterpolateAnimation(dst, src_0, src_1)
-
-    @Action.register()
-    @classmethod
-    def piecewise(
-        cls: type[Self],
-        dst: Graph,
-        src: Graph,
-        piecewiser: Piecewiser
-    ) -> Iterator[Animation]:
-        yield GraphPiecewiseAnimation(dst, src, piecewiser)
-
-
-class Graph(GraphActions, Animatable):
+class Graph(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -130,9 +108,32 @@ class Graph(GraphActions, Animatable):
     ) -> DynamicGraph[Self]:
         return DynamicGraph(self, **kwargs)
 
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
+    @classmethod
+    def interpolate(
+        cls: type[Self],
+        dst: Self,
+        src_0: Self,
+        src_1: Self
+    ) -> Iterator[Animation]:
+        yield GraphInterpolateAnimation(dst, src_0, src_1)
 
-class DynamicGraph[GraphT: Graph](GraphActions, DynamicAnimatable[GraphT]):
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
+    @classmethod
+    def piecewise(
+        cls: type[Self],
+        dst: Self,
+        src: Self,
+        piecewiser: Piecewiser
+    ) -> Iterator[Animation]:
+        yield GraphPiecewiseAnimation(dst, src, piecewiser)
+
+
+class DynamicGraph[GraphT: Graph](AnimatableTimeline[GraphT]):
     __slots__ = ()
+
+    interpolate = Graph.interpolate
+    piecewise = Graph.piecewise
 
 
 @attrs.frozen(kw_only=True)

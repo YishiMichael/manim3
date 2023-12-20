@@ -11,9 +11,8 @@ from typing import (
 from ...constants.custom_typing import NP_xf8
 from ...lazy.lazy import Lazy
 from ...lazy.lazy_object import LazyObject
-from .actions import (
+from .action import (
     Action,
-    Actions,
     DescriptiveAction,
     DescriptorParameters
 )
@@ -25,16 +24,22 @@ from .animation import (
 from .piecewiser import Piecewiser
 
 
-class AnimatableActions(Actions):
+class Animatable(LazyObject):
     __slots__ = ()
 
-    @DescriptiveAction.register(DescriptorParameters)
+    def animate(
+        self: Self,
+        **kwargs: Unpack[AnimateKwargs]
+    ) -> AnimatableTimeline[Self]:
+        return AnimatableTimeline(self, **kwargs)
+
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
     @classmethod
     def interpolate(
         cls: type[Self],
-        dst: Animatable,
-        src_0: Animatable,
-        src_1: Animatable
+        dst: Self,
+        src_0: Self,
+        src_1: Self
     ) -> Iterator[Animation]:
         for descriptor, _ in cls.interpolate.iter_descriptor_items():
             if not all(
@@ -55,12 +60,12 @@ class AnimatableActions(Actions):
                     src_1=src_1_element
                 )
 
-    @DescriptiveAction.register(DescriptorParameters)
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
     @classmethod
     def piecewise(
         cls: type[Self],
-        dst: Animatable,
-        src: Animatable,
+        dst: Self,
+        src: Self,
         piecewiser: Piecewiser
     ) -> Iterator[Animation]:
         for descriptor, _ in cls.piecewise.iter_descriptor_items():
@@ -85,8 +90,8 @@ class AnimatableActions(Actions):
     @classmethod
     def transform(
         cls: type[Self],
-        dst: Animatable,
-        src: Animatable
+        dst: Self,
+        src: Self
     ) -> Iterator[Animation]:
         yield from cls.interpolate.iter_animations(
             dst=dst,
@@ -95,17 +100,7 @@ class AnimatableActions(Actions):
         )
 
 
-class Animatable(AnimatableActions, LazyObject):
-    __slots__ = ()
-
-    def animate(
-        self: Self,
-        **kwargs: Unpack[AnimateKwargs]
-    ) -> DynamicAnimatable[Self]:
-        return DynamicAnimatable(self, **kwargs)
-
-
-class DynamicAnimatable[AnimatableT: Animatable](AnimatableActions, AnimationsTimeline):
+class AnimatableTimeline[AnimatableT: Animatable](AnimationsTimeline):
     __slots__ = ("_dst",)
 
     def __init__(
@@ -115,6 +110,10 @@ class DynamicAnimatable[AnimatableT: Animatable](AnimatableActions, AnimationsTi
     ) -> None:
         super().__init__(**kwargs)
         self._dst: AnimatableT = dst
+
+    interpolate = Animatable.interpolate
+    piecewise = Animatable.piecewise
+    transform = Animatable.transform
 
 
 class AnimatableInterpolateAnimation[AnimatableT: Animatable](Animation):

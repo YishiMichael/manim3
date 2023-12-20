@@ -8,11 +8,11 @@ from typing import (
 
 import moderngl
 
-from ...animatables.animatable.animatable import AnimatableActions
+from ...animatables.animatable.animatable import Animatable
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.mesh import Mesh
-from ...animatables.model import ModelActions
+from ...animatables.model import Model
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -41,49 +41,49 @@ class MeshMobject(Mobject):
         if mesh is not None:
             self._mesh_ = mesh
 
-    @AnimatableActions.interpolate.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _mesh_() -> Mesh:
         return Mesh()
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableColor)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableColor)
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor(Toplevel._get_config().default_color)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().default_opacity)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().default_weight)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _ambient_strength_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().mesh_ambient_strength)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _specular_strength_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().mesh_specular_strength)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _shininess_() -> AnimatableFloat:

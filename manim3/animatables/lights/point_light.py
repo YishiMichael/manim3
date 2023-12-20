@@ -8,18 +8,18 @@ from ...constants.custom_typing import (
 )
 from ...lazy.lazy import Lazy
 from ...toplevel.toplevel import Toplevel
-from ..animatable.animatable import AnimatableActions
+from ..animatable.animatable import Animatable
 from ..arrays.animatable_color import AnimatableColor
 from ..arrays.model_matrix import ModelMatrix
-from ..model import ModelActions
+from ..model import Model
 from ..point import Point
 
 
 class PointLight(Point):
     __slots__ = ()
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableColor)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableColor)
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:

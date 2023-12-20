@@ -6,11 +6,11 @@ from typing import (
     Self
 )
 
-from ...animatables.animatable.animatable import AnimatableActions
+from ...animatables.animatable.animatable import Animatable
 from ...animatables.arrays.animatable_color import AnimatableColor
 from ...animatables.arrays.animatable_float import AnimatableFloat
 from ...animatables.graph import Graph
-from ...animatables.model import ModelActions
+from ...animatables.model import Model
 from ...constants.custom_typing import (
     NP_3f8,
     NP_f8,
@@ -37,36 +37,36 @@ class GraphMobject(Mobject):
         if graph is not None:
             self._graph_ = graph
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @AnimatableActions.piecewise.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
+    @Animatable.piecewise.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _graph_() -> Graph:
         return Graph()
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableColor)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableColor)
     @Lazy.volatile()
     @staticmethod
     def _color_() -> AnimatableColor:
         return AnimatableColor(Toplevel._get_config().default_color)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _opacity_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().default_opacity)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _weight_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().default_weight)
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @ModelActions.set.register_descriptor(converter=AnimatableFloat)
+    @Animatable.interpolate.register_descriptor()
+    @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
     def _width_() -> AnimatableFloat:

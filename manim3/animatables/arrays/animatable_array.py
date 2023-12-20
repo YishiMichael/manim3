@@ -10,12 +10,14 @@ from typing import (
 import numpy as np
 
 from ...lazy.lazy import Lazy
-from ..animatable.actions import Action
+from ..animatable.action import (
+    DescriptiveAction,
+    DescriptorParameters
+)
 from ..animatable.animatable import (
     Animatable,
-    AnimatableActions,
     AnimatableInterpolateAnimation,
-    DynamicAnimatable
+    AnimatableTimeline
 )
 from ..animatable.animation import (
     AnimateKwargs,
@@ -23,21 +25,7 @@ from ..animatable.animation import (
 )
 
 
-class AnimatableArrayActions(AnimatableActions):
-    __slots__ = ()
-
-    @Action.register()
-    @classmethod
-    def interpolate(
-        cls: type[Self],
-        dst: AnimatableArray,
-        src_0: AnimatableArray,
-        src_1: AnimatableArray
-    ) -> Iterator[Animation]:
-        yield AnimatableArrayInterpolateAnimation(dst, src_0, src_1)
-
-
-class AnimatableArray[NDArrayT: np.ndarray](AnimatableArrayActions, Animatable):
+class AnimatableArray[NDArrayT: np.ndarray](Animatable):
     __slots__ = ()
 
     def __init__(
@@ -56,12 +44,24 @@ class AnimatableArray[NDArrayT: np.ndarray](AnimatableArrayActions, Animatable):
     def animate(
         self: Self,
         **kwargs: Unpack[AnimateKwargs]
-    ) -> DynamicAnimatableArray[Self]:
-        return DynamicAnimatableArray(self, **kwargs)
+    ) -> AnimatableArrayTimeline[Self]:
+        return AnimatableArrayTimeline(self, **kwargs)
+
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
+    @classmethod
+    def interpolate(
+        cls: type[Self],
+        dst: Self,
+        src_0: Self,
+        src_1: Self
+    ) -> Iterator[Animation]:
+        yield AnimatableArrayInterpolateAnimation(dst, src_0, src_1)
 
 
-class DynamicAnimatableArray[AnimatableArrayT: AnimatableArray](AnimatableArrayActions, DynamicAnimatable[AnimatableArrayT]):
+class AnimatableArrayTimeline[AnimatableArrayT: AnimatableArray](AnimatableTimeline[AnimatableArrayT]):
     __slots__ = ()
+
+    interpolate = AnimatableArray.interpolate
 
 
 class AnimatableArrayInterpolateAnimation[AnimatableArrayT: AnimatableArray](AnimatableInterpolateAnimation[AnimatableArrayT]):

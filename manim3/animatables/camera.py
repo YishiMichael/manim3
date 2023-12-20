@@ -25,7 +25,7 @@ from ..constants.custom_typing import (
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
 from ..toplevel.toplevel import Toplevel
-from .animatable.animatable import AnimatableActions
+from .animatable.animatable import Animatable
 from .arrays.animatable_float import AnimatableFloat
 from .arrays.model_matrix import ModelMatrix
 from .model import Model
@@ -55,13 +55,13 @@ class Camera(Model):
         if far is not None:
             self._far_ = AnimatableFloat(far)
 
-    @AnimatableActions.interpolate.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _near_() -> AnimatableFloat:
         return AnimatableFloat(Toplevel._get_config().camera_near)
 
-    @AnimatableActions.interpolate.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _far_() -> AnimatableFloat:

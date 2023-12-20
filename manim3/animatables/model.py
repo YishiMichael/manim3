@@ -24,15 +24,14 @@ from ..constants.custom_typing import (
 from ..lazy.lazy import Lazy
 from ..lazy.lazy_object import LazyObject
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from .animatable.actions import (
+from .animatable.action import (
     Action,
     ConverterDescriptorParameters,
     DescriptiveAction
 )
 from .animatable.animatable import (
     Animatable,
-    AnimatableActions,
-    DynamicAnimatable
+    AnimatableTimeline
 )
 from .animatable.animation import (
     AnimateKwargs,
@@ -107,215 +106,17 @@ class Box(LazyObject):
         return self._radii_
 
 
-class ModelActions(AnimatableActions):
+class Model(Animatable):
     __slots__ = ()
 
-    @DescriptiveAction.register(ConverterDescriptorParameters)
-    @classmethod
-    def set(
-        cls: type[Self],
-        dst: Model,
-        broadcast: bool = True,
-        **kwargs: Unpack[SetKwargs]
-    ) -> Iterator[Animation]:
-        for descriptor, descriptor_parameters in cls.set.iter_descriptor_items():
-            if (input_value := kwargs.get(descriptor._name.strip("_"))) is None:
-                continue
-            converter = descriptor_parameters.converter
-            target = converter(input_value)
-            for sibling in dst._iter_siblings(broadcast=broadcast):
-                if descriptor not in sibling._lazy_descriptors:
-                    continue
-                initial = descriptor.__get__(sibling)
-                assert isinstance(initial, Animatable)
-                yield from type(initial).interpolate.iter_animations(
-                    dst=initial,
-                    src_0=initial.copy(),
-                    src_1=target
-                )
-
-    @Action.register()
-    @classmethod
-    def shift(
-        cls: type[Self],
-        dst: Model,
-        vector: NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield ModelShiftAnimation(
-            model=dst,
-            vector=vector,
-            mask=mask * np.ones((3,))
-        )
-
-    @Action.register()
-    @classmethod
-    def move_to(
-        cls: type[Self],
-        dst: Model,
-        target: Model,
-        direction: NP_3f8 = ORIGIN,
-        buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield from cls.shift.iter_animations(
-            dst=dst,
-            vector=target.box.get(direction) - dst.box.get(direction, buff),
-            mask=mask
-        )
-
-    @Action.register()
-    @classmethod
-    def next_to(
-        cls: type[Self],
-        dst: Model,
-        target: Model,
-        direction: NP_3f8 = ORIGIN,
-        buff: float | NP_3f8 = 0.0,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield from cls.shift.iter_animations(
-            dst=dst,
-            vector=target.box.get(direction) - dst.box.get(-direction, buff),
-            mask=mask
-        )
-
-    @Action.register()
-    @classmethod
-    def scale(
-        cls: type[Self],
-        dst: Model,
-        factor: float | NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        if about is None:
-            about = dst
-        yield ModelScaleAnimation(
-            model=dst,
-            factor=factor * np.ones((3,)),
-            about=about,
-            direction=direction,
-            mask=mask * np.ones((3,))
-        )
-
-    @Action.register()
-    @classmethod
-    def scale_about_origin(
-        cls: type[Self],
-        dst: Model,
-        factor: float | NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield from cls.scale.iter_animations(
-            dst=dst,
-            factor=factor,
-            about=Model(),
-            mask=mask
-        )
-
-    @Action.register()
-    @classmethod
-    def scale_to(
-        cls: type[Self],
-        dst: Model,
-        target: Model,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield from cls.scale.iter_animations(
-            dst=dst,
-            factor=target.box.get_radii() / dst.box.get_radii(),
-            about=about,
-            direction=direction,
-            mask=mask
-        )
-
-    @Action.register()
-    @classmethod
-    def rotate(
-        cls: type[Self],
-        dst: Model,
-        rotvec: NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        if about is None:
-            about = dst
-        yield ModelRotateAnimation(
-            model=dst,
-            rotvec=rotvec,
-            about=about,
-            direction=direction,
-            mask=mask * np.ones((3,))
-        )
-
-    @Action.register()
-    @classmethod
-    def rotate_about_origin(
-        cls: type[Self],
-        dst: Model,
-        rotvec: NP_3f8,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield from cls.rotate.iter_animations(
-            dst=dst,
-            rotvec=rotvec,
-            about=Model(),
-            mask=mask
-        )
-
-    @Action.register()
-    @classmethod
-    def flip(
-        cls: type[Self],
-        dst: Model,
-        axis: NP_3f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN,
-        mask: float | NP_3f8 = 1.0
-    ) -> Iterator[Animation]:
-        yield from cls.rotate.iter_animations(
-            dst=dst,
-            rotvec=axis / np.linalg.norm(axis) * PI,
-            about=about,
-            direction=direction,
-            mask=mask
-        )
-
-    @Action.register()
-    @classmethod
-    def apply(
-        cls: type[Self],
-        dst: Model,
-        matrix: NP_44f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN
-    ) -> Iterator[Animation]:
-        if about is None:
-            about = dst
-        yield ModelApplyAnimation(
-            model=dst,
-            matrix=matrix,
-            about=about,
-            direction=direction
-        )
-
-
-class Model(ModelActions, Animatable):
-    __slots__ = ()
-
-    @AnimatableActions.interpolate.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _model_matrix_() -> ModelMatrix:
         return ModelMatrix()
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @AnimatableActions.piecewise.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
+    @Animatable.piecewise.register_descriptor()
     @Lazy.volatile(plural=True)
     @staticmethod
     def _proper_siblings_() -> tuple[Model, ...]:
@@ -387,12 +188,218 @@ class Model(ModelActions, Animatable):
     def animate(
         self: Self,
         **kwargs: Unpack[AnimateKwargs]
-    ) -> DynamicModel[Self]:
-        return DynamicModel(self, **kwargs)
+    ) -> ModelTimeline[Self]:
+        return ModelTimeline(self, **kwargs)
+
+    @DescriptiveAction.descriptive_register(ConverterDescriptorParameters)
+    @classmethod
+    def set(
+        cls: type[Self],
+        dst: Self,
+        broadcast: bool = True,
+        **kwargs: Unpack[SetKwargs]
+    ) -> Iterator[Animation]:
+        for descriptor, descriptor_parameters in cls.set.iter_descriptor_items():
+            if (input_value := kwargs.get(descriptor._name.strip("_"))) is None:
+                continue
+            converter = descriptor_parameters.converter
+            target = converter(input_value)
+            for sibling in dst._iter_siblings(broadcast=broadcast):
+                if descriptor not in sibling._lazy_descriptors:
+                    continue
+                initial = descriptor.__get__(sibling)
+                assert isinstance(initial, Animatable)
+                yield from type(initial).interpolate.iter_animations(
+                    dst=initial,
+                    src_0=initial.copy(),
+                    src_1=target
+                )
+
+    @Action.register()
+    @classmethod
+    def shift(
+        cls: type[Self],
+        dst: Self,
+        vector: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield ModelShiftAnimation(
+            model=dst,
+            vector=vector,
+            mask=mask * np.ones((3,))
+        )
+
+    @Action.register()
+    @classmethod
+    def move_to(
+        cls: type[Self],
+        dst: Self,
+        target: Model,
+        direction: NP_3f8 = ORIGIN,
+        buff: float | NP_3f8 = 0.0,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.shift.iter_animations(
+            dst=dst,
+            vector=target.box.get(direction) - dst.box.get(direction, buff),
+            mask=mask
+        )
+
+    @Action.register()
+    @classmethod
+    def next_to(
+        cls: type[Self],
+        dst: Self,
+        target: Model,
+        direction: NP_3f8 = ORIGIN,
+        buff: float | NP_3f8 = 0.0,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.shift.iter_animations(
+            dst=dst,
+            vector=target.box.get(direction) - dst.box.get(-direction, buff),
+            mask=mask
+        )
+
+    @Action.register()
+    @classmethod
+    def scale(
+        cls: type[Self],
+        dst: Self,
+        factor: float | NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        if about is None:
+            about = dst
+        yield ModelScaleAnimation(
+            model=dst,
+            factor=factor * np.ones((3,)),
+            about=about,
+            direction=direction,
+            mask=mask * np.ones((3,))
+        )
+
+    @Action.register()
+    @classmethod
+    def scale_about_origin(
+        cls: type[Self],
+        dst: Self,
+        factor: float | NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.scale.iter_animations(
+            dst=dst,
+            factor=factor,
+            about=Model(),
+            mask=mask
+        )
+
+    @Action.register()
+    @classmethod
+    def scale_to(
+        cls: type[Self],
+        dst: Self,
+        target: Model,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.scale.iter_animations(
+            dst=dst,
+            factor=target.box.get_radii() / dst.box.get_radii(),
+            about=about,
+            direction=direction,
+            mask=mask
+        )
+
+    @Action.register()
+    @classmethod
+    def rotate(
+        cls: type[Self],
+        dst: Self,
+        rotvec: NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        if about is None:
+            about = dst
+        yield ModelRotateAnimation(
+            model=dst,
+            rotvec=rotvec,
+            about=about,
+            direction=direction,
+            mask=mask * np.ones((3,))
+        )
+
+    @Action.register()
+    @classmethod
+    def rotate_about_origin(
+        cls: type[Self],
+        dst: Self,
+        rotvec: NP_3f8,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.rotate.iter_animations(
+            dst=dst,
+            rotvec=rotvec,
+            about=Model(),
+            mask=mask
+        )
+
+    @Action.register()
+    @classmethod
+    def flip(
+        cls: type[Self],
+        dst: Self,
+        axis: NP_3f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN,
+        mask: float | NP_3f8 = 1.0
+    ) -> Iterator[Animation]:
+        yield from cls.rotate.iter_animations(
+            dst=dst,
+            rotvec=axis / np.linalg.norm(axis) * PI,
+            about=about,
+            direction=direction,
+            mask=mask
+        )
+
+    @Action.register()
+    @classmethod
+    def apply(
+        cls: type[Self],
+        dst: Self,
+        matrix: NP_44f8,
+        about: Model | None = None,
+        direction: NP_3f8 = ORIGIN
+    ) -> Iterator[Animation]:
+        if about is None:
+            about = dst
+        yield ModelApplyAnimation(
+            model=dst,
+            matrix=matrix,
+            about=about,
+            direction=direction
+        )
 
 
-class DynamicModel[ModelT: Model](ModelActions, DynamicAnimatable[ModelT]):
+class ModelTimeline[ModelT: Model](AnimatableTimeline[ModelT]):
     __slots__ = ()
+
+    set = Model.set
+    shift = Model.shift
+    move_to = Model.move_to
+    next_to = Model.next_to
+    scale = Model.scale
+    scale_about_origin = Model.scale_about_origin
+    scale_to = Model.scale_to
+    rotate = Model.rotate
+    rotate_about_origin = Model.rotate_about_origin
+    flip = Model.flip
+    apply = Model.apply
 
 
 class ModelAnimation(Animation):

@@ -23,13 +23,15 @@ from ..constants.custom_typing import (
     NP_xi4
 )
 from ..lazy.lazy import Lazy
-from .animatable.actions import Action
+from .animatable.action import (
+    DescriptiveAction,
+    DescriptorParameters
+)
 from .animatable.animatable import (
     Animatable,
-    AnimatableActions,
     AnimatableInterpolateAnimation,
     AnimatablePiecewiseAnimation,
-    DynamicAnimatable
+    AnimatableTimeline
 )
 from .animatable.animation import (
     AnimateKwargs,
@@ -48,31 +50,7 @@ class Triangulation:
     faces: NP_x3i4
 
 
-class ShapeActions(AnimatableActions):
-    __slots__ = ()
-
-    @Action.register()
-    @classmethod
-    def interpolate(
-        cls: type[Self],
-        dst: Shape,
-        src_0: Shape,
-        src_1: Shape
-    ) -> Iterator[Animation]:
-        yield ShapeInterpolateAnimation(dst, src_0, src_1)
-
-    @Action.register()
-    @classmethod
-    def piecewise(
-        cls: type[Self],
-        dst: Shape,
-        src: Shape,
-        piecewiser: Piecewiser
-    ) -> Iterator[Animation]:
-        yield ShapePiecewiseAnimation(dst, src, piecewiser)
-
-
-class Shape(ShapeActions, Animatable):
+class Shape(Animatable):
     __slots__ = ()
 
     def __init__(
@@ -300,12 +278,35 @@ class Shape(ShapeActions, Animatable):
     def animate(
         self: Self,
         **kwargs: Unpack[AnimateKwargs]
-    ) -> DynamicShape[Self]:
-        return DynamicShape(self, **kwargs)
+    ) -> ShapeTimeline[Self]:
+        return ShapeTimeline(self, **kwargs)
+
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
+    @classmethod
+    def interpolate(
+        cls: type[Self],
+        dst: Self,
+        src_0: Self,
+        src_1: Self
+    ) -> Iterator[Animation]:
+        yield ShapeInterpolateAnimation(dst, src_0, src_1)
+
+    @DescriptiveAction.descriptive_register(DescriptorParameters)
+    @classmethod
+    def piecewise(
+        cls: type[Self],
+        dst: Self,
+        src: Self,
+        piecewiser: Piecewiser
+    ) -> Iterator[Animation]:
+        yield ShapePiecewiseAnimation(dst, src, piecewiser)
 
 
-class DynamicShape[ShapeT: Shape](ShapeActions, DynamicAnimatable[ShapeT]):
+class ShapeTimeline[ShapeT: Shape](AnimatableTimeline[ShapeT]):
     __slots__ = ()
+
+    interpolate = Shape.interpolate
+    piecewise = Shape.piecewise
 
 
 @attrs.frozen(kw_only=True)

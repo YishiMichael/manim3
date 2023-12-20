@@ -8,10 +8,7 @@ import numpy as np
 from ..constants.custom_typing import NP_3f8
 from ..lazy.lazy import Lazy
 from ..rendering.buffers.uniform_block_buffer import UniformBlockBuffer
-from .animatable.animatable import (
-    Animatable,
-    AnimatableActions
-)
+from .animatable.animatable import Animatable
 from .lights.ambient_light import AmbientLight
 from .lights.point_light import PointLight
 
@@ -34,13 +31,13 @@ class Lighting(Animatable):
         self._ambient_lights_ = tuple(ambient_lights)
         self._point_lights_ = tuple(point_lights)
 
-    @AnimatableActions.interpolate.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
     @Lazy.volatile(plural=True)
     @staticmethod
     def _ambient_lights_() -> tuple[AmbientLight, ...]:
         return ()
 
-    @AnimatableActions.interpolate.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
     @Lazy.volatile(plural=True)
     @staticmethod
     def _point_lights_() -> tuple[PointLight, ...]:

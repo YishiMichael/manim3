@@ -18,8 +18,8 @@ from ...lazy.lazy_descriptor import LazyDescriptor
 if TYPE_CHECKING:
     from .animatable import (
         Animatable,
-        Animation,
-        DynamicAnimatable
+        AnimatableTimeline,
+        Animation
     )
 
 
@@ -33,32 +33,15 @@ class ConverterDescriptorParameters(DescriptorParameters):
     converter: Callable[[Any], Animatable]
 
 
-class Actions:
-    __slots__ = ()
-
-    def __init_subclass__(
-        cls: type[Self]
-    ) -> None:
-        super().__init_subclass__()
-        for action in cls.__dict__.values():
-            if not isinstance(action, Action):
-                continue
-            action._actions_cls = cls
-
-
-class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
-    __slots__ = (
-        "_method",
-        "_actions_cls"
-    )
+class Action[AnimatableT: Animatable, **P]:
+    __slots__ = ("_method",)
 
     def __init__(
         self: Self,
-        method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+        method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]
     ) -> None:
         super().__init__()
-        self._method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]] = method
-        self._actions_cls: type[ActionsT] = NotImplemented
+        self._method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]] = method
 
     @overload
     def __get__[InstanceT: Animatable](
@@ -68,7 +51,7 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
     ) -> Callable[P, InstanceT]: ...
 
     @overload
-    def __get__[InstanceT: DynamicAnimatable[Animatable]](
+    def __get__[InstanceT: AnimatableTimeline[Animatable]](
         self: Self,
         instance: InstanceT,
         owner: type[InstanceT] | None = None
@@ -78,13 +61,13 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
     def __get__(
         self: Self,
         instance: None,
-        owner: type[Actions] | None = None
+        owner: type[Animatable | AnimatableTimeline[Animatable]] | None = None
     ) -> Self: ...
 
     def __get__(
         self: Self,
-        instance: Actions | None,
-        owner: type[Actions] | None = None
+        instance: Any,
+        owner: Any | None = None
     ) -> Any:
 
         def get_bound_method(
@@ -102,7 +85,7 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
 
             return result
 
-        def get_dynamic_bound_method(
+        def get_timeline_bound_method(
             action: Self,
             instance: Any
         ) -> Any:
@@ -116,27 +99,30 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
 
             return result
 
+        if instance is None:
+            return self
+
         from .animatable import (
             Animatable,
-            DynamicAnimatable
+            AnimatableTimeline
         )
 
         if isinstance(instance, Animatable):
             return get_bound_method(self, instance)
-        if isinstance(instance, DynamicAnimatable):
-            return get_dynamic_bound_method(self, instance)
-        return self
+        if isinstance(instance, AnimatableTimeline):
+            return get_timeline_bound_method(self, instance)
+        raise TypeError
 
     @classmethod
     def register(
         cls: type[Self]
     ) -> Callable[
-        [Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]],
+        [Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]],
         Self
     ]:
 
         def result(
-            method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+            method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]
         ) -> Self:
             assert isinstance(method, classmethod)
             return cls(method.__func__)
@@ -149,11 +135,11 @@ class Action[ActionsT: Actions, AnimatableT: Animatable, **P]:
         *args: P.args,
         **kwargs: P.kwargs
     ) -> Iterator[Animation]:
-        return self._method(self._actions_cls, dst, *args, **kwargs)
+        return self._method(type(dst), dst, *args, **kwargs)
 
 
-class DescriptiveAction[ActionsT: Actions, AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
-    Action[ActionsT, AnimatableT, P]
+class DescriptiveAction[AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
+    Action[AnimatableT, P]
 ):
     __slots__ = (
         "_descriptor_parameters_cls",
@@ -163,7 +149,7 @@ class DescriptiveAction[ActionsT: Actions, AnimatableT: Animatable, DescriptorPa
     def __init__(
         self: Self,
         descriptor_parameters_cls: type[DescriptorParametersT],
-        method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+        method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]
     ) -> None:
         super().__init__(method)
         self._descriptor_parameters_cls: type[DescriptorParametersT] = descriptor_parameters_cls
@@ -175,16 +161,16 @@ class DescriptiveAction[ActionsT: Actions, AnimatableT: Animatable, DescriptorPa
         yield from self._descriptor_items
 
     @classmethod
-    def register(
+    def descriptive_register(
         cls: type[Self],
         descriptor_parameters_cls: type[DescriptorParametersT]
     ) -> Callable[
-        [Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]],
+        [Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]],
         Self
     ]:
 
         def result(
-            method: Callable[Concatenate[type[ActionsT], AnimatableT, P], Iterator[Animation]]
+            method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]
         ) -> Self:
             assert isinstance(method, classmethod)
             return cls(descriptor_parameters_cls, method.__func__)

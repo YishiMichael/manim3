@@ -8,7 +8,7 @@ from typing import (
 
 import numpy as np
 
-from ...animatables.animatable.animatable import AnimatableActions
+from ...animatables.animatable.animatable import Animatable
 from ...animatables.mesh import Mesh
 from ...animatables.model import SetKwargs
 from ...animatables.shape import (
@@ -31,8 +31,8 @@ class ShapeMobject(MeshMobject):
         if shape is not None:
             self._shape_ = shape
 
-    @AnimatableActions.interpolate.register_descriptor()
-    @AnimatableActions.piecewise.register_descriptor()
+    @Animatable.interpolate.register_descriptor()
+    @Animatable.piecewise.register_descriptor()
     @Lazy.volatile()
     @staticmethod
     def _shape_() -> Shape:
