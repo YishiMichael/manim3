@@ -111,7 +111,6 @@ class LazyDescriptor[T, DataT]:
         "_freeze",
         "_deepcopy",
         "_lru_cache",
-        "_parameter_key_memoization",
         "_element_memoization",
         "_name",
         "_parameter_name_chains",
@@ -135,8 +134,7 @@ class LazyDescriptor[T, DataT]:
         self._plural: bool = plural
         self._freeze: bool = freeze
         self._deepcopy: bool = deepcopy
-        self._lru_cache: LRU[Memoized[Hashable], tuple[Memoized[T], ...]] | None = LRU(cache_capacity) if cache_capacity else None
-        self._parameter_key_memoization: Memoization[Hashable, Hashable] = Memoization()
+        self._lru_cache: LRU[Hashable, tuple[Memoized[T], ...]] | None = LRU(cache_capacity) if cache_capacity else None
         self._element_memoization: Memoization[Hashable, T] = Memoization()
         self._name: str = NotImplemented
         self._parameter_name_chains: tuple[tuple[str, ...], ...] = NotImplemented
@@ -180,12 +178,6 @@ class LazyDescriptor[T, DataT]:
     ) -> Never:
         raise TypeError("Cannot delete attributes of a lazy object")
 
-    def _memoize_parameter_key(
-        self: Self,
-        parameter_key: Hashable
-    ) -> Memoized[Hashable]:
-        return self._parameter_key_memoization.memoize(parameter_key, parameter_key)
-
     def _memoize_elements(
         self: Self,
         elements: tuple[T, ...]
@@ -224,9 +216,9 @@ class LazyDescriptor[T, DataT]:
                         else:
                             associated_slots.add(leaf_slot)
 
-            memoized_parameter_key = self._memoize_parameter_key(tuple(
+            memoized_parameter_key: Hashable = tuple(
                 tree.as_tuple_tree(Memoized.get_id) for tree in trees
-            ))
+            )
             if (lru_cache := self._lru_cache) is None or (memoized_elements := lru_cache.get(memoized_parameter_key)) is None:
                 memoized_elements = self._memoize_elements(self._decomposer(self._method(*(
                     tree.as_tuple_tree(Memoized.get_value) for tree in trees
@@ -235,7 +227,6 @@ class LazyDescriptor[T, DataT]:
                     lru_cache[memoized_parameter_key] = memoized_elements
             slot.set(
                 elements=memoized_elements,
-                parameter_key=memoized_parameter_key,
                 associated_slots=associated_slots
             )
         return memoized_elements
@@ -252,7 +243,6 @@ class LazyDescriptor[T, DataT]:
             expired_property_slot.expire()
         slot.set(
             elements=memoized_elements,
-            parameter_key=None,
             associated_slots=set()
         )
 

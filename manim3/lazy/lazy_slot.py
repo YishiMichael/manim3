@@ -4,7 +4,6 @@ from __future__ import annotations
 import weakref
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Iterator,
     Self
 )
@@ -21,7 +20,6 @@ class LazySlot[T, DataT]:
         "__weakref__",
         "_descriptor_ref",
         "_elements",
-        "_parameter_key",
         "_associated_slots"
     )
 
@@ -32,7 +30,6 @@ class LazySlot[T, DataT]:
         super().__init__()
         self._descriptor_ref: weakref.ref[LazyDescriptor[T, DataT]] = weakref.ref(descriptor)
         self._elements: tuple[Memoized[T], ...] | None = None
-        self._parameter_key: Memoized[Hashable] | None = None
         self._associated_slots: weakref.WeakSet[LazySlot] = weakref.WeakSet()
 
     def get_descriptor(
@@ -49,11 +46,9 @@ class LazySlot[T, DataT]:
     def set(
         self: Self,
         elements: tuple[Memoized[T], ...],
-        parameter_key: Memoized[Hashable] | None,
         associated_slots: set[LazySlot]
     ) -> None:
         self._elements = elements
-        self._parameter_key = parameter_key
         assert not self._associated_slots
         self._associated_slots.update(associated_slots)
         for slot in associated_slots:
