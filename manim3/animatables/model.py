@@ -298,17 +298,17 @@ class Model(Animatable):
 
     @Action.register()
     @classmethod
-    def scale_to(
+    def stretch_to(
         cls: type[Self],
         dst: Self,
-        target: Model,
+        target_size: float | NP_3f8,
         about: Model | None = None,
         direction: NP_3f8 = ORIGIN,
         mask: float | NP_3f8 = 1.0
     ) -> Iterator[Animation]:
         yield from cls.scale.iter_animations(
             dst=dst,
-            factor=target.box.get_radii() / dst.box.get_radii(),
+            factor=target_size * np.ones((3,)) / (2.0 * dst.box.get_radii()),
             about=about,
             direction=direction,
             mask=mask
@@ -372,17 +372,11 @@ class Model(Animatable):
     def apply(
         cls: type[Self],
         dst: Self,
-        matrix: NP_44f8,
-        about: Model | None = None,
-        direction: NP_3f8 = ORIGIN
+        matrix: NP_44f8
     ) -> Iterator[Animation]:
-        if about is None:
-            about = dst
         yield ModelApplyAnimation(
             model=dst,
-            matrix=matrix,
-            about=about,
-            direction=direction
+            matrix=matrix
         )
 
 
@@ -395,7 +389,7 @@ class ModelTimeline[ModelT: Model](AnimatableTimeline[ModelT]):
     next_to = Model.next_to
     scale = Model.scale
     scale_about_origin = Model.scale_about_origin
-    scale_to = Model.scale_to
+    stretch_to = Model.stretch_to
     rotate = Model.rotate
     rotate_about_origin = Model.rotate_about_origin
     flip = Model.flip
@@ -534,14 +528,12 @@ class ModelApplyAnimation(ModelAnimation):
     def __init__(
         self: Self,
         model: Model,
-        matrix: NP_44f8,
-        about: Model,
-        direction: NP_3f8
+        matrix: NP_44f8
     ) -> None:
         super().__init__(
             model=model,
-            about=about,
-            direction=direction
+            about=Model(),
+            direction=ORIGIN
         )
         self._matrix: NP_44f8 = matrix
 

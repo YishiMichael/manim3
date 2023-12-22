@@ -1,7 +1,6 @@
 layout (std140) uniform ub_camera {
     mat4 u_projection_matrix;
     mat4 u_view_matrix;
-    vec2 u_frame_radii;
 };
 layout (std140) uniform ub_model {
     mat4 u_model_matrix;

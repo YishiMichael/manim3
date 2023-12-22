@@ -5,8 +5,8 @@ import math
 from typing import Self
 
 import numpy as np
-from scipy.spatial.transform import Rotation
 
+from ...animatables.arrays.model_matrix import ModelMatrix
 from ...constants.custom_typing import (
     NP_x3f8,
     NP_xxi4
@@ -35,23 +35,21 @@ class Polyhedron(ShapeMobject):
         positions: NP_x3f8
     ) -> Polygon:
         assert len(positions) >= 3
-        # We first choose three sample positions that define the plane.
-        # Instead of choosing `positions[:3]`, we choose `positions[:2]` and the geometric centroid,
-        # in order to reduce the chance that they happen to be colinear.
         sample_0 = np.average(positions, axis=0)
         sample_1 = positions[0]
         sample_2 = positions[1]
+
         x_axis = (x_direction := sample_1 - sample_0) / np.linalg.norm(x_direction)
         z_axis = (z_direction := np.cross(x_axis, sample_2 - sample_0)) / np.linalg.norm(z_direction)
         y_axis = np.cross(z_axis, x_axis)
-        rotation_matrix = np.vstack((x_axis, y_axis, z_axis)).T
-        rotation_vector = Rotation.from_matrix(rotation_matrix).as_rotvec()
+        matrix = np.identity(4)
+        matrix[:-1] = np.column_stack((x_axis, y_axis, z_axis, sample_0))
 
-        transformed = (np.linalg.inv(rotation_matrix) @ (positions - sample_0).T).T
+        transformed = ModelMatrix._apply_multiple(np.linalg.inv(matrix), positions)
         transformed_xy = transformed[:, :2]
         transformed_z = transformed[:, 2]
         assert np.isclose(transformed_z, 0.0).all(), "Positions are not coplanar"
-        return Polygon(transformed_xy).rotate_about_origin(rotation_vector).shift(sample_0)
+        return Polygon(transformed_xy).apply(matrix)
 
 
 # The five Platonic solids, ported from manim community `/manim/mobject/three_d/polyhedra.py`

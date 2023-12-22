@@ -327,6 +327,7 @@ class Implementations:
         return elements
 
     @hashers.register(int)
+    @hashers.register(float)
     @hashers.register(str)
     @hashers.register(bytes)
     # Note, for tuples, we require every field should be hashable.

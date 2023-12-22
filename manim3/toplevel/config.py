@@ -68,52 +68,28 @@ class Config(ToplevelResource):
         return major_version * 100 + minor_version * 10
 
     @property
-    def frame_width(
-        self: Self
-    ) -> float:
-        return self.aspect_ratio * self.frame_height
-
-    @property
     def frame_size(
         self: Self
     ) -> tuple[float, float]:
-        return self.frame_width, self.frame_height
-
-    @property
-    def frame_radii(
-        self: Self
-    ) -> tuple[float, float]:
-        return self.frame_width / 2.0, self.frame_height / 2.0
-
-    @property
-    def pixel_width(
-        self: Self
-    ) -> int:
-        return int(self.aspect_ratio * self.pixel_height)
+        return self.aspect_ratio * self.frame_height, self.frame_height
 
     @property
     def pixel_size(
         self: Self
     ) -> tuple[int, int]:
-        return self.pixel_width, self.pixel_height
-
-    @property
-    def pixel_per_unit(
-        self: Self
-    ) -> int:
-        return int(self.pixel_height / self.frame_height)
-
-    @property
-    def window_pixel_width(
-        self: Self
-    ) -> int:
-        return int(self.aspect_ratio * self.window_pixel_height)
+        return int(self.aspect_ratio * self.pixel_height), self.pixel_height
 
     @property
     def window_pixel_size(
         self: Self
     ) -> tuple[int, int]:
-        return self.window_pixel_width, self.window_pixel_height
+        return int(self.aspect_ratio * self.window_pixel_height), self.window_pixel_height
+
+    @property
+    def pixel_per_unit(
+        self: Self
+    ) -> float:
+        return self.pixel_height / self.frame_height
 
     def __contextmanager__(
         self: Self

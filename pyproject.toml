@@ -27,6 +27,5 @@ dependencies = [
     "pyclipr",
     "pyglet",
     "rich",
-    "scipy",
     "svgelements"
 ]

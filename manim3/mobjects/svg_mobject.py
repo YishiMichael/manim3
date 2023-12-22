@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import math
 import pathlib
 from typing import (
     Iterator,
@@ -10,7 +11,6 @@ from typing import (
 import attrs
 import numpy as np
 import svgelements as se
-from scipy.interpolate import BSpline
 
 from ..animatables.shape import Shape
 from ..constants.custom_typing import (
@@ -98,12 +98,14 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
                     case se.QuadraticBezier() | se.CubicBezier():
                         # Approximate the bezier curve with a polyline.
                         control_positions = np.array(segment)
-                        curve = BSpline(
-                            t=np.repeat(np.array((0.0, 1.0)), len(control_positions)),
-                            c=control_positions,
-                            k=len(control_positions) - 1
+                        degree = len(control_positions) - 1
+                        coordinates_list.extend(
+                            np.fromiter((
+                                math.comb(degree, k) * pow(1.0 - alpha, degree - k) * pow(alpha, k) * control_position
+                                for k, control_position in enumerate(control_positions)
+                            ), dtype=np.dtype((np.float64, (2,)))).sum(axis=0)
+                            for alpha in np.linspace(0.0, 1.0, 9)[1:]
                         )
-                        coordinates_list.extend(curve(np.linspace(0.0, 1.0, 9)[1:]))
                     case _:
                         raise ValueError(f"Cannot handle path segment type: {type(segment)}")
             if is_ring:

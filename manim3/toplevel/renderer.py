@@ -36,13 +36,14 @@ class VideoPipe:
         video_path: pathlib.Path
     ) -> None:
         super().__init__()
+        pixel_width, pixel_height = Toplevel._get_config().pixel_size
         writing_process = (
             ffmpeg
             .input(
                 filename="pipe:",
                 format="rawvideo",
                 pix_fmt="rgb24",
-                s=f"{Toplevel._get_config().pixel_width}x{Toplevel._get_config().pixel_height}",
+                s=f"{pixel_width}x{pixel_height}",
                 framerate=Toplevel._get_config().fps
             )
             .vflip()
@@ -183,10 +184,10 @@ class VideoRecorder:
         self: Self,
         framebuffer: FinalFramebuffer
     ) -> None:
-        frame_data = framebuffer._framebuffer.read()
+        frame_bytes = framebuffer._framebuffer.read()
         for video_pipe in self._video_pipes.values():
             if video_pipe.is_writing:
-                video_pipe.write(frame_data)
+                video_pipe.write(frame_bytes)
 
     def save_videos(
         self: Self
@@ -214,7 +215,7 @@ class ImageRecoder:
         image_path = self._image_dir.joinpath(filename)
         Image.frombytes(
             "RGB",
-            Toplevel._get_config().pixel_size,
+            framebuffer._framebuffer.size,
             framebuffer._framebuffer.read(),
             "raw"
         ).transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(image_path)

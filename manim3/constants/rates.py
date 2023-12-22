@@ -9,8 +9,6 @@ from typing import (
     Self
 )
 
-from scipy.interpolate import BSpline
-
 from .constants import TAU
 from .custom_typing import RateType
 
@@ -67,12 +65,10 @@ class Rates:
         *anchors: float
     ) -> RateType:
         degree = len(anchors) - 1
-        curve = BSpline(
-            t=(*itertools.repeat(0.0, degree + 1), *itertools.repeat(1.0, degree + 1)),
-            c=anchors,
-            k=degree
+        return lambda time: sum(
+            math.comb(degree, k) * pow(1.0 - time, degree - k) * pow(time, k) * anchor
+            for k, anchor in enumerate(anchors)
         )
-        return lambda time: float(curve(time))
 
     @classmethod
     def rewind(

@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Self
 
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 from ...constants.custom_typing import (
     NP_3f8,
@@ -54,24 +53,43 @@ class ModelMatrix(AnimatableArray[NP_44f8]):
         cls: type[Self],
         vector: NP_3f8
     ) -> NP_44f8:
-        matrix = np.identity(4)
-        matrix[:3, 3] = vector
-        return matrix
+        tx, ty, tz = vector
+        return np.array((
+            (1.0, 0.0, 0.0,  tx),
+            (0.0, 1.0, 0.0,  ty),
+            (0.0, 0.0, 1.0,  tz),
+            (0.0, 0.0, 0.0, 1.0)
+        ))
 
     @classmethod
     def _matrix_from_scale(
         cls: type[Self],
         factor: NP_3f8
     ) -> NP_44f8:
-        matrix = np.identity(4)
-        matrix[:3, :3] = np.diag(factor)
-        return matrix
+        sx, sy, sz = factor
+        return np.array((
+            ( sx, 0.0, 0.0, 0.0),
+            (0.0,  sy, 0.0, 0.0),
+            (0.0, 0.0,  sz, 0.0),
+            (0.0, 0.0, 0.0, 1.0)
+        ))
 
     @classmethod
     def _matrix_from_rotate(
         cls: type[Self],
         rotvec: NP_3f8
     ) -> NP_44f8:
-        matrix = np.identity(4)
-        matrix[:3, :3] = Rotation.from_rotvec(rotvec).as_matrix()
-        return matrix
+        theta = np.linalg.norm(rotvec)
+        if theta != 0.0:
+            s = np.sin(theta) / theta
+            c = (1.0 - np.cos(theta)) / (theta * theta)
+        else:
+            s = 1.0
+            c = 0.5
+        rx, ry, rz = rotvec
+        return np.array((
+            (1.0 - c * (ry * ry + rz * rz),          c * rx * ry - s * rz,          c * rx * rz + s * ry, 0.0),
+            (         c * ry * rx + s * rz, 1.0 - c * (rx * rx + rz * rz),          c * ry * rz - s * rx, 0.0),
+            (         c * rz * rx - s * ry,          c * rz * ry + s * rx, 1.0 - c * (rx * rx + ry * ry), 0.0),
+            (                          0.0,                           0.0,                           0.0, 1.0)
+        ))
