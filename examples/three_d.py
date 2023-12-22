@@ -23,7 +23,7 @@ class ThreeDExample(Scene):
             ))
         )
         self.add(dodec)
-        self.prepare(self.camera.animate(infinite=True).rotate(0.5 * DOWN))
+        self.prepare(self.camera.animate(infinite=True).rotate_about_origin(0.5 * DOWN))
 
         text = Text("Dodecahedron")
         await self.play(Parallel(*(
