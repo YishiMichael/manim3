@@ -18,7 +18,7 @@ class ImageMobject(Plane):
         image_filename: str,
         *,
         width: float | None = None,
-        height: float | None = 4.0,
+        height: float | None = None,
         scale: float | None = None
     ) -> None:
         super().__init__()

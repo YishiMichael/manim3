@@ -52,7 +52,7 @@ class SetKwargs(TypedDict, total=False):
     shininess: float
 
     # GraphMobject
-    width: float
+    thickness: float
 
 
 class Box(LazyObject):
@@ -100,10 +100,10 @@ class Box(LazyObject):
     ) -> NP_3f8:
         return self._centroid_ + self._radii_ * direction + buff * direction
 
-    def get_radii(
+    def get_size(
         self: Self
     ) -> NP_3f8:
-        return self._radii_
+        return 2.0 * self._radii_
 
 
 class Model(Animatable):
@@ -308,7 +308,7 @@ class Model(Animatable):
     ) -> Iterator[Animation]:
         yield from cls.scale.iter_animations(
             dst=dst,
-            factor=target_size * np.ones((3,)) / (2.0 * dst.box.get_radii()),
+            factor=target_size * np.ones((3,)) / dst.box.get_size(),
             about=about,
             direction=direction,
             mask=mask

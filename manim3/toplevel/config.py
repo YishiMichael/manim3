@@ -39,7 +39,7 @@ class Config(ToplevelResource):
     mesh_ambient_strength: float = 1.0
     mesh_specular_strength: float = 0.5
     mesh_shininess: float = 32.0
-    graph_width: float = 0.05
+    graph_thickness: float = 0.05
 
     typst_preamble: str = ""
     typst_align: str | None = None

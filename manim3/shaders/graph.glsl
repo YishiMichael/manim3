@@ -9,7 +9,7 @@ layout (std140) uniform ub_graph {
     vec3 u_color;
     float u_opacity;
     float u_weight;
-    float u_width;
+    float u_thickness;
 };
 
 
@@ -122,9 +122,9 @@ void main() {
     gs_out.position_1 = position_1;
     emit_parallelepiped(
         (position_0 + position_1) / 2.0,
-        u_width * i_hat / 2.0,
-        u_width * j_hat / 2.0,
-        (u_width + vector_length) * k_hat / 2.0
+        u_thickness * i_hat / 2.0,
+        u_thickness * j_hat / 2.0,
+        (u_thickness + vector_length) * k_hat / 2.0
     );
 }
 
@@ -176,7 +176,7 @@ float get_weight_factor(vec3 position_0, vec3 position_1, vec3 position_r, float
 
 
 void main() {
-    float weight = get_weight_factor(fs_in.position_0, fs_in.position_1, fs_in.position_r, u_width / 2.0);
+    float weight = get_weight_factor(fs_in.position_0, fs_in.position_1, fs_in.position_r, u_thickness / 2.0);
     if (weight == 0.0) {
         discard;
     }

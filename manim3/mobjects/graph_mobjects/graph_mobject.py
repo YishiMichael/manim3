@@ -69,8 +69,8 @@ class GraphMobject(Mobject):
     @Model.set.register_descriptor(converter=AnimatableFloat)
     @Lazy.volatile()
     @staticmethod
-    def _width_() -> AnimatableFloat:
-        return AnimatableFloat(Toplevel._get_config().graph_width)
+    def _thickness_() -> AnimatableFloat:
+        return AnimatableFloat(Toplevel._get_config().graph_thickness)
 
     @Lazy.property()
     @staticmethod
@@ -86,7 +86,7 @@ class GraphMobject(Mobject):
         color__array: NP_3f8,
         opacity__array: NP_f8,
         weight__array: NP_f8,
-        width__array: NP_f8
+        thickness__array: NP_f8
     ) -> UniformBlockBuffer:
         return UniformBlockBuffer(
             name="ub_graph",
@@ -94,13 +94,13 @@ class GraphMobject(Mobject):
                 "vec3 u_color",
                 "float u_opacity",
                 "float u_weight",
-                "float u_width"
+                "float u_thickness"
             ),
             data_dict={
                 "u_color": color__array,
                 "u_opacity": opacity__array,
                 "u_weight": weight__array,
-                "u_width": width__array
+                "u_thickness": thickness__array
             }
         )
 

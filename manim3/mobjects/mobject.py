@@ -79,7 +79,7 @@ class Mobject(Model):
             for mobject in mobjects
         )):
             proper_ancestors = dict.fromkeys(itertools.chain.from_iterable(
-                iter_descendants_by_children(parent)
+                iter_ancestors_by_parents(parent)
                 for parent in proper_descendant._parents
             ))
             proper_descendant._proper_ancestors.clear()

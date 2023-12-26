@@ -60,7 +60,7 @@ class Text(TypstMobject[TextInputs]):
         label: int
     ) -> str:
         return f"""#show {
-            f"\"{selector.replace("\"", "\\\"")}\""
+            f"\"{selector.replace("\\", "\\\\").replace("\"", "\\\"")}\""
             if isinstance(selector, str)
-            else f"regex(\"{selector.pattern.replace("\"", "\\\"").replace("\\", "\\\\")}\")"
-        }: set text(fill: rgb(\"{label:08X}\"))"""
+            else f"regex(\"{selector.pattern.replace("\\", "\\\\").replace("\"", "\\\"")}\")"
+        }: set text(fill: rgb(\"#{label:08X}\"))"""

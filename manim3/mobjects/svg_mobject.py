@@ -48,10 +48,10 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
             svg_text=svg_path.read_text(encoding="utf-8")
         ))
 
-        radii = self.box.get_radii()
+        size = self.box.get_size()
         scale_x, scale_y = ImageMobject._get_scale_vector(
-            original_width=float(radii[0]),
-            original_height=float(radii[1]),
+            original_width=float(size[0]),
+            original_height=float(size[1]),
             specified_width=width,
             specified_height=height,
             specified_scale=scale

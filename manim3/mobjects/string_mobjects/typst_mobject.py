@@ -23,6 +23,7 @@ from ..cached_mobject import (
     CachedMobject,
     CachedMobjectInputs
 )
+from ..mobject import Mobject
 from ..svg_mobject import SVGMobject
 
 
@@ -115,14 +116,16 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         typst_path = temp_path.with_suffix(".typ")
         typst_path.write_text(content, encoding="utf-8")
 
+        completed_process = subprocess.run((
+            "typst",
+            "compile",
+            "--root", pathlib.Path(),
+            typst_path,
+            svg_path
+        ), capture_output=True)
         try:
-            subprocess.check_output((
-                "typst",
-                "compile",
-                "--root", pathlib.Path(),
-                typst_path,
-                svg_path
-            ), stderr=subprocess.STDOUT)
+            if completed_process.returncode:
+                raise OSError(completed_process.stderr.decode())
             shape_mobjects = SVGMobject._generate_shape_mobjects_from_svg(svg_path)
         finally:
             for path in (svg_path, typst_path):
@@ -206,8 +209,8 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     def _build_from_selector(
         self: Self,
         selector: SelectorType
-    ) -> ShapeMobject:
-        return ShapeMobject().add(*(
+    ) -> Mobject:
+        return Mobject().add(*(
             self._shape_mobjects[index]
             for index in self._selector_to_indices_dict[selector]
         ))
@@ -215,9 +218,9 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     def select_multiple(
         self: Self,
         selectors: tuple[SelectorType, ...]
-    ) -> ShapeMobject:
+    ) -> Mobject:
         self._probe_indices_from_selectors(selectors)
-        return ShapeMobject().add(*(
+        return Mobject().add(*(
             self._build_from_selector(selector)
             for selector in selectors
         ))
@@ -225,7 +228,7 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     def select(
         self: Self,
         selector: SelectorType
-    ) -> ShapeMobject:
+    ) -> Mobject:
         self._probe_indices_from_selectors((selector,))
         return self._build_from_selector(selector)
 
@@ -239,12 +242,4 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
             strict=True
         ):
             mobject.set(color=color)
-        return self
-
-    def set_local_color(
-        self: Self,
-        selector: SelectorType,
-        color: ColorType
-    ) -> Self:
-        self.select(selector).set(color=color)
         return self
