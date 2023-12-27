@@ -10,8 +10,7 @@ class WriteAnimationExample(Scene):
     async def construct(
         self: Self
     ) -> None:
-        text = Text("Hello").scale(1.5)
-        text.move_to(self.camera.frame, DR)
+        text = Text("Hello").scale(3.0)
         await self.play(Parallel(*(
             Series(
                 Create(stroke := glyph.build_stroke()),

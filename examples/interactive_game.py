@@ -68,20 +68,20 @@ class InteractiveGameExample(Scene):
                 (0.46, -0.04)
             )))
             .set(
-                width=0.25,
+                thickness=0.25,
                 color=BLUE_B,
                 opacity=0.95
             )
             .add_strokes()
         )
         judge_line = Line(8.0 * LEFT, 8.0 * RIGHT).shift(3.0 * DOWN).set(
-            width=0.03,
+            thickness=0.03,
             color=GOLD_A
         )
-        key_texts = [
-            Text(char, concatenate=True).add_strokes().shift(x_coord * RIGHT + 2.0 * DOWN)
+        key_texts = tuple(
+            Text(char, concatenate=True).add_strokes().scale(1.5).shift(x_coord * RIGHT + 2.0 * DOWN)
             for char, x_coord in zip("DFJK", x_coords, strict=True)
-        ]
+        )
 
         self.add(judge_line)
         await self.play(Parallel(*(

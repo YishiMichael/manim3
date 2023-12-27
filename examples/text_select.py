@@ -10,10 +10,10 @@ class TextSelectExample(Scene):
     async def construct(
         self: Self
     ) -> None:
-        text = Text("Typst Text").shift(UP)
+        text = Text("Typst Text").scale(2.0).shift(UP)
         text.select("Typst").set(color=TEAL)
 
-        equation = Math("a^2 + b^2 = c^2").shift(DOWN)
+        equation = Math("a^2 + b^2 = c^2").scale(2.0).shift(DOWN)
         equation.set_local_colors({
             "a": GREEN,
             "b": RED,

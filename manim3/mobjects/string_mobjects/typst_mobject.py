@@ -96,7 +96,7 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         super().__init__(inputs)
         self._inputs: TypstMobjectInputsT = inputs
         self._selector_to_indices_dict: dict[SelectorType, list[int]] = {}
-        self.scale(1.0 / 16.0)
+        self.scale(1.0 / 32.0)
 
     @classmethod
     def _generate_shape_mobjects(

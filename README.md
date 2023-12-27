@@ -6,8 +6,6 @@
 ## Introduction
 Manim3 is a personal variant of [manim](https://github.com/3b1b/manim). It aims at standardizing the project structure, improving rendering performance and providing additional features.
 
-Note: This project is still in its primary stage and not stable.
-
 
 ## Installation
 Manim3 runs on Python 3.12+ and OpenGL 4.3+.

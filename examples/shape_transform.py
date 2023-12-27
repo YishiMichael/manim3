@@ -13,7 +13,7 @@ class ShapeTransformExample(Scene):
         square = (
             Square()
             .set(color=WHITE, opacity=1.0)
-            .add_strokes(color=YELLOW, width=0.0)
+            .add_strokes(color=YELLOW, thickness=0.0)
         )
         circle = (
             Circle()

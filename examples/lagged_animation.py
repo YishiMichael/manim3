@@ -10,7 +10,7 @@ class LaggedAnimationExample(Scene):
     async def construct(
         self: Self
     ) -> None:
-        text = Text("Text")
+        text = Text("Text").scale(2.0)
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),

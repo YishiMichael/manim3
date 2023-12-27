@@ -25,7 +25,7 @@ class ThreeDExample(Scene):
         self.add(dodec)
         self.prepare(self.camera.animate(infinite=True).rotate_about_origin(0.5 * DOWN))
 
-        text = Text("Dodecahedron")
+        text = Text("Dodecahedron").scale(2.0)
         await self.play(Parallel(*(
             Parallel(
                 FadeIn(char),

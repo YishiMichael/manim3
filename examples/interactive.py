@@ -24,7 +24,7 @@ class InteractiveExample(Scene):
                 strict=True
             )
         ))
-        text = Text("Press space to animate.").shift(1.5 * DOWN)
+        text = Text("Press space to animate.").scale(1.5).shift(1.5 * DOWN)
         self.add(squares, text)
         timelines = tuple(
             square.animate().shift(UP)

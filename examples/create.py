@@ -12,6 +12,7 @@ class CreateExample(Scene):
     ) -> None:
         text = (
             Text("Text")
+            .scale(2.0)
             .set(color=ORANGE, opacity=0.5)
             .add_strokes(color=BLUE, weight=10.0)
         )
