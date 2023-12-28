@@ -24,7 +24,7 @@ class Config(ToplevelResource):
     frame_height: float = 8.0
     pixel_height: int = 1080
     window_pixel_height: int = 540
-    msaa_samples: int = 4  # Set to 0 to turn off msaa.
+    msaa_samples: int = 4  # Set to 0 to disable msaa.
 
     default_color: ColorType = Color("white")
     default_opacity: float = 1.0

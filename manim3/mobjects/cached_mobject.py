@@ -21,7 +21,7 @@ from .shape_mobjects.shape_mobject import ShapeMobject
 class ShapeMobjectJSON(TypedDict):
     coordinates: tuple[float, ...]  # flattened
     counts: tuple[int, ...]
-    color: str   # hex rgba
+    color: str  # hex rgba
 
 
 @attrs.frozen(kw_only=True)

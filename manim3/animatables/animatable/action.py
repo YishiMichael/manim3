@@ -135,9 +135,7 @@ class Action[AnimatableT: Animatable, **P]:
         return self._method(type(dst), dst, *args, **kwargs)
 
 
-class DescriptiveAction[AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](
-    Action[AnimatableT, P]
-):
+class DescriptiveAction[AnimatableT: Animatable, DescriptorParametersT: DescriptorParameters, **P](Action[AnimatableT, P]):
     __slots__ = (
         "_descriptor_parameters_cls",
         "_descriptor_items"
