@@ -20,6 +20,7 @@ from ..constants.custom_typing import (
     RateType
 )
 from ..constants.rates import Rates
+from ..toplevel.events import KeyPress
 from ..toplevel.toplevel import Toplevel
 
 if TYPE_CHECKING:
@@ -257,3 +258,10 @@ class Timeline(ABC):
         await self.wait_until(
             lambda: not isinstance(self._timeline_state, AfterLaunched) or self._timeline_state.absolute_rate() >= target_alpha
         )
+
+    async def wait_key(
+        self: Self,
+        symbol: int | None = None,
+        modifiers: int | None = None
+    ) -> None:
+        await self.wait_until(KeyPress(symbol=symbol, modifiers=modifiers).captured)

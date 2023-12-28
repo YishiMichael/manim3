@@ -46,7 +46,7 @@ class Config(ToplevelResource):
     typst_font: str | tuple[str, ...] | None = None
     math_inline: bool = False
     code_syntax: str = "py"
-    code_theme: pathlib.Path | None = None
+    code_theme: str | pathlib.Path | None = None
 
     shader_search_dirs: tuple[pathlib.Path, ...] = (
         pathlib.Path(),

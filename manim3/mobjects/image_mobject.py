@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+import pathlib
 from typing import Self
 
 import numpy as np
@@ -15,18 +16,23 @@ class ImageMobject(Plane):
 
     def __init__(
         self: Self,
-        image_filename: str,
+        image_path: str | pathlib.Path,
         *,
         width: float | None = None,
         height: float | None = None,
         scale: float | None = None
     ) -> None:
         super().__init__()
-        for image_dir in Toplevel._get_config().image_search_dirs:
-            if (image_path := image_dir.joinpath(image_filename)).exists():
-                break
+        if isinstance(image_path, str):
+            for image_dir in Toplevel._get_config().image_search_dirs:
+                if image_dir.joinpath(image_path).exists():
+                    image_path = image_dir.joinpath(image_path)
+                    break
+            else:
+                raise FileNotFoundError(image_path)
         else:
-            raise FileNotFoundError(image_filename)
+            if not image_path.exists():
+                raise FileNotFoundError(image_path)
 
         image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         image_texture = Toplevel._get_context().texture(size=image.size, components=3, samples=0, dtype="f1")

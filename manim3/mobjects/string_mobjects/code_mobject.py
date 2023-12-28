@@ -30,9 +30,8 @@ class CodeInputs(TypstMobjectInputs):
     syntax: str = attrs.field(
         factory=lambda: Toplevel._get_config().code_syntax
     )
-    theme: pathlib.Path | None = attrs.field(
-        factory=lambda: Toplevel._get_config().code_theme,
-        converter=lambda theme: None if theme is None else pathlib.Path(theme) if isinstance(theme, str) else theme
+    theme: str | pathlib.Path | None = attrs.field(
+        factory=lambda: Toplevel._get_config().code_theme
     )
 
 

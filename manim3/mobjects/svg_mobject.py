@@ -17,6 +17,7 @@ from ..constants.custom_typing import (
     NP_2f8,
     NP_x2f8
 )
+from ..toplevel.toplevel import Toplevel
 from .shape_mobjects.shape_mobject import ShapeMobject
 from .cached_mobject import (
     CachedMobject,
@@ -42,7 +43,17 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
         height: float | None = None,
         scale: float | None = None
     ) -> None:
-        svg_path = pathlib.Path(svg_path)
+        if isinstance(svg_path, str):
+            for image_dir in Toplevel._get_config().image_search_dirs:
+                if image_dir.joinpath(svg_path).exists():
+                    svg_path = image_dir.joinpath(svg_path)
+                    break
+            else:
+                raise FileNotFoundError(svg_path)
+        else:
+            if not svg_path.exists():
+                raise FileNotFoundError(svg_path)
+
         super().__init__(SVGMobjectInputs(
             svg_path=svg_path,
             svg_text=svg_path.read_text(encoding="utf-8")
