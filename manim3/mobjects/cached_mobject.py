@@ -52,10 +52,11 @@ class CachedMobject[CachedMobjectInputsT: CachedMobjectInputs](ShapeMobject):
         hash_content = f"{inputs}"
         # Truncating at 16 bytes for cleanliness.
         hex_string = hashlib.sha256(hash_content.encode()).hexdigest()[:16]
-        json_path = cls._ensure_output_subdir("cache").joinpath(f"{hex_string}.json")
+        cache_storager = Toplevel._get_renderer()._cache_storager
+        json_path = cache_storager.get_cache_path(f"{hex_string}.json")
 
         if not json_path.exists():
-            temp_path = cls._ensure_output_subdir("_temp").joinpath(hex_string)
+            temp_path = cache_storager.get_temp_path(hex_string)
             shape_mobjects = cls._generate_shape_mobjects(inputs, temp_path)
             shape_mobjects_json_tuple = tuple(
                 cls._shape_mobject_to_json(shape_mobject)
@@ -77,15 +78,6 @@ class CachedMobject[CachedMobjectInputsT: CachedMobjectInputs](ShapeMobject):
         temp_path: pathlib.Path
     ) -> tuple[ShapeMobject, ...]:
         pass
-
-    @classmethod
-    def _ensure_output_subdir(
-        cls: type[Self],
-        dir_name: str
-    ) -> pathlib.Path:
-        subdir = Toplevel._get_config().output_dir.joinpath(dir_name)
-        subdir.mkdir(exist_ok=True)
-        return subdir
 
     @classmethod
     def _shape_mobject_to_json(

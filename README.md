@@ -20,13 +20,9 @@ git clone https://github.com/YishiMichael/manim3.git
 cd manim3
 pip install -e .
 ```
-Through either way most features of manim3 have become available. To enable more functionalities, these are their corresponding soft dependencies:
-
-### Generating Videos
-Install [ffmpeg](https://ffmpeg.org/).
-
-### `TypstMobject` (including `Text`, `Math`, `Code`)
-Install [typst](https://github.com/typst/typst).
+Additionally, there are other software dependencies to be installed:
+- To generate video files, install [ffmpeg](https://ffmpeg.org/).
+- To use `TypstMobject` (including `Text`, `Math`, `Code`), install [typst](https://github.com/typst/typst).
 
 
 ## Using manim3

@@ -116,10 +116,7 @@ class Action[AnimatableT: Animatable, **P]:
     @classmethod
     def register(
         cls: type[Self]
-    ) -> Callable[
-        [Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]],
-        Self
-    ]:
+    ) -> Callable[[Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]], Self]:
 
         def result(
             method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]
@@ -164,10 +161,7 @@ class DescriptiveAction[AnimatableT: Animatable, DescriptorParametersT: Descript
     def descriptive_register(
         cls: type[Self],
         descriptor_parameters_cls: type[DescriptorParametersT]
-    ) -> Callable[
-        [Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]],
-        Self
-    ]:
+    ) -> Callable[[Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]], Self]:
 
         def result(
             method: Callable[Concatenate[type[AnimatableT], AnimatableT, P], Iterator[Animation]]

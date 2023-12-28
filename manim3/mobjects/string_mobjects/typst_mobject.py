@@ -84,10 +84,7 @@ class TypstMobjectInputs(CachedMobjectInputs):
 
 
 class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstMobjectInputsT]):
-    __slots__ = (
-        "_inputs",
-        "_selector_to_indices_dict"
-    )
+    __slots__ = ("_inputs",)
 
     def __init__(
         self: Self,
@@ -95,7 +92,6 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     ) -> None:
         super().__init__(inputs)
         self._inputs: TypstMobjectInputsT = inputs
-        self._selector_to_indices_dict: dict[SelectorType, list[int]] = {}
         self.scale(1.0 / 32.0)
 
     @classmethod
@@ -177,13 +173,9 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
     def _probe_indices_from_selectors(
         self: Self,
         selectors: tuple[SelectorType, ...]
-    ) -> None:
-        selectors = tuple(
-            selector for selector in selectors
-            if selector not in self._selector_to_indices_dict
-        )
+    ) -> tuple[tuple[int, ...], ...]:
         if not selectors:
-            return
+            return ()
 
         # Label by 255 opacity values (opacity 0xFF is reserved).
         assert len(selectors) <= 255
@@ -199,38 +191,43 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         labelled_shape_mobjects = cls._get_shape_mobjects(labelled_inputs)
         assert len(self._shape_mobjects) == len(labelled_shape_mobjects)
 
-        self._selector_to_indices_dict.update((selector, []) for selector in selectors)
-        for index, labelled_shape_mobject in enumerate(labelled_shape_mobjects):
-            label = int(labelled_shape_mobject._opacity_._array_ * 255.0)
-            if label == 255:
-                continue
-            self._selector_to_indices_dict[label_to_selector_dict[label]].append(index)
+        labels = tuple(
+            int(labelled_shape_mobject._opacity_._array_ * 255.0)
+            for labelled_shape_mobject in labelled_shape_mobjects
+        )
+        return tuple(
+            tuple(
+                index
+                for index, label in enumerate(labels)
+                if label == target_label
+            )
+            for target_label in label_to_selector_dict
+        )
 
-    def _build_from_selector(
+    def _build_from_indices(
         self: Self,
-        selector: SelectorType
+        indices: tuple[int, ...]
     ) -> Mobject:
         return Mobject().add(*(
             self._shape_mobjects[index]
-            for index in self._selector_to_indices_dict[selector]
+            for index in indices
         ))
 
     def select_multiple(
         self: Self,
         selectors: tuple[SelectorType, ...]
     ) -> Mobject:
-        self._probe_indices_from_selectors(selectors)
         return Mobject().add(*(
-            self._build_from_selector(selector)
-            for selector in selectors
+            self._build_from_indices(indices)
+            for indices in self._probe_indices_from_selectors(selectors)
         ))
 
     def select(
         self: Self,
         selector: SelectorType
     ) -> Mobject:
-        self._probe_indices_from_selectors((selector,))
-        return self._build_from_selector(selector)
+        (indices,) = self._probe_indices_from_selectors((selector,))
+        return self._build_from_indices(indices)
 
     def set_local_colors(
         self: Self,

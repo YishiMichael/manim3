@@ -1,7 +1,7 @@
 attrs
 colour
 ffmpeg-python
-lru-cache
+lru-dict
 mapbox-earcut
 moderngl
 numpy

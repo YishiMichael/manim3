@@ -97,6 +97,38 @@ class VideoPipe:
         Toplevel._get_logger().log(f"Recording saved to '{self._video_path}'.")
 
 
+class CacheStorager:
+    __slots__ = (
+        "_cache_dir",
+        "_temp_dir"
+    )
+
+    def __init__(
+        self: Self
+    ) -> None:
+        super().__init__()
+        output_dir = Toplevel._get_config().output_dir
+        cache_dir = output_dir.joinpath("cache")
+        temp_dir = output_dir.joinpath("_temp")
+        output_dir.mkdir(exist_ok=True)
+        temp_dir.mkdir(exist_ok=True)
+        cache_dir.mkdir(exist_ok=True)
+        self._cache_dir: pathlib.Path = cache_dir
+        self._temp_dir: pathlib.Path = temp_dir
+
+    def get_cache_path(
+        self: Self,
+        filename: str
+    ) -> pathlib.Path:
+        return self._cache_dir.joinpath(filename)
+
+    def get_temp_path(
+        self: Self,
+        filename: str
+    ) -> pathlib.Path:
+        return self._temp_dir.joinpath(filename)
+
+
 class Livestreamer:
     __slots__ = ("_livestreaming",)
 
@@ -227,6 +259,7 @@ class Renderer(ToplevelResource):
         "_final_framebuffer",
         "_oit_framebuffer",
         "_oit_compose_vertex_array",
+        "_cache_storager",
         "_livestreamer",
         "_video_recorder",
         "_image_recoder"
@@ -275,6 +308,7 @@ class Renderer(ToplevelResource):
         self._final_framebuffer: FinalFramebuffer = final_framebuffer
         self._oit_framebuffer: OITFramebuffer = oit_framebuffer
         self._oit_compose_vertex_array: VertexArray = oit_compose_vertex_array
+        self._cache_storager: CacheStorager = CacheStorager()
         self._livestreamer: Livestreamer = Livestreamer()
         self._video_recorder: VideoRecorder = VideoRecorder()
         self._image_recoder: ImageRecoder = ImageRecoder()
@@ -283,7 +317,6 @@ class Renderer(ToplevelResource):
         self: Self
     ) -> Iterator[None]:
         Toplevel._renderer = self
-        Toplevel._get_config().output_dir.mkdir(exist_ok=True)
         yield
         self._video_recorder.save_videos()
         Toplevel._renderer = None
