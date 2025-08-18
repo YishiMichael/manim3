@@ -28,7 +28,7 @@ class FlashPiecewiser(Piecewiser):
         alpha: float
     ) -> tuple[float, float]:
         proportion = self._proportion
-        return (min(alpha * (1.0 + proportion), 1.0), max(alpha * (1.0 + proportion) - proportion, 0.0))
+        return (max(alpha * (1.0 + proportion) - proportion, 0.0), min(alpha * (1.0 + proportion), 1.0))
 
 
 class Flash(Timeline):

@@ -4,19 +4,18 @@ from __future__ import annotations
 import math
 import pathlib
 from typing import (
+    Callable,
     Iterator,
     Self
 )
 
 import attrs
 import numpy as np
+import skia
 import svgelements as se
 
 from ..animatables.shape import Shape
-from ..constants.custom_typing import (
-    NP_2f8,
-    NP_x2f8
-)
+from ..constants.custom_typing import NP_2f8
 from ..toplevel.toplevel import Toplevel
 from .shape_mobjects.shape_mobject import ShapeMobject
 from .cached_mobject import (
@@ -87,40 +86,129 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
         svg_path: pathlib.Path
     ) -> tuple[ShapeMobject, ...]:
 
-        def iter_paths_from_se_shape(
+        def iter_skia_paths_from_se_shape(
             se_shape: se.Shape
-        ) -> Iterator[NP_x2f8]:
-            se_path = se.Path(se_shape.segments(transformed=True))
-            se_path.approximate_arcs_with_cubics()
-            coordinates_list: list[NP_2f8] = []
-            is_ring: bool = False
-            coordinates_dtype = np.dtype((np.float64, (2,)))
-            for segment in se_path.segments(transformed=True):
+        ) -> Iterator[tuple[skia.Path, str | None, float | None]]:
+
+            def convert_point(
+                point: se.Point
+            ) -> skia.Point:
+                return skia.Point(point.x, point.y)
+
+            def underscore_to_camelcase(
+                name: str
+            ) -> str:
+                return "".join(s.capitalize() for s in name.split("_"))
+
+            path = skia.Path()
+            for segment in se_shape.segments():
                 match segment:
-                    case se.Move(end=end):
-                        if is_ring:
-                            yield np.fromiter(coordinates_list, dtype=coordinates_dtype)
-                        coordinates_list = [np.array(end)]
-                        is_ring = False
+                    case se.Move():
+                        path.moveTo(convert_point(segment.end))
                     case se.Close():
-                        is_ring = True
-                    case se.Line(end=end):
-                        coordinates_list.append(np.array(end))
-                    case se.QuadraticBezier() | se.CubicBezier():
-                        # Approximate the bezier curve with a polyline.
-                        control_positions = np.array(segment)
-                        degree = len(control_positions) - 1
-                        coordinates_list.extend(
-                            np.fromiter((
-                                math.comb(degree, k) * pow(1.0 - alpha, degree - k) * pow(alpha, k) * control_position
-                                for k, control_position in enumerate(control_positions)
-                            ), dtype=np.dtype((np.float64, (2,)))).sum(axis=0)
-                            for alpha in np.linspace(0.0, 1.0, 9)[1:]
+                        path.close()
+                    case se.Line():
+                        path.lineTo(convert_point(segment.end))
+                    case se.QuadraticBezier():
+                        path.quadTo(convert_point(segment.control), convert_point(segment.end))
+                    case se.CubicBezier():
+                        path.cubicTo(convert_point(segment.control1), convert_point(segment.control2), convert_point(segment.end))
+                    case se.Arc():
+                        assert isinstance(segment.sweep, float)
+                        path.arcTo(
+                            convert_point(segment.radius),
+                            segment.get_rotation().as_degrees,
+                            skia.Path.ArcSize.kSmall_ArcSize if abs(segment.sweep) < math.pi else skia.Path.ArcSize.kLarge_ArcSize,
+                            skia.PathDirection.kCW if segment.sweep < 0 else skia.PathDirection.kCCW,
+                            convert_point(segment.end)
                         )
                     case _:
-                        raise ValueError(f"Cannot handle path segment type: {type(segment)}")
-            if is_ring:
-                yield np.fromiter(coordinates_list, dtype=coordinates_dtype)
+                        raise ValueError(f"Cannot handle svgelements path segment type: {type(segment)}")
+
+            if se_shape.fill.value is not None:
+                yield (path, se_shape.fill.hexrgb, se_shape.fill.opacity)
+            if se_shape.stroke.value is not None:
+                assert se_shape.values is not None
+                paint = skia.Paint()
+                paint.setStyle(skia.Paint.kStroke_Style)
+                if (stroke_cap := se_shape.values.get("stroke-linecap")) is not None:
+                    paint.setStrokeCap(getattr(skia.Paint.Cap, f"k{underscore_to_camelcase(stroke_cap)}_Cap"))
+                if (stroke_join := se_shape.values.get("stroke-linejoin")) is not None:
+                    paint.setStrokeJoin(getattr(skia.Paint.Join, f"k{underscore_to_camelcase(stroke_join)}_Join"))
+                if (stroke_miter := se_shape.values.get("stroke-miterlimit")) is not None:
+                    paint.setStrokeMiter(float(stroke_miter))
+                if (stroke_width := se_shape.values.get("stroke-width")) is not None:
+                    paint.setStrokeWidth(float(stroke_width))
+
+                stroke_path = skia.Path()
+                if paint.getFillPath(path, stroke_path):
+                    yield (stroke_path, se_shape.stroke.hexrgb, se_shape.stroke.opacity)
+
+        def get_shape_from_skia_path(
+            path: skia.Path
+        ) -> Shape:
+            
+            def convert_point(
+                point: skia.Point
+            ) -> NP_2f8:
+                return np.array((point.x(), point.y()))
+
+            def sample_positions(
+                f: Callable[[float], NP_2f8]
+            ) -> Iterator[NP_2f8]:
+                for t in np.linspace(0.0, 1.0, 9)[1:]:
+                    yield f(float(t))
+
+            coordinates_list: list[NP_2f8] = []
+            counts_list: list[int] = []
+            prev_count = 0
+            it = iter(path)
+            verb, points = it.next()
+            while verb != skia.Path.Verb.kDone_Verb:
+                match (verb, points):
+                    case (skia.Path.Verb.kMove_Verb, [_]):
+                        pass
+                    case (skia.Path.Verb.kLine_Verb, [_, end]):
+                        end = convert_point(end)
+                        coordinates_list.append(end)
+                    case (skia.Path.Verb.kQuad_Verb, [start, control, end]):
+                        start = convert_point(start)
+                        control = convert_point(control)
+                        end = convert_point(end)
+                        coordinates_list.extend(sample_positions(
+                            lambda t: (1.0 - t) * (1.0 - t) * start
+                                + 2.0 * (1.0 - t) * t * control
+                                + t * t * end
+                        ))
+                    case (skia.Path.Verb.kCubic_Verb, [start, control1, control2, end]):
+                        start = convert_point(start)
+                        control1 = convert_point(control1)
+                        control2 = convert_point(control2)
+                        end = convert_point(end)
+                        coordinates_list.extend(sample_positions(
+                            lambda t: (1.0 - t) * (1.0 - t) * (1.0 - t) * start
+                                + 3.0 * (1.0 - t) * (1.0 - t) * t * control1
+                                + 3.0 * (1.0 - t) * t * t * control2
+                                + t * t * t * end
+                        ))
+                    case (skia.Path.Verb.kConic_Verb, [start, control, end]):
+                        start = convert_point(start)
+                        control = convert_point(control)
+                        end = convert_point(end)
+                        w = it.conicWeight()
+                        coordinates_list.extend(sample_positions(
+                            lambda t: ((1.0 - t) * (1.0 - t) * start
+                                + 2.0 * (1.0 - t) * t * w * control
+                                + t * t * end
+                            ) / ((1.0 - t) * (1.0 - t) + 2.0 * (1.0 - t) * t * w + t * t)
+                        ))
+                    case (skia.Path.Verb.kClose_Verb, [_]):
+                        counts_list.append(len(coordinates_list) - prev_count)
+                        prev_count = len(coordinates_list)
+                    case _:
+                        raise ValueError(f"Cannot handle skia path segment: {(verb, points)}")
+                verb, points = it.next()
+            return Shape(np.array(coordinates_list), np.array(counts_list))
 
         def iter_shape_mobjects_from_svg(
             svg: se.SVG
@@ -144,17 +232,17 @@ class SVGMobject(CachedMobject[SVGMobjectInputs]):
             for se_shape in svg.elements():
                 if not isinstance(se_shape, se.Shape):
                     continue
-                shape = Shape().as_paths(iter_paths_from_se_shape(se_shape * transform))
-                if not len(shape._coordinates_):
-                    # Filter out empty shapes.
-                    continue
-                style_dict = {}
-                if se_shape.fill is not None:
-                    if (color := se_shape.fill.hexrgb) is not None:
-                        style_dict["color"] = color
-                    if (opacity := se_shape.fill.opacity) is not None:
-                        style_dict["opacity"] = opacity
-                yield ShapeMobject(shape).set(**style_dict)
+                for skia_path, color, opacity in iter_skia_paths_from_se_shape(se_shape * transform):
+                    shape = get_shape_from_skia_path(skia_path)
+                    if len(shape._coordinates_) == 0:
+                        continue
+                    style_dict = {}
+                    if se_shape.fill is not None:
+                        if color is not None:
+                            style_dict["color"] = color
+                        if opacity is not None:
+                            style_dict["opacity"] = opacity
+                    yield ShapeMobject(shape).set(**style_dict)
 
         svg: se.SVG = se.SVG.parse(svg_path)
         return tuple(iter_shape_mobjects_from_svg(svg))

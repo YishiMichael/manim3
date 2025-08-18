@@ -3,10 +3,11 @@ colour
 ffmpeg-python
 lru-dict
 mapbox-earcut
-moderngl
+moderngl<=5.9.0
 numpy
 pillow
 pyclipr
 pyglet
 rich
+skia-python
 svgelements

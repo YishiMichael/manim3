@@ -34,8 +34,8 @@ class FadeTransform(Timeline):
         self.scene.add(stop_mobject)
         await self.play(Parallel(
             FadeOut(start_mobject),
-            start_mobject.animate().move_to(stop_mobject),
+            start_mobject.animate().stretch_to(stop_mobject.box.get_size()).move_to(stop_mobject),
             FadeIn(stop_mobject),
-            stop_mobject.animate(rewind=True).move_to(start_mobject)
+            stop_mobject.animate(rewind=True).stretch_to(start_mobject.box.get_size()).move_to(start_mobject)
         ))
         self.scene.discard(start_mobject)

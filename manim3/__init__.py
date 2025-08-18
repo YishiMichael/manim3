@@ -3,6 +3,7 @@ from __future__ import annotations
 
 __version__ = "0.1.0"
 
+from .animatables.animatable.animation import Animation
 from .animatables.lights.ambient_light import AmbientLight
 from .animatables.lights.point_light import PointLight
 from .animatables.camera import Camera
@@ -44,6 +45,7 @@ from .mobjects.shape_mobjects.square import Square
 from .mobjects.string_mobjects.code_mobject import Code
 from .mobjects.string_mobjects.math_mobject import Math
 from .mobjects.string_mobjects.text_mobject import Text
+from .mobjects.string_mobjects.typst_mobject import TypstMobject
 from .mobjects.image_mobject import ImageMobject
 from .mobjects.mobject import Mobject
 from .mobjects.svg_mobject import SVGMobject

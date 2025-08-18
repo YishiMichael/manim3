@@ -27,7 +27,8 @@ from typing import (
     Literal
 )
 
-import numpy as np
+# import numpy as np
+import numpy.typing as npt
 from colour import Color
 
 
@@ -36,18 +37,18 @@ type _2D = Literal[2]
 type _3D = Literal[3]
 type _4D = Literal[4]
 
-type NP_f8 = np.ndarray[tuple[()], np.dtype[np.float64]]
-type NP_2f8 = np.ndarray[tuple[_2D], np.dtype[np.float64]]
-type NP_3f8 = np.ndarray[tuple[_3D], np.dtype[np.float64]]
-type NP_44f8 = np.ndarray[tuple[_4D, _4D], np.dtype[np.float64]]
-type NP_xf8 = np.ndarray[tuple[_XD], np.dtype[np.float64]]
-type NP_x2f8 = np.ndarray[tuple[_XD, _2D], np.dtype[np.float64]]
-type NP_x3f8 = np.ndarray[tuple[_XD, _3D], np.dtype[np.float64]]
+type NP_f8 = npt.NDArray  # np.ndarray[tuple[()], np.dtype[np.float64]]
+type NP_2f8 = npt.NDArray  # np.ndarray[tuple[_2D], np.dtype[np.float64]]
+type NP_3f8 = npt.NDArray  # np.ndarray[tuple[_3D], np.dtype[np.float64]]
+type NP_44f8 = npt.NDArray  # np.ndarray[tuple[_4D, _4D], np.dtype[np.float64]]
+type NP_xf8 = npt.NDArray  # np.ndarray[tuple[_XD], np.dtype[np.float64]]
+type NP_x2f8 = npt.NDArray  # np.ndarray[tuple[_XD, _2D], np.dtype[np.float64]]
+type NP_x3f8 = npt.NDArray  # np.ndarray[tuple[_XD, _3D], np.dtype[np.float64]]
 
-type NP_xi4 = np.ndarray[tuple[_XD], np.dtype[np.int32]]
-type NP_x2i4 = np.ndarray[tuple[_XD, _2D], np.dtype[np.int32]]
-type NP_x3i4 = np.ndarray[tuple[_XD, _3D], np.dtype[np.int32]]
-type NP_xxi4 = np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
+type NP_xi4 = npt.NDArray  # np.ndarray[tuple[_XD], np.dtype[np.int32]]
+type NP_x2i4 = npt.NDArray  # np.ndarray[tuple[_XD, _2D], np.dtype[np.int32]]
+type NP_x3i4 = npt.NDArray  # np.ndarray[tuple[_XD, _3D], np.dtype[np.int32]]
+type NP_xxi4 = npt.NDArray  # np.ndarray[tuple[_XD, _XD], np.dtype[np.int32]]
 
 type ShapeType = tuple[int, ...]
 type ColorType = Color | str | NP_3f8
