@@ -27,8 +27,7 @@ class VideoPipe:
     __slots__ = (
         "_video_path",
         "_video_stream",
-        "_writing_process",
-        "_writing"
+        "_writing_process"
     )
 
     def __init__(
@@ -60,29 +59,6 @@ class VideoPipe:
         self._video_path: pathlib.Path = video_path
         self._video_stream: IO[bytes] = writing_process.stdin
         self._writing_process: subprocess.Popen[bytes] = writing_process
-        self._writing: bool = False
-
-    @property
-    def is_writing(
-        self: Self
-    ) -> bool:
-        return self._writing
-
-    def enable_writing(
-        self: Self
-    ) -> None:
-        if self._writing:
-            return
-        self._writing = True
-        Toplevel._get_logger().log(f"Start recording video to '{self._video_path}'.")
-
-    def disable_writing(
-        self: Self
-    ) -> None:
-        if not self._writing:
-            return
-        self._writing = False
-        Toplevel._get_logger().log(f"Stop recording video to '{self._video_path}'.")
 
     def write(
         self: Self,
@@ -94,7 +70,6 @@ class VideoPipe:
         self: Self
     ) -> None:
         self._writing_process.communicate()
-        Toplevel._get_logger().log(f"Recording saved to '{self._video_path}'.")
 
 
 class CacheStorager:
@@ -190,27 +165,29 @@ class VideoRecorder:
     def is_recording(
         self: Self
     ) -> bool:
-        return any(video_pipe.is_writing for video_pipe in self._video_pipes.values())
+        return bool(self._video_pipes)
 
-    def enable_recording(
+    def start_recording(
         self: Self,
         filename: str
     ) -> None:
-        if (video_pipe := self._video_pipes.get(filename)) is None:
-            video_path = self._video_dir.joinpath(filename)
-            assert video_path.suffix == ".mp4", \
-                f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
-            video_pipe = VideoPipe(video_path)
-            self._video_pipes[filename] = video_pipe
-        video_pipe.enable_writing()
+        if (video_pipe := self._video_pipes.get(filename)) is not None:
+            raise ValueError(f"Video pipe to {filename} has already been created.")
+        video_path = self._video_dir.joinpath(filename)
+        assert video_path.suffix == ".mp4", \
+            f"Video format other than .mp4 is currently not supported: {video_path.suffix}"
+        video_pipe = VideoPipe(video_path)
+        self._video_pipes[filename] = video_pipe
+        Toplevel._get_logger().log(f"Start recording video to '{filename}'.")
 
-    def disable_recording(
+    def stop_recording(
         self: Self,
         filename: str
     ) -> None:
-        if (video_pipe := self._video_pipes.get(filename)) is None:
+        if (video_pipe := self._video_pipes.pop(filename)) is None:
             raise ValueError(f"Video pipe to {filename} not found.")
-        video_pipe.disable_writing()
+        video_pipe.save()
+        Toplevel._get_logger().log(f"Stop recording video to '{filename}'.")
 
     def record_frame(
         self: Self,
@@ -218,8 +195,7 @@ class VideoRecorder:
     ) -> None:
         frame_bytes = framebuffer._framebuffer.read()
         for video_pipe in self._video_pipes.values():
-            if video_pipe.is_writing:
-                video_pipe.write(frame_bytes)
+            video_pipe.write(frame_bytes)
 
     def save_videos(
         self: Self
@@ -363,7 +339,7 @@ class Renderer(ToplevelResource):
     ) -> None:
         if filename is None:
             filename = f"{Toplevel._get_config().default_filename}.mp4"
-        self._video_recorder.enable_recording(filename)
+        self._video_recorder.start_recording(filename)
 
     def stop_recording(
         self: Self,
@@ -371,7 +347,7 @@ class Renderer(ToplevelResource):
     ) -> None:
         if filename is None:
             filename = f"{Toplevel._get_config().default_filename}.mp4"
-        self._video_recorder.disable_recording(filename)
+        self._video_recorder.stop_recording(filename)
 
     def snapshot(
         self: Self,

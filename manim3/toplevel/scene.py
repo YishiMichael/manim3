@@ -38,9 +38,20 @@ class Scene(Timeline):
             background_opacity=Toplevel._get_config().background_opacity
         )
 
+    def before_construct(
+        self: Self
+    ) -> None:
+        pass
+
+    def after_construct(
+        self: Self
+    ) -> None:
+        pass
+
     def _run(
         self: Self
     ) -> None:
+        self.before_construct()
         self.schedule(parent_absolute_rate=lambda: Toplevel._get_scene()._scene_time)
         for scene_time in Toplevel._get_timer().frame_clock():
             self._scene_time = scene_time
@@ -50,6 +61,7 @@ class Scene(Timeline):
             Toplevel._get_renderer().process_frame()
             if self.terminated():
                 break
+        self.after_construct()
 
     def run(
         self: Self

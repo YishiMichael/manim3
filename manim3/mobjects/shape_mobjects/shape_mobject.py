@@ -8,6 +8,7 @@ from typing import (
 
 import numpy as np
 
+
 from ...animatables.animatable.animatable import Animatable
 from ...animatables.mesh import Mesh
 from ...animatables.model import SetKwargs
@@ -15,6 +16,8 @@ from ...animatables.shape import (
     Shape,
     Triangulation
 )
+from ...constants.constants import ORIGIN
+from ...constants.custom_typing import NP_3f8
 from ...lazy.lazy import Lazy
 from ..graph_mobjects.graph_mobject import GraphMobject
 from ..mesh_mobjects.mesh_mobject import MeshMobject
@@ -66,9 +69,10 @@ class ShapeMobject(MeshMobject):
 
     def add_strokes(
         self: Self,
+        offset: NP_3f8 = ORIGIN,
         **kwargs: Unpack[SetKwargs]
     ) -> Self:
         for mobject in self.iter_descendants():
             if isinstance(mobject, ShapeMobject):
-                mobject.add(mobject.build_stroke(**kwargs))
+                mobject.add(mobject.build_stroke(**kwargs).shift(offset))
         return self

@@ -34,9 +34,9 @@ class ImageMobject(Plane):
             if not image_path.exists():
                 raise FileNotFoundError(image_path)
 
-        image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        image = Image.open(image_path).transpose(Image.Transpose.FLIP_TOP_BOTTOM).convert("RGB")
         image_texture = Toplevel._get_context().texture(size=image.size, components=3, samples=0, dtype="f1")
-        image_texture.write(image.tobytes("raw", "RGB"))
+        image_texture.write(image.tobytes("raw"))
         self._color_maps_ = (image_texture,)
 
         pixel_per_unit = Toplevel._get_config().pixel_per_unit

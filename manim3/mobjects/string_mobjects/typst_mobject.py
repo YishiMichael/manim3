@@ -103,6 +103,7 @@ class TypstMobject[TypstMobjectInputsT: TypstMobjectInputs](CachedMobject[TypstM
         preamble = cls._get_preamble_from_inputs(inputs, temp_path)
         environment_begin, environment_end = cls._get_environment_pair_from_inputs(inputs, temp_path)
         content = "\n".join(filter(None, (
+            "#set page(height: auto, fill: none)",
             preamble,
             inputs.preamble,
             f"{environment_begin}{inputs.string}{environment_end}"
